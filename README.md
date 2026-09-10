@@ -4,7 +4,7 @@
 * Google Drive (Resources Archive)
 <br> https://drive.google.com/drive/folders/1mVRa0sYQaPx9uhG-Am2uUjIOUEY_dYDk?usp=sharing
 
-* Note
+* Note (Notion)
 <br> https://app.notion.com/p/HAL-2026-aa724287845e82d1b47901bf3d5a21c4?source=copy_link
 
 + Exhibition Location
@@ -21,9 +21,9 @@
 * <strong> 2026.10.23
 <br>  タイトル・作品説明文提出
 <br>  作品イメージイラスト提出 </strong> 
-* 2026.12.18
-<br> <strong> 作品完成
-* 2026.12.19 ~ 20 </strong>
+* <strong> 2026.12.18
+<br> 作品完成 </strong>
+* 2026.12.19 ~ 20 
 <br> 学内審査・出展可否の判断
 * 2027.01.21
 <br> 会場への作品搬入予定
