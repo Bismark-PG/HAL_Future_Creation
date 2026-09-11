@@ -9,10 +9,14 @@
 
 class UArcadeVehicleMovementComponent;
 class UArrowComponent;
+class UBallControlComponent;
 class UBoxComponent;
 class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
+class UPhysicsConstraintComponent;
+class UPrimitiveComponent;
+class USceneComponent;
 class USpringArmComponent;
 class UStaticMeshComponent;
 struct FInputActionValue;
@@ -47,6 +51,15 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
 	TObjectPtr<UArcadeVehicleMovementComponent> ArcadeMovement;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
+	TObjectPtr<USceneComponent> BallControlPoint;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
+	TObjectPtr<UPhysicsConstraintComponent> BallConstraint;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
+	TObjectPtr<UBallControlComponent> BallControl;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
 	TObjectPtr<USpringArmComponent> CameraBoom;
@@ -88,6 +101,14 @@ private:
 	void OnHandbrakeCompleted(const FInputActionValue& Value);
 	void OnLaunchStarted(const FInputActionValue& Value);
 	void OnLaunchCompleted(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void OnCollisionRootHit(
+		UPrimitiveComponent* HitComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComponent,
+		FVector NormalImpulse,
+		const FHitResult& Hit);
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Vehicle|Input")
 	FVehicleInputCmd CurrentInputCommand;

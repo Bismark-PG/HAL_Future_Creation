@@ -3,6 +3,7 @@
 #include "TestVehiclePawn.h"
 
 #include "ArcadeVehicleMovementComponent.h"
+#include "BallControlComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Components/BoxComponent.h"
@@ -15,6 +16,7 @@
 #include "InputAction.h"
 #include "InputActionValue.h"
 #include "InputMappingContext.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
 
 ATestVehiclePawn::ATestVehiclePawn()
 {
@@ -34,6 +36,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	CollisionRoot->SetMassOverrideInKg(NAME_None, 800.0f, true);
 	CollisionRoot->SetNotifyRigidBodyCollision(true);
 	CollisionRoot->BodyInstance.bUseCCD = true;
+	CollisionRoot->OnComponentHit.AddDynamic(this, &ThisClass::OnCollisionRootHit);
 
 	VisualMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualMesh"));
 	VisualMesh->SetupAttachment(CollisionRoot);
@@ -49,6 +52,18 @@ ATestVehiclePawn::ATestVehiclePawn()
 
 	ArcadeMovement = CreateDefaultSubobject<UArcadeVehicleMovementComponent>(TEXT("ArcadeMovement"));
 	ArcadeMovement->SetUpdatedPrimitive(CollisionRoot);
+
+	BallControlPoint = CreateDefaultSubobject<USceneComponent>(TEXT("BallControlPoint"));
+	BallControlPoint->SetupAttachment(CollisionRoot);
+	BallControlPoint->SetRelativeLocation(FVector(170.0f, 0.0f, 20.0f));
+
+	BallConstraint = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("BallConstraint"));
+	BallConstraint->SetupAttachment(BallControlPoint);
+	BallConstraint->SetRelativeTransform(FTransform::Identity);
+	BallConstraint->SetHiddenInGame(true);
+
+	BallControl = CreateDefaultSubobject<UBallControlComponent>(TEXT("BallControl"));
+	BallControl->SetVehicleComponents(CollisionRoot, BallControlPoint, BallConstraint);
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(CollisionRoot);
@@ -246,11 +261,29 @@ void ATestVehiclePawn::OnLaunchStarted(const FInputActionValue& Value)
 {
 	CurrentInputCommand.bLaunch = true;
 	PushInputCommand();
+
+	if (BallControl)
+	{
+		BallControl->LaunchHeldBall();
+	}
 }
 
 void ATestVehiclePawn::OnLaunchCompleted(const FInputActionValue& Value)
 {
 	CurrentInputCommand.bLaunch = false;
 	PushInputCommand();
+}
+
+void ATestVehiclePawn::OnCollisionRootHit(
+	UPrimitiveComponent* HitComponent,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComponent,
+	FVector NormalImpulse,
+	const FHitResult& Hit)
+{
+	if (BallControl)
+	{
+		BallControl->HandleVehicleCollision(NormalImpulse, Hit);
+	}
 }
 
