@@ -1,6 +1,9 @@
 # Visual Studio 2015 user specific files
 .vs/
 
+# Markdown documents
+*.md
+
 # Compiled Object files
 *.slo
 *.lo
