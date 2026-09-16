@@ -73,9 +73,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Ball|Damage", meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "100.0"))
 	float VehicleHitDamage = 25.0f;
 
-	/** Optional extra vehicle knockback; impulse units are kg*cm/s. */
-	UPROPERTY(EditDefaultsOnly, Category = "Ball|Damage", meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "100000.0"))
-	float VehicleHitAdditionalImpulse = 15000.0f;
+	/** Multiplies impact strength before the global knockback tier is selected. */
+	UPROPERTY(EditDefaultsOnly, Category = "Ball|Damage", meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "5.0"))
+	float KnockbackStrengthMultiplier = 1.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Ball|Debug")
 	bool bLogDamageHits = false;

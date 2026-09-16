@@ -26,6 +26,21 @@ namespace
 			return TEXT("Unknown");
 		}
 	}
+
+	const TCHAR* LexToString(const EVehicleKnockbackTier Tier)
+	{
+		switch (Tier)
+		{
+		case EVehicleKnockbackTier::Light:
+			return TEXT("Light");
+		case EVehicleKnockbackTier::Medium:
+			return TEXT("Medium");
+		case EVehicleKnockbackTier::Heavy:
+			return TEXT("Heavy");
+		default:
+			return TEXT("Unknown");
+		}
+	}
 }
 
 ABasicBallActor::ABasicBallActor()
@@ -267,13 +282,29 @@ void ABasicBallActor::OnPhysicsRootHit(
 	Context.ImpactPoint = Hit.ImpactPoint;
 	Context.ImpactNormal = Hit.ImpactNormal;
 	Context.NormalImpulse = NormalImpulse;
+	Context.SourceVelocity = PhysicsRoot->GetPhysicsLinearVelocity();
+	Context.SourceMass = PhysicsRoot->GetMass();
+	if (IsValid(OtherComponent) && OtherComponent->IsSimulatingPhysics())
+	{
+		Context.TargetVelocityAtImpactPoint =
+			OtherComponent->GetPhysicsLinearVelocityAtPoint(Hit.ImpactPoint);
+	}
 
-	if (FCombatResolver::ResolveVehicleHit(Context, VehicleHitDamage, VehicleHitAdditionalImpulse))
+	const FVehicleHitResolution Resolution = FCombatResolver::ResolveVehicleHit(
+		Context,
+		VehicleHitDamage,
+		KnockbackStrengthMultiplier);
+	if (Resolution.bResolved)
 	{
 		if (bLogDamageHits)
 		{
-			UE_LOG(LogTemp, Log, TEXT("Ball %s hit vehicle %s, launcher %s, damage %.1f"),
-				*GetName(), *GetNameSafe(OtherActor), *GetNameSafe(LaunchedBy.Get()), VehicleHitDamage);
+			UE_LOG(LogTemp, Log, TEXT("Ball %s hit vehicle %s, launcher %s, damage %.1f, impact %.1f, tier %s"),
+				*GetName(),
+				*GetNameSafe(OtherActor),
+				*GetNameSafe(LaunchedBy.Get()),
+				VehicleHitDamage,
+				Resolution.ImpactSpeed,
+				LexToString(Resolution.KnockbackTier));
 		}
 		FinishLaunchAsFree();
 	}

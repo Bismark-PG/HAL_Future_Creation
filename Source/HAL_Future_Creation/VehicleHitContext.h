@@ -17,4 +17,7 @@ struct FVehicleHitContext
 	FVector ImpactPoint = FVector::ZeroVector;
 	FVector ImpactNormal = FVector::ZeroVector;
 	FVector NormalImpulse = FVector::ZeroVector;
+	FVector SourceVelocity = FVector::ZeroVector;
+	FVector TargetVelocityAtImpactPoint = FVector::ZeroVector;
+	float SourceMass = 0.0f;
 };
