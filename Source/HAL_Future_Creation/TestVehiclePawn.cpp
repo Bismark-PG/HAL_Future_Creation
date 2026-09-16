@@ -17,10 +17,13 @@
 #include "InputActionValue.h"
 #include "InputMappingContext.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "VehicleHealthComponent.h"
 
 ATestVehiclePawn::ATestVehiclePawn()
 {
 	PrimaryActorTick.bCanEverTick = false;
+	bReplicates = true;
+	SetReplicateMovement(true);
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
@@ -64,6 +67,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 
 	BallControl = CreateDefaultSubobject<UBallControlComponent>(TEXT("BallControl"));
 	BallControl->SetVehicleComponents(CollisionRoot, BallControlPoint, BallConstraint);
+	Health = CreateDefaultSubobject<UVehicleHealthComponent>(TEXT("Health"));
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(CollisionRoot);

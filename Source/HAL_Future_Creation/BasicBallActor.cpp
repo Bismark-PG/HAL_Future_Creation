@@ -2,6 +2,8 @@
 
 #include "BasicBallActor.h"
 
+#include "CombatResolver.h"
+
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
@@ -43,6 +45,7 @@ ABasicBallActor::ABasicBallActor()
 	PhysicsRoot->SetMassOverrideInKg(NAME_None, 35.0f, true);
 	PhysicsRoot->SetNotifyRigidBodyCollision(true);
 	PhysicsRoot->BodyInstance.bUseCCD = true;
+	PhysicsRoot->OnComponentHit.AddDynamic(this, &ThisClass::OnPhysicsRootHit);
 
 	VisualMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualMesh"));
 	VisualMesh->SetupAttachment(PhysicsRoot);
@@ -240,4 +243,39 @@ void ABasicBallActor::FinishLaunchAsFree()
 	GlobalPickupLockedUntil =
 		(World ? World->GetTimeSeconds() : 0.0) + FMath::Max(0.0f, PostLaunchPickupLockDuration);
 	SetBallState(EBasicBallState::Free);
+}
+
+void ABasicBallActor::OnPhysicsRootHit(
+	UPrimitiveComponent* HitComponent,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComponent,
+	FVector NormalImpulse,
+	const FHitResult& Hit)
+{
+	if (!HasAuthority() || bResolvingDamageHit || BallState != EBasicBallState::Launched
+		|| !IsValid(OtherActor) || OtherActor == LaunchedBy)
+	{
+		return;
+	}
+
+	bResolvingDamageHit = true;
+	FVehicleHitContext Context;
+	Context.SourceActor = this;
+	Context.TargetActor = OtherActor;
+	Context.InstigatorActor = LaunchedBy;
+	Context.TargetPhysicsBody = OtherComponent;
+	Context.ImpactPoint = Hit.ImpactPoint;
+	Context.ImpactNormal = Hit.ImpactNormal;
+	Context.NormalImpulse = NormalImpulse;
+
+	if (FCombatResolver::ResolveVehicleHit(Context, VehicleHitDamage, VehicleHitAdditionalImpulse))
+	{
+		if (bLogDamageHits)
+		{
+			UE_LOG(LogTemp, Log, TEXT("Ball %s hit vehicle %s, launcher %s, damage %.1f"),
+				*GetName(), *GetNameSafe(OtherActor), *GetNameSafe(LaunchedBy.Get()), VehicleHitDamage);
+		}
+		FinishLaunchAsFree();
+	}
+	bResolvingDamageHit = false;
 }

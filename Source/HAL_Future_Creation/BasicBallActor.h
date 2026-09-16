@@ -8,6 +8,7 @@
 
 class USphereComponent;
 class UStaticMeshComponent;
+class UPrimitiveComponent;
 
 UENUM(BlueprintType)
 enum class EBasicBallState : uint8
@@ -68,6 +69,17 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Ball|Acquisition", meta = (ClampMin = "0.0", Units = "s"))
 	float PostLaunchPickupLockDuration = 0.2f;
 
+	/** Fixed damage for the first valid Launched vehicle hit, in HP. */
+	UPROPERTY(EditDefaultsOnly, Category = "Ball|Damage", meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "100.0"))
+	float VehicleHitDamage = 25.0f;
+
+	/** Optional extra vehicle knockback; impulse units are kg*cm/s. */
+	UPROPERTY(EditDefaultsOnly, Category = "Ball|Damage", meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "100000.0"))
+	float VehicleHitAdditionalImpulse = 15000.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Ball|Debug")
+	bool bLogDamageHits = false;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Ball|Debug")
 	bool bLogStateChanges = false;
 
@@ -80,6 +92,14 @@ private:
 	void StopLowSpeedMonitor();
 	void CheckLaunchedLowSpeed();
 	void FinishLaunchAsFree();
+
+	UFUNCTION()
+	void OnPhysicsRootHit(
+		UPrimitiveComponent* HitComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComponent,
+		FVector NormalImpulse,
+		const FHitResult& Hit);
 
 	UPROPERTY(ReplicatedUsing = OnRep_BallState, VisibleInstanceOnly, Category = "Ball|State")
 	EBasicBallState BallState = EBasicBallState::Free;
@@ -95,4 +115,5 @@ private:
 	double GlobalPickupLockedUntil = 0.0;
 	float AccumulatedLowSpeedTime = 0.0f;
 	FTimerHandle LowSpeedTimerHandle;
+	bool bResolvingDamageHit = false;
 };

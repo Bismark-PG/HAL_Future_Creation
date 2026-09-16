@@ -19,6 +19,7 @@ class UPrimitiveComponent;
 class USceneComponent;
 class USpringArmComponent;
 class UStaticMeshComponent;
+class UVehicleHealthComponent;
 struct FInputActionValue;
 
 /** Minimal player vehicle used to validate MVP-A ground handling. */
@@ -60,6 +61,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
 	TObjectPtr<UBallControlComponent> BallControl;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
+	TObjectPtr<UVehicleHealthComponent> Health;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
 	TObjectPtr<USpringArmComponent> CameraBoom;
