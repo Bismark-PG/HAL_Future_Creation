@@ -94,7 +94,21 @@ bool UBallControlComponent::LaunchHeldBall()
 	}
 
 	HeldBall = nullptr;
-	VehicleBody->AddImpulse(-LaunchDirection * VehicleReactionImpulse);
+
+	const float CurrentForwardSpeed = FVector::DotProduct(
+		VehicleBody->GetPhysicsLinearVelocity(),
+		LaunchDirection);
+	const float MinimumRecoil = FMath::Max(0.0f, BaseRecoilDeltaSpeed);
+	const float MaximumRecoil = FMath::Max(MinimumRecoil, MaxRecoilDeltaSpeed);
+	const float SpeedScaledRecoil =
+		FMath::Max(CurrentForwardSpeed, 0.0f) * FMath::Max(0.0f, MovingRecoilFraction);
+	const float RecoilDeltaSpeed = FMath::Clamp(
+		FMath::Max(MinimumRecoil, SpeedScaledRecoil),
+		MinimumRecoil,
+		MaximumRecoil);
+
+	// Velocity change keeps recoil consistent if later vehicles use different masses.
+	VehicleBody->AddImpulse(-LaunchDirection * RecoilDeltaSpeed, NAME_None, true);
 	return true;
 }
 

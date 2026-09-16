@@ -63,8 +63,17 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Ball Control|Launch", meta = (ClampMin = "0.0", Units = "cm/s"))
 	float LaunchSpeedIncrement = 2200.0f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Ball Control|Launch", meta = (ClampMin = "0.0"))
-	float VehicleReactionImpulse = 120000.0f;
+	/** Minimum backward velocity change applied to the vehicle when launching. */
+	UPROPERTY(EditDefaultsOnly, Category = "Ball Control|Launch", meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "1000.0", Units = "cm/s"))
+	float BaseRecoilDeltaSpeed = 180.0f;
+
+	/** At speed, recoil is at least this fraction of the current forward speed. */
+	UPROPERTY(EditDefaultsOnly, Category = "Ball Control|Launch", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "0.5"))
+	float MovingRecoilFraction = 0.15f;
+
+	/** Caps speed-scaled recoil so launching never behaves like an abrupt wall impact. */
+	UPROPERTY(EditDefaultsOnly, Category = "Ball Control|Launch", meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "1500.0", Units = "cm/s"))
+	float MaxRecoilDeltaSpeed = 420.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Ball Control|Forced Release", meta = (ClampMin = "0.0"))
 	float DropCollisionImpulseThreshold = 100000.0f;
