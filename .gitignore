@@ -3,6 +3,9 @@
 
 # Markdown documents
 *.md
+!MVP_A_Vehicle_Ball_Rules_CN.md
+!MVP_A_Tiered_Knockback_Design_CN.md
+!MVP_A_Rounded_Vehicle_Setup_CN.md
 
 # Compiled Object files
 *.slo
