@@ -43,9 +43,12 @@ public:
 
 private:
 	bool UpdateGroundContact(FVector& OutGroundNormal) const;
+	void UpdateWallEscape(const FVector& GroundNormal, const FVector& ForwardDirection,
+		const FVector& Velocity, float DeltaTime);
+	void ResetWallEscape();
 	void ApplyLongitudinalForces(const FVector& ForwardDirection, float CurrentForwardSpeed);
 	void ApplyLateralGrip(const FVector& RightDirection, float CurrentLateralSpeed);
-	void ApplySteering(const FVector& GroundNormal, float CurrentForwardSpeed);
+	void ApplySteering(const FVector& GroundNormal, float CurrentForwardSpeed, float DeltaTime);
 
 	UPROPERTY(Transient)
 	TObjectPtr<UPrimitiveComponent> UpdatedPrimitive;
@@ -129,6 +132,61 @@ private:
 	/** Reduced yaw-rate damping per second while drifting. */
 	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Steering", meta = (ClampMin = "0.0"))
 	float HandbrakeYawDampingRate = 0.8f;
+
+	/** Assist grounded, upright, low-speed throttle + handbrake + steering near static walls. */
+	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Wall Escape")
+	bool bEnableWallEscape = true;
+
+	/** Maximum planar speed for entering the assist (includes lateral sliding). */
+	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Wall Escape", meta = (ClampMin = "0.0", Units = "cm/s"))
+	float WallEscapeEnterSpeed = 300.0f;
+
+	/** Exit threshold; treated as at least EnterSpeed to avoid threshold chatter. */
+	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Wall Escape", meta = (ClampMin = "0.0", Units = "cm/s"))
+	float WallEscapeExitSpeed = 450.0f;
+
+	/** Sweep the actual simple collision geometry this far forward to detect a nearby wall. */
+	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Wall Escape", meta = (ClampMin = "1.0", ClampMax = "100.0", Units = "cm"))
+	float WallEscapeProbeDistance = 15.0f;
+
+	/** Ignore small steering-stick noise. */
+	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Wall Escape", meta = (ClampMin = "0.01", ClampMax = "1.0"))
+	float WallEscapeMinimumSteering = 0.2f;
+
+	/** Fraction of throttle acceleration retained INTO a wall at full assist; tangent is preserved. */
+	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Wall Escape", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float WallEscapeIntoWallThrottleScale = 0.05f;
+
+	/** Desired yaw rate at full steering, in radians per second; not a hard physics velocity lock. */
+	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Wall Escape", meta = (ClampMin = "0.0", UIMax = "6.0"))
+	float WallEscapeTargetYawRate = 2.6f;
+
+	/** Yaw-rate tracking gain in inverse seconds. */
+	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Wall Escape", meta = (ClampMin = "0.0", UIMax = "30.0"))
+	float WallEscapeYawResponseRate = 10.0f;
+
+	/** Maximum assisted yaw correction, in radians per second squared. */
+	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Wall Escape", meta = (ClampMin = "0.0", UIMax = "40.0"))
+	float WallEscapeMaxYawAcceleration = 18.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Wall Escape", meta = (ClampMin = "0.0", UIMax = "1.0", Units = "s"))
+	float WallEscapeBlendInTime = 0.08f;
+
+	/** Restore regular driving smoothly after releasing the combo, losing the wall or gaining speed. */
+	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Wall Escape", meta = (ClampMin = "0.0", UIMax = "1.0", Units = "s"))
+	float WallEscapeBlendOutTime = 0.2f;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Arcade Vehicle|Debug")
+	bool bWallEscapeActive = false;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Arcade Vehicle|Debug")
+	float WallEscapeBlend = 0.0f;
+
+	TArray<FVector> WallEscapeNormals;
+
+	/** Cyan: probe; green normals: active; orange normals: fading out. */
+	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Debug")
+	bool bDrawWallEscapeDebug = false;
 
 	/** Extra trace distance below the physical body's bounds. */
 	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Ground", meta = (ClampMin = "0.0", Units = "cm"))
