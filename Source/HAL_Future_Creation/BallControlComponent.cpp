@@ -27,6 +27,13 @@ void UBallControlComponent::BeginPlay()
 		return;
 	}
 
+	// An unconfigured physics mesh must not acquire balls from a stationary, invalid vehicle.
+	if (!VehicleBody->IsSimulatingPhysics())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s requires a simulating vehicle body; ball acquisition is disabled."), *GetNameSafe(this));
+		return;
+	}
+
 	if (GetOwner()->HasAuthority())
 	{
 		GetWorld()->GetTimerManager().SetTimer(

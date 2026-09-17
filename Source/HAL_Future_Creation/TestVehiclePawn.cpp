@@ -6,17 +6,18 @@
 #include "BallControlComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/ArrowComponent.h"
-#include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
+#include "Engine/StaticMesh.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "InputAction.h"
 #include "InputActionValue.h"
 #include "InputMappingContext.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "VehicleHealthComponent.h"
 
 ATestVehiclePawn::ATestVehiclePawn()
@@ -28,9 +29,11 @@ ATestVehiclePawn::ATestVehiclePawn()
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
-	CollisionRoot = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionRoot"));
+	// A new subobject name avoids reusing the old Blueprint's Box component template.
+	CollisionRoot = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VehiclePhysicsBody"));
 	SetRootComponent(CollisionRoot);
-	CollisionRoot->InitBoxExtent(FVector(100.0f, 70.0f, 35.0f));
+	CollisionRoot->SetMobility(EComponentMobility::Movable);
+	CollisionRoot->SetHiddenInGame(true);
 	CollisionRoot->SetCollisionProfileName(TEXT("PhysicsActor"));
 	CollisionRoot->SetSimulatePhysics(true);
 	CollisionRoot->SetEnableGravity(true);
@@ -81,6 +84,36 @@ ATestVehiclePawn::ATestVehiclePawn()
 	TopDownCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("TopDownCamera"));
 	TopDownCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	TopDownCamera->bUsePawnControlRotation = false;
+}
+
+void ATestVehiclePawn::BeginPlay()
+{
+	const UStaticMesh* PhysicsMesh = CollisionRoot->GetStaticMesh();
+	const UBodySetup* BodySetup = PhysicsMesh ? PhysicsMesh->GetBodySetup() : nullptr;
+	if (!BodySetup
+		|| BodySetup->AggGeom.GetElementCount() == 0
+		|| BodySetup->GetCollisionTraceFlag() == CTF_UseComplexAsSimple)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("%s: assign a Static Mesh with simple collision to VehiclePhysicsBody. "
+				"Use Simple And Complex (not Use Complex Collision As Simple). Vehicle physics is disabled."),
+			*GetNameSafe(this));
+		CollisionRoot->SetSimulatePhysics(false);
+		CollisionRoot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	else if (BodySetup->AggGeom.ConvexElems.Num() == 0)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("%s: VehiclePhysicsBody has simple collision but no convex hull. "
+				"Generate a rounded convex hull for the wall-sliding test."),
+			*GetNameSafe(this));
+	}
+
+	Super::BeginPlay();
 }
 
 void ATestVehiclePawn::PawnClientRestart()

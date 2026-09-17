@@ -10,7 +10,6 @@
 class UArcadeVehicleMovementComponent;
 class UArrowComponent;
 class UBallControlComponent;
-class UBoxComponent;
 class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
@@ -31,6 +30,7 @@ class HAL_FUTURE_CREATION_API ATestVehiclePawn : public APawn
 public:
 	ATestVehiclePawn();
 
+	virtual void BeginPlay() override;
 	virtual void PawnClientRestart() override;
 	virtual void UnPossessed() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -40,8 +40,9 @@ public:
 	FVehicleInputCmd GetCurrentInputCommand() const { return CurrentInputCommand; }
 
 protected:
+	/** Hidden physics mesh. Assign a centered, low-profile mesh with simple convex collision. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
-	TObjectPtr<UBoxComponent> CollisionRoot;
+	TObjectPtr<UStaticMeshComponent> CollisionRoot;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
 	TObjectPtr<UStaticMeshComponent> VisualMesh;
