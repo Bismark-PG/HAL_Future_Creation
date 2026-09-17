@@ -114,6 +114,14 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Steering", meta = (ClampMin = "0.0"))
 	float HandbrakeSteeringMultiplier = 1.45f;
 
+	/** Minimum speed-derived steering authority while handbraking; allows grounded pivots at rest. */
+	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Steering", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float HandbrakeMinimumSteeringAuthority = 0.5f;
+
+	/** While handbraking, reverse steering starts only below this backward speed to ignore small rebounds. */
+	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Steering", meta = (ClampMin = "0.0", UIMax = "500.0", Units = "cm/s"))
+	float HandbrakeReverseSteeringSpeed = 150.0f;
+
 	/** Normal yaw-rate damping per second. */
 	UPROPERTY(EditDefaultsOnly, Category = "Arcade Vehicle|Steering", meta = (ClampMin = "0.0"))
 	float YawDampingRate = 2.2f;

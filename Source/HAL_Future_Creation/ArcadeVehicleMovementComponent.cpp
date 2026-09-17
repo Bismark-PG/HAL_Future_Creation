@@ -201,6 +201,14 @@ void UArcadeVehicleMovementComponent::ApplySteering(
 	const float AbsoluteSpeed = FMath::Abs(CurrentForwardSpeed);
 	float SteeringAuthority = FMath::Clamp(AbsoluteSpeed / FMath::Max(FullSteeringSpeed, 1.0f), 0.0f, 1.0f);
 
+	// Apply the floor before high-speed fading so fast drifting keeps its existing behavior.
+	if (InputCommand.bHandbrake && FMath::Abs(InputCommand.Steering) > KINDA_SMALL_NUMBER)
+	{
+		SteeringAuthority = FMath::Max(
+			SteeringAuthority,
+			FMath::Clamp(HandbrakeMinimumSteeringAuthority, 0.0f, 1.0f));
+	}
+
 	if (AbsoluteSpeed > HighSpeedSteeringStart && MaxForwardSpeed > HighSpeedSteeringStart)
 	{
 		const float HighSpeedAlpha = FMath::Clamp(
@@ -210,7 +218,11 @@ void UArcadeVehicleMovementComponent::ApplySteering(
 		SteeringAuthority *= FMath::Lerp(1.0f, HighSpeedSteeringScale, HighSpeedAlpha);
 	}
 
-	const float TravelDirection = CurrentForwardSpeed < 0.0f ? -1.0f : 1.0f;
+	// A small wall rebound should not invert a stationary handbrake pivot.
+	const float ReverseSteeringThreshold = InputCommand.bHandbrake
+		? -FMath::Max(0.0f, HandbrakeReverseSteeringSpeed)
+		: 0.0f;
+	const float TravelDirection = CurrentForwardSpeed < ReverseSteeringThreshold ? -1.0f : 1.0f;
 	const float SteeringMultiplier = InputCommand.bHandbrake ? HandbrakeSteeringMultiplier : 1.0f;
 	const float DampingRate = InputCommand.bHandbrake ? HandbrakeYawDampingRate : YawDampingRate;
 	const float CurrentYawRate = FVector::DotProduct(
