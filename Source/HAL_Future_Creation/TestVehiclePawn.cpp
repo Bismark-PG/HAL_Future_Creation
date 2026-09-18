@@ -1,6 +1,10 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "TestVehiclePawn.h"
+#include "UObject/UnrealType.h"
+#include "VehicleDefinition.h"
+#include "VehicleConfigurationApplication.h"
+#include "VehicleKnockbackSettings.h"
 
 #include "ArcadeVehicleMovementComponent.h"
 #include "BallControlComponent.h"
@@ -39,7 +43,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	CollisionRoot->SetEnableGravity(true);
 	CollisionRoot->SetLinearDamping(0.15f);
 	CollisionRoot->SetAngularDamping(0.8f);
-	CollisionRoot->SetMassOverrideInKg(NAME_None, 800.0f, true);
+	CollisionRoot->BodyInstance.SetMassOverride(800.0f, true);
 	CollisionRoot->SetNotifyRigidBodyCollision(true);
 	CollisionRoot->BodyInstance.bUseCCD = true;
 	CollisionRoot->OnComponentHit.AddDynamic(this, &ThisClass::OnCollisionRootHit);
@@ -143,6 +147,7 @@ void ATestVehiclePawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void ATestVehiclePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	if (!bConfigurationValid) { return; }
 
 	UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 	if (!EnhancedInput)
@@ -189,7 +194,7 @@ void ATestVehiclePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void ATestVehiclePawn::AddDefaultInputContext()
 {
-	if (!IsLocallyControlled() || !DefaultMappingContext)
+	if (!bConfigurationValid || !IsLocallyControlled() || !DefaultMappingContext)
 	{
 		return;
 	}
@@ -207,6 +212,45 @@ void ATestVehiclePawn::AddDefaultInputContext()
 		InputSubsystem->RemoveMappingContext(DefaultMappingContext);
 		InputSubsystem->AddMappingContext(DefaultMappingContext, 0);
 	}
+}
+
+bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
+{
+	if (ConfigurationSource == EVehicleConfigurationSource::Legacy) { return true; }
+	FString Error;
+	if (ConfigurationSource != EVehicleConfigurationSource::Definition || !Definition || !Definition->Validate(Error)
+		|| Definition->CollisionShape != EVehicleCollisionShape::ConvexMesh)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s: invalid VehicleDefinition %s: %s. No default fallback."),
+			*GetName(), *GetNameSafe(Definition), *Error);
+		return false;
+	}
+	CollisionRoot->SetStaticMesh(Definition->CollisionMesh);
+	VehicleConfiguration::ApplyBody(*CollisionRoot, Definition->Physics);
+	VehicleConfiguration::ApplyVisual(*VisualMesh, Definition->Visual);
+	BallControlPoint->SetRelativeTransform(Definition->BallControlPoint);
+	ForwardArrow->SetRelativeTransform(Definition->ForwardArrowTransform);
+	ForwardArrow->ArrowColor = Definition->ForwardArrowColor;
+	ForwardArrow->ArrowSize = Definition->ForwardArrowSize;
+	ForwardArrow->ArrowLength = Definition->ForwardArrowLength;
+	ForwardArrow->SetVisibility(Definition->bForwardArrowVisible);
+	ForwardArrow->SetHiddenInGame(Definition->bForwardArrowHiddenInGame);
+	const UVehicleLocalConfig* Local = Definition->LocalConfig;
+	VehicleConfiguration::ApplyCamera(*CameraBoom, *TopDownCamera, Local->Camera);
+	if (!bPreview)
+	{
+		verify(ArcadeMovement->ApplyConfiguration(Definition->Movement));
+		verify(BallControl->ApplyConfiguration(Definition->BallControl));
+		verify(Health->ApplyConfiguration(Definition->Health));
+		DefaultMappingContext = Local->DefaultMappingContext;
+		SteeringAction = Local->SteeringAction;
+		ThrottleAction = Local->ThrottleAction;
+		BrakeAction = Local->BrakeAction;
+		HandbrakeAction = Local->HandbrakeAction;
+		LaunchAction = Local->LaunchAction;
+		UE_LOG(LogTemp, Log, TEXT("%s: using VehicleDefinition %s."), *GetName(), *GetNameSafe(Definition));
+	}
+	return true;
 }
 
 void ATestVehiclePawn::RemoveDefaultInputContext()
@@ -324,3 +368,33 @@ void ATestVehiclePawn::OnCollisionRootHit(
 	}
 }
 
+
+void ATestVehiclePawn::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+	if (!HasActorBegunPlay() && !GetWorld()->IsGameWorld()) { ApplyDefinition(true); }
+}
+
+void ATestVehiclePawn::PreInitializeComponents()
+{
+	bConfigurationValid = ApplyDefinition(false);
+	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules(GetWorld())) { bConfigurationValid = false; }
+	if (!bConfigurationValid)
+	{
+		CollisionRoot->SetSimulatePhysics(false);
+		CollisionRoot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		ArcadeMovement->SetComponentTickEnabled(false);
+	}
+	Super::PreInitializeComponents();
+}
+
+#if WITH_EDITOR
+bool ATestVehiclePawn::CanEditChange(const FProperty* Property) const
+{
+	if (ConfigurationSource == EVehicleConfigurationSource::Definition && Property
+		&& Property->GetOwnerClass() == StaticClass() && Property->HasAnyPropertyFlags(CPF_Edit)
+		&& Property->GetFName() != GET_MEMBER_NAME_CHECKED(ATestVehiclePawn, ConfigurationSource)
+		&& Property->GetFName() != GET_MEMBER_NAME_CHECKED(ATestVehiclePawn, Definition)) { return false; }
+	return Super::CanEditChange(Property);
+}
+#endif

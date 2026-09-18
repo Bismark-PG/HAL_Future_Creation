@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "VehicleInputCmd.h"
+#include "VehicleConfigurationTypes.h"
 #include "TestVehiclePawn.generated.h"
 
 class UArcadeVehicleMovementComponent;
@@ -22,6 +23,8 @@ class UVehicleHealthComponent;
 struct FInputActionValue;
 
 /** Minimal player vehicle used to validate MVP-A ground handling. */
+class UVehicleDefinition;
+
 UCLASS()
 class HAL_FUTURE_CREATION_API ATestVehiclePawn : public APawn
 {
@@ -29,6 +32,14 @@ class HAL_FUTURE_CREATION_API ATestVehiclePawn : public APawn
 
 public:
 	ATestVehiclePawn();
+
+	virtual void PreInitializeComponents() override;
+	virtual void OnConstruction(const FTransform& Transform) override;
+	EVehicleConfigurationSource GetConfigurationSource() const { return ConfigurationSource; }
+	bool IsConfigurationValid() const { return bConfigurationValid; }
+#if WITH_EDITOR
+	virtual bool CanEditChange(const FProperty* Property) const override;
+#endif
 
 	virtual void BeginPlay() override;
 	virtual void PawnClientRestart() override;
@@ -40,6 +51,17 @@ public:
 	FVehicleInputCmd GetCurrentInputCommand() const { return CurrentInputCommand; }
 
 protected:
+	UPROPERTY(EditAnywhere, Category = "Vehicle|Configuration")
+	EVehicleConfigurationSource ConfigurationSource = EVehicleConfigurationSource::Legacy;
+
+	UPROPERTY(EditAnywhere, Category = "Vehicle|Configuration", meta = (EditCondition = "ConfigurationSource == EVehicleConfigurationSource::Definition"))
+	TObjectPtr<UVehicleDefinition> Definition;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Vehicle|Configuration")
+	bool bConfigurationValid = true;
+
+	bool ApplyDefinition(bool bPreview);
+
 	/** Hidden physics mesh. Assign a centered, low-profile mesh with simple convex collision. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
 	TObjectPtr<UStaticMeshComponent> CollisionRoot;

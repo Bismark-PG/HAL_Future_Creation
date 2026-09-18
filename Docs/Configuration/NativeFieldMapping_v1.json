@@ -1,0 +1,307 @@
+[
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "ForwardAcceleration",
+    "definition_field": "ArcadeVehicleConfig.Drive.ForwardAcceleration"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "ReverseAcceleration",
+    "definition_field": "ArcadeVehicleConfig.Drive.ReverseAcceleration"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "BrakeDeceleration",
+    "definition_field": "ArcadeVehicleConfig.Drive.BrakeDeceleration"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "MaxForwardSpeed",
+    "definition_field": "ArcadeVehicleConfig.Drive.MaxForwardSpeed"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "MaxReverseSpeed",
+    "definition_field": "ArcadeVehicleConfig.Drive.MaxReverseSpeed"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "ReverseEngageSpeed",
+    "definition_field": "ArcadeVehicleConfig.Drive.ReverseEngageSpeed"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "CoastingDragRate",
+    "definition_field": "ArcadeVehicleConfig.Drive.CoastingDragRate"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "OverspeedCorrectionRate",
+    "definition_field": "ArcadeVehicleConfig.Drive.OverspeedCorrectionRate"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "LateralGripRate",
+    "definition_field": "ArcadeVehicleConfig.Grip.LateralGripRate"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "HandbrakeGripRate",
+    "definition_field": "ArcadeVehicleConfig.Grip.HandbrakeGripRate"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "MaxLateralGripAcceleration",
+    "definition_field": "ArcadeVehicleConfig.Grip.MaxLateralGripAcceleration"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "SteeringAngularAcceleration",
+    "definition_field": "ArcadeVehicleConfig.Steering.SteeringAngularAcceleration"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "FullSteeringSpeed",
+    "definition_field": "ArcadeVehicleConfig.Steering.FullSteeringSpeed"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "HighSpeedSteeringStart",
+    "definition_field": "ArcadeVehicleConfig.Steering.HighSpeedSteeringStart"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "HighSpeedSteeringScale",
+    "definition_field": "ArcadeVehicleConfig.Steering.HighSpeedSteeringScale"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "HandbrakeSteeringMultiplier",
+    "definition_field": "ArcadeVehicleConfig.Steering.HandbrakeSteeringMultiplier"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "HandbrakeMinimumSteeringAuthority",
+    "definition_field": "ArcadeVehicleConfig.Steering.HandbrakeMinimumSteeringAuthority"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "HandbrakeReverseSteeringSpeed",
+    "definition_field": "ArcadeVehicleConfig.Steering.HandbrakeReverseSteeringSpeed"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "YawDampingRate",
+    "definition_field": "ArcadeVehicleConfig.Steering.YawDampingRate"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "HandbrakeYawDampingRate",
+    "definition_field": "ArcadeVehicleConfig.Steering.HandbrakeYawDampingRate"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "bEnableWallEscape",
+    "definition_field": "ArcadeVehicleConfig.WallEscape.bEnableWallEscape"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "WallEscapeEnterSpeed",
+    "definition_field": "ArcadeVehicleConfig.WallEscape.WallEscapeEnterSpeed"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "WallEscapeExitSpeed",
+    "definition_field": "ArcadeVehicleConfig.WallEscape.WallEscapeExitSpeed"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "WallEscapeProbeDistance",
+    "definition_field": "ArcadeVehicleConfig.WallEscape.WallEscapeProbeDistance"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "WallEscapeMinimumSteering",
+    "definition_field": "ArcadeVehicleConfig.WallEscape.WallEscapeMinimumSteering"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "WallEscapeIntoWallThrottleScale",
+    "definition_field": "ArcadeVehicleConfig.WallEscape.WallEscapeIntoWallThrottleScale"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "WallEscapeTargetYawRate",
+    "definition_field": "ArcadeVehicleConfig.WallEscape.WallEscapeTargetYawRate"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "WallEscapeYawResponseRate",
+    "definition_field": "ArcadeVehicleConfig.WallEscape.WallEscapeYawResponseRate"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "WallEscapeMaxYawAcceleration",
+    "definition_field": "ArcadeVehicleConfig.WallEscape.WallEscapeMaxYawAcceleration"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "WallEscapeBlendInTime",
+    "definition_field": "ArcadeVehicleConfig.WallEscape.WallEscapeBlendInTime"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "WallEscapeBlendOutTime",
+    "definition_field": "ArcadeVehicleConfig.WallEscape.WallEscapeBlendOutTime"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "bDrawWallEscapeDebug",
+    "definition_field": "ArcadeVehicleConfig.Debug.bDrawWallEscapeDebug"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "GroundTraceExtraDistance",
+    "definition_field": "ArcadeVehicleConfig.Ground.GroundTraceExtraDistance"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "GroundTraceChannel",
+    "definition_field": "ArcadeVehicleConfig.Ground.GroundTraceChannel"
+  },
+  {
+    "owner": "ArcadeVehicleMovementComponent",
+    "legacy_field": "bDrawGroundDebug",
+    "definition_field": "ArcadeVehicleConfig.Debug.bDrawGroundDebug"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "AcquisitionRadius",
+    "definition_field": "BallControlConfig.Acquisition.AcquisitionRadius"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "AcquisitionCheckInterval",
+    "definition_field": "BallControlConfig.Acquisition.AcquisitionCheckInterval"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "LineOfSightTraceChannel",
+    "definition_field": "BallControlConfig.Acquisition.LineOfSightTraceChannel"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "MaxControlledDistance",
+    "definition_field": "BallControlConfig.Control.MaxControlledDistance"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "ControlPositionStrength",
+    "definition_field": "BallControlConfig.Control.ControlPositionStrength"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "ControlVelocityStrength",
+    "definition_field": "BallControlConfig.Control.ControlVelocityStrength"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "ControlMaxForce",
+    "definition_field": "BallControlConfig.Control.ControlMaxForce"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "LaunchSpeedIncrement",
+    "definition_field": "BallControlConfig.Launch.LaunchSpeedIncrement"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "BaseRecoilDeltaSpeed",
+    "definition_field": "BallControlConfig.Launch.BaseRecoilDeltaSpeed"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "MovingRecoilFraction",
+    "definition_field": "BallControlConfig.Launch.MovingRecoilFraction"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "MaxRecoilDeltaSpeed",
+    "definition_field": "BallControlConfig.Launch.MaxRecoilDeltaSpeed"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "DropCollisionImpulseThreshold",
+    "definition_field": "BallControlConfig.ForcedRelease.DropCollisionImpulseThreshold"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "DropReacquireLockDuration",
+    "definition_field": "BallControlConfig.ForcedRelease.DropReacquireLockDuration"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "DropBallImpulse",
+    "definition_field": "BallControlConfig.ForcedRelease.DropBallImpulse"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "DropBallUpwardImpulse",
+    "definition_field": "BallControlConfig.ForcedRelease.DropBallUpwardImpulse"
+  },
+  {
+    "owner": "BallControlComponent",
+    "legacy_field": "bDrawAcquisitionDebug",
+    "definition_field": "BallControlConfig.Debug.bDrawAcquisitionDebug"
+  },
+  {
+    "owner": "BasicBallActor",
+    "legacy_field": "LowSpeedThreshold",
+    "definition_field": "BallGameplayConfig.State.LowSpeedThreshold"
+  },
+  {
+    "owner": "BasicBallActor",
+    "legacy_field": "LowSpeedRequiredDuration",
+    "definition_field": "BallGameplayConfig.State.LowSpeedRequiredDuration"
+  },
+  {
+    "owner": "BasicBallActor",
+    "legacy_field": "LowSpeedCheckInterval",
+    "definition_field": "BallGameplayConfig.State.LowSpeedCheckInterval"
+  },
+  {
+    "owner": "BasicBallActor",
+    "legacy_field": "PostLaunchPickupLockDuration",
+    "definition_field": "BallGameplayConfig.Acquisition.PostLaunchPickupLockDuration"
+  },
+  {
+    "owner": "BasicBallActor",
+    "legacy_field": "VehicleHitDamage",
+    "definition_field": "BallGameplayConfig.Damage.VehicleHitDamage"
+  },
+  {
+    "owner": "BasicBallActor",
+    "legacy_field": "KnockbackStrengthMultiplier",
+    "definition_field": "BallGameplayConfig.Damage.KnockbackStrengthMultiplier"
+  },
+  {
+    "owner": "BasicBallActor",
+    "legacy_field": "bLogDamageHits",
+    "definition_field": "BallGameplayConfig.Debug.bLogDamageHits"
+  },
+  {
+    "owner": "BasicBallActor",
+    "legacy_field": "bLogStateChanges",
+    "definition_field": "BallGameplayConfig.Debug.bLogStateChanges"
+  },
+  {
+    "owner": "VehicleHealthComponent",
+    "legacy_field": "MaxHP",
+    "definition_field": "VehicleHealthConfig.Health.MaxHP"
+  },
+  {
+    "owner": "VehicleHealthComponent",
+    "legacy_field": "bLogHealthChanges",
+    "definition_field": "VehicleHealthConfig.Debug.bLogHealthChanges"
+  }
+]

@@ -1,6 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "ArcadeVehicleMovementComponent.h"
+#include "VehicleConfigurationTypes.h"
+#include "VehicleConfigurationApplication.h"
+#include "UObject/UnrealType.h"
 
 #include "Components/PrimitiveComponent.h"
 #include "DrawDebugHelpers.h"
@@ -369,3 +372,53 @@ void UArcadeVehicleMovementComponent::ApplySteering(
 		NAME_None,
 		true);
 }
+
+bool UArcadeVehicleMovementComponent::ApplyConfiguration(const FArcadeVehicleConfig& Config)
+{
+	FString Error;
+	if (HasBegunPlay() || !Config.Validate(Error)) { return false; }
+	ForwardAcceleration = Config.Drive.ForwardAcceleration;
+	ReverseAcceleration = Config.Drive.ReverseAcceleration;
+	BrakeDeceleration = Config.Drive.BrakeDeceleration;
+	MaxForwardSpeed = Config.Drive.MaxForwardSpeed;
+	MaxReverseSpeed = Config.Drive.MaxReverseSpeed;
+	ReverseEngageSpeed = Config.Drive.ReverseEngageSpeed;
+	CoastingDragRate = Config.Drive.CoastingDragRate;
+	OverspeedCorrectionRate = Config.Drive.OverspeedCorrectionRate;
+	LateralGripRate = Config.Grip.LateralGripRate;
+	HandbrakeGripRate = Config.Grip.HandbrakeGripRate;
+	MaxLateralGripAcceleration = Config.Grip.MaxLateralGripAcceleration;
+	SteeringAngularAcceleration = Config.Steering.SteeringAngularAcceleration;
+	FullSteeringSpeed = Config.Steering.FullSteeringSpeed;
+	HighSpeedSteeringStart = Config.Steering.HighSpeedSteeringStart;
+	HighSpeedSteeringScale = Config.Steering.HighSpeedSteeringScale;
+	HandbrakeSteeringMultiplier = Config.Steering.HandbrakeSteeringMultiplier;
+	HandbrakeMinimumSteeringAuthority = Config.Steering.HandbrakeMinimumSteeringAuthority;
+	HandbrakeReverseSteeringSpeed = Config.Steering.HandbrakeReverseSteeringSpeed;
+	YawDampingRate = Config.Steering.YawDampingRate;
+	HandbrakeYawDampingRate = Config.Steering.HandbrakeYawDampingRate;
+	bEnableWallEscape = Config.WallEscape.bEnableWallEscape;
+	WallEscapeEnterSpeed = Config.WallEscape.WallEscapeEnterSpeed;
+	WallEscapeExitSpeed = Config.WallEscape.WallEscapeExitSpeed;
+	WallEscapeProbeDistance = Config.WallEscape.WallEscapeProbeDistance;
+	WallEscapeMinimumSteering = Config.WallEscape.WallEscapeMinimumSteering;
+	WallEscapeIntoWallThrottleScale = Config.WallEscape.WallEscapeIntoWallThrottleScale;
+	WallEscapeTargetYawRate = Config.WallEscape.WallEscapeTargetYawRate;
+	WallEscapeYawResponseRate = Config.WallEscape.WallEscapeYawResponseRate;
+	WallEscapeMaxYawAcceleration = Config.WallEscape.WallEscapeMaxYawAcceleration;
+	WallEscapeBlendInTime = Config.WallEscape.WallEscapeBlendInTime;
+	WallEscapeBlendOutTime = Config.WallEscape.WallEscapeBlendOutTime;
+	bDrawWallEscapeDebug = Config.Debug.bDrawWallEscapeDebug;
+	GroundTraceExtraDistance = Config.Ground.GroundTraceExtraDistance;
+	GroundTraceChannel = Config.Ground.GroundTraceChannel;
+	bDrawGroundDebug = Config.Debug.bDrawGroundDebug;
+	return true;
+}
+
+#if WITH_EDITOR
+bool UArcadeVehicleMovementComponent::CanEditChange(const FProperty* Property) const
+{
+	if (Property && Property->GetOwnerClass() == StaticClass() && VehicleConfiguration::UsesDefinition(GetOwner())) { return false; }
+	return Super::CanEditChange(Property);
+}
+#endif

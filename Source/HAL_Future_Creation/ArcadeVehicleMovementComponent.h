@@ -8,6 +8,8 @@
 #include "VehicleInputCmd.h"
 #include "ArcadeVehicleMovementComponent.generated.h"
 
+struct FArcadeVehicleConfig;
+
 class UPrimitiveComponent;
 
 /**
@@ -24,6 +26,13 @@ class HAL_FUTURE_CREATION_API UArcadeVehicleMovementComponent : public UActorCom
 
 public:
 	UArcadeVehicleMovementComponent();
+
+	/** Initialization only; never resets gameplay state after BeginPlay. */
+	bool ApplyConfiguration(const FArcadeVehicleConfig& Config);
+
+#if WITH_EDITOR
+	virtual bool CanEditChange(const FProperty* Property) const override;
+#endif
 
 	virtual void BeginPlay() override;
 	virtual void TickComponent(

@@ -1,6 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "PassiveTestVehicle.h"
+#include "VehicleDefinition.h"
+#include "VehicleConfigurationApplication.h"
+#include "VehicleKnockbackSettings.h"
 
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -20,7 +23,7 @@ APassiveTestVehicle::APassiveTestVehicle()
 	CollisionRoot->SetEnableGravity(true);
 	CollisionRoot->SetLinearDamping(0.15f);
 	CollisionRoot->SetAngularDamping(0.8f);
-	CollisionRoot->SetMassOverrideInKg(NAME_None, 800.0f, true);
+	CollisionRoot->BodyInstance.SetMassOverride(800.0f, true);
 	CollisionRoot->BodyInstance.bUseCCD = true;
 
 	VisualMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualMesh"));
@@ -29,4 +32,40 @@ APassiveTestVehicle::APassiveTestVehicle()
 	VisualMesh->SetSimulatePhysics(false);
 
 	Health = CreateDefaultSubobject<UVehicleHealthComponent>(TEXT("Health"));
+}
+
+bool APassiveTestVehicle::ApplyDefinition(bool bPreview)
+{
+	if (ConfigurationSource == EVehicleConfigurationSource::Legacy) { return true; }
+	FString Error;
+	if (ConfigurationSource != EVehicleConfigurationSource::Definition || !Definition || !Definition->Validate(Error)
+		|| Definition->CollisionShape != EVehicleCollisionShape::Box)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s: invalid passive VehicleDefinition %s: %s. No default fallback."),
+			*GetName(), *GetNameSafe(Definition), *Error);
+		return false;
+	}
+	CollisionRoot->SetBoxExtent(Definition->BoxExtent);
+	VehicleConfiguration::ApplyBody(*CollisionRoot, Definition->Physics);
+	VehicleConfiguration::ApplyVisual(*VisualMesh, Definition->Visual);
+	if (!bPreview) { verify(Health->ApplyConfiguration(Definition->Health)); }
+	return true;
+}
+
+void APassiveTestVehicle::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+	if (!HasActorBegunPlay() && !GetWorld()->IsGameWorld()) { ApplyDefinition(true); }
+}
+
+void APassiveTestVehicle::PreInitializeComponents()
+{
+	bConfigurationValid = ApplyDefinition(false);
+	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules(GetWorld())) { bConfigurationValid = false; }
+	if (!bConfigurationValid)
+	{
+		CollisionRoot->SetSimulatePhysics(false);
+		CollisionRoot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	Super::PreInitializeComponents();
 }

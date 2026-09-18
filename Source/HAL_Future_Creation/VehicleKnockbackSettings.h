@@ -4,34 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
+#include "VehicleDefinition.h"
 #include "VehicleKnockbackSettings.generated.h"
-
-UENUM(BlueprintType)
-enum class EVehicleKnockbackTier : uint8
-{
-	Light,
-	Medium,
-	Heavy
-};
-
-/** Deterministic physical outcome selected by a global impact-speed tier. */
-USTRUCT(BlueprintType)
-struct FVehicleKnockbackTierDefinition
-{
-	GENERATED_BODY()
-
-	/** Mass-independent horizontal velocity change along the push direction. */
-	UPROPERTY(EditAnywhere, Category = "Knockback", meta = (ClampMin = "0.0", Units = "cm/s"))
-	float HorizontalDeltaSpeed = 0.0f;
-
-	/** Minimum upward speed after the hit; zero does not deliberately launch. */
-	UPROPERTY(EditAnywhere, Category = "Knockback", meta = (ClampMin = "0.0", Units = "cm/s"))
-	float TargetVerticalSpeed = 0.0f;
-
-	/** Approximate airborne flips in an uninterrupted ballistic arc. */
-	UPROPERTY(EditAnywhere, Category = "Knockback", meta = (ClampMin = "0.0", ClampMax = "3.0"))
-	float AirborneFlipTurns = 0.0f;
-};
 
 /** Project-wide impact thresholds and tier outcomes shared by every standard ball. */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Vehicle Knockback"))
@@ -42,10 +16,20 @@ class HAL_FUTURE_CREATION_API UVehicleKnockbackSettings : public UDeveloperSetti
 public:
 	UVehicleKnockbackSettings();
 
-	virtual FName GetCategoryName() const override { return TEXT("Game"); }
+	bool InitializeRules(UWorld* World);
+	bool GetRuntimeRules(FVehicleKnockbackConfig& OutRules) const;
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& Event) override;
+	virtual bool CanEditChange(const FProperty* Property) const override;
+#endif
 
-	EVehicleKnockbackTier SelectTier(float ImpactSpeed) const;
-	const FVehicleKnockbackTierDefinition& GetTierDefinition(EVehicleKnockbackTier Tier) const;
+	UPROPERTY(Config, EditAnywhere, Category = "Configuration")
+	EVehicleConfigurationSource ConfigurationSource = EVehicleConfigurationSource::Legacy;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Configuration", meta = (EditCondition = "ConfigurationSource == EVehicleConfigurationSource::Definition"))
+	TSoftObjectPtr<UCombatRulesDefinition> CombatRules;
+
+	virtual FName GetCategoryName() const override { return TEXT("Game"); }
 
 	/** Medium begins at this equivalent collision speed. */
 	UPROPERTY(Config, EditAnywhere, Category = "Thresholds", meta = (ClampMin = "0.0", Units = "cm/s"))
@@ -71,4 +55,11 @@ public:
 	/** Extra distance below the target bounds used to recognize a grounded Light hit. */
 	UPROPERTY(Config, EditAnywhere, Category = "Stability", meta = (ClampMin = "0.0", Units = "cm"))
 	float GroundProbeExtraDistance = 20.0f;
+private:
+	UPROPERTY(Transient)
+	TObjectPtr<UCombatRulesDefinition> CachedDefinition;
+	FVehicleKnockbackConfig CachedRules;
+	TWeakObjectPtr<UWorld> CachedWorld;
+	bool bRulesInitialized = false;
+	bool bRulesValid = false;
 };

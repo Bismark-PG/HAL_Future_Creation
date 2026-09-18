@@ -7,6 +7,8 @@
 #include "Engine/EngineTypes.h"
 #include "BallControlComponent.generated.h"
 
+struct FBallControlConfig;
+
 class ABasicBallActor;
 class UPhysicsConstraintComponent;
 class UPrimitiveComponent;
@@ -20,6 +22,13 @@ class HAL_FUTURE_CREATION_API UBallControlComponent : public UActorComponent
 
 public:
 	UBallControlComponent();
+
+	/** Initialization only; never resets gameplay state after BeginPlay. */
+	bool ApplyConfiguration(const FBallControlConfig& Config);
+
+#if WITH_EDITOR
+	virtual bool CanEditChange(const FProperty* Property) const override;
+#endif
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

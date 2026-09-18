@@ -7,6 +7,7 @@
 #include "VehicleHealthComponent.generated.h"
 
 struct FCombatResolver;
+struct FVehicleHealthConfig;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FVehicleHealthChanged, float, CurrentHP, float, MaxHP);
 
@@ -18,6 +19,13 @@ class HAL_FUTURE_CREATION_API UVehicleHealthComponent : public UActorComponent
 
 public:
 	UVehicleHealthComponent();
+
+	/** Initialization only; never resets gameplay state after BeginPlay. */
+	bool ApplyConfiguration(const FVehicleHealthConfig& Config);
+
+#if WITH_EDITOR
+	virtual bool CanEditChange(const FProperty* Property) const override;
+#endif
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

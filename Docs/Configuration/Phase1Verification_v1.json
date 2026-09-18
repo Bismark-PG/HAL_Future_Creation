@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "scope": "saved_templates_level_instances_input_and_global_rules_not_PIE",
+  "native_field_comparisons": 79,
+  "component_field_comparisons": 198,
+  "configuration_differences": [],
+  "protected_file_count": 23,
+  "modified_protected_files": [],
+  "added_protected_files": [],
+  "new_snapshot_internal_unchanged": true,
+  "definition_sources": {
+    "player": {
+      "type": "VehicleConfigurationSource",
+      "text": "<VehicleConfigurationSource.LEGACY: 0>"
+    },
+    "ball": {
+      "type": "VehicleConfigurationSource",
+      "text": "<VehicleConfigurationSource.LEGACY: 0>"
+    },
+    "passive": {
+      "type": "VehicleConfigurationSource",
+      "text": "<VehicleConfigurationSource.LEGACY: 0>"
+    }
+  },
+  "limitations": [
+    "Does not compare every engine property, graph or runtime instance.",
+    "Override material slots require a manual Editor check.",
+    "No PIE hand-feel acceptance is implied."
+  ],
+  "recorded_at_utc": "2026-09-18T03:28:41.146356+00:00",
+  "engine_version": "5.8.2-56702186+++UE5+Release-5.8",
+  "git_head": "d5d48c9fb50e7565fdff1226f15eb10e38c1908b",
+  "before_snapshot": "Docs/Baselines/MVP_A_Saved_Test_20260918T030251Z.json",
+  "after_snapshot": "Docs/Baselines/MVP_A_Saved_Test_20260918T032357Z.json",
+  "builds": {
+    "Editor_Win64_Development": {
+      "result": "Succeeded",
+      "exit_code": 0
+    },
+    "Game_Win64_Development": {
+      "result": "Succeeded",
+      "exit_code": 0
+    }
+  },
+  "automation": {
+    "exit_code": 0,
+    "tests": [
+      {
+        "path": "HAL.FutureCreation.Configuration.CombatRulesSource",
+        "state": "Success"
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.InitializationAndIsolation",
+        "state": "Success"
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.NoFallback",
+        "state": "Success"
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.PlayerAndBallInitialization",
+        "state": "Success"
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.Validation",
+        "state": "Success"
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.Blend",
+        "state": "Success"
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.ComponentContact",
+        "state": "Success"
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.Eligibility",
+        "state": "Success"
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.ThrottleProjection",
+        "state": "Success"
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.YawControl",
+        "state": "Success"
+      }
+    ]
+  },
+  "read_only_commandlet": {
+    "exit_code": 0,
+    "error_count": 0,
+    "warning_count": 56,
+    "historical_constructor_material_errors_observed": 0
+  },
+  "manual_asset_migration_and_PIE_acceptance": "pending_team_editor_steps"
+}

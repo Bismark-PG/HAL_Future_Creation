@@ -6,6 +6,8 @@
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "VehicleHealthComponent.h"
+#include "VehicleDefinition.h"
+#include "VehicleConfigurationApplication.h"
 
 namespace
 {
@@ -117,10 +119,14 @@ FVehicleHitResolution FCombatResolver::ResolveVehicleHit(
 	FVehicleHitResolution Resolution;
 	if (!IsValid(Hit.SourceActor) || !IsValid(Hit.TargetActor)
 		|| Hit.SourceActor == Hit.TargetActor || Hit.TargetActor == Hit.InstigatorActor
+		|| !VehicleConfiguration::IsReadyForGameplay(Hit.SourceActor) || !VehicleConfiguration::IsReadyForGameplay(Hit.TargetActor)
 		|| !Hit.SourceActor->HasAuthority() || !Hit.TargetActor->HasAuthority())
 	{
 		return Resolution;
 	}
+	FVehicleKnockbackConfig Rules;
+	const UVehicleKnockbackSettings* Settings = GetDefault<UVehicleKnockbackSettings>();
+	if (!Settings || !Settings->GetRuntimeRules(Rules)) { return Resolution; }
 
 	UVehicleHealthComponent* Health = Hit.TargetActor->FindComponentByClass<UVehicleHealthComponent>();
 	if (!Health || !Health->ApplyResolvedDamage(Damage))
@@ -135,20 +141,19 @@ FVehicleHitResolution FCombatResolver::ResolveVehicleHit(
 	}
 
 	const FVector PushDirection = GetPushDirection(Hit);
-	const UVehicleKnockbackSettings* Settings = GetDefault<UVehicleKnockbackSettings>();
-	if (IsValid(Body) && Body->IsSimulatingPhysics() && !PushDirection.IsNearlyZero() && Settings)
+	if (IsValid(Body) && Body->IsSimulatingPhysics() && !PushDirection.IsNearlyZero())
 	{
 		Resolution.ImpactSpeed = CalculateImpactSpeed(Hit, PushDirection, KnockbackStrengthMultiplier);
-		Resolution.KnockbackTier = Settings->SelectTier(Resolution.ImpactSpeed);
+		Resolution.KnockbackTier = Rules.SelectTier(Resolution.ImpactSpeed);
 		const bool bTargetGrounded = IsTargetGrounded(
 			*Body,
 			Hit,
-			Settings->GroundProbeExtraDistance);
+			Rules.GroundProbeExtraDistance);
 		ApplyTierOutcome(
 			*Body,
 			PushDirection,
-			Settings->GetTierDefinition(Resolution.KnockbackTier),
-			Settings->MaxAirborneAngularSpeed,
+			Rules.GetTierDefinition(Resolution.KnockbackTier),
+			Rules.MaxAirborneAngularSpeed,
 			bTargetGrounded);
 	}
 	Resolution.bResolved = true;

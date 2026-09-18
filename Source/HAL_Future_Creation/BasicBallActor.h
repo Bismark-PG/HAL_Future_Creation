@@ -4,11 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "VehicleConfigurationTypes.h"
 #include "BasicBallActor.generated.h"
 
 class USphereComponent;
 class UStaticMeshComponent;
 class UPrimitiveComponent;
+
+class UBallDefinition;
 
 UENUM(BlueprintType)
 enum class EBasicBallState : uint8
@@ -26,6 +29,14 @@ class HAL_FUTURE_CREATION_API ABasicBallActor : public AActor
 
 public:
 	ABasicBallActor();
+
+	virtual void PreInitializeComponents() override;
+	virtual void OnConstruction(const FTransform& Transform) override;
+	EVehicleConfigurationSource GetConfigurationSource() const { return ConfigurationSource; }
+	bool IsConfigurationValid() const { return bConfigurationValid; }
+#if WITH_EDITOR
+	virtual bool CanEditChange(const FProperty* Property) const override;
+#endif
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -47,6 +58,17 @@ public:
 	void AddReleaseImpulse(const FVector& Impulse);
 
 protected:
+	UPROPERTY(EditAnywhere, Category = "Ball|Configuration")
+	EVehicleConfigurationSource ConfigurationSource = EVehicleConfigurationSource::Legacy;
+
+	UPROPERTY(EditAnywhere, Category = "Ball|Configuration", meta = (EditCondition = "ConfigurationSource == EVehicleConfigurationSource::Definition"))
+	TObjectPtr<UBallDefinition> Definition;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Ball|Configuration")
+	bool bConfigurationValid = true;
+
+	bool ApplyDefinition(bool bPreview);
+
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ball|Components")

@@ -1,6 +1,10 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BasicBallActor.h"
+#include "UObject/UnrealType.h"
+#include "VehicleDefinition.h"
+#include "VehicleConfigurationApplication.h"
+#include "VehicleKnockbackSettings.h"
 
 #include "CombatResolver.h"
 
@@ -57,7 +61,7 @@ ABasicBallActor::ABasicBallActor()
 	PhysicsRoot->SetEnableGravity(true);
 	PhysicsRoot->SetLinearDamping(0.25f);
 	PhysicsRoot->SetAngularDamping(0.1f);
-	PhysicsRoot->SetMassOverrideInKg(NAME_None, 35.0f, true);
+	PhysicsRoot->BodyInstance.SetMassOverride(35.0f, true);
 	PhysicsRoot->SetNotifyRigidBodyCollision(true);
 	PhysicsRoot->BodyInstance.bUseCCD = true;
 	PhysicsRoot->OnComponentHit.AddDynamic(this, &ThisClass::OnPhysicsRootHit);
@@ -79,7 +83,7 @@ void ABasicBallActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 bool ABasicBallActor::CanBeControlledBy(const AActor* CandidateVehicle) const
 {
-	if (!IsValid(CandidateVehicle) || BallState != EBasicBallState::Free)
+	if (!bConfigurationValid || !VehicleConfiguration::IsReadyForGameplay(CandidateVehicle) || BallState != EBasicBallState::Free)
 	{
 		return false;
 	}
@@ -92,6 +96,33 @@ bool ABasicBallActor::CanBeControlledBy(const AActor* CandidateVehicle) const
 	}
 
 	return CandidateVehicle != ReacquireLockedVehicle.Get() || CurrentTime >= ReacquireLockedUntil;
+}
+
+bool ABasicBallActor::ApplyDefinition(bool bPreview)
+{
+	if (ConfigurationSource == EVehicleConfigurationSource::Legacy) { return true; }
+	FString Error;
+	if (ConfigurationSource != EVehicleConfigurationSource::Definition || !Definition || !Definition->Validate(Error))
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s: invalid BallDefinition %s: %s. No default fallback."),
+			*GetName(), *GetNameSafe(Definition), *Error);
+		return false;
+	}
+	PhysicsRoot->SetSphereRadius(Definition->Radius);
+	VehicleConfiguration::ApplyBody(*PhysicsRoot, Definition->Physics);
+	VehicleConfiguration::ApplyVisual(*VisualMesh, Definition->Visual);
+	if (!bPreview)
+	{
+		LowSpeedThreshold = Definition->Gameplay.State.LowSpeedThreshold;
+		LowSpeedRequiredDuration = Definition->Gameplay.State.LowSpeedRequiredDuration;
+		LowSpeedCheckInterval = Definition->Gameplay.State.LowSpeedCheckInterval;
+		PostLaunchPickupLockDuration = Definition->Gameplay.Acquisition.PostLaunchPickupLockDuration;
+		VehicleHitDamage = Definition->Gameplay.Damage.VehicleHitDamage;
+		KnockbackStrengthMultiplier = Definition->Gameplay.Damage.KnockbackStrengthMultiplier;
+		bLogDamageHits = Definition->Gameplay.Debug.bLogDamageHits;
+		bLogStateChanges = Definition->Gameplay.Debug.bLogStateChanges;
+	}
+	return true;
 }
 
 bool ABasicBallActor::BeginControl(AActor* NewHolder)
@@ -310,3 +341,32 @@ void ABasicBallActor::OnPhysicsRootHit(
 	}
 	bResolvingDamageHit = false;
 }
+
+void ABasicBallActor::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+	if (!HasActorBegunPlay() && !GetWorld()->IsGameWorld()) { ApplyDefinition(true); }
+}
+
+void ABasicBallActor::PreInitializeComponents()
+{
+	bConfigurationValid = ApplyDefinition(false);
+	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules(GetWorld())) { bConfigurationValid = false; }
+	if (!bConfigurationValid)
+	{
+		PhysicsRoot->SetSimulatePhysics(false);
+		PhysicsRoot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	Super::PreInitializeComponents();
+}
+
+#if WITH_EDITOR
+bool ABasicBallActor::CanEditChange(const FProperty* Property) const
+{
+	if (ConfigurationSource == EVehicleConfigurationSource::Definition && Property
+		&& Property->GetOwnerClass() == StaticClass() && Property->HasAnyPropertyFlags(CPF_Edit)
+		&& Property->GetFName() != GET_MEMBER_NAME_CHECKED(ABasicBallActor, ConfigurationSource)
+		&& Property->GetFName() != GET_MEMBER_NAME_CHECKED(ABasicBallActor, Definition)) { return false; }
+	return Super::CanEditChange(Property);
+}
+#endif

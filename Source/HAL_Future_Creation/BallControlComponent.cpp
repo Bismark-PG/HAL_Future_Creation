@@ -1,6 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BallControlComponent.h"
+#include "VehicleConfigurationTypes.h"
+#include "VehicleConfigurationApplication.h"
+#include "UObject/UnrealType.h"
 
 #include "BasicBallActor.h"
 #include "Components/PrimitiveComponent.h"
@@ -386,3 +389,34 @@ void UBallControlComponent::DrawAcquisitionDebug(const ABasicBallActor* BestCand
 			4.0f);
 	}
 }
+
+bool UBallControlComponent::ApplyConfiguration(const FBallControlConfig& Config)
+{
+	FString Error;
+	if (HasBegunPlay() || !Config.Validate(Error)) { return false; }
+	AcquisitionRadius = Config.Acquisition.AcquisitionRadius;
+	AcquisitionCheckInterval = Config.Acquisition.AcquisitionCheckInterval;
+	LineOfSightTraceChannel = Config.Acquisition.LineOfSightTraceChannel;
+	MaxControlledDistance = Config.Control.MaxControlledDistance;
+	ControlPositionStrength = Config.Control.ControlPositionStrength;
+	ControlVelocityStrength = Config.Control.ControlVelocityStrength;
+	ControlMaxForce = Config.Control.ControlMaxForce;
+	LaunchSpeedIncrement = Config.Launch.LaunchSpeedIncrement;
+	BaseRecoilDeltaSpeed = Config.Launch.BaseRecoilDeltaSpeed;
+	MovingRecoilFraction = Config.Launch.MovingRecoilFraction;
+	MaxRecoilDeltaSpeed = Config.Launch.MaxRecoilDeltaSpeed;
+	DropCollisionImpulseThreshold = Config.ForcedRelease.DropCollisionImpulseThreshold;
+	DropReacquireLockDuration = Config.ForcedRelease.DropReacquireLockDuration;
+	DropBallImpulse = Config.ForcedRelease.DropBallImpulse;
+	DropBallUpwardImpulse = Config.ForcedRelease.DropBallUpwardImpulse;
+	bDrawAcquisitionDebug = Config.Debug.bDrawAcquisitionDebug;
+	return true;
+}
+
+#if WITH_EDITOR
+bool UBallControlComponent::CanEditChange(const FProperty* Property) const
+{
+	if (Property && Property->GetOwnerClass() == StaticClass() && VehicleConfiguration::UsesDefinition(GetOwner())) { return false; }
+	return Super::CanEditChange(Property);
+}
+#endif
