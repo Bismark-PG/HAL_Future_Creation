@@ -164,14 +164,16 @@ bool FConfigurationRulesTest::RunTest(const FString& Parameters)
 {
 	FConfigurationTestWorld Fixture;
 	UVehicleKnockbackSettings* Settings = NewObject<UVehicleKnockbackSettings>();
+	Settings->ConfigurationSource = EVehicleConfigurationSource::Legacy;
 	Settings->MediumImpactSpeedThreshold = 777;
 	FVehicleKnockbackConfig Rules;
 	TestTrue(TEXT("Legacy settings remain effective"), Settings->GetRuntimeRules(Rules));
 	TestEqual(TEXT("Legacy custom value is preserved"), Rules.MediumImpactSpeedThreshold, 777.0f);
 	Settings->ConfigurationSource = EVehicleConfigurationSource::Definition;
+	Settings->CombatRules = nullptr;
 	TestFalse(TEXT("Definition rules cannot be lazily loaded in the hit path"), Settings->GetRuntimeRules(Rules));
 	AddExpectedError(TEXT("Invalid CombatRules"), EAutomationExpectedErrorFlags::Contains, 1);
-	TestFalse(TEXT("Missing global rules block initialization"), Settings->InitializeRules(Fixture.World));
+	TestFalse(TEXT("Missing global rules block initialization"), Settings->InitializeRules());
 	TestFalse(TEXT("Legacy thresholds cannot substitute for missing definition"), Settings->GetRuntimeRules(Rules));
 	UCombatRulesDefinition* Definition = NewObject<UCombatRulesDefinition>();
 	Definition->bReadyForUse = true;
@@ -179,7 +181,7 @@ bool FConfigurationRulesTest::RunTest(const FString& Parameters)
 	Settings = NewObject<UVehicleKnockbackSettings>();
 	Settings->ConfigurationSource = EVehicleConfigurationSource::Definition;
 	Settings->CombatRules = Definition;
-	TestTrue(TEXT("Reviewed global rules are cached before gameplay"), Settings->InitializeRules(Fixture.World));
+	TestTrue(TEXT("Reviewed global rules are cached before gameplay"), Settings->InitializeRules());
 	Definition->BallImpacts.MediumImpactSpeedThreshold = 999;
 	TestTrue(TEXT("Cached rules available"), Settings->GetRuntimeRules(Rules));
 	TestEqual(TEXT("Editing shared template does not mutate active match rules"), Rules.MediumImpactSpeedThreshold, 888.0f);

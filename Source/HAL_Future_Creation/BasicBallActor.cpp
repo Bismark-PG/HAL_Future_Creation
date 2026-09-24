@@ -351,7 +351,7 @@ void ABasicBallActor::OnConstruction(const FTransform& Transform)
 void ABasicBallActor::PreInitializeComponents()
 {
 	bConfigurationValid = ApplyDefinition(false);
-	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules(GetWorld())) { bConfigurationValid = false; }
+	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules()) { bConfigurationValid = false; }
 	if (!bConfigurationValid)
 	{
 		PhysicsRoot->SetSimulatePhysics(false);

@@ -18,12 +18,12 @@ UVehicleKnockbackSettings::UVehicleKnockbackSettings()
 	HeavyTier.AirborneFlipTurns = 1.25f;
 }
 
-bool UVehicleKnockbackSettings::InitializeRules(UWorld* World)
+bool UVehicleKnockbackSettings::InitializeRules()
 {
 	if (ConfigurationSource == EVehicleConfigurationSource::Legacy) { return true; }
-	if (bRulesInitialized && CachedWorld.Get() == World) { return bRulesValid; }
+	// These rules depend only on the shared configuration asset, not on a PIE World.
+	if (bRulesInitialized) { return bRulesValid; }
 	bRulesInitialized = true;
-	CachedWorld = World;
 	bRulesValid = false;
 	CachedDefinition = CombatRules.LoadSynchronous();
 	FString Error;

@@ -61,7 +61,7 @@ void APassiveTestVehicle::OnConstruction(const FTransform& Transform)
 void APassiveTestVehicle::PreInitializeComponents()
 {
 	bConfigurationValid = ApplyDefinition(false);
-	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules(GetWorld())) { bConfigurationValid = false; }
+	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules()) { bConfigurationValid = false; }
 	if (!bConfigurationValid)
 	{
 		CollisionRoot->SetSimulatePhysics(false);

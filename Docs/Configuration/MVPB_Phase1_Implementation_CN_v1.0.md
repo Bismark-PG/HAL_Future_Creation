@@ -2,6 +2,8 @@
 
 日期：2026-09-18；模块：HAL_Future_Creation；验证引擎：UE 5.8.2。用户已授权施工，以下类型和职责计划继续沿用于正式开发。当前代码就绪，蓝图/配置资产切换和真实 PIE 手感验收由团队按根目录 `MVP_B_Phase1_Editor_Migration_CN_v1.0.md` 执行，尚未记为完成。
 
+后续进展（2026-09-18）：团队已配置 Data Asset，用户反馈“初步测试暂时没有功能问题”。工程已有 `/Game/Data/MVP_B` 下五份配置，DefaultGame.ini 的全局来源为 Definition 并引用该目录的 Combat DA。日常调参见 [Data Asset 配置速查](MVPB_DataAsset_QuickGuide_CN_v1.0.md)。以下施工期快照/验证记录保留原时点，不以本次反馈补写未提供的专项验收或逐资产运行值。
+
 ## 1. 配置类型与职责
 
 | 类型/文件 | 消费者与边界 |

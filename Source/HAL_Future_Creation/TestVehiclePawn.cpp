@@ -378,7 +378,7 @@ void ATestVehiclePawn::OnConstruction(const FTransform& Transform)
 void ATestVehiclePawn::PreInitializeComponents()
 {
 	bConfigurationValid = ApplyDefinition(false);
-	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules(GetWorld())) { bConfigurationValid = false; }
+	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules()) { bConfigurationValid = false; }
 	if (!bConfigurationValid)
 	{
 		CollisionRoot->SetSimulatePhysics(false);

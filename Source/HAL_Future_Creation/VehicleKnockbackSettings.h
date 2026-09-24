@@ -16,7 +16,7 @@ class HAL_FUTURE_CREATION_API UVehicleKnockbackSettings : public UDeveloperSetti
 public:
 	UVehicleKnockbackSettings();
 
-	bool InitializeRules(UWorld* World);
+	bool InitializeRules();
 	bool GetRuntimeRules(FVehicleKnockbackConfig& OutRules) const;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& Event) override;
@@ -59,7 +59,6 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UCombatRulesDefinition> CachedDefinition;
 	FVehicleKnockbackConfig CachedRules;
-	TWeakObjectPtr<UWorld> CachedWorld;
 	bool bRulesInitialized = false;
 	bool bRulesValid = false;
 };
