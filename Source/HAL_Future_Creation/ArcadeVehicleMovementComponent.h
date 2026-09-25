@@ -6,9 +6,11 @@
 #include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
 #include "VehicleInputCmd.h"
+#include "VehicleNetPhysicsData.h"
 #include "ArcadeVehicleMovementComponent.generated.h"
 
 struct FArcadeVehicleConfig;
+struct FBodyInstance;
 
 class UPrimitiveComponent;
 
@@ -35,14 +37,18 @@ public:
 #endif
 
 	virtual void BeginPlay() override;
-	virtual void TickComponent(
-		float DeltaTime,
-		ELevelTick TickType,
-		FActorComponentTickFunction* ThisTickFunction) override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void Activate(bool bReset = false) override;
+	virtual void Deactivate() override;
+	virtual void AsyncPhysicsTickComponent(float DeltaTime, float SimTime) override;
 
 	void SetUpdatedPrimitive(UPrimitiveComponent* InPrimitive);
 	void SetInputCommand(const FVehicleInputCmd& InInputCommand);
 	void ResetInputCommand();
+	void QueueRecoil(const FVector& DeltaVelocity);
+	const FVehicleNetInputData& GetLastPhysicsInput() const { return LastPhysicsInput; }
+	bool CaptureNetState(FVehicleNetStateData& OutState) const;
+	bool RestoreNetState(const FVehicleNetStateData& State);
 
 	UFUNCTION(BlueprintPure, Category = "Arcade Vehicle|Debug")
 	bool IsGrounded() const { return bGrounded; }
@@ -51,18 +57,28 @@ public:
 	float GetForwardSpeed() const { return ForwardSpeed; }
 
 private:
-	bool UpdateGroundContact(FVector& OutGroundNormal) const;
-	void UpdateWallEscape(const FVector& GroundNormal, const FVector& ForwardDirection,
+	friend class FVehicleWallEscapeContactTest;
+	void SimulateVehicleStep(const FVehicleNetInputData& StepInput, float DeltaTime);
+	bool UpdateGroundContact(const FVector& BodyLocation, FVector& OutGroundNormal) const;
+	void UpdateWallEscape(const FTransform& BodyTransform, const FVector& GroundNormal, const FVector& ForwardDirection,
 		const FVector& Velocity, float DeltaTime);
 	void ResetWallEscape();
-	void ApplyLongitudinalForces(const FVector& ForwardDirection, float CurrentForwardSpeed);
-	void ApplyLateralGrip(const FVector& RightDirection, float CurrentLateralSpeed);
-	void ApplySteering(const FVector& GroundNormal, float CurrentForwardSpeed, float DeltaTime);
+	void ApplyLongitudinalForces(FBodyInstance& Body, const FVector& ForwardDirection, float CurrentForwardSpeed);
+	void ApplyLateralGrip(FBodyInstance& Body, const FVector& RightDirection, float CurrentLateralSpeed);
+	void ApplySteering(FBodyInstance& Body, const FVector& GroundNormal, float CurrentForwardSpeed,
+		float CurrentYawRate, float DeltaTime);
 
 	UPROPERTY(Transient)
 	TObjectPtr<UPrimitiveComponent> UpdatedPrimitive;
 
+	FVehicleInputCmd PendingInputCommand;
 	FVehicleInputCmd InputCommand;
+	FVehicleNetInputData LastPhysicsInput;
+	uint32 NextInputSequence = 0;
+	FVector PendingRecoilDeltaVelocity = FVector::ZeroVector;
+#if !UE_BUILD_SHIPPING
+	bool bLoggedFirstPhysicsStep = false;
+#endif
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Arcade Vehicle|Debug")
 	bool bGrounded = false;

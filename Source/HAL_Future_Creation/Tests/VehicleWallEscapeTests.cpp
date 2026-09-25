@@ -194,10 +194,35 @@ bool FVehicleWallEscapeContactTest::RunTest(const FString& Parameters)
 	Input.Steering = 1.0f;
 	Input.bHandbrake = true;
 	Movement->SetInputCommand(Input);
-	const auto Tick = [Movement]() { Movement->TickComponent(0.02f, LEVELTICK_All, nullptr); };
+	// This transient world does not advance Chaos, so exercise the shared
+	// contact query without invoking the production physics-thread callback.
+	const auto Tick = [Movement, Body]()
+	{
+		Movement->InputCommand = Movement->PendingInputCommand;
+		const FTransform BodyTransform = Body->GetComponentTransform();
+		const FVector Velocity = Body->GetPhysicsLinearVelocity();
+		FVector GroundNormal = FVector::UpVector;
+		Movement->bGrounded = Movement->UpdateGroundContact(BodyTransform.GetLocation(), GroundNormal);
+		if (!Movement->bGrounded)
+		{
+			Movement->ResetWallEscape();
+			return;
+		}
+		const FVector Forward = FVector::VectorPlaneProject(
+			BodyTransform.GetRotation().GetForwardVector(), GroundNormal).GetSafeNormal();
+		Movement->UpdateWallEscape(BodyTransform, GroundNormal, Forward, Velocity, 0.02f);
+	};
 	const auto Active = [Movement, ActiveProperty]() { return ActiveProperty->GetPropertyValue_InContainer(Movement); };
 	Tick();
 	TestTrue(TEXT("Body touching floor is grounded"), Movement->IsGrounded());
+	FVehicleNetStateData SavedState;
+	TestTrue(TEXT("Physics step state captures rigid body and wall assist"), Movement->CaptureNetState(SavedState));
+	TestTrue(TEXT("Wall assist is included in rewind state"), SavedState.bWallEscapeActive);
+	TestTrue(TEXT("Wall normals are included in rewind state"), SavedState.WallEscapeNormals.Num() > 0);
+	TestTrue(TEXT("Valid physics state restores"), Movement->RestoreNetState(SavedState));
+	FVehicleNetStateData InvalidState = SavedState;
+	InvalidState.WallEscapeBlend = 2.0f;
+	TestFalse(TEXT("Invalid rewind state is rejected"), Movement->RestoreNetState(InvalidState));
 	TestTrue(TEXT("Static wall activates mesh geometry probe despite supporting floor"), Active());
 	TestTrue(TEXT("Entry starts with partial rather than instant assist"),
 		FMath::IsNearlyEqual(BlendProperty->GetPropertyValue_InContainer(Movement), 0.25f));

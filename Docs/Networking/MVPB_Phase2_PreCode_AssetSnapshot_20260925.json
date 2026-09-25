@@ -1,0 +1,52 @@
+{
+  "purpose": "Read-only saved test-tuning asset baseline before MVP-B Listen Server Phase 2 C++ migration",
+  "date": "2026-09-25",
+  "hash_algorithm": "SHA-256",
+  "files": [
+    {
+      "path": "Content/Maps/Test.umap",
+      "size": 62817,
+      "sha256": "cc4a0631f4f463ac6b1a89dd342b9af2728f39eb87a5789d7c1ae8d0d3eaf659"
+    },
+    {
+      "path": "Content/Maps/MVPB_NetTest.umap",
+      "size": 69221,
+      "sha256": "e4d5a1a3f947f4d98aec9100c22a78e05ee0905dba3e44e209228022aaea567d"
+    },
+    {
+      "path": "Content/Blueprints/Vehicles/BP_RoundedVehiclePawn.uasset",
+      "size": 38108,
+      "sha256": "d82a6768b9e7dfea6a052035541f6d28783eef22a5d752a2bb0c53ff3601485e"
+    },
+    {
+      "path": "Content/Blueprints/Vehicles/BP_PassiveTestVehicle.uasset",
+      "size": 33666,
+      "sha256": "249db929e3a0abb4fc77617d4c260f154424324ba14ee19bdd4d58c03c7bb5de"
+    },
+    {
+      "path": "Content/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.uasset",
+      "size": 3312,
+      "sha256": "853e1ddc1dd6183195aee539ccff58574a7c9111a07f8e8df899f3a4804a0262"
+    },
+    {
+      "path": "Content/Data/MVP_B/DA_Vehicle_Passive_TestBaseline_v1.uasset",
+      "size": 1958,
+      "sha256": "61bb9294db778c1410c3274198ed0a2bddb883414fd17654e845fc85a8cfc48a"
+    },
+    {
+      "path": "Content/Data/MVP_B/DA_Local_TestBaseline_v1.uasset",
+      "size": 2969,
+      "sha256": "5b630d180784117ee6da0add5849face7384b038df258c69f20d06c8cc50e287"
+    },
+    {
+      "path": "Content/Data/MVP_B/DA_Combat_TestBaseline_v1.uasset",
+      "size": 1337,
+      "sha256": "e190f6879fc286b85ba18576d7efd98bc8c3aa31363024f672cb3d51ceac753c"
+    },
+    {
+      "path": "Content/Data/MVP_B/DA_Ball_Normal_TestBaseline_v1.uasset",
+      "size": 1707,
+      "sha256": "07ffea5c14e069eb300bffd2a15405e4c6ef5efdfd9eb3a861caacc244142f32"
+    }
+  ]
+}

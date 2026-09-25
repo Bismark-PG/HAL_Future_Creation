@@ -38,9 +38,9 @@ struct HAL_FUTURE_CREATION_API FVehicleInputCmd
 
 	void Sanitize()
 	{
-		Steering = FMath::Clamp(Steering, -1.0f, 1.0f);
-		Throttle = FMath::Clamp(Throttle, 0.0f, 1.0f);
-		Brake = FMath::Clamp(Brake, 0.0f, 1.0f);
+		Steering = FMath::IsFinite(Steering) ? FMath::Clamp(Steering, -1.0f, 1.0f) : 0.0f;
+		Throttle = FMath::IsFinite(Throttle) ? FMath::Clamp(Throttle, 0.0f, 1.0f) : 0.0f;
+		Brake = FMath::IsFinite(Brake) ? FMath::Clamp(Brake, 0.0f, 1.0f) : 0.0f;
 	}
 
 	void Reset()
@@ -48,4 +48,3 @@ struct HAL_FUTURE_CREATION_API FVehicleInputCmd
 		*this = FVehicleInputCmd();
 	}
 };
-

@@ -8,12 +8,15 @@
 #include "Components/PrimitiveComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
+#include "PBDRigidsSolver.h"
+#include "PhysicsProxy/SingleParticlePhysicsProxy.h"
+#include "Physics/Experimental/PhysScene_Chaos.h"
+#include "PhysicsEngine/BodyInstance.h"
 #include "VehicleWallEscapeMath.h"
 
 UArcadeVehicleMovementComponent::UArcadeVehicleMovementComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.TickGroup = TG_PrePhysics;
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 void UArcadeVehicleMovementComponent::BeginPlay()
@@ -28,7 +31,6 @@ void UArcadeVehicleMovementComponent::BeginPlay()
 	if (!UpdatedPrimitive)
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s requires a primitive component to drive."), *GetNameSafe(this));
-		SetComponentTickEnabled(false);
 		return;
 	}
 
@@ -40,15 +42,70 @@ void UArcadeVehicleMovementComponent::BeginPlay()
 			TEXT("%s will not move because %s is not simulating physics."),
 			*GetNameSafe(this),
 			*GetNameSafe(UpdatedPrimitive));
+		return;
+	}
+	// Existing Blueprint templates can have Auto Activate disabled; Chaos requires
+	// every registered async-physics component to be active at callback time.
+	if (!IsActive())
+	{
+		Activate(true);
+	}
+	SetAsyncPhysicsTickEnabled(true);
+}
+
+void UArcadeVehicleMovementComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	SetAsyncPhysicsTickEnabled(false);
+	Super::EndPlay(EndPlayReason);
+}
+
+void UArcadeVehicleMovementComponent::Activate(bool bReset)
+{
+	Super::Activate(bReset);
+	if (HasBegunPlay() && IsActive() && UpdatedPrimitive && UpdatedPrimitive->IsSimulatingPhysics())
+	{
+		SetAsyncPhysicsTickEnabled(true);
 	}
 }
 
-void UArcadeVehicleMovementComponent::TickComponent(
-	float DeltaTime,
-	ELevelTick TickType,
-	FActorComponentTickFunction* ThisTickFunction)
+void UArcadeVehicleMovementComponent::Deactivate()
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	SetAsyncPhysicsTickEnabled(false);
+	Super::Deactivate();
+}
+
+void UArcadeVehicleMovementComponent::AsyncPhysicsTickComponent(float DeltaTime, float SimTime)
+{
+	Super::AsyncPhysicsTickComponent(DeltaTime, SimTime);
+	FVehicleNetInputData StepInput;
+	StepInput.Cmd = PendingInputCommand;
+	StepInput.InputSequence = ++NextInputSequence;
+	if (const UWorld* World = GetWorld())
+	{
+		if (const FPhysScene_Chaos* Scene = static_cast<const FPhysScene_Chaos*>(World->GetPhysicsScene()))
+		{
+			if (Chaos::FPhysicsSolver* Solver = Scene->GetSolver())
+			{
+				StepInput.PhysicsFrame = static_cast<Chaos::FPBDRigidsSolver*>(Solver)->GetCurrentFrame();
+			}
+		}
+	}
+	StepInput.Sanitize();
+	LastPhysicsInput = StepInput;
+#if !UE_BUILD_SHIPPING
+	if (!bLoggedFirstPhysicsStep)
+	{
+		bLoggedFirstPhysicsStep = true;
+		UE_LOG(LogTemp, Log, TEXT("Vehicle physics step: %s DeltaTime=%.6f Frame=%d"),
+			*GetNameSafe(GetOwner()), DeltaTime, StepInput.PhysicsFrame);
+	}
+#endif
+	SimulateVehicleStep(StepInput, DeltaTime);
+}
+
+void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInputData& StepInput, float DeltaTime)
+{
+	InputCommand = StepInput.Cmd;
 
 	if (!UpdatedPrimitive || !UpdatedPrimitive->IsSimulatingPhysics() || DeltaTime <= 0.0f)
 	{
@@ -57,13 +114,26 @@ void UArcadeVehicleMovementComponent::TickComponent(
 		ResetWallEscape();
 		return;
 	}
+	FBodyInstance* Body = UpdatedPrimitive->GetBodyInstance();
+	FBodyInstanceAsyncPhysicsTickHandle PhysicsHandle = Body
+		? Body->GetBodyInstanceAsyncPhysicsTickHandle() : FBodyInstanceAsyncPhysicsTickHandle();
+	if (!PhysicsHandle.IsValid())
+	{
+		return;
+	}
+	if (!PendingRecoilDeltaVelocity.IsNearlyZero())
+	{
+		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(), PendingRecoilDeltaVelocity, true);
+		PendingRecoilDeltaVelocity = FVector::ZeroVector;
+	}
+	const FTransform BodyTransform(PhysicsHandle->R(), PhysicsHandle->X());
 
 	FVector GroundNormal = FVector::UpVector;
-	bGrounded = UpdateGroundContact(GroundNormal);
+	bGrounded = UpdateGroundContact(BodyTransform.GetLocation(), GroundNormal);
 
-	const FVector Velocity = UpdatedPrimitive->GetPhysicsLinearVelocity();
+	const FVector Velocity = PhysicsHandle->V();
 	const FVector ForwardDirection = FVector::VectorPlaneProject(
-		UpdatedPrimitive->GetForwardVector(), GroundNormal).GetSafeNormal();
+		BodyTransform.GetRotation().GetForwardVector(), GroundNormal).GetSafeNormal();
 	const FVector RightDirection = FVector::CrossProduct(GroundNormal, ForwardDirection).GetSafeNormal();
 
 	ForwardSpeed = FVector::DotProduct(Velocity, ForwardDirection);
@@ -75,11 +145,12 @@ void UArcadeVehicleMovementComponent::TickComponent(
 	}
 
 	const float LateralSpeed = FVector::DotProduct(Velocity, RightDirection);
-	UpdateWallEscape(GroundNormal, ForwardDirection, Velocity, DeltaTime);
+	UpdateWallEscape(BodyTransform, GroundNormal, ForwardDirection, Velocity, DeltaTime);
 
-	ApplyLongitudinalForces(ForwardDirection, ForwardSpeed);
-	ApplyLateralGrip(RightDirection, LateralSpeed);
-	ApplySteering(GroundNormal, ForwardSpeed, DeltaTime);
+	ApplyLongitudinalForces(*Body, ForwardDirection, ForwardSpeed);
+	ApplyLateralGrip(*Body, RightDirection, LateralSpeed);
+	ApplySteering(*Body, GroundNormal, ForwardSpeed,
+		FVector::DotProduct(PhysicsHandle->W(), GroundNormal), DeltaTime);
 }
 
 void UArcadeVehicleMovementComponent::SetUpdatedPrimitive(UPrimitiveComponent* InPrimitive)
@@ -90,14 +161,68 @@ void UArcadeVehicleMovementComponent::SetUpdatedPrimitive(UPrimitiveComponent* I
 
 void UArcadeVehicleMovementComponent::SetInputCommand(const FVehicleInputCmd& InInputCommand)
 {
-	InputCommand = InInputCommand;
-	InputCommand.Sanitize();
+	PendingInputCommand = InInputCommand;
+	PendingInputCommand.Sanitize();
 }
 
 void UArcadeVehicleMovementComponent::ResetInputCommand()
 {
+	PendingInputCommand.Reset();
 	InputCommand.Reset();
 	ResetWallEscape();
+}
+
+void UArcadeVehicleMovementComponent::QueueRecoil(const FVector& DeltaVelocity)
+{
+	if (!DeltaVelocity.ContainsNaN())
+	{
+		PendingRecoilDeltaVelocity += DeltaVelocity;
+	}
+}
+
+bool UArcadeVehicleMovementComponent::CaptureNetState(FVehicleNetStateData& OutState) const
+{
+	const FBodyInstance* Body = UpdatedPrimitive ? UpdatedPrimitive->GetBodyInstance() : nullptr;
+	if (!Body || !UpdatedPrimitive->IsSimulatingPhysics())
+	{
+		return false;
+	}
+	const FTransform BodyTransform = Body->GetUnrealWorldTransform();
+	OutState.PhysicsFrame = LastPhysicsInput.PhysicsFrame;
+	OutState.Position = BodyTransform.GetLocation();
+	OutState.Rotation = BodyTransform.GetRotation();
+	OutState.LinearVelocity = Body->GetUnrealWorldVelocity();
+	OutState.AngularVelocityRadians = Body->GetUnrealWorldAngularVelocityInRadians();
+	OutState.bWallEscapeActive = bWallEscapeActive;
+	OutState.WallEscapeBlend = WallEscapeBlend;
+	OutState.WallEscapeNormals = WallEscapeNormals;
+	OutState.PendingRecoilDeltaVelocity = PendingRecoilDeltaVelocity;
+	return true;
+}
+
+bool UArcadeVehicleMovementComponent::RestoreNetState(const FVehicleNetStateData& State)
+{
+	if (!UpdatedPrimitive || !UpdatedPrimitive->IsSimulatingPhysics()
+		|| State.Position.ContainsNaN() || State.Rotation.ContainsNaN() || !State.Rotation.IsNormalized()
+		|| State.LinearVelocity.ContainsNaN() || State.AngularVelocityRadians.ContainsNaN()
+		|| State.PendingRecoilDeltaVelocity.ContainsNaN()
+		|| !FMath::IsFinite(State.WallEscapeBlend) || State.WallEscapeBlend < 0.0f
+		|| State.WallEscapeBlend > 1.0f || State.WallEscapeNormals.Num() > 2)
+	{
+		return false;
+	}
+	for (const FVector& Normal : State.WallEscapeNormals)
+	{
+		if (Normal.ContainsNaN() || !Normal.IsNormalized()) { return false; }
+	}
+	UpdatedPrimitive->SetWorldLocationAndRotation(State.Position, State.Rotation, false, nullptr, ETeleportType::TeleportPhysics);
+	UpdatedPrimitive->SetPhysicsLinearVelocity(State.LinearVelocity);
+	UpdatedPrimitive->SetPhysicsAngularVelocityInRadians(State.AngularVelocityRadians);
+	bWallEscapeActive = State.bWallEscapeActive;
+	WallEscapeBlend = State.WallEscapeBlend;
+	WallEscapeNormals = State.WallEscapeNormals;
+	PendingRecoilDeltaVelocity = State.PendingRecoilDeltaVelocity;
+	return true;
 }
 
 void UArcadeVehicleMovementComponent::ResetWallEscape()
@@ -108,11 +233,11 @@ void UArcadeVehicleMovementComponent::ResetWallEscape()
 }
 
 void UArcadeVehicleMovementComponent::UpdateWallEscape(
-	const FVector& GroundNormal, const FVector& ForwardDirection,
+	const FTransform& BodyTransform, const FVector& GroundNormal, const FVector& ForwardDirection,
 	const FVector& Velocity, float DeltaTime)
 {
 	// This is not landing assistance or an emergency flip system.
-	if (!bEnableWallEscape || FVector::DotProduct(UpdatedPrimitive->GetUpVector(), GroundNormal) < 0.5f)
+	if (!bEnableWallEscape || FVector::DotProduct(BodyTransform.GetRotation().GetUpVector(), GroundNormal) < 0.5f)
 	{
 		ResetWallEscape();
 		return;
@@ -125,7 +250,7 @@ void UArcadeVehicleMovementComponent::UpdateWallEscape(
 	UWorld* World = GetWorld();
 	if (bEligible && World)
 	{
-		const FVector Start = UpdatedPrimitive->GetComponentLocation();
+		const FVector Start = BodyTransform.GetLocation();
 		const FVector End = Start + ForwardDirection * FMath::Clamp(WallEscapeProbeDistance, 1.0f, 100.0f);
 		FComponentQueryParams Params(SCENE_QUERY_STAT(VehicleWallEscapeProbe), GetOwner());
 		Params.bIgnoreTouches = true;
@@ -138,7 +263,7 @@ void UArcadeVehicleMovementComponent::UpdateWallEscape(
 		{
 			TArray<FHitResult> Hits;
 			World->ComponentSweepMulti(Hits, UpdatedPrimitive, Start, End,
-				UpdatedPrimitive->GetComponentQuat(), Params);
+				BodyTransform.GetRotation(), Params);
 			bool bFoundBlocker = false;
 			for (const FHitResult& Hit : Hits)
 			{
@@ -199,7 +324,7 @@ void UArcadeVehicleMovementComponent::UpdateWallEscape(
 	}
 	if (bDrawWallEscapeDebug && World)
 	{
-		const FVector Start = UpdatedPrimitive->GetComponentLocation();
+		const FVector Start = BodyTransform.GetLocation();
 		for (const FVector& Normal : WallEscapeNormals)
 		{
 			DrawDebugDirectionalArrow(World, Start, Start + Normal * 100.0f, 15.0f,
@@ -208,7 +333,7 @@ void UArcadeVehicleMovementComponent::UpdateWallEscape(
 	}
 }
 
-bool UArcadeVehicleMovementComponent::UpdateGroundContact(FVector& OutGroundNormal) const
+bool UArcadeVehicleMovementComponent::UpdateGroundContact(const FVector& BodyLocation, FVector& OutGroundNormal) const
 {
 	UWorld* World = GetWorld();
 	if (!World || !UpdatedPrimitive)
@@ -216,7 +341,7 @@ bool UArcadeVehicleMovementComponent::UpdateGroundContact(FVector& OutGroundNorm
 		return false;
 	}
 
-	const FVector TraceStart = UpdatedPrimitive->GetComponentLocation();
+	const FVector TraceStart = BodyLocation;
 	const float TraceLength = UpdatedPrimitive->Bounds.BoxExtent.Z + GroundTraceExtraDistance;
 	const FVector TraceEnd = TraceStart - (FVector::UpVector * TraceLength);
 
@@ -253,6 +378,7 @@ bool UArcadeVehicleMovementComponent::UpdateGroundContact(FVector& OutGroundNorm
 }
 
 void UArcadeVehicleMovementComponent::ApplyLongitudinalForces(
+	FBodyInstance& Body,
 	const FVector& ForwardDirection,
 	float CurrentForwardSpeed)
 {
@@ -302,10 +428,12 @@ void UArcadeVehicleMovementComponent::ApplyLongitudinalForces(
 		ResistanceAcceleration -= (CurrentForwardSpeed + MaxReverseSpeed) * OverspeedCorrectionRate;
 	}
 
-	UpdatedPrimitive->AddForce(DriveAcceleration + ForwardDirection * ResistanceAcceleration, NAME_None, true);
+	FPhysicsInterface::AddForce_AssumesLocked(Body.GetPhysicsActor(),
+		DriveAcceleration + ForwardDirection * ResistanceAcceleration, false, true, true);
 }
 
 void UArcadeVehicleMovementComponent::ApplyLateralGrip(
+	FBodyInstance& Body,
 	const FVector& RightDirection,
 	float CurrentLateralSpeed)
 {
@@ -315,12 +443,15 @@ void UArcadeVehicleMovementComponent::ApplyLateralGrip(
 		-MaxLateralGripAcceleration,
 		MaxLateralGripAcceleration);
 
-	UpdatedPrimitive->AddForce(RightDirection * GripAcceleration, NAME_None, true);
+	FPhysicsInterface::AddForce_AssumesLocked(Body.GetPhysicsActor(),
+		RightDirection * GripAcceleration, false, true, true);
 }
 
 void UArcadeVehicleMovementComponent::ApplySteering(
+	FBodyInstance& Body,
 	const FVector& GroundNormal,
 	float CurrentForwardSpeed,
+	float CurrentYawRate,
 	float DeltaTime)
 {
 	const float AbsoluteSpeed = FMath::Abs(CurrentForwardSpeed);
@@ -350,9 +481,6 @@ void UArcadeVehicleMovementComponent::ApplySteering(
 	const float TravelDirection = CurrentForwardSpeed < ReverseSteeringThreshold ? -1.0f : 1.0f;
 	const float SteeringMultiplier = InputCommand.bHandbrake ? HandbrakeSteeringMultiplier : 1.0f;
 	const float DampingRate = InputCommand.bHandbrake ? HandbrakeYawDampingRate : YawDampingRate;
-	const float CurrentYawRate = FVector::DotProduct(
-		UpdatedPrimitive->GetPhysicsAngularVelocityInRadians(),
-		GroundNormal);
 
 	const float SteeringAcceleration =
 		InputCommand.Steering
@@ -367,10 +495,8 @@ void UArcadeVehicleMovementComponent::ApplySteering(
 	const float YawAcceleration = FMath::Lerp(
 		SteeringAcceleration + DampingAcceleration, EscapeAcceleration, WallEscapeBlend);
 
-	UpdatedPrimitive->AddTorqueInRadians(
-		GroundNormal * YawAcceleration,
-		NAME_None,
-		true);
+	FPhysicsInterface::AddTorque_AssumesLocked(Body.GetPhysicsActor(),
+		GroundNormal * YawAcceleration, false, true, true);
 }
 
 bool UArcadeVehicleMovementComponent::ApplyConfiguration(const FArcadeVehicleConfig& Config)

@@ -383,7 +383,6 @@ void ATestVehiclePawn::PreInitializeComponents()
 	{
 		CollisionRoot->SetSimulatePhysics(false);
 		CollisionRoot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		ArcadeMovement->SetComponentTickEnabled(false);
 	}
 	Super::PreInitializeComponents();
 }
