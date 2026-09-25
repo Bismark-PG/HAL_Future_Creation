@@ -5,7 +5,8 @@
 <br> https://drive.google.com/drive/folders/1mVRa0sYQaPx9uhG-Am2uUjIOUEY_dYDk?usp=sharing
 
 * Note (Notion)
-<br> https://app.notion.com/p/HAL-2026-aa724287845e82d1b47901bf3d5a21c4?source=copy_link
+<br> https://docs.google.com/document/d/18ZMD0p2Yb1ODw9BOTjzLLTnBNqDw0MfX8f07LV9GjnM/edit?usp=sharing
+<br> ~~https://app.notion.com/p/HAL-2026-aa724287845e82d1b47901bf3d5a21c4?source=copy_link~~
 
 + Exhibition Location
 <br> フジテレビ社屋
