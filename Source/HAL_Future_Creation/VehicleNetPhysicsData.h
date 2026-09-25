@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Physics/NetworkPhysicsComponent.h"
 #include "VehicleInputCmd.h"
 #include "VehicleNetPhysicsData.generated.h"
 
@@ -96,3 +97,65 @@ struct HAL_FUTURE_CREATION_API FVehicleNetStateData
 	UPROPERTY()
 	FVector PendingRecoilDeltaVelocity = FVector::ZeroVector;
 };
+
+/** UE 5.8 Network Physics frame history. Continuous controls only; launch keeps its idempotent RPC. */
+USTRUCT()
+struct HAL_FUTURE_CREATION_API FVehiclePhysicsHistoryInput : public FNetworkPhysicsData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVehicleNetInputData Input;
+
+	virtual void ApplyData(UActorComponent* NetworkComponent) const override;
+	virtual void BuildData(const UActorComponent* NetworkComponent) override;
+	virtual void InterpolateData(const FNetworkPhysicsData& MinData, const FNetworkPhysicsData& MaxData) override;
+	virtual void MergeData(const FNetworkPhysicsData& FromData) override;
+	virtual void DecayData(float DecayAmount) override;
+	virtual void ValidateData(const UActorComponent* NetworkComponent) override;
+	virtual bool CompareData(const FNetworkPhysicsData& PredictedData) override;
+	bool NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess);
+};
+
+template<>
+struct TStructOpsTypeTraits<FVehiclePhysicsHistoryInput> : public TStructOpsTypeTraitsBase2<FVehiclePhysicsHistoryInput>
+{
+	enum { WithNetSerializer = true };
+};
+
+/** Chaos rewinds the rigid body itself; this history also restores movement's wall-escape memory. */
+USTRUCT()
+struct HAL_FUTURE_CREATION_API FVehiclePhysicsHistoryState : public FNetworkPhysicsData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVehicleNetStateData State;
+
+	virtual void ApplyData(UActorComponent* NetworkComponent) const override;
+	virtual void BuildData(const UActorComponent* NetworkComponent) override;
+	virtual void InterpolateData(const FNetworkPhysicsData& MinData, const FNetworkPhysicsData& MaxData) override;
+	virtual bool CompareData(const FNetworkPhysicsData& PredictedData) override;
+	bool NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess);
+};
+
+template<>
+struct TStructOpsTypeTraits<FVehiclePhysicsHistoryState> : public TStructOpsTypeTraitsBase2<FVehiclePhysicsHistoryState>
+{
+	enum { WithNetSerializer = true };
+};
+
+struct FVehiclePhysicsHistoryTraits
+{
+	using InputsType = FVehiclePhysicsHistoryInput;
+	using StatesType = FVehiclePhysicsHistoryState;
+};
+
+namespace VehicleNetworkPhysics
+{
+	/** UE records local inputs on normal steps but only applies history on remote/server or replay steps. */
+	inline bool ShouldUseLocalPendingInput(bool bUsingHistory, bool bOwnsLocalInput, bool bIsResimming)
+	{
+		return !bUsingHistory || (bOwnsLocalInput && !bIsResimming);
+	}
+}

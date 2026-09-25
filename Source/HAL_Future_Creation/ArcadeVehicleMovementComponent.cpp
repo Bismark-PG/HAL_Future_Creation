@@ -8,12 +8,20 @@
 #include "Components/PrimitiveComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
+#include "HAL/IConsoleManager.h"
 #include "Misc/ScopeLock.h"
 #include "PBDRigidsSolver.h"
 #include "PhysicsProxy/SingleParticlePhysicsProxy.h"
 #include "Physics/Experimental/PhysScene_Chaos.h"
 #include "PhysicsEngine/BodyInstance.h"
+#include "GameFramework/Pawn.h"
 #include "VehicleWallEscapeMath.h"
+
+#if !UE_BUILD_SHIPPING
+static TAutoConsoleVariable<int32> CVarHALVehicleHistoryLog(
+	TEXT("hal.VehicleHistoryLog"), 0,
+	TEXT("Network Physics input source, at most once per 60 physics frames: 0=off, 1=on."));
+#endif
 
 UArcadeVehicleMovementComponent::UArcadeVehicleMovementComponent()
 {
@@ -51,11 +59,12 @@ void UArcadeVehicleMovementComponent::BeginPlay()
 	{
 		Activate(true);
 	}
-	SetAsyncPhysicsTickEnabled(GetOwner()->HasAuthority());
+	RefreshPhysicsTick();
 }
 
 void UArcadeVehicleMovementComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	bShouldRunPhysics.Store(false);
 	SetAsyncPhysicsTickEnabled(false);
 	Super::EndPlay(EndPlayReason);
 }
@@ -65,12 +74,13 @@ void UArcadeVehicleMovementComponent::Activate(bool bReset)
 	Super::Activate(bReset);
 	if (HasBegunPlay() && IsActive() && UpdatedPrimitive && UpdatedPrimitive->IsSimulatingPhysics())
 	{
-		SetAsyncPhysicsTickEnabled(GetOwner() && GetOwner()->HasAuthority());
+		RefreshPhysicsTick();
 	}
 }
 
 void UArcadeVehicleMovementComponent::Deactivate()
 {
+	bShouldRunPhysics.Store(false);
 	SetAsyncPhysicsTickEnabled(false);
 	Super::Deactivate();
 }
@@ -78,28 +88,50 @@ void UArcadeVehicleMovementComponent::Deactivate()
 void UArcadeVehicleMovementComponent::AsyncPhysicsTickComponent(float DeltaTime, float SimTime)
 {
 	Super::AsyncPhysicsTickComponent(DeltaTime, SimTime);
-	if (!GetOwner() || !GetOwner()->HasAuthority()) { return; }
-	FVehicleNetInputData StepInput;
-	{
-		FScopeLock Lock(&PendingPhysicsDataLock);
-		StepInput.Cmd = PendingInputCommand;
-		StepInput.InputSequence = PendingNetworkInputSequence;
-	}
-	if (StepInput.InputSequence == 0) { StepInput.InputSequence = ++NextInputSequence; }
+	if (!bShouldRunPhysics.Load()) { return; }
+	int32 CurrentPhysicsFrame = INDEX_NONE;
+	bool bIsResimming = false;
 	if (const UWorld* World = GetWorld())
 	{
 		if (const FPhysScene_Chaos* Scene = static_cast<const FPhysScene_Chaos*>(World->GetPhysicsScene()))
 		{
 			if (Chaos::FPhysicsSolver* Solver = Scene->GetSolver())
 			{
-				StepInput.PhysicsFrame = static_cast<Chaos::FPBDRigidsSolver*>(Solver)->GetCurrentFrame();
+				auto* RigidSolver = static_cast<Chaos::FPBDRigidsSolver*>(Solver);
+				CurrentPhysicsFrame = RigidSolver->GetCurrentFrame();
+				bIsResimming = static_cast<Chaos::FPhysicsSolverBase*>(Solver)->IsResimming();
 			}
 		}
 	}
+	FVehicleNetInputData StepInput;
+	const bool bUseLocalPendingInput = VehicleNetworkPhysics::ShouldUseLocalPendingInput(
+		bUseNetworkPhysicsHistory.Load(), bOwnsLocalInput.Load(), bIsResimming);
+	if (!bUseLocalPendingInput)
+	{
+		StepInput = AppliedHistoryInput;
+		if (bHistoryInputBlocked.Load()) { StepInput.Cmd.Reset(); }
+	}
+	else
+	{
+		FScopeLock Lock(&PendingPhysicsDataLock);
+		StepInput.Cmd = PendingInputCommand;
+		StepInput.InputSequence = PendingNetworkInputSequence;
+	}
+	if (StepInput.InputSequence == 0) { StepInput.InputSequence = ++NextInputSequence; }
+	StepInput.PhysicsFrame = CurrentPhysicsFrame;
 	StepInput.Sanitize();
+	if (bUseNetworkPhysicsHistory.Load() && bHistoryInputBlocked.Load()) { StepInput.Cmd.Reset(); }
 	LastPhysicsInput = StepInput;
 	LastPhysicsFrame.Store(StepInput.PhysicsFrame);
 #if !UE_BUILD_SHIPPING
+	if (bUseNetworkPhysicsHistory.Load() && CVarHALVehicleHistoryLog.GetValueOnAnyThread() > 0
+		&& CurrentPhysicsFrame >= 0 && CurrentPhysicsFrame % 60 == 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Vehicle history step: %s Frame=%d Source=%s Resim=%d Blocked=%d Throttle=%.2f Brake=%.2f Steering=%.2f"),
+			*GetNameSafe(GetOwner()), CurrentPhysicsFrame, bUseLocalPendingInput ? TEXT("Local") : TEXT("History"),
+			bIsResimming ? 1 : 0, bHistoryInputBlocked.Load() ? 1 : 0,
+			StepInput.Cmd.Throttle, StepInput.Cmd.Brake, StepInput.Cmd.Steering);
+	}
 	if (!bLoggedFirstPhysicsStep)
 	{
 		bLoggedFirstPhysicsStep = true;
@@ -186,6 +218,72 @@ void UArcadeVehicleMovementComponent::SetNetworkInput(const FVehicleNetInputData
 	PendingInputCommand.Sanitize();
 	PendingInputCommand.bLaunch = false;
 	PendingNetworkInputSequence = InInputData.InputSequence;
+}
+
+void UArcadeVehicleMovementComponent::EnableNetworkPhysicsHistory()
+{
+	bUseNetworkPhysicsHistory.Store(true);
+	RefreshPhysicsTick();
+}
+
+void UArcadeVehicleMovementComponent::SetHistoryInputBlocked(bool bBlocked)
+{
+	bHistoryInputBlocked.Store(bBlocked);
+}
+
+void UArcadeVehicleMovementComponent::RefreshPhysicsTick()
+{
+	const AActor* Owner = GetOwner();
+	const APawn* Pawn = Cast<APawn>(Owner);
+	bOwnsLocalInput.Store(Pawn && Pawn->IsLocallyControlled());
+	const bool bEnable = Owner && IsActive() && UpdatedPrimitive && UpdatedPrimitive->IsSimulatingPhysics()
+		&& (Owner->HasAuthority() || (bUseNetworkPhysicsHistory.Load() && Pawn && Pawn->IsLocallyControlled()));
+	bShouldRunPhysics.Store(bEnable);
+	SetAsyncPhysicsTickEnabled(bEnable);
+}
+
+void UArcadeVehicleMovementComponent::BuildHistoryInput(FVehicleNetInputData& OutInput, int32 PhysicsFrame) const
+{
+	FScopeLock Lock(&PendingPhysicsDataLock);
+	OutInput.Cmd = PendingInputCommand;
+	if (bHistoryInputBlocked.Load()) { OutInput.Cmd.Reset(); }
+	OutInput.Cmd.bLaunch = false;
+	OutInput.InputSequence = ++NextInputSequence;
+	if (OutInput.InputSequence == 0) { OutInput.InputSequence = ++NextInputSequence; }
+	OutInput.PhysicsFrame = PhysicsFrame;
+	OutInput.Sanitize();
+}
+
+void UArcadeVehicleMovementComponent::ApplyHistoryInput(const FVehicleNetInputData& InInput, int32 PhysicsFrame)
+{
+	AppliedHistoryInput = InInput;
+	if (bHistoryInputBlocked.Load()) { AppliedHistoryInput.Cmd.Reset(); }
+	AppliedHistoryInput.PhysicsFrame = PhysicsFrame;
+	AppliedHistoryInput.Sanitize();
+}
+
+void UArcadeVehicleMovementComponent::BuildHistoryState(FVehicleNetStateData& OutState, int32 PhysicsFrame) const
+{
+	const FBodyInstance* Body = UpdatedPrimitive ? UpdatedPrimitive->GetBodyInstance() : nullptr;
+	FBodyInstanceAsyncPhysicsTickHandle Handle = Body
+		? Body->GetBodyInstanceAsyncPhysicsTickHandle() : FBodyInstanceAsyncPhysicsTickHandle();
+	if (!Handle.IsValid()) { return; }
+	OutState.PhysicsFrame = PhysicsFrame;
+	OutState.Position = Handle->X();
+	OutState.Rotation = Handle->R();
+	OutState.LinearVelocity = Handle->V();
+	OutState.AngularVelocityRadians = Handle->W();
+	OutState.bWallEscapeActive = bWallEscapeActive;
+	OutState.WallEscapeBlend = WallEscapeBlend;
+	OutState.WallEscapeNormals = WallEscapeNormals;
+}
+
+void UArcadeVehicleMovementComponent::ApplyHistoryState(const FVehicleNetStateData& InState)
+{
+	// Chaos owns the rigid-body rewind. The custom history restores only movement memory.
+	bWallEscapeActive = InState.bWallEscapeActive;
+	WallEscapeBlend = FMath::Clamp(InState.WallEscapeBlend, 0.0f, 1.0f);
+	WallEscapeNormals = InState.WallEscapeNormals;
 }
 
 void UArcadeVehicleMovementComponent::ResetInputCommand()

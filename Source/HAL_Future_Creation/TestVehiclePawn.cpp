@@ -23,6 +23,9 @@
 #include "InputMappingContext.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "Physics/NetworkPhysicsComponent.h"
+#include "Physics/NetworkPhysicsSettingsComponent.h"
 #include "TimerManager.h"
 #include "VehicleHealthComponent.h"
 
@@ -70,6 +73,9 @@ ATestVehiclePawn::ATestVehiclePawn()
 
 	ArcadeMovement = CreateDefaultSubobject<UArcadeVehicleMovementComponent>(TEXT("ArcadeMovement"));
 	ArcadeMovement->SetUpdatedPrimitive(CollisionRoot);
+	NetworkPhysicsSettings = CreateDefaultSubobject<UNetworkPhysicsSettingsComponent>(TEXT("VehicleNetworkPhysicsSettings"));
+	NetworkPhysicsHistory = CreateDefaultSubobject<UNetworkPhysicsComponent>(TEXT("VehicleNetworkPhysicsHistory"));
+	NetworkPhysicsHistory->SetAutoActivate(false);
 
 	BallControlPoint = CreateDefaultSubobject<USceneComponent>(TEXT("BallControlPoint"));
 	BallControlPoint->SetupAttachment(CollisionRoot);
@@ -126,16 +132,23 @@ void ATestVehiclePawn::BeginPlay()
 	}
 
 	Super::BeginPlay();
+	if (bNetworkPhysicsHistoryActive && ArcadeMovement)
+	{
+		ArcadeMovement->EnableNetworkPhysicsHistory();
+		UE_LOG(LogTemp, Log, TEXT("%s: Network Physics vehicle history active."), *GetNameSafe(this));
+	}
 }
 
 void ATestVehiclePawn::PawnClientRestart()
 {
 	Super::PawnClientRestart();
 
+	if (ArcadeMovement) { ArcadeMovement->SetHistoryInputBlocked(false); }
 	ResetInputCommand();
 	AddDefaultInputContext();
 	GetWorldTimerManager().ClearTimer(InputSendTimerHandle);
-	if (IsLocallyControlled() && !HasAuthority())
+	if (ArcadeMovement) { ArcadeMovement->RefreshPhysicsTick(); }
+	if (IsLocallyControlled() && !HasAuthority() && !bNetworkPhysicsHistoryActive)
 	{
 		const float SendInterval = 1.0f / FMath::Clamp(ClientInputSendRateHz, 1.0f, 60.0f);
 		GetWorldTimerManager().SetTimer(InputSendTimerHandle, this, &ThisClass::SendInputSnapshot,
@@ -144,18 +157,36 @@ void ATestVehiclePawn::PawnClientRestart()
 	}
 }
 
+void ATestVehiclePawn::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	if (ArcadeMovement)
+	{
+		ArcadeMovement->SetHistoryInputBlocked(false);
+		ArcadeMovement->RefreshPhysicsTick();
+	}
+}
+
 void ATestVehiclePawn::UnPossessed()
 {
+	if (ArcadeMovement) { ArcadeMovement->SetHistoryInputBlocked(true); }
 	GetWorldTimerManager().ClearTimer(InputSendTimerHandle);
 	GetWorldTimerManager().ClearTimer(RemoteInputTimeoutHandle);
 	RemoveDefaultInputContext();
 	ResetInputCommand();
 
 	Super::UnPossessed();
+	if (ArcadeMovement) { ArcadeMovement->RefreshPhysicsTick(); }
 }
 
 void ATestVehiclePawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (ArcadeMovement) { ArcadeMovement->SetHistoryInputBlocked(true); }
+	if (bNetworkPhysicsHistoryActive && NetworkPhysicsHistory)
+	{
+		NetworkPhysicsHistory->RemoveDataHistory();
+		bNetworkPhysicsHistoryActive = false;
+	}
 	GetWorldTimerManager().ClearTimer(InputSendTimerHandle);
 	GetWorldTimerManager().ClearTimer(RemoteInputTimeoutHandle);
 	RemoveDefaultInputContext();
@@ -295,7 +326,7 @@ void ATestVehiclePawn::RemoveDefaultInputContext()
 void ATestVehiclePawn::PushInputCommand()
 {
 	CurrentInputCommand.Sanitize();
-	if (HasAuthority() && ArcadeMovement)
+	if ((HasAuthority() || bNetworkPhysicsHistoryActive) && ArcadeMovement)
 	{
 		ArcadeMovement->SetInputCommand(CurrentInputCommand);
 	}
@@ -303,7 +334,7 @@ void ATestVehiclePawn::PushInputCommand()
 
 void ATestVehiclePawn::SendInputSnapshot()
 {
-	if (HasAuthority() || !IsLocallyControlled() || !Controller || !ArcadeMovement) { return; }
+	if (HasAuthority() || bNetworkPhysicsHistoryActive || !IsLocallyControlled() || !Controller || !ArcadeMovement) { return; }
 	FVehicleNetInputData Input;
 	Input.Cmd = CurrentInputCommand;
 	Input.InputSequence = ++NextClientInputSequence;
@@ -482,6 +513,13 @@ void ATestVehiclePawn::OnConstruction(const FTransform& Transform)
 
 void ATestVehiclePawn::PreInitializeComponents()
 {
+	const bool bWantsNetworkHistory = NetworkPhysicsSettings && NetworkPhysicsSettings->SettingsDataAsset
+		&& GetNetMode() != NM_Standalone && UPhysicsSettings::Get()->PhysicsPrediction.bEnablePhysicsPrediction;
+	if (NetworkPhysicsHistory) { NetworkPhysicsHistory->SetIsReplicated(bWantsNetworkHistory); }
+	if (bWantsNetworkHistory)
+	{
+		SetPhysicsReplicationMode(EPhysicsReplicationMode::Resimulation);
+	}
 	bConfigurationValid = ApplyDefinition(false);
 	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules()) { bConfigurationValid = false; }
 	if (!bConfigurationValid)
@@ -490,6 +528,24 @@ void ATestVehiclePawn::PreInitializeComponents()
 		CollisionRoot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 	Super::PreInitializeComponents();
+}
+
+void ATestVehiclePawn::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	const bool bHasSettings = NetworkPhysicsSettings && NetworkPhysicsSettings->SettingsDataAsset
+		&& GetNetMode() != NM_Standalone;
+	if (bHasSettings && !UPhysicsSettings::Get()->PhysicsPrediction.bEnablePhysicsPrediction)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s: Network Physics asset assigned, but Physics Prediction is disabled in project settings."), *GetNameSafe(this));
+	}
+	else if (bHasSettings && ArcadeMovement && NetworkPhysicsHistory && CollisionRoot->IsSimulatingPhysics())
+	{
+		// Client initial component properties arrive before BeginPlay; history must exist first.
+		NetworkPhysicsHistory->CreateDataHistory<FVehiclePhysicsHistoryTraits>(ArcadeMovement);
+		NetworkPhysicsHistory->Activate(true);
+		bNetworkPhysicsHistoryActive = true;
+	}
 }
 
 #if WITH_EDITOR

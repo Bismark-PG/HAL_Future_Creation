@@ -15,6 +15,8 @@ class UBallControlComponent;
 class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
+class UNetworkPhysicsComponent;
+class UNetworkPhysicsSettingsComponent;
 class UPhysicsConstraintComponent;
 class UPrimitiveComponent;
 class USceneComponent;
@@ -35,6 +37,7 @@ public:
 	ATestVehiclePawn();
 
 	virtual void PreInitializeComponents() override;
+	virtual void PostInitializeComponents() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 	EVehicleConfigurationSource GetConfigurationSource() const { return ConfigurationSource; }
 	bool IsConfigurationValid() const { return bConfigurationValid; }
@@ -44,6 +47,7 @@ public:
 
 	virtual void BeginPlay() override;
 	virtual void PawnClientRestart() override;
+	virtual void PossessedBy(AController* NewController) override;
 	virtual void UnPossessed() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
@@ -76,6 +80,15 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
 	TObjectPtr<UArcadeVehicleMovementComponent> ArcadeMovement;
+
+	/** Assign the UE Network Physics Settings Data Asset here to opt this vehicle into phase 4. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
+	TObjectPtr<UNetworkPhysicsSettingsComponent> NetworkPhysicsSettings;
+
+	/** Stable default subobject so the client can resolve replicated history on the initial actor bunch. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
+	TObjectPtr<UNetworkPhysicsComponent> NetworkPhysicsHistory;
+	bool bNetworkPhysicsHistoryActive = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
 	TObjectPtr<USceneComponent> BallControlPoint;

@@ -1,0 +1,22 @@
+{
+  "purpose": "Read-only snapshot after team saved Predictive Interpolation in the vehicle Network Physics Settings Data Asset; before phase 5 behavioral acceptance",
+  "date": "2026-09-25",
+  "hash_algorithm": "SHA-256",
+  "files": [
+    {
+      "path": "Content/Blueprints/Vehicles/BP_RoundedVehiclePawn.uasset",
+      "size": 38697,
+      "sha256": "49ca1f13b93e33acbd959716ef382180b1f8c17319c41a6179ddebbb3288a53c"
+    },
+    {
+      "path": "Content/Data/Network/DA_NetworkPhysics_MVPB.uasset",
+      "size": 2550,
+      "sha256": "48e78eca68f7249d20153d67821d912fb077e0509d1400719f1c86f0866f4f17"
+    },
+    {
+      "path": "Content/Maps/MVPB_NetTest.umap",
+      "size": 69221,
+      "sha256": "e4d5a1a3f947f4d98aec9100c22a78e05ee0905dba3e44e209228022aaea567d"
+    }
+  ]
+}

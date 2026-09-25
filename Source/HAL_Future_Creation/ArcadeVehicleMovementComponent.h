@@ -47,6 +47,13 @@ public:
 	void SetUpdatedPrimitive(UPrimitiveComponent* InPrimitive);
 	void SetInputCommand(const FVehicleInputCmd& InInputCommand);
 	void SetNetworkInput(const FVehicleNetInputData& InInputData);
+	void EnableNetworkPhysicsHistory();
+	void SetHistoryInputBlocked(bool bBlocked);
+	void RefreshPhysicsTick();
+	void BuildHistoryInput(FVehicleNetInputData& OutInput, int32 PhysicsFrame) const;
+	void ApplyHistoryInput(const FVehicleNetInputData& InInput, int32 PhysicsFrame);
+	void BuildHistoryState(FVehicleNetStateData& OutState, int32 PhysicsFrame) const;
+	void ApplyHistoryState(const FVehicleNetStateData& InState);
 	void ResetInputCommand();
 	void QueueRecoil(const FVector& DeltaVelocity);
 	int32 GetLastPhysicsFrame() const { return LastPhysicsFrame.Load(); }
@@ -79,8 +86,13 @@ private:
 	mutable FCriticalSection PendingPhysicsDataLock;
 	FVehicleInputCmd InputCommand;
 	FVehicleNetInputData LastPhysicsInput;
+	FVehicleNetInputData AppliedHistoryInput;
+	TAtomic<bool> bUseNetworkPhysicsHistory{false};
+	TAtomic<bool> bShouldRunPhysics{false};
+	TAtomic<bool> bOwnsLocalInput{false};
+	TAtomic<bool> bHistoryInputBlocked{true};
 	TAtomic<int32> LastPhysicsFrame{INDEX_NONE};
-	uint32 NextInputSequence = 0;
+	mutable uint32 NextInputSequence = 0;
 	FVector PendingRecoilDeltaVelocity = FVector::ZeroVector;
 #if !UE_BUILD_SHIPPING
 	bool bLoggedFirstPhysicsStep = false;

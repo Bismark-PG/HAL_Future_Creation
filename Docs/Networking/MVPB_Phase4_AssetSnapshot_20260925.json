@@ -1,0 +1,22 @@
+{
+  "purpose": "Read-only snapshot after team connected Network Physics settings to the test vehicle; before input-source fix runtime retest",
+  "date": "2026-09-25",
+  "hash_algorithm": "SHA-256",
+  "files": [
+    {
+      "path": "Content/Blueprints/Vehicles/BP_RoundedVehiclePawn.uasset",
+      "size": 38697,
+      "sha256": "49ca1f13b93e33acbd959716ef382180b1f8c17319c41a6179ddebbb3288a53c"
+    },
+    {
+      "path": "Content/Data/Network/DA_NetworkPhysics_MVPB.uasset",
+      "size": 2758,
+      "sha256": "0c57fdf4f8728225c0c3940420fee8905de44d6145d13fcb54916b86cac5c1e5"
+    },
+    {
+      "path": "Content/Maps/MVPB_NetTest.umap",
+      "size": 69221,
+      "sha256": "e4d5a1a3f947f4d98aec9100c22a78e05ee0905dba3e44e209228022aaea567d"
+    }
+  ]
+}
