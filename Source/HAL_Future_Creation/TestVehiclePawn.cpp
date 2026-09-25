@@ -17,12 +17,20 @@
 #include "Engine/StaticMesh.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "HAL/IConsoleManager.h"
 #include "InputAction.h"
 #include "InputActionValue.h"
 #include "InputMappingContext.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "TimerManager.h"
 #include "VehicleHealthComponent.h"
+
+#if !UE_BUILD_SHIPPING
+static TAutoConsoleVariable<int32> CVarHALVehicleNetLog(
+	TEXT("hal.VehicleNetLog"), 0,
+	TEXT("Vehicle network logging: 0=off, 1=launch/rejections/timeouts, 2=also log accepted input snapshots."));
+#endif
 
 ATestVehiclePawn::ATestVehiclePawn()
 {
@@ -126,10 +134,20 @@ void ATestVehiclePawn::PawnClientRestart()
 
 	ResetInputCommand();
 	AddDefaultInputContext();
+	GetWorldTimerManager().ClearTimer(InputSendTimerHandle);
+	if (IsLocallyControlled() && !HasAuthority())
+	{
+		const float SendInterval = 1.0f / FMath::Clamp(ClientInputSendRateHz, 1.0f, 60.0f);
+		GetWorldTimerManager().SetTimer(InputSendTimerHandle, this, &ThisClass::SendInputSnapshot,
+			SendInterval, true);
+		SendInputSnapshot();
+	}
 }
 
 void ATestVehiclePawn::UnPossessed()
 {
+	GetWorldTimerManager().ClearTimer(InputSendTimerHandle);
+	GetWorldTimerManager().ClearTimer(RemoteInputTimeoutHandle);
 	RemoveDefaultInputContext();
 	ResetInputCommand();
 
@@ -138,6 +156,8 @@ void ATestVehiclePawn::UnPossessed()
 
 void ATestVehiclePawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	GetWorldTimerManager().ClearTimer(InputSendTimerHandle);
+	GetWorldTimerManager().ClearTimer(RemoteInputTimeoutHandle);
 	RemoveDefaultInputContext();
 	ResetInputCommand();
 
@@ -275,10 +295,93 @@ void ATestVehiclePawn::RemoveDefaultInputContext()
 void ATestVehiclePawn::PushInputCommand()
 {
 	CurrentInputCommand.Sanitize();
-	if (ArcadeMovement)
+	if (HasAuthority() && ArcadeMovement)
 	{
 		ArcadeMovement->SetInputCommand(CurrentInputCommand);
 	}
+}
+
+void ATestVehiclePawn::SendInputSnapshot()
+{
+	if (HasAuthority() || !IsLocallyControlled() || !Controller || !ArcadeMovement) { return; }
+	FVehicleNetInputData Input;
+	Input.Cmd = CurrentInputCommand;
+	Input.InputSequence = ++NextClientInputSequence;
+	if (Input.InputSequence == 0) { Input.InputSequence = ++NextClientInputSequence; }
+	Input.Sanitize();
+	// Phase 4 will align the local solver frame with the server's history.
+	ServerSubmitVehicleInput(Input);
+}
+
+void ATestVehiclePawn::ServerSubmitVehicleInput_Implementation(const FVehicleNetInputData& Input)
+{
+	const bool bOwnedPlayerPawn = Cast<APlayerController>(Controller) && Controller->GetPawn() == this;
+	if (!HasAuthority() || !bOwnedPlayerPawn || !ArcadeMovement || !Input.IsValidContinuousInput()
+		|| !FVehicleNetInputData::IsNewerSequence(Input.InputSequence, LastAcceptedServerInputSequence))
+	{
+#if !UE_BUILD_SHIPPING
+		if (CVarHALVehicleNetLog.GetValueOnGameThread() > 0)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Vehicle input rejected: %s Seq=%u Last=%u Valid=%d Owned=%d"),
+				*GetNameSafe(this), Input.InputSequence, LastAcceptedServerInputSequence,
+				Input.IsValidContinuousInput() ? 1 : 0, bOwnedPlayerPawn ? 1 : 0);
+		}
+#endif
+		return;
+	}
+	LastAcceptedServerInputSequence = Input.InputSequence;
+	ArcadeMovement->SetNetworkInput(Input);
+	GetWorldTimerManager().SetTimer(RemoteInputTimeoutHandle, this, &ThisClass::ExpireRemoteInput,
+		FMath::Clamp(RemoteInputTimeoutSeconds, 0.1f, 1.0f), false);
+#if !UE_BUILD_SHIPPING
+	if (CVarHALVehicleNetLog.GetValueOnGameThread() > 1)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Vehicle input accepted: %s Seq=%u ServerFrame=%d Throttle=%.2f Brake=%.2f Steering=%.2f Handbrake=%d"),
+			*GetNameSafe(this), Input.InputSequence, ArcadeMovement->GetLastPhysicsFrame(),
+			Input.Cmd.Throttle, Input.Cmd.Brake, Input.Cmd.Steering, Input.Cmd.bHandbrake ? 1 : 0);
+	}
+#endif
+}
+
+void ATestVehiclePawn::ExpireRemoteInput()
+{
+	if (!HasAuthority() || !ArcadeMovement) { return; }
+	ArcadeMovement->ResetInputCommand();
+#if !UE_BUILD_SHIPPING
+	if (CVarHALVehicleNetLog.GetValueOnGameThread() > 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Vehicle input timed out: %s LastSeq=%u"),
+			*GetNameSafe(this), LastAcceptedServerInputSequence);
+	}
+#endif
+}
+
+void ATestVehiclePawn::ServerRequestLaunch_Implementation(const FVehicleLaunchRequest& Request)
+{
+	ProcessLaunchRequest(Request);
+}
+
+void ATestVehiclePawn::ProcessLaunchRequest(const FVehicleLaunchRequest& Request)
+{
+	if (!HasAuthority() || !Cast<APlayerController>(Controller) || Controller->GetPawn() != this
+		|| !FVehicleNetInputData::IsNewerSequence(Request.LaunchSequence, LastProcessedLaunchSequence))
+	{
+		return;
+	}
+	LastProcessedLaunchSequence = Request.LaunchSequence;
+	// Zero is the only valid placeholder until phase 6 replicates a coherent ball state sequence.
+	const bool bAccepted = Request.ExpectedBallStateSequence == 0
+		&& BallControl && BallControl->LaunchHeldBall();
+#if !UE_BUILD_SHIPPING
+	if (CVarHALVehicleNetLog.GetValueOnGameThread() > 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Vehicle launch %s: %s Seq=%u ClientFrame=%d"),
+			bAccepted ? TEXT("accepted") : TEXT("rejected"), *GetNameSafe(this),
+			Request.LaunchSequence, Request.ClientPhysicsFrame);
+	}
+#else
+	(void)bAccepted;
+#endif
 }
 
 void ATestVehiclePawn::ResetInputCommand()
@@ -342,11 +445,13 @@ void ATestVehiclePawn::OnLaunchStarted(const FInputActionValue& Value)
 {
 	CurrentInputCommand.bLaunch = true;
 	PushInputCommand();
-
-	if (BallControl)
-	{
-		BallControl->LaunchHeldBall();
-	}
+	FVehicleLaunchRequest Request;
+	Request.LaunchSequence = ++NextLaunchSequence;
+	if (Request.LaunchSequence == 0) { Request.LaunchSequence = ++NextLaunchSequence; }
+	Request.ClientPhysicsFrame = ArcadeMovement
+		? ArcadeMovement->GetLastPhysicsFrame() : INDEX_NONE;
+	if (HasAuthority()) { ProcessLaunchRequest(Request); }
+	else { ServerRequestLaunch(Request); }
 }
 
 void ATestVehiclePawn::OnLaunchCompleted(const FInputActionValue& Value)

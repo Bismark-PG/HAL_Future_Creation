@@ -5,6 +5,8 @@
 #include "Components/ActorComponent.h"
 #include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
+#include "HAL/CriticalSection.h"
+#include "Templates/Atomic.h"
 #include "VehicleInputCmd.h"
 #include "VehicleNetPhysicsData.h"
 #include "ArcadeVehicleMovementComponent.generated.h"
@@ -44,9 +46,10 @@ public:
 
 	void SetUpdatedPrimitive(UPrimitiveComponent* InPrimitive);
 	void SetInputCommand(const FVehicleInputCmd& InInputCommand);
+	void SetNetworkInput(const FVehicleNetInputData& InInputData);
 	void ResetInputCommand();
 	void QueueRecoil(const FVector& DeltaVelocity);
-	const FVehicleNetInputData& GetLastPhysicsInput() const { return LastPhysicsInput; }
+	int32 GetLastPhysicsFrame() const { return LastPhysicsFrame.Load(); }
 	bool CaptureNetState(FVehicleNetStateData& OutState) const;
 	bool RestoreNetState(const FVehicleNetStateData& State);
 
@@ -72,8 +75,11 @@ private:
 	TObjectPtr<UPrimitiveComponent> UpdatedPrimitive;
 
 	FVehicleInputCmd PendingInputCommand;
+	uint32 PendingNetworkInputSequence = 0;
+	mutable FCriticalSection PendingPhysicsDataLock;
 	FVehicleInputCmd InputCommand;
 	FVehicleNetInputData LastPhysicsInput;
+	TAtomic<int32> LastPhysicsFrame{INDEX_NONE};
 	uint32 NextInputSequence = 0;
 	FVector PendingRecoilDeltaVelocity = FVector::ZeroVector;
 #if !UE_BUILD_SHIPPING

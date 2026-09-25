@@ -29,6 +29,7 @@
 - 编译和自动化测试后重新核对快照内 9 个地图、蓝图和 Data Asset 文件，SHA-256 均未变化；`git diff --check` 通过。
 - 修正后，`UnrealEditor-Cmd -game` 加载 `/Game/Maps/Test`，玩家车输出首个 `Vehicle physics step ... DeltaTime=0.016667 Frame=0`；专门检索 `Handled ensure`、`IsInGameThreadContext`、Fatal 和 Assertion 均为 0。日志在本机 `Saved/Logs/MVPB_Phase2_ThreadFix_Test.log`。此无输入烟测仍不能替代实际驾驶、控球和发射手感验收。
 - 尚未由本次命令行测试验证 Editor 内车辆手感、球发射反馈、实际双进程行为或性能，不将阶段 2 标为验收通过。
+- 2026-09-25 团队双窗口 Listen 测试反馈：主机车辆可正常移动，客户端窗口可看见主机移动；两端相机独立，`GamePhase=Playing`。客户端车辆短距离移动后被拉回原位置。源码中车辆开启位置复制，但本地输入目前只写入本地移动组件，尚无客户端连续输入提交至服务器的 RPC，因此该现象符合阶段 3 尚未施工的边界；`Playing` 阶段本身不会启用输入传输。此处记录为团队观察，尚未收到该次运行日志，也不将其视为客户端驾驶已通过。
 
 ## 团队在 Unreal Editor 的回归步骤
 

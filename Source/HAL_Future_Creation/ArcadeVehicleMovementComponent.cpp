@@ -8,6 +8,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
+#include "Misc/ScopeLock.h"
 #include "PBDRigidsSolver.h"
 #include "PhysicsProxy/SingleParticlePhysicsProxy.h"
 #include "Physics/Experimental/PhysScene_Chaos.h"
@@ -50,7 +51,7 @@ void UArcadeVehicleMovementComponent::BeginPlay()
 	{
 		Activate(true);
 	}
-	SetAsyncPhysicsTickEnabled(true);
+	SetAsyncPhysicsTickEnabled(GetOwner()->HasAuthority());
 }
 
 void UArcadeVehicleMovementComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -64,7 +65,7 @@ void UArcadeVehicleMovementComponent::Activate(bool bReset)
 	Super::Activate(bReset);
 	if (HasBegunPlay() && IsActive() && UpdatedPrimitive && UpdatedPrimitive->IsSimulatingPhysics())
 	{
-		SetAsyncPhysicsTickEnabled(true);
+		SetAsyncPhysicsTickEnabled(GetOwner() && GetOwner()->HasAuthority());
 	}
 }
 
@@ -77,9 +78,14 @@ void UArcadeVehicleMovementComponent::Deactivate()
 void UArcadeVehicleMovementComponent::AsyncPhysicsTickComponent(float DeltaTime, float SimTime)
 {
 	Super::AsyncPhysicsTickComponent(DeltaTime, SimTime);
+	if (!GetOwner() || !GetOwner()->HasAuthority()) { return; }
 	FVehicleNetInputData StepInput;
-	StepInput.Cmd = PendingInputCommand;
-	StepInput.InputSequence = ++NextInputSequence;
+	{
+		FScopeLock Lock(&PendingPhysicsDataLock);
+		StepInput.Cmd = PendingInputCommand;
+		StepInput.InputSequence = PendingNetworkInputSequence;
+	}
+	if (StepInput.InputSequence == 0) { StepInput.InputSequence = ++NextInputSequence; }
 	if (const UWorld* World = GetWorld())
 	{
 		if (const FPhysScene_Chaos* Scene = static_cast<const FPhysScene_Chaos*>(World->GetPhysicsScene()))
@@ -92,6 +98,7 @@ void UArcadeVehicleMovementComponent::AsyncPhysicsTickComponent(float DeltaTime,
 	}
 	StepInput.Sanitize();
 	LastPhysicsInput = StepInput;
+	LastPhysicsFrame.Store(StepInput.PhysicsFrame);
 #if !UE_BUILD_SHIPPING
 	if (!bLoggedFirstPhysicsStep)
 	{
@@ -121,10 +128,15 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	{
 		return;
 	}
-	if (!PendingRecoilDeltaVelocity.IsNearlyZero())
+	FVector RecoilDeltaVelocity;
 	{
-		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(), PendingRecoilDeltaVelocity, true);
+		FScopeLock Lock(&PendingPhysicsDataLock);
+		RecoilDeltaVelocity = PendingRecoilDeltaVelocity;
 		PendingRecoilDeltaVelocity = FVector::ZeroVector;
+	}
+	if (!RecoilDeltaVelocity.IsNearlyZero())
+	{
+		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(), RecoilDeltaVelocity, true);
 	}
 	const FTransform BodyTransform(PhysicsHandle->R(), PhysicsHandle->X());
 
@@ -161,21 +173,33 @@ void UArcadeVehicleMovementComponent::SetUpdatedPrimitive(UPrimitiveComponent* I
 
 void UArcadeVehicleMovementComponent::SetInputCommand(const FVehicleInputCmd& InInputCommand)
 {
+	FScopeLock Lock(&PendingPhysicsDataLock);
 	PendingInputCommand = InInputCommand;
 	PendingInputCommand.Sanitize();
+	PendingNetworkInputSequence = 0;
+}
+
+void UArcadeVehicleMovementComponent::SetNetworkInput(const FVehicleNetInputData& InInputData)
+{
+	FScopeLock Lock(&PendingPhysicsDataLock);
+	PendingInputCommand = InInputData.Cmd;
+	PendingInputCommand.Sanitize();
+	PendingInputCommand.bLaunch = false;
+	PendingNetworkInputSequence = InInputData.InputSequence;
 }
 
 void UArcadeVehicleMovementComponent::ResetInputCommand()
 {
+	FScopeLock Lock(&PendingPhysicsDataLock);
 	PendingInputCommand.Reset();
-	InputCommand.Reset();
-	ResetWallEscape();
+	PendingNetworkInputSequence = 0;
 }
 
 void UArcadeVehicleMovementComponent::QueueRecoil(const FVector& DeltaVelocity)
 {
 	if (!DeltaVelocity.ContainsNaN())
 	{
+		FScopeLock Lock(&PendingPhysicsDataLock);
 		PendingRecoilDeltaVelocity += DeltaVelocity;
 	}
 }
@@ -188,7 +212,7 @@ bool UArcadeVehicleMovementComponent::CaptureNetState(FVehicleNetStateData& OutS
 		return false;
 	}
 	const FTransform BodyTransform = Body->GetUnrealWorldTransform();
-	OutState.PhysicsFrame = LastPhysicsInput.PhysicsFrame;
+	OutState.PhysicsFrame = GetLastPhysicsFrame();
 	OutState.Position = BodyTransform.GetLocation();
 	OutState.Rotation = BodyTransform.GetRotation();
 	OutState.LinearVelocity = Body->GetUnrealWorldVelocity();
@@ -196,7 +220,10 @@ bool UArcadeVehicleMovementComponent::CaptureNetState(FVehicleNetStateData& OutS
 	OutState.bWallEscapeActive = bWallEscapeActive;
 	OutState.WallEscapeBlend = WallEscapeBlend;
 	OutState.WallEscapeNormals = WallEscapeNormals;
-	OutState.PendingRecoilDeltaVelocity = PendingRecoilDeltaVelocity;
+	{
+		FScopeLock Lock(&PendingPhysicsDataLock);
+		OutState.PendingRecoilDeltaVelocity = PendingRecoilDeltaVelocity;
+	}
 	return true;
 }
 
@@ -221,7 +248,10 @@ bool UArcadeVehicleMovementComponent::RestoreNetState(const FVehicleNetStateData
 	bWallEscapeActive = State.bWallEscapeActive;
 	WallEscapeBlend = State.WallEscapeBlend;
 	WallEscapeNormals = State.WallEscapeNormals;
-	PendingRecoilDeltaVelocity = State.PendingRecoilDeltaVelocity;
+	{
+		FScopeLock Lock(&PendingPhysicsDataLock);
+		PendingRecoilDeltaVelocity = State.PendingRecoilDeltaVelocity;
+	}
 	return true;
 }
 

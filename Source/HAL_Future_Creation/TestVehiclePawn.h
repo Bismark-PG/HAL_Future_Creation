@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "VehicleInputCmd.h"
+#include "VehicleNetPhysicsData.h"
 #include "VehicleConfigurationTypes.h"
 #include "TestVehiclePawn.generated.h"
 
@@ -112,11 +113,28 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Input")
 	TObjectPtr<UInputAction> LaunchAction;
 
+	/** Unreliable client input snapshots per second until Network Physics history is wired in phase 4. */
+	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Network", meta = (ClampMin = "1.0", ClampMax = "60.0", Units = "Hz"))
+	float ClientInputSendRateHz = 30.0f;
+
+	/** Server releases a held input after this many seconds without a fresh snapshot. */
+	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Network", meta = (ClampMin = "0.1", ClampMax = "1.0", Units = "s"))
+	float RemoteInputTimeoutSeconds = 0.25f;
+
 private:
 	void AddDefaultInputContext();
 	void RemoveDefaultInputContext();
 	void PushInputCommand();
 	void ResetInputCommand();
+	void SendInputSnapshot();
+	void ExpireRemoteInput();
+	void ProcessLaunchRequest(const FVehicleLaunchRequest& Request);
+
+	UFUNCTION(Server, Unreliable)
+	void ServerSubmitVehicleInput(const FVehicleNetInputData& Input);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestLaunch(const FVehicleLaunchRequest& Request);
 
 	void OnSteeringInput(const FInputActionValue& Value);
 	void OnSteeringCompleted(const FInputActionValue& Value);
@@ -139,4 +157,11 @@ private:
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Vehicle|Input")
 	FVehicleInputCmd CurrentInputCommand;
+
+	FTimerHandle InputSendTimerHandle;
+	FTimerHandle RemoteInputTimeoutHandle;
+	uint32 NextClientInputSequence = 0;
+	uint32 LastAcceptedServerInputSequence = 0;
+	uint32 NextLaunchSequence = 0;
+	uint32 LastProcessedLaunchSequence = 0;
 };

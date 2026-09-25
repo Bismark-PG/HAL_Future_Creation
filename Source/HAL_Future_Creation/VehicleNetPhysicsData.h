@@ -27,6 +27,37 @@ struct HAL_FUTURE_CREATION_API FVehicleNetInputData
 		Cmd.Sanitize();
 		Cmd.bLaunch = false;
 	}
+
+	/** Network requests are rejected rather than silently clamped on the server. */
+	bool IsValidContinuousInput() const
+	{
+		return InputSequence != 0 && !Cmd.bLaunch
+			&& FMath::IsFinite(Cmd.Steering) && Cmd.Steering >= -1.0f && Cmd.Steering <= 1.0f
+			&& FMath::IsFinite(Cmd.Throttle) && Cmd.Throttle >= 0.0f && Cmd.Throttle <= 1.0f
+			&& FMath::IsFinite(Cmd.Brake) && Cmd.Brake >= 0.0f && Cmd.Brake <= 1.0f;
+	}
+
+	/** Half-range comparison remains ordered when a uint32 sequence wraps. */
+	static bool IsNewerSequence(uint32 Candidate, uint32 Previous)
+	{
+		return Candidate != 0 && Candidate != Previous && uint32(Candidate - Previous) < 0x80000000u;
+	}
+};
+
+/** One launch press, never consumed as a held continuous input. Zero ball sequence means unavailable until ball-state replication. */
+USTRUCT()
+struct HAL_FUTURE_CREATION_API FVehicleLaunchRequest
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	uint32 LaunchSequence = 0;
+
+	UPROPERTY()
+	int32 ClientPhysicsFrame = INDEX_NONE;
+
+	UPROPERTY()
+	uint32 ExpectedBallStateSequence = 0;
 };
 
 /** Rigid body and movement state needed to compare/restore a predicted vehicle frame. */

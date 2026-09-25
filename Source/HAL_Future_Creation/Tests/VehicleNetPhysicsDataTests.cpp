@@ -30,6 +30,21 @@ bool FVehicleNetPhysicsInputValidationTest::RunTest(const FString& Parameters)
 	Input.Sanitize();
 	TestEqual(TEXT("Steering range"), Input.Cmd.Steering, -1.0f);
 	TestEqual(TEXT("Throttle range"), Input.Cmd.Throttle, 1.0f);
+	Input.InputSequence = 1;
+	TestTrue(TEXT("Sanitized continuous input can be submitted"), Input.IsValidContinuousInput());
+	Input.Cmd.Throttle = std::numeric_limits<float>::infinity();
+	TestFalse(TEXT("Server rejects infinite throttle instead of clamping"), Input.IsValidContinuousInput());
+	Input.Cmd.Throttle = 1.01f;
+	TestFalse(TEXT("Server rejects out-of-range throttle"), Input.IsValidContinuousInput());
+	Input.Cmd.Throttle = 1.0f;
+	Input.Cmd.bLaunch = true;
+	TestFalse(TEXT("Launch is rejected from continuous input"), Input.IsValidContinuousInput());
+	Input.Cmd.bLaunch = false;
+	TestTrue(TEXT("Newer input sequence accepted"), FVehicleNetInputData::IsNewerSequence(2, 1));
+	TestFalse(TEXT("Duplicate input sequence rejected"), FVehicleNetInputData::IsNewerSequence(1, 1));
+	TestFalse(TEXT("Reordered input sequence rejected"), FVehicleNetInputData::IsNewerSequence(1, 2));
+	TestTrue(TEXT("Sequence wrap remains ordered"), FVehicleNetInputData::IsNewerSequence(1, MAX_uint32));
+	TestFalse(TEXT("Zero sequence is reserved"), FVehicleNetInputData::IsNewerSequence(0, MAX_uint32));
 	return true;
 }
 
