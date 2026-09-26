@@ -79,6 +79,13 @@ void UBallControlComponent::SetVehicleComponents(
 	BallConstraint = InBallConstraint;
 }
 
+bool UBallControlComponent::GetControlTargetWorldTransform(FTransform& OutTransform) const
+{
+	if (!IsValid(ControlPoint)) { return false; }
+	OutTransform = ControlPoint->GetComponentTransform();
+	return true;
+}
+
 bool UBallControlComponent::LaunchHeldBall()
 {
 	AActor* Owner = GetOwner();
@@ -309,6 +316,9 @@ void UBallControlComponent::ConfigureConstraint(ABasicBallActor* Ball)
 	BallConstraint->SetAngularSwing2Limit(EAngularConstraintMotion::ACM_Free, 0.0f);
 	BallConstraint->SetAngularTwistLimit(EAngularConstraintMotion::ACM_Free, 0.0f);
 	BallConstraint->SetDisableCollision(true);
+	// UE's joint Frame2 is the parent. The vehicle must be Frame2 so the ball
+	// cannot feed unrecorded constraint impulses into its resimulating body.
+	BallConstraint->ConstraintInstance.SetParentDominates(true);
 	BallConstraint->SetLinearPositionDrive(true, true, true);
 	BallConstraint->SetLinearVelocityDrive(true, true, true);
 	BallConstraint->SetLinearDriveAccelerationMode(true);
@@ -319,15 +329,28 @@ void UBallControlComponent::ConfigureConstraint(ABasicBallActor* Ball)
 	BallConstraint->SetLinearPositionTarget(FVector::ZeroVector);
 	BallConstraint->SetLinearVelocityTarget(FVector::ZeroVector);
 	BallConstraint->SetConstrainedComponents(
-		VehicleBody,
-		NAME_None,
 		Ball->GetPhysicsRoot(),
+		NAME_None,
+		VehicleBody,
 		NAME_None);
 
 	const FVector VehicleLocalControlPoint =
 		VehicleBody->GetComponentTransform().InverseTransformPosition(ControlPoint->GetComponentLocation());
-	BallConstraint->SetConstraintReferencePosition(EConstraintFrame::Frame1, VehicleLocalControlPoint);
-	BallConstraint->SetConstraintReferencePosition(EConstraintFrame::Frame2, FVector::ZeroVector);
+	BallConstraint->SetConstraintReferencePosition(EConstraintFrame::Frame1, FVector::ZeroVector);
+	BallConstraint->SetConstraintReferencePosition(EConstraintFrame::Frame2, VehicleLocalControlPoint);
+	UPrimitiveComponent* ChildComponent = nullptr;
+	UPrimitiveComponent* ParentComponent = nullptr;
+	FName ChildBone;
+	FName ParentBone;
+	BallConstraint->GetConstrainedComponents(ChildComponent, ChildBone, ParentComponent, ParentBone);
+	if (!ensureMsgf(ChildComponent == Ball->GetPhysicsRoot() && ParentComponent == VehicleBody
+		&& BallConstraint->ConstraintInstance.IsValidConstraintInstance(),
+		TEXT("%s: controlled ball joint must have ball as child and vehicle as parent."), *GetNameSafe(this)))
+	{
+		BallConstraint->BreakConstraint();
+		bConstraintActive = false;
+		return;
+	}
 	Ball->GetPhysicsRoot()->WakeAllRigidBodies();
 	bConstraintActive = true;
 }

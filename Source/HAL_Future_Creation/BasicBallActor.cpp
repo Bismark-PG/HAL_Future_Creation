@@ -7,12 +7,24 @@
 #include "VehicleKnockbackSettings.h"
 
 #include "CombatResolver.h"
+#include "ArcadeVehicleMovementComponent.h"
+#include "BallControlComponent.h"
 
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerState.h"
+#include "HAL/IConsoleManager.h"
 #include "Net/UnrealNetwork.h"
+#include "Physics/NetworkPhysicsSettingsComponent.h"
 #include "TimerManager.h"
+
+#if !UE_BUILD_SHIPPING
+static TAutoConsoleVariable<int32> CVarHALBallNetLog(
+	TEXT("hal.BallNetLog"), 0,
+	TEXT("Log discrete ball state snapshots on server and clients: 0=off, 1=on."));
+#endif
 
 namespace
 {
@@ -49,9 +61,12 @@ namespace
 
 ABasicBallActor::ABasicBallActor()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
+	PrimaryActorTick.TickGroup = TG_PostPhysics;
 	bReplicates = true;
 	SetReplicateMovement(true);
+	SetPhysicsReplicationMode(EPhysicsReplicationMode::PredictiveInterpolation);
 
 	PhysicsRoot = CreateDefaultSubobject<USphereComponent>(TEXT("PhysicsRoot"));
 	SetRootComponent(PhysicsRoot);
@@ -70,32 +85,32 @@ ABasicBallActor::ABasicBallActor()
 	VisualMesh->SetupAttachment(PhysicsRoot);
 	VisualMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	VisualMesh->SetSimulatePhysics(false);
+	NetworkPhysicsSettings = CreateDefaultSubobject<UNetworkPhysicsSettingsComponent>(TEXT("BallNetworkPhysicsSettings"));
 }
 
 void ABasicBallActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(ABasicBallActor, BallState);
-	DOREPLIFETIME(ABasicBallActor, ControlledBy);
-	DOREPLIFETIME(ABasicBallActor, LaunchedBy);
+	DOREPLIFETIME(ABasicBallActor, RepState);
 }
 
 bool ABasicBallActor::CanBeControlledBy(const AActor* CandidateVehicle) const
 {
-	if (!bConfigurationValid || !VehicleConfiguration::IsReadyForGameplay(CandidateVehicle) || BallState != EBasicBallState::Free)
+	if (!HasAuthority() || !bConfigurationValid || !VehicleConfiguration::IsReadyForGameplay(CandidateVehicle)
+		|| RepState.State != EBasicBallState::Free)
 	{
 		return false;
 	}
 
 	const UWorld* World = GetWorld();
 	const double CurrentTime = World ? World->GetTimeSeconds() : 0.0;
-	if (CurrentTime < GlobalPickupLockedUntil)
+	if (CurrentTime < RepState.GlobalPickupLockEndServerTime)
 	{
 		return false;
 	}
 
-	return CandidateVehicle != ReacquireLockedVehicle.Get() || CurrentTime >= ReacquireLockedUntil;
+	return CandidateVehicle != RepState.ReacquireLockedVehicle || CurrentTime >= RepState.ReacquireLockEndServerTime;
 }
 
 bool ABasicBallActor::ApplyDefinition(bool bPreview)
@@ -133,12 +148,10 @@ bool ABasicBallActor::BeginControl(AActor* NewHolder)
 	}
 
 	StopLowSpeedMonitor();
-	ControlledBy = NewHolder;
-	LaunchedBy = nullptr;
-	ReacquireLockedVehicle.Reset();
-	ReacquireLockedUntil = 0.0;
-	GlobalPickupLockedUntil = 0.0;
-	SetBallState(EBasicBallState::Controlled);
+	FBallRepState Next;
+	Next.State = EBasicBallState::Controlled;
+	Next.Holder = NewHolder;
+	CommitRepState(Next, NewHolder);
 	return true;
 }
 
@@ -148,19 +161,24 @@ bool ABasicBallActor::LaunchFromControl(
 	const FVector& InitialVelocity)
 {
 	if (!HasAuthority()
-		|| BallState != EBasicBallState::Controlled
-		|| ControlledBy != ExpectedHolder
+		|| RepState.State != EBasicBallState::Controlled
+		|| RepState.Holder != ExpectedHolder
 		|| !IsValid(NewLauncher))
 	{
 		return false;
 	}
 
-	ControlledBy = nullptr;
-	LaunchedBy = NewLauncher;
-	ReacquireLockedVehicle.Reset();
-	ReacquireLockedUntil = 0.0;
-	GlobalPickupLockedUntil = 0.0;
-	SetBallState(EBasicBallState::Launched);
+	FBallRepState Next;
+	Next.State = EBasicBallState::Launched;
+	Next.LastLauncherPawn = NewLauncher;
+	if (const APawn* LauncherPawn = Cast<APawn>(NewLauncher))
+	{
+		if (const APlayerState* PlayerState = LauncherPawn->GetPlayerState())
+		{
+			Next.LastLauncherPlayerId = PlayerState->GetPlayerId();
+		}
+	}
+	CommitRepState(Next, ExpectedHolder);
 
 	PhysicsRoot->WakeAllRigidBodies();
 	PhysicsRoot->SetPhysicsLinearVelocity(InitialVelocity);
@@ -172,19 +190,18 @@ bool ABasicBallActor::LaunchFromControl(
 bool ABasicBallActor::ReleaseFromControl(AActor* ExpectedHolder, const float ReacquireLockDuration)
 {
 	if (!HasAuthority()
-		|| BallState != EBasicBallState::Controlled
-		|| ControlledBy != ExpectedHolder)
+		|| RepState.State != EBasicBallState::Controlled
+		|| RepState.Holder != ExpectedHolder)
 	{
 		return false;
 	}
 
 	UWorld* World = GetWorld();
-	ControlledBy = nullptr;
-	LaunchedBy = nullptr;
-	ReacquireLockedVehicle = ExpectedHolder;
-	ReacquireLockedUntil = (World ? World->GetTimeSeconds() : 0.0) + FMath::Max(0.0f, ReacquireLockDuration);
-	GlobalPickupLockedUntil = 0.0;
-	SetBallState(EBasicBallState::Free);
+	FBallRepState Next;
+	Next.ReacquireLockedVehicle = ExpectedHolder;
+	Next.ReacquireLockEndServerTime = (World ? World->GetTimeSeconds() : 0.0f)
+		+ FMath::Max(0.0f, ReacquireLockDuration);
+	CommitRepState(Next, ExpectedHolder);
 	return true;
 }
 
@@ -200,34 +217,150 @@ void ABasicBallActor::AddReleaseImpulse(const FVector& Impulse)
 void ABasicBallActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	StopLowSpeedMonitor();
+	SetActorTickEnabled(false);
 	Super::EndPlay(EndPlayReason);
 }
 
-void ABasicBallActor::OnRep_BallState()
+void ABasicBallActor::BeginPlay()
 {
-	// Presentation hooks will be added separately; replicated state is explicit now.
+	Super::BeginPlay();
+	AuthoredCollisionEnabled = PhysicsRoot->GetCollisionEnabled();
+	bAuthoredSimulatePhysics = PhysicsRoot->IsSimulatingPhysics();
+	ApplyReplicatedPresentation();
 }
 
-void ABasicBallActor::SetBallState(const EBasicBallState NewState)
+void ABasicBallActor::Tick(const float DeltaSeconds)
 {
-	if (BallState == NewState)
+	Super::Tick(DeltaSeconds);
+	if (!bControlledPresentationActive || RepState.State != EBasicBallState::Controlled)
 	{
 		return;
 	}
 
-	const EBasicBallState PreviousState = BallState;
-	BallState = NewState;
+	const AActor* Holder = RepState.Holder;
+	const UBallControlComponent* Control = IsValid(Holder)
+		? Holder->FindComponentByClass<UBallControlComponent>() : nullptr;
+	FTransform ControlTarget;
+	if (Control && Control->GetControlTargetWorldTransform(ControlTarget))
+	{
+		const FVector TargetLocation = ControlTarget.GetLocation();
+		if (!bHasControlledPresentationTarget)
+		{
+			ControlledPresentationRotation = PhysicsRoot->GetComponentQuat();
+			bHasControlledPresentationTarget = true;
+		}
+		else
+		{
+			// Render-only rolling follows travel distance, independent of frame rate.
+			// The client body remains kinematic and collisionless while controlled.
+			const FVector HorizontalTravel = FVector::VectorPlaneProject(
+				TargetLocation - LastControlledPresentationLocation, FVector::UpVector);
+			const float TravelDistance = HorizontalTravel.Size();
+			if (TravelDistance > KINDA_SMALL_NUMBER)
+			{
+				const float Radius = FMath::Max(1.0f, PhysicsRoot->GetScaledSphereRadius());
+				const FVector RollAxis = FVector::CrossProduct(FVector::UpVector, HorizontalTravel)
+					/ TravelDistance;
+				ControlledPresentationRotation =
+					(FQuat(RollAxis, TravelDistance / Radius) * ControlledPresentationRotation).GetNormalized();
+			}
+		}
+		LastControlledPresentationLocation = TargetLocation;
+		// Move the collisionless body so the visual and physics debug shape agree.
+		PhysicsRoot->SetWorldLocationAndRotation(
+			TargetLocation, ControlledPresentationRotation, false, nullptr, ETeleportType::TeleportPhysics);
+	}
+}
+
+void ABasicBallActor::OnRep_BallRepState()
+{
+	if (!HasActorBegunPlay()) { return; }
+	ApplyReplicatedPresentation();
+#if !UE_BUILD_SHIPPING
+	if (CVarHALBallNetLog.GetValueOnGameThread() > 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Ball state received: %s State=%s Seq=%u Holder=%s Launcher=%s PlayerId=%d ServerFrame=%d"),
+			*GetName(), LexToString(RepState.State), RepState.StateSequence,
+			*GetNameSafe(RepState.Holder.Get()), *GetNameSafe(RepState.LastLauncherPawn.Get()),
+			RepState.LastLauncherPlayerId, RepState.ServerPhysicsFrame);
+	}
+#endif
+}
+
+void ABasicBallActor::ApplyReplicatedPresentation()
+{
+	if (HasAuthority()) { return; }
+	if (bHasAppliedRepState
+		&& RepState.StateSequence != LastAppliedStateSequence
+		&& static_cast<int32>(RepState.StateSequence - LastAppliedStateSequence) <= 0)
+	{
+		RepState = LastAppliedRepState;
+		return;
+	}
+	bHasAppliedRepState = true;
+	LastAppliedStateSequence = RepState.StateSequence;
+	LastAppliedRepState = RepState;
+	if (RepState.State == EBasicBallState::Controlled)
+	{
+		if (!bControlledPresentationActive)
+		{
+			PhysicsRoot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			PhysicsRoot->SetSimulatePhysics(false);
+			bControlledPresentationActive = true;
+			bHasControlledPresentationTarget = false;
+			SetActorTickEnabled(true);
+		}
+	}
+	else
+	{
+		StopControlledPresentation();
+	}
+}
+
+void ABasicBallActor::StopControlledPresentation()
+{
+	if (!bControlledPresentationActive) { return; }
+	SetActorTickEnabled(false);
+	// PI resumes from the last local presentation target until the next
+	// authoritative physics packet arrives.
+	PhysicsRoot->SetCollisionEnabled(AuthoredCollisionEnabled);
+	PhysicsRoot->SetSimulatePhysics(bAuthoredSimulatePhysics);
+	bControlledPresentationActive = false;
+	bHasControlledPresentationTarget = false;
+}
+
+void ABasicBallActor::CommitRepState(const FBallRepState& NewState, const AActor* PhysicsFrameSource)
+{
+	check(HasAuthority());
+	const EBasicBallState PreviousState = RepState.State;
+	FBallRepState Committed = NewState;
+	Committed.StateSequence = RepState.StateSequence + 1;
+	if (const UArcadeVehicleMovementComponent* Movement = IsValid(PhysicsFrameSource)
+		? PhysicsFrameSource->FindComponentByClass<UArcadeVehicleMovementComponent>() : nullptr)
+	{
+		Committed.ServerPhysicsFrame = Movement->GetLastPhysicsFrame();
+	}
+	RepState = Committed;
 	ForceNetUpdate();
 
-	if (bLogStateChanges)
+	bool bShouldLogState = bLogStateChanges;
+#if !UE_BUILD_SHIPPING
+	bShouldLogState |= CVarHALBallNetLog.GetValueOnGameThread() > 0;
+#endif
+	if (bShouldLogState)
 	{
 		UE_LOG(
 			LogTemp,
 			Log,
-			TEXT("Ball %s: %s -> %s"),
+			TEXT("Ball %s: %s -> %s Seq=%u Holder=%s Launcher=%s PlayerId=%d ServerFrame=%d"),
 			*GetName(),
 			LexToString(PreviousState),
-			LexToString(NewState));
+			LexToString(RepState.State),
+			RepState.StateSequence,
+			*GetNameSafe(RepState.Holder.Get()),
+			*GetNameSafe(RepState.LastLauncherPawn.Get()),
+			RepState.LastLauncherPlayerId,
+			RepState.ServerPhysicsFrame);
 	}
 }
 
@@ -256,7 +389,7 @@ void ABasicBallActor::StopLowSpeedMonitor()
 
 void ABasicBallActor::CheckLaunchedLowSpeed()
 {
-	if (!HasAuthority() || BallState != EBasicBallState::Launched)
+	if (!HasAuthority() || RepState.State != EBasicBallState::Launched)
 	{
 		StopLowSpeedMonitor();
 		return;
@@ -282,13 +415,10 @@ void ABasicBallActor::FinishLaunchAsFree()
 {
 	UWorld* World = GetWorld();
 	StopLowSpeedMonitor();
-	ControlledBy = nullptr;
-	LaunchedBy = nullptr;
-	ReacquireLockedVehicle.Reset();
-	ReacquireLockedUntil = 0.0;
-	GlobalPickupLockedUntil =
-		(World ? World->GetTimeSeconds() : 0.0) + FMath::Max(0.0f, PostLaunchPickupLockDuration);
-	SetBallState(EBasicBallState::Free);
+	FBallRepState Next;
+	Next.GlobalPickupLockEndServerTime = (World ? World->GetTimeSeconds() : 0.0f)
+		+ FMath::Max(0.0f, PostLaunchPickupLockDuration);
+	CommitRepState(Next, nullptr);
 }
 
 void ABasicBallActor::OnPhysicsRootHit(
@@ -298,8 +428,8 @@ void ABasicBallActor::OnPhysicsRootHit(
 	FVector NormalImpulse,
 	const FHitResult& Hit)
 {
-	if (!HasAuthority() || bResolvingDamageHit || BallState != EBasicBallState::Launched
-		|| !IsValid(OtherActor) || OtherActor == LaunchedBy)
+	if (!HasAuthority() || bResolvingDamageHit || RepState.State != EBasicBallState::Launched
+		|| !IsValid(OtherActor) || OtherActor == RepState.LastLauncherPawn)
 	{
 		return;
 	}
@@ -308,7 +438,7 @@ void ABasicBallActor::OnPhysicsRootHit(
 	FVehicleHitContext Context;
 	Context.SourceActor = this;
 	Context.TargetActor = OtherActor;
-	Context.InstigatorActor = LaunchedBy;
+	Context.InstigatorActor = RepState.LastLauncherPawn;
 	Context.TargetPhysicsBody = OtherComponent;
 	Context.ImpactPoint = Hit.ImpactPoint;
 	Context.ImpactNormal = Hit.ImpactNormal;
@@ -332,7 +462,7 @@ void ABasicBallActor::OnPhysicsRootHit(
 			UE_LOG(LogTemp, Log, TEXT("Ball %s hit vehicle %s, launcher %s, damage %.1f, impact %.1f, tier %s"),
 				*GetName(),
 				*GetNameSafe(OtherActor),
-				*GetNameSafe(LaunchedBy.Get()),
+				*GetNameSafe(RepState.LastLauncherPawn.Get()),
 				VehicleHitDamage,
 				Resolution.ImpactSpeed,
 				LexToString(Resolution.KnockbackTier));
@@ -350,6 +480,12 @@ void ABasicBallActor::OnConstruction(const FTransform& Transform)
 
 void ABasicBallActor::PreInitializeComponents()
 {
+	if (GetNetMode() != NM_Standalone && GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		// Preserve PI even if an older Blueprint serialized the actor's former default mode.
+		// A per-ball settings asset may override this in its component BeginPlay.
+		SetPhysicsReplicationMode(EPhysicsReplicationMode::PredictiveInterpolation);
+	}
 	bConfigurationValid = ApplyDefinition(false);
 	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules()) { bConfigurationValid = false; }
 	if (!bConfigurationValid)

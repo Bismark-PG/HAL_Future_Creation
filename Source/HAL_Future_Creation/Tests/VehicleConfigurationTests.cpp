@@ -12,6 +12,7 @@
 #include "../CombatResolver.h"
 #include "Components/BoxComponent.h"
 #include "Components/SphereComponent.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "Camera/CameraComponent.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
@@ -242,10 +243,40 @@ bool FConfigurationPlayerBallTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Ball definition becomes valid"), Ball->IsConfigurationValid());
 	TestTrue(TEXT("Ball actual mass matches configured body"), FMath::IsNearlyEqual(Ball->GetPhysicsRoot()->GetMass(), 35.0f, 0.1f));
 	TestEqual(TEXT("Ball authored damping replaces native seed"), Ball->GetPhysicsRoot()->GetLinearDamping(), 1.0f);
+	Control->ConfigureConstraint(Ball);
+	UPhysicsConstraintComponent* BallJoint = Player->FindComponentByClass<UPhysicsConstraintComponent>();
+	UPrimitiveComponent* JointChild = nullptr;
+	UPrimitiveComponent* JointParent = nullptr;
+	FName ChildBone;
+	FName ParentBone;
+	BallJoint->GetConstrainedComponents(JointChild, ChildBone, JointParent, ParentBone);
+	TestEqual(TEXT("Controlled ball is the joint child"), JointChild, static_cast<UPrimitiveComponent*>(Ball->GetPhysicsRoot()));
+	TestEqual(TEXT("Predicted vehicle is the dominating joint parent"), JointParent, static_cast<UPrimitiveComponent*>(Player->GetRootComponent()));
+	TestTrue(TEXT("Held ball cannot feed constraint force into vehicle"), BallJoint->ConstraintInstance.IsParentDominatesEnabled());
+	Control->ReleaseConstraint();
 	TestTrue(TEXT("Configured free ball supports existing control transition"), Ball->BeginControl(Player));
 	TestEqual(TEXT("Ball state remains instance-owned"), Ball->GetBallState(), EBasicBallState::Controlled);
+	TestEqual(TEXT("Acquisition publishes one state sequence"), Ball->GetBallRepState().StateSequence, 1u);
+	TestEqual(TEXT("Acquisition publishes its holder with state"), Ball->GetBallRepState().Holder.Get(), static_cast<AActor*>(Player));
+	TestFalse(TEXT("A second acquisition cannot steal a held ball"), Ball->BeginControl(Player));
+	TestEqual(TEXT("Rejected acquisition does not advance the sequence"), Ball->GetBallRepState().StateSequence, 1u);
 	TestTrue(TEXT("Existing launch transition is preserved"), Ball->LaunchFromControl(Player, Player, FVector(1000, 0, 0)));
 	TestEqual(TEXT("Launched ball retains instigator"), Ball->GetLaunchedBy(), static_cast<AActor*>(Player));
+	TestEqual(TEXT("Launch publishes one state sequence"), Ball->GetBallRepState().StateSequence, 2u);
+	TestNull(TEXT("Launch clears holder in the same snapshot"), Ball->GetBallRepState().Holder.Get());
+	TestFalse(TEXT("Duplicate launch cannot change state"), Ball->LaunchFromControl(Player, Player, FVector(1000, 0, 0)));
+	TestEqual(TEXT("Rejected launch does not advance the sequence"), Ball->GetBallRepState().StateSequence, 2u);
+	ABasicBallActor* DropBall = Fixture.World->SpawnActor<ABasicBallActor>();
+	SetDefinition(DropBall, BallDefinition);
+	DropBall->PreInitializeComponents();
+	DropBall->DispatchBeginPlay();
+	TestTrue(TEXT("Second ball can be held for a drop test"), DropBall->BeginControl(Player));
+	TestTrue(TEXT("Forced release returns the ball to Free"), DropBall->ReleaseFromControl(Player, 0.75f));
+	TestEqual(TEXT("Release advances the atomic state sequence"), DropBall->GetBallRepState().StateSequence, 2u);
+	TestFalse(TEXT("Reacquire lock blocks the releasing vehicle"), DropBall->BeginControl(Player));
+	APassiveTestVehicle* OtherVehicle = Fixture.World->SpawnActor<APassiveTestVehicle>();
+	TestTrue(TEXT("A different ready vehicle can claim the released ball"), DropBall->BeginControl(OtherVehicle));
+	TestEqual(TEXT("New holder wins the server-side claim"), DropBall->GetBallRepState().Holder.Get(), static_cast<AActor*>(OtherVehicle));
 	TestEqual(TEXT("Ball template is not mutated by gameplay"), BallDefinition->Gameplay.Damage.KnockbackStrengthMultiplier, 5.0f);
 	return true;
 }

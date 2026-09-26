@@ -10,6 +10,7 @@
 class USphereComponent;
 class UStaticMeshComponent;
 class UPrimitiveComponent;
+class UNetworkPhysicsSettingsComponent;
 
 class UBallDefinition;
 
@@ -19,6 +20,42 @@ enum class EBasicBallState : uint8
 	Free,
 	Controlled,
 	Launched
+};
+
+/** One authority-written snapshot; movement replication remains independent of gameplay ownership. */
+USTRUCT(BlueprintType)
+struct HAL_FUTURE_CREATION_API FBallRepState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Ball|State")
+	EBasicBallState State = EBasicBallState::Free;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Ball|State")
+	TObjectPtr<AActor> Holder;
+
+	/** The pawn is optional after disconnect; PlayerId remains the stable attribution for this launch. */
+	UPROPERTY(BlueprintReadOnly, Category = "Ball|State")
+	TObjectPtr<AActor> LastLauncherPawn;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Ball|State")
+	int32 LastLauncherPlayerId = INDEX_NONE;
+
+	UPROPERTY()
+	uint32 StateSequence = 0;
+
+	/** INDEX_NONE when no vehicle physics frame is available at the transition. */
+	UPROPERTY(BlueprintReadOnly, Category = "Ball|State")
+	int32 ServerPhysicsFrame = INDEX_NONE;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Ball|State")
+	TObjectPtr<AActor> ReacquireLockedVehicle;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Ball|State")
+	float ReacquireLockEndServerTime = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Ball|State")
+	float GlobalPickupLockEndServerTime = 0.0f;
 };
 
 /** Lightweight Chaos ball with an explicit, authority-owned gameplay state. */
@@ -39,15 +76,21 @@ public:
 #endif
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 
 	UFUNCTION(BlueprintPure, Category = "Ball|State")
-	EBasicBallState GetBallState() const { return BallState; }
+	EBasicBallState GetBallState() const { return RepState.State; }
 
 	UFUNCTION(BlueprintPure, Category = "Ball|State")
-	AActor* GetControlledBy() const { return ControlledBy; }
+	AActor* GetControlledBy() const { return RepState.Holder; }
 
 	UFUNCTION(BlueprintPure, Category = "Ball|State")
-	AActor* GetLaunchedBy() const { return LaunchedBy; }
+	AActor* GetLaunchedBy() const { return RepState.LastLauncherPawn; }
+
+	UFUNCTION(BlueprintPure, Category = "Ball|State")
+	FBallRepState GetBallRepState() const { return RepState; }
+	uint32 GetBallStateSequence() const { return RepState.StateSequence; }
 
 	USphereComponent* GetPhysicsRoot() const { return PhysicsRoot; }
 
@@ -76,6 +119,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ball|Components")
 	TObjectPtr<UStaticMeshComponent> VisualMesh;
+
+	/** Optional per-ball PI tuning asset. Its mode override applies to simulated proxies. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ball|Components")
+	TObjectPtr<UNetworkPhysicsSettingsComponent> NetworkPhysicsSettings;
 
 	/** Speed must stay below this value before Launched can return to Free. */
 	UPROPERTY(EditDefaultsOnly, Category = "Ball|State", meta = (ClampMin = "0.0", Units = "cm/s"))
@@ -107,9 +154,11 @@ protected:
 
 private:
 	UFUNCTION()
-	void OnRep_BallState();
+	void OnRep_BallRepState();
 
-	void SetBallState(EBasicBallState NewState);
+	void CommitRepState(const FBallRepState& NewState, const AActor* PhysicsFrameSource);
+	void ApplyReplicatedPresentation();
+	void StopControlledPresentation();
 	void StartLowSpeedMonitor();
 	void StopLowSpeedMonitor();
 	void CheckLaunchedLowSpeed();
@@ -123,18 +172,19 @@ private:
 		FVector NormalImpulse,
 		const FHitResult& Hit);
 
-	UPROPERTY(ReplicatedUsing = OnRep_BallState, VisibleInstanceOnly, Category = "Ball|State")
-	EBasicBallState BallState = EBasicBallState::Free;
+	UPROPERTY(ReplicatedUsing = OnRep_BallRepState, VisibleInstanceOnly, Category = "Ball|State")
+	FBallRepState RepState;
+	UPROPERTY(Transient)
+	FBallRepState LastAppliedRepState;
 
-	UPROPERTY(Replicated, VisibleInstanceOnly, Category = "Ball|State")
-	TObjectPtr<AActor> ControlledBy;
-
-	UPROPERTY(Replicated, VisibleInstanceOnly, Category = "Ball|State")
-	TObjectPtr<AActor> LaunchedBy;
-
-	TWeakObjectPtr<AActor> ReacquireLockedVehicle;
-	double ReacquireLockedUntil = 0.0;
-	double GlobalPickupLockedUntil = 0.0;
+	ECollisionEnabled::Type AuthoredCollisionEnabled = ECollisionEnabled::QueryAndPhysics;
+	bool bAuthoredSimulatePhysics = true;
+	bool bControlledPresentationActive = false;
+	bool bHasControlledPresentationTarget = false;
+	FVector LastControlledPresentationLocation = FVector::ZeroVector;
+	FQuat ControlledPresentationRotation = FQuat::Identity;
+	bool bHasAppliedRepState = false;
+	uint32 LastAppliedStateSequence = 0;
 	float AccumulatedLowSpeedTime = 0.0f;
 	FTimerHandle LowSpeedTimerHandle;
 	bool bResolvingDamageHit = false;

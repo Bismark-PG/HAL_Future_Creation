@@ -44,6 +44,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Ball Control|State")
 	ABasicBallActor* GetHeldBall() const { return HeldBall; }
 
+	/** Read-only target for the remote ball's collisionless presentation follower. */
+	bool GetControlTargetWorldTransform(FTransform& OutTransform) const;
+
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Ball Control|Acquisition", meta = (ClampMin = "0.0", Units = "cm"))
 	float AcquisitionRadius = 350.0f;
@@ -100,6 +103,9 @@ protected:
 	bool bDrawAcquisitionDebug = false;
 
 private:
+#if WITH_DEV_AUTOMATION_TESTS
+	friend class FConfigurationPlayerBallTest;
+#endif
 	void EvaluateBallControl();
 	ABasicBallActor* FindBestCandidate() const;
 	bool HasLineOfSightTo(const ABasicBallActor* Candidate) const;
