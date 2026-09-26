@@ -243,6 +243,14 @@ bool FConfigurationPlayerBallTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Ball definition becomes valid"), Ball->IsConfigurationValid());
 	TestTrue(TEXT("Ball actual mass matches configured body"), FMath::IsNearlyEqual(Ball->GetPhysicsRoot()->GetMass(), 35.0f, 0.1f));
 	TestEqual(TEXT("Ball authored damping replaces native seed"), Ball->GetPhysicsRoot()->GetLinearDamping(), 1.0f);
+	USphereComponent* BallBody = Ball->GetPhysicsRoot();
+	const FCollisionResponseContainer AuthoredResponses = BallBody->GetCollisionResponseToChannels();
+	const ECollisionEnabled::Type AuthoredCollisionMode = BallBody->GetCollisionEnabled();
+	BallBody->SetCollisionResponseToAllChannels(ECR_Ignore);
+	TestTrue(TEXT("Ignoring client contacts keeps the ball physics body available for PI"), BallBody->IsSimulatingPhysics());
+	TestEqual(TEXT("Client contact filtering retains physics collision mode"),
+		BallBody->GetCollisionEnabled(), AuthoredCollisionMode);
+	BallBody->SetCollisionResponseToChannels(AuthoredResponses);
 	Control->ConfigureConstraint(Ball);
 	UPhysicsConstraintComponent* BallJoint = Player->FindComponentByClass<UPhysicsConstraintComponent>();
 	UPrimitiveComponent* JointChild = nullptr;
@@ -278,6 +286,41 @@ bool FConfigurationPlayerBallTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("A different ready vehicle can claim the released ball"), DropBall->BeginControl(OtherVehicle));
 	TestEqual(TEXT("New holder wins the server-side claim"), DropBall->GetBallRepState().Holder.Get(), static_cast<AActor*>(OtherVehicle));
 	TestEqual(TEXT("Ball template is not mutated by gameplay"), BallDefinition->Gameplay.Damage.KnockbackStrengthMultiplier, 5.0f);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FControlledBallProxyPresentationTest,
+	"HAL.FutureCreation.Ball.ControlledProxyPresentation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FControlledBallProxyPresentationTest::RunTest(const FString& Parameters)
+{
+	FConfigurationTestWorld Fixture;
+	ABasicBallActor* Ball = Fixture.World->SpawnActor<ABasicBallActor>();
+	Ball->DispatchBeginPlay();
+	USphereComponent* Body = Ball->GetPhysicsRoot();
+	const ECollisionEnabled::Type OriginalMode = Body->GetCollisionEnabled();
+	const ECollisionChannel OriginalObjectType = Body->GetCollisionObjectType();
+	const FCollisionResponseContainer OriginalResponses = Body->GetCollisionResponseToChannels();
+	const bool bOriginalGravity = Body->IsGravityEnabled();
+	Ball->SetRole(ROLE_SimulatedProxy);
+	Ball->RepState.State = EBasicBallState::Controlled;
+	Ball->RepState.StateSequence = 1;
+	Ball->OnRep_BallRepState();
+	TestTrue(TEXT("Controlled proxy keeps its physics body for PI"), Body->IsSimulatingPhysics());
+	TestEqual(TEXT("Controlled proxy keeps physics-compatible collision mode"), Body->GetCollisionEnabled(), OriginalMode);
+	TestEqual(TEXT("Controlled proxy ignores vehicle contacts"), Body->GetCollisionResponseToChannel(ECC_Pawn), ECR_Ignore);
+	TestEqual(TEXT("Controlled proxy ignores wall contacts"), Body->GetCollisionResponseToChannel(ECC_WorldStatic), ECR_Ignore);
+	TestFalse(TEXT("Controlled proxy does not free-fall without a local joint"), Body->IsGravityEnabled());
+
+	Ball->RepState.State = EBasicBallState::Free;
+	Ball->RepState.StateSequence = 2;
+	Ball->OnRep_BallRepState();
+	TestTrue(TEXT("Free proxy retains physics simulation"), Body->IsSimulatingPhysics());
+	TestEqual(TEXT("Free proxy restores its collision mode"), Body->GetCollisionEnabled(), OriginalMode);
+	TestEqual(TEXT("Free proxy restores its object type"), Body->GetCollisionObjectType(), OriginalObjectType);
+	TestTrue(TEXT("Free proxy restores authored channel responses"),
+		Body->GetCollisionResponseToChannels() == OriginalResponses);
+	TestEqual(TEXT("Free proxy restores authored gravity"), Body->IsGravityEnabled(), bOriginalGravity);
 	return true;
 }
 

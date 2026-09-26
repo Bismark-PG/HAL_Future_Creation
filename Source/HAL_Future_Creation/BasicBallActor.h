@@ -77,7 +77,6 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaSeconds) override;
 
 	UFUNCTION(BlueprintPure, Category = "Ball|State")
 	EBasicBallState GetBallState() const { return RepState.State; }
@@ -153,6 +152,9 @@ protected:
 	bool bLogStateChanges = false;
 
 private:
+#if WITH_DEV_AUTOMATION_TESTS
+	friend class FControlledBallProxyPresentationTest;
+#endif
 	UFUNCTION()
 	void OnRep_BallRepState();
 
@@ -177,12 +179,9 @@ private:
 	UPROPERTY(Transient)
 	FBallRepState LastAppliedRepState;
 
-	ECollisionEnabled::Type AuthoredCollisionEnabled = ECollisionEnabled::QueryAndPhysics;
-	bool bAuthoredSimulatePhysics = true;
+	FCollisionResponseContainer AuthoredCollisionResponses;
+	bool bAuthoredGravityEnabled = true;
 	bool bControlledPresentationActive = false;
-	bool bHasControlledPresentationTarget = false;
-	FVector LastControlledPresentationLocation = FVector::ZeroVector;
-	FQuat ControlledPresentationRotation = FQuat::Identity;
 	bool bHasAppliedRepState = false;
 	uint32 LastAppliedStateSequence = 0;
 	float AccumulatedLowSpeedTime = 0.0f;

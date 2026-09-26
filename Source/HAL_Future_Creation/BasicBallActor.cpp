@@ -61,9 +61,6 @@ namespace
 
 ABasicBallActor::ABasicBallActor()
 {
-	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bStartWithTickEnabled = false;
-	PrimaryActorTick.TickGroup = TG_PostPhysics;
 	bReplicates = true;
 	SetReplicateMovement(true);
 	SetPhysicsReplicationMode(EPhysicsReplicationMode::PredictiveInterpolation);
@@ -217,59 +214,15 @@ void ABasicBallActor::AddReleaseImpulse(const FVector& Impulse)
 void ABasicBallActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	StopLowSpeedMonitor();
-	SetActorTickEnabled(false);
 	Super::EndPlay(EndPlayReason);
 }
 
 void ABasicBallActor::BeginPlay()
 {
 	Super::BeginPlay();
-	AuthoredCollisionEnabled = PhysicsRoot->GetCollisionEnabled();
-	bAuthoredSimulatePhysics = PhysicsRoot->IsSimulatingPhysics();
+	AuthoredCollisionResponses = PhysicsRoot->GetCollisionResponseToChannels();
+	bAuthoredGravityEnabled = PhysicsRoot->IsGravityEnabled();
 	ApplyReplicatedPresentation();
-}
-
-void ABasicBallActor::Tick(const float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-	if (!bControlledPresentationActive || RepState.State != EBasicBallState::Controlled)
-	{
-		return;
-	}
-
-	const AActor* Holder = RepState.Holder;
-	const UBallControlComponent* Control = IsValid(Holder)
-		? Holder->FindComponentByClass<UBallControlComponent>() : nullptr;
-	FTransform ControlTarget;
-	if (Control && Control->GetControlTargetWorldTransform(ControlTarget))
-	{
-		const FVector TargetLocation = ControlTarget.GetLocation();
-		if (!bHasControlledPresentationTarget)
-		{
-			ControlledPresentationRotation = PhysicsRoot->GetComponentQuat();
-			bHasControlledPresentationTarget = true;
-		}
-		else
-		{
-			// Render-only rolling follows travel distance, independent of frame rate.
-			// The client body remains kinematic and collisionless while controlled.
-			const FVector HorizontalTravel = FVector::VectorPlaneProject(
-				TargetLocation - LastControlledPresentationLocation, FVector::UpVector);
-			const float TravelDistance = HorizontalTravel.Size();
-			if (TravelDistance > KINDA_SMALL_NUMBER)
-			{
-				const float Radius = FMath::Max(1.0f, PhysicsRoot->GetScaledSphereRadius());
-				const FVector RollAxis = FVector::CrossProduct(FVector::UpVector, HorizontalTravel)
-					/ TravelDistance;
-				ControlledPresentationRotation =
-					(FQuat(RollAxis, TravelDistance / Radius) * ControlledPresentationRotation).GetNormalized();
-			}
-		}
-		LastControlledPresentationLocation = TargetLocation;
-		// Move the collisionless body so the visual and physics debug shape agree.
-		PhysicsRoot->SetWorldLocationAndRotation(
-			TargetLocation, ControlledPresentationRotation, false, nullptr, ETeleportType::TeleportPhysics);
-	}
 }
 
 void ABasicBallActor::OnRep_BallRepState()
@@ -279,10 +232,13 @@ void ABasicBallActor::OnRep_BallRepState()
 #if !UE_BUILD_SHIPPING
 	if (CVarHALBallNetLog.GetValueOnGameThread() > 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Ball state received: %s State=%s Seq=%u Holder=%s Launcher=%s PlayerId=%d ServerFrame=%d"),
+		UE_LOG(LogTemp, Log, TEXT("Ball state received: %s State=%s Seq=%u Holder=%s Launcher=%s PlayerId=%d ServerFrame=%d Sim=%d Collision=%d Gravity=%d"),
 			*GetName(), LexToString(RepState.State), RepState.StateSequence,
 			*GetNameSafe(RepState.Holder.Get()), *GetNameSafe(RepState.LastLauncherPawn.Get()),
-			RepState.LastLauncherPlayerId, RepState.ServerPhysicsFrame);
+			RepState.LastLauncherPlayerId, RepState.ServerPhysicsFrame,
+			PhysicsRoot->IsSimulatingPhysics() ? 1 : 0,
+			static_cast<int32>(PhysicsRoot->GetCollisionEnabled()),
+			PhysicsRoot->IsGravityEnabled() ? 1 : 0);
 	}
 #endif
 }
@@ -304,11 +260,18 @@ void ABasicBallActor::ApplyReplicatedPresentation()
 	{
 		if (!bControlledPresentationActive)
 		{
-			PhysicsRoot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			PhysicsRoot->SetSimulatePhysics(false);
+			// Keep Chaos simulation alive: the existing replicated rigid-body
+			// targets and PI now display the server's actual acquisition path.
+			// Keep collision *enabled* so Chaos retains the rigid-body state,
+			// but ignore every channel so it cannot push the predicted vehicle.
+			PhysicsRoot->SetCollisionResponseToAllChannels(ECR_Ignore);
+			PhysicsRoot->SetEnableGravity(false);
 			bControlledPresentationActive = true;
-			bHasControlledPresentationTarget = false;
-			SetActorTickEnabled(true);
+			if (!PhysicsRoot->IsSimulatingPhysics())
+			{
+				UE_LOG(LogTemp, Error, TEXT("%s: controlled client ball has no physics state for authoritative PI. CollisionEnabled=%d"),
+					*GetName(), static_cast<int32>(PhysicsRoot->GetCollisionEnabled()));
+			}
 		}
 	}
 	else
@@ -320,13 +283,10 @@ void ABasicBallActor::ApplyReplicatedPresentation()
 void ABasicBallActor::StopControlledPresentation()
 {
 	if (!bControlledPresentationActive) { return; }
-	SetActorTickEnabled(false);
-	// PI resumes from the last local presentation target until the next
-	// authoritative physics packet arrives.
-	PhysicsRoot->SetCollisionEnabled(AuthoredCollisionEnabled);
-	PhysicsRoot->SetSimulatePhysics(bAuthoredSimulatePhysics);
+	// The same physics-replication stream continues across the state change.
+	PhysicsRoot->SetEnableGravity(bAuthoredGravityEnabled);
+	PhysicsRoot->SetCollisionResponseToChannels(AuthoredCollisionResponses);
 	bControlledPresentationActive = false;
-	bHasControlledPresentationTarget = false;
 }
 
 void ABasicBallActor::CommitRepState(const FBallRepState& NewState, const AActor* PhysicsFrameSource)

@@ -6,6 +6,8 @@
 !MVP_A_Vehicle_Ball_Rules_CN.md
 !MVP_A_Tiered_Knockback_Design_CN.md
 !MVP_A_Rounded_Vehicle_Setup_CN.md
+!MVP_A_to_MVP_B_Handoff_CN_v1.0.md
+!MVP_B_Phase1_DataAsset_Migration_CN_v1.0.md
 
 # Compiled Object files
 *.slo
@@ -80,3 +82,19 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+!AGENTS.md
+!MVP_B_Phase1_Editor_Migration_CN_v1.0.md
+!Docs/Configuration/*.md
+!Docs/MVP_B_Listen_Server_Plan_CN_v0.1.md
+!Docs/MVP_B_Listen_Server_Plan_CN_v0.2.md
+!Docs/Networking/MVPB_Listen_Phase1_Implementation_CN_v1.0.md
+!Docs/Networking/MVPB_Listen_Phase2_Implementation_CN_v1.0.md
+!Docs/Networking/MVPB_Listen_Phase3_Implementation_CN_v1.0.md
+!Docs/Networking/MVPB_Listen_Phase4_Implementation_CN_v0.1.md
+!Docs/Networking/MVPB_Listen_Phase5_Implementation_CN_v0.1.md
+!Docs/Networking/MVPB_Listen_Phase6_Implementation_CN_v0.1.md
+!Docs/Networking/MVPB_Listen_Phase6_Implementation_CN_v0.2.md
+!Docs/Networking/MVPB_Phase6_ControlledBall_Rolling_Fix_CN_v0.1.md
+!Docs/Networking/MVPB_Phase6_ClientCaptureBlend_CN_v0.1.md
+!Docs/Networking/MVPB_Phase6_AuthoritativeCapture_CN_v0.2.md
+!Docs/Networking/MVPB_Phase6_AuthoritativeCapture_CN_v0.3.md

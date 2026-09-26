@@ -1,6 +1,6 @@
 # MVP-B 阶段 6：客户端持球滚动表现修正（v0.1）
 
-日期：2026-09-26。状态：**C++ 修复已写入；Editor/Game Target 编译通过，自动化 12/12 通过。双进程可见滚动表现待团队复测，阶段 6 未验收。** 本文接续 `MVPB_Listen_Phase6_Implementation_CN_v0.2.md`，只处理客户端 `Controlled` 球缺少滚动表现的问题。
+日期：2026-09-26。状态：**历史修正；团队曾确认客户端滚动恢复。其客户端手工滚动算法已被 `MVPB_Phase6_AuthoritativeCapture_CN_v0.2.md` 的服务器物理复制方案取代，需重新复测滚动。阶段 6 尚未整体验收。** 本文接续 `MVPB_Listen_Phase6_Implementation_CN_v0.2.md`，保留当时问题的原因和处理记录。
 
 ## 现象与原因
 
@@ -27,5 +27,5 @@ v0.2 为了让客户端无碰撞的球根组件和调试球形跟随车辆，在
 ## 验证记录
 
 - `HAL_Future_CreationEditor Win64 Development` 与 `HAL_Future_Creation Win64 Development` 均编译通过。`HAL.FutureCreation` 自动化测试 **12/12** 通过，报告在 `Saved/Automation/MVPB_Phase6_ControlledRollFix`。本轮仅修改客户端 `Controlled` 状态的显示旋转；此前 v0.2 的无界面双进程 Join 烟测仍可参考，但不能证明滚动视觉通过。
-- 双进程可见滚动、倒车方向和发射/脱球切换仍需团队在客户端窗口确认。
+- 团队已反馈客户端滚动没有问题；倒车方向和快速发射/脱球切换的专项记录尚未单独留档。
 - 本轮代码代理未修改 `.uasset` 或 `.umap`；团队之前创建的球网络 DA 和球蓝图引用保持原样。

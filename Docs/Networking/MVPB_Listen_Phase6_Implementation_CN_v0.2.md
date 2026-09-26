@@ -1,6 +1,6 @@
 # MVP-B Listen Server 阶段 6：球状态与控球表现修正（v0.2）
 
-**后续客户端持球滚动表现修正见同目录 `MVPB_Phase6_ControlledBall_Rolling_Fix_CN_v0.1.md`；本版记录约束卡车回归的原因与修复。**
+**后续捕球轨迹修正及运动规则复盘见同目录 `MVPB_Phase6_AuthoritativeCapture_CN_v0.3.md`；本版保留约束卡车回归的原因与修复记录。**
 
 日期：2026-09-26。状态：**团队实测发现 v0.1 持球车辆被卡在原地；C++ 原因已定位并修正，Editor/Game Target 与自动化测试通过。修正版的双进程可见行为尚待团队复测，阶段 6 未验收。** 依据为 `Docs/MVP_B_Listen_Server_Plan_CN_v0.2.md` 第 10、11、19 节。沿用到正式版的边界是：服务器决定球权、物理、命中；客户端按一份离散状态快照呈现球，球的运动状态另由物理复制处理。
 
