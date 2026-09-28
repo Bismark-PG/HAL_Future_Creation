@@ -2,6 +2,8 @@
 
 #include "HALMatchGameMode.h"
 
+#include "BallControlComponent.h"
+#include "BasicBallActor.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/Controller.h"
@@ -144,6 +146,18 @@ void AHALMatchGameMode::PostLogin(APlayerController* NewPlayer)
 void AHALMatchGameMode::Logout(AController* Exiting)
 {
 	APawn* LeavingPawn = Exiting ? Exiting->GetPawn() : nullptr;
+	if (IsValid(LeavingPawn))
+	{
+		if (UBallControlComponent* Control = LeavingPawn->FindComponentByClass<UBallControlComponent>())
+		{
+			Control->PrepareForOwnerExit();
+		}
+		// Reconcile any ball whose snapshot still references this Pawn, including launched balls.
+		for (TActorIterator<ABasicBallActor> It(GetWorld()); It; ++It)
+		{
+			It->HandleVehicleExit(LeavingPawn);
+		}
+	}
 	if (Exiting)
 	{
 		Exiting->UnPossess();

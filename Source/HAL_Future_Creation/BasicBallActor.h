@@ -98,6 +98,8 @@ public:
 	bool LaunchFromControl(AActor* ExpectedHolder, AActor* NewLauncher, const FVector& InitialVelocity);
 	bool ReleaseFromControl(AActor* ExpectedHolder, float ReacquireLockDuration);
 	void AddReleaseImpulse(const FVector& Impulse);
+	/** Server cleanup before a vehicle Pawn is destroyed; preserves a launched ball's stable PlayerId. */
+	bool HandleVehicleExit(const AActor* LeavingVehicle);
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Ball|Configuration")
@@ -187,4 +189,5 @@ private:
 	float AccumulatedLowSpeedTime = 0.0f;
 	FTimerHandle LowSpeedTimerHandle;
 	bool bResolvingDamageHit = false;
+	uint32 LastResolvedHitEventSequence = 0;
 };

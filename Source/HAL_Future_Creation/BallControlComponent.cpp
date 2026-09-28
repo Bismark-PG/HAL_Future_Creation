@@ -55,9 +55,9 @@ void UBallControlComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		World->GetTimerManager().ClearTimer(AcquisitionTimerHandle);
 	}
 
-	if (GetOwner() && GetOwner()->HasAuthority() && IsValid(HeldBall))
+	if (GetOwner() && GetOwner()->HasAuthority())
 	{
-		ReleaseHeldBall(FVector::ZeroVector, false);
+		PrepareForOwnerExit();
 	}
 	else
 	{
@@ -66,6 +66,19 @@ void UBallControlComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 
 	Super::EndPlay(EndPlayReason);
+}
+
+void UBallControlComponent::PrepareForOwnerExit()
+{
+	AActor* Owner = GetOwner();
+	if (!Owner || !Owner->HasAuthority()) { return; }
+	ABasicBallActor* BallToRelease = HeldBall;
+	ReleaseConstraint();
+	HeldBall = nullptr;
+	if (IsValid(BallToRelease))
+	{
+		BallToRelease->HandleVehicleExit(Owner);
+	}
 }
 
 void UBallControlComponent::SetVehicleComponents(

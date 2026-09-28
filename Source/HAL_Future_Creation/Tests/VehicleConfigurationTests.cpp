@@ -18,6 +18,7 @@
 #include "InputMappingContext.h"
 #include "Engine/World.h"
 #include "Engine/StaticMesh.h"
+#include "GameFramework/PlayerState.h"
 #include "UObject/UnrealType.h"
 #include <limits>
 
@@ -286,6 +287,48 @@ bool FConfigurationPlayerBallTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("A different ready vehicle can claim the released ball"), DropBall->BeginControl(OtherVehicle));
 	TestEqual(TEXT("New holder wins the server-side claim"), DropBall->GetBallRepState().Holder.Get(), static_cast<AActor*>(OtherVehicle));
 	TestEqual(TEXT("Ball template is not mutated by gameplay"), BallDefinition->Gameplay.Damage.KnockbackStrengthMultiplier, 5.0f);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBallVehicleExitCleanupTest,
+	"HAL.FutureCreation.Ball.VehicleExitCleanup",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FBallVehicleExitCleanupTest::RunTest(const FString& Parameters)
+{
+	FConfigurationTestWorld Fixture;
+	if (!TestNotNull(TEXT("Transient world"), Fixture.World)) { return false; }
+	ATestVehiclePawn* LeavingPawn = Fixture.World->SpawnActor<ATestVehiclePawn>();
+	APlayerState* PlayerState = Fixture.World->SpawnActor<APlayerState>();
+	PlayerState->SetPlayerId(42);
+	LeavingPawn->SetPlayerState(PlayerState);
+
+	ABasicBallActor* HeldBall = Fixture.World->SpawnActor<ABasicBallActor>();
+	TestTrue(TEXT("Vehicle acquires ball"), HeldBall->BeginControl(LeavingPawn));
+	TestTrue(TEXT("Owner exit releases held ball"), HeldBall->HandleVehicleExit(LeavingPawn));
+	TestEqual(TEXT("Released ball becomes Free"), HeldBall->GetBallState(), EBasicBallState::Free);
+	TestNull(TEXT("Released ball has no departing holder"), HeldBall->GetBallRepState().Holder.Get());
+	TestNull(TEXT("Released ball has no departing lock"), HeldBall->GetBallRepState().ReacquireLockedVehicle.Get());
+	TestEqual(TEXT("Owner exit publishes one new snapshot"), HeldBall->GetBallStateSequence(), 2u);
+	TestFalse(TEXT("Repeated cleanup is idempotent"), HeldBall->HandleVehicleExit(LeavingPawn));
+	TestEqual(TEXT("Repeated cleanup keeps sequence"), HeldBall->GetBallStateSequence(), 2u);
+
+	ABasicBallActor* LaunchedBall = Fixture.World->SpawnActor<ABasicBallActor>();
+	TestTrue(TEXT("Vehicle acquires second ball"), LaunchedBall->BeginControl(LeavingPawn));
+	TestTrue(TEXT("Vehicle launches second ball"),
+		LaunchedBall->LaunchFromControl(LeavingPawn, LeavingPawn, FVector(1000.0f, 0.0f, 0.0f)));
+	TestEqual(TEXT("Launch records stable player identity"), LaunchedBall->GetBallRepState().LastLauncherPlayerId, 42);
+	TestTrue(TEXT("Exit clears launched Pawn reference"), LaunchedBall->HandleVehicleExit(LeavingPawn));
+	TestEqual(TEXT("Already launched ball remains live"), LaunchedBall->GetBallState(), EBasicBallState::Launched);
+	TestNull(TEXT("Launched ball no longer retains destroyed Pawn"), LaunchedBall->GetBallRepState().LastLauncherPawn.Get());
+	TestEqual(TEXT("Launched ball retains stable player identity"), LaunchedBall->GetBallRepState().LastLauncherPlayerId, 42);
+	TestEqual(TEXT("Launcher cleanup publishes one new snapshot"), LaunchedBall->GetBallStateSequence(), 3u);
+
+	ABasicBallActor* LockedBall = Fixture.World->SpawnActor<ABasicBallActor>();
+	TestTrue(TEXT("Vehicle acquires third ball"), LockedBall->BeginControl(LeavingPawn));
+	TestTrue(TEXT("Vehicle releases third ball with reacquire lock"), LockedBall->ReleaseFromControl(LeavingPawn, 0.75f));
+	TestTrue(TEXT("Exit clears existing reacquire lock"), LockedBall->HandleVehicleExit(LeavingPawn));
+	TestNull(TEXT("No expired Pawn remains in lock"), LockedBall->GetBallRepState().ReacquireLockedVehicle.Get());
+	TestEqual(TEXT("Clearing lock publishes one new snapshot"), LockedBall->GetBallStateSequence(), 3u);
 	return true;
 }
 

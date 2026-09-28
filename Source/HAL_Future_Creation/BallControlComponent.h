@@ -41,6 +41,8 @@ public:
 	bool LaunchHeldBall(FVector& OutRecoilDeltaVelocity);
 	/** The same tuned recoil calculation is used by the server and owning client's prediction. */
 	FVector CalculateRecoilDeltaVelocity() const;
+	/** Explicit server cleanup before the owning Pawn is unpossessed/destroyed. */
+	void PrepareForOwnerExit();
 	void HandleVehicleCollision(const FVector& NormalImpulse, const FHitResult& Hit);
 
 	UFUNCTION(BlueprintPure, Category = "Ball Control|State")

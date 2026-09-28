@@ -202,6 +202,45 @@ bool ABasicBallActor::ReleaseFromControl(AActor* ExpectedHolder, const float Rea
 	return true;
 }
 
+bool ABasicBallActor::HandleVehicleExit(const AActor* LeavingVehicle)
+{
+	if (!HasAuthority() || !LeavingVehicle) { return false; }
+	FBallRepState Next = RepState;
+	bool bChanged = false;
+	if (Next.Holder == LeavingVehicle)
+	{
+		Next.Holder = nullptr;
+		if (Next.State == EBasicBallState::Controlled)
+		{
+			Next.State = EBasicBallState::Free;
+			const UWorld* World = GetWorld();
+			Next.GlobalPickupLockEndServerTime = (World ? World->GetTimeSeconds() : 0.0f)
+				+ FMath::Max(0.0f, PostLaunchPickupLockDuration);
+		}
+		bChanged = true;
+	}
+	if (Next.ReacquireLockedVehicle == LeavingVehicle)
+	{
+		Next.ReacquireLockedVehicle = nullptr;
+		Next.ReacquireLockEndServerTime = 0.0f;
+		bChanged = true;
+	}
+	if (Next.LastLauncherPawn == LeavingVehicle)
+	{
+		Next.LastLauncherPawn = nullptr;
+		// LastLauncherPlayerId remains stable until this launch actually finishes.
+		bChanged = true;
+	}
+	if (!bChanged) { return false; }
+	Next.ServerPhysicsFrame = INDEX_NONE;
+	CommitRepState(Next, nullptr);
+	UE_LOG(LogTemp, Log, TEXT("Ball vehicle-exit cleanup: %s Leaving=%s State=%s Seq=%u Holder=%s Launcher=%s PlayerId=%d"),
+		*GetNameSafe(this), *GetNameSafe(LeavingVehicle), LexToString(RepState.State),
+		RepState.StateSequence, *GetNameSafe(RepState.Holder.Get()),
+		*GetNameSafe(RepState.LastLauncherPawn.Get()), RepState.LastLauncherPlayerId);
+	return true;
+}
+
 void ABasicBallActor::AddReleaseImpulse(const FVector& Impulse)
 {
 	if (HasAuthority() && PhysicsRoot && PhysicsRoot->IsSimulatingPhysics())
@@ -399,6 +438,10 @@ void ABasicBallActor::OnPhysicsRootHit(
 	Context.SourceActor = this;
 	Context.TargetActor = OtherActor;
 	Context.InstigatorActor = RepState.LastLauncherPawn;
+	Context.InstigatorPlayerId = RepState.LastLauncherPlayerId;
+	uint32 CandidateEventSequence = LastResolvedHitEventSequence + 1;
+	if (CandidateEventSequence == 0) { ++CandidateEventSequence; }
+	Context.ServerHitEventSequence = CandidateEventSequence;
 	Context.TargetPhysicsBody = OtherComponent;
 	Context.ImpactPoint = Hit.ImpactPoint;
 	Context.ImpactNormal = Hit.ImpactNormal;
@@ -417,12 +460,19 @@ void ABasicBallActor::OnPhysicsRootHit(
 		KnockbackStrengthMultiplier);
 	if (Resolution.bResolved)
 	{
-		if (bLogDamageHits)
+		LastResolvedHitEventSequence = CandidateEventSequence;
+		bool bShouldLogHit = bLogDamageHits;
+#if !UE_BUILD_SHIPPING
+		bShouldLogHit |= CVarHALBallNetLog.GetValueOnGameThread() > 0;
+#endif
+		if (bShouldLogHit)
 		{
-			UE_LOG(LogTemp, Log, TEXT("Ball %s hit vehicle %s, launcher %s, damage %.1f, impact %.1f, tier %s"),
+			UE_LOG(LogTemp, Log, TEXT("Ball %s hit vehicle %s, launcher %s, PlayerId=%d EventSeq=%u damage %.1f, impact %.1f, tier %s"),
 				*GetName(),
 				*GetNameSafe(OtherActor),
 				*GetNameSafe(RepState.LastLauncherPawn.Get()),
+				RepState.LastLauncherPlayerId,
+				LastResolvedHitEventSequence,
 				VehicleHitDamage,
 				Resolution.ImpactSpeed,
 				LexToString(Resolution.KnockbackTier));
