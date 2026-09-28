@@ -45,7 +45,7 @@ struct HAL_FUTURE_CREATION_API FVehicleNetInputData
 	}
 };
 
-/** One launch press, never consumed as a held continuous input. Zero ball sequence means unavailable until ball-state replication. */
+/** One launch press, never consumed as a held continuous input. */
 USTRUCT()
 struct HAL_FUTURE_CREATION_API FVehicleLaunchRequest
 {
@@ -57,8 +57,36 @@ struct HAL_FUTURE_CREATION_API FVehicleLaunchRequest
 	UPROPERTY()
 	int32 ClientPhysicsFrame = INDEX_NONE;
 
+	/** The requested action frame on the shared server physics timeline. */
+	UPROPERTY()
+	int32 ServerPhysicsFrame = INDEX_NONE;
+
 	UPROPERTY()
 	uint32 ExpectedBallStateSequence = 0;
+};
+
+/** A predicted local recoil is replaced by this server-authored action (zero on rejection). */
+USTRUCT()
+struct HAL_FUTURE_CREATION_API FVehicleRecoilAction : public FNetworkPhysicsActionPayload
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	uint32 LaunchSequence = 0;
+
+	UPROPERTY()
+	FVector DeltaVelocity = FVector::ZeroVector;
+
+	virtual const EActionAuthorStyle GetAuthorStyle() const override
+	{
+		return EActionAuthorStyle::PredictedAutonomousOnly;
+	}
+
+	virtual bool IsNearlyEqual(const FNetworkPhysicsActionPayload& Other) const override
+	{
+		const FVehicleRecoilAction& Recoil = static_cast<const FVehicleRecoilAction&>(Other);
+		return LaunchSequence == Recoil.LaunchSequence && DeltaVelocity.Equals(Recoil.DeltaVelocity, 1.0f);
+	}
 };
 
 /** Rigid body and movement state needed to compare/restore a predicted vehicle frame. */

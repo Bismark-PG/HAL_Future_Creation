@@ -8,6 +8,7 @@
 
 #include "ArcadeVehicleMovementComponent.h"
 #include "BallControlComponent.h"
+#include "BasicBallActor.h"
 #include "Camera/CameraComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -15,6 +16,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/StaticMesh.h"
+#include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "HAL/IConsoleManager.h"
@@ -184,6 +186,7 @@ void ATestVehiclePawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (ArcadeMovement) { ArcadeMovement->SetHistoryInputBlocked(true); }
 	if (bNetworkPhysicsHistoryActive && NetworkPhysicsHistory)
 	{
+		NetworkPhysicsHistory->SetActionHandler(nullptr);
 		NetworkPhysicsHistory->RemoveDataHistory();
 		bNetworkPhysicsHistoryActive = false;
 	}
@@ -397,21 +400,76 @@ void ATestVehiclePawn::ProcessLaunchRequest(const FVehicleLaunchRequest& Request
 	if (!HasAuthority() || !Cast<APlayerController>(Controller) || Controller->GetPawn() != this
 		|| !FVehicleNetInputData::IsNewerSequence(Request.LaunchSequence, LastProcessedLaunchSequence))
 	{
+#if !UE_BUILD_SHIPPING
+		if (CVarHALVehicleNetLog.GetValueOnGameThread() > 0)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Vehicle launch duplicate/invalid: %s Seq=%u Last=%u"),
+				*GetNameSafe(this), Request.LaunchSequence, LastProcessedLaunchSequence);
+		}
+#endif
 		return;
 	}
 	LastProcessedLaunchSequence = Request.LaunchSequence;
-	// Zero is the only valid placeholder until phase 6 replicates a coherent ball state sequence.
-	const bool bAccepted = Request.ExpectedBallStateSequence == 0
-		&& BallControl && BallControl->LaunchHeldBall();
+	ABasicBallActor* HeldBall = BallControl ? BallControl->GetHeldBall() : nullptr;
+	const bool bMatchingBall = IsValid(HeldBall)
+		&& Request.ExpectedBallStateSequence != 0
+		&& HeldBall->GetBallState() == EBasicBallState::Controlled
+		&& HeldBall->GetControlledBy() == this
+		&& HeldBall->GetBallStateSequence() == Request.ExpectedBallStateSequence;
+	const int32 CurrentFrame = ArcadeMovement ? ArcadeMovement->GetLastPhysicsFrame() : INDEX_NONE;
+	const bool bFramePlausible = !bNetworkPhysicsHistoryActive
+		|| (CurrentFrame >= 0 && Request.ServerPhysicsFrame >= CurrentFrame - 60
+			&& Request.ServerPhysicsFrame <= CurrentFrame + 4);
+	FVector RecoilDeltaVelocity = FVector::ZeroVector;
+	// The client frame only diagnoses alignment. It never authorizes or blocks a valid ball launch.
+	const bool bAccepted = bMatchingBall && BallControl
+		&& BallControl->LaunchHeldBall(RecoilDeltaVelocity);
+	if (bNetworkPhysicsHistoryActive && NetworkPhysicsHistory)
+	{
+		FVehicleRecoilAction Action;
+		Action.LaunchSequence = Request.LaunchSequence;
+		Action.DeltaVelocity = bAccepted ? RecoilDeltaVelocity : FVector::ZeroVector;
+		// A client-supplied past frame is diagnostic, never an authority to rewind the server.
+		// Rejection emits zero so the owning client's prediction is corrected by history.
+		NetworkPhysicsHistory->EnqueueImmediateAction_External(Action, Request.LaunchSequence, true);
+	}
+	else if (bAccepted && ArcadeMovement)
+	{
+		ArcadeMovement->QueueRecoil(RecoilDeltaVelocity);
+	}
+	if (!IsLocallyControlled())
+	{
+		ClientLaunchResult(Request.LaunchSequence, bAccepted,
+			bAccepted && IsValid(HeldBall) ? HeldBall->GetBallStateSequence() : 0);
+	}
 #if !UE_BUILD_SHIPPING
 	if (CVarHALVehicleNetLog.GetValueOnGameThread() > 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Vehicle launch %s: %s Seq=%u ClientFrame=%d"),
+		UE_LOG(LogTemp, Log, TEXT("Vehicle launch %s: %s Seq=%u ClientFrame=%d ReportedServerFrame=%d ActualServerFrame=%d FramePlausible=%d BallSeq=%u"),
 			bAccepted ? TEXT("accepted") : TEXT("rejected"), *GetNameSafe(this),
-			Request.LaunchSequence, Request.ClientPhysicsFrame);
+			Request.LaunchSequence, Request.ClientPhysicsFrame,
+			Request.ServerPhysicsFrame, CurrentFrame, bFramePlausible ? 1 : 0,
+			Request.ExpectedBallStateSequence);
 	}
 #else
 	(void)bAccepted;
+#endif
+}
+
+void ATestVehiclePawn::ClientLaunchResult_Implementation(
+	uint32 LaunchSequence, bool bAccepted, uint32 BallStateSequence)
+{
+	if (!FVehicleNetInputData::IsNewerSequence(LaunchSequence, LastReceivedLaunchResultSequence)) { return; }
+	LastReceivedLaunchResultSequence = LaunchSequence;
+#if !UE_BUILD_SHIPPING
+	if (CVarHALVehicleNetLog.GetValueOnGameThread() > 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Vehicle launch result: %s Seq=%u Accepted=%d BallSeq=%u"),
+			*GetNameSafe(this), LaunchSequence, bAccepted ? 1 : 0, BallStateSequence);
+	}
+#else
+	(void)bAccepted;
+	(void)BallStateSequence;
 #endif
 }
 
@@ -481,6 +539,33 @@ void ATestVehiclePawn::OnLaunchStarted(const FInputActionValue& Value)
 	if (Request.LaunchSequence == 0) { Request.LaunchSequence = ++NextLaunchSequence; }
 	Request.ClientPhysicsFrame = ArcadeMovement
 		? ArcadeMovement->GetLastPhysicsFrame() : INDEX_NONE;
+	ABasicBallActor* ObservedBall = HasAuthority() && BallControl ? BallControl->GetHeldBall() : nullptr;
+	if (!HasAuthority())
+	{
+		for (TActorIterator<ABasicBallActor> It(GetWorld()); It; ++It)
+		{
+			if (It->GetBallState() != EBasicBallState::Controlled || It->GetControlledBy() != this) { continue; }
+			if (ObservedBall) { ObservedBall = nullptr; break; } // Never predict ambiguous ownership.
+			ObservedBall = *It;
+		}
+	}
+	Request.ExpectedBallStateSequence = IsValid(ObservedBall)
+		? ObservedBall->GetBallStateSequence() : 0;
+	if (bNetworkPhysicsHistoryActive && NetworkPhysicsHistory && Request.ClientPhysicsFrame >= 0
+		&& NetworkPhysicsHistory->IsNetworkPhysicsTickOffsetAssigned())
+	{
+		const int32 TargetLocalFrame = Request.ClientPhysicsFrame + 1;
+		Request.ServerPhysicsFrame = TargetLocalFrame
+			+ UE::NetworkPhysicsUtils::GetNetworkPhysicsTickOffset_External(GetWorld());
+		if (!HasAuthority() && IsValid(ObservedBall) && BallControl)
+		{
+			FVehicleRecoilAction Prediction;
+			Prediction.LaunchSequence = Request.LaunchSequence;
+			Prediction.DeltaVelocity = BallControl->CalculateRecoilDeltaVelocity();
+			NetworkPhysicsHistory->EnqueueScheduledActionAtFrame_External(
+				Prediction, Request.LaunchSequence, TargetLocalFrame, false);
+		}
+	}
 	if (HasAuthority()) { ProcessLaunchRequest(Request); }
 	else { ServerRequestLaunch(Request); }
 }
@@ -544,6 +629,7 @@ void ATestVehiclePawn::PostInitializeComponents()
 		// Client initial component properties arrive before BeginPlay; history must exist first.
 		NetworkPhysicsHistory->CreateDataHistory<FVehiclePhysicsHistoryTraits>(ArcadeMovement);
 		NetworkPhysicsHistory->Activate(true);
+		NetworkPhysicsHistory->SetActionHandler(ArcadeMovement);
 		bNetworkPhysicsHistoryActive = true;
 	}
 }

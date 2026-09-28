@@ -24,7 +24,7 @@ class UPrimitiveComponent;
  * remain separate future systems.
  */
 UCLASS(ClassGroup = (Vehicle), meta = (BlueprintSpawnableComponent))
-class HAL_FUTURE_CREATION_API UArcadeVehicleMovementComponent : public UActorComponent
+class HAL_FUTURE_CREATION_API UArcadeVehicleMovementComponent : public UActorComponent, public INetworkPhysicsActionHandler_Internal
 {
 	GENERATED_BODY()
 
@@ -43,6 +43,7 @@ public:
 	virtual void Activate(bool bReset = false) override;
 	virtual void Deactivate() override;
 	virtual void AsyncPhysicsTickComponent(float DeltaTime, float SimTime) override;
+	virtual void ApplyAction_Internal(const TInstancedStruct<FNetworkPhysicsActionPayload>& ActionInstance) override;
 
 	void SetUpdatedPrimitive(UPrimitiveComponent* InPrimitive);
 	void SetInputCommand(const FVehicleInputCmd& InInputCommand);

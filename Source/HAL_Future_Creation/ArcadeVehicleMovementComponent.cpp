@@ -302,6 +302,20 @@ void UArcadeVehicleMovementComponent::QueueRecoil(const FVector& DeltaVelocity)
 	}
 }
 
+void UArcadeVehicleMovementComponent::ApplyAction_Internal(
+	const TInstancedStruct<FNetworkPhysicsActionPayload>& ActionInstance)
+{
+	const FVehicleRecoilAction* Recoil = ActionInstance.GetPtr<FVehicleRecoilAction>();
+	if (!bShouldRunPhysics.Load() || !Recoil || Recoil->LaunchSequence == 0
+		|| Recoil->DeltaVelocity.ContainsNaN() || Recoil->DeltaVelocity.IsNearlyZero()
+		|| !UpdatedPrimitive) { return; }
+	FBodyInstance* Body = UpdatedPrimitive->GetBodyInstance();
+	if (Body && Body->GetBodyInstanceAsyncPhysicsTickHandle().IsValid())
+	{
+		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(), Recoil->DeltaVelocity, true);
+	}
+}
+
 bool UArcadeVehicleMovementComponent::CaptureNetState(FVehicleNetStateData& OutState) const
 {
 	const FBodyInstance* Body = UpdatedPrimitive ? UpdatedPrimitive->GetBodyInstance() : nullptr;

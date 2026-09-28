@@ -1,7 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BallControlComponent.h"
-#include "ArcadeVehicleMovementComponent.h"
 #include "VehicleConfigurationTypes.h"
 #include "VehicleConfigurationApplication.h"
 #include "UObject/UnrealType.h"
@@ -86,16 +85,14 @@ bool UBallControlComponent::GetControlTargetWorldTransform(FTransform& OutTransf
 	return true;
 }
 
-bool UBallControlComponent::LaunchHeldBall()
+bool UBallControlComponent::LaunchHeldBall(FVector& OutRecoilDeltaVelocity)
 {
+	OutRecoilDeltaVelocity = FVector::ZeroVector;
 	AActor* Owner = GetOwner();
-	UArcadeVehicleMovementComponent* Movement = Owner
-		? Owner->FindComponentByClass<UArcadeVehicleMovementComponent>() : nullptr;
 	if (!Owner
 		|| !Owner->HasAuthority()
 		|| !IsValid(HeldBall)
 		|| !VehicleBody
-		|| !Movement
 		|| HeldBall->GetBallState() != EBasicBallState::Controlled
 		|| HeldBall->GetControlledBy() != Owner)
 	{
@@ -116,6 +113,14 @@ bool UBallControlComponent::LaunchHeldBall()
 
 	HeldBall = nullptr;
 
+	OutRecoilDeltaVelocity = CalculateRecoilDeltaVelocity();
+	return true;
+}
+
+FVector UBallControlComponent::CalculateRecoilDeltaVelocity() const
+{
+	if (!VehicleBody || !VehicleBody->IsSimulatingPhysics()) { return FVector::ZeroVector; }
+	const FVector LaunchDirection = VehicleBody->GetForwardVector().GetSafeNormal();
 	const float CurrentForwardSpeed = FVector::DotProduct(
 		VehicleBody->GetPhysicsLinearVelocity(),
 		LaunchDirection);
@@ -129,9 +134,7 @@ bool UBallControlComponent::LaunchHeldBall()
 		MaximumRecoil);
 
 	// Velocity change keeps recoil consistent if later vehicles use different masses.
-	const FVector RecoilDeltaVelocity = -LaunchDirection * RecoilDeltaSpeed;
-	Movement->QueueRecoil(RecoilDeltaVelocity);
-	return true;
+	return -LaunchDirection * RecoilDeltaSpeed;
 }
 
 void UBallControlComponent::HandleVehicleCollision(const FVector& NormalImpulse, const FHitResult& Hit)

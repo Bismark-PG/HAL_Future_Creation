@@ -149,6 +149,9 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerRequestLaunch(const FVehicleLaunchRequest& Request);
 
+	UFUNCTION(Client, Reliable)
+	void ClientLaunchResult(uint32 LaunchSequence, bool bAccepted, uint32 BallStateSequence);
+
 	void OnSteeringInput(const FInputActionValue& Value);
 	void OnSteeringCompleted(const FInputActionValue& Value);
 	void OnThrottleStarted(const FInputActionValue& Value);
@@ -177,4 +180,5 @@ private:
 	uint32 LastAcceptedServerInputSequence = 0;
 	uint32 NextLaunchSequence = 0;
 	uint32 LastProcessedLaunchSequence = 0;
+	uint32 LastReceivedLaunchResultSequence = 0;
 };

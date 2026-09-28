@@ -38,7 +38,9 @@ public:
 		USceneComponent* InControlPoint,
 		UPhysicsConstraintComponent* InBallConstraint);
 
-	bool LaunchHeldBall();
+	bool LaunchHeldBall(FVector& OutRecoilDeltaVelocity);
+	/** The same tuned recoil calculation is used by the server and owning client's prediction. */
+	FVector CalculateRecoilDeltaVelocity() const;
 	void HandleVehicleCollision(const FVector& NormalImpulse, const FHitResult& Hit);
 
 	UFUNCTION(BlueprintPure, Category = "Ball Control|State")
