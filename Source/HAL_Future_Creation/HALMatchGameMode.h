@@ -24,6 +24,7 @@ public:
 
 	/** Called by the PlayerController; only the local Listen Server host may start. */
 	bool TryStartMatch(AHALPlayerController* Requestor);
+	int32 GetMinimumPlayersToStart() const { return MinimumPlayersToStart; }
 
 protected:
 	/** Maximum players, including the Listen Server host. */

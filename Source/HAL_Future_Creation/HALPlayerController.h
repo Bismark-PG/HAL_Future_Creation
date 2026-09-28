@@ -14,6 +14,7 @@ class HAL_FUTURE_CREATION_API AHALPlayerController : public APlayerController
 
 public:
 	AHALPlayerController();
+	virtual void BeginPlay() override;
 
 	/** Request the transition from WaitingForPlayers to Playing. The server checks host ownership. */
 	UFUNCTION(BlueprintCallable, Category = "Match")
@@ -26,6 +27,10 @@ public:
 	/** Print the local controller, Pawn and replicated phase for PIE/LAN ownership checks. */
 	UFUNCTION(Exec)
 	void HALMatchStatus();
+
+	/** Local network-physics diagnostic snapshot for four-machine testing. */
+	UFUNCTION(Exec)
+	void HALNetMetrics();
 
 private:
 	UFUNCTION(Server, Reliable)

@@ -58,6 +58,8 @@ public:
 	void ResetInputCommand();
 	void QueueRecoil(const FVector& DeltaVelocity);
 	int32 GetLastPhysicsFrame() const { return LastPhysicsFrame.Load(); }
+	/** Number of local resimulation runs observed by this physics component; diagnostic only. */
+	int32 GetResimulationRunCount() const { return ResimulationRunCount.Load(); }
 	bool CaptureNetState(FVehicleNetStateData& OutState) const;
 	bool RestoreNetState(const FVehicleNetStateData& State);
 
@@ -93,6 +95,8 @@ private:
 	TAtomic<bool> bOwnsLocalInput{false};
 	TAtomic<bool> bHistoryInputBlocked{true};
 	TAtomic<int32> LastPhysicsFrame{INDEX_NONE};
+	TAtomic<int32> ResimulationRunCount{0};
+	bool bWasResimulating = false; // Physics thread only.
 	mutable uint32 NextInputSequence = 0;
 	FVector PendingRecoilDeltaVelocity = FVector::ZeroVector;
 #if !UE_BUILD_SHIPPING

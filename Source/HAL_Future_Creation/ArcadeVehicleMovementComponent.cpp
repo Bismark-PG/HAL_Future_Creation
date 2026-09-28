@@ -103,6 +103,11 @@ void UArcadeVehicleMovementComponent::AsyncPhysicsTickComponent(float DeltaTime,
 			}
 		}
 	}
+	if (bIsResimming && !bWasResimulating && bUseNetworkPhysicsHistory.Load())
+	{
+		++ResimulationRunCount;
+	}
+	bWasResimulating = bIsResimming;
 	FVehicleNetInputData StepInput;
 	const bool bUseLocalPendingInput = VehicleNetworkPhysics::ShouldUseLocalPendingInput(
 		bUseNetworkPhysicsHistory.Load(), bOwnsLocalInput.Load(), bIsResimming);

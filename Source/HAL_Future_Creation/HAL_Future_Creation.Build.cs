@@ -8,9 +8,9 @@ public class HAL_Future_Creation : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "DeveloperSettings", "PhysicsCore" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "DeveloperSettings", "PhysicsCore", "UMG" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "Chaos" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Chaos", "Networking" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

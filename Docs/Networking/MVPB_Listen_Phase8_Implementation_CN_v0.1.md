@@ -1,6 +1,6 @@
 # MVP-B Listen Server 阶段 8：退出清理与故障测试（v0.1）
 
-日期：2026-09-28。状态：C++ 清理路径及自动化验证已完成；**真人双窗口退出、故障条件与两人连续运行尚待团队验收，阶段 8 未完成。** 依据：`Docs/MVP_B_Listen_Server_Plan_CN_v0.2.md` 第 14、17、19 节。阶段 7 的双人发射补测由团队报告暂未见问题，记录于 `MVPB_Listen_Phase7_Implementation_CN_v0.1.md`。
+日期：2026-09-28。状态：C++ 清理路径、自动化验证已完成；**团队随后报告阶段 8 实测暂未发现问题，据此关闭阶段 8 的双人功能验收。** 团队尚未回传各退出场景、网络扰动和连续运行的逐项日志或量化记录，因此不把第 17 节的每一项数值门槛声明为已有证据证明；四台真实有线电脑验收仍属于阶段 9。依据：`Docs/MVP_B_Listen_Server_Plan_CN_v0.2.md` 第 14、17、19 节。阶段 7 的双人发射补测由团队报告暂未见问题，记录于 `MVPB_Listen_Phase7_Implementation_CN_v0.1.md`。
 
 ## 施工边界与结果
 
@@ -16,6 +16,11 @@
 - `HAL.FutureCreation` 自动化 **14/14** 通过，报告：`Saved/Automation/MVPB_Phase8_Initial/index.json`。新增 `HAL.FutureCreation.Ball.VehicleExitCleanup` 验证持球离场转 `Free`、无离场 Holder／锁指针、重复清理幂等，以及发射后离场保持 `Launched` 和稳定 PlayerId。
 - 无输入双进程连接／客户端退出烟测日志：`Saved/Logs/MVPB_Phase8_DisconnectHost.log`、`Saved/Logs/MVPB_Phase8_DisconnectClient.log`。本项只覆盖连接和退出路径，不会自动形成持球、发射或命中。
 
+## 团队实测反馈与证据边界
+
+- 团队报告阶段 8 测试暂未发现问题，作为本阶段双人功能验收反馈记录；本次反馈未附测试矩阵、两端日志、视频或连续运行时长。
+- 以下细项不能仅凭这条反馈分别声明量化达标：`100 ms RTT` 的球状态收敛时间、`150 ms RTT + 3% loss + 50 ms jitter` 的压力表现、重复包／乱序注入覆盖，以及两人至少 `10 分钟` 连续运行。后续阶段 9 和 MVP-B 第一里程碑总验收应补齐可核对的结果。
+
 ## 团队在 Unreal Editor 的验收步骤
 
 1. 保存需要保留的工作，关闭旧 Editor 与游戏进程后，以新编译的 C++ 重开项目。加载 `/Game/Maps/MVPB_NetTest`，沿用双进程 Listen Server 和已有网络 DA；关闭 **Use Less CPU when in Background**。主机用 `HALMatchStatus` 确认两名玩家，再执行 `HALStartMatch`。两端执行 `hal.BallNetLog 1`，可同时用 `hal.VehicleNetLog 1` 查看发射请求，结束后均设回 `0`。
@@ -24,4 +29,4 @@
 4. **主机退出**：另开一局，主机在 `Playing` 时关闭主机窗口；客户端应与该 Listen Server 断开，本局结束。本阶段没有主机迁移或断线重连，客户端的连接错误 UI 属于阶段 9。
 5. **故障与长时测试**：低延迟通过后，沿用既有网络模拟配置，依次覆盖约 `50 ms RTT`、`100 ms RTT + 1% loss + 20 ms jitter`，并在 `150 ms RTT + 3% loss + 50 ms jitter` 下做压力观察。重复争球、发射、快速连按、硬碰撞、持球退出、发射后退出；检查无永久球权分叉、重复发射／后坐／伤害，扰动结束后 State、Holder、Launcher 与服务器收敛。两人至少连续运行 `10 分钟`，记录是否还能正常驾驶、争球、发射及两端日志。若异常，请按球 `StateSequence`、发射 `LaunchSequence`、命中 `EventSeq` 对齐两端日志，不先调整物理 DA 掩盖故障。
 
-上述真人可见行为和扰动指标未由无输入烟测或自动化单元测试证明；团队结果返回前不能把阶段 8 标记为验收通过。
+上述步骤保留为复测清单。真人可见行为和扰动指标不能由无输入烟测或自动化单元测试单独证明；阶段 8 已收到团队“暂未发现问题”的功能反馈，具体工况及量化证据按上一节继续留档。
