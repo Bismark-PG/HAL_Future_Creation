@@ -1,6 +1,6 @@
 # MVP-B Listen Server 阶段 9：最小 UI 与四机验收（v0.1）
 
-日期：2026-09-28。状态：C++ 最小入口和诊断已施工；**Unreal Editor 资产接线、打包启动、双机及四台有线电脑的真人测试尚待团队完成，阶段 9 未验收。** 依据：`Docs/MVP_B_Listen_Server_Plan_CN_v0.2.md` 第 5、15、17、19、20 节。阶段 8 团队报告暂未发现问题，见 `MVPB_Listen_Phase8_Implementation_CN_v0.1.md`。
+日期：2026-09-28。状态：C++ 最小入口和诊断已施工；2026-09-29 文件检查已看到入口地图、两个 Widget 及 GameInstance 蓝图资产，项目配置已指向入口地图，但**无法仅凭文件存在确认蓝图内部接线或实际运行；双机及四台有线电脑的真人测试尚待团队完成，阶段 9 未验收。** 依据：`Docs/MVP_B_Listen_Server_Plan_CN_v0.2.md` 第 5、15、17、19、20 节。阶段 8 团队报告暂未发现问题，见 `MVPB_Listen_Phase8_Implementation_CN_v0.1.md`。
 
 ## 已施工的窄职责
 
@@ -8,7 +8,7 @@
 - `AHALNetworkMenuGameMode` 用于独立入口地图，不生成车辆。`UHALNetworkMenuWidget` 只提供按钮可调用的 Host／Join 和只读状态文案；`UHALMatchLobbyWidget` 只读 GameState 阶段及当前 PlayerState 数量，并复用 `AHALPlayerController::RequestStartMatch()`。服务器原有 `MinimumPlayersToStart=2`、`MaximumPlayers=4`、开局后拒绝加入规则不变。四机正式测试由主机等四人到齐再开始。
 - 菜单与等待界面的创建由 GameInstance 和本地 PlayerController 执行。等待阶段鼠标可操作 Start；进入 `Playing` 后恢复游戏输入与隐藏鼠标。UMG 蓝图只排版、绑定只读显示和按钮调用，不拥有阶段状态或网络规则。
 - `HALNetMetrics` 可在各机本地控制台输出本车物理帧和 **ResimRuns（重模拟连续运行次数）**。这只是车辆回退诊断，不等于所有可见位置修正次数，也不记录远端 PI 平滑次数。现有 `hal.VehicleNetLog`、`hal.BallNetLog` 保留为离散事件诊断。
-- `Config/DefaultEngine.ini` 先启用 C++ GameInstance。团队创建下面的派生蓝图后，还须把 Game Instance Class 改为该蓝图以加载两个 Widget 类。当前 `GameDefaultMap` 仍是引擎 OpenWorld 模板，须在入口地图创建后由团队手动改为新地图；`EditorStartupMap` 保持 `MVPB_NetTest`，方便现有回归。
+- `Config/DefaultEngine.ini` 当前已指向 `BP_MVPB_NetworkGameInstance` 与 `MVPB_NetEntry` 作为 GameDefaultMap；`EditorStartupMap` 保持 `MVPB_NetTest`，方便现有回归。2026-09-29 文件检查确认配置和资产文件存在，尚未验证资产内部引用、菜单显示或连接流程。
 
 ## 团队在 Unreal Editor 中接线（不得直接手改 `.uasset`／`.umap`）
 
@@ -19,6 +19,18 @@
 5. 新建 **Blueprint Class → All Classes → HALNetworkGameInstance** 的子蓝图 **`BP_MVPB_NetworkGameInstance`**。在 Class Defaults 设置 `Menu Widget Class = WBP_MVPB_NetMenu`、`Match Lobby Widget Class = WBP_MVPB_MatchLobby`；核对 `Entry Map Path=/Game/Maps/MVPB_NetEntry`、`Match Map Path=/Game/Maps/MVPB_NetTest`。本阶段端口固定为 `7777`，无需填端口字段。在 **Project Settings → Maps & Modes → Game Instance Class** 选择该蓝图并保存项目设置。
 6. 在 **Project Settings → Maps & Modes → Default Maps → Game Default Map** 选择 `MVPB_NetEntry`，保持 **Editor Startup Map** 当前 `MVPB_NetTest`。在 **Project Settings → Packaging → List of maps to include in a packaged build** 至少加入 `MVPB_NetEntry`、`MVPB_NetTest`；如打包版也要做单机基线回归，再加入 `Test`。现有 `MVPB_NetTest` 的 GameMode Override、四个 `HALPlayerStart`、默认车辆蓝图和车辆／球 DA 引用保持原样。保存 Widget、GameInstance 蓝图、地图和项目配置。
 7. 先用独立进程运行，不用单进程 PIE 来验收入口流。主机从入口点 Host，客户端从入口输入主机的局域网 IPv4 点 Join。两端等待面板应显示同一阶段和玩家数；2 人即可启用主机 Start，客户端始终不能 Start。主机点 Start 后两端面板消失，驾驶输入恢复；新客户端应被服务器拒绝并能在入口看到可读原因。错误地址、主机未启动和主机退出也分别测试错误提示。若 Error 文案未能回到入口，先记录两端日志与进入的地图，不通过蓝图复制第二套连接流程修补。
+
+## 本机双进程与两机直连操作
+
+- **本机快速玩法回归**：打开 `MVPB_NetTest`，Play 设置 `Number of Players=2`、`Net Mode=Play As Listen Server`、`Run Under One Process=Off`，双窗口分别运行。它会自动创建主机和客户端，直接进入匹配地图；可测人数、Start、驾驶和球，但**不会经过入口地图的 Host／Join 按钮**。主机与客户端可用 `HALMatchStatus` 核对 Authority、Pawn 和 Phase；主机开始后两端应为 `Playing`。
+- **本机完整 UI 路径**：先关旧 PIE 和游戏窗口，在两个独立 PowerShell 窗口分别执行下列相同命令。两个窗口都应出现 `MVPB_NetEntry` 菜单；第一窗口点 Host，第二窗口在 Join 栏输入 `127.0.0.1`（不要把 `:7777` 填入只接受 IPv4 的输入框）并点 Join。两人显示 Waiting 和人数 2 后由主机点 Start。若入口 UI 尚不能使用，先查本文件前述资产接线，不能用控制台命令代替 Host／Join UI 的验收。可另用第三个进程在开局后尝试加入，检查拒绝提示。
+
+```powershell
+& 'D:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\UnrealProjects\HAL_Future_Creation\HAL_Future_Creation.uproject' '/Game/Maps/MVPB_NetEntry' -game -log -windowed -ResX=960 -ResY=540
+```
+
+- **两台电脑网线直连**：优先把同一 Development 打包目录复制到两台电脑，分别启动游戏；也可各自用相同 UE 5.8 补丁和相同项目内容运行。若直连没有 DHCP，主机有线网卡设 `192.168.50.1/24`，客户端有线网卡设 `192.168.50.2/24`，网关和 DNS 留空。确认主机使用有线网卡的 IPv4、Windows 网络设为专用网络且防火墙允许该游戏使用 UDP `7777`。主机点 Host，客户端 Join 输入 `192.168.50.1`；**客户端的 `127.0.0.1` 只指向客户端自己**。先观察 Waiting 人数从 1 到 2，再由主机点 Start。两边依次测试驾驶、争球、发射、碰撞、客户端退出、主机退出及错误提示，并保存双方日志。测试时先不注入延迟或丢包；这次两机结果不替代最终四机验收。
+- 当前新建的 `Content/Maps/MVPB_NetEntry.umap`、`Content/UI/Network/*.uasset` 和 `Content/Blueprints/Network/*.uasset` 在本机 Git 状态中仍显示为**未跟踪**；项目配置也有本地改动。若第二台电脑通过 GitHub 同步，先在第一台确认这些资产和配置已加入提交并推送，再在第二台拉取同一提交。仅复制 C++ 或拉取旧提交不会得到可工作的菜单。
 
 ## 四机验收顺序和记录
 
