@@ -1,0 +1,135 @@
+// プロジェクト設定の Description ページで著作権表記を設定してください。
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "SpringPunchGimmick.generated.h"
+
+class USceneComponent;
+class UStaticMeshComponent;
+class UBoxComponent;
+class UArrowComponent;
+// パンチギミックの動作段階。
+UENUM(BlueprintType)
+enum class ESpringPunchState : uint8
+{
+	Idle,        // 初回の動作開始を待つ。
+	Windup,      // 攻撃前の予告。
+	Extending,   // 拳を前方へ伸ばす。
+	Retracting,  // 拳を元の位置へ戻す。
+	Cooldown     // 次の攻撃まで待つ。
+};
+
+UCLASS()
+class HAL_FUTURE_CREATION_API ASpringPunchGimmick : public AActor
+{
+	GENERATED_BODY()
+	
+public:	
+	// このアクターのプロパティに初期値を設定する。
+	ASpringPunchGimmick();
+
+protected:
+	// ゲーム開始時、またはスポーン後にプレイを開始するときに呼び出される。
+	virtual void BeginPlay() override;
+	// 終了時にタイマーと表示更新を停止する。
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	// 現在の動作段階。エディタからは変更できない。
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Spring Punch|State")
+	ESpringPunchState CurrentState = ESpringPunchState::Idle;
+
+	// ゲーム開始から最初の予告までの待機時間。
+	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Timing",
+		meta = (ClampMin = "0.0", Units = "s"))
+	float InitialDelay = 1.0f;
+
+	// 拳を伸ばす前の予告時間。
+	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Timing",
+		meta = (ClampMin = "0.01", Units = "s"))
+	float WindupDuration = 0.8f;
+
+	// 拳を最大距離まで伸ばす時間。
+	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Timing",
+		meta = (ClampMin = "0.01", Units = "s"))
+	float ExtendDuration = 0.25f;
+
+	// 拳を元の位置へ戻す時間。
+	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Timing",
+		meta = (ClampMin = "0.01", Units = "s"))
+	float RetractDuration = 0.7f;
+
+	// 拳が戻ってから次の予告までの待機時間。
+	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Timing",
+		meta = (ClampMin = "0.01", Units = "s"))
+	float CooldownDuration = 2.0f;
+
+	// 初期位置からローカル X 軸の正方向へ伸ばす距離。
+	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Movement",
+		meta = (ClampMin = "0.0", Units = "cm"))
+	float PunchDistance = 400.0f;
+
+	// 攻撃範囲とヒットした対象をデバッグ表示する。
+	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Debug")
+	bool bDebugPunchHits = false;
+
+	// ギミック全体の位置と向きの基準。
+	UPROPERTY(VisibleAnywhere, Category = "Spring Punch|Components")
+	TObjectPtr<USceneComponent> SceneRoot;
+
+	// 動かない土台のモデル。
+	UPROPERTY(VisibleAnywhere, Category = "Spring Punch|Components")
+	TObjectPtr<UStaticMeshComponent> BaseMesh;
+
+	// このノードを動かすと、拳と攻撃範囲が一緒に移動する。
+	UPROPERTY(VisibleAnywhere, Category = "Spring Punch|Components")
+	TObjectPtr<USceneComponent> PunchPivot;
+
+	// 拳の見た目を表すモデル。
+	UPROPERTY(VisibleAnywhere, Category = "Spring Punch|Components")
+	TObjectPtr<UStaticMeshComponent> FistMesh;
+
+	// 拳の攻撃範囲を表すボックス。
+	UPROPERTY(VisibleAnywhere, Category = "Spring Punch|Components")
+	TObjectPtr<UBoxComponent> HitBox;
+
+	// エディタ上でパンチの方向を示す。
+	UPROPERTY(VisibleAnywhere, Category = "Spring Punch|Components")
+	TObjectPtr<UArrowComponent> DirectionArrow;
+
+	
+
+public:	
+	// Tick が有効な間、毎フレーム呼び出される。
+	virtual void Tick(float DeltaTime) override;
+
+private:
+	// 現在のパンチで処理済みのアクター。同じ対象への多重ヒットを防ぐ。
+	TSet<TWeakObjectPtr<AActor>> HitActorsThisPunch;
+
+	// 前回の攻撃判定位置。ワールド座標で保存する。
+	FVector PreviousHitBoxWorldLocation = FVector::ZeroVector;
+
+	// サーバー側で次の動作段階へ切り替える。
+	void EnterState(ESpringPunchState NewState);
+
+	// 現在の動作段階を終了し、次の段階へ進む。
+	void AdvanceState();
+
+	// 現在の動作段階と経過時間から拳の表示位置を更新する。
+	void UpdatePunchVisual();
+
+	// 前回位置から現在位置まで攻撃ボックスを掃引し、対象を検出する。
+	void ScanPunchHits();
+
+	// 拳を戻す位置。BeginPlay で初期の相対位置を保存する。
+	FVector RetractedRelativeLocation = FVector::ZeroVector;
+
+	// 現在の動作段階が始まったゲーム内時刻。単位は秒。
+	double StateStartTime = 0.0;
+
+	// 状態切り替え用タイマーの管理ハンドル。
+	FTimerHandle StateTimerHandle;
+
+};
