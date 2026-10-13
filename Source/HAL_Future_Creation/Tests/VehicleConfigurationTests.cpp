@@ -9,6 +9,7 @@
 #include "../ArcadeVehicleMovementComponent.h"
 #include "../BallControlComponent.h"
 #include "../VehicleHealthComponent.h"
+#include "../HALPlayerState.h"
 #include "../CombatResolver.h"
 #include "Components/BoxComponent.h"
 #include "Components/SphereComponent.h"
@@ -216,6 +217,7 @@ bool FConfigurationPlayerBallTest::RunTest(const FString& Parameters)
 	Definition->BallControl.Launch.LaunchSpeedIncrement = 4567;
 	Definition->Health.Health.MaxHP = 180;
 	ATestVehiclePawn* Player = Fixture.World->SpawnActor<ATestVehiclePawn>();
+	Player->SetPlayerState(Fixture.World->SpawnActor<AHALPlayerState>());
 	SetDefinition(Player, Definition);
 	Player->PreInitializeComponents();
 	Player->DispatchBeginPlay();

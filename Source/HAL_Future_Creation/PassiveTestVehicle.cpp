@@ -4,6 +4,8 @@
 #include "VehicleDefinition.h"
 #include "VehicleConfigurationApplication.h"
 #include "VehicleKnockbackSettings.h"
+#include "HALAbilitySystemComponent.h"
+#include "HALHealthAttributeSet.h"
 
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -32,6 +34,21 @@ APassiveTestVehicle::APassiveTestVehicle()
 	VisualMesh->SetSimulatePhysics(false);
 
 	Health = CreateDefaultSubobject<UVehicleHealthComponent>(TEXT("Health"));
+	AbilitySystem = CreateDefaultSubobject<UHALAbilitySystemComponent>(TEXT("AbilitySystem"));
+	AbilitySystem->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
+	HealthAttributes = CreateDefaultSubobject<UHALHealthAttributeSet>(TEXT("HealthAttributes"));
+	AbilitySystem->AddAttributeSetSubobject(HealthAttributes.Get());
+}
+
+UAbilitySystemComponent* APassiveTestVehicle::GetAbilitySystemComponent() const
+{
+	return AbilitySystem;
+}
+
+void APassiveTestVehicle::BeginPlay()
+{
+	AbilitySystem->InitAbilityActorInfo(this, this);
+	Super::BeginPlay();
 }
 
 bool APassiveTestVehicle::ApplyDefinition(bool bPreview)

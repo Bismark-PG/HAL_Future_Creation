@@ -29,8 +29,9 @@
 & 'D:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\UnrealProjects\HAL_Future_Creation\HAL_Future_Creation.uproject' '/Game/Maps/MVPB_NetEntry' -game -log -windowed -ResX=960 -ResY=540
 ```
 
-- **两台电脑网线直连**：优先把同一 Development 打包目录复制到两台电脑，分别启动游戏；也可各自用相同 UE 5.8 补丁和相同项目内容运行。若直连没有 DHCP，主机有线网卡设 `192.168.50.1/24`，客户端有线网卡设 `192.168.50.2/24`，网关和 DNS 留空。确认主机使用有线网卡的 IPv4、Windows 网络设为专用网络且防火墙允许该游戏使用 UDP `7777`。主机点 Host，客户端 Join 输入 `192.168.50.1`；**客户端的 `127.0.0.1` 只指向客户端自己**。先观察 Waiting 人数从 1 到 2，再由主机点 Start。两边依次测试驾驶、争球、发射、碰撞、客户端退出、主机退出及错误提示，并保存双方日志。测试时先不注入延迟或丢包；这次两机结果不替代最终四机验收。
-- 当前新建的 `Content/Maps/MVPB_NetEntry.umap`、`Content/UI/Network/*.uasset` 和 `Content/Blueprints/Network/*.uasset` 在本机 Git 状态中仍显示为**未跟踪**；项目配置也有本地改动。若第二台电脑通过 GitHub 同步，先在第一台确认这些资产和配置已加入提交并推送，再在第二台拉取同一提交。仅复制 C++ 或拉取旧提交不会得到可工作的菜单。
+- **两台电脑不打包的 Editor 测试**：两机安装相同 UE 5.8 补丁，取得相同的代码、已保存的入口／UI 蓝图资产和项目配置，并各自编译最新 C++。在两台 Editor 中都明确打开 `MVPB_NetEntry`（`EditorStartupMap` 仍是 `MVPB_NetTest`）。Play 设置 `Number of Players=1`、`Net Mode=Play Standalone`，选择 **Standalone Game**；每台电脑各运行一个独立游戏窗口。主机窗口点 Host，客户端窗口输入主机的有线网卡 IPv4 并点 Join。不要在两台电脑各设双人 PIE；双人 PIE 是各机自己的本地模拟，不是本次跨机 Host／Join 测试。若 Editor 的 Standalone Game 启动参数或端口不明确，可在两机各用上述 `UnrealEditor.exe ... -game -log` 命令启动，项目路径改为各机本地路径；这仍无需打包，并可从主机日志核对 Listen 端口。
+- **两台电脑网线直连**：打包不是本阶段双机测试的前提；最终四机展出验收仍应使用同一 Development 打包构建。若直连没有 DHCP，主机有线网卡设 `192.168.50.1/24`，客户端有线网卡设 `192.168.50.2/24`，网关和 DNS 留空。确认主机使用有线网卡的 IPv4、Windows 网络设为专用网络且防火墙允许实际运行的程序使用 UDP `7777`。主机点 Host，客户端 Join 输入 `192.168.50.1`（不加 `:7777`）；**客户端的 `127.0.0.1` 只指向客户端自己**。先观察 Waiting 人数从 1 到 2，再由主机点 Start。两边依次测试驾驶、争球、发射、碰撞、客户端退出、主机退出及错误提示，并保存双方日志。测试时先不注入延迟或丢包；这次两机结果不替代最终四机验收。
+- 2026-09-29 文件检查确认 `MVPB_NetEntry`、两个 UI 蓝图、Network GameInstance 蓝图及 `DefaultEngine.ini` 已纳入当前 Git 跟踪，且当前工作区中这些文件无未提交改动。第二台电脑通过 GitHub 同步时，两机仍须核对相同提交、资产和项目配置；仅同步 C++ 不会得到可工作的菜单。
 
 ## 四机验收顺序和记录
 
@@ -40,8 +41,14 @@
 4. 每台机记录运行时 FPS／Game／Draw／GPU、物理帧稳定性和 `stat net` 的带宽／包情况；可用 `stat unit`、`stat physics` 和 Unreal Insights 做短时采样。每分钟在各机执行 `HALNetMetrics` 并保留日志，计算 ResimRuns 增量；同时人工记录可见大幅修正次数和发生场景，两种数据不可混用。采集主机与至少一台客户端日志、视频，记录实际 RTT、loss、jitter。低延迟有线基准通过后，再按 v0.2 第 17 节复测 `100 ms RTT + 1% loss + 20 ms jitter` 及 `150 ms RTT + 3% loss + 50 ms jitter` 压力条件；单向注入延迟不能当 RTT。
 5. 如性能、流量或同步不达标，先依时间戳、车辆 PhysicsFrame／ResimRuns、球 StateSequence、发射 LaunchSequence、命中 EventSeq 定位原因，再决定是否采样调整复制频率或设置。不得为隐藏问题直接覆盖现有车辆和球调参；不在阶段 9 扩展 Iris、Replication Graph 或 GAS。
 
+## 双人命中观察（2026-09-29）
+
+- 团队在本机双进程 Host／Join 测试中曾观察到：主机发射的球命中客户端车辆时，两边窗口所见击退都很轻；反向命中主机车辆则正常击飞。随后再次测试，击退表现恢复正常。当前属于**间歇性、尚未定位**的观察，不将再次正常视为修复，也不据此修改车辆／球／Combat Data Asset。
+- 首次异常未保留开启命中诊断时的两端日志，无法反推当时服务器档位。随后一次正常复测的主机日志为 `Saved/Logs/HAL_Future_Creation_2.log`（`HAL_Future_Creation.log` 是客户端）；主机设置 `hal.BallNetLog=1` 后记录了两次成功命中：主机击中客户端 `EventSeq=1, damage=25, impact=2304.8, tier=Medium`，客户端击中主机 `EventSeq=2, damage=25, impact=1831.8, tier=Medium`。这证明**该次正常复测**两方向都由服务器结算为中档，不证明首次弱击退的原因。下次异常复现时在主机执行 `hal.BallNetLog 1`，记录两种攻击方向的 `EventSeq`、`impact`、`tier`、目标、两边画面与 HP 变化，结束后恢复 `hal.BallNetLog 0`。若服务器记录中／重档却仍只轻微位移，再针对受击物理帧与重模拟加诊断；若记录轻档，先检查碰撞速度和冲量取样。
+
 ## 验收状态与限制
 
+- 2026-09-30 双机复测发现阶段性规则限制：客户端车辆被第 4 次球命中后 HP 从 25 降为 0，此后仍可驾驶，但 `FCombatResolver` 因 `ApplyResolvedDamage` 对零 HP 返回 false 而跳过后续球命中的额外击退与命中状态消费。用户决定将此问题留到第二里程碑 GAS／冲击力重构／死亡与淘汰规则引入时一并处理；当前不改代码或 DA。四机测试记录中应把“0 HP 后没有 authored 击退”作为已知限制，不能误记为角度或网络复制故障。
 - `HAL_Future_CreationEditor Win64 Development` 和 `HAL_Future_Creation Win64 Development` 均已编译通过；最终代码的 `HAL.FutureCreation` 现有自动化测试 **14/14** 通过，报告位于 `Saved/Automation/MVPB_Phase9_Final/index.json`。这些自动化测试不创建 UMG 蓝图、入口地图，也不验证真人四机操作。Editor Widget、入口地图、GameInstance 蓝图及打包配置需要团队手动接线并验证；代码代理没有直接编辑这些资产。
 - 在团队提供双机入口 UI 与四台真实有线电脑测试结果前，阶段 9 和 Listen Server 第一里程碑均不能标记完成。
 - 当前等待阶段没有冻结车辆／球；UI 的“等待”仅表达加入闸门和开始权限，不应误当成正式比赛准备状态。没有比赛结束、重连、主机迁移或完整结算。

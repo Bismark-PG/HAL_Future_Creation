@@ -129,7 +129,7 @@ FVehicleHitResolution FCombatResolver::ResolveVehicleHit(
 	if (!Settings || !Settings->GetRuntimeRules(Rules)) { return Resolution; }
 
 	UVehicleHealthComponent* Health = Hit.TargetActor->FindComponentByClass<UVehicleHealthComponent>();
-	if (!Health || !Health->ApplyResolvedDamage(Damage))
+	if (!Health || !Health->ApplyResolvedDamage(Hit, Damage))
 	{
 		return Resolution;
 	}

@@ -1,60 +1,137 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "VehicleHealthComponent.h"
+
+#include "AbilitySystemGlobals.h"
+#include "HALAbilitySystemComponent.h"
+#include "HALApplyDamageEffect.h"
+#include "HALGameplayTags.h"
+#include "HALHealthAttributeSet.h"
 #include "VehicleConfigurationTypes.h"
 #include "VehicleConfigurationApplication.h"
+#include "VehicleHitContext.h"
 #include "UObject/UnrealType.h"
-
-#include "Net/UnrealNetwork.h"
 
 UVehicleHealthComponent::UVehicleHealthComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-	SetIsReplicatedByDefault(true);
 }
 
 void UVehicleHealthComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	BindToAbilitySystem(Cast<UHALAbilitySystemComponent>(
+		UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetOwner())));
+}
 
-	if (GetOwner() && GetOwner()->HasAuthority())
+void UVehicleHealthComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	UnbindFromAbilitySystem();
+	Super::EndPlay(EndPlayReason);
+}
+
+bool UVehicleHealthComponent::BindToAbilitySystem(UHALAbilitySystemComponent* InAbilitySystem)
+{
+	if (AbilitySystem.Get() != InAbilitySystem)
 	{
-		CurrentHP = FMath::Max(1.0f, MaxHP);
-		GetOwner()->ForceNetUpdate();
+		UnbindFromAbilitySystem();
+		AbilitySystem = InAbilitySystem;
 	}
-	OnHealthChanged.Broadcast(CurrentHP, MaxHP);
-}
-
-void UVehicleHealthComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UVehicleHealthComponent, CurrentHP);
-}
-
-bool UVehicleHealthComponent::ApplyResolvedDamage(const float Damage)
-{
-	if (!GetOwner() || !GetOwner()->HasAuthority() || !FMath::IsFinite(Damage)
-		|| Damage <= 0.0f || CurrentHP <= 0.0f)
+	if (!InAbilitySystem || InAbilitySystem->GetAvatarActor() != GetOwner()
+		|| !InAbilitySystem->GetSet<UHALHealthAttributeSet>() || !VehicleConfiguration::IsReadyForGameplay(GetOwner()))
 	{
 		return false;
 	}
-
-	const float PreviousHP = CurrentHP;
-	CurrentHP = FMath::Clamp(CurrentHP - Damage, 0.0f, FMath::Max(1.0f, MaxHP));
-	GetOwner()->ForceNetUpdate();
-	OnHealthChanged.Broadcast(CurrentHP, MaxHP);
-
-	if (bLogHealthChanges)
+	if (!HasBegunPlay()) { return true; }
+	if (GetOwner()->HasAuthority() && !InAbilitySystem->InitializeHealth(MaxHP)) { return false; }
+	if (!CurrentHPChangedHandle.IsValid())
 	{
-		UE_LOG(LogTemp, Log, TEXT("Vehicle %s HP: %.1f -> %.1f"),
-			*GetNameSafe(GetOwner()), PreviousHP, CurrentHP);
+		CurrentHPChangedHandle = InAbilitySystem->GetGameplayAttributeValueChangeDelegate(
+			UHALHealthAttributeSet::GetCurrentHPAttribute()).AddUObject(this, &ThisClass::HandleAttributeChanged);
+		MaxHPChangedHandle = InAbilitySystem->GetGameplayAttributeValueChangeDelegate(
+			UHALHealthAttributeSet::GetMaxHPAttribute()).AddUObject(this, &ThisClass::HandleAttributeChanged);
+		HealthInitializedHandle = InAbilitySystem->OnHealthInitialized.AddUObject(this, &ThisClass::PublishHealth);
 	}
+	PublishHealth();
 	return true;
 }
 
-void UVehicleHealthComponent::OnRep_CurrentHP()
+void UVehicleHealthComponent::UnbindFromAbilitySystem()
 {
-	OnHealthChanged.Broadcast(CurrentHP, MaxHP);
+	if (UHALAbilitySystemComponent* ASC = AbilitySystem.Get())
+	{
+		ASC->GetGameplayAttributeValueChangeDelegate(UHALHealthAttributeSet::GetCurrentHPAttribute()).Remove(CurrentHPChangedHandle);
+		ASC->GetGameplayAttributeValueChangeDelegate(UHALHealthAttributeSet::GetMaxHPAttribute()).Remove(MaxHPChangedHandle);
+		ASC->OnHealthInitialized.Remove(HealthInitializedHandle);
+	}
+	CurrentHPChangedHandle.Reset();
+	MaxHPChangedHandle.Reset();
+	HealthInitializedHandle.Reset();
+	AbilitySystem.Reset();
+}
+
+bool UVehicleHealthComponent::IsHealthReady() const
+{
+	const UHALAbilitySystemComponent* ASC = AbilitySystem.Get();
+	const UHALHealthAttributeSet* Attributes = ASC ? ASC->GetSet<UHALHealthAttributeSet>() : nullptr;
+	return ASC && ASC->IsHealthInitialized() && ASC->GetAvatarActor() == GetOwner()
+		&& Attributes && Attributes->GetMaxHP() >= 1.0f;
+}
+
+float UVehicleHealthComponent::GetCurrentHP() const
+{
+	if (IsHealthReady())
+	{
+		const UHALHealthAttributeSet* Attributes = AbilitySystem->GetSet<UHALHealthAttributeSet>();
+		return FMath::Clamp(Attributes->GetCurrentHP(), 0.0f, Attributes->GetMaxHP());
+	}
+	// Editor/pre-game preview only; no independent runtime health or fallback replication.
+	return HasBegunPlay() ? 0.0f : MaxHP;
+}
+
+float UVehicleHealthComponent::GetMaxHP() const
+{
+	return IsHealthReady() ? AbilitySystem->GetSet<UHALHealthAttributeSet>()->GetMaxHP() : MaxHP;
+}
+
+bool UVehicleHealthComponent::ApplyResolvedDamage(const FVehicleHitContext& Hit, float Damage)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !IsHealthReady() || !FMath::IsFinite(Damage)
+		|| Damage <= 0.0f || GetCurrentHP() <= 0.0f)
+	{
+		return false;
+	}
+	UHALAbilitySystemComponent* ASC = AbilitySystem.Get();
+	FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
+	Context.AddInstigator(IsValid(Hit.InstigatorActor) ? Hit.InstigatorActor : Hit.SourceActor, Hit.SourceActor);
+	Context.AddSourceObject(Hit.SourceActor);
+	FGameplayEffectSpecHandle Spec = ASC->MakeOutgoingSpec(UHALApplyDamageEffect::StaticClass(), 1.0f, Context);
+	if (!Spec.IsValid()) { return false; }
+	Spec.Data->SetSetByCallerMagnitude(HALGameplayTags::Data_Combat_Damage, -Damage);
+	const float PreviousHP = GetCurrentHP();
+	ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+	ASC->GetOwner()->ForceNetUpdate();
+	// Preserve the old eligibility contract until 10-C splits damage from impact acceptance.
+	return GetCurrentHP() < PreviousHP;
+}
+
+void UVehicleHealthComponent::HandleAttributeChanged(const FOnAttributeChangeData& Data)
+{
+	if (bLogHealthChanges && Data.Attribute == UHALHealthAttributeSet::GetCurrentHPAttribute() && IsHealthReady())
+	{
+		UE_LOG(LogTemp, Log, TEXT("Vehicle %s GAS HP: %.1f -> %.1f"),
+			*GetNameSafe(GetOwner()), Data.OldValue, GetCurrentHP());
+	}
+	PublishHealth();
+}
+
+void UVehicleHealthComponent::PublishHealth()
+{
+	if (IsHealthReady())
+	{
+		OnHealthChanged.Broadcast(GetCurrentHP(), GetMaxHP());
+		AbilitySystem->LogHealthStatus();
+	}
 }
 
 bool UVehicleHealthComponent::ApplyConfiguration(const FVehicleHealthConfig& Config)

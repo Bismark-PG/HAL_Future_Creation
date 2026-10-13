@@ -10,6 +10,9 @@
 #include "HALMatchGameState.h"
 #include "HALNetworkGameInstance.h"
 #include "TestVehiclePawn.h"
+#include "EngineUtils.h"
+#include "HALAbilitySystemComponent.h"
+#include "VehicleHealthComponent.h"
 
 AHALPlayerController::AHALPlayerController()
 {
@@ -93,5 +96,24 @@ void AHALPlayerController::ServerRequestStartMatch_Implementation()
 	if (AHALMatchGameMode* MatchMode = GetWorld()->GetAuthGameMode<AHALMatchGameMode>())
 	{
 		MatchMode->TryStartMatch(this);
+	}
+}
+
+void AHALPlayerController::HALGASStatus()
+{
+	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+	{
+		const UVehicleHealthComponent* Health = It->FindComponentByClass<UVehicleHealthComponent>();
+		if (!Health) { continue; }
+		const UHALAbilitySystemComponent* ASC = Health->GetBoundAbilitySystem();
+		const FString Status = FString::Printf(
+			TEXT("HAL GAS: Vehicle=%s Owner=%s Avatar=%s Authority=%d Ready=%d HP=%.1f MaxHP=%.1f Mode=%s"),
+			*GetNameSafe(*It), *GetNameSafe(ASC ? ASC->GetOwnerActor() : nullptr),
+			*GetNameSafe(ASC ? ASC->GetAvatarActor() : nullptr), It->HasAuthority() ? 1 : 0,
+			Health->IsHealthReady() ? 1 : 0, Health->GetCurrentHP(), Health->GetMaxHP(),
+			!ASC ? TEXT("Unavailable") : ASC->ReplicationMode == EGameplayEffectReplicationMode::Mixed
+				? TEXT("Mixed") : ASC->ReplicationMode == EGameplayEffectReplicationMode::Minimal ? TEXT("Minimal") : TEXT("Full"));
+		UE_LOG(LogTemp, Display, TEXT("%s"), *Status);
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 8.0f, FColor::Green, Status); }
 	}
 }

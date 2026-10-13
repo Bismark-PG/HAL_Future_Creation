@@ -32,6 +32,10 @@ public:
 	UFUNCTION(Exec)
 	void HALNetMetrics();
 
+	/** Print every vehicle's GAS Owner/Avatar and sole authoritative HP source. */
+	UFUNCTION(Exec)
+	void HALGASStatus();
+
 private:
 	UFUNCTION(Server, Reliable)
 	void ServerRequestStartMatch();

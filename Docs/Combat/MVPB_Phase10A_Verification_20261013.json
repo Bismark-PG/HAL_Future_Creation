@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "checked_on": "2026-10-13",
+  "date_timezone": "Asia/Tokyo",
+  "scope": "read_only_saved_file_hash_and_source_configuration_review_not_runtime",
+  "baseline_path": "Docs/Combat/MVPB_Phase10A_Baseline_20260930.json",
+  "baseline_sha256": "765f5b339a6cb1c9be63c3002f00c39d0575ba3a529821f2903c46b24bf68f64",
+  "git_branch": "main",
+  "git_head": "fa883fe5fc76c2bd429d9d6c54af8bf878d5c845",
+  "baseline_git_head": "fa883fe5fc76c2bd429d9d6c54af8bf878d5c845",
+  "head_matches_baseline": true,
+  "installed_engine": {
+    "major": 5,
+    "minor": 8,
+    "patch": 2,
+    "changelist": 56702186
+  },
+  "baseline_file_count": 14,
+  "all_baseline_files_match": true,
+  "files": [
+    {
+      "path": "HAL_Future_Creation.uproject",
+      "baseline_sha256": "9c16e17c74c02a8db2af5d9abab370203851747242a43ca4a11691647239f4d1",
+      "current_sha256": "9c16e17c74c02a8db2af5d9abab370203851747242a43ca4a11691647239f4d1",
+      "matches": true
+    },
+    {
+      "path": "Config/DefaultGame.ini",
+      "baseline_sha256": "e954b5f4ad8fb76966ef36326653a07e43747b95aa49efa2ffaf8866b9c7afed",
+      "current_sha256": "e954b5f4ad8fb76966ef36326653a07e43747b95aa49efa2ffaf8866b9c7afed",
+      "matches": true
+    },
+    {
+      "path": "Content/Blueprints/Vehicles/BP_RoundedVehiclePawn.uasset",
+      "baseline_sha256": "49ca1f13b93e33acbd959716ef382180b1f8c17319c41a6179ddebbb3288a53c",
+      "current_sha256": "49ca1f13b93e33acbd959716ef382180b1f8c17319c41a6179ddebbb3288a53c",
+      "matches": true
+    },
+    {
+      "path": "Content/Blueprints/Vehicles/BP_PassiveTestVehicle.uasset",
+      "baseline_sha256": "249db929e3a0abb4fc77617d4c260f154424324ba14ee19bdd4d58c03c7bb5de",
+      "current_sha256": "249db929e3a0abb4fc77617d4c260f154424324ba14ee19bdd4d58c03c7bb5de",
+      "matches": true
+    },
+    {
+      "path": "Content/Blueprints/Balls/BP_BasicBall.uasset",
+      "baseline_sha256": "b47d684494bc0f2326c36d4d2cfa585f84aa0a1faa704200b70af6b6891ecd72",
+      "current_sha256": "b47d684494bc0f2326c36d4d2cfa585f84aa0a1faa704200b70af6b6891ecd72",
+      "matches": true
+    },
+    {
+      "path": "Content/Blueprints/Gamemode/BP_MVPB_ListenGameMode.uasset",
+      "baseline_sha256": "6c685490e852aa72619b5fcfce6fd1e61c898dd86fb192d2139f829180584176",
+      "current_sha256": "6c685490e852aa72619b5fcfce6fd1e61c898dd86fb192d2139f829180584176",
+      "matches": true
+    },
+    {
+      "path": "Content/Maps/MVPB_NetEntry.umap",
+      "baseline_sha256": "fed082d1434c305fb15d275e07a8d607a43f0ed5143eb5b2b24bf508a9933761",
+      "current_sha256": "fed082d1434c305fb15d275e07a8d607a43f0ed5143eb5b2b24bf508a9933761",
+      "matches": true
+    },
+    {
+      "path": "Content/Maps/MVPB_NetTest.umap",
+      "baseline_sha256": "f757a2c722fbf6c78eb6b76b677102275948c24833d8d536ac9c7a97a4098be8",
+      "current_sha256": "f757a2c722fbf6c78eb6b76b677102275948c24833d8d536ac9c7a97a4098be8",
+      "matches": true
+    },
+    {
+      "path": "Content/Data/Network/DA_NetworkPhysics_MVPB.uasset",
+      "baseline_sha256": "48e78eca68f7249d20153d67821d912fb077e0509d1400719f1c86f0866f4f17",
+      "current_sha256": "48e78eca68f7249d20153d67821d912fb077e0509d1400719f1c86f0866f4f17",
+      "matches": true
+    },
+    {
+      "path": "Content/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.uasset",
+      "baseline_sha256": "02a8d0b784245e885d6d26594025c23b943304f60d2402f96fc34904ebcd9809",
+      "current_sha256": "02a8d0b784245e885d6d26594025c23b943304f60d2402f96fc34904ebcd9809",
+      "matches": true
+    },
+    {
+      "path": "Content/Data/MVP_B/DA_Vehicle_Passive_TestBaseline_v1.uasset",
+      "baseline_sha256": "687ff0757f489f336025fbe8ef2df62e7562aa35e9ffe1c2a4bc10534635cf61",
+      "current_sha256": "687ff0757f489f336025fbe8ef2df62e7562aa35e9ffe1c2a4bc10534635cf61",
+      "matches": true
+    },
+    {
+      "path": "Content/Data/MVP_B/DA_Ball_Normal_TestBaseline_v1.uasset",
+      "baseline_sha256": "07ffea5c14e069eb300bffd2a15405e4c6ef5efdfd9eb3a861caacc244142f32",
+      "current_sha256": "07ffea5c14e069eb300bffd2a15405e4c6ef5efdfd9eb3a861caacc244142f32",
+      "matches": true
+    },
+    {
+      "path": "Content/Data/MVP_B/DA_Combat_TestBaseline_v1.uasset",
+      "baseline_sha256": "e190f6879fc286b85ba18576d7efd98bc8c3aa31363024f672cb3d51ceac753c",
+      "current_sha256": "e190f6879fc286b85ba18576d7efd98bc8c3aa31363024f672cb3d51ceac753c",
+      "matches": true
+    },
+    {
+      "path": "Content/Data/MVP_B/DA_Local_TestBaseline_v1.uasset",
+      "baseline_sha256": "5b630d180784117ee6da0add5849face7384b038df258c69f20d06c8cc50e287",
+      "current_sha256": "5b630d180784117ee6da0add5849face7384b038df258c69f20d06c8cc50e287",
+      "matches": true
+    }
+  ],
+  "protected_source_config_project_asset_file_count": 69,
+  "protected_files_unchanged_during_this_task": true,
+  "gas_integration": "not_implemented",
+  "runtime_validation_performed": false,
+  "limitations": [
+    "No new Unreal asset inspection, PIE, compilation or gameplay tests were performed in this documentation-only task.",
+    "Saved Data Asset values are reused from the unchanged 2026-09-30 baseline; Blueprint and level instance runtime overrides remain unverified.",
+    "UE 5.8.3 project acceptance and four-PC final acceptance remain pending.",
+    "Git HEAD does not include the newly created/untracked documentation; normal commit and push are required for cross-device delivery."
+  ]
+}

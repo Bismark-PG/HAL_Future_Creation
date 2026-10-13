@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "engine_version": "5.8.2-56702186+++UE5+Release-5.8",
+  "scope": "read_only_saved_editor_bindings_not_gameplay_acceptance",
+  "maps": {
+    "Test": {
+      "game_mode": "/Game/Blueprints/Gamemode/BP_MVPA_GameMode.BP_MVPA_GameMode_C",
+      "player_state_class": "/Script/Engine.PlayerState",
+      "default_pawn_class": "/Game/Blueprints/Vehicles/BP_RoundedVehiclePawn.BP_RoundedVehiclePawn_C",
+      "vehicle_configuration_source": "<VehicleConfigurationSource.DEFINITION: 1>",
+      "vehicle_definition": "/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.DA_Vehicle_Player_TestBaseline_v1",
+      "passive_test_vehicle_count": 1
+    },
+    "MVPB_NetTest": {
+      "game_mode": "/Game/Blueprints/Gamemode/BP_MVPB_ListenGameMode.BP_MVPB_ListenGameMode_C",
+      "player_state_class": "/Script/HAL_Future_Creation.HALPlayerState",
+      "default_pawn_class": "/Game/Blueprints/Vehicles/BP_RoundedVehiclePawn.BP_RoundedVehiclePawn_C",
+      "vehicle_configuration_source": "<VehicleConfigurationSource.DEFINITION: 1>",
+      "vehicle_definition": "/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.DA_Vehicle_Player_TestBaseline_v1",
+      "passive_test_vehicle_count": 0
+    }
+  },
+  "protected_asset_file_count": 319,
+  "assets_unchanged": true,
+  "limitations": [
+    "No asset compile/save API, PIE or runtime gameplay test was used.",
+    "GameMode class defaults do not prove every runtime or level instance override."
+  ]
+}

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "AbilitySystemInterface.h"
 #include "VehicleInputCmd.h"
 #include "VehicleNetPhysicsData.h"
 #include "VehicleConfigurationTypes.h"
@@ -29,7 +30,7 @@ struct FInputActionValue;
 class UVehicleDefinition;
 
 UCLASS()
-class HAL_FUTURE_CREATION_API ATestVehiclePawn : public APawn
+class HAL_FUTURE_CREATION_API ATestVehiclePawn : public APawn, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -48,6 +49,8 @@ public:
 	virtual void BeginPlay() override;
 	virtual void PawnClientRestart() override;
 	virtual void PossessedBy(AController* NewController) override;
+	virtual void OnRep_PlayerState() override;
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual void UnPossessed() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
@@ -135,6 +138,8 @@ protected:
 	float RemoteInputTimeoutSeconds = 0.25f;
 
 private:
+	void InitializeAbilitySystem();
+	void UninitializeAbilitySystem();
 	void AddDefaultInputContext();
 	void RemoveDefaultInputContext();
 	void PushInputCommand();

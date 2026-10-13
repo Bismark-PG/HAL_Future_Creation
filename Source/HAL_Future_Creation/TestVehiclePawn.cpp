@@ -5,6 +5,8 @@
 #include "VehicleDefinition.h"
 #include "VehicleConfigurationApplication.h"
 #include "VehicleKnockbackSettings.h"
+#include "HALAbilitySystemComponent.h"
+#include "HALPlayerState.h"
 
 #include "ArcadeVehicleMovementComponent.h"
 #include "BallControlComponent.h"
@@ -134,6 +136,7 @@ void ATestVehiclePawn::BeginPlay()
 	}
 
 	Super::BeginPlay();
+	InitializeAbilitySystem();
 	if (bNetworkPhysicsHistoryActive && ArcadeMovement)
 	{
 		ArcadeMovement->EnableNetworkPhysicsHistory();
@@ -144,6 +147,7 @@ void ATestVehiclePawn::BeginPlay()
 void ATestVehiclePawn::PawnClientRestart()
 {
 	Super::PawnClientRestart();
+	InitializeAbilitySystem();
 
 	if (ArcadeMovement) { ArcadeMovement->SetHistoryInputBlocked(false); }
 	ResetInputCommand();
@@ -162,6 +166,7 @@ void ATestVehiclePawn::PawnClientRestart()
 void ATestVehiclePawn::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+	InitializeAbilitySystem();
 	if (ArcadeMovement)
 	{
 		ArcadeMovement->SetHistoryInputBlocked(false);
@@ -171,6 +176,7 @@ void ATestVehiclePawn::PossessedBy(AController* NewController)
 
 void ATestVehiclePawn::UnPossessed()
 {
+	UninitializeAbilitySystem();
 	if (ArcadeMovement) { ArcadeMovement->SetHistoryInputBlocked(true); }
 	GetWorldTimerManager().ClearTimer(InputSendTimerHandle);
 	GetWorldTimerManager().ClearTimer(RemoteInputTimeoutHandle);
@@ -183,6 +189,7 @@ void ATestVehiclePawn::UnPossessed()
 
 void ATestVehiclePawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	UninitializeAbilitySystem();
 	if (ArcadeMovement) { ArcadeMovement->SetHistoryInputBlocked(true); }
 	if (bNetworkPhysicsHistoryActive && NetworkPhysicsHistory)
 	{
@@ -196,6 +203,42 @@ void ATestVehiclePawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	ResetInputCommand();
 
 	Super::EndPlay(EndPlayReason);
+}
+
+UAbilitySystemComponent* ATestVehiclePawn::GetAbilitySystemComponent() const
+{
+	const AHALPlayerState* State = GetPlayerState<AHALPlayerState>();
+	return State ? State->GetAbilitySystemComponent() : nullptr;
+}
+
+void ATestVehiclePawn::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	InitializeAbilitySystem();
+}
+
+void ATestVehiclePawn::InitializeAbilitySystem()
+{
+	AHALPlayerState* State = GetPlayerState<AHALPlayerState>();
+	UHALAbilitySystemComponent* ASC = State ? State->GetHALAbilitySystemComponent() : nullptr;
+	if (Health->GetBoundAbilitySystem() != ASC) { UninitializeAbilitySystem(); }
+	if (!ASC)
+	{
+		if (HasAuthority() && GetController())
+		{
+			UE_LOG(LogTemp, Error, TEXT("%s: vehicle GAS needs HALPlayerState; set PlayerStateClass in the selected GameMode. No local HP fallback."), *GetNameSafe(this));
+		}
+		return;
+	}
+	ASC->InitAbilityActorInfo(State, this);
+	Health->BindToAbilitySystem(ASC);
+}
+
+void ATestVehiclePawn::UninitializeAbilitySystem()
+{
+	UHALAbilitySystemComponent* ASC = Health->GetBoundAbilitySystem();
+	Health->UnbindFromAbilitySystem();
+	if (ASC) { ASC->ClearAvatarIfCurrent(this); }
 }
 
 void ATestVehiclePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
