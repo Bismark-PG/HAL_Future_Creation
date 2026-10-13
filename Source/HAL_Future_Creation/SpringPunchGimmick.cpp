@@ -6,6 +6,10 @@
 #include "Components/ArrowComponent.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
+#include "VehicleHealthComponent.h"
+#include "CollisionQueryParams.h"
+#include "CollisionShape.h"
+#include "DrawDebugHelpers.h"
 
 ASpringPunchGimmick::ASpringPunchGimmick()
 {
@@ -83,6 +87,7 @@ void ASpringPunchGimmick::Tick(float DeltaTime)
 
 	// 伸縮中の拳の表示位置を更新する。
 	UpdatePunchVisual();
+	ScanPunchHits();
 }
 
 void ASpringPunchGimmick::EnterState(ESpringPunchState NewState)
@@ -196,6 +201,8 @@ void ASpringPunchGimmick::AdvanceState()
 			RetractedRelativeLocation +
 			FVector(FMath::Max(0.0f, PunchDistance), 0.0f, 0.0f));
 
+		// 戻る状態へ移る前に、最後の移動区間も判定する。
+		ScanPunchHits();
 		EnterState(ESpringPunchState::Retracting);
 		break;
 
@@ -273,5 +280,79 @@ void ASpringPunchGimmick::UpdatePunchVisual()
 		// 待機・予告・クールダウン中は初期位置を維持する。
 		PunchPivot->SetRelativeLocation(RetractedRelativeLocation);
 		break;
+	}
+}
+
+void ASpringPunchGimmick::ScanPunchHits()
+{
+	// 非複製アクターでもクライアント側の攻撃判定は実行しない。
+	if (GetNetMode() == NM_Client || !HasAuthority() ||
+		CurrentState != ESpringPunchState::Extending)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World || !HitBox)
+	{
+		return;
+	}
+
+	const FVector Start = PreviousHitBoxWorldLocation;
+	const FVector End = HitBox->GetComponentLocation();
+	const FQuat Rotation = HitBox->GetComponentQuat();
+	const FVector HalfExtent = HitBox->GetScaledBoxExtent();
+
+	// 次回の掃引開始位置を更新する。
+	PreviousHitBoxWorldLocation = End;
+	if (HalfExtent.GetMin() <= KINDA_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	// 現在の車両が使用する PhysicsBody を検索対象にする。
+	FCollisionObjectQueryParams ObjectParams;
+	ObjectParams.AddObjectTypesToQuery(ECC_PhysicsBody);
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(SpringPunchScan), false, this);
+	QueryParams.bFindInitialOverlaps = true;
+
+	TArray<FHitResult> Hits;
+	World->SweepMultiByObjectType(
+		Hits, Start, End, Rotation, ObjectParams,
+		FCollisionShape::MakeBox(HalfExtent), QueryParams);
+
+	bool bFoundNewTarget = false;
+	for (const FHitResult& Hit : Hits)
+	{
+		AActor* Target = Hit.GetActor();
+		if (!IsValid(Target) || Target == this ||
+			!Target->FindComponentByClass<UVehicleHealthComponent>())
+		{
+			continue;
+		}
+
+		const TWeakObjectPtr<AActor> TargetKey(Target);
+		if (HitActorsThisPunch.Contains(TargetKey))
+		{
+			continue;
+		}
+
+		HitActorsThisPunch.Add(TargetKey);
+		bFoundNewTarget = true;
+		// 現段階では検出結果だけを記録し、ダメージや衝撃は与えない。
+		if (bDebugPunchHits)
+		{
+			UE_LOG(LogTemp, Log, TEXT("SpringPunch [%s] detected [%s]"),
+				*GetNameSafe(this), *GetNameSafe(Target));
+		}
+	}
+
+	if (bDebugPunchHits)
+	{
+		const FColor Color = bFoundNewTarget ? FColor::Green : FColor::Yellow;
+		// 始点・終点のボックスと移動経路を表示する。
+		DrawDebugBox(World, Start, HalfExtent, Rotation, Color, false, 0.15f);
+		DrawDebugBox(World, End, HalfExtent, Rotation, Color, false, 0.15f);
+		DrawDebugLine(World, Start, End, Color, false, 0.15f, 0, 2.0f);
 	}
 }
