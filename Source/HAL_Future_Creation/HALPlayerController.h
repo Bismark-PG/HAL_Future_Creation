@@ -6,6 +6,8 @@
 #include "GameFramework/PlayerController.h"
 #include "HALPlayerController.generated.h"
 
+class UHALDebugHUDWidget;
+
 /** Local input, camera and match UI entry point for a single player. */
 UCLASS()
 class HAL_FUTURE_CREATION_API AHALPlayerController : public APlayerController
@@ -15,6 +17,7 @@ class HAL_FUTURE_CREATION_API AHALPlayerController : public APlayerController
 public:
 	AHALPlayerController();
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	/** Request the transition from WaitingForPlayers to Playing. The server checks host ownership. */
 	UFUNCTION(BlueprintCallable, Category = "Match")
@@ -37,6 +40,9 @@ public:
 	void HALGASStatus();
 
 private:
+	UPROPERTY(Transient)
+	TObjectPtr<UHALDebugHUDWidget> DebugHUD;
+
 	UFUNCTION(Server, Reliable)
 	void ServerRequestStartMatch();
 };

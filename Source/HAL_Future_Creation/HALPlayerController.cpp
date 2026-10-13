@@ -9,6 +9,7 @@
 #include "HALMatchGameMode.h"
 #include "HALMatchGameState.h"
 #include "HALNetworkGameInstance.h"
+#include "HALDebugHUDWidget.h"
 #include "TestVehiclePawn.h"
 #include "EngineUtils.h"
 #include "HALAbilitySystemComponent.h"
@@ -28,7 +29,25 @@ void AHALPlayerController::BeginPlay()
 		{
 			Network->ShowMatchLobby(this);
 		}
+#if !UE_BUILD_SHIPPING
+		DebugHUD = CreateWidget<UHALDebugHUDWidget>(this, UHALDebugHUDWidget::StaticClass());
+		if (DebugHUD)
+		{
+			DebugHUD->SetPositionInViewport(FVector2D(12.0f, 12.0f));
+			DebugHUD->AddToPlayerScreen(100);
+		}
+#endif
 	}
+}
+
+void AHALPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (DebugHUD)
+	{
+		DebugHUD->RemoveFromParent();
+		DebugHUD = nullptr;
+	}
+	Super::EndPlay(EndPlayReason);
 }
 
 void AHALPlayerController::RequestStartMatch()
@@ -106,9 +125,11 @@ void AHALPlayerController::HALGASStatus()
 		const UVehicleHealthComponent* Health = It->FindComponentByClass<UVehicleHealthComponent>();
 		if (!Health) { continue; }
 		const UHALAbilitySystemComponent* ASC = Health->GetBoundAbilitySystem();
+		const APawn* VehiclePawn = Cast<APawn>(*It);
+		const APlayerState* State = VehiclePawn ? VehiclePawn->GetPlayerState() : nullptr;
 		const FString Status = FString::Printf(
-			TEXT("HAL GAS: Vehicle=%s Owner=%s Avatar=%s Authority=%d Ready=%d HP=%.1f MaxHP=%.1f Mode=%s"),
-			*GetNameSafe(*It), *GetNameSafe(ASC ? ASC->GetOwnerActor() : nullptr),
+			TEXT("HAL GAS: Vehicle=%s PlayerId=%d Owner=%s Avatar=%s Authority=%d Ready=%d HP=%.1f MaxHP=%.1f Mode=%s"),
+			*GetNameSafe(*It), State ? State->GetPlayerId() : INDEX_NONE, *GetNameSafe(ASC ? ASC->GetOwnerActor() : nullptr),
 			*GetNameSafe(ASC ? ASC->GetAvatarActor() : nullptr), It->HasAuthority() ? 1 : 0,
 			Health->IsHealthReady() ? 1 : 0, Health->GetCurrentHP(), Health->GetMaxHP(),
 			!ASC ? TEXT("Unavailable") : ASC->ReplicationMode == EGameplayEffectReplicationMode::Mixed

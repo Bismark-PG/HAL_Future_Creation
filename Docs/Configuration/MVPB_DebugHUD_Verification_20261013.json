@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-10-13",
+  "git_base": "c543c417a50532ad57be53da092b23ecbdad1443",
+  "engine_version": "5.8.2-56702186+++UE5+Release-5.8",
+  "scope": "read_only_debug_HUD_and_manual_GAS_test_instructions",
+  "builds": {
+    "Editor_Win64_Development": "Succeeded_final",
+    "Game_Win64_Development": "Succeeded_final"
+  },
+  "automation": {
+    "succeeded": 16,
+    "failed": 0,
+    "report": "Saved/Automation/MVPB_DebugHUD_20261013/index.json",
+    "boundary": "Existing 16 gameplay tests passed after initial HUD integration, before final font/DPI-only adjustment; final adjustment recompiled and visually checked."
+  },
+  "rendered_smoke": {
+    "host": "Saved/Screenshots/MVPB_DebugHUD_FinalHost_20261013.png",
+    "client": "Saved/Screenshots/MVPB_DebugHUD_FinalClient_20261013.png",
+    "resolution": "960x540",
+    "host_log": "Saved/Logs/MVPB_DebugHUD_FinalHost_v2_20261013.log",
+    "client_log": "Saved/Logs/MVPB_DebugHUD_FinalClient_20261013.log",
+    "observed": "Host/client native translucent HUD visible; client roster P256/P257 Ready=1, HP=100, MaxHP=100; server Join succeeded. No manual input or ball hits.",
+    "harness_issue": "An earlier capture helper called EditorLevelLibrary.get_game_world in -game, where GEditor is absent, and crashed in EditorScriptingUtilities. Final runs avoided that editor-only API; no HUD-source fix was required for that helper issue."
+  },
+  "assets": "No asset edits performed; git diff -- Content empty.",
+  "manual_acceptance": "Pending: driving, two-direction actual ball-hit HP 100->75, network simulation and team UI/input review.",
+  "source_manifest": [
+    {
+      "path": "Source/HAL_Future_Creation/HALDebugHUDWidget.h",
+      "sha256": "1bf0290c71ac9c9e0617e2b8f9059047c40b7821ad5fec8c1e168c577f682675"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDebugHUDWidget.cpp",
+      "sha256": "5cabddd679da18b4253296c6a16458ca952ac3a96c00ca47008f8aee7151b727"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerController.h",
+      "sha256": "1583c757d788364f7af8bf80681a403ddd1b5b67bb5a589dd24be90b4948390b"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerController.cpp",
+      "sha256": "b3348eb8dac405f9c051f46fa5bdaf7c5c83167bae4d053b120c71f148b2b68e"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HAL_Future_Creation.Build.cs",
+      "sha256": "9dc4e598f234aace9d92be6ccdc88b34b397e3d211e0219c020b53b086831110"
+    }
+  ]
+}

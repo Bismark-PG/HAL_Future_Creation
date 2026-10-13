@@ -5,7 +5,7 @@
 ## 1. 先读什么、先检查什么
 
 1. 完整阅读根目录 [AGENTS.md](../AGENTS.md) 和本文件。
-2. 当前先阅读 [10-B GAS 基础实施／Editor 接线／验收步骤](Combat/MVPB_Phase10B_GAS_Foundation_CN_v0.1.md)及 [10-B 验证摘要](Combat/MVPB_Phase10B_Verification_20261013.json)；设计依据见 [10-A GAS／冲击规格](Combat/MVPB_Phase10A_GAS_Impact_Spec_CN_v0.1.md)、[GAS 团队总体方案](Combat/MVPB_GAS_Architecture_Overview_CN_v0.1.md)、[保存资产基线](Combat/MVPB_Phase10A_Baseline_20260930.json)。
+2. 当前先阅读 [10-B GAS 基础实施／Editor 接线／验收步骤](Combat/MVPB_Phase10B_GAS_Foundation_CN_v0.1.md)、[双端启动／HP 检查／调试 HUD](Configuration/MVPB_DebugHUD_And_GAS_Test_CN_v0.1.md)及 [10-B 验证摘要](Combat/MVPB_Phase10B_Verification_20261013.json)；设计依据见 [10-A GAS／冲击规格](Combat/MVPB_Phase10A_GAS_Impact_Spec_CN_v0.1.md)、[GAS 团队总体方案](Combat/MVPB_GAS_Architecture_Overview_CN_v0.1.md)、[保存资产基线](Combat/MVPB_Phase10A_Baseline_20260930.json)。
 3. 以 [MVP-B Listen Server v0.2 计划](MVP_B_Listen_Server_Plan_CN_v0.2.md)和对应 `Docs/Networking/` 实施记录确认已存在的网络边界。早期 [MVP-A→MVP-B 交接](../MVP_A_to_MVP_B_Handoff_CN_v1.0.md)用于追踪背景，不能把旧参数当成当前 DA。
 4. 在本机执行 `git status --short`、`git branch --show-current`、`git rev-parse HEAD`，对照 `.uproject`、模块 `Build.cs`、`Source/`、`Config/`、相关测试和邻近说明；以 Editor 的 About 或引擎 `Engine/Build/Build.version` 核对实际补丁版本。
 5. 修改前先汇报当前工程与本记录的差异和本次任务范围；保留已有改动。不因历史记录写了“下一步”就自动施工未获用户授权的环节。
@@ -15,7 +15,7 @@
 | 项目 | 2026-10-13 核对结果 |
 |---|---|
 | 开发阶段 | MVP-B；10-B GAS 基础 C++、编译／自动化及初始复制 smoke 完成，等待 Test 蓝图接线和团队联机回归 |
-| 当前本机分支／代码提交 | `main` / `fa883fe5fc76c2bd429d9d6c54af8bf878d5c845` 是施工前基点；10-B 源码／配置尚在未提交工作区，交接必须同时提交这些改动 |
+| 当前本机分支／代码提交 | 本次 HUD 开工核对为 `main` / `c543c417a50532ad57be53da092b23ecbdad1443`，10-B 已在该提交；新增 HUD／操作说明是其上的未提交改动 |
 | 已验证引擎基线 | UE `5.8.2-56702186+++UE5+Release-5.8`；本机当前安装也是该版本 |
 | UE 5.8.3 | 已讨论兼容性，尚无本项目 5.8.3 编译／玩法／联机验收证据，不能写成已经升级；团队工作时须统一实际补丁版本 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
@@ -24,7 +24,7 @@
 | 当前 Editor 接线 | NetTest 的 PlayerStateClass 已是 HALPlayerState；Test 的 BP_MVPA_GameMode 仍是引擎 PlayerState，须团队手改为 HALPlayerState |
 | 测试地图 | 单机回归 `/Game/Maps/Test`；联机玩法 `/Game/Maps/MVPB_NetTest`；完整菜单 Host／Join 从 `/Game/Maps/MVPB_NetEntry` 启动 |
 
-代码提交号是本次交接的比较基点，后续提交会变化。上述进度文档、入口规则及检查工具在本次交付时仍需正常 Git 提交和 Push；本文件存在于一台电脑不等于已发布给其他电脑。接收设备必须 Pull 后核对文件和提交，不能仅凭聊天宣称同步完成。
+代码提交号是本次交接的比较基点，后续提交会变化。10-B 原施工基点是 `fa883fe5fc76c2bd429d9d6c54af8bf878d5c845`，原验证 JSON 记录的是当时工作区与哈希，不回写历史证据。10-B 现在已在本机提交，但本次没有检查远端是否 Push；新增 HUD 和操作说明仍需正常提交／Push。本文件存在于一台电脑不等于已发布给其他电脑，接收设备必须 Pull 后核对文件和提交。
 
 ## 3. 已完成与验收状态
 
@@ -35,6 +35,7 @@
 | 阶段 9 菜单与四机验收 | Host／Join、主机 Start、诊断代码与资产已存在；用户报告线下双人测试暂未有其他问题 | [阶段 9 记录](Networking/MVPB_Listen_Phase9_Implementation_CN_v0.1.md)保留未关闭事项；尚无四台真实有线 PC 最终验收结果／记录，不标记第一里程碑全部通过 |
 | 10-A | 规格、保存 DA 数值／哈希、总体说明及跨设备入口完成；本次复核 14/14 基线文件未变化 | 文档和只读检查环节；未接入 GAS，未修改玩法源码或资产 |
 | 10-B | 两个 Development Target 编译、自动化 16/16、保存绑定只读检查及双进程初始 HP 复制通过 | Test 接线／真人两方向命中扣血／驾驶物理／约 100 ms RTT 回归待团队验证，尚未最终验收 |
+| 10-B 调试显示补充 | 新增 C++ 半透明只读 HUD，`hal.DebugHUD 1/0`；`HALGASStatus` 增加 PlayerId；最终两个 Target 编译、既有自动化 16/16 及双端初始数值／实际渲染检查通过 | 自动化在最终字号微调前执行，微调后重新编译并看截图；不改玩法或资产。真人操作及延迟待确认，详见操作说明和 [HUD 验证摘要](Configuration/MVPB_DebugHUD_Verification_20261013.json) |
 | 10-C～10-F | 已拆分范围及门槛 | 尚未施工／验收，不把设计方案写成现有能力 |
 
 本次 10-B 构建证据：UE 5.8.2 的 Editor/Game Development Target 均成功，`HAL.FutureCreation` 自动化 16/16 通过，报告原位于 `Saved/Automation/MVPB_Phase10B_Final/index.json`；隐藏双进程 Join succeeded，客户端收到两辆车的 GAS HP=100／MaxHP=100。历史阶段 9 的 14/14 结果保留在对应记录中。本次没有真人驾驶／命中及延迟测试。`Saved/` 不随 Git 交接，新电脑不存在这些报告不代表测试失败，也不能声称已重跑；共享摘要见 10-B Verification JSON。
@@ -72,7 +73,7 @@
 
 ## 6. 下一环节和待确定项
 
-当前下一步是按 **10-B 实施文档**手改 Test 的 PlayerStateClass 并完成团队验收；稳定加载后，两端 `HALGASStatus` 均应 Ready=1，球的单次命中仍按现有配置扣血一次。通过后由用户指定进入 **10-C 标准命中／攻击快照／伤害公式**。显式冲击档位、最低脱球档位、持续技能和运动效果仍分属后续环节，不自动提前施工。
+当前下一步是按 **10-B 实施文档**手改 Test 的 PlayerStateClass 并完成团队验收；双端操作详见 **调试 HUD 与 GAS 检查说明**。稳定加载后，两端 `HALGASStatus` 均应 Ready=1，用相同 PlayerId 比较单次球命中 `100→75`，HUD 也显示所有玩家的 HP。通过后由用户指定进入 **10-C 标准命中／攻击快照／伤害公式**。显式冲击档位、最低脱球档位、持续技能和运动效果仍分属后续环节，不自动提前施工。
 
 | 何时确定 | 尚需具体确定的内容 |
 |---|---|
@@ -98,3 +99,4 @@
 
 - 2026-10-13：复核 10-A 已有交付及当前代码／资产；确认原快照 14 个文件全部一致，保留 2026-09-30 数值基线；建立本入口并在 `AGENTS.md` 中加入读取与维护要求。
 - 2026-10-13：完成 10-B GAS 基础、唯一 HP 来源和 Avatar 生命周期；Editor/Game 编译、自动化 16/16、319 资产只读检查及双进程初始 HP 复制成功。定位 Test 旧 GameMode 的 PlayerStateClass 尚待手改；真人回归未完成。阶段 9 文档已有未提交改动保持原样。
+- 2026-10-13：核对 10-B 已提交到 `c543c41`；新增无需蓝图接线的 C++ 本地调试 HUD 与双端操作文档，状态命令补 PlayerId。新增显示代码的两个 Target 编译及既有自动化 16/16 成功；真人扣血与延迟验收状态保持待测。

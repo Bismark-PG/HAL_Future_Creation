@@ -51,6 +51,8 @@
 
 ## 4. 双进程 Listen Server 团队验收
 
+详细 PowerShell 双端启动、Host／Join／Start、按 PlayerId 比较 `100→75`、独立日志路径和新增只读 HUD 的开关，见 [调试 HUD 与 GAS 双端检查](../Configuration/MVPB_DebugHUD_And_GAS_Test_CN_v0.1.md)。HUD 是本地显示工具，不改变本节验收门槛。
+
 1. 使用原 `/Game/Maps/MVPB_NetTest` 双进程 Listen Server，或从 Entry 跑原 Host／Join 流程。保持 **Use Less CPU when in Background** 关闭。主机／客户端各执行 `HALMatchStatus` 和 **`HALGASStatus`**。
 2. `HALGASStatus` 会在本机日志／屏幕列出每辆车：Vehicle、ASC Owner、Avatar、Authority、Ready、HP、MaxHP、复制模式。稳定加载后两端都应看到 `Owner=HALPlayerState…`、正确 Avatar、`Ready=1`、`HP=100 MaxHP=100 Mode=Mixed`（当前 DA）。Actor 本地名称可能不同，玩家归属结合 `HALMatchStatus` 的 PlayerId 核对；不是要求两个进程的 Actor 序号完全一致。
 3. 两端执行 `hal.GASLog 1`，主机执行 `hal.BallNetLog 1`。主机开始后，分别让主机击中客户端和客户端击中主机；每次单发命中后执行 `HALGASStatus`，目标应从 `100→75→50…`，另一车辆 HP 不变，主机和客户端最终值一致，不能双扣或重新初始化回血。
