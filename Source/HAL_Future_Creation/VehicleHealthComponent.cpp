@@ -4,12 +4,9 @@
 
 #include "AbilitySystemGlobals.h"
 #include "HALAbilitySystemComponent.h"
-#include "HALApplyDamageEffect.h"
-#include "HALGameplayTags.h"
 #include "HALHealthAttributeSet.h"
 #include "VehicleConfigurationTypes.h"
 #include "VehicleConfigurationApplication.h"
-#include "VehicleHitContext.h"
 #include "UObject/UnrealType.h"
 
 UVehicleHealthComponent::UVehicleHealthComponent()
@@ -92,27 +89,6 @@ float UVehicleHealthComponent::GetCurrentHP() const
 float UVehicleHealthComponent::GetMaxHP() const
 {
 	return IsHealthReady() ? AbilitySystem->GetSet<UHALHealthAttributeSet>()->GetMaxHP() : MaxHP;
-}
-
-bool UVehicleHealthComponent::ApplyResolvedDamage(const FVehicleHitContext& Hit, float Damage)
-{
-	if (!GetOwner() || !GetOwner()->HasAuthority() || !IsHealthReady() || !FMath::IsFinite(Damage)
-		|| Damage <= 0.0f || GetCurrentHP() <= 0.0f)
-	{
-		return false;
-	}
-	UHALAbilitySystemComponent* ASC = AbilitySystem.Get();
-	FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
-	Context.AddInstigator(IsValid(Hit.InstigatorActor) ? Hit.InstigatorActor : Hit.SourceActor, Hit.SourceActor);
-	Context.AddSourceObject(Hit.SourceActor);
-	FGameplayEffectSpecHandle Spec = ASC->MakeOutgoingSpec(UHALApplyDamageEffect::StaticClass(), 1.0f, Context);
-	if (!Spec.IsValid()) { return false; }
-	Spec.Data->SetSetByCallerMagnitude(HALGameplayTags::Data_Combat_Damage, -Damage);
-	const float PreviousHP = GetCurrentHP();
-	ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
-	ASC->GetOwner()->ForceNetUpdate();
-	// Preserve the old eligibility contract until 10-C splits damage from impact acceptance.
-	return GetCurrentHP() < PreviousHP;
 }
 
 void UVehicleHealthComponent::HandleAttributeChanged(const FOnAttributeChangeData& Data)

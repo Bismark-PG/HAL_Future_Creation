@@ -85,3 +85,5 @@ hal.DebugHUD 0
 - 详细摘要见 [HUD Verification JSON](MVPB_DebugHUD_Verification_20261013.json)，截图／日志位于 `Saved/`，不入 Git。测试进程已清理，没有修改资产；`git diff -- Content` 为空。
 
 后续团队测试更新：用户已完成本地双向命中 HP 检查，双方日志确认每次减少 25 且收敛，见 [HP 日志复核](../Combat/MVPB_Phase10B_ManualHP_LogReview_20261013.json)。真实双端驾驶的完整矩阵、模拟延迟和团队 UI／输入观感仍待确认；不将本地 HP 子项通过扩大为 10-B 全部验收。
+
+2026-10-14 接续更新：用户已确认 10-B 驾驶／持球／冲击测试完成并授权进入 10-C，测试日志可能未上传。上述回归改为团队完成反馈；具体网络工况、引擎版本及 HUD／UI 观感未单独提供，不追加未经核对的量化结果。详见 [10-B 团队反馈](../Combat/MVPB_Phase10B_GAS_Foundation_CN_v0.1.md)。

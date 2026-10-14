@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "VehicleHitContext.h"
 #include "VehicleKnockbackSettings.h"
+#include "HALCombatTypes.h"
 
 struct FVehicleHitResolution
 {
@@ -13,10 +14,14 @@ struct FVehicleHitResolution
 	float ImpactSpeed = 0.0f;
 };
 
-/** Narrow, authority-only rule entry point; later damage systems can replace its HP adapter. */
+/** Authority-only shared hit rules; sources own detection, pulses and their action lifetime. */
 struct HAL_FUTURE_CREATION_API FCombatResolver
 {
-	/** Resolves one damage result and applies its globally configured tier outcome. */
+	static FHALCombatHitResult ResolveCombatHit(FHALCombatAction& Action, const FHALCombatHitRequest& Request);
+	/** Capture only at action acceptance, never from a collision callback or client request. */
+	static bool CaptureVehicleAttack(AActor& Source, AActor& Instigator, float ActionMultiplier,
+		float ActionMultiplierDelta, FHALAttackSourceSnapshot& OutSnapshot);
+	/** One-off instantaneous compatibility adapter. Repeated callbacks must share FHALCombatAction. */
 	static FVehicleHitResolution ResolveVehicleHit(
 		const FVehicleHitContext& Hit,
 		float Damage,

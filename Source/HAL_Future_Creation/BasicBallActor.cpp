@@ -9,6 +9,7 @@
 #include "CombatResolver.h"
 #include "ArcadeVehicleMovementComponent.h"
 #include "BallControlComponent.h"
+#include "HALGameplayTags.h"
 
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -131,6 +132,7 @@ bool ABasicBallActor::ApplyDefinition(bool bPreview)
 		PostLaunchPickupLockDuration = Definition->Gameplay.Acquisition.PostLaunchPickupLockDuration;
 		VehicleHitDamage = Definition->Gameplay.Damage.VehicleHitDamage;
 		KnockbackStrengthMultiplier = Definition->Gameplay.Damage.KnockbackStrengthMultiplier;
+		RuntimeDamageConfig = Definition->Gameplay.Damage;
 		bLogDamageHits = Definition->Gameplay.Debug.bLogDamageHits;
 		bLogStateChanges = Definition->Gameplay.Debug.bLogStateChanges;
 	}
@@ -160,13 +162,39 @@ bool ABasicBallActor::LaunchFromControl(
 	if (!HasAuthority()
 		|| RepState.State != EBasicBallState::Controlled
 		|| RepState.Holder != ExpectedHolder
-		|| !IsValid(NewLauncher))
+		|| !IsValid(NewLauncher) || InitialVelocity.ContainsNaN())
 	{
 		return false;
 	}
 
+	FHALAttackSourceSnapshot Attack;
+	if (RuntimeDamageConfig.Version == EHALCombatConfigVersion::AttackSnapshotV1)
+	{
+		if (!FCombatResolver::CaptureVehicleAttack(*this, *NewLauncher, RuntimeDamageConfig.ActionMultiplier,
+			RuntimeDamageConfig.ActionMultiplierDelta, Attack))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%s: scaled launch rejected; migrate the vehicle combat config before the ball."), *GetName());
+			return false;
+		}
+	}
+	else
+	{
+		Attack.SourceActor = this;
+		Attack.InstigatorActor = NewLauncher;
+		Attack.FixedDamage = VehicleHitDamage;
+		if (const APawn* Pawn = Cast<APawn>(NewLauncher))
+		{
+			Attack.InstigatorPlayerState = Pawn->GetPlayerState();
+			if (const APlayerState* State = Pawn->GetPlayerState()) { Attack.InstigatorPlayerId = State->GetPlayerId(); }
+		}
+	}
+	Attack.SourceTag = HALGameplayTags::Combat_Source_Ball;
+	Attack.EffectTags = RuntimeDamageConfig.EffectTags;
+	Attack.bCanHitInstigator = false;
+	if (!LaunchAction.Begin(*this, Attack)) { return false; }
 	FBallRepState Next;
 	Next.State = EBasicBallState::Launched;
+	Next.AttackSnapshot = LaunchAction.GetSnapshot();
 	Next.LastLauncherPawn = NewLauncher;
 	if (const APawn* LauncherPawn = Cast<APawn>(NewLauncher))
 	{
@@ -231,6 +259,12 @@ bool ABasicBallActor::HandleVehicleExit(const AActor* LeavingVehicle)
 		// LastLauncherPlayerId remains stable until this launch actually finishes.
 		bChanged = true;
 	}
+	if (Next.AttackSnapshot.InstigatorActor.Get() == LeavingVehicle)
+	{
+		Next.AttackSnapshot.InstigatorActor.Reset();
+		Next.AttackSnapshot.InstigatorPlayerState.Reset();
+		bChanged = true;
+	}
 	if (!bChanged) { return false; }
 	Next.ServerPhysicsFrame = INDEX_NONE;
 	CommitRepState(Next, nullptr);
@@ -252,6 +286,7 @@ void ABasicBallActor::AddReleaseImpulse(const FVector& Impulse)
 
 void ABasicBallActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	LaunchAction.Close();
 	StopLowSpeedMonitor();
 	Super::EndPlay(EndPlayReason);
 }
@@ -333,6 +368,7 @@ void ABasicBallActor::CommitRepState(const FBallRepState& NewState, const AActor
 	check(HasAuthority());
 	const EBasicBallState PreviousState = RepState.State;
 	FBallRepState Committed = NewState;
+	if (NewState.State != EBasicBallState::Launched) { LaunchAction.Close(); }
 	Committed.StateSequence = RepState.StateSequence + 1;
 	if (const UArcadeVehicleMovementComponent* Movement = IsValid(PhysicsFrameSource)
 		? PhysicsFrameSource->FindComponentByClass<UArcadeVehicleMovementComponent>() : nullptr)
@@ -454,11 +490,14 @@ void ABasicBallActor::OnPhysicsRootHit(
 			OtherComponent->GetPhysicsLinearVelocityAtPoint(Hit.ImpactPoint);
 	}
 
-	const FVehicleHitResolution Resolution = FCombatResolver::ResolveVehicleHit(
-		Context,
-		VehicleHitDamage,
-		KnockbackStrengthMultiplier);
-	if (Resolution.bResolved)
+	FHALCombatHitRequest Request;
+	Request.AttackId = LaunchAction.GetSnapshot().AttackId;
+	Request.PulseSequence = LaunchAction.GetPulseSequence();
+	Request.Hit = Context;
+	Request.bApplyImpact = true;
+	Request.KnockbackStrengthMultiplier = KnockbackStrengthMultiplier;
+	const FHALCombatHitResult Resolution = FCombatResolver::ResolveCombatHit(LaunchAction, Request);
+	if (Resolution.bHitAccepted)
 	{
 		LastResolvedHitEventSequence = CandidateEventSequence;
 		bool bShouldLogHit = bLogDamageHits;
@@ -473,7 +512,7 @@ void ABasicBallActor::OnPhysicsRootHit(
 				*GetNameSafe(RepState.LastLauncherPawn.Get()),
 				RepState.LastLauncherPlayerId,
 				LastResolvedHitEventSequence,
-				VehicleHitDamage,
+				Resolution.ResolvedDamage,
 				Resolution.ImpactSpeed,
 				LexToString(Resolution.KnockbackTier));
 		}

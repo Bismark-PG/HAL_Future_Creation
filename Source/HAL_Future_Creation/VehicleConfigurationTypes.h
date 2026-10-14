@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
+#include "HALCombatTypes.h"
 #include "VehicleConfigurationTypes.generated.h"
 
 /** Explicit migration source; Legacy preserves serialized MVP-A tuning. */
@@ -329,6 +330,15 @@ USTRUCT(BlueprintType)
 struct HAL_FUTURE_CREATION_API FBallDamageConfig
 {
 	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, Category = "Migration")
+	EHALCombatConfigVersion Version = EHALCombatConfigVersion::LegacyFixedDamage;
+	UPROPERTY(EditAnywhere, Category = "Damage", meta = (ClampMin = "0.0"))
+	float ActionMultiplier = 1.0f;
+	UPROPERTY(EditAnywhere, Category = "Damage")
+	float ActionMultiplierDelta = 0.0f;
+	/** Metadata only in 10-C; later status effects use a separate effect application path. */
+	UPROPERTY(EditAnywhere, Category = "Damage")
+	FGameplayTagContainer EffectTags;
 
 	UPROPERTY(EditAnywhere, Category = "Damage", meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "100.0"))
 	float VehicleHitDamage = 25.0f;

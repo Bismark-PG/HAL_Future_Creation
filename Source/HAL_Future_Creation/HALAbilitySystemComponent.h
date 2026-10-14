@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemComponent.h"
+#include "HALCombatTypes.h"
 #include "HALAbilitySystemComponent.generated.h"
 
 DECLARE_MULTICAST_DELEGATE(FHALHealthInitialized);
@@ -19,6 +20,9 @@ public:
 	/** Authority-only, once per ASC lifetime. Repeated Avatar binding never heals or resets HP. */
 	bool InitializeHealth(float SavedMaxHP);
 	bool IsHealthInitialized() const { return bHealthInitialized; }
+	bool InitializeCombat(const FVehicleCombatConfig& Config);
+	bool IsCombatInitialized() const { return bCombatInitialized; }
+	EHALCombatConfigVersion GetCombatConfigVersion() const { return CombatConfigVersion; }
 	/** An old Pawn cannot clear a newer Pawn's Avatar during delayed cleanup. */
 	void ClearAvatarIfCurrent(const AActor* ExpectedAvatar);
 	/** Disabled by default; logs on replicated initialization/HP notifications when hal.GASLog=1. */
@@ -30,4 +34,8 @@ private:
 	void OnRep_HealthInitialized();
 	UPROPERTY(ReplicatedUsing = OnRep_HealthInitialized)
 	bool bHealthInitialized = false;
+	UPROPERTY(Replicated)
+	bool bCombatInitialized = false;
+	UPROPERTY(Replicated)
+	EHALCombatConfigVersion CombatConfigVersion = EHALCombatConfigVersion::LegacyFixedDamage;
 };

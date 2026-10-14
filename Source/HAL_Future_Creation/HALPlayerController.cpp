@@ -13,6 +13,8 @@
 #include "TestVehiclePawn.h"
 #include "EngineUtils.h"
 #include "HALAbilitySystemComponent.h"
+#include "HALCombatAttributeSet.h"
+#include "HALGameplayTags.h"
 #include "VehicleHealthComponent.h"
 
 AHALPlayerController::AHALPlayerController()
@@ -125,15 +127,21 @@ void AHALPlayerController::HALGASStatus()
 		const UVehicleHealthComponent* Health = It->FindComponentByClass<UVehicleHealthComponent>();
 		if (!Health) { continue; }
 		const UHALAbilitySystemComponent* ASC = Health->GetBoundAbilitySystem();
+		const UHALCombatAttributeSet* Combat = ASC ? ASC->GetSet<UHALCombatAttributeSet>() : nullptr;
 		const APawn* VehiclePawn = Cast<APawn>(*It);
 		const APlayerState* State = VehiclePawn ? VehiclePawn->GetPlayerState() : nullptr;
-		const FString Status = FString::Printf(
+		FString Status = FString::Printf(
 			TEXT("HAL GAS: Vehicle=%s PlayerId=%d Owner=%s Avatar=%s Authority=%d Ready=%d HP=%.1f MaxHP=%.1f Mode=%s"),
 			*GetNameSafe(*It), State ? State->GetPlayerId() : INDEX_NONE, *GetNameSafe(ASC ? ASC->GetOwnerActor() : nullptr),
 			*GetNameSafe(ASC ? ASC->GetAvatarActor() : nullptr), It->HasAuthority() ? 1 : 0,
 			Health->IsHealthReady() ? 1 : 0, Health->GetCurrentHP(), Health->GetMaxHP(),
 			!ASC ? TEXT("Unavailable") : ASC->ReplicationMode == EGameplayEffectReplicationMode::Mixed
 				? TEXT("Mixed") : ASC->ReplicationMode == EGameplayEffectReplicationMode::Minimal ? TEXT("Minimal") : TEXT("Full"));
+		Status += FString::Printf(TEXT(" CombatReady=%d CombatVersion=%d Attack=%.2f OutDelta=%.2f Taken=%.2f DamageImmune=%d"),
+			ASC && ASC->IsCombatInitialized() ? 1 : 0, ASC ? int32(ASC->GetCombatConfigVersion()) : -1,
+			Combat ? Combat->GetAttackPower() : 0.0f, Combat ? Combat->GetOutputMultiplierDelta() : 0.0f,
+			Combat ? Combat->GetDamageTakenMultiplier() : 0.0f,
+			ASC && ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_DamageImmune) ? 1 : 0);
 		UE_LOG(LogTemp, Display, TEXT("%s"), *Status);
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 8.0f, FColor::Green, Status); }
 	}

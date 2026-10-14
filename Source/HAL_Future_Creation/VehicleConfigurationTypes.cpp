@@ -130,6 +130,12 @@ bool FBallAcquisitionConfig::Validate(FString& Error) const
 
 bool FBallDamageConfig::Validate(FString& Error) const
 {
+	if ((Version != EHALCombatConfigVersion::LegacyFixedDamage && Version != EHALCombatConfigVersion::AttackSnapshotV1)
+		|| !FMath::IsFinite(ActionMultiplier) || ActionMultiplier < 0.0f || !FMath::IsFinite(ActionMultiplierDelta))
+	{
+		Error = TEXT("Ball damage needs a known migration version and finite action multiplier/delta.");
+		return false;
+	}
 	if (!FMath::IsFinite(VehicleHitDamage) || VehicleHitDamage < 0.0f) { Error = TEXT("FBallDamageConfig.VehicleHitDamage is outside its valid finite range."); return false; }
 	if (!FMath::IsFinite(KnockbackStrengthMultiplier) || KnockbackStrengthMultiplier < 0.0f) { Error = TEXT("FBallDamageConfig.KnockbackStrengthMultiplier is outside its valid finite range."); return false; }
 	return true;

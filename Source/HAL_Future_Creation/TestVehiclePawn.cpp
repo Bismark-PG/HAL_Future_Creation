@@ -232,6 +232,7 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 	}
 	ASC->InitAbilityActorInfo(State, this);
 	Health->BindToAbilitySystem(ASC);
+	if (HasAuthority() && bConfigurationValid) { ASC->InitializeCombat(RuntimeCombatConfig); }
 }
 
 void ATestVehiclePawn::UninitializeAbilitySystem()
@@ -339,6 +340,7 @@ bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
 		verify(ArcadeMovement->ApplyConfiguration(Definition->Movement));
 		verify(BallControl->ApplyConfiguration(Definition->BallControl));
 		verify(Health->ApplyConfiguration(Definition->Health));
+		RuntimeCombatConfig = Definition->Combat;
 		DefaultMappingContext = Local->DefaultMappingContext;
 		SteeringAction = Local->SteeringAction;
 		ThrottleAction = Local->ThrottleAction;

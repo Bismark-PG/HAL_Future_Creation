@@ -15,6 +15,8 @@
 #include "TestVehiclePawn.h"
 #include "TimerManager.h"
 #include "VehicleHealthComponent.h"
+#include "HALAbilitySystemComponent.h"
+#include "HALCombatAttributeSet.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
@@ -116,6 +118,15 @@ void UHALDebugHUDWidget::RefreshStatus()
 		*GetHealthStatus(Vehicle));
 	if (Vehicle)
 	{
+		const UVehicleHealthComponent* Health = Vehicle->FindComponentByClass<UVehicleHealthComponent>();
+		const UHALAbilitySystemComponent* ASC = Health ? Health->GetBoundAbilitySystem() : nullptr;
+		const UHALCombatAttributeSet* Combat = ASC ? ASC->GetSet<UHALCombatAttributeSet>() : nullptr;
+		if (Combat && ASC->IsCombatInitialized())
+		{
+			Text += FString::Printf(TEXT("Combat %s: ATK=%.1f Delta=%.2f Taken=%.2f\n"),
+				ASC->GetCombatConfigVersion() == EHALCombatConfigVersion::AttackSnapshotV1 ? TEXT("V1") : TEXT("Legacy"),
+				Combat->GetAttackPower(), Combat->GetOutputMultiplierDelta(), Combat->GetDamageTakenMultiplier());
+		}
 		// Read the game-thread body snapshot; movement's live async physics fields must not be read here.
 		const UPrimitiveComponent* Body = Cast<UPrimitiveComponent>(Vehicle->GetRootComponent());
 		const FVector Velocity = Body ? Body->GetPhysicsLinearVelocity() : FVector::ZeroVector;

@@ -6,6 +6,7 @@
 #include "VehicleKnockbackSettings.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALHealthAttributeSet.h"
+#include "HALCombatAttributeSet.h"
 
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -38,6 +39,8 @@ APassiveTestVehicle::APassiveTestVehicle()
 	AbilitySystem->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
 	HealthAttributes = CreateDefaultSubobject<UHALHealthAttributeSet>(TEXT("HealthAttributes"));
 	AbilitySystem->AddAttributeSetSubobject(HealthAttributes.Get());
+	CombatAttributes = CreateDefaultSubobject<UHALCombatAttributeSet>(TEXT("CombatAttributes"));
+	AbilitySystem->AddAttributeSetSubobject(CombatAttributes.Get());
 }
 
 UAbilitySystemComponent* APassiveTestVehicle::GetAbilitySystemComponent() const
@@ -48,6 +51,7 @@ UAbilitySystemComponent* APassiveTestVehicle::GetAbilitySystemComponent() const
 void APassiveTestVehicle::BeginPlay()
 {
 	AbilitySystem->InitAbilityActorInfo(this, this);
+	if (HasAuthority() && bConfigurationValid) { AbilitySystem->InitializeCombat(RuntimeCombatConfig); }
 	Super::BeginPlay();
 }
 
@@ -65,7 +69,11 @@ bool APassiveTestVehicle::ApplyDefinition(bool bPreview)
 	CollisionRoot->SetBoxExtent(Definition->BoxExtent);
 	VehicleConfiguration::ApplyBody(*CollisionRoot, Definition->Physics);
 	VehicleConfiguration::ApplyVisual(*VisualMesh, Definition->Visual);
-	if (!bPreview) { verify(Health->ApplyConfiguration(Definition->Health)); }
+	if (!bPreview)
+	{
+		verify(Health->ApplyConfiguration(Definition->Health));
+		RuntimeCombatConfig = Definition->Combat;
+	}
 	return true;
 }
 

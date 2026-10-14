@@ -6,6 +6,7 @@
 #include "PhysicsEngine/BodyInstance.h"
 #include "VehicleConfigurationTypes.h"
 #include "VehicleKnockbackTypes.h"
+#include "HALCombatTypes.h"
 #include "VehicleDefinition.generated.h"
 
 class UStaticMesh;
@@ -173,6 +174,9 @@ public:
 	FTransform BallControlPoint = FTransform(FVector(170, 0, 20));
 	UPROPERTY(EditAnywhere, Category = "Health")
 	FVehicleHealthConfig Health;
+	/** Explicit migration and combat initialization seed; never a live runtime HP store. */
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	FVehicleCombatConfig Combat;
 	UPROPERTY(EditAnywhere, Category = "Visual")
 	FVehicleVisualConfig Visual;
 	UPROPERTY(EditAnywhere, Category = "Local")

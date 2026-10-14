@@ -2,6 +2,7 @@
 
 #include "HAL/IConsoleManager.h"
 #include "HALHealthAttributeSet.h"
+#include "HALCombatAttributeSet.h"
 #include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHALGAS, Log, All);
@@ -17,6 +18,25 @@ void UHALAbilitySystemComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProp
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UHALAbilitySystemComponent, bHealthInitialized);
+	DOREPLIFETIME(UHALAbilitySystemComponent, bCombatInitialized);
+	DOREPLIFETIME(UHALAbilitySystemComponent, CombatConfigVersion);
+}
+
+bool UHALAbilitySystemComponent::InitializeCombat(const FVehicleCombatConfig& Config)
+{
+	FString Error;
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !Config.Validate(Error)
+		|| !GetSet<UHALCombatAttributeSet>()) { return false; }
+	if (bCombatInitialized) { return true; }
+	CombatConfigVersion = Config.Version;
+	const bool bMigrated = Config.Version == EHALCombatConfigVersion::AttackSnapshotV1;
+	// Legacy assets never silently become scaled-attack configurations.
+	SetNumericAttributeBase(UHALCombatAttributeSet::GetAttackPowerAttribute(), bMigrated ? Config.AttackPower : 0.0f);
+	SetNumericAttributeBase(UHALCombatAttributeSet::GetOutputMultiplierDeltaAttribute(), bMigrated ? Config.OutputMultiplierDelta : 0.0f);
+	SetNumericAttributeBase(UHALCombatAttributeSet::GetDamageTakenMultiplierAttribute(), bMigrated ? Config.DamageTakenMultiplier : 1.0f);
+	bCombatInitialized = true;
+	GetOwner()->ForceNetUpdate();
+	return true;
 }
 
 bool UHALAbilitySystemComponent::InitializeHealth(float SavedMaxHP)

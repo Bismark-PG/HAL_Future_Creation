@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "VehicleConfigurationTypes.h"
+#include "HALCombatTypes.h"
 #include "BasicBallActor.generated.h"
 
 class USphereComponent;
@@ -56,6 +57,9 @@ struct HAL_FUTURE_CREATION_API FBallRepState
 
 	UPROPERTY(BlueprintReadOnly, Category = "Ball|State")
 	float GlobalPickupLockEndServerTime = 0.0f;
+	/** Captured on authority launch; travels with the atomic ball gameplay state. */
+	UPROPERTY(BlueprintReadOnly, Category = "Ball|State")
+	FHALAttackSourceSnapshot AttackSnapshot;
 };
 
 /** Lightweight Chaos ball with an explicit, authority-owned gameplay state. */
@@ -156,6 +160,7 @@ protected:
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend class FControlledBallProxyPresentationTest;
+	friend class FHALCombatBallConsumptionTest;
 #endif
 	UFUNCTION()
 	void OnRep_BallRepState();
@@ -190,4 +195,6 @@ private:
 	FTimerHandle LowSpeedTimerHandle;
 	bool bResolvingDamageHit = false;
 	uint32 LastResolvedHitEventSequence = 0;
+	FBallDamageConfig RuntimeDamageConfig;
+	FHALCombatAction LaunchAction;
 };

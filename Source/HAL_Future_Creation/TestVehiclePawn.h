@@ -8,6 +8,7 @@
 #include "VehicleInputCmd.h"
 #include "VehicleNetPhysicsData.h"
 #include "VehicleConfigurationTypes.h"
+#include "HALCombatTypes.h"
 #include "TestVehiclePawn.generated.h"
 
 class UArcadeVehicleMovementComponent;
@@ -139,6 +140,7 @@ protected:
 
 private:
 	void InitializeAbilitySystem();
+	FVehicleCombatConfig RuntimeCombatConfig;
 	void UninitializeAbilitySystem();
 	void AddDefaultInputContext();
 	void RemoveDefaultInputContext();

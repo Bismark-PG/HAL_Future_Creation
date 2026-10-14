@@ -6,9 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "VehicleHealthComponent.generated.h"
 
-struct FCombatResolver;
 struct FVehicleHealthConfig;
-struct FVehicleHitContext;
 struct FOnAttributeChangeData;
 class UHALAbilitySystemComponent;
 
@@ -56,9 +54,6 @@ protected:
 	bool bLogHealthChanges = false;
 
 private:
-	friend struct FCombatResolver;
-
-	bool ApplyResolvedDamage(const FVehicleHitContext& Hit, float Damage);
 	void HandleAttributeChanged(const FOnAttributeChangeData& Data);
 	void PublishHealth();
 	TWeakObjectPtr<UHALAbilitySystemComponent> AbilitySystem;

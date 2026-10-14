@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "AbilitySystemInterface.h"
 #include "VehicleConfigurationTypes.h"
+#include "HALCombatTypes.h"
 #include "PassiveTestVehicle.generated.h"
 
 class UBoxComponent;
@@ -13,6 +14,7 @@ class UStaticMeshComponent;
 class UVehicleHealthComponent;
 class UHALAbilitySystemComponent;
 class UHALHealthAttributeSet;
+class UHALCombatAttributeSet;
 
 /** Pushable, damageable test vehicle without input, movement forces, or ball acquisition. */
 class UVehicleDefinition;
@@ -57,4 +59,7 @@ protected:
 	TObjectPtr<UHALAbilitySystemComponent> AbilitySystem;
 	UPROPERTY()
 	TObjectPtr<UHALHealthAttributeSet> HealthAttributes;
+	UPROPERTY()
+	TObjectPtr<UHALCombatAttributeSet> CombatAttributes;
+	FVehicleCombatConfig RuntimeCombatConfig;
 };
