@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-10-13",
+  "git_checked": "61508961a11baef8a96376a8786561b4aee00f4c",
+  "engine_version": "5.8.2-56702186+++UE5+Release-5.8",
+  "scope": "User-reported two-direction ball-hit HP check; analysis of completed localhost game logs, not a new gameplay run",
+  "session_utc": "2026-10-13 08:07:34 through 08:10:17",
+  "logs": [
+    {
+      "path": "Saved/Logs/MVPB_GAS_Host.log",
+      "sha256": "15ad92d47a1f81ec134b9829f7756b63252a22d243e54c449fc1fe78f1f62fd5",
+      "hp_notifications": [
+        {
+          "line": 1708,
+          "time_utc": "2026.10.13-08.09.05:521",
+          "vehicle": "BP_RoundedVehiclePawn_C_1",
+          "asc_owner": "HALPlayerState_1",
+          "old_hp": 100.0,
+          "new_hp": 75.0,
+          "no_value_change": false
+        },
+        {
+          "line": 1710,
+          "time_utc": "2026.10.13-08.09.05:523",
+          "vehicle": "BP_RoundedVehiclePawn_C_1",
+          "asc_owner": "HALPlayerState_1",
+          "old_hp": 75.0,
+          "new_hp": 75.0,
+          "no_value_change": true
+        },
+        {
+          "line": 1712,
+          "time_utc": "2026.10.13-08.09.52:470",
+          "vehicle": "BP_RoundedVehiclePawn_C_0",
+          "asc_owner": "HALPlayerState_0",
+          "old_hp": 100.0,
+          "new_hp": 75.0,
+          "no_value_change": false
+        },
+        {
+          "line": 1714,
+          "time_utc": "2026.10.13-08.09.52:472",
+          "vehicle": "BP_RoundedVehiclePawn_C_0",
+          "asc_owner": "HALPlayerState_0",
+          "old_hp": 75.0,
+          "new_hp": 75.0,
+          "no_value_change": true
+        },
+        {
+          "line": 1716,
+          "time_utc": "2026.10.13-08.09.57:043",
+          "vehicle": "BP_RoundedVehiclePawn_C_0",
+          "asc_owner": "HALPlayerState_0",
+          "old_hp": 75.0,
+          "new_hp": 50.0,
+          "no_value_change": false
+        },
+        {
+          "line": 1718,
+          "time_utc": "2026.10.13-08.09.57:045",
+          "vehicle": "BP_RoundedVehiclePawn_C_0",
+          "asc_owner": "HALPlayerState_0",
+          "old_hp": 50.0,
+          "new_hp": 50.0,
+          "no_value_change": true
+        }
+      ]
+    },
+    {
+      "path": "Saved/Logs/MVPB_GAS_Client.log",
+      "sha256": "463f15b726d4c1ff9f67293fcabc61079aa30b5f832ce3259d5b0ba40b956cf6",
+      "hp_notifications": [
+        {
+          "line": 1703,
+          "time_utc": "2026.10.13-08.09.05:529",
+          "vehicle": "BP_RoundedVehiclePawn_C_0",
+          "asc_owner": "HALPlayerState_1",
+          "old_hp": 100.0,
+          "new_hp": 75.0,
+          "no_value_change": false
+        },
+        {
+          "line": 1705,
+          "time_utc": "2026.10.13-08.09.52:478",
+          "vehicle": "BP_RoundedVehiclePawn_C_1",
+          "asc_owner": "HALPlayerState_0",
+          "old_hp": 100.0,
+          "new_hp": 75.0,
+          "no_value_change": false
+        },
+        {
+          "line": 1707,
+          "time_utc": "2026.10.13-08.09.57:050",
+          "vehicle": "BP_RoundedVehiclePawn_C_1",
+          "asc_owner": "HALPlayerState_0",
+          "old_hp": 75.0,
+          "new_hp": 50.0,
+          "no_value_change": false
+        }
+      ]
+    }
+  ],
+  "conclusions": {
+    "host_to_client_hp": "100->75 on HALPlayerState_1 in both processes",
+    "client_to_host_hp": "100->75 on HALPlayerState_0 in both processes",
+    "additional_host_hp_change": "75->50 at 08:09:57 in both processes, about 4.6 seconds after its first decrement",
+    "meaningful_hp_changes_per_process": 3,
+    "each_change_amount": 25,
+    "final_logged_hp": {
+      "HALPlayerState_0": 50,
+      "HALPlayerState_1": 75
+    },
+    "same_value_host_notifications": "Three no-op notifications caused by PostGameplayEffectExecute setting the clamped CurrentHP back through GAS. They do not apply damage again, but Health change subscribers are notified again.",
+    "gas_related_ensure_assert_fatal_or_missing_owner_found": false,
+    "entry_ui_focus_issue": "InputMode:UIOnly attempts to focus a non-focusable menu widget; present on both initial menus and client return, separate from GAS damage. Not fixed in this review.",
+    "disconnect": "Host window closes at 08:10:15; client logs HostClosedConnection and returns to Entry, consistent with host shutdown."
+  },
+  "limits": [
+    "No HALGASStatus snapshot or Ball hit EventSeq logs in this manual session; per-launch hit count/impact tier cannot be audited directly.",
+    "No recorded 100ms RTT, loss or jitter settings; localhost timestamp gaps are not RTT.",
+    "No full driving/three impact tiers/standalone Test or passive target acceptance inferred from these logs.",
+    "Actor suffixes differ between host and client; owner mappings were correlated for this session only."
+  ],
+  "status": "10-B manual two-direction HP result and replication subcheck passed; broader acceptance remains pending",
+  "code_or_asset_changes_in_review": false
+}

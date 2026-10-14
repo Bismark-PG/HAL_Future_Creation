@@ -1,6 +1,6 @@
 # MVP-B 阶段 10-B：GAS 基础与唯一 HP 来源（v0.1）
 
-日期：2026-10-13（Asia/Tokyo）。状态：**C++ 实现、Editor/Game Development 编译、16/16 自动化及无输入双进程初始 HP 复制检查通过；Test 地图的一项 GameMode 接线与真人联机回归待团队完成，10-B 尚未最终验收。** 本次依据 [10-A 规格](MVPB_Phase10A_GAS_Impact_Spec_CN_v0.1.md)，工程基点 `main / fa883fe5fc76c2bd429d9d6c54af8bf878d5c845`，实际使用 UE 5.8.2。最新状态入口为 [Project_Status_CN.md](../Project_Status_CN.md)。
+日期：2026-10-13（Asia/Tokyo）。状态：**C++、两个 Target 编译和 16/16 自动化通过；团队已完成 Test 的 PlayerStateClass 接线，本地双向命中 HP 变化及两端复制经日志复核通过。单机玩法／物理完整回归及网络模拟仍待确认，10-B 尚未最终验收。** 原施工基点 `main / fa883fe5fc76c2bd429d9d6c54af8bf878d5c845`；本次日志复核时当前提交为 `61508961a11baef8a96376a8786561b4aee00f4c`，实际使用 UE 5.8.2。设计依据见 [10-A 规格](MVPB_Phase10A_GAS_Impact_Spec_CN_v0.1.md)，最新状态入口为 [Project_Status_CN.md](../Project_Status_CN.md)。
 
 ## 1. 当前行为和职责
 
@@ -32,14 +32,18 @@
 
 保存绑定检查见 [EditorBindings JSON](MVPB_Phase10B_EditorBindings_20261013.json)：319 个项目资产在检查前后哈希一致，未调用资产 Compile／Save。
 
+团队随后在 `6150896` 提交中修改 Test 的 GameMode 蓝图；本次再次只读加载，确认 PlayerStateClass 已为 HALPlayerState，见 [团队接线后复核](MVPB_Phase10B_EditorBindings_PostTeam_20261013.json)。该次检查的 319 个资产也前后未变；不回写初次检查证据。
+
 | 地图 | 当前 GameMode | 当前 PlayerStateClass | 处理 |
 |---|---|---|---|
 | `/Game/Maps/MVPB_NetTest` | `BP_MVPB_ListenGameMode` | `HALPlayerState` | 已符合玩家 ASC 归属，无需改联机 GameMode |
-| `/Game/Maps/Test` | `BP_MVPA_GameMode` | 引擎 `PlayerState` | 必须由团队改为 `HALPlayerState`，再做单机玩家 HP 回归 |
+| `/Game/Maps/Test` | `BP_MVPA_GameMode` | 初次为引擎 `PlayerState`；团队接线后已为 `HALPlayerState` | 接线已确认，单机玩家／被动车 HP 回归待确认 |
 
 两个 GameMode 的 Default Pawn 都是已调好的 `BP_RoundedVehiclePawn`，Source=Definition，Definition 是当前玩家 DA。Test 中仍有一个被动测试车；NetTest 已没有被动车实例。代理未直接修改这些资产。
 
-### Test 地图操作步骤
+### Test 地图操作步骤（尚未接线的旧工程使用）
+
+当前分支的保存接线已正确，不需要重复改资产；以下保留给仍使用旧 GameMode 的团队副本。保存接线正确不等于单机玩法已验收。
 
 1. 保存需要保留的资产，结束 PIE／Standalone，关闭旧 Editor；禁用 Live Coding，用本次 C++ 编译后的 Editor 打开工程。新增 native 组件／反射类型应完整重编，不靠旧 Live Coding 二进制接续。
 2. Content Browser 打开 `/Game/Blueprints/Gamemode/BP_MVPA_GameMode`。进入 **Class Defaults**，在 **Classes / GameMode Classes → Player State Class** 选择 C++ **HALPlayerState**。若只见数据蓝图视图，可先点 **Open Full Blueprint Editor**；搜索 `Player State Class`。
@@ -68,6 +72,22 @@
 - 只读 Unreal 检查确认现有两个 GameMode 和 Pawn／DA 引用，319 个资产前后未变；没有代替团队执行 Test 蓝图的 PlayerStateClass 修改。
 - 隐藏 NullRHI 双进程 smoke：主机监听 UDP 7777、客户端 Join succeeded；主机两车均初始化 Owner=HALPlayerState，客户端收到两车 `Authority=0, HP=100, MaxHP=100`，主机本车 `Ready=1, Mode=Mixed`。本次无真人按键、无动态球命中、无模拟延迟，不能用它证明网络扣血后的实时观感或物理回归。测试进程已清理。
 - 详细摘要／文件哈希见 [10-B Verification JSON](MVPB_Phase10B_Verification_20261013.json)。本次只修改源码、插件／Cue 配置和留档；车辆／球／DA／地图资产保持原样。`Saved/` 报告和日志不入 Git，接收设备应使用该摘要并重新执行必要验证。
+
+### 5.1 团队双向 HP 实测日志复核
+
+2026-10-13 用户报告主机／客户端攻击均看到 HP 降至 75。本次只读复核 `Saved/Logs/MVPB_GAS_Host.log` 和 `MVPB_GAS_Client.log`，不重新运行真人命中，也不修改 C++ 或资产。完整行号、日志哈希和通知记录见 [ManualHP LogReview JSON](MVPB_Phase10B_ManualHP_LogReview_20261013.json)。
+
+| 服务器日志 UTC 时间 | 目标（本次 ASC Owner） | 主机记录 | 客户端记录 |
+|---|---|---|---|
+| 08:09:05.521 | 客户端车／HALPlayerState_1 | 100→75 | 08:09:05.529，同样 100→75 |
+| 08:09:52.470 | 主机车／HALPlayerState_0 | 100→75 | 08:09:52.478，同样 100→75 |
+| 08:09:57.043 | 主机车／HALPlayerState_0 | 75→50 | 08:09:57.050，同样 75→50 |
+
+两端均有三次实际 HP 减少，每次为 25；最后记录主机车 50、客户端车 75，MaxHP 均 100。第三次发生在主机车首次扣血约 4.6 秒后，不能把它和同一时刻的重复通知混为一谈。主机额外的 `75→75`／`50→50` 来自 `PostGameplayEffectExecute` 将钳制结果经 `SetCurrentHP` 再设置，触发相同数值通知；没有再次扣血。Health 通知订阅者仍会收到这次无变化通知，后续受击演出不能按通知次数判定攻击次数。
+
+本次未找到 GAS 缺 Owner／Avatar、Ensure、Assert 或 Fatal；但日志没有 `HALGASStatus` 快照，也没有球的 `EventSeq` 命中日志，不能据此逐发审计碰撞回调／冲击档位。7～8 ms 是同机两份日志的时间差，不能当作实测 RTT。该次没有记录约 100 ms RTT／丢包／抖动模拟，因此仅标记 **本地双向扣血与属性复制子项通过**。
+
+单独记录未修问题：Entry 菜单 `InputMode:UIOnly` 尝试聚焦不可聚焦的 Widget，两端首次菜单及客户端返回菜单时报错；与上述 GAS 扣血无关，应后续调整菜单焦点配置／目标。客户端 08:10:15 的 NetworkFailure 紧随主机关闭游戏窗口，随后返回 Entry，符合主机退出流程，不是命中时断线。其余启动阶段分析工具 DLL／Editor UI 注册／渲染警告不作为 GAS 失败证据。
 
 ## 6. 后续入口
 

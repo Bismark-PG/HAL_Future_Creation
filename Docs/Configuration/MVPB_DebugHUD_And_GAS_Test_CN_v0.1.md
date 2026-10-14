@@ -84,4 +84,4 @@ hal.DebugHUD 0
 - 一次额外截图辅助脚本错误调用了 `-game` 下不可用的 EditorLevelLibrary 接口，导致 EditorScriptingUtilities 崩溃；最终主机改用直接截图命令、客户端改用已加载 World 查询后截图。此为截图工具失误，最终两端未见相同异常；不将失败运行作为通过证据。没有为它修改玩法或 HUD 规则。
 - 详细摘要见 [HUD Verification JSON](MVPB_DebugHUD_Verification_20261013.json)，截图／日志位于 `Saved/`，不入 Git。测试进程已清理，没有修改资产；`git diff -- Content` 为空。
 
-真实双端驾驶、两方向球命中扣血、模拟延迟和团队 UI／输入观感仍需人工确认；初始数值与截图检查不能替代 10-B 真人验收。
+后续团队测试更新：用户已完成本地双向命中 HP 检查，双方日志确认每次减少 25 且收敛，见 [HP 日志复核](../Combat/MVPB_Phase10B_ManualHP_LogReview_20261013.json)。真实双端驾驶的完整矩阵、模拟延迟和团队 UI／输入观感仍待确认；不将本地 HP 子项通过扩大为 10-B 全部验收。
