@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "HALLegacyCombatTestRules.h"
 #include "../CombatResolver.h"
 #include "../HALAbilitySystemComponent.h"
 #include "../HALCombatAttributeSet.h"
@@ -26,6 +27,7 @@ namespace
 {
 	struct FHALCombatTestWorld
 	{
+		FScopedHALLegacyCombatTestRules LegacyRules;
 		UWorld* World;
 		FHALCombatTestWorld()
 		{

@@ -5,7 +5,7 @@
 ## 1. 先读什么、先检查什么
 
 1. 完整阅读根目录 [AGENTS.md](../AGENTS.md) 和本文件。
-2. 当前先阅读 [10-D统一冲击施工／手工迁移／验收](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)及[10-D验证摘要](Combat/MVPB_Phase10D_Verification_20261015.json)；然后阅读 [10-C实施／团队完成反馈](Combat/MVPB_Phase10C_Implementation_CN_v0.1.md)、[10-C原验证摘要](Combat/MVPB_Phase10C_Verification_20261014.json)和 [10月15日跨设备接续核对](Combat/MVPB_Phase10C_Handoff_20261015.json)。规则背景见 [10-C独立伤害](Combat/MVPB_Phase10C_Combat_Plan_CN_v0.1.md)、[10-A规格](Combat/MVPB_Phase10A_GAS_Impact_Spec_CN_v0.1.md)、[GAS团队总体方案](Combat/MVPB_GAS_Architecture_Overview_CN_v0.1.md)及[保存资产基线](Combat/MVPB_Phase10A_Baseline_20260930.json)。10-B已有双端操作见 [HP检查／调试HUD](Configuration/MVPB_DebugHUD_And_GAS_Test_CN_v0.1.md)。
+2. 当前先阅读 [10-D统一冲击施工／手工迁移／验收](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)，其中第9节为最新线程修复；配合[本次修复验证](Combat/MVPB_Phase10D_ThreadFix_Verification_20261015.json)和[原10-D验证摘要](Combat/MVPB_Phase10D_Verification_20261015.json)区分时间点。然后阅读 [10-C实施／团队完成反馈](Combat/MVPB_Phase10C_Implementation_CN_v0.1.md)、[10-C原验证摘要](Combat/MVPB_Phase10C_Verification_20261014.json)和 [10月15日跨设备接续核对](Combat/MVPB_Phase10C_Handoff_20261015.json)。规则背景见 [10-C独立伤害](Combat/MVPB_Phase10C_Combat_Plan_CN_v0.1.md)、[10-A规格](Combat/MVPB_Phase10A_GAS_Impact_Spec_CN_v0.1.md)、[GAS团队总体方案](Combat/MVPB_GAS_Architecture_Overview_CN_v0.1.md)及[保存资产基线](Combat/MVPB_Phase10A_Baseline_20260930.json)。双端命令与物理执行日志见 [HP检查／调试HUD](Configuration/MVPB_DebugHUD_And_GAS_Test_CN_v0.1.md)。
 3. 以 [MVP-B Listen Server v0.2 计划](MVP_B_Listen_Server_Plan_CN_v0.2.md)和对应 `Docs/Networking/` 实施记录确认已存在的网络边界。早期 [MVP-A→MVP-B 交接](MVP_A_to_MVP_B_Handoff_CN_v1.0.md)用于追踪背景，不能把旧参数当成当前 DA。
 4. 在本机执行 `git status --short`、`git branch --show-current`、`git rev-parse HEAD`，对照 `.uproject`、模块 `Build.cs`、`Source/`、`Config/`、相关测试和邻近说明；以 Editor 的 About 或引擎 `Engine/Build/Build.version` 核对实际补丁版本。
 5. 修改前先汇报当前工程与本记录的差异和本次任务范围；保留已有改动。不因历史记录写了“下一步”就自动施工未获用户授权的环节。
@@ -14,14 +14,14 @@
 
 | 项目 | 2026-10-15 接收设备核对结果与团队反馈 |
 |---|---|
-| 开发阶段 | MVP-B 10-D；用户已同意方案并授权施工，统一档位、抗性／免疫、全来源接触、有效档位脱球和网络物理动作已写入C++；10-D手工DA迁移／真人验收待完成 |
-| 当前本机分支／代码提交 | `main / 1eb02c4c8cae47cd010337912bbd165abdfce256`；接收10-C时工作区干净，10-D开工前已有交接／讨论留档改动并保留。本轮源码／文档待正常提交／Push，没有代替用户提交 |
+| 开发阶段 | MVP-B 10-D；统一档位、抗性／免疫、全来源接触、有效档位脱球和网络物理动作已编码；团队四份DA迁移已确认。Physics Action线程缺陷本次修复，真人Heavy及完整网络验收仍待复测 |
+| 当前本机分支／代码提交 | `main / 79a73f6db65e965569bd7e1cf92027c7d387029c`；原10-D源码／留档在该提交。本次线程修复、回归测试和文档为未提交改动；四份团队DA改动原样保留，不代替用户提交／Push |
 | 引擎基线 | 原10-C交付为UE `5.8.3-58210709+++UE5+Release-5.8`；本机仅有 `5.8.2-56702186+++UE5+Release-5.8`，本次在可用5.8.2重编并执行自动化，不能写成5.8.3复测通过；团队仍需统一补丁 |
 | 本机运行前置 | 本轮已重新构建当前源码，旧10月13日Editor DLL不再作为验证依据；后续改C++仍需退出Editor并完整重编，不能混用Live Coding旧二进制 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
 | GAS 当前实现 | 原PlayerState／Avatar与Passive ASC沿用；新增Impact AttributeSet的TierReduction，独立State.Combat.ImpactImmune；GE可修改整数降档，运动Buff不在本环节 |
-| 当前 HP／冲击 | 10-C伤害／快照保留；10-D代码支持固定档位攻击、自然接触选档＋来源封顶、统一降档／免疫和有效档位脱球。保存资产仍需团队显式启用TieredV1，总开关Legacy时继续旧行为 |
-| 当前 Editor 接线 | 不修改任何蓝图／DA／地图。原10-C迁移保持，新增10-D四份DA操作及验收见施工文档第4～5节；原生ImpactReceiver自动创建，通常无需Event Graph接线 |
+| 当前 HP／冲击 | 10-C伤害／快照保留；10-D线程读写已改为同帧Internal V／W与Internal冲量。真实Solver回归和全套28项通过；保留水平补足算法和DA，真实Heavy双向命中手感尚待团队复测 |
+| 当前 Editor 接线 | 团队四份DA有未提交修改并保留；本轮只读采样确认四份Impact/CollisionImpacts版本TieredV1，球Heavy、全局拾取锁1.0秒，Heavy响应表及车辆原调参保持；采样前后320资产未变。详情见10-D第7～8节 |
 | 测试地图 | 单机回归 `/Game/Maps/Test`；联机玩法 `/Game/Maps/MVPB_NetTest`；完整菜单 Host／Join 从 `/Game/Maps/MVPB_NetEntry` 启动 |
 
 代码提交号是本次交接的比较基点，后续提交会变化。10-B原基点为fa883fe5，10-C原施工基点为272ba87；原验证JSON记录当时文件，不回写历史证据。本机接续核对73份源码，29份原始SHA一致，44份仅LF／CRLF换行差异，归一化后全部一致。既有源码／DA和留档已包含在当前提交；本轮接续反馈／状态更新仍需正常提交和Push，本次没有联网核查远端。
@@ -37,7 +37,7 @@
 | 10-B | 两个 Development Target 编译、自动化 16/16、Test／NetTest 保存接线确认；双向命中 HP 日志复核通过。2026-10-14 用户确认驾驶／持球／冲击测试完成，并同意进入 10-C | 新结论来自团队反馈，测试日志尚未提供／可能未上传；未说明测试补丁版本、逐地图／被动车子项及约 100 ms RTT／丢包／抖动工况，不把这些细项写成已有日志证明 |
 | 10-B 调试显示补充 | 新增 C++ 半透明只读 HUD，`hal.DebugHUD 1/0`；`HALGASStatus` 增加 PlayerId；最终两个 Target 编译、既有自动化 16/16 及双端初始数值／实际渲染检查通过 | 自动化在最终字号微调前执行，微调后重新编译并看截图；不改玩法或资产。后续驾驶／持球／冲击回归已有团队完成反馈，具体延迟工况和 HUD 观感未单独留档，详见操作说明和 [HUD 验证摘要](Configuration/MVPB_DebugHUD_Verification_20261013.json) |
 | 10-C | 共用Action／请求／结果、快照、战斗Attribute和独立伤害完成；原UE5.8.3两个Target／22项自动化通过。用户2026-10-15报告另一设备已完成相关资产更新和测试，三个DA迁移已提交 | 10-D本轮只读导出确认三份Damage/Combat配置为AttackSnapshotV1，并验证当前代码下的初始HP复制；没有重做10-C真人扰动验收，不覆盖用户已完成反馈 |
-| 10-D | 全来源档位、GAS降档／免疫、统一脱球、网络物理Authority动作及诊断已编码，最终自动化27/27通过、0警告／0失败 | Editor／Game构建及检查结果见10-D验证摘要；DA显式迁移、5.8.3复测、真人低延迟／网络扰动物理验收待团队完成 |
+| 10-D | 全来源档位、GAS降档／免疫、统一脱球及动作已编码，团队保存DA迁移已只读确认；本次线程修复后Editor／Game成功，28/28自动化通过，含真实Solver生产Handler回归 | V1双进程Join／初始HP复制、主机自然接触动作消费通过，无线程Ensure；未主动发射球或验证客户端受击动作，不能当作Heavy双向真人／扰动验收。5.8.3未复测 |
 | 10-E／10-F | 已拆分范围及门槛 | 尚未施工／验收；不提前引入技能或运动Buff框架 |
 | 独立弹簧拳原型 | 另一成员负责；已有伸缩状态机、服务器目标检测及每次攻击去重 | 用户指定阶段 10 完成后再接伤害／冲击，本轮及 10-C 不改该模块；原型尚不具备标准战斗结算与状态复制 |
 
@@ -82,14 +82,16 @@
 当前必须记住的限制：
 
 1. 伤害／冲击继续独立，10-D已实现档位与抗性；自动化不代表新碰撞标尺、墙角及真人网络手感已通过。自然接触补足是受预算限制的策略，需实测校准。
-2. **仅启用TieredV1后**脱球消费实际档位，旧原始冲量路径退出；当前保存资产未由代理迁移，不能将Legacy运行结果误作10-D完成验收。
+2. **仅启用TieredV1后**脱球消费实际档位，旧原始冲量路径退出。最新团队日志确认两辆玩家运行V1，免疫命中实际档位None、伤害25；只确认该子项，不等于完整物理／网络验收。
 3. 等待界面不是完整冻结／比赛流程；目前无正式淘汰、观战、胜负、主机迁移或重连闭环。
 4. 过去曾有自制网格误放 `/Engine/EditorMeshes` 的资源缺失问题，当前提交已修正相关引用。共享自制资产应在项目 `/Game` 路径，不能依赖仅存在于某台电脑引擎安装目录的文件。
 5. 本次实测发现 Entry UIOnly 聚焦不可聚焦 Widget 的菜单错误，待整理焦点配置／目标；不影响已验证的 GAS HP 复制。主机的 `75→75` 等同值属性通知不是二次伤害；Health 订阅者仍收到通知，不能按其次数触发未来受击演出。
+6. 命中球消费后转Free，现有全局拾取锁到期即可被满足条件的车辆捕获。已复核免疫目标约0.234秒后取得球；不是免疫赋予接球能力。可调球DA的Post Launch Pickup Lock Duration延后所有车辆拾取；目前无独立“被命中者禁捕时间”，若需要应另行施工，详见[10-D排查第7节](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md#7-团队现象排查冲击免疫后很快捕获命中球2026-10-15)。
+7. `ApplyAction_Internal`误用GameThreadAPI的缺陷**已修复并通过真实Solver测试**，本次不改DA。新版主动攻击仍按扣除自然响应后的水平补足处理，没有恢复旧完整追加；剩余水平手感差异需同参数实测后另定。修复和验收入口见[10-D第9节](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md#9-冲击physics-action线程修复2026-10-15)，原第8节是历史诊断。
 
 ## 6. 下一环节和待确定项
 
-10-D已获授权并施工，规则和来源职责以 [施工记录](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)为准。接下来先由团队按第4节迁移玩家／被动车／球，最后启用Combat的Collision Impacts总开关；按第5节验证档位、抗性、免疫、脱球、重复接触和双端物理收敛。在此之前不标记10-D整体验收完成，不推进10-E／10-F或独立弹簧拳接入。
+10-D规则和来源职责以 [施工记录](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)为准。团队四份DA版本已只读核对，不要求重置／重做迁移。线程修复已编码、双Target编译及28项自动化通过，当前按第9节在原参数下复验Heavy双向主动球、降档／免疫、接触／脱球／后坐，再做既定网络扰动；保留水平补足，是否恢复完整追加待另定。第7节独立命中目标禁捕方案继续只留档。取得完整真人反馈前不标记10-D整体验收完成，不推进10-E／10-F或独立弹簧拳接入。
 
 旧10-C操作只用于未迁移副本，不要求团队重复已完成内容。本机5.8.2验证只说明当前可用环境结果，5.8.3及四台有线PC仍需另记。跨设备提交时应一起带上源码、文档及团队手工保存的DA，不提交Saved／Binaries。
 
@@ -98,7 +100,7 @@
 | 何时确定 | 尚需具体确定的内容 |
 |---|---|
 | 10-C 后续证据补充 | 已有迁移提交、新资产哈希和团队完成反馈；若要宣称特定RTT／丢包／抖动门槛已通过，再补当次细项日志；本机重编后可另导出V1字段与运行状态，不覆盖旧记录 |
-| 10-D 团队验收 | 手工显式迁移；确认新碰撞标尺50/125/300与Medium脱球测试起点是否合适；完成免疫／连续接触／双端及网络扰动物理测试 |
+| 10-D 团队验收 | 保存的显式迁移已确认；线程修复后复验Heavy双向命中与翻转，核对保留补足的手感；确认碰撞标尺50/125/300与Medium脱球起点，完成免疫／连续接触／双端及网络扰动 |
 | 10-E 编码前 | 首个主动 GA／持续 GE 的实际内容、叠加／刷新／移除策略 |
 | 10-F 编码前 | GAS 有效运动参数进入物理帧历史、重模拟恢复和校正的机制 |
 | 团队环境变更时 | 5.8.3 实际编译／资产加载／双进程联机验证及统一升级记录；四台有线 PC 的最终测试证据 |
@@ -128,3 +130,7 @@
 - 2026-10-15：接收main/1eb02c4，工作区起始干净；73份源码与10-C清单一致（44份仅换行差异），三个DA迁移已提交，记录用户另一设备完成资产更新／测试的反馈。原文档待迁移状态已更新；本机UE5.8.2及10月13日旧DLL尚需统一版本／完整重编，本轮仅读码与留档，不启动10-D。
 - 2026-10-15：讨论10-D全来源档位制度，确认冲击免疫保留Chaos自然碰撞，记录普通碰撞选档、降档脱球、重复事件／连续接触与物理追加响应的风险；只留讨论文档，未改玩法／资产或开展编译测试。
 - 2026-10-15：用户同意方案并授权10-D。完成原生全来源Receiver、显式版本门槛、发射档位快照、独立GAS降档／免疫、有效档位脱球、Authority网络物理动作及诊断。UE5.8.2 Editor／Game通过，最终27/27自动化0警告／0失败；只读确认10-C迁移保持、10-D字段仍Legacy，320资产未变；双进程初始连接／HP复制通过并清理。首轮失败与修复见施工记录。当前等待团队手工迁移及真实TieredV1物理／网络验收，未开展10-E／10-F或弹簧拳接入。
+- 2026-10-15：当前main/79a73f6，四份DA有团队未提交修改并保留。按用户要求更新[双端启动说明](Configuration/MVPB_DebugHUD_And_GAS_Test_CN_v0.1.md#1-在一台电脑启动两个独立游戏进程)，两端默认开启HUD及GAS／球／Combat／车辆网络／历史日志，保留独立Host／Client日志文件。仅核对源码CVar与PowerShell语法，不新编译／启动游戏或宣称团队迁移已验收。
+- 2026-10-15：复核用户本次既有Host日志：两辆玩家ImpactVersion=1，免疫目标被球命中仍扣25、实际档位None；球先Free再于0.234秒后Controlled，符合拾取锁＋自动捕获管线。留档现有球DA全局拾取锁路径、作用范围与独立命中目标锁的后续建议；仅分析／文档，未改源码或资产，未新编译／运行测试，不把局部日志扩大为10-D整体验收。
+- 2026-10-15：用户要求独立命中目标禁捕只留档；另报告Heavy弱于10-D前。核对最新三次Heavy均3→3且未免疫；只读DA确认四份Version1、Heavy表及车辆原调参未变，球为Heavy、拾取锁1秒，320资产采样前后不变。两端日志均Ensure于ApplyAction_Internal，经本机UE源码确认物理线程误用GameThreadAPI；另定位主动攻击水平由完整追加改为补足。记录原27项不覆盖真实动作线程、待修复与同参数复验；本轮无源码／资产修改或新编译／动态测试。
+- 2026-10-15：随后用户授权修复。改用Internal同帧V／W及线性／角冲量，新增可关闭物理执行日志和真实TaskGraph Solver回归；旧实现红测复现Ensure／错误结果，修复后Editor／Game成功、28/28自动化0警告／0失败。旧Legacy夹具与已迁移全局DA配置隔离，仅测试内存修改并恢复。当前V1双进程监听7793、Join／两车HP100复制及主机自然接触动作消费通过，无线程Ensure；未测试主动Heavy球／客户端受击／真人手感及网络扰动。320资产前后未变，两个专用进程清理；DA与水平补足算法不改，禁捕设计仍延期。详见[本次验证摘要](Combat/MVPB_Phase10D_ThreadFix_Verification_20261015.json)。

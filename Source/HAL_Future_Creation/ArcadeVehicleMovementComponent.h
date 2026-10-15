@@ -72,6 +72,7 @@ public:
 
 private:
 	friend class FVehicleWallEscapeContactTest;
+	friend class FHALImpactPhysicsThreadTest;
 	void SimulateVehicleStep(const FVehicleNetInputData& StepInput, float DeltaTime);
 	bool UpdateGroundContact(const FVector& BodyLocation, FVector& OutGroundNormal) const;
 	void UpdateWallEscape(const FTransform& BodyTransform, const FVector& GroundNormal, const FVector& ForwardDirection,

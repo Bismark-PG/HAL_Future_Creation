@@ -1,6 +1,6 @@
 # MVP-B 调试 HUD 与 10-B 双端 HP 检查（v0.1）
 
-日期：2026-10-13。范围：只读诊断与测试操作；不改车辆／球 DA、输入、物理、伤害规则或蓝图资产。适用当前 UE 5.8.2 工程。10-B 真人验收仍须按 [实施文档](../Combat/MVPB_Phase10B_GAS_Foundation_CN_v0.1.md)完成，状态入口见 [Project_Status](../Project_Status_CN.md)。
+初版日期：2026-10-13；双端自动调试启动命令更新：2026-10-15。范围：只读诊断与测试操作；不改车辆／球 DA、输入、物理、伤害规则或蓝图资产。当前10-D迁移／验收见[冲击施工记录](../Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)，10-B历史HP子项按本文保留，最新状态见 [Project_Status](../Project_Status_CN.md)。
 
 ## 1. 在一台电脑启动两个独立游戏进程
 
@@ -11,14 +11,16 @@
 **第一窗口：准备作为主机**
 
 ```powershell
-& 'D:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\UnrealProjects\HAL_Future_Creation\HAL_Future_Creation.uproject' '/Game/Maps/MVPB_NetEntry' -game -log -windowed -ResX=960 -ResY=540 '-abslog=D:\UnrealProjects\HAL_Future_Creation\Saved\Logs\MVPB_GAS_Host.log' '-ExecCmds=hal.DebugHUD 1,hal.GASLog 1,hal.BallNetLog 1'
+& 'D:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\UnrealProjects\HAL_Future_Creation\HAL_Future_Creation.uproject' '/Game/Maps/MVPB_NetEntry' -game -log -windowed -ResX=960 -ResY=540 '-abslog=D:\UnrealProjects\HAL_Future_Creation\Saved\Logs\MVPB_GAS_Host.log' '-ExecCmds=hal.DebugHUD 1,hal.GASLog 1,hal.BallNetLog 1,hal.CombatLog 1,hal.VehicleNetLog 1,hal.VehicleHistoryLog 1,hal.ImpactPhysicsLog 1'
 ```
 
 **第二窗口：准备作为客户端**
 
 ```powershell
-& 'D:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\UnrealProjects\HAL_Future_Creation\HAL_Future_Creation.uproject' '/Game/Maps/MVPB_NetEntry' -game -log -windowed -ResX=960 -ResY=540 '-abslog=D:\UnrealProjects\HAL_Future_Creation\Saved\Logs\MVPB_GAS_Client.log' '-ExecCmds=hal.DebugHUD 1,hal.GASLog 1'
+& 'D:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\UnrealProjects\HAL_Future_Creation\HAL_Future_Creation.uproject' '/Game/Maps/MVPB_NetEntry' -game -log -windowed -ResX=960 -ResY=540 '-abslog=D:\UnrealProjects\HAL_Future_Creation\Saved\Logs\MVPB_GAS_Client.log' '-ExecCmds=hal.DebugHUD 1,hal.GASLog 1,hal.BallNetLog 1,hal.CombatLog 1,hal.VehicleNetLog 1,hal.VehicleHistoryLog 1,hal.ImpactPhysicsLog 1'
 ```
+
+两端的开关完全相同，Host／Join换图后仍保留在各自进程内；退出后不改写项目配置。它们分别开启文字HUD、GAS属性、球状态／命中、权威战斗结算、车辆网络输入／发射和物理帧历史日志。`hal.CombatLog`的结算内容来自服务器，客户端开启后也不会自行结算伤害／冲击，所以两端日志条数和内容无需完全相同。此版本不自动开启碰撞球形Gizmo，也不注入延迟／丢包。
 
 1. 两个游戏窗口都先出现 Entry 菜单。第一端点 **Host**，进入 `MVPB_NetTest`，成为 Listen Server。
 2. 第二端 Join 输入 **`127.0.0.1`**，点 **Join**。不要加 `:7777`；菜单会附加端口。两台真实电脑时改填主机有线网卡 IPv4，不能继续用 `127.0.0.1`。
@@ -49,7 +51,7 @@ HALGASStatus
 
 每次命中后，观察 **两个窗口的玩家列表**，等复制更新后应得到表中相同结果。也可双方再次执行 `HALGASStatus` 将当时数值落日志。如果 B 第一次直接降到 50、未受击的 A 也掉血、HP 自动恢复 100，或两端持续不同，都需要记录并反馈。客户端显示可以晚于服务器；HUD 每 0.1 秒刷新，本次要求最终收敛，不要求同一渲染帧变更。
 
-继续有效命中会得到 `75→50→25→0`；需要恢复初始 100 时结束并新开一局，重新 Host／Join。**不要将 HP=0 后冲击验收混入本步**：旧命中入口在 HP=0 时跳过额外冲击的已知限制留待 10-C／10-D。
+继续有效命中会得到 `75→50→25→0`；需要恢复初始 100 时结束并新开一局，重新 Host／Join。本文表格验证单次HP变化；旧入口HP=0后跳过额外冲击的限制已在10-C解除，当前有效冲击与HP独立，完整档位／免疫／脱球仍按10-D矩阵验收。
 
 ## 3. 日志在哪里
 
@@ -61,6 +63,10 @@ HALGASStatus
 这是两个独立文件；同名文件下一次启动会更新，重要结果在下次运行前另存。`-log` 打开的日志窗口也可实时查看。双进程 `-game` 的全部日志不会集中到完整 Editor 的 Output Log。
 
 搜索 **`HAL GAS:`** 可找到手动状态快照，搜索 **`GAS HP:`** 可找到 `hal.GASLog 1` 启用后的属性变化，例如 `100.0 -> 75.0`；可同时搜索 `Ready=`、`PlayerId=`。主机 `hal.BallNetLog 1` 用于补充权威球事件。客户端日志的复制通知与主机数值初始化／扣血记录不要求相同条数，以目标 HP 单次变化和最终一致为准。
+
+10-D额外搜索主机日志中的`HAL Combat:`，核对`SourceTier`、`EffectiveTier`、`ImpactImmune`和`Drop`。需要当时所有车辆状态时，在进入测试地图、双方完成加入后再手动执行`HALGASStatus`；不把一次性状态命令放在Entry启动参数里冒充持续日志。`HALImpactDebug <PlayerId> <TierReduction> <Immune>`按目标实际编号由主机执行，不自动给任何玩家加免疫或降档。
+
+物理线程修复后的新开关`hal.ImpactPhysicsLog 1`输出`Vehicle impact physics:`：含Event、实际物理Frame、Internal BeforeV／BeforeW和QueuedDV／QueuedDW。它证明动作已经被物理回调消费，而不只是在游戏线程排队；Queued是将积分的变化量，不是碰撞／阻尼之后的最终速度。设为0关闭，Shipping不输出。上面的两条启动命令已加入此开关。
 
 ## 4. HUD 开关、内容和边界
 

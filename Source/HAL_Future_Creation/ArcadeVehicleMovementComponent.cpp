@@ -21,6 +21,9 @@
 static TAutoConsoleVariable<int32> CVarHALVehicleHistoryLog(
 	TEXT("hal.VehicleHistoryLog"), 0,
 	TEXT("Network Physics input source, at most once per 60 physics frames: 0=off, 1=on."));
+static TAutoConsoleVariable<int32> CVarHALImpactPhysicsLog(
+	TEXT("hal.ImpactPhysicsLog"), 0,
+	TEXT("Log consumed impact actions, physics frame, current Internal V/W and queued deltas. 0=off, 1=on."));
 #endif
 
 UArcadeVehicleMovementComponent::UArcadeVehicleMovementComponent()
@@ -314,16 +317,32 @@ void UArcadeVehicleMovementComponent::ApplyAction_Internal(
 	{
 		if (!bShouldRunPhysics.Load() || !Impact->IsValid() || !UpdatedPrimitive) { return; }
 		FBodyInstance* Body = UpdatedPrimitive->GetBodyInstance();
-		if (Body && Body->GetBodyInstanceAsyncPhysicsTickHandle().IsValid())
+		FBodyInstanceAsyncPhysicsTickHandle PhysicsHandle = Body
+			? Body->GetBodyInstanceAsyncPhysicsTickHandle() : FBodyInstanceAsyncPhysicsTickHandle();
+		if (PhysicsHandle.IsValid())
 		{
 			const auto& Handle = Body->GetPhysicsActor();
-			FPhysicsInterface::AddVelocity_AssumesLocked(Handle,
-				Impact->ResolveLinearDelta(FPhysicsInterface::GetLinearVelocity_AssumesLocked(Handle)), true);
+			// This callback runs in Chaos: AssumesLocked V/W getters and SetAngularVelocity use the GT API.
+			// Resolve against the same Internal frame and enqueue both impulses on that Internal body.
+			const FVector BeforeV = PhysicsHandle->V();
+			const FVector BeforeW = PhysicsHandle->W();
+			const FVector DeltaV = Impact->ResolveLinearDelta(BeforeV);
+			const FVector DeltaW = Impact->bSetPlanarAngularVelocity
+				? Impact->ResolveAngularVelocity(BeforeW) - BeforeW : FVector::ZeroVector;
+			FPhysicsInterface::AddVelocity_AssumesLocked(Handle, DeltaV, true);
 			if (Impact->bSetPlanarAngularVelocity)
 			{
-				FPhysicsInterface::SetAngularVelocity_AssumesLocked(Handle,
-					Impact->ResolveAngularVelocity(FPhysicsInterface::GetAngularVelocity_AssumesLocked(Handle)));
+				FPhysicsInterface::AddAngularVelocityInRadians_AssumesLocked(Handle, DeltaW, true);
 			}
+#if !UE_BUILD_SHIPPING
+			if (CVarHALImpactPhysicsLog.GetValueOnAnyThread() > 0)
+			{
+				auto* Solver = Handle->GetSolver<Chaos::FPhysicsSolver>();
+				UE_LOG(LogTemp, Log, TEXT("Vehicle impact physics: %s Event=%u Frame=%d BeforeV=%s BeforeW=%s QueuedDV=%s QueuedDW=%s"),
+					*GetNameSafe(GetOwner()), Impact->EventSequence, Solver ? Solver->GetCurrentFrame() : INDEX_NONE,
+					*BeforeV.ToCompactString(), *BeforeW.ToCompactString(), *DeltaV.ToCompactString(), *DeltaW.ToCompactString());
+			}
+#endif
 		}
 		return;
 	}

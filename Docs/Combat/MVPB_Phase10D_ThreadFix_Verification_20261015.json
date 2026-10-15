@@ -1,0 +1,390 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-10-15",
+  "date_timezone": "Asia/Tokyo",
+  "branch": "main",
+  "git_base": "79a73f6db65e965569bd7e1cf92027c7d387029c",
+  "uncommitted_delivery": true,
+  "status": "thread_bug_fixed_build_and_automation_passed_manual_gameplay_retest_pending",
+  "scope": "Use the current Chaos Internal frame for Impact Physics Action V/W and linear/angular impulses; preserve DA values, horizontal supplement and gameplay rules.",
+  "engine_version": "5.8.2-56702186+++UE5+Release-5.8",
+  "other_engine_note": "Previous device used 5.8.3 CL58210709. That patch is not installed here and was not tested.",
+  "builds": {
+    "Editor_Win64_Development": "Succeeded",
+    "Game_Win64_Development": "Succeeded",
+    "method": "Installed engine Build.bat with Editor closed; no Live Coding"
+  },
+  "reproduction": {
+    "old_implementation_red_test": {
+      "succeeded": 0,
+      "failed": 1,
+      "reported_same_game_thread_ensure": true,
+      "medium_expected_z": 500,
+      "medium_actual_z": 600,
+      "heavy_expected_z": 750,
+      "heavy_actual_z": 730,
+      "faster_ascent_expected_z": 900,
+      "faster_ascent_actual_z": 1650,
+      "angular_result": "Internal W retained old rotation instead of the requested planar flip",
+      "harness_note": "Initial red harness also reported PostSolve OS-thread identity failures. Final harness records PreSim identity; solver work may execute on a frozen GT, with actual worker coverage required overall."
+    },
+    "first_full_suite": {
+      "succeeded": 18,
+      "failed": 10,
+      "cause": "Legacy combat/config fixtures inherited the team-migrated TieredV1 project DA",
+      "resolution": "Scope only those test fixtures to in-memory Legacy and restore source/cache at teardown. No DA or production migration guard changed."
+    }
+  },
+  "automation": {
+    "filter": "HAL.FutureCreation",
+    "succeeded": 28,
+    "succeeded_with_warnings": 0,
+    "failed": 0,
+    "not_run": 0,
+    "new_test": "HAL.FutureCreation.Impact.SolverThreadExecutionAndReplay",
+    "coverage": "Real isolated Chaos TaskGraph solver executes production ApplyAction_Internal in PreSim, measures integrated Internal V/W in PostSolve, includes actual worker thread. Light/Medium/Heavy, restored-state same-payload replay, preserved yaw/faster ascent, invalid/inactive no-op.",
+    "limitation": "Replay resets Internal state in the isolated solver; this is not a live network rewind/packet-loss acceptance test.",
+    "thread_ensures": 0,
+    "tests": [
+      {
+        "path": "HAL.FutureCreation.Ball.ControlledProxyPresentation",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Ball.VehicleExitCleanup",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.BallMigrationAndConsumption",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.ConfigurationAndContext",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.DamageImpactIndependence",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.PulsesTargetsAndDedup",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.PureDamageAndActualRemoval",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.SnapshotAndSourceLifetime",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.CombatRulesSource",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.InitializationAndIsolation",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.NoFallback",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.PlayerAndBallInitialization",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.Validation",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.GAS.Health.BoundsAndIsolation",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.GAS.Health.PlayerStateAvatarLifecycle",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.AllSourcesAndContactEpisodes",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.AuthorityPhysicsReplayContract",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.BallSnapshotDropAndCallbackMerge",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.GASResistanceAndIndependentDamage",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.SolverThreadExecutionAndReplay",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.TiersCalibrationAndEnergyBudget",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.PhysicsInput.HistorySerialization",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.PhysicsInput.Validation",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.Blend",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.ComponentContact",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.Eligibility",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.ThrottleProjection",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.YawControl",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      }
+    ]
+  },
+  "smoke": {
+    "mode": "Hidden UnrealEditor -game -NullRHI, two processes, loopback",
+    "map": "/Game/Maps/MVPB_NetTest",
+    "port": 7793,
+    "host_join_succeeded": true,
+    "host_ready": "Ready=1 CombatVersion=1 ImpactReady=1 ImpactVersion=1 HP=100",
+    "client_health_records": 2,
+    "host_physics_action_records": 4,
+    "client_physics_action_records": 0,
+    "observed": "Host natural ground-contact rules emitted and consumed actions for both spawned cars. Client joined and received initial HP for both cars.",
+    "thread_ensure_or_assertion_count": 0,
+    "limitation": "No human input, match Start, launched ball, client hit action, visuals, latency perturbation or four-PC test performed. Engine widget factory startup warnings remain; no claim of zero runtime warnings.",
+    "process_cleanup": {
+      "host_pid": 55156,
+      "client_pid": 42724,
+      "cleaned_up_utc": "2026-10-15T08:32:03.2612207Z",
+      "identity_check": "Matched PID + installed UnrealEditor executable + exact project and task log arguments before Stop-Process",
+      "remaining_task_processes": 0
+    }
+  },
+  "asset_protection": {
+    "before_count": 320,
+    "after_count": 320,
+    "changed_count": 0,
+    "scope": "Compared against this repair start, including all four existing uncommitted team-migrated DAs. Not compared to pre-team-migration Git HEAD.",
+    "team_da_hashes": [
+      {
+        "Path": "Content\\Data\\MVP_B\\DA_Ball_Normal_TestBaseline_v1.uasset",
+        "SHA256": "06A393B4D71E2DEC97E38A31BCF33C8CD49B98B17142B16561ED90B2F870B1A8"
+      },
+      {
+        "Path": "Content\\Data\\MVP_B\\DA_Combat_TestBaseline_v1.uasset",
+        "SHA256": "2C913AAF7E42570101C9789DE8AF6989FAAAC8BC50933AFBFD6209814722580B"
+      },
+      {
+        "Path": "Content\\Data\\MVP_B\\DA_Vehicle_Passive_TestBaseline_v1.uasset",
+        "SHA256": "4E2973AF7CDAC9185A875C3576465B10523F91EA9BEE185ABF4394F20DD657D1"
+      },
+      {
+        "Path": "Content\\Data\\MVP_B\\DA_Vehicle_Player_TestBaseline_v1.uasset",
+        "SHA256": "D20E510E76FBF4D1FC40C758AAE655FAEB7295668A44727BFDB63ED167D8E113"
+      }
+    ]
+  },
+  "preserved": {
+    "horizontal_supplement_unchanged": true,
+    "all_da_values_unchanged": true,
+    "damage_and_impact_independence": true,
+    "authority_action_and_replay_contract": true,
+    "recoil_path_unchanged": true,
+    "no_blueprint_or_map_edit": true,
+    "no_10E_10F_or_spring_punch_work": true
+  },
+  "deferred": [
+    "Target-only post-hit pickup lock remains documentation only.",
+    "Restoring full additive horizontal attack response requires a separate gameplay decision; this repair does not restore it."
+  ],
+  "pending": [
+    "Team same-parameter Heavy ball hit in both directions, visual flip/knockback and final convergence.",
+    "Light/Medium, reduction/immunity, natural contacts, drop/lock and recoil regression.",
+    "100 ms measured RTT, 1 percent packet loss and 20 ms jitter gameplay acceptance.",
+    "UE 5.8.3 and four real wired PCs.",
+    "Commit/push intended source, docs and team assets for cross-device handoff; none performed here."
+  ],
+  "source_and_config_manifest": [
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp",
+      "sha256": "99579A20CB23C283093E7E60ABB80384355B97A32B44DA8715CF482D39850CD6",
+      "lf_normalized_sha256": "19CC6AEDBE15C11D9C86DC27CE7C8F0F522EDDF77E637B91913F91D60884F653"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h",
+      "sha256": "B5461EC1DCC2A71B784E79B08F340C101AD8EA88D428042C5825DA618B8F8FFC",
+      "lf_normalized_sha256": "ECB43152665888C832F6C4DD63FA954B7EC7F729BFCD2AD0CF6FB84E143C833B"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALImpactPhysicsThreadTests.cpp",
+      "sha256": "79573657469A9732739668A7AE568250927F22B6AFB776CC7C44E2EC2EBE88B1",
+      "lf_normalized_sha256": "79573657469A9732739668A7AE568250927F22B6AFB776CC7C44E2EC2EBE88B1"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALLegacyCombatTestRules.h",
+      "sha256": "AFDC910F6198829BE62CEC66A51A7C97CCDDC97A7D6C9DF0040A2A7B2E80A272",
+      "lf_normalized_sha256": "AFDC910F6198829BE62CEC66A51A7C97CCDDC97A7D6C9DF0040A2A7B2E80A272"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALCombatTests.cpp",
+      "sha256": "FA9942C9D02BF56269B2709B48CB81A66B970A9E98A18651078F18745C1F4247",
+      "lf_normalized_sha256": "0CDD8B388A7C4B9A085147C5CADD5A57DBFE50EE7332BACE1236FC142AA4EAA4"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/VehicleConfigurationTests.cpp",
+      "sha256": "52CD127C8E6C0530ED65B1265AB97F91474FB694613C64A14B349730020389B6",
+      "lf_normalized_sha256": "52CD127C8E6C0530ED65B1265AB97F91474FB694613C64A14B349730020389B6"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HAL_Future_Creation.Build.cs",
+      "sha256": "9DC4E598F234AACE9D92BE6CCDC88B34B397E3D211E0219C020B53B086831110",
+      "lf_normalized_sha256": "66E034D06097BC00AB51E0BAB28ECC99DF9EE0B50268C51EE96F01F0C8EE7DD0"
+    },
+    {
+      "path": "HAL_Future_Creation.uproject",
+      "sha256": "096C2A6D8ECD920BFFE64B68B91160E1C9276BE131A2D42E476E56286C7F1AF9",
+      "lf_normalized_sha256": "169A7FF8F13CF444A3746BE0E0C2D4A26E6BB74FBA0CD23CBC0FA1DDF13268B4"
+    },
+    {
+      "path": "Config/DefaultEngine.ini",
+      "sha256": "C671501D82AB3BD959F92AED3B5A849B4A313EFDD969212B680A0333D241F4E7",
+      "lf_normalized_sha256": "8631A6D7E4B1226182D90D40E6D71CE6F050D934F0B1C25EE6735303FDEB873A"
+    },
+    {
+      "path": "Config/DefaultGame.ini",
+      "sha256": "95806451D108463BBB3C0A16DDCE5547EB81421590F96F40E9F969FBCB8A0064",
+      "lf_normalized_sha256": "BF203871C37B833E7646F9A640B5280779DD9DC5A89965FAB7C768D2AD12E6B8"
+    }
+  ],
+  "local_evidence_manifest": [
+    {
+      "path": "Saved/Phase10D/ThreadFix_Build_Editor.log",
+      "sha256": "FD2D6B5CD58D1A7CD89203D5B3A98A75FE2899D79E623276EB5892F13BFC22F1"
+    },
+    {
+      "path": "Saved/Phase10D/ThreadFix_Build_Game.log",
+      "sha256": "8A8F09FB63CE5945B236023F96FD5F359659E590841A97F5D80BB963FF02E808"
+    },
+    {
+      "path": "Saved/Phase10D/ThreadFix_Final/index.json",
+      "sha256": "1760A32EE9CF65C913DB0A0840787CB4A3455436AD0CA5DCF7C68A69A11A1527"
+    },
+    {
+      "path": "Saved/Phase10D/ThreadFix_Final.log",
+      "sha256": "ECFCDAD35145506CB0E8741A723B10200AAB18D5C3EB5B7A265C33634CD9F5E6"
+    },
+    {
+      "path": "Saved/Phase10D/ThreadFix_Red/index.json",
+      "sha256": "5D9543A2E29A4B346860C03D3199A81516E7E839648F369B30A0C0EF67BA9064"
+    },
+    {
+      "path": "Saved/Phase10D/ThreadFix_Red.log",
+      "sha256": "2E4EFBB3398F0AAD2532CC05B3B2BA8D15254D97B457B2EDFCD4947256A9E8BE"
+    },
+    {
+      "path": "Saved/Phase10D/ThreadFix_InitialFull.json",
+      "sha256": "104B599525FD76E2F3DCF82E26FC0CE04EE7B74FF6F3D11D36DC18048A2DE056"
+    },
+    {
+      "path": "Saved/Phase10D/ThreadFix_InitialFull.log",
+      "sha256": "041D5D231610756A1E0AA4F63D50DE245A7FC6A71DF7369B76534A3EF9725602"
+    },
+    {
+      "path": "Saved/Phase10D/ThreadFix_Smoke_Host.log",
+      "sha256": "41670D1ABCE2D6924ABBD426E33AC17A936497974B811A7652AE2BB8DAEF52B1"
+    },
+    {
+      "path": "Saved/Phase10D/ThreadFix_Smoke_Client.log",
+      "sha256": "93853C1E3D151F05201056AA5A11F197B06354799C3604028D3E5D035EEBADCE"
+    },
+    {
+      "path": "Saved/Phase10D/ThreadFix_Smoke_ProcessIdentity.json",
+      "sha256": "E30F34C2E085D2FACB85EBCEE16F76E680E3D37933BF31852531319DD11FE4B1"
+    },
+    {
+      "path": "Saved/Phase10D/ThreadFix_AssetsBefore.json",
+      "sha256": "061AFD9FEFB5809E813BC36D06C3895A259C3CDFD4B1DF8A57465242496D9D72"
+    },
+    {
+      "path": "Saved/Phase10D/ThreadFix_AssetsAfter.json",
+      "sha256": "DD4070FA692762C7FC984E3EFCECB2D92F17A52672A5A36879E0DA0272C48F3F"
+    }
+  ],
+  "evidence_note": "Saved evidence is local and ignored by Git. This shared summary preserves outcomes/hashes; original Phase10D verification and pre-fix diagnosis JSONs remain historical and unchanged."
+}

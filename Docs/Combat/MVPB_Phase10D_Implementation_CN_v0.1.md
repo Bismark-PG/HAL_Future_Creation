@@ -119,3 +119,69 @@ HALImpactDebug 目标PlayerId 降档数(0到3) 免疫(0或1)
 配套[MVPB_Phase10D_Verification_20261015.json](MVPB_Phase10D_Verification_20261015.json)记录最终构建、只读采样、资产保护及双进程结果，不覆盖10-A／B／C历史证据。资产由团队迁移，本轮代码代理不手工修改或请求Compile／Save任何蓝图或DA。
 
 当前需要团队继续验证的边界：新的碰撞标尺和最低脱球档位需实测校准；墙角／旋转多点接触和网络动作重放的流畅性需真人双端验收；在5.8.2通过不等于已经在5.8.3复测。任何尚未执行的验证都不写为通过。
+
+## 7. 团队现象排查：冲击免疫后很快捕获命中球（2026-10-15）
+
+当前main/79a73f6，团队保存的四份DA仍有未提交改动，代理保持不动。用户报告冲击免疫车辆会捕获打来的球；本轮仅读码和既有双端日志，不修改玩法／配置，不启动Unreal或重跑测试。
+
+`Saved/Logs/MVPB_GAS_Host.log`中07:51:40.516（日志UTC），攻击C89BCD124C9BC524547DCC9147349F7E命中免疫车辆：Raw／Resolved／Actual均25，SourceTier=2、EffectiveTier=0、ImpactImmune=1、Drop=0。同一时间球Launched→Free；07:51:40.750 Free→Controlled，由被命中车辆取得，间隔0.234秒。日志07:51:37的两辆玩家车均Ready／CombatReady／ImpactReady=1、CombatVersion／ImpactVersion=1。这是当前V1运行与一个免疫命中子项的证据，不代表完整10-D验收或四份DA全部字段已采样。
+
+本次读取的Host日志SHA256：`356D672BDBEB68A1DF1324ACB04665422A96B33BA89AF5B355EC824BC05BAA55`；Saved日志可能被下次启动更新，以上时间／事件／结论留在本文用于交接，不将后来的同名文件自动视为同一份证据。
+
+原因：`OnPhysicsRootHit`在命中被接受后消费普通球攻击，调用`FinishLaunchAsFree`；免疫只将规则冲击降为None，不取消伤害、消费或转Free。`CanBeControlledBy`只允许Free且拾取锁已结束的球，未将冲击免疫作为捕获资格。未持球车辆满足前方180°、距离及视线条件后会自动捕获。免疫车更容易留在球旁是物理位置上的解释；普通车也可能捕获，日志07:52:01同样出现未免疫目标转Free约0.214秒后取得球。
+
+现有可调参数：`/Game/Data/MVP_B/DA_Ball_Normal_TestBaseline_v1 → Gameplay → Acquisition → Post Launch Pickup Lock Duration`，单位秒。源码默认及旧留档为0.2秒；本轮未重新导出团队最新DA数值。停止游戏，在Editor中手工调大（例如先用1.0秒观察）、Save并重新启动双方进程，可延后球结束发射／命中回Free后的拾取。此锁作用于**所有车辆**，也影响其他结束发射后的拾取时机；即使延长，球仍在范围内时锁结束后依然可以捕获。车辆`Drop Reacquire Lock Duration`用于掉球后的原持有者重捕，不处理这里的被命中者。
+
+如后续设计要求“受击车短时间不能收回这颗球，其他人仍可争抢”，需要独立、可配置的命中目标拾取锁；目前没有该参数。它应与冲击免疫解耦，对需要该规则的命中统一应用。**用户随后明确要求暂时只留档，不施工该设计**，不将此项作为本轮新增任务，也不改变普通球命中后消费的10-C规则。V1冲击诊断应读HAL Combat的EffectiveTier，旧Ball hit日志中的impact speed／legacy tier不是免疫后的实际档位。
+
+## 8. Heavy冲击变弱排查（2026-10-15；修复前诊断）
+
+用户报告把球Impact调为Heavy后仍明显弱于10-D前。本轮main/79a73f6，只分析、只读采样和留档；未编辑C++／资产、未编译或开展新的动态物理测试。共享诊断与当前DA采样见[MVPB_Phase10D_HeavyImpact_Diagnosis_20261015.json](MVPB_Phase10D_HeavyImpact_Diagnosis_20261015.json)。
+
+### 8.1 已确认的事实
+
+- 最新Host日志的三次球命中（07:59:45.651、07:59:55.800、08:00:23.300 UTC）均SourceTier=3、EffectiveTier=3、ImpactImmune=0，ActualHPRemoved=25；目标没有把Heavy降为其他档。
+- 用现有只读Python工具加载四份保存DA。车辆Impact、球Gameplay.Impact及公共CollisionImpacts均TieredV1，球为Heavy；公共Heavy仍水平900cm/s、最低向上750cm/s、1.25圈翻转、最大角速度8rad/s，与施工前保存表相同。车辆Physics／Movement／BallControl与10-D开工采样字符串一致；球当前全局拾取锁已由团队保存为1.0秒。不是代理自动覆写调参。采样前后320个资产哈希不变。
+- Host 07:59:21.653、Client 07:59:31.191均有`Ensure condition failed: IsInGameThreadContext()`，项目调用栈指向`UArcadeVehicleMovementComponent::ApplyAction_Internal`第320行。该警告在第一次自然接触动作时已经发生，不能把它仅归因于后面的球Heavy参数。
+
+### 8.2 确定的实现错误与物理语义变化
+
+**确定的程序错误**：10-D的Physics Action在物理线程执行，却调用`FPhysicsInterface::GetLinearVelocity_AssumesLocked`、`GetAngularVelocity_AssumesLocked`和`SetAngularVelocity_AssumesLocked`。本机UE5.8.2源码`PhysicsCore/Private/ChaosEngineInterface.cpp`明确经由`GetGameThreadAPI()`读V／W和写W，而不是当前物理帧的Internal句柄；前两端Ensure正好命中该路径。仅`AddVelocity_AssumesLocked(..., true)`已选Internal，整个动作因而混用了两个线程侧状态。错误可导致向上速度补足读旧状态、翻转写到外部同步状态，不能保证当帧响应和重放一致；具体对本次可见位移削弱的占比尚无前后速度／角速度数据，不能伪造量化结论。
+
+**确定的算法变化**：旧球命中是在自然碰撞之外完整追加该档`HorizontalDeltaSpeed`；新版ExplicitTier也先扣除`dot(NormalImpulse,Direction)/TargetMass`，只追加剩余量。示例自然响应100、Heavy表900时，旧额外900而新额外800。因此即便DA表完全相同，水平表现也可能减弱；缺少本次Natural／Supplement日志，尚不能认定这解释全部差异。普通碰撞另有MaximumRuleRestitution能量预算；本次球走ExplicitTier，**没有使用普通接触恢复系数上限**，不应靠调整该上限增强主动球。
+
+日志`Impact=Applied`目前仅表示游戏线程将动作成功排队；不能证明物理线程已正确执行。旧Ball hit日志的`impact 0.0`是新版未填写旧物理强度字段，不代表实际冲击为零；以有效档位和实际物理执行诊断为准。
+
+### 8.3 后续修复与复验建议
+
+1. 优先修复Physics Action的V／W读取和姿态写入，全部使用同一物理帧Internal句柄／明确支持Internal的接口，保留Authority动作身份和重模拟，不在客户端重新结算GAS或脱球。不改已保存的Heavy表来掩盖执行错误。
+2. 在相同场景、质量和三档表下比较旧响应与修复后的ExplicitTier，补可关闭的EventSequence／物理应用帧／前后V与W诊断。修线程错误与改变主动攻击补足语义分开记录；如要恢复旧的完整追加手感，应明确调整主动攻击策略，同时保留普通碰撞的重复／能量约束和统一档位抗性／脱球。
+3. 新测试必须实际进入Network Physics `ApplyAction_Internal`，在服务器及拥有客户端核对Internal V／W、同帧动作／重放、Yaw保留、Light／Medium／Heavy及免疫、无Ensure与最终位置收敛。既有27项覆盖单机实际结算、数据数学和载荷约定，**没有执行真实联机Physics Action线程路径**，因此此前通过未覆盖这个缺陷。随后真人双向命中及扰动复测，才能判定体感恢复程度。
+
+本轮结论为“已定位确定的线程API错误及施力语义差异；待修复／动态验证”，不能当作正常Heavy强度已验收，也不在用户询问原因时直接施工。
+
+## 9. 冲击Physics Action线程修复（2026-10-15）
+
+用户随后授权修复并询问是否需要确认。明确程序错误无需另定玩法规则；本次范围为Internal物理帧读写、真实Solver回归和可关闭的执行诊断，**保留全部现有DA、档位／抗性／脱球规则及水平补足算法**。恢复旧“完整追加”仍需单独决定，独立命中目标禁捕继续只留档。原第8节及诊断JSON作为修复前记录保留，后续状态以本节和新验证摘要为准。
+
+### 9.1 代码与测试
+
+- `ArcadeVehicleMovementComponent.ApplyAction_Internal`从`FBodyInstanceAsyncPhysicsTickHandle`读取当前Internal V／W；线性与角速度变化都通过明确`bIsInternal=true`的Impulse接口交给同一刚体。移除对GameThreadAPI的速度读取／姿态写入。保留当前Yaw，轻档不清除自然旋转／下落，向上补足依据实际物理帧速度。
+- 新增`hal.ImpactPhysicsLog`（默认0，非Shipping）。输出`Vehicle impact physics:`、Event、Solver应用Frame、Internal BeforeV／BeforeW、QueuedDV／QueuedDW；表示动作已在物理回调消费。这里记录的是待积分变化量，不是接触求解后的最终速度，不能用它冒充最终位移测量。
+- 新增`HAL.FutureCreation.Impact.SolverThreadExecutionAndReplay`：独立Chaos世界、TaskGraph Solver真实回调，在PreSim中让PT V／W明确不同于GT快照，执行生产Handler，PostSolve测量积分结果。覆盖Light、Medium、Heavy、同载荷恢复初态后重放、已有更快上升、拒绝载荷与非模拟代理不施力；确认包含实际worker线程执行。不是在GT伪造物理上下文，也不声称直接恢复了真实网络rewind历史。
+- 旧实现的红测重现同一Ensure，并测出Medium期望500却得到600、Heavy翻转未进入Internal W、已有900向上速度被错误加到1650等；修复后对应值通过。测试夹具改为在PreSim记录线程身份，因为TaskGraph可把部分Solver工作放到GT处理，要求实际worker覆盖但不要求每个PostSolve都在独立OS线程。
+- 首次完整回归18通过／10失败，原因是团队公共DA现已TieredV1，而早期Legacy球／配置夹具仍读取项目全局配置。新增仅测试用`FScopedHALLegacyCombatTestRules`，两个旧夹具显式使用内存Legacy规则并在析构恢复原Source／缓存；不改资产或生产迁移门槛。新版Impact夹具继续使用各自TieredV1规则。
+
+### 9.2 验证与团队复测入口
+
+最终Editor／Game Development Target均构建成功；Editor自动化 **28/28通过、0警告／0失败**，包含原27项及新增实际Solver测试，无线程Ensure。V1保存资产的隐藏双进程监听7793、Join succeeded，客户端收到两辆车HP100；主机自然落地接触触发4次冲击动作，并记录Internal回调消费，无线程Ensure。该smoke没有主动发射球，客户端日志没有受击动作记录，不声称已验证客户端Heavy动作或真人手感。启动仍有引擎Widget工厂等警告，不把整个运行日志写成零警告。
+
+本次修复／验证前后320份`.uasset`／`.umap`哈希全部一致；四份团队DA未被修改。两个专用隐藏进程在核对PID、引擎路径和本次日志参数后清理。详细构建、回归、smoke、资产与源码哈希见[MVPB_Phase10D_ThreadFix_Verification_20261015.json](MVPB_Phase10D_ThreadFix_Verification_20261015.json)；与原10-D和诊断摘要分开，不覆盖历史失败。
+
+团队继续用[双端启动命令](../Configuration/MVPB_DebugHUD_And_GAS_Test_CN_v0.1.md)运行（已追加新物理日志开关），双方加入并由主机Start后，保持当前Heavy和原公共响应表，先互相单次发射：
+
+1. 核对`SourceTier=3、EffectiveTier=3、ImpactImmune=0`，实际击飞／翻转是否恢复，两端最终收敛。查看`Vehicle impact physics:`已消费及相关物理Frame，不只看游戏线程`Impact=Applied`。
+2. 复测Medium／Light、降档／免疫、自然撞墙／车车、脱球／锁定、发射后坐和连续接触；确认两端无`IsInGameThreadContext`或`IsInPhysicsThreadContext`的Ensure。
+3. 再做既定100ms实测RTT／1%丢包／20ms抖动。主观是否恢复10-D前手感由相同参数和场景的真人对照决定；线程修复通过不等于已恢复“完整追加”语义，不能把剩余水平差异当成这个修复自动消除了。
+
+本机引擎仍5.8.2，5.8.3和四台真实有线PC的原验收边界继续保留。团队真人复测反馈尚未取得，不标记10-D整体验收完成。

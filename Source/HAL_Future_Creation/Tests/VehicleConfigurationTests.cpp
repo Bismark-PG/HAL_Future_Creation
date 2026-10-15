@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "HALLegacyCombatTestRules.h"
 #include "../VehicleDefinition.h"
 #include "../VehicleKnockbackSettings.h"
 #include "../PassiveTestVehicle.h"
@@ -27,6 +28,7 @@ namespace
 {
 	struct FConfigurationTestWorld
 	{
+		FScopedHALLegacyCombatTestRules LegacyRules;
 		UWorld* World;
 		FConfigurationTestWorld()
 		{

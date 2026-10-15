@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-10-15",
+  "timezone": "Asia/Tokyo",
+  "git_head": "79a73f6db65e965569bd7e1cf92027c7d387029c",
+  "branch": "main",
+  "status": "diagnosed_not_fixed",
+  "scope": "Heavy impact regression analysis only; no source/asset edits or new build/dynamic test",
+  "deferred_design": "User explicitly deferred per-hit target-only pickup lock. Documentation only; not implemented.",
+  "asset_sampling": {
+    "engine_version": "5.8.2-56702186+++UE5+Release-5.8",
+    "scope": "saved_assets_only_no_compile_no_save",
+    "assets": {
+      "DA_Vehicle_Player_TestBaseline_v1": {
+        "impact": "(Version=TieredV1,CollisionTierCap=Heavy,MinimumDropTier=Medium,bDropOnImpact=True,TierReduction=0)",
+        "combat": "(Version=AttackSnapshotV1,AttackPower=25.000000,OutputMultiplierDelta=0.000000,DamageTakenMultiplier=1.000000)",
+        "physics": "(Body=(PositionSolverIterationCount=8,VelocitySolverIterationCount=2,ProjectionSolverIterationCount=1,ObjectType=ECC_PhysicsBody,CollisionEnabled=QueryAndPhysics,SleepFamily=Normal,DOFMode=Default,bUseCCD=True,bUseMACD=False,bAllowPartialIslandSleep=True,bIgnoreAnalyticCollisions=False,bNotifyRigidBodyCollision=True,bSmoothEdgeCollisions=False,bLockTranslation=True,bLockRotation=True,bLockXTranslation=False,bLockYTranslation=False,bLockZTranslation=False,bLockXRotation=False,bLockYRotation=False,bLockZRotation=False,bOverrideMaxAngularVelocity=False,bOverrideMaxDepenetrationVelocity=False,bOverrideWalkableSlopeOnInstance=False,bOverrideIterationCounts=False,bInterpolateWhenSubStepping=True,bInertiaConditioning=True,bOneWayInteraction=False,bOverrideSolverAsyncDeltaTime=False,SolverAsyncDeltaTime=0.016667,CollisionProfileName=\"PhysicsActor\",CollisionResponses=(ResponseArray=),MaxDepenetrationVelocity=0.000000,MassInKgOverride=800.000000,LinearDamping=0.150000,AngularDamping=0.800000,CustomDOFPlaneNormal=(X=0.000000,Y=0.000000,Z=0.000000),COMNudge=(X=0.000000,Y=0.000000,Z=0.000000),MassScale=1.000000,GravityGroupIndex=0,InertiaTensorScale=(X=1.000000,Y=1.000000,Z=1.000000),WalkableSlopeOverride=(WalkableSlopeBehavior=WalkableSlope_Default,WalkableSlopeAngle=0.000000),PhysMaterialOverride=None,MaxAngularVelocity=3600.000000,CustomSleepThresholdMultiplier=1.000000,StabilizationThresholdMultiplier=1.000000,PhysicsBlendWeight=0.000000,bSimulatePhysics=True,bOverrideMass=True,bEnableGravity=True,bUpdateKinematicFromSimulation=False,bGyroscopicTorqueEnabled=False,bAutoWeld=False,bStartAwake=True,bGenerateWakeEvents=False,bUpdateMassWhenScaleChanges=True),Scale=(X=1.000000,Y=1.000000,Z=1.000000),bGenerateOverlapEvents=True,bHiddenInGame=True)",
+        "movement": "(Drive=(ForwardAcceleration=1800.000000,ReverseAcceleration=1200.000000,BrakeDeceleration=2800.000000,MaxForwardSpeed=2400.000000,MaxReverseSpeed=900.000000,ReverseEngageSpeed=80.000000,CoastingDragRate=0.350000,OverspeedCorrectionRate=3.000000),Grip=(LateralGripRate=12.000000,HandbrakeGripRate=0.200000,MaxLateralGripAcceleration=2800.000000),Steering=(SteeringAngularAcceleration=12.000000,FullSteeringSpeed=400.000000,HighSpeedSteeringStart=1600.000000,HighSpeedSteeringScale=0.800000,HandbrakeSteeringMultiplier=1.800000,HandbrakeMinimumSteeringAuthority=0.500000,HandbrakeReverseSteeringSpeed=150.000000,YawDampingRate=1.600000,HandbrakeYawDampingRate=0.300000),WallEscape=(bEnableWallEscape=True,WallEscapeEnterSpeed=300.000000,WallEscapeExitSpeed=450.000000,WallEscapeProbeDistance=15.000000,WallEscapeMinimumSteering=0.200000,WallEscapeIntoWallThrottleScale=0.050000,WallEscapeTargetYawRate=2.600000,WallEscapeYawResponseRate=10.000000,WallEscapeMaxYawAcceleration=24.000000,WallEscapeBlendInTime=0.080000,WallEscapeBlendOutTime=0.200000),Debug=(bDrawWallEscapeDebug=False,bDrawGroundDebug=False),Ground=(GroundTraceExtraDistance=30.000000,GroundTraceChannel=ECC_Visibility))",
+        "ball_control": "(Acquisition=(AcquisitionRadius=350.000000,AcquisitionCheckInterval=0.050000,LineOfSightTraceChannel=ECC_Visibility),Control=(MaxControlledDistance=300.000000,ControlPositionStrength=35.000000,ControlVelocityStrength=8.000000,ControlMaxForce=40000.000000),Launch=(LaunchSpeedIncrement=2200.000000,BaseRecoilDeltaSpeed=400.000000,MovingRecoilFraction=0.300000,MaxRecoilDeltaSpeed=600.000000),ForcedRelease=(DropCollisionImpulseThreshold=100000.000000,DropReacquireLockDuration=1.500000,DropBallImpulse=18000.000000,DropBallUpwardImpulse=6000.000000),Debug=(bDrawAcquisitionDebug=False))",
+        "health": "(Health=(MaxHP=100.000000),Debug=(bLogHealthChanges=True))"
+      },
+      "DA_Vehicle_Passive_TestBaseline_v1": {
+        "impact": "(Version=TieredV1,CollisionTierCap=Heavy,MinimumDropTier=Medium,bDropOnImpact=True,TierReduction=0)",
+        "combat": "(Version=AttackSnapshotV1,AttackPower=25.000000,OutputMultiplierDelta=0.000000,DamageTakenMultiplier=1.000000)",
+        "physics": "(Body=(PositionSolverIterationCount=8,VelocitySolverIterationCount=2,ProjectionSolverIterationCount=1,ObjectType=ECC_PhysicsBody,CollisionEnabled=QueryAndPhysics,SleepFamily=Normal,DOFMode=Default,bUseCCD=True,bUseMACD=False,bAllowPartialIslandSleep=True,bIgnoreAnalyticCollisions=False,bNotifyRigidBodyCollision=True,bSmoothEdgeCollisions=False,bLockTranslation=True,bLockRotation=True,bLockXTranslation=False,bLockYTranslation=False,bLockZTranslation=False,bLockXRotation=False,bLockYRotation=False,bLockZRotation=False,bOverrideMaxAngularVelocity=False,bOverrideMaxDepenetrationVelocity=False,bOverrideWalkableSlopeOnInstance=False,bOverrideIterationCounts=False,bInterpolateWhenSubStepping=True,bInertiaConditioning=True,bOneWayInteraction=False,bOverrideSolverAsyncDeltaTime=False,SolverAsyncDeltaTime=0.016667,CollisionProfileName=\"PhysicsActor\",CollisionResponses=(ResponseArray=),MaxDepenetrationVelocity=0.000000,MassInKgOverride=800.000000,LinearDamping=0.150000,AngularDamping=0.800000,CustomDOFPlaneNormal=(X=0.000000,Y=0.000000,Z=0.000000),COMNudge=(X=0.000000,Y=0.000000,Z=0.000000),MassScale=1.000000,GravityGroupIndex=0,InertiaTensorScale=(X=1.000000,Y=1.000000,Z=1.000000),WalkableSlopeOverride=(WalkableSlopeBehavior=WalkableSlope_Default,WalkableSlopeAngle=0.000000),PhysMaterialOverride=None,MaxAngularVelocity=3600.000000,CustomSleepThresholdMultiplier=1.000000,StabilizationThresholdMultiplier=1.000000,PhysicsBlendWeight=0.000000,bSimulatePhysics=True,bOverrideMass=True,bEnableGravity=True,bUpdateKinematicFromSimulation=False,bGyroscopicTorqueEnabled=False,bAutoWeld=False,bStartAwake=True,bGenerateWakeEvents=False,bUpdateMassWhenScaleChanges=True),Scale=(X=1.000000,Y=1.000000,Z=1.000000),bGenerateOverlapEvents=True,bHiddenInGame=True)",
+        "health": "(Health=(MaxHP=100.000000),Debug=(bLogHealthChanges=False))"
+      },
+      "DA_Ball_Normal_TestBaseline_v1": {
+        "gameplay": "(State=(LowSpeedThreshold=250.000000,LowSpeedRequiredDuration=0.500000,LowSpeedCheckInterval=0.050000),Acquisition=(PostLaunchPickupLockDuration=1.000000),Damage=(Version=AttackSnapshotV1,ActionMultiplier=1.000000,ActionMultiplierDelta=0.000000,EffectTags=(GameplayTags=),VehicleHitDamage=25.000000,KnockbackStrengthMultiplier=1.000000),Impact=(Version=TieredV1,Tier=Heavy),Debug=(bLogDamageHits=False,bLogStateChanges=False))",
+        "physics": "(Body=(PositionSolverIterationCount=8,VelocitySolverIterationCount=2,ProjectionSolverIterationCount=1,ObjectType=ECC_PhysicsBody,CollisionEnabled=QueryAndPhysics,SleepFamily=Normal,DOFMode=Default,bUseCCD=True,bUseMACD=False,bAllowPartialIslandSleep=True,bIgnoreAnalyticCollisions=False,bNotifyRigidBodyCollision=True,bSmoothEdgeCollisions=False,bLockTranslation=True,bLockRotation=True,bLockXTranslation=False,bLockYTranslation=False,bLockZTranslation=False,bLockXRotation=False,bLockYRotation=False,bLockZRotation=False,bOverrideMaxAngularVelocity=False,bOverrideMaxDepenetrationVelocity=False,bOverrideWalkableSlopeOnInstance=False,bOverrideIterationCounts=False,bInterpolateWhenSubStepping=True,bInertiaConditioning=True,bOneWayInteraction=False,bOverrideSolverAsyncDeltaTime=False,SolverAsyncDeltaTime=0.016667,CollisionProfileName=\"PhysicsActor\",CollisionResponses=(ResponseArray=),MaxDepenetrationVelocity=0.000000,MassInKgOverride=35.000000,LinearDamping=0.250000,AngularDamping=0.100000,CustomDOFPlaneNormal=(X=0.000000,Y=0.000000,Z=0.000000),COMNudge=(X=0.000000,Y=0.000000,Z=0.000000),MassScale=1.000000,GravityGroupIndex=0,InertiaTensorScale=(X=1.000000,Y=1.000000,Z=1.000000),WalkableSlopeOverride=(WalkableSlopeBehavior=WalkableSlope_Default,WalkableSlopeAngle=0.000000),PhysMaterialOverride=None,MaxAngularVelocity=3600.000000,CustomSleepThresholdMultiplier=1.000000,StabilizationThresholdMultiplier=1.000000,PhysicsBlendWeight=0.000000,bSimulatePhysics=True,bOverrideMass=True,bEnableGravity=True,bUpdateKinematicFromSimulation=False,bGyroscopicTorqueEnabled=False,bAutoWeld=False,bStartAwake=True,bGenerateWakeEvents=False,bUpdateMassWhenScaleChanges=True),Scale=(X=1.000000,Y=1.000000,Z=1.000000),bGenerateOverlapEvents=True,bHiddenInGame=False)"
+      },
+      "DA_Combat_TestBaseline_v1": {
+        "collision_impacts": "(Version=TieredV1,LightThreshold=50.000000,MediumThreshold=125.000000,HeavyThreshold=300.000000,EnvironmentTierCap=Heavy,FreeBallTierCap=Light,ContactRearmSeconds=0.200000,MaximumRuleRestitution=0.150000)",
+        "ball_impacts": "(MediumImpactSpeedThreshold=1000.000000,HeavyImpactSpeedThreshold=2600.000000,LightTier=(HorizontalDeltaSpeed=250.000000,TargetVerticalSpeed=0.000000,AirborneFlipTurns=0.000000),MediumTier=(HorizontalDeltaSpeed=600.000000,TargetVerticalSpeed=500.000000,AirborneFlipTurns=1.000000),HeavyTier=(HorizontalDeltaSpeed=900.000000,TargetVerticalSpeed=750.000000,AirborneFlipTurns=1.250000),MaxAirborneAngularSpeed=8.000000,GroundProbeExtraDistance=20.000000)"
+      }
+    },
+    "protected_asset_count": 320,
+    "assets_unchanged": true,
+    "limitations": [
+      "Default-looking fields with Version=Legacy are NOT a completed migration.",
+      "Loading data is not a physics or network acceptance test."
+    ]
+  },
+  "tuning_comparison": {
+    "against": "Saved/Phase10D/SavedAssets.json from original 10D delivery",
+    "player_physics_movement_ballcontrol_combat_health_unchanged": true,
+    "passive_physics_combat_health_unchanged": true,
+    "ball_physics_unchanged": true,
+    "common_ball_impacts_unchanged": true,
+    "heavy_horizontal_cm_per_s": 900,
+    "heavy_minimum_upward_cm_per_s": 750,
+    "heavy_flip_turns": 1.25,
+    "max_angular_rad_per_s": 8,
+    "current_ball_tier": "Heavy",
+    "current_pickup_lock_seconds": 1.0,
+    "note": "Current saved asset sample follows latest user saves; do not assume all sampled values were present during earlier log sessions."
+  },
+  "observed_heavy_hits": [
+    "[2026.10.15-07.59.45:651][116]LogTemp: HAL Combat: Attack=292254C64968013165CA769E989B7337 Pulse=1 PlayerId=257 Source=Combat.Source.Ball Mode=1 Target=BP_RoundedVehiclePawn_C_1 Raw=25.00 Resolved=25.00 Actual=25.00 DamageImmune=0 Impact=5 LegacyTier=2 SourceTier=3 EffectiveTier=3 ImpactImmune=0 Drop=0 Frame=1279",
+    "[2026.10.15-07.59.55:800][552]LogTemp: HAL Combat: Attack=5C0F71354DADB26BE8DB84980C1E51C0 Pulse=1 PlayerId=257 Source=Combat.Source.Ball Mode=1 Target=BP_RoundedVehiclePawn_C_1 Raw=25.00 Resolved=25.00 Actual=25.00 DamageImmune=0 Impact=5 LegacyTier=2 SourceTier=3 EffectiveTier=3 ImpactImmune=0 Drop=0 Frame=1888",
+    "[2026.10.15-08.00.23:300][612]LogTemp: HAL Combat: Attack=EF8999904C880B35315E239A77392B5C Pulse=1 PlayerId=258 Source=Combat.Source.Ball Mode=1 Target=BP_RoundedVehiclePawn_C_0 Raw=25.00 Resolved=25.00 Actual=25.00 DamageImmune=0 Impact=5 LegacyTier=2 SourceTier=3 EffectiveTier=3 ImpactImmune=0 Drop=0 Frame=3538"
+  ],
+  "authority_thread_error": [
+    "[2026.10.15-07.59.21:653][231]LogOutputDevice: Error: Ensure condition failed: IsInGameThreadContext()  [File:D:\\build\\++UE5\\Sync\\Engine\\Source\\Runtime\\Experimental\\Chaos\\Public\\Framework\\Threading.h] [Line: 299] ",
+    "[2026.10.15-07.59.21:654][231]LogOutputDevice: Error: [Callstack] 0x00007ffb44766e41 UnrealEditor-HAL_Future_Creation.dll!UArcadeVehicleMovementComponent::ApplyAction_Internal() [D:\\UnrealProjects\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\ArcadeVehicleMovementComponent.cpp:320]"
+  ],
+  "client_thread_error": [
+    "[2026.10.15-07.59.31:191][634]LogOutputDevice: Error: Ensure condition failed: IsInGameThreadContext()  [File:D:\\build\\++UE5\\Sync\\Engine\\Source\\Runtime\\Experimental\\Chaos\\Public\\Framework\\Threading.h] [Line: 299] ",
+    "[2026.10.15-07.59.31:194][634]LogOutputDevice: Error: [Callstack] 0x00007ffb44766e41 UnrealEditor-HAL_Future_Creation.dll!UArcadeVehicleMovementComponent::ApplyAction_Internal() [D:\\UnrealProjects\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\ArcadeVehicleMovementComponent.cpp:320]"
+  ],
+  "confirmed_findings": [
+    "Heavy tier selected and remains effective in all three captured ball hits; no impact immunity or tier reduction in those hits.",
+    "Physical Action callback invokes GetLinearVelocity/GetAngularVelocity/SetAngularVelocity_AssumesLocked, which resolve to GetGameThreadAPI in installed 5.8.2 engine; callback is on physics thread. Both processes logged the matching Ensure.",
+    "Only AddVelocity(..., true) uses Internal API, so the action mixes GT velocity snapshots/GT angular writes with PT linear impulse.",
+    "Old explicit ball response adds full tier horizontal delta. New explicit response subtracts projected natural impulse divided by target mass. This changes response even with identical saved tier tables.",
+    "Restitution budget applies only PhysicalContact; explicit launched-ball attack is not capped by MaximumRuleRestitution.",
+    "Impact=Applied means enqueued successfully, not verified PT execution. Old impact-speed 0 does not mean zero effective tier.",
+    "27 previous automated tests did not execute real network physics action callback; math/single-world tests cannot exclude this threading bug."
+  ],
+  "unverified": [
+    "Relative contribution of threading error vs supplemental response to perceived weakness: no per-action before/after PT V/W captured.",
+    "Whether restoring full explicit authored delta is required after correct Internal execution; compare same parameter table first.",
+    "Actual dynamic fix outcome, real two-process replay and latency tests; no fix has been applied in this turn."
+  ],
+  "next_steps": [
+    "Use Internal handle consistently for frame V/W and angular update, preserving authority action identity and rule dedup.",
+    "Instrument switchable physics-frame/event/before-after V/W diagnostics; compare unchanged Heavy table against old response.",
+    "Test real ApplyAction_Internal and replay on authority/autonomous client, all tiers and immunity, no Ensure; then human two-process and network perturbation checks.",
+    "Treat any requested change from supplementary to full authored attack impulse as a separate explicit behavior choice; keep ordinary contact budget independent."
+  ],
+  "installed_engine_references": [
+    "PhysicsCore/Private/ChaosEngineInterface.cpp:GetLinearVelocity_AssumesLocked->GetGameThreadAPI().V()",
+    "PhysicsCore/Private/ChaosEngineInterface.cpp:GetAngularVelocity_AssumesLocked->GetGameThreadAPI().W()",
+    "PhysicsCore/Private/ChaosEngineInterface.cpp:SetAngularVelocity_AssumesLocked->GetGameThreadAPI().SetW()",
+    "PhysicsCore/Private/ChaosEngineInterface.cpp:AddVelocity_AssumesLocked(...,true)->GetPhysicsThreadAPI()",
+    "Engine/Classes/PhysicsEngine/BodyInstance.h:FBodyInstanceAsyncPhysicsTickHandle supplies FRigidBodyHandle_Internal"
+  ],
+  "evidence_hashes": [
+    {
+      "path": "Saved/Logs/MVPB_GAS_Host.log",
+      "sha256": "4cb781d94311c0138717f41d80a15979b09af459630c4171cdf05719919fba78"
+    },
+    {
+      "path": "Saved/Logs/MVPB_GAS_Client.log",
+      "sha256": "fb1571d52d5e4a6bf46f8f59f86a7598ea9ef14fa292f9acaf5f5bfe829b3e5e"
+    },
+    {
+      "path": "Saved/Phase10D/HeavyDiagnosis/SavedAssets_20261015.json",
+      "sha256": "1b9232aeff8c766387b50e757790cac37211e172bd3742de6080d0a0bbd369a9"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp",
+      "sha256": "0b667ea53f9bd507c691699ee93a2e4b606f904813e7f93e6110c1fde5264f65"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactReceiverComponent.cpp",
+      "sha256": "a08d5fd40ecf8c6294e5698b2f5f6c60c5cf83769f8908190755e4cd1ccae781"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleNetPhysicsData.h",
+      "sha256": "926de0043412fb90d5d4e6465f26ef2961167069ea528c41ccdd28a24cd37a89"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/CombatResolver.cpp",
+      "sha256": "53964a56105523d4be7b41bf25f587201270954f008ada99686850f76abaac31"
+    }
+  ]
+}
