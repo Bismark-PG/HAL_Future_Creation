@@ -15,6 +15,8 @@ class UVehicleHealthComponent;
 class UHALAbilitySystemComponent;
 class UHALHealthAttributeSet;
 class UHALCombatAttributeSet;
+class UHALImpactAttributeSet;
+class UHALImpactReceiverComponent;
 
 /** Pushable, damageable test vehicle without input, movement forces, or ball acquisition. */
 class UVehicleDefinition;
@@ -61,5 +63,9 @@ protected:
 	TObjectPtr<UHALHealthAttributeSet> HealthAttributes;
 	UPROPERTY()
 	TObjectPtr<UHALCombatAttributeSet> CombatAttributes;
+	UPROPERTY()
+	TObjectPtr<UHALImpactAttributeSet> ImpactAttributes;
+	UPROPERTY(VisibleAnywhere, Category = "Vehicle|Components")
+	TObjectPtr<UHALImpactReceiverComponent> ImpactReceiver;
 	FVehicleCombatConfig RuntimeCombatConfig;
 };

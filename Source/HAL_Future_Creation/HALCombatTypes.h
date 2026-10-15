@@ -4,6 +4,7 @@
 #include "GameplayTagContainer.h"
 #include "VehicleHitContext.h"
 #include "VehicleKnockbackTypes.h"
+#include "HALImpactTypes.h"
 #include "HALCombatTypes.generated.h"
 
 class UWorld;
@@ -65,6 +66,9 @@ struct HAL_FUTURE_CREATION_API FHALAttackSourceSnapshot
 	/** Source/action policy. Ordinary balls set false; future self-damage actions may allow it. */
 	UPROPERTY()
 	bool bCanHitInstigator = true;
+	/** Captured with the attack, never re-read from a live ball/config at impact. */
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	FHALAuthoredImpactConfig Impact;
 	bool CalculateRawDamage(float& OutDamage) const;
 };
 
@@ -74,7 +78,7 @@ enum class EHALHitRejectReason : uint8
 	ExcludedInstigator, TargetNotReady, InvalidDamage, EffectUnavailable, Duplicate, CapacityExceeded
 };
 
-enum class EHALImpactOutcome : uint8 { NotRequested, NoPhysicsBody, InvalidMeasurement, NoDirection, RulesUnavailable, Applied };
+enum class EHALImpactOutcome : uint8 { NotRequested, NoPhysicsBody, InvalidMeasurement, NoDirection, RulesUnavailable, Applied, Suppressed, TargetNotReady };
 
 /** Server-generated request. Physics data is optional and never required by the damage branch. */
 struct FHALCombatHitRequest
@@ -85,6 +89,7 @@ struct FHALCombatHitRequest
 	bool bApplyDamage = true;
 	bool bApplyImpact = false;
 	float KnockbackStrengthMultiplier = 1.0f;
+	FHALImpactProposal Impact;
 };
 
 struct FHALCombatHitResult
@@ -102,6 +107,7 @@ struct FHALCombatHitResult
 	EHALImpactOutcome ImpactOutcome = EHALImpactOutcome::NotRequested;
 	float ImpactSpeed = 0.0f;
 	EVehicleKnockbackTier KnockbackTier = EVehicleKnockbackTier::Light;
+	FHALImpactSummary ImpactSummary;
 };
 
 /** Source-owned action lifetime. No global cache, timeout reopening or tick. */

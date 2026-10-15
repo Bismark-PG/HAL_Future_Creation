@@ -22,6 +22,8 @@ public:
 	bool IsHealthInitialized() const { return bHealthInitialized; }
 	bool InitializeCombat(const FVehicleCombatConfig& Config);
 	bool IsCombatInitialized() const { return bCombatInitialized; }
+	bool InitializeImpact(const FHALVehicleImpactConfig& Config);
+	bool IsImpactInitialized() const { return bImpactInitialized; }
 	EHALCombatConfigVersion GetCombatConfigVersion() const { return CombatConfigVersion; }
 	/** An old Pawn cannot clear a newer Pawn's Avatar during delayed cleanup. */
 	void ClearAvatarIfCurrent(const AActor* ExpectedAvatar);
@@ -36,6 +38,8 @@ private:
 	bool bHealthInitialized = false;
 	UPROPERTY(Replicated)
 	bool bCombatInitialized = false;
+	UPROPERTY(Replicated)
+	bool bImpactInitialized = false;
 	UPROPERTY(Replicated)
 	EHALCombatConfigVersion CombatConfigVersion = EHALCombatConfigVersion::LegacyFixedDamage;
 };

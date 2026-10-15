@@ -177,6 +177,9 @@ public:
 	/** Explicit migration and combat initialization seed; never a live runtime HP store. */
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	FVehicleCombatConfig Combat;
+	/** Explicitly migrated tier/drop/collision configuration. Physical body tuning is unchanged. */
+	UPROPERTY(EditAnywhere, Category = "Impact")
+	FHALVehicleImpactConfig Impact;
 	UPROPERTY(EditAnywhere, Category = "Visual")
 	FVehicleVisualConfig Visual;
 	UPROPERTY(EditAnywhere, Category = "Local")
@@ -256,6 +259,9 @@ public:
 	/** Existing ball impacts only. Other sources are added when their rules are implemented. */
 	UPROPERTY(EditAnywhere, Category = "Ball Impacts")
 	FVehicleKnockbackConfig BallImpacts;
+	/** Enable TieredV1 only after migrating vehicle and ball Impact sections. */
+	UPROPERTY(EditAnywhere, Category = "Collision Impacts")
+	FHALCollisionImpactRules CollisionImpacts;
 	bool Validate(FString& Error) const;
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;

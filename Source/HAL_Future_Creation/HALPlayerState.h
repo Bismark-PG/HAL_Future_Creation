@@ -10,6 +10,7 @@
 class UHALAbilitySystemComponent;
 class UHALHealthAttributeSet;
 class UHALCombatAttributeSet;
+class UHALImpactAttributeSet;
 
 /** Stable player identity and GAS Owner; the current vehicle is its Avatar. */
 UCLASS()
@@ -28,4 +29,6 @@ private:
 	TObjectPtr<UHALHealthAttributeSet> HealthAttributes;
 	UPROPERTY()
 	TObjectPtr<UHALCombatAttributeSet> CombatAttributes;
+	UPROPERTY()
+	TObjectPtr<UHALImpactAttributeSet> ImpactAttributes;
 };

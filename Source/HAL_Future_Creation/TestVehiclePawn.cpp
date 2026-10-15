@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "TestVehiclePawn.h"
+#include "HALImpactReceiverComponent.h"
 #include "UObject/UnrealType.h"
 #include "VehicleDefinition.h"
 #include "VehicleConfigurationApplication.h"
@@ -93,6 +94,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	BallControl = CreateDefaultSubobject<UBallControlComponent>(TEXT("BallControl"));
 	BallControl->SetVehicleComponents(CollisionRoot, BallControlPoint, BallConstraint);
 	Health = CreateDefaultSubobject<UVehicleHealthComponent>(TEXT("Health"));
+	ImpactReceiver = CreateDefaultSubobject<UHALImpactReceiverComponent>(TEXT("ImpactReceiver"));
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(CollisionRoot);
@@ -232,7 +234,11 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 	}
 	ASC->InitAbilityActorInfo(State, this);
 	Health->BindToAbilitySystem(ASC);
-	if (HasAuthority() && bConfigurationValid) { ASC->InitializeCombat(RuntimeCombatConfig); }
+	if (HasAuthority() && bConfigurationValid)
+	{
+		ASC->InitializeCombat(RuntimeCombatConfig);
+		ASC->InitializeImpact(ImpactReceiver->GetConfiguration());
+	}
 }
 
 void ATestVehiclePawn::UninitializeAbilitySystem()
@@ -341,6 +347,7 @@ bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
 		verify(BallControl->ApplyConfiguration(Definition->BallControl));
 		verify(Health->ApplyConfiguration(Definition->Health));
 		RuntimeCombatConfig = Definition->Combat;
+		verify(ImpactReceiver->ApplyConfiguration(Definition->Impact));
 		DefaultMappingContext = Local->DefaultMappingContext;
 		SteeringAction = Local->SteeringAction;
 		ThrottleAction = Local->ThrottleAction;
@@ -652,6 +659,7 @@ void ATestVehiclePawn::PreInitializeComponents()
 	}
 	bConfigurationValid = ApplyDefinition(false);
 	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules()) { bConfigurationValid = false; }
+	if (!ImpactReceiver->CheckConfiguredRules()) { bConfigurationValid = false; }
 	if (!bConfigurationValid)
 	{
 		CollisionRoot->SetSimulatePhysics(false);

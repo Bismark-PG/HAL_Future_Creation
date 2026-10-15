@@ -3,6 +3,7 @@
 #include "HAL/IConsoleManager.h"
 #include "HALHealthAttributeSet.h"
 #include "HALCombatAttributeSet.h"
+#include "HALImpactAttributeSet.h"
 #include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHALGAS, Log, All);
@@ -19,6 +20,7 @@ void UHALAbilitySystemComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProp
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UHALAbilitySystemComponent, bHealthInitialized);
 	DOREPLIFETIME(UHALAbilitySystemComponent, bCombatInitialized);
+	DOREPLIFETIME(UHALAbilitySystemComponent, bImpactInitialized);
 	DOREPLIFETIME(UHALAbilitySystemComponent, CombatConfigVersion);
 }
 
@@ -35,6 +37,19 @@ bool UHALAbilitySystemComponent::InitializeCombat(const FVehicleCombatConfig& Co
 	SetNumericAttributeBase(UHALCombatAttributeSet::GetOutputMultiplierDeltaAttribute(), bMigrated ? Config.OutputMultiplierDelta : 0.0f);
 	SetNumericAttributeBase(UHALCombatAttributeSet::GetDamageTakenMultiplierAttribute(), bMigrated ? Config.DamageTakenMultiplier : 1.0f);
 	bCombatInitialized = true;
+	GetOwner()->ForceNetUpdate();
+	return true;
+}
+
+bool UHALAbilitySystemComponent::InitializeImpact(const FHALVehicleImpactConfig& Config)
+{
+	FString Error;
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !Config.Validate(Error)
+		|| !GetSet<UHALImpactAttributeSet>()) { return false; }
+	if (bImpactInitialized) { return true; }
+	SetNumericAttributeBase(UHALImpactAttributeSet::GetTierReductionAttribute(),
+		Config.Version == EHALImpactVersion::TieredV1 ? Config.TierReduction : 0);
+	bImpactInitialized = true;
 	GetOwner()->ForceNetUpdate();
 	return true;
 }

@@ -159,6 +159,7 @@ protected:
 
 private:
 #if WITH_DEV_AUTOMATION_TESTS
+	friend class FHALImpactBallPipelineTest;
 	friend class FControlledBallProxyPresentationTest;
 	friend class FHALCombatBallConsumptionTest;
 #endif
@@ -196,5 +197,6 @@ private:
 	bool bResolvingDamageHit = false;
 	uint32 LastResolvedHitEventSequence = 0;
 	FBallDamageConfig RuntimeDamageConfig;
+	FHALAuthoredImpactConfig RuntimeImpactConfig;
 	FHALCombatAction LaunchAction;
 };

@@ -15,6 +15,7 @@
 #include "HALApplyDamageEffect.h"
 #include "HALCombatEffectContext.h"
 #include "HALGameplayTags.h"
+#include "HALImpactReceiverComponent.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerState.h"
 #include "HAL/IConsoleManager.h"
@@ -245,12 +246,31 @@ FHALCombatHitResult FCombatResolver::ResolveCombatHit(FHALCombatAction& Action, 
 	Hit.InstigatorActor = Source.InstigatorActor.Get();
 	Hit.InstigatorPlayerId = Source.InstigatorPlayerId;
 	UPrimitiveComponent* Body = Hit.TargetPhysicsBody;
-	if (!IsValid(Body) || Body->GetOwner() != Hit.TargetActor || !Body->IsSimulatingPhysics())
+	if (!IsValid(Hit.TargetActor)) { Body = nullptr; }
+	else if (!IsValid(Body) || Body->GetOwner() != Hit.TargetActor || !Body->IsSimulatingPhysics())
 	{
 		Body = Cast<UPrimitiveComponent>(Hit.TargetActor->GetRootComponent());
 	}
 	if (Request.bApplyImpact)
 	{
+		FHALCollisionImpactRules ImpactRules;
+		const bool bTiered = GetDefault<UVehicleKnockbackSettings>()->GetCollisionImpactRules(ImpactRules)
+			&& ImpactRules.Version == EHALImpactVersion::TieredV1;
+		if (bTiered)
+		{
+			Result.ImpactOutcome = EHALImpactOutcome::TargetNotReady;
+			if (IsValid(Target))
+			{
+				if (UHALImpactReceiverComponent* Receiver = Target->FindComponentByClass<UHALImpactReceiverComponent>())
+				{
+					FHALCombatHitRequest ImpactRequest = Request;
+					ImpactRequest.Hit = Hit;
+					Receiver->Resolve(ImpactRequest, Result);
+				}
+			}
+		}
+		else
+		{
 		Result.ImpactOutcome = EHALImpactOutcome::NoPhysicsBody;
 		if (IsValid(Body) && Body->IsSimulatingPhysics())
 		{
@@ -278,13 +298,16 @@ FHALCombatHitResult FCombatResolver::ResolveCombatHit(FHALCombatAction& Action, 
 				}
 			}
 		}
+		}
 	}
 	if (CVarHALCombatLog.GetValueOnGameThread() > 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("HAL Combat: Attack=%s Pulse=%u PlayerId=%d Source=%s Mode=%d Target=%s Raw=%.2f Resolved=%.2f Actual=%.2f DamageImmune=%d Impact=%d Tier=%d"),
+		UE_LOG(LogTemp, Log, TEXT("HAL Combat: Attack=%s Pulse=%u PlayerId=%d Source=%s Mode=%d Target=%s Raw=%.2f Resolved=%.2f Actual=%.2f DamageImmune=%d Impact=%d LegacyTier=%d SourceTier=%d EffectiveTier=%d ImpactImmune=%d Drop=%d Frame=%d"),
 			*Result.AttackId.ToString(), Result.PulseSequence, Result.InstigatorPlayerId, *Source.SourceTag.ToString(),
 			int32(Source.DamageMode), *GetNameSafe(Target), Result.RawDamage, Result.ResolvedDamage, Result.ActualHPRemoved,
-			Result.bDamageImmune ? 1 : 0, int32(Result.ImpactOutcome), int32(Result.KnockbackTier));
+			Result.bDamageImmune ? 1 : 0, int32(Result.ImpactOutcome), int32(Result.KnockbackTier),
+			int32(Result.ImpactSummary.SourceTier), int32(Result.ImpactSummary.EffectiveTier),
+			Result.ImpactSummary.bImmune ? 1 : 0, Result.ImpactSummary.bBallDropped ? 1 : 0, Result.ImpactSummary.ServerPhysicsFrame);
 	}
 	return Result;
 }

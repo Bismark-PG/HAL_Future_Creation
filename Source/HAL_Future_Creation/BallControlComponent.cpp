@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BallControlComponent.h"
+#include "VehicleKnockbackSettings.h"
 #include "VehicleConfigurationTypes.h"
 #include "VehicleConfigurationApplication.h"
 #include "UObject/UnrealType.h"
@@ -152,6 +153,9 @@ FVector UBallControlComponent::CalculateRecoilDeltaVelocity() const
 
 void UBallControlComponent::HandleVehicleCollision(const FVector& NormalImpulse, const FHitResult& Hit)
 {
+	FHALCollisionImpactRules Rules;
+	if (GetDefault<UVehicleKnockbackSettings>()->GetCollisionImpactRules(Rules)
+		&& Rules.Version == EHALImpactVersion::TieredV1) { return; }
 	if (!GetOwner()->HasAuthority()
 		|| !IsValid(HeldBall)
 		|| NormalImpulse.SizeSquared() < FMath::Square(DropCollisionImpulseThreshold))
@@ -165,6 +169,13 @@ void UBallControlComponent::HandleVehicleCollision(const FVector& NormalImpulse,
 		ReleaseDirection = Hit.ImpactNormal.GetSafeNormal();
 	}
 	ReleaseHeldBall(ReleaseDirection, true);
+}
+
+bool UBallControlComponent::ReleaseFromImpact(const FVector& Direction)
+{
+	if (!GetOwner()->HasAuthority() || !IsValid(HeldBall)) { return false; }
+	ReleaseHeldBall(Direction, true);
+	return true;
 }
 
 void UBallControlComponent::EvaluateBallControl()

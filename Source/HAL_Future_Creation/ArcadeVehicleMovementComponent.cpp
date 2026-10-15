@@ -310,6 +310,23 @@ void UArcadeVehicleMovementComponent::QueueRecoil(const FVector& DeltaVelocity)
 void UArcadeVehicleMovementComponent::ApplyAction_Internal(
 	const TInstancedStruct<FNetworkPhysicsActionPayload>& ActionInstance)
 {
+	if (const auto* Impact = ActionInstance.GetPtr<FVehicleImpactAction>())
+	{
+		if (!bShouldRunPhysics.Load() || !Impact->IsValid() || !UpdatedPrimitive) { return; }
+		FBodyInstance* Body = UpdatedPrimitive->GetBodyInstance();
+		if (Body && Body->GetBodyInstanceAsyncPhysicsTickHandle().IsValid())
+		{
+			const auto& Handle = Body->GetPhysicsActor();
+			FPhysicsInterface::AddVelocity_AssumesLocked(Handle,
+				Impact->ResolveLinearDelta(FPhysicsInterface::GetLinearVelocity_AssumesLocked(Handle)), true);
+			if (Impact->bSetPlanarAngularVelocity)
+			{
+				FPhysicsInterface::SetAngularVelocity_AssumesLocked(Handle,
+					Impact->ResolveAngularVelocity(FPhysicsInterface::GetAngularVelocity_AssumesLocked(Handle)));
+			}
+		}
+		return;
+	}
 	const FVehicleRecoilAction* Recoil = ActionInstance.GetPtr<FVehicleRecoilAction>();
 	if (!bShouldRunPhysics.Load() || !Recoil || Recoil->LaunchSequence == 0
 		|| Recoil->DeltaVelocity.ContainsNaN() || Recoil->DeltaVelocity.IsNearlyZero()
@@ -319,6 +336,29 @@ void UArcadeVehicleMovementComponent::ApplyAction_Internal(
 	{
 		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(), Recoil->DeltaVelocity, true);
 	}
+}
+
+bool UArcadeVehicleMovementComponent::QueueImpact(FVehicleImpactAction& Action)
+{
+	if (!GetOwner()->HasAuthority() || !Action.IsValid() || !UpdatedPrimitive || !UpdatedPrimitive->IsSimulatingPhysics()) { return false; }
+	if (bUseNetworkPhysicsHistory.Load())
+	{
+		UNetworkPhysicsComponent* History = GetOwner()->FindComponentByClass<UNetworkPhysicsComponent>();
+		if (!History) { return false; }
+		// 0 is the engine's owner-source identity; recoil uses nonzero launch sequence IDs.
+		// Do not hash this unreplicated component: dynamic Pawn names are not network-stable.
+		History->EnqueueImmediateAction_External(Action, uint32(0), true);
+	}
+	else
+	{
+		UpdatedPrimitive->AddImpulse(Action.ResolveLinearDelta(UpdatedPrimitive->GetPhysicsLinearVelocity()), NAME_None, true);
+		if (Action.bSetPlanarAngularVelocity)
+		{
+			UpdatedPrimitive->SetPhysicsAngularVelocityInRadians(
+				Action.ResolveAngularVelocity(UpdatedPrimitive->GetPhysicsAngularVelocityInRadians()));
+		}
+	}
+	return true;
 }
 
 bool UArcadeVehicleMovementComponent::CaptureNetState(FVehicleNetStateData& OutState) const

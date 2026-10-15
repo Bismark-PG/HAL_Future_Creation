@@ -73,7 +73,7 @@ bool UVehicleLocalConfig::Validate(FString& Error) const
 bool UVehicleDefinition::Validate(FString& Error) const
 {
 	if (!bReadyForUse) { return Fail(Error, TEXT("VehicleDefinition is not marked ReadyForUse after baseline comparison.")); }
-	if (!Physics.Validate(Error) || !Visual.Validate(Error) || !Health.Validate(Error) || !Combat.Validate(Error)) { return false; }
+	if (!Physics.Validate(Error) || !Visual.Validate(Error) || !Health.Validate(Error) || !Combat.Validate(Error) || !Impact.Validate(Error)) { return false; }
 	if (CollisionShape == EVehicleCollisionShape::Box)
 	{
 		return PositiveVector(BoxExtent) || Fail(Error, TEXT("BoxExtent must be finite and positive."));
@@ -151,7 +151,7 @@ const FVehicleKnockbackTierDefinition& FVehicleKnockbackConfig::GetTierDefinitio
 
 bool UCombatRulesDefinition::Validate(FString& Error) const
 {
-	return bReadyForUse ? BallImpacts.Validate(Error) : Fail(Error, TEXT("CombatRules is not marked ReadyForUse after baseline comparison."));
+	return bReadyForUse ? (BallImpacts.Validate(Error) && CollisionImpacts.Validate(Error)) : Fail(Error, TEXT("CombatRules is not marked ReadyForUse after baseline comparison."));
 }
 
 #if WITH_EDITOR

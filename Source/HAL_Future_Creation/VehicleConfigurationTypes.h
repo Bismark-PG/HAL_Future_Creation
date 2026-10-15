@@ -376,6 +376,8 @@ struct HAL_FUTURE_CREATION_API FBallGameplayConfig
 
 	UPROPERTY(EditAnywhere, Category = "Configuration")
 	FBallDamageConfig Damage;
+	UPROPERTY(EditAnywhere, Category = "Configuration")
+	FHALAuthoredImpactConfig Impact;
 
 	UPROPERTY(EditAnywhere, Category = "Configuration")
 	FBallDebugConfig Debug;

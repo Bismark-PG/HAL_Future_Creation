@@ -7,6 +7,7 @@
 #include "HALPlayerController.generated.h"
 
 class UHALDebugHUDWidget;
+class UHALAbilitySystemComponent;
 
 /** Local input, camera and match UI entry point for a single player. */
 UCLASS()
@@ -38,10 +39,14 @@ public:
 	/** Print every vehicle's GAS Owner/Avatar and sole authoritative HP source. */
 	UFUNCTION(Exec)
 	void HALGASStatus();
+	/** Development host console only. Changes test resistance without creating content assets. */
+	UFUNCTION(Exec)
+	void HALImpactDebug(int32 PlayerId, int32 Reduction, bool bImmune);
 
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<UHALDebugHUDWidget> DebugHUD;
+	TSet<TWeakObjectPtr<UHALAbilitySystemComponent>> DebugImpactImmuneTargets;
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestStartMatch();

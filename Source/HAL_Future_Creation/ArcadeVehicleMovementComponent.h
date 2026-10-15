@@ -57,6 +57,7 @@ public:
 	void ApplyHistoryState(const FVehicleNetStateData& InState);
 	void ResetInputCommand();
 	void QueueRecoil(const FVector& DeltaVelocity);
+	bool QueueImpact(FVehicleImpactAction& Action);
 	int32 GetLastPhysicsFrame() const { return LastPhysicsFrame.Load(); }
 	/** Number of local resimulation runs observed by this physics component; diagnostic only. */
 	int32 GetResimulationRunCount() const { return ResimulationRunCount.Load(); }

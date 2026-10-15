@@ -18,6 +18,7 @@ public:
 
 	bool InitializeRules();
 	bool GetRuntimeRules(FVehicleKnockbackConfig& OutRules) const;
+	bool GetCollisionImpactRules(FHALCollisionImpactRules& OutRules) const;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& Event) override;
 	virtual bool CanEditChange(const FProperty* Property) const override;
@@ -59,6 +60,7 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UCombatRulesDefinition> CachedDefinition;
 	FVehicleKnockbackConfig CachedRules;
+	FHALCollisionImpactRules CachedCollisionRules;
 	bool bRulesInitialized = false;
 	bool bRulesValid = false;
 };

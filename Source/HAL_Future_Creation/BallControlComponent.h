@@ -44,6 +44,8 @@ public:
 	/** Explicit server cleanup before the owning Pawn is unpossessed/destroyed. */
 	void PrepareForOwnerExit();
 	void HandleVehicleCollision(const FVector& NormalImpulse, const FHitResult& Hit);
+	/** Authority-only tier outcome; raw impulse never bypasses resistance in TieredV1. */
+	bool ReleaseFromImpact(const FVector& Direction);
 
 	UFUNCTION(BlueprintPure, Category = "Ball Control|State")
 	ABasicBallActor* GetHeldBall() const { return HeldBall; }
@@ -108,6 +110,7 @@ protected:
 
 private:
 #if WITH_DEV_AUTOMATION_TESTS
+	friend class FHALImpactBallPipelineTest;
 	friend class FConfigurationPlayerBallTest;
 #endif
 	void EvaluateBallControl();

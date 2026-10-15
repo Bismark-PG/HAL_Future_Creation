@@ -7,6 +7,8 @@
 #include "HALAbilitySystemComponent.h"
 #include "HALHealthAttributeSet.h"
 #include "HALCombatAttributeSet.h"
+#include "HALImpactAttributeSet.h"
+#include "HALImpactReceiverComponent.h"
 
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -41,6 +43,9 @@ APassiveTestVehicle::APassiveTestVehicle()
 	AbilitySystem->AddAttributeSetSubobject(HealthAttributes.Get());
 	CombatAttributes = CreateDefaultSubobject<UHALCombatAttributeSet>(TEXT("CombatAttributes"));
 	AbilitySystem->AddAttributeSetSubobject(CombatAttributes.Get());
+	ImpactAttributes = CreateDefaultSubobject<UHALImpactAttributeSet>(TEXT("ImpactAttributes"));
+	AbilitySystem->AddAttributeSetSubobject(ImpactAttributes.Get());
+	ImpactReceiver = CreateDefaultSubobject<UHALImpactReceiverComponent>(TEXT("ImpactReceiver"));
 }
 
 UAbilitySystemComponent* APassiveTestVehicle::GetAbilitySystemComponent() const
@@ -51,7 +56,11 @@ UAbilitySystemComponent* APassiveTestVehicle::GetAbilitySystemComponent() const
 void APassiveTestVehicle::BeginPlay()
 {
 	AbilitySystem->InitAbilityActorInfo(this, this);
-	if (HasAuthority() && bConfigurationValid) { AbilitySystem->InitializeCombat(RuntimeCombatConfig); }
+	if (HasAuthority() && bConfigurationValid)
+	{
+		AbilitySystem->InitializeCombat(RuntimeCombatConfig);
+		AbilitySystem->InitializeImpact(ImpactReceiver->GetConfiguration());
+	}
 	Super::BeginPlay();
 }
 
@@ -73,6 +82,7 @@ bool APassiveTestVehicle::ApplyDefinition(bool bPreview)
 	{
 		verify(Health->ApplyConfiguration(Definition->Health));
 		RuntimeCombatConfig = Definition->Combat;
+		verify(ImpactReceiver->ApplyConfiguration(Definition->Impact));
 	}
 	return true;
 }
@@ -87,6 +97,7 @@ void APassiveTestVehicle::PreInitializeComponents()
 {
 	bConfigurationValid = ApplyDefinition(false);
 	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules()) { bConfigurationValid = false; }
+	if (!ImpactReceiver->CheckConfiguredRules()) { bConfigurationValid = false; }
 	if (!bConfigurationValid)
 	{
 		CollisionRoot->SetSimulatePhysics(false);

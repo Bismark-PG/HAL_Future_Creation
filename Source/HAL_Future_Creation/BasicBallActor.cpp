@@ -133,6 +133,7 @@ bool ABasicBallActor::ApplyDefinition(bool bPreview)
 		VehicleHitDamage = Definition->Gameplay.Damage.VehicleHitDamage;
 		KnockbackStrengthMultiplier = Definition->Gameplay.Damage.KnockbackStrengthMultiplier;
 		RuntimeDamageConfig = Definition->Gameplay.Damage;
+		RuntimeImpactConfig = Definition->Gameplay.Impact;
 		bLogDamageHits = Definition->Gameplay.Debug.bLogDamageHits;
 		bLogStateChanges = Definition->Gameplay.Debug.bLogStateChanges;
 	}
@@ -168,6 +169,10 @@ bool ABasicBallActor::LaunchFromControl(
 	}
 
 	FHALAttackSourceSnapshot Attack;
+	FHALCollisionImpactRules ImpactRules;
+	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules()
+		|| !GetDefault<UVehicleKnockbackSettings>()->GetCollisionImpactRules(ImpactRules)
+		|| (ImpactRules.Version == EHALImpactVersion::TieredV1 && RuntimeImpactConfig.Version != ImpactRules.Version)) { return false; }
 	if (RuntimeDamageConfig.Version == EHALCombatConfigVersion::AttackSnapshotV1)
 	{
 		if (!FCombatResolver::CaptureVehicleAttack(*this, *NewLauncher, RuntimeDamageConfig.ActionMultiplier,
@@ -189,6 +194,7 @@ bool ABasicBallActor::LaunchFromControl(
 		}
 	}
 	Attack.SourceTag = HALGameplayTags::Combat_Source_Ball;
+	Attack.Impact = RuntimeImpactConfig;
 	Attack.EffectTags = RuntimeDamageConfig.EffectTags;
 	Attack.bCanHitInstigator = false;
 	if (!LaunchAction.Begin(*this, Attack)) { return false; }
@@ -479,9 +485,10 @@ void ABasicBallActor::OnPhysicsRootHit(
 	if (CandidateEventSequence == 0) { ++CandidateEventSequence; }
 	Context.ServerHitEventSequence = CandidateEventSequence;
 	Context.TargetPhysicsBody = OtherComponent;
+	Context.SourcePhysicsBody = PhysicsRoot;
 	Context.ImpactPoint = Hit.ImpactPoint;
 	Context.ImpactNormal = Hit.ImpactNormal;
-	Context.NormalImpulse = NormalImpulse;
+	Context.NormalImpulse = -NormalImpulse; // Hit callback delivers impulse on the ball; receiver needs impulse on target.
 	Context.SourceVelocity = PhysicsRoot->GetPhysicsLinearVelocity();
 	Context.SourceMass = PhysicsRoot->GetMass();
 	if (IsValid(OtherComponent) && OtherComponent->IsSimulatingPhysics())
@@ -495,6 +502,11 @@ void ABasicBallActor::OnPhysicsRootHit(
 	Request.PulseSequence = LaunchAction.GetPulseSequence();
 	Request.Hit = Context;
 	Request.bApplyImpact = true;
+	if (LaunchAction.GetSnapshot().Impact.Version == EHALImpactVersion::TieredV1)
+	{
+		Request.Impact.Mode = EHALImpactMode::ExplicitTier;
+		Request.Impact.Tier = LaunchAction.GetSnapshot().Impact.Tier;
+	}
 	Request.KnockbackStrengthMultiplier = KnockbackStrengthMultiplier;
 	const FHALCombatHitResult Resolution = FCombatResolver::ResolveCombatHit(LaunchAction, Request);
 	if (Resolution.bHitAccepted)
@@ -537,6 +549,13 @@ void ABasicBallActor::PreInitializeComponents()
 	}
 	bConfigurationValid = ApplyDefinition(false);
 	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules()) { bConfigurationValid = false; }
+	FHALCollisionImpactRules ImpactRules;
+	if (GetDefault<UVehicleKnockbackSettings>()->GetCollisionImpactRules(ImpactRules)
+		&& ImpactRules.Version == EHALImpactVersion::TieredV1 && RuntimeImpactConfig.Version != ImpactRules.Version)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s: TieredV1 rules require migrated BallDefinition.Gameplay.Impact. No default fallback."), *GetName());
+		bConfigurationValid = false;
+	}
 	if (!bConfigurationValid)
 	{
 		PhysicsRoot->SetSimulatePhysics(false);

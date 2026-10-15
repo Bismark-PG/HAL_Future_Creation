@@ -3,6 +3,7 @@
 #include "HALAbilitySystemComponent.h"
 #include "HALHealthAttributeSet.h"
 #include "HALCombatAttributeSet.h"
+#include "HALImpactAttributeSet.h"
 
 AHALPlayerState::AHALPlayerState()
 {
@@ -12,6 +13,8 @@ AHALPlayerState::AHALPlayerState()
 	AbilitySystem->AddAttributeSetSubobject(HealthAttributes.Get());
 	CombatAttributes = CreateDefaultSubobject<UHALCombatAttributeSet>(TEXT("CombatAttributes"));
 	AbilitySystem->AddAttributeSetSubobject(CombatAttributes.Get());
+	ImpactAttributes = CreateDefaultSubobject<UHALImpactAttributeSet>(TEXT("ImpactAttributes"));
+	AbilitySystem->AddAttributeSetSubobject(ImpactAttributes.Get());
 }
 
 UAbilitySystemComponent* AHALPlayerState::GetAbilitySystemComponent() const

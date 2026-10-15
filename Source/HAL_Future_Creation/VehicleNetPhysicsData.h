@@ -89,6 +89,49 @@ struct HAL_FUTURE_CREATION_API FVehicleRecoilAction : public FNetworkPhysicsActi
 	}
 };
 
+/** Resolved once on authority. Replays physics only; never re-reads GAS or repeats HP/drop rules. */
+USTRUCT()
+struct HAL_FUTURE_CREATION_API FVehicleImpactAction : public FNetworkPhysicsActionPayload
+{
+	GENERATED_BODY()
+	UPROPERTY()
+	uint32 EventSequence = 0;
+	UPROPERTY()
+	FVector DeltaVelocity = FVector::ZeroVector;
+	UPROPERTY()
+	float MinimumUpwardSpeed = 0.0f;
+	UPROPERTY()
+	bool bMinimumUpwardSpeed = false;
+	UPROPERTY()
+	FVector PlanarAngularVelocity = FVector::ZeroVector;
+	UPROPERTY()
+	bool bSetPlanarAngularVelocity = false;
+	virtual const EActionAuthorStyle GetAuthorStyle() const override { return EActionAuthorStyle::Authority; }
+	bool IsValid() const
+	{
+		return EventSequence != 0 && !DeltaVelocity.ContainsNaN() && !PlanarAngularVelocity.ContainsNaN()
+			&& FMath::IsFinite(MinimumUpwardSpeed) && MinimumUpwardSpeed >= 0;
+	}
+	virtual bool IsNearlyEqual(const FNetworkPhysicsActionPayload& Other) const override
+	{
+		const auto& Impact = static_cast<const FVehicleImpactAction&>(Other);
+		return EventSequence == Impact.EventSequence && DeltaVelocity.Equals(Impact.DeltaVelocity, 0.1f)
+			&& FMath::IsNearlyEqual(MinimumUpwardSpeed, Impact.MinimumUpwardSpeed, 0.1f)
+			&& bMinimumUpwardSpeed == Impact.bMinimumUpwardSpeed
+			&& PlanarAngularVelocity.Equals(Impact.PlanarAngularVelocity, 0.01f)
+			&& bSetPlanarAngularVelocity == Impact.bSetPlanarAngularVelocity;
+	}
+	FVector ResolveLinearDelta(const FVector& CurrentVelocity) const
+	{
+		return DeltaVelocity + FVector::UpVector * (bMinimumUpwardSpeed
+			? FMath::Max(0.0, double(MinimumUpwardSpeed) - CurrentVelocity.Z) : 0.0);
+	}
+	FVector ResolveAngularVelocity(const FVector& CurrentAngular) const
+	{
+		return FVector(PlanarAngularVelocity.X, PlanarAngularVelocity.Y, CurrentAngular.Z);
+	}
+};
+
 /** Rigid body and movement state needed to compare/restore a predicted vehicle frame. */
 USTRUCT()
 struct HAL_FUTURE_CREATION_API FVehicleNetStateData

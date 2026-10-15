@@ -1,0 +1,2027 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-10-15",
+  "date_timezone": "Asia/Tokyo",
+  "git_base": "1eb02c4c8cae47cd010337912bbd165abdfce256",
+  "branch": "main",
+  "uncommitted_delivery": true,
+  "scope": "Phase10D source implementation; saved DA migration and manual TieredV1 network acceptance pending",
+  "engine_version": "5.8.2-56702186+++UE5+Release-5.8",
+  "environment_note": "Local installed engine is 5.8.2 CL56702186. Previous-device 10C ran on 5.8.3 CL58210709; 5.8.3 was not installed or verified in this run.",
+  "builds": {
+    "Editor_Win64_Development": "Succeeded",
+    "Game_Win64_Development": "Succeeded",
+    "method": "Installed engine Build.bat, full project targets, Live Coding Editor closed",
+    "final_invocation_compiler_warnings": 0
+  },
+  "automation": {
+    "succeeded": 27,
+    "succeeded_with_warnings": 0,
+    "failed": 0,
+    "not_run": 0,
+    "tests": [
+      {
+        "path": "HAL.FutureCreation.Ball.ControlledProxyPresentation",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Ball.VehicleExitCleanup",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.BallMigrationAndConsumption",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.ConfigurationAndContext",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.DamageImpactIndependence",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.PulsesTargetsAndDedup",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.PureDamageAndActualRemoval",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.SnapshotAndSourceLifetime",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.CombatRulesSource",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.InitializationAndIsolation",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.NoFallback",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.PlayerAndBallInitialization",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.Validation",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.GAS.Health.BoundsAndIsolation",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.GAS.Health.PlayerStateAvatarLifecycle",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.AllSourcesAndContactEpisodes",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.AuthorityPhysicsReplayContract",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.BallSnapshotDropAndCallbackMerge",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.GASResistanceAndIndependentDamage",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.TiersCalibrationAndEnergyBudget",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.PhysicsInput.HistorySerialization",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.PhysicsInput.Validation",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.Blend",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.ComponentContact",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.Eligibility",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.ThrottleProjection",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.YawControl",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      }
+    ],
+    "limitations": "Editor isolated worlds and replay payload contract tests; not real saved-V1 multi-process impact acceptance."
+  },
+  "initial_failures_and_repairs": [
+    "First automation: 24 passed, 3 failed. Initialize shared rules before standalone launch in the old exit fixture.",
+    "Supply real simple-collision mesh to new Pawn fixture; register expected engine-cube no-convex warning.",
+    "Use 0.001 cm/s tolerance for physical energy-budget float assertions.",
+    "Fix replication-macro parameter names, uint32 Blueprint visibility and test API spelling.",
+    "Restrict Editor-only mutable-settings fixture to WITH_EDITOR to allow Game build.",
+    "Avoid unstable UObject source hashing for authority physics actions; use engine owner-source ID 0, distinct from recoil IDs."
+  ],
+  "saved_asset_inspection": {
+    "engine_version": "5.8.2-56702186+++UE5+Release-5.8",
+    "scope": "saved_assets_only_no_compile_no_save",
+    "assets": {
+      "DA_Vehicle_Player_TestBaseline_v1": {
+        "impact": "(Version=Legacy,CollisionTierCap=Heavy,MinimumDropTier=Medium,bDropOnImpact=True,TierReduction=0)",
+        "combat": "(Version=AttackSnapshotV1,AttackPower=25.000000,OutputMultiplierDelta=0.000000,DamageTakenMultiplier=1.000000)",
+        "physics": "(Body=(PositionSolverIterationCount=8,VelocitySolverIterationCount=2,ProjectionSolverIterationCount=1,ObjectType=ECC_PhysicsBody,CollisionEnabled=QueryAndPhysics,SleepFamily=Normal,DOFMode=Default,bUseCCD=True,bUseMACD=False,bAllowPartialIslandSleep=True,bIgnoreAnalyticCollisions=False,bNotifyRigidBodyCollision=True,bSmoothEdgeCollisions=False,bLockTranslation=True,bLockRotation=True,bLockXTranslation=False,bLockYTranslation=False,bLockZTranslation=False,bLockXRotation=False,bLockYRotation=False,bLockZRotation=False,bOverrideMaxAngularVelocity=False,bOverrideMaxDepenetrationVelocity=False,bOverrideWalkableSlopeOnInstance=False,bOverrideIterationCounts=False,bInterpolateWhenSubStepping=True,bInertiaConditioning=True,bOneWayInteraction=False,bOverrideSolverAsyncDeltaTime=False,SolverAsyncDeltaTime=0.016667,CollisionProfileName=\"PhysicsActor\",CollisionResponses=(ResponseArray=),MaxDepenetrationVelocity=0.000000,MassInKgOverride=800.000000,LinearDamping=0.150000,AngularDamping=0.800000,CustomDOFPlaneNormal=(X=0.000000,Y=0.000000,Z=0.000000),COMNudge=(X=0.000000,Y=0.000000,Z=0.000000),MassScale=1.000000,GravityGroupIndex=0,InertiaTensorScale=(X=1.000000,Y=1.000000,Z=1.000000),WalkableSlopeOverride=(WalkableSlopeBehavior=WalkableSlope_Default,WalkableSlopeAngle=0.000000),PhysMaterialOverride=None,MaxAngularVelocity=3600.000000,CustomSleepThresholdMultiplier=1.000000,StabilizationThresholdMultiplier=1.000000,PhysicsBlendWeight=0.000000,bSimulatePhysics=True,bOverrideMass=True,bEnableGravity=True,bUpdateKinematicFromSimulation=False,bGyroscopicTorqueEnabled=False,bAutoWeld=False,bStartAwake=True,bGenerateWakeEvents=False,bUpdateMassWhenScaleChanges=True),Scale=(X=1.000000,Y=1.000000,Z=1.000000),bGenerateOverlapEvents=True,bHiddenInGame=True)",
+        "movement": "(Drive=(ForwardAcceleration=1800.000000,ReverseAcceleration=1200.000000,BrakeDeceleration=2800.000000,MaxForwardSpeed=2400.000000,MaxReverseSpeed=900.000000,ReverseEngageSpeed=80.000000,CoastingDragRate=0.350000,OverspeedCorrectionRate=3.000000),Grip=(LateralGripRate=12.000000,HandbrakeGripRate=0.200000,MaxLateralGripAcceleration=2800.000000),Steering=(SteeringAngularAcceleration=12.000000,FullSteeringSpeed=400.000000,HighSpeedSteeringStart=1600.000000,HighSpeedSteeringScale=0.800000,HandbrakeSteeringMultiplier=1.800000,HandbrakeMinimumSteeringAuthority=0.500000,HandbrakeReverseSteeringSpeed=150.000000,YawDampingRate=1.600000,HandbrakeYawDampingRate=0.300000),WallEscape=(bEnableWallEscape=True,WallEscapeEnterSpeed=300.000000,WallEscapeExitSpeed=450.000000,WallEscapeProbeDistance=15.000000,WallEscapeMinimumSteering=0.200000,WallEscapeIntoWallThrottleScale=0.050000,WallEscapeTargetYawRate=2.600000,WallEscapeYawResponseRate=10.000000,WallEscapeMaxYawAcceleration=24.000000,WallEscapeBlendInTime=0.080000,WallEscapeBlendOutTime=0.200000),Debug=(bDrawWallEscapeDebug=False,bDrawGroundDebug=False),Ground=(GroundTraceExtraDistance=30.000000,GroundTraceChannel=ECC_Visibility))",
+        "ball_control": "(Acquisition=(AcquisitionRadius=350.000000,AcquisitionCheckInterval=0.050000,LineOfSightTraceChannel=ECC_Visibility),Control=(MaxControlledDistance=300.000000,ControlPositionStrength=35.000000,ControlVelocityStrength=8.000000,ControlMaxForce=40000.000000),Launch=(LaunchSpeedIncrement=2200.000000,BaseRecoilDeltaSpeed=400.000000,MovingRecoilFraction=0.300000,MaxRecoilDeltaSpeed=600.000000),ForcedRelease=(DropCollisionImpulseThreshold=100000.000000,DropReacquireLockDuration=1.500000,DropBallImpulse=18000.000000,DropBallUpwardImpulse=6000.000000),Debug=(bDrawAcquisitionDebug=False))",
+        "health": "(Health=(MaxHP=100.000000),Debug=(bLogHealthChanges=True))"
+      },
+      "DA_Vehicle_Passive_TestBaseline_v1": {
+        "impact": "(Version=Legacy,CollisionTierCap=Heavy,MinimumDropTier=Medium,bDropOnImpact=True,TierReduction=0)",
+        "combat": "(Version=AttackSnapshotV1,AttackPower=25.000000,OutputMultiplierDelta=0.000000,DamageTakenMultiplier=1.000000)",
+        "physics": "(Body=(PositionSolverIterationCount=8,VelocitySolverIterationCount=2,ProjectionSolverIterationCount=1,ObjectType=ECC_PhysicsBody,CollisionEnabled=QueryAndPhysics,SleepFamily=Normal,DOFMode=Default,bUseCCD=True,bUseMACD=False,bAllowPartialIslandSleep=True,bIgnoreAnalyticCollisions=False,bNotifyRigidBodyCollision=True,bSmoothEdgeCollisions=False,bLockTranslation=True,bLockRotation=True,bLockXTranslation=False,bLockYTranslation=False,bLockZTranslation=False,bLockXRotation=False,bLockYRotation=False,bLockZRotation=False,bOverrideMaxAngularVelocity=False,bOverrideMaxDepenetrationVelocity=False,bOverrideWalkableSlopeOnInstance=False,bOverrideIterationCounts=False,bInterpolateWhenSubStepping=True,bInertiaConditioning=True,bOneWayInteraction=False,bOverrideSolverAsyncDeltaTime=False,SolverAsyncDeltaTime=0.016667,CollisionProfileName=\"PhysicsActor\",CollisionResponses=(ResponseArray=),MaxDepenetrationVelocity=0.000000,MassInKgOverride=800.000000,LinearDamping=0.150000,AngularDamping=0.800000,CustomDOFPlaneNormal=(X=0.000000,Y=0.000000,Z=0.000000),COMNudge=(X=0.000000,Y=0.000000,Z=0.000000),MassScale=1.000000,GravityGroupIndex=0,InertiaTensorScale=(X=1.000000,Y=1.000000,Z=1.000000),WalkableSlopeOverride=(WalkableSlopeBehavior=WalkableSlope_Default,WalkableSlopeAngle=0.000000),PhysMaterialOverride=None,MaxAngularVelocity=3600.000000,CustomSleepThresholdMultiplier=1.000000,StabilizationThresholdMultiplier=1.000000,PhysicsBlendWeight=0.000000,bSimulatePhysics=True,bOverrideMass=True,bEnableGravity=True,bUpdateKinematicFromSimulation=False,bGyroscopicTorqueEnabled=False,bAutoWeld=False,bStartAwake=True,bGenerateWakeEvents=False,bUpdateMassWhenScaleChanges=True),Scale=(X=1.000000,Y=1.000000,Z=1.000000),bGenerateOverlapEvents=True,bHiddenInGame=True)",
+        "health": "(Health=(MaxHP=100.000000),Debug=(bLogHealthChanges=False))"
+      },
+      "DA_Ball_Normal_TestBaseline_v1": {
+        "gameplay": "(State=(LowSpeedThreshold=250.000000,LowSpeedRequiredDuration=0.500000,LowSpeedCheckInterval=0.050000),Acquisition=(PostLaunchPickupLockDuration=0.200000),Damage=(Version=AttackSnapshotV1,ActionMultiplier=1.000000,ActionMultiplierDelta=0.000000,EffectTags=(GameplayTags=),VehicleHitDamage=25.000000,KnockbackStrengthMultiplier=1.000000),Impact=(Version=Legacy,Tier=Medium),Debug=(bLogDamageHits=False,bLogStateChanges=False))",
+        "physics": "(Body=(PositionSolverIterationCount=8,VelocitySolverIterationCount=2,ProjectionSolverIterationCount=1,ObjectType=ECC_PhysicsBody,CollisionEnabled=QueryAndPhysics,SleepFamily=Normal,DOFMode=Default,bUseCCD=True,bUseMACD=False,bAllowPartialIslandSleep=True,bIgnoreAnalyticCollisions=False,bNotifyRigidBodyCollision=True,bSmoothEdgeCollisions=False,bLockTranslation=True,bLockRotation=True,bLockXTranslation=False,bLockYTranslation=False,bLockZTranslation=False,bLockXRotation=False,bLockYRotation=False,bLockZRotation=False,bOverrideMaxAngularVelocity=False,bOverrideMaxDepenetrationVelocity=False,bOverrideWalkableSlopeOnInstance=False,bOverrideIterationCounts=False,bInterpolateWhenSubStepping=True,bInertiaConditioning=True,bOneWayInteraction=False,bOverrideSolverAsyncDeltaTime=False,SolverAsyncDeltaTime=0.016667,CollisionProfileName=\"PhysicsActor\",CollisionResponses=(ResponseArray=),MaxDepenetrationVelocity=0.000000,MassInKgOverride=35.000000,LinearDamping=0.250000,AngularDamping=0.100000,CustomDOFPlaneNormal=(X=0.000000,Y=0.000000,Z=0.000000),COMNudge=(X=0.000000,Y=0.000000,Z=0.000000),MassScale=1.000000,GravityGroupIndex=0,InertiaTensorScale=(X=1.000000,Y=1.000000,Z=1.000000),WalkableSlopeOverride=(WalkableSlopeBehavior=WalkableSlope_Default,WalkableSlopeAngle=0.000000),PhysMaterialOverride=None,MaxAngularVelocity=3600.000000,CustomSleepThresholdMultiplier=1.000000,StabilizationThresholdMultiplier=1.000000,PhysicsBlendWeight=0.000000,bSimulatePhysics=True,bOverrideMass=True,bEnableGravity=True,bUpdateKinematicFromSimulation=False,bGyroscopicTorqueEnabled=False,bAutoWeld=False,bStartAwake=True,bGenerateWakeEvents=False,bUpdateMassWhenScaleChanges=True),Scale=(X=1.000000,Y=1.000000,Z=1.000000),bGenerateOverlapEvents=True,bHiddenInGame=False)"
+      },
+      "DA_Combat_TestBaseline_v1": {
+        "collision_impacts": "(Version=Legacy,LightThreshold=50.000000,MediumThreshold=125.000000,HeavyThreshold=300.000000,EnvironmentTierCap=Heavy,FreeBallTierCap=Light,ContactRearmSeconds=0.200000,MaximumRuleRestitution=0.150000)",
+        "ball_impacts": "(MediumImpactSpeedThreshold=1000.000000,HeavyImpactSpeedThreshold=2600.000000,LightTier=(HorizontalDeltaSpeed=250.000000,TargetVerticalSpeed=0.000000,AirborneFlipTurns=0.000000),MediumTier=(HorizontalDeltaSpeed=600.000000,TargetVerticalSpeed=500.000000,AirborneFlipTurns=1.000000),HeavyTier=(HorizontalDeltaSpeed=900.000000,TargetVerticalSpeed=750.000000,AirborneFlipTurns=1.250000),MaxAirborneAngularSpeed=8.000000,GroundProbeExtraDistance=20.000000)"
+      }
+    },
+    "protected_asset_count": 320,
+    "assets_unchanged": true,
+    "limitations": [
+      "Default-looking fields with Version=Legacy are NOT a completed migration.",
+      "Loading data is not a physics or network acceptance test."
+    ]
+  },
+  "protected_assets": {
+    "count": 320,
+    "all_unchanged": true,
+    "manifest": [
+      {
+        "Path": "Content\\BP_TestGameMode.uasset",
+        "SHA256": "8112D9C674EEF521C9745EEB01B405336C3D2F74A3EDCBA3C94F3D6673CFDDF0"
+      },
+      {
+        "Path": "Content\\BP_TestVehicle.uasset",
+        "SHA256": "F7866819D2650B2176478F3A20288328E1B9F5E922730069C50F82F6B4E80DEE"
+      },
+      {
+        "Path": "Content\\Map.umap",
+        "SHA256": "9892A41DDD1FD4729E1999A47D0414AAB10FFAC5F33C9CB0EC734C38F581438A"
+      },
+      {
+        "Path": "Content\\Test.umap",
+        "SHA256": "CC4455D9C9752E7B1ACE10E829F1716D32B7C96869D09C15491DE662647C56C3"
+      },
+      {
+        "Path": "Content\\Blueprints\\Balls\\BP_BasicBall.uasset",
+        "SHA256": "B47D684494BC0F2326C36D4D2CFA585F84AA0A1FAA704200B70AF6B6891ECD72"
+      },
+      {
+        "Path": "Content\\Blueprints\\Gamemode\\BP_MVPA_GameMode.uasset",
+        "SHA256": "0593502AFB3C0C1DB469178BCEB3D05CD056D7EA43F35706DE7FBF0DD8C494A6"
+      },
+      {
+        "Path": "Content\\Blueprints\\Gamemode\\BP_MVPB_ListenGameMode.uasset",
+        "SHA256": "6C685490E852AA72619B5FCFCE6FD1E61C898DD86FB192D2139F829180584176"
+      },
+      {
+        "Path": "Content\\Blueprints\\MapMechanic\\BP_SpringPunch.uasset",
+        "SHA256": "1DAAFCD30576CC74D7517D3F0DA9ADB3116EA9901B7ACC9623B136DA375E32CD"
+      },
+      {
+        "Path": "Content\\Blueprints\\Network\\BP_MVPB_NetworkGameInstance.uasset",
+        "SHA256": "87DBE120D100752C4CD7FF82F3D5B24D4E098173C95734A6A70431287DC8E58F"
+      },
+      {
+        "Path": "Content\\Blueprints\\Vehicles\\BP_PassiveTestVehicle.uasset",
+        "SHA256": "249DB929E3A0ABB4FC77617D4C260F154424324BA14EE19BDD4D58C03C7BB5DE"
+      },
+      {
+        "Path": "Content\\Blueprints\\Vehicles\\BP_RoundedVehiclePawn.uasset",
+        "SHA256": "49CA1F13B93E33ACBD959716EF382180B1F8C17319C41A6179DDEBBB3288A53C"
+      },
+      {
+        "Path": "Content\\Blueprints\\Vehicles\\BP_TestVehiclePawn.uasset",
+        "SHA256": "324346243999E731172C1945ADC177959CBCF38277421F9EE37BF0F17BA23879"
+      },
+      {
+        "Path": "Content\\Data\\MVP_B\\DA_Ball_Normal_TestBaseline_v1.uasset",
+        "SHA256": "83C22A9A3255D3750D8481622384D3E44428A18774AB7CC6E576BC8E2C418341"
+      },
+      {
+        "Path": "Content\\Data\\MVP_B\\DA_Combat_TestBaseline_v1.uasset",
+        "SHA256": "E190F6879FC286B85BA18576D7EFD98BC8C3AA31363024F672CB3D51CEAC753C"
+      },
+      {
+        "Path": "Content\\Data\\MVP_B\\DA_Local_TestBaseline_v1.uasset",
+        "SHA256": "5B630D180784117EE6DA0ADD5849FACE7384B038DF258C69F20D06C8CC50E287"
+      },
+      {
+        "Path": "Content\\Data\\MVP_B\\DA_Vehicle_Passive_TestBaseline_v1.uasset",
+        "SHA256": "D21FD4AD32850391E89184559BA1B7B56762003D119422A7D4BA3F4248C4B5CB"
+      },
+      {
+        "Path": "Content\\Data\\MVP_B\\DA_Vehicle_Player_TestBaseline_v1.uasset",
+        "SHA256": "9C8A5D523E5B8891BB13A95DDA93B815BBF79C91EC8D76EB7173720D0BBDA599"
+      },
+      {
+        "Path": "Content\\Data\\Network\\DA_NetworkPhysics_Ball_MVPB.uasset",
+        "SHA256": "FBB7124256E5F5D797E086A54E55335CC867A010FA8479500743032F815D7A16"
+      },
+      {
+        "Path": "Content\\Data\\Network\\DA_NetworkPhysics_MVPB.uasset",
+        "SHA256": "48E78ECA68F7249D20153D67821D912FB077E0509D1400719F1C86F0866F4F17"
+      },
+      {
+        "Path": "Content\\GameScene\\DarkcatTest.umap",
+        "SHA256": "3D05B6462BEDC199A98574E2E4363B05FBDD36E3310863588087E3CDF90C00C3"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Maps\\BattleStadium_Demonstration_Level_01.umap",
+        "SHA256": "B8B95C06FE3562FA590879B00532C0CE665FF8755056AE4BE959E004168A7DC0"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Maps\\BattleStadium_Demonstration_Level_02.umap",
+        "SHA256": "E00CBA0BEDB6FEFCD72F46CB606F40F4817079FE0EF7BAB22749EC2594F65B0D"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Maps\\BattleStadium_Demonstration_Level_03.umap",
+        "SHA256": "CF4B6A85590B2C7E64720315384896A984A12EBF968B824F3A42AADD5C37A648"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Maps\\DarkcatTest_stadium.umap",
+        "SHA256": "F70565CD26D1C82DE67DA5E6BC2606FDC1B09F2720514725D7E16469634E058E"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_000_Viewers_2.uasset",
+        "SHA256": "A76D5E50F80D6D758095499C72535AC6B8CAD29404A1400C91EFA584A95DBCAD"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_001_Glass.uasset",
+        "SHA256": "2EF88DC2C7632C8B4655CE3A1403DE7A28E8942C60A5B6F4B30307ED925B043B"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_002_Color.uasset",
+        "SHA256": "9A7348E3103D55361A8EE37A2CC14F258E1A8ADD48DE0CEE31D1AD66E8E4C1EB"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_003_Emission_Light.uasset",
+        "SHA256": "864998FEF29E4265C67C3D888719B63295B902B85EEEC4214B1675FFC86F2181"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_004_Emission.uasset",
+        "SHA256": "69777743731B23B87A532CBA7632B24E89DE27643459F4B48EB0C9F8B9AA09AE"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_005_Transition_1.uasset",
+        "SHA256": "1D00D3A5698B38277A8CDEEFF4D8EB71FC731715799BF3DDD5090D2A9529B1CB"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_006_Transition_3.uasset",
+        "SHA256": "22521CD1B801C434C784D6C7FC2FDC1EEED1F539DAD528570DB0FB37D5FD7246"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_007_Transition_2.uasset",
+        "SHA256": "EAE24A69C559F747A6F165B3BB9A6395EEB4DF4C3F0E71226F64A4407FEBBF63"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_008_Viewers_1.uasset",
+        "SHA256": "9DB78480DB2DAE61FEAA50D3F4376CA6721757983B7711A3471D259C48FD2447"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_009_Hologram.uasset",
+        "SHA256": "FC342B0F57AE9DF3216D13EFD29EBA46D9B123BD6860716BFD993F7E852CF078"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_010_Metal.uasset",
+        "SHA256": "FF29EC7D03E2C980204DFF0DC511B4F9FE6988EE77000F44B39A31F16AA29341"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_011_Transition_4.uasset",
+        "SHA256": "545A6A92906616DFF72850ABF35AE377E35562CB3ABCA0B1BABF3585E7312EA2"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_012_Battle_stadium_text.uasset",
+        "SHA256": "695C7910D69E5B108A05882BC80E395F9E69BFB9B918B09983F04A74A144B8AA"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_013_Default_Material.uasset",
+        "SHA256": "F94D3D0BC019C96D4A8E9E9D610CBB02408D036CFEAB469D05983BED0B73CA0E"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_014_Fog_Material.uasset",
+        "SHA256": "D227494789341DABC0AAC87BFC53328A475C88B41ED8E8A3983A8B9793D8373F"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_015_Pink_water.uasset",
+        "SHA256": "5AE61203CFF9CB5A3F36931359A32B2899252E3551C401FF68C0C0843183BC50"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Materials\\M_016_Tank_track.uasset",
+        "SHA256": "AAE86565860C443AC288D865DC041BF28EA7461539481F81A01CD0EFAC0CECB6"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0000_stand_viewers_001.uasset",
+        "SHA256": "DAE948B0D4BC5E8A8AAB7532FE8B0E6498C618E3FF500440ED369A959CFF5CCD"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0001_stand_viewers_002.uasset",
+        "SHA256": "B3DF449C9563B45FB61D38CA435914A561C7B0D2EED6269FD227F9085830F348"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0002_canopy_001.uasset",
+        "SHA256": "380218BB9ADD0F43962DD73184AE54497DD292FE476225ADF1AA230F3C0E2259"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0003_door_002.uasset",
+        "SHA256": "6A0F16DE165A50412F2633A7D938D9C455FD65CE8A84EA96330841AF8C405877"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0004_door_003.uasset",
+        "SHA256": "621698478DC9FC03EC1C3EAEF423CC0119A892AC71E7CEB2184D5D0C950CA3D3"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0005_door_004.uasset",
+        "SHA256": "5A5011FAFC7100168F0118DF5957355C381B4EAA89C49CA3F747B38DC21F9A77"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0006_door_005.uasset",
+        "SHA256": "B117D8AF4CFFEE8407A950E16FE62C58CD677E75F569DBAE14CE63F7E2F6D85E"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0007_door_006.uasset",
+        "SHA256": "B06733C8FFE7A80195FBEC2660E72F3A9A890A29DD7A564897EC6953B67EFFA1"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0008_door_007.uasset",
+        "SHA256": "290E1F61522B743676835E6FFA744B289E812E85A5D8F5FBCE8552E1383EC8CE"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0009_flag_002.uasset",
+        "SHA256": "9547EB048D7BF748EEB843BDAAE51C7ACA7E2B1A700D184E42FE63B5DF7998E0"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0010_holder_001.uasset",
+        "SHA256": "4313DA9CC24F907F637DA306E63127DEC1C76252D0289FCC07D251A64F76461C"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0011_speakers_002.uasset",
+        "SHA256": "D22D3A6EF3288E1C4B7783CC1B710EEDF0F8E8A2B750B52C455873143737ECB8"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0012_spotlight_001.uasset",
+        "SHA256": "983224F7117D09778DF069B84B6C208E261A04275C4C1C3F4AD11A65658B99BD"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0013_spotlight_002.uasset",
+        "SHA256": "77EF802D0A100BF4791B322622BE2877E4A7D945C06F7FF498CB13BCAA016B6A"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0014_spotlight_003.uasset",
+        "SHA256": "8B897941BC698C7840FC65A14E3E4E9B2B61BBA1BBBD8F682C584C20EA4D77FC"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0015_stadium_001.uasset",
+        "SHA256": "EAEA65975443453D41807534F390BD8EC0AE670F1C9E2A9E6DF05E8B98285675"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0016_stadium_002.uasset",
+        "SHA256": "2FDB7276E7A58960698D923A0474345EF14E8F51F57EC9850B0FECF704404E96"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0017_stadium_003.uasset",
+        "SHA256": "EBBC2D311B8AE834B6D507B1B2A66A4833E78A58258A88588B9010313323724B"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0018_stadium_004.uasset",
+        "SHA256": "B586815818730D323E5AEFA8B15FE5D7780CFFAEB3B596DD6D28B259FAC2914F"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0019_stadium_005.uasset",
+        "SHA256": "BECF8FECA51E3DAEA18EF379EBF85E71085B1DDA60BD1A9D8EE6BCC9A6B9013E"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0020_stadium_006.uasset",
+        "SHA256": "4A7D37E489478C9B3B787C4E91AC286A1F5FA50E5D4158F11968FD643F7FC36A"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0021_stand_001.uasset",
+        "SHA256": "9996FC4F71BB36F923344966655DF00AF066B0796C0663CDEFFE401E709BB890"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0022_stand_003.uasset",
+        "SHA256": "E860F503C1A37AA13366CBD601A646FF2F6E3F05F085BBB9D87C1A0B1D61A48A"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0023_stand_002.uasset",
+        "SHA256": "BD4664387ED0036B3CD6B945D5B6B4F41884C912109540A35D97CEBB1B8089FF"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0024_tower_006.uasset",
+        "SHA256": "2F2854BD860B6E6FEB73976A9C1CE13C94B67D3143DA4E6CB2BF3FB281DC48AE"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0025_battle_stadium_003.uasset",
+        "SHA256": "13BB7A1B6A4E16301663606E25BF3AB77C23CC8E1DB9F6D51B56BD4681BA8CA0"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0026_battle_stadium_002.uasset",
+        "SHA256": "688858A4657A31B673D34F484F89284C7CD5D5FA654CA25F26435FC52D767276"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0027_TV_001.uasset",
+        "SHA256": "C8D617F9EC213EE2A473A84F0E23BA6EC2F97CD466BEAB2B9C64AED73F29BA7F"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0028_wall_006.uasset",
+        "SHA256": "6AE5346B53D44D4383CA8D3513F1A29673C5D624003AEA8AFD496D02F2BB729E"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0029_air_balloon_001.uasset",
+        "SHA256": "80B6054BF2C45A0E738EB6AD6AC057110FC63A58C72082F95B6BA27A4EBA680A"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0030_airship_001.uasset",
+        "SHA256": "DC972E30DB6F7B6571387054045F81290308D719B2809E3B406161210BDDC05F"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0031_airship_propeller_001.uasset",
+        "SHA256": "43448514BEE0F2F7F210DCD96C73130CD2D667781852FCFF325E2122A356AFE9"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0032_airship_propeller_002.uasset",
+        "SHA256": "03816C80AC83C3F20FBA0E0E2642605A6AF5227C98C1A27D507275ECBA292337"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0033_airship_propeller_003.uasset",
+        "SHA256": "B1424C4776020825AFDA4C2771F460B84B39DAF77DF1B6755FA5487D7116AC5E"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0034_airship_propeller_004.uasset",
+        "SHA256": "7C6F3E852EA2A92819F5B3BAA5090145EF029DB51D94AAB0650F0DE53F04132F"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0035_drums_001_StaticPose.uasset",
+        "SHA256": "C9E44D690C9535F46152BF6EA41EFF52AFA4092C56139225714BD5766956C0F0"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0036_Octopus_001_StaticPose.uasset",
+        "SHA256": "CA0BA00DE9A352F0F5C86DE47A2AA25F9F9D7A286668C9C0D2D811026A3CFFB6"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0037_Aeromen_001_StaticPose.uasset",
+        "SHA256": "ABF6311EA67775F55DFA5B8550F606E46CAAA2FA05752E834C6AE712C542E4AF"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0038_Aeromen_002_StaticPose.uasset",
+        "SHA256": "181707AFBD36EE242EFA5C3A05569A1FDCDEF28665FF11B3A33889636AAC593A"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0039_Robot_002_StaticPose.uasset",
+        "SHA256": "5092D0DE54859841D2FD1DECB3CFB060277952309CEAD9492F0825D59B6E8AC0"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0040_Robot_001_StaticPose.uasset",
+        "SHA256": "B366DDEC66CDF07AAFE952E2EC14884B63806924DBE0A858AD2A4A3A2FA999F2"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0041_Pig_001_StaticPose.uasset",
+        "SHA256": "7ECD38AA49FE1C71D0A2D628D4A733ABC861A7B041352E22F6007ECAE77CA765"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0042_Ostrich_001_StaticPose.uasset",
+        "SHA256": "B164D2EA7EBD4E0FF22A9AAEFFAB2ED18B121EA6ED298B499B57AD2C8FCA74CA"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0043_Chick_001_StaticPose.uasset",
+        "SHA256": "908948EFB238EBDF53A49B53A5AF544367234BA07DF6F31C819FD0931C5D8814"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0044_Cactus_001_StaticPose.uasset",
+        "SHA256": "35DE72589520A2C79DF149132F5401E54F8C6F246552A5A82E9B5EBFD79A72D3"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0045_Bull_001_StaticPose.uasset",
+        "SHA256": "4CE6341F3DD492D491584C39E664F25BB84AED552916DAB784C47717E3FF5C3B"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0046_Bird_002_StaticPose.uasset",
+        "SHA256": "7310361887FB38F078AD90428F6F8D4E6FDF4AEB536FE9F99F483AC73161BF69"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0047_Eggshell_001_StaticPose.uasset",
+        "SHA256": "CBFFA2BD0A0BDD0572D384F3F0B7123020ED9073A67AA469FA21258481685682"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0048_Bird_001_StaticPose.uasset",
+        "SHA256": "4F58995CEBD72BB4A1EF4E3CE5D8140F74FA8FB6BF154DF60EEC1C20FE3535A7"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0049_podium_004.uasset",
+        "SHA256": "3CDCB9B4EA9C69FAD3D6DDF681BC9E31687583DFB4FEC2CCED66C960EE9D62F3"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0050_podium_005.uasset",
+        "SHA256": "289F0D3676E464F471993E07E5E879CA62F4F9E88C75662D6D38AA5CEA5BE194"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0051_podium_006.uasset",
+        "SHA256": "C1135F47EFF2C7FDCB1EE63F7097BA588FB0D4A50097D895C57CAB0551CBA9AC"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0052_podium_001.uasset",
+        "SHA256": "EB72FFDCC3EB010BD829078032DFE996E8C2BEE6D84E5A9BD8B14C098CAD95F3"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0053_podium_002.uasset",
+        "SHA256": "FB25E746BE303D83747B1A2978323D4F518547BC07A27620E09CAE8989C38C98"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0054_podium_003.uasset",
+        "SHA256": "8C084C929A3B14E2FF8BA4AB4096525F7EA09F6A9AED9698EDFCF603C8E4BD50"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0055_Plane.uasset",
+        "SHA256": "CE2F3650B138E2F952C3C28B357ED53984CC922F9BD66F9C9F5298F9B63B87F5"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0056_door_001.uasset",
+        "SHA256": "B27BAA7EB760ECCC5A30ACDF8BDE7FA0A79A9F910EA36EE6B2E8BA408187B375"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0057_firework_002.uasset",
+        "SHA256": "7243E4A05A5645C053F45A3F601095C0041E0DB6ED274E101A3ACAFBCE778CAA"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0058_base_circle_inflatable_001.uasset",
+        "SHA256": "A38D4170BBE1202FF0B01D0F9D9EF525D7B740E57470B17E93B28096CC1D5260"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0059_base_circle_inflatable_002.uasset",
+        "SHA256": "A79CBCC56738D4658042652514936A37F6EF6C6F6AACB9C3CC72443EE3D406A1"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0060_base_circle_water_001.uasset",
+        "SHA256": "C818E1F849638B3023D924FB91BAC65DCB2D800FD9B98276F2427CA6E99A4069"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0061_bridge_001.uasset",
+        "SHA256": "9BEA0F6A9342718ACD1884BA81BB5BB31DD1C490E3A432ECE901D96A367F7D22"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0062_bridge_002.uasset",
+        "SHA256": "F96A58001A6421059168A73DA8E9A37D959E1C2F45E2F54ABA24686C2A2F85FA"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0063_bridge_003.uasset",
+        "SHA256": "CB57C1B4EC9C3927FE58A3D928C605143A3C45264E7ABC50080B54EB4FCCB133"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0064_coin_001.uasset",
+        "SHA256": "6A51744B5692F91013D483C24A3FC6A041CBF2AF7914F833CACA091458C87FFF"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0065_color_box_001.uasset",
+        "SHA256": "66A6EF80A0F4AE6ED40EA809DC62CEF3E4B0E15141D9EE6EB9CCEDD7CF324ACF"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0066_color_box_002.uasset",
+        "SHA256": "06B58A63F6C1EC01D6F04CCEDC10A624233A6B0915976248CC6097955E1D03F0"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0067_color_box_003.uasset",
+        "SHA256": "5E4D4CB4D1AD0870BDF6BD6D4FC7B8507E236902E1BD18D11BE4AE56504531A8"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0068_color_box_004.uasset",
+        "SHA256": "4D7E62E6698FDBFB0DB783204AF33167E67D98D251FB4672E4D984BB383B0B32"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0069_color_box_005.uasset",
+        "SHA256": "33DC9B05EB8975CABD1D3DA2D365E634A772031E2CA7A619607A59D885AA975B"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0070_color_box_006.uasset",
+        "SHA256": "092A35DCCD5283D01F9B06EB08CFEF2A545C188BF1B07BF0BD1DB28FB6125918"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0071_color_box_007.uasset",
+        "SHA256": "55023106BDFBB156D9ED88C97DE73F9E72FBBD927F856F6BB38FDE3F492380D3"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0072_color_box_008.uasset",
+        "SHA256": "9CB92306731A680A46A295E2A164814680EEB4E5BAAFD791C998C49CEFA372EB"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0073_crown_001.uasset",
+        "SHA256": "2790E881FE747E1510CC6832FD68FC9C60C16C7C58EC193B1B7D70EB807B1BDC"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0074_drone_001.uasset",
+        "SHA256": "E1BDE4A2142836757BEEFA61C1F975CA7B5791940C126F72E883ABF9BE3F683A"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0075_drone_eye_001.uasset",
+        "SHA256": "5A43B4B0350B3DD70744D54F5269E6D0D9F1A02A59D98BB83B65C24F6AA97C06"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0076_drone_propeller_001.uasset",
+        "SHA256": "656372596A6757DCA957224777E60E073DAC607361FE2AAB5A70049E2C14C302"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0077_drone_indicator_001.uasset",
+        "SHA256": "6915EC787E8AEEC6217F3514215B4A44521B5C5FEAC587A081DF0C0A0343DD66"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0078_heart_001.uasset",
+        "SHA256": "AB5BCC1A1443D530506AD96583E29A0F88309A51DF7ADBABEC41777EFC7E70E3"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0079_net_001.uasset",
+        "SHA256": "6480388C57F48A3F130DFAB4606236BB595D565FD0CDF3487742508012FBFEBA"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0080_obstacle_18_001.uasset",
+        "SHA256": "480A1ABBC27895BA2EBE4F1C2F5AD1BDBBD3E99949D76572E631A8AA196CA429"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0081_obstacle_19_001.uasset",
+        "SHA256": "4E65D5ECFF40B8C18E8F9DF80C23A8A86A8ED085EB9BD34B68E897398527C284"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0082_obstacle_20_001.uasset",
+        "SHA256": "DC37ED568026AAD260AC21D836A9E7470FD7E6C6D96EEC5F84F91829BDC1883E"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0083_obstacle_21_001.uasset",
+        "SHA256": "651E4557FCC3C679F6614A3046E65973791387FAC65B5618941A6D6202BE46EA"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0084_octagon_001.uasset",
+        "SHA256": "AE7E2141D5B332F8C5C66BEC22ED38BF74020B37EA1DF4E33C0A8B37075F8700"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0085_octagon_002.uasset",
+        "SHA256": "97DBA91A7A7859823F756E4FEFD69FA00F1AA08AAE863032F1E83C798E2468E3"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0086_ring_001.uasset",
+        "SHA256": "F5A47224F63B16AA8136E1421F2D60FE95C4A9567EB94C12BED404431D981975"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0087_road_001.uasset",
+        "SHA256": "0323F3EE532D610E104AE44B6326DA58DCADE41E87772871589E0C70E2458F70"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0088_tower_007.uasset",
+        "SHA256": "A5DDB2DF0301CD457AD3A3F2DE588C3DCFDEEE816B306A4A488271E9A16239D7"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0089_tower_009.uasset",
+        "SHA256": "1B6FE68867E7EA2133AC4B66EF116E53770A28A183CEE3CFBA707AE7A2CEBD42"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0090_tower_015.uasset",
+        "SHA256": "B68CBD11F5D41E2E3A9D94AB0768283177A7830B2DE6CB5E5994795CB82E81AE"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0091_tower_top_002.uasset",
+        "SHA256": "E80324311133E770431D6406B0BBA90ADED07B05D55952CFC57C299F90A185A1"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0092_trampoline_3_001.uasset",
+        "SHA256": "F621368EF5C350D125CB6CDB0CAFC13BCFC7215E889602ADB38CB88978A33420"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0093_trampoline_3_002.uasset",
+        "SHA256": "41FE796A1889A2387E7B7B3DB6145FFA3DE00EA8CD4D334B712A248299551789"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0094_wall_001.uasset",
+        "SHA256": "DE69056630368288B587D836FE0B7BE0DBE85C24CE66BA1E0F15D043FE9528DF"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0095_wall_002.uasset",
+        "SHA256": "2922F93B1388E83F3BC56E7EFB7C282B9518DFA37CBC423A6776539956DC79E2"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0096_wall_008.uasset",
+        "SHA256": "308F327D4D7C9B611A5B7A5C3361283818E4C8693E3C608C2B4D3AF82407EE5F"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0097_ball_001.uasset",
+        "SHA256": "F745BE357D3FF1A35074D240A0C205D9B175110407E0A761D916AAC7D4F28DB5"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0098_arc_001.uasset",
+        "SHA256": "FECD4D570AD896B444E8400A8A20DBC12FC263E0E94189E793858476E822DDD5"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0099_arc_002.uasset",
+        "SHA256": "24BB5CEE7774E96E3276D30872A331A65F729A5E85E21D2914DB33D9591B99E5"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0100_arc_003.uasset",
+        "SHA256": "3A01E3D6F50A3656C570C1BECFFABD14D679C971C09C1C5B5CA0A589DA627F92"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0101_arc_004.uasset",
+        "SHA256": "D647BC36B3494AFF72D3B502075264CF5B3B41F647DBAC8D6A85CC97D1475EEA"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0102_arch_003.uasset",
+        "SHA256": "059E209BC7E8290FEAC2A9CF3E0E9D650DF4FEEE2426AA7954C7606853D25ECA"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0103_base_circle_inflatable_003.uasset",
+        "SHA256": "5BBEE3A06D9FF5D1471A83E587A816FA31A6ACAC2E4B4DC2FE185CECDCA5F2A6"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0104_box_003.uasset",
+        "SHA256": "1CA874589A3DEB9177D3C7E1E3FF66039D3E9C9FA955E26C9E7188B0E1DC52B9"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0105_box_011.uasset",
+        "SHA256": "077C7CCC0E57140ADBAFB8AF420DAF4DE36B9DAA84D0E625F9FD6AE020713500"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0106_box_012.uasset",
+        "SHA256": "E80C5DD8914DECF8FDF2BC39CAC1664B0F49CB766E21D1F99A6EA8983B67D076"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0107_box_013.uasset",
+        "SHA256": "961489672F0F5F91EB8BC416ECAC241DEBF448BB4C38212BC25041495611FB0E"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0108_obstacle_6_001.uasset",
+        "SHA256": "A9DBD3DB0984C0FCBCA470FA5F1D065AF0B5DE4496251ACAB7710982678C3C65"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0109_obstacle_8_001.uasset",
+        "SHA256": "F9F008B91BD98C5D4073E23E7575AACD238E0AC09231B6B0D699AFEF7B369CBE"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0110_obstacle_8_002.uasset",
+        "SHA256": "355600839F90B957DA6F1B3CD569E2C10D0E27314F327BEDF115DF4DFC999300"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0111_obstacle_14_001.uasset",
+        "SHA256": "91190B4E1968A1E2BD1DD3039E1FFDC2ACB1B0BAB4781FE5AADAFEB76719BD14"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0112_obstacle_14_002.uasset",
+        "SHA256": "9C0AA36BC3F5167D151A2FC24B63A6A7B7486F616EB1BE35F992CBA948F35A2A"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0113_propeller_trampoline_1_001.uasset",
+        "SHA256": "3747FEC5400DC7AFA5126CDE54D090E8963E0B3C64C72AB501E41FB7ABCA4FF5"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0114_propeller_trampoline_2_001.uasset",
+        "SHA256": "396790083E1638C2D020EA0F138F09CEFB0F93C7B18E6F00514AFAF2FAE71857"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0115_tower_001.uasset",
+        "SHA256": "F252F78AEBCE9027B0F41B0A95CE92ADFB725A9CA6FAEDA263ED77E94CC879D1"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0116_tower_003.uasset",
+        "SHA256": "AD8642FA83544D8B9083DD29F31223169CEC8CAF989C4D7841B7B65A7B9B6367"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0117_tower_005.uasset",
+        "SHA256": "74F825EC52213DAC0AE254550AD8869E1022C35C6B6393B4367C731D58CF8AF6"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0118_tower_top_001.uasset",
+        "SHA256": "22401B19ABED3531C96AB409811BA8D2A2D6A7F517DD270C5DB6D43C25CF5438"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0119_wall_003.uasset",
+        "SHA256": "A461601CBD7D56E92DE69CDD807E9F74924B2FC57E16F1ABDF6F6F5E093EB53A"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0120_wall_004.uasset",
+        "SHA256": "D28D01054B52E7AB4C707F145A6950F91D6D390ED6DE3C87F0A8D8ACB68F385B"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0121_wall_007.uasset",
+        "SHA256": "4B4647C1C84DA843A2BB9D5F72C58E1D8D34FD8FCE452F264C845BDA5D09013A"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0122_wall_009.uasset",
+        "SHA256": "4136BEEBC55E2CCAFBF5B808169F803F22AFADA540DAAD126B2077891CE04EC5"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0123_wall_010.uasset",
+        "SHA256": "5B14723CDC7BC68C0B37CADA0E0267D86E25BE7370DE6482776DA7C31E16CE9F"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0124_wall_014.uasset",
+        "SHA256": "4A734FDDD82116AA5311F978A734FA0D1C4C9F5E2D71EDDB2D87A0F96D7FF11D"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0125_diamond_001.uasset",
+        "SHA256": "D30D837A5934BC9F71CF17F338904ED306644BFBFF50CB14F69A118BB8018382"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0126_star_002.uasset",
+        "SHA256": "A185CCB3A73358B2D3430315EE04AA1C2C2189E784AD54CAF7E08134603D429F"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0127_tower_012.uasset",
+        "SHA256": "816EA7FD473B4C393ABD2CFCE61D3C55A60540533FC7A26798B2C4761889E242"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0128_base_circle_inflatable_004.uasset",
+        "SHA256": "41DBD543FBC5FA3CFDB9AFF4D4C4F41AA36D00CB8F7E5C498469BCAE8351984B"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0129_battle_stadium_001.uasset",
+        "SHA256": "5919501CEDDAD0761A8C9E08973CFC0B0F88D3E77F26579B2F809BE97DEDA615"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0130_car_place_001.uasset",
+        "SHA256": "3A379BF3169613831ECDA83D439A4AC62C063EAAC4ED609D10A6A00763A82657"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0131_fence_001.uasset",
+        "SHA256": "D94EF198762DD0A1BC65CFE43848E9E28D57D73B08F0D19D2278EACEF0D64757"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0132_finish_001.uasset",
+        "SHA256": "3C4A78F5B0E5010F985DCA6826F0A3F8F469ED9CCF6ABFB4764553E4BDB116B7"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0133_finish_002.uasset",
+        "SHA256": "19D1079F0EA10CADACBA80C8BE65E98B4A72EBAAAD5DBFF4E60CEF77490A8DDB"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0134_race_track_circle_001.uasset",
+        "SHA256": "B01A65E3EE6D2669E44565EE835FED15C1CA0BEA15C277B147462DE3AA0DD07C"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0135_race_track_circle_002.uasset",
+        "SHA256": "F44E39C00962642D3AEE941A365356B361D9B634C77C9013F5B0A24925DDB2E7"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0136_unicorn_001.uasset",
+        "SHA256": "A9B03291B6EA2F56ED1673A6D7B335CCD9B25F03E51967C7EBAD9B031B9C6C6C"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0137_car_1_001.uasset",
+        "SHA256": "731D241BEEFF9226C26E31618858CBC6D1D87835CA140C43729A0C67355BEC30"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0138_car_1_wheel_001.uasset",
+        "SHA256": "FCF15BE35A9229590659F025F46C67EF4D5F408D5F7C79C42E3EC704E087C007"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0139_car_1_wheel_002.uasset",
+        "SHA256": "2534D5D1F55383494D65B539A502AC6FDC96509E2686913AF39F47BB8F4B7826"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0140_car_1_wheel_003.uasset",
+        "SHA256": "4523C389463DC774757435783FB438559DFA6CEAA176FF0C3DA26039400C7B59"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0141_car_1_wheel_004.uasset",
+        "SHA256": "9E2A766AF191FAA69D14B27CA62EA0E5162A7981FFD3F4726BE47C41BAC99724"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0142_car_2_001.uasset",
+        "SHA256": "D0A03F3C924B1498FFB3DF4ED1C70534D00FB8C198332AB6A1679193C6DF20DC"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0143_car_2_wheel_001.uasset",
+        "SHA256": "63E78FC58B720B6D8733E903802180B7EFA7601BC64EE01CDA721E94E511CB63"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0144_car_2_wheel_002.uasset",
+        "SHA256": "D3BE4188A268242AE5F09E6CEB2EDBD5B29A68B797E4C91B13DF562477D819E1"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0145_car_2_wheel_003.uasset",
+        "SHA256": "953E92BCEF4743D4A8D53ED431956D9F4B445F9556B58E0CC18442F87AAD548F"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0146_car_2_wheel_004.uasset",
+        "SHA256": "44B1393F053342A87C9E7FF1E335116D4DBFAED49BCFBA0ABF80725B5CC53E5A"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0147_car_3_001.uasset",
+        "SHA256": "A7EBCD93A7FF4BB89AE802F980E48C76BF992864C376C3CA9A10F55A64BAA166"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0148_car_3_flap_001.uasset",
+        "SHA256": "5C15BFF71FAC2453EA111B202C29C2A8637C072CE1516C5E5E968F6732566463"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0149_car_3_flap_002.uasset",
+        "SHA256": "08D93000980CFFE0E3C066428F09C068267332DE9561CCE5C5C4063624A81E46"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0150_car_3_flap_003.uasset",
+        "SHA256": "438876580D1A3F66FBC21F8E66402C56417C4298C2D73CC023AFB0571E88B864"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0151_car_3_flap_004.uasset",
+        "SHA256": "6B076E665C032991BB45BA2FC01AB3291B997A632EEA30811F05D1C757C00E18"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0152_car_3_flap_005.uasset",
+        "SHA256": "06AD20A00ACB4D41075AE88E9DF6A4238B9FA9BC6F64408BEB2DEF293E29DFF3"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0153_car_3_flap_006.uasset",
+        "SHA256": "C1C0B559294094D3B0EF91C3ADA0BFAC6AD59DBC0B87466EF7B806D3501B6EA2"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0154_car_3_propeller_001.uasset",
+        "SHA256": "5D703708AAAEE39FB0FDFF2BE2072455B321951488A43FDC35D8CCC635DBF879"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0155_car_3_propeller_002.uasset",
+        "SHA256": "50EC277304C13156A1A2CD9CC9754DB23AD6555204BBD2F3245F30B712ECEDB3"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0156_car_4_001.uasset",
+        "SHA256": "18791FF109364781C7D41BD216AFC1B7F91014B7E0CD79020D70FC06EA19C401"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0157_car_4_key_001.uasset",
+        "SHA256": "BDC7245F253BDDBA43AB8A4EDA0D2906A6470C2D4FC28FE2714E629A60141EB2"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0158_car_4_wheel_001.uasset",
+        "SHA256": "7C7AAEF2F5D7F2F022DBA5BD867C6CAA8AA04F677CF19C49FAD27CFDC5DF4323"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0159_car_4_wheel_002.uasset",
+        "SHA256": "E9F4A67C9B874DDE92799F4871CA648E772CC3C08C03061794E517C721B98EA0"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0160_car_4_wheel_003.uasset",
+        "SHA256": "D3FD6BF1B374CCAE918A345B49D0D31CB3595E2A4DF005F35D141BF1B8861091"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0161_car_4_wheel_004.uasset",
+        "SHA256": "98150592A683D1E82CA5E2EB378B56D35F10DD9CA1C9337C7423F8FA1FD79990"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0162_car_5_001.uasset",
+        "SHA256": "6E4313EC2C581D7EA9A7B2C2330319D75A6009A6B1CF0640AF82AE0EB3F3A341"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0163_car_5_wheel_001.uasset",
+        "SHA256": "4B5B015A1002D6C4129AB99BD9A1615A2256D949B5EA64A675A875BCB06EB1AF"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0164_car_5_wheel_002.uasset",
+        "SHA256": "1DD17E2D0FE3DC46EC85F1F5001834C00CCB6B792123ADD00C87F838C1B17EC7"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0165_car_5_wheel_003.uasset",
+        "SHA256": "BECFFAED57A4BE36B015B198C5553A1F43867A9D20B0C96671B86F45D60EAB78"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0166_car_5_wheel_004.uasset",
+        "SHA256": "1D45C06B026A8694F20472F490672D8A16ECBA674DA6877676F8ADE94B18C5F3"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0167_car_6_001.uasset",
+        "SHA256": "4682FAE76448FADE1AD1E0F7E56AE459D18912CCB1AA6865E79ABE1E0B7404B9"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0168_car_6_wheel_001.uasset",
+        "SHA256": "D47B5F03C2CA28C1342DF82F332986A791DB392AC6C9ED984298D87EE05D0936"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0169_car_6_wheel_003.uasset",
+        "SHA256": "3F6D318D680BB513D66C998CBD455986F67D3BCD1D39EE4B7C23579F84B4CAF4"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0170_car_6_wheel_002.uasset",
+        "SHA256": "6B34BAD12AC611DE5BDED1EAEDB2B4A777AFAB132436B045D669EEA93DB6D3BB"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0171_car_7_001.uasset",
+        "SHA256": "22A4879985537EB4684972E8F71BD856149A345A1B063A9D6A21BFD8322E9EE2"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0172_car_7_wheel_001.uasset",
+        "SHA256": "4FEAA21A66CA27EFA75434D22D56F81057924483CBD96FEE6F4267D6A9F371C1"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0173_car_7_wheel_002.uasset",
+        "SHA256": "992085BCB9A3F95B9F71BE49EA8F698DB355BBBE6B65396A9107012E84E45C74"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0174_car_7_wheel_003.uasset",
+        "SHA256": "8C434F0646A2A36F4EA454D6E98B7921287CA899F388EC21E987D01D0C8AF465"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0175_car_7_wheel_004.uasset",
+        "SHA256": "6EA3B79137B4279F281FCF6EC34BB086127BF1524FA02344DF616D38ABDD77B5"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0176_car_9_001.uasset",
+        "SHA256": "8D322934DCF5E43CFA38F75407C33D610EF3683D2147D6CED766DA5243276400"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0177_car_9_wheel_001.uasset",
+        "SHA256": "E437251294ABA4388433C3EB454C542B92CBD3ACE98F5A1C2F3FD116818E610C"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0178_car_9_wheel_002.uasset",
+        "SHA256": "D2A1B0FE5DF0EF7172A3FCC78D4894F111773EA6881EB59664567A7284C55C7E"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0179_car_9_wheel_003.uasset",
+        "SHA256": "7F12D6F3401A399DF9765E266B54A748F7494EBEBF3BC51F4DC8D803F00458AA"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0180_car_9_wheel_004.uasset",
+        "SHA256": "AC3664B6B576F0440D7AF508D53E74FFCF4A056A186F3271C2F9589A5CCC0AF0"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0181_car_8_001.uasset",
+        "SHA256": "D5FB9130B302359A706B941DEE2C22D98D11C018AB76C7F2B9509ECD5530E62C"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0182_car_8_wheel_001.uasset",
+        "SHA256": "2742A9682E25E7A4B9FABF4CA6271BEE18F3567FC8FF095550A0B7C26E72098E"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0183_car_8_wheel_002.uasset",
+        "SHA256": "19B27396E089D89017C7EC6DE2D4B0B61F0C0488ADB92718E6902C6C300D4594"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0184_car_8_wheel_003.uasset",
+        "SHA256": "E2AC76ED5E980F2E90D42102112EB10C59B024D18D37DE863523708B97195FE2"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0185_car_8_wheel_004.uasset",
+        "SHA256": "D2F95966D364DB1C0E24EE47949A0A3CF4DDC5D4845F6190EF3BFE85B12831CA"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0186_car_10_001.uasset",
+        "SHA256": "FFB8EE1952E03C0A48B460969D663B8D5A92FB5A91B0163760287474712B9393"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0187_car_10_wheel_001.uasset",
+        "SHA256": "ED32390083C532C6794AE01DE7DADEFF9C4783329A2BB555245D859E02CB39AE"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0188_car_10_wheel_002.uasset",
+        "SHA256": "A01E81B99917E544DC8344AAF718F371283F66338E58373DAA03C674770013D3"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0189_car_10_wheel_003.uasset",
+        "SHA256": "2C687DB5233E24EEDD24A5F361790A79AD476B4B458AB24E90CE6073441C28E1"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0190_car_10_wheel_004.uasset",
+        "SHA256": "D234E15B23EB0BFAC035A14ED62C802A380CFAD8FE63CDF840C717C9F0BABC46"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0191_tank_2_001.uasset",
+        "SHA256": "B32C187A2303E71B02EB39C689F6D7B85FDBDE9B08B2D1D2D6FC5EC51953B7A0"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0192_tank_2_tower_001.uasset",
+        "SHA256": "73A5927263CAB5B38FD0ECF91C54AF9BDC61C25105B98C54BD3647D68677C4A2"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0193_tank_2_gun_001.uasset",
+        "SHA256": "129FC2C1312C2EBD2C470638E2EEB39108BC18C922D2FF003EEF84F124AFEA0F"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0194_tank_2_track_001.uasset",
+        "SHA256": "3975A1C8C72675C0FA2FBD16C05532C516C0C9B343480ECB79998AEF212562A6"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0195_tank_2_track_002.uasset",
+        "SHA256": "916D142CC1CF6E68AF63CE9FC79AD191C74C4A4BF94CE25730D7CA8309362B93"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0196_tank_2_wheel_001.uasset",
+        "SHA256": "90AF9E5DC9900851EB3CBE495B4173488FDE9862F9A699139BF805D939458D8D"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0197_tank_2_wheel_002.uasset",
+        "SHA256": "49A91B707FBC55D40F785E0EAC3A356BE7F5FE1FD3C37C9C9C595A3ECDBF70E6"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0198_tank_2_wheel_003.uasset",
+        "SHA256": "81E2E6BE32E3F7C081C4B8AA1D32A16A07217EABBA0A7050783A05362AD545D1"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0199_tank_2_wheel_004.uasset",
+        "SHA256": "1520ACF51D7DC75CD473B65A75CD67FEDF336F826DF1C71A080DAFCA339C2612"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0200_tank_2_wheel_005.uasset",
+        "SHA256": "810500DFFC3AD348DEA9125CB47949B26D7FDF43FD852887B3B57B4FD6B64DC1"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0201_tank_2_wheel_006.uasset",
+        "SHA256": "012A952BB2C2E9831C3FE533A4E310D097C7E5DCE8DFBAFF74ADBC7E2045D2D4"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0202_tank_2_wheel_007.uasset",
+        "SHA256": "8E183D9F32954640A42A28D74B9775A87357144D21C121734C76D4E62AFC48C2"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0203_tank_2_wheel_008.uasset",
+        "SHA256": "730078D0B345C8132196C28F922541132768B120B866EBF7A054028F753F2AB5"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0204_tank_1_001.uasset",
+        "SHA256": "7FC3144A46830E74F6485A605A59DA827D0062386B1757360609941678B443E0"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0205_tank_1_tower_001.uasset",
+        "SHA256": "1D7FE890168894A4591A84BE33ABD91B8DA80E1E66D9EAE890EA446C9106D5CC"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0206_tank_1_wheel_001.uasset",
+        "SHA256": "148A68D7AE1DE3A506B404D8770CCE5317AC84782B0E59A6899AD592480E423F"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0207_tank_1_wheel_002.uasset",
+        "SHA256": "C3902D66BF2CCFB927A60951A02E2E200853A714440585C5BD35CB384837AF8D"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0208_tank_1_wheel_003.uasset",
+        "SHA256": "1960D6FD2046C05544F082A6696B8E9C3D7C281EE13E8AD53293849C1C7A51B7"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0209_tank_1_wheel_004.uasset",
+        "SHA256": "1EEC7953441FAA1830844E0D36ADF0BBD2B76D630400319F5A3D6414D423F3F1"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0210_tank_4_001.uasset",
+        "SHA256": "F06BD0A8A750B840CBE453503CA487E032BC8043779DFA89B1831D4DB39D0462"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0211_tank_4_tower_001.uasset",
+        "SHA256": "AE9F155CA3A795BA685D87E91EAEE24013AF6CAC6C007D2761E9E520FE0192D2"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0212_tank_4_gun_001.uasset",
+        "SHA256": "7B483B5391DE6F52ADB00066F0BF3D5D2119F3E61E69E2511D7208D69611B14D"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0213_tank_4_track_001.uasset",
+        "SHA256": "CD5844830F4D97616B95DC31B795D8DBE72ACE7FC6F29F18717AF2E6D556D75C"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0214_tank_4_track_002.uasset",
+        "SHA256": "43D94A87174E31CAD85022F5D6D6BF70C07D2455E76E8D35AD4B8A662C370637"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0215_tank_4_track_003.uasset",
+        "SHA256": "15E5888BE43A76C6B0AA204BDA34856019E25C00362F1FB9063ECBAFFEB77B27"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0216_tank_4_wheel_001.uasset",
+        "SHA256": "56552B0AC55816C4D4BB5CB49845F43DD3FCE44E4D511F8E917C0C6612319C23"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0217_tank_4_wheel_002.uasset",
+        "SHA256": "0867AD21CE81FE357396E405D82974D329699CD1099615D366E0F461BCE0E1ED"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0218_tank_4_wheel_003.uasset",
+        "SHA256": "5A59FB513779E7C2FE05529FD74429DCB431C25A3AAA35C81D1E6F72C32E1D8D"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0219_tank_4_wheel_004.uasset",
+        "SHA256": "0F33122AE16208C32F9459367F426C3E76CAB04A1D47F0C3FEBDFBEC32B96EF9"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0220_tank_4_wheel_005.uasset",
+        "SHA256": "CAFD41D45298094243C4C5D38BC0DFDAB238AA3293A419494764FFF90FAFDC18"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0221_tank_4_wheel_007.uasset",
+        "SHA256": "05FB6FFDD2D2D84DD66526C72D6E9C6CBD35A62F19C66039107829DBFBA7F666"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0222_tank_4_wheel_008.uasset",
+        "SHA256": "A7C109782BA057FC648CEB86C6EAF98D83FD95EB3AC1CE6B8B72B762B2537C66"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0223_tank_4_wheel_009.uasset",
+        "SHA256": "4196D0A6722D3250D168AC4A80BD0548F0394395B8A4B276453900C6DE208BDF"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0224_tank_4_wheel_010.uasset",
+        "SHA256": "00450D3E2A82D398460F69BCFA23ED6FEC1C891298ADD16ACFECEC89352D7B41"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0225_tank_5_001.uasset",
+        "SHA256": "B0CD76250EEB354E36A587F88D44CD3A2576FFC2794483CB07BCC4659B14D089"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0226_tank_5_gun_001.uasset",
+        "SHA256": "0F0153755F79248794F3A972CF3C9CE5297EE31FA80194EBEEABFC5ECD760A57"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0227_tank_5_tower_001.uasset",
+        "SHA256": "C5BDE0F379FFD4FDA51FB7C4761740B3CC990CC1B8EDA724C1099D8B5200667F"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0228_tank_5_wheel_001.uasset",
+        "SHA256": "7AE545F6B260A0A69D7C5FB360D068D3C73E8A6AA42A523C92F267FEAB31181D"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0229_tank_5_wheel_002.uasset",
+        "SHA256": "77F1B7F82F59A968ED237E5A290DE2F3E7E4E1C4B9083974ADBA35976A487C62"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0230_tank_5_wheel_003.uasset",
+        "SHA256": "F7647353CE38817D1A0929745505FFDAEC5048A88CDCE8DA6017C4FC708D0DF0"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0231_tank_5_wheel_004.uasset",
+        "SHA256": "24E4C84BB8877DEA5FA1A7ECDDCA0DAB4EF4DE4E5B045211744677BC638071B4"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0232_tank_3_001.uasset",
+        "SHA256": "E551B46304EB3BB109057B8755FA5778F642E8B5872B79BB3E1AACABF2419EE7"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0233_tank_3_tower_001.uasset",
+        "SHA256": "914B18A790A957EDB1C5E7F31B1A67DE3DE7E5F79BC3F2607BB0B2A3D38F2256"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0234_tank_3_gun_001.uasset",
+        "SHA256": "F1AB0D4EB4AF8DD5E5A4C07C9578898706FE6BED6FDA42BD686AFDA549AC05C5"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0235_tank_3_wheel_001.uasset",
+        "SHA256": "DAEBE45A2086BF06951B74DDF4C4ADA25605EEB07C27AEB867A064E170EEC524"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0236_tank_3_wheel_002.uasset",
+        "SHA256": "7FE6ADB7C94DBD07968DD5EA2ACDFE97AD113A59E0C5B1193AF7557851445125"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0237_tank_3_wheel_003.uasset",
+        "SHA256": "4DD620415DAC86E54560FCACDBF7376C313B95993C47B74ECFA7B2FAEFB94F20"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0238_tank_3_wheel_004.uasset",
+        "SHA256": "AA9B7A67C1B26CEECC606C2DB808DC9E75C304228D541E0AA6EA2876EE9D1D26"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0239_tank_6_001.uasset",
+        "SHA256": "B47FA1D0421F477FC68D71C7F4E64703155742FF0773E6917B2E6DCF12839AE9"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0240_tank_6_gun_001.uasset",
+        "SHA256": "164C294D5D65DC353B897C84A00085BD893BFF6DE5C3E7A78699FAF0EB33B03F"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0241_tank_6_tower_001.uasset",
+        "SHA256": "C6ADAB8D70F35BDD6ECA74B3AED4AA033DD0250855D6AAC75F46D90584B3C46F"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0242_tank_6_track_001.uasset",
+        "SHA256": "530A0FD26EB124656997611D4BE6F1D3EB257192CFC6D795C0A1FCE001076613"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0243_tank_6_track_002.uasset",
+        "SHA256": "D514D679BDBA85E1798B0C3C386DA1A8CC2C0088C1B07353315798F474236780"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0244_tank_6_wheel_001.uasset",
+        "SHA256": "E8FF5EC8A7D9789D825CF0AF798CCC65091A8954336EE89A821510FB46BDCD3F"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0245_tank_6_wheel_002.uasset",
+        "SHA256": "B0A294773F1F76BFD679469887AA9D330260A530A0A8B44AF8208C12A9D9EC71"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0246_tank_6_wheel_003.uasset",
+        "SHA256": "740015131117AC919946A980F25262DC40E7A2D3957200E479AFFA850FFEC83E"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0247_tank_6_wheel_004.uasset",
+        "SHA256": "4330DC54AC184601FD2404640D90CDD140716370006FA4DA5F9734963C6D2386"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0248_tank_6_wheel_005.uasset",
+        "SHA256": "AE4552525B374A87B6526ACDF2213FBB4AB6F50FFB11CAFFC86AEC159FD384EF"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0249_tank_6_wheel_006.uasset",
+        "SHA256": "4B3B249125D0C7409624463617B454537DE16EED1013C5D7F2EC8F0C4156C2B4"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0250_tank_6_wheel_007.uasset",
+        "SHA256": "DAFDD76ACDBB0B43D373252D41075DF670C3283FF8B4FE10BEA41258641386BD"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0251_tank_6_wheel_008.uasset",
+        "SHA256": "245DCC6671CD54CE5202BDCAFB045A88A6BCE7D6EA08034E46AF1BB7DF85B5B9"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0252_base_circle_inflatable_005.uasset",
+        "SHA256": "91407E59322EE62340ACBEDDB37B82FE5299381C920DDDC3BA7F83C61AEEB0DC"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0253_base_circle_inflatable_006.uasset",
+        "SHA256": "429FAAD51C055E66906B2A11F2DE88BB0D6E8E53812BB47C06F7E5EBC858EA09"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0254_base_circle_inflatable_007.uasset",
+        "SHA256": "6F1A43FF8F3E4B71A3626EE55590CF6E55838ED32B47BC5EF2EA2954074E1BFF"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0255_podium_007.uasset",
+        "SHA256": "9833E1282D324F458F21651D209BEDDC99908555FB0E5525E5EB0DCD6A3FD062"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Meshes\\SM_0256_Cylinder.uasset",
+        "SHA256": "4A8B5400C2C103BB3BD5A11B86803A05199E7DC937350EE92530C9F2F7AEAE0C"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Textures\\T_0884031bce0edca4f8a825ec9305c9b5.uasset",
+        "SHA256": "FAF27E5F04F6000E766100FE04EEFB2A7EB04F6CD9A9FEC18586FDA935743506"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Textures\\T_22dc2b338e748ed418d66daa2cd19866.uasset",
+        "SHA256": "96D704342A7908F250803E222FEF082C84F151AAEA7D813B51647DB5434FC399"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Textures\\T_32b4e6b2aa342d448a2c185534f552c1.uasset",
+        "SHA256": "838517FF284078C43CF61A37105200F9A061C5FDADDE263CF7E347637E3BB892"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Textures\\T_5261eb0b280aebe4b8b4e5a4f300e589.uasset",
+        "SHA256": "0176DB29DC3478542EA89C032743367B3DC584AFED618613DBE58B650ECFF32C"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Textures\\T_8f3b2fcbd2b6b194d8ba2821d91cfae2.uasset",
+        "SHA256": "331F7502EF9280AEC126EE01031B140166CCFA2F928276CE86C86F497840DE8A"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Textures\\T_b09aed1c819e66248863189166626e5b.uasset",
+        "SHA256": "BBA6425DE3CC6F3D903CA913BA03611E96E11DBAFEA35B4E67ECC46CCFB30B87"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Textures\\T_d42f4f38ea938dc439ad585cd29de0bb.uasset",
+        "SHA256": "BE614AA4C61E99CBAF0BA11CC61D13A9C8CE6662ED4373E5B867D0E6392C9F4D"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Textures\\T_d48d4099f3e5a804c8d1e22a9657ccc3.uasset",
+        "SHA256": "8DB4B78F4192EB65BE5D3DDB6ED01286E3C12407B2D8F65F70A42822F0A2957B"
+      },
+      {
+        "Path": "Content\\Imported\\BattleStadium\\Textures\\T_e4d8041694d19f44c9351a6bc633a4e0.uasset",
+        "SHA256": "21434B3F1E05F6035652DB11E94168B5012FD6B4060886E06D8CF431C236EA10"
+      },
+      {
+        "Path": "Content\\Input\\Vehicle\\IA_VehicleBrake.uasset",
+        "SHA256": "B343F5463D70EAA82B31C1C3C5BE488D887EBB90522380291B6526D361958762"
+      },
+      {
+        "Path": "Content\\Input\\Vehicle\\IA_VehicleHandbrake.uasset",
+        "SHA256": "06C80ED9549FED62B128635DE124CAF7382A71BAD02679E14B9B945992CE6F38"
+      },
+      {
+        "Path": "Content\\Input\\Vehicle\\IA_VehicleLaunch.uasset",
+        "SHA256": "8CE5D2802D95C444D4DA41D3B68038EF906B851A75C0B60FF6583FF8BD454F62"
+      },
+      {
+        "Path": "Content\\Input\\Vehicle\\IA_VehicleSteering.uasset",
+        "SHA256": "89E3CB9B6437720FE6785A7C0F3C99ED8CF33E2FA6A5E6A297866AFBECCC3D8C"
+      },
+      {
+        "Path": "Content\\Input\\Vehicle\\IA_VehicleThrottle.uasset",
+        "SHA256": "3F9239F6DF740AC113EFF42455183F3AC4A108C1E73BD8217E0C332A9BA82F32"
+      },
+      {
+        "Path": "Content\\Input\\Vehicle\\IMC_Vehicle.uasset",
+        "SHA256": "ACC75579134D4832321517774EC15FD39EABB4B02CA7F649F77CE2EDCFCF5A2D"
+      },
+      {
+        "Path": "Content\\Maps\\MVPB_NetEntry.umap",
+        "SHA256": "FED082D1434C305FB15D275E07A8D607A43F0ED5143EB5B2B24BF508A9933761"
+      },
+      {
+        "Path": "Content\\Maps\\MVPB_NetTest.umap",
+        "SHA256": "F757A2C722FBF6C78EB6B76B677102275948C24833D8D536AC9C7A97A4098BE8"
+      },
+      {
+        "Path": "Content\\Maps\\Test.umap",
+        "SHA256": "0D9AD162FE9652262F29ABC958D178CD9F2FB6EB86645506816EDA39601A90AE"
+      },
+      {
+        "Path": "Content\\Meshes\\SM_CarCollisionProxy.uasset",
+        "SHA256": "05D4D1D63887A9D08937184DC2F50B8AA59BA4958BA6E53F8C1BE87FA61CC4E7"
+      },
+      {
+        "Path": "Content\\Meshes\\SM_MVP_RoundedVehicle.uasset",
+        "SHA256": "4CD7A6438EE69773C2D8B3F66675CCEB28CB7C12A50017261E379FC23C1118C8"
+      },
+      {
+        "Path": "Content\\UI\\Network\\WBP_MVPB_MatchLobby.uasset",
+        "SHA256": "9F1B35D2E809C34AA1DA49EB87CF0180E1C59F113818D755A5D71621926BC875"
+      },
+      {
+        "Path": "Content\\UI\\Network\\WBP_MVPB_NetMenu.uasset",
+        "SHA256": "3CB6129CD7ABF4B158D8F0110E5F6AA0011EC1B128D597734D78A6A2BF5A2714"
+      }
+    ]
+  },
+  "network_smoke": {
+    "map": "/Game/Maps/MVPB_NetTest",
+    "port": 7791,
+    "host_listening": true,
+    "join_succeeded": true,
+    "host_gas_status": [
+      "[2026.10.15-07.22.44:580][  0]LogTemp: Display: HAL GAS: Vehicle=BP_RoundedVehiclePawn_C_0 PlayerId=256 Owner=HALPlayerState_0 Avatar=BP_RoundedVehiclePawn_C_0 Authority=1 Ready=1 HP=100.0 MaxHP=100.0 Mode=Mixed CombatReady=1 CombatVersion=1 Attack=25.00 OutDelta=0.00 Taken=1.00 DamageImmune=0 ImpactReady=1 ImpactVersion=0 Reduction=0 ImpactImmune=0 LastTier=0->0 Drop=0 ImpactFrame=-1"
+    ],
+    "client_replicated_health": [
+      "[2026.10.15-07.23.31:638][ 97]LogHALGAS: Health state Owner=HALPlayerState_1 Avatar=BP_RoundedVehiclePawn_C_0 Authority=0 HP=100.0 MaxHP=100.0",
+      "[2026.10.15-07.23.31:639][ 99]LogHALGAS: Health state Owner=HALPlayerState_0 Avatar=BP_RoundedVehiclePawn_C_1 Authority=0 HP=100.0 MaxHP=100.0",
+      "[2026.10.15-07.23.31:639][ 99]LogHALGAS: Health state Owner=HALPlayerState_0 Avatar=BP_RoundedVehiclePawn_C_1 Authority=0 HP=100.0 MaxHP=100.0",
+      "[2026.10.15-07.23.31:970][377]LogHALGAS: Health state Owner=HALPlayerState_1 Avatar=BP_RoundedVehiclePawn_C_0 Authority=0 HP=100.0 MaxHP=100.0"
+    ],
+    "runtime_errors": [],
+    "own_test_processes_stopped": true,
+    "limitations": "Saved impact Version=Legacy. Confirms current combat V1 startup and initial health replication only; no human driving/impact, no migrated TieredV1 network action or packet simulation."
+  },
+  "manual_pending": [
+    "Team migrates player/passive/ball Impact.Version, then global CombatRules.CollisionImpacts.Version to TieredV1 in Editor.",
+    "Tune provisional 50/125/300 contact thresholds, Medium drop tier and contact rearm against actual gameplay.",
+    "Validate all source directions, immunity/resistance/drop, continuous contacts/corners/landing in real physics.",
+    "Two-process TieredV1 impacts, both host/client roles, low latency and approx 100ms measured RTT / 1% loss / 20ms jitter.",
+    "Unified team 5.8.3 validation and final four real wired-LAN PCs."
+  ],
+  "known_limits": [
+    "Natural Chaos contact remains under immunity; no promise of zero motion or zero natural flipping.",
+    "Physical supplement budget is reconstructed from contact callbacks and needs multi-contact/rotation testing; not a solver-level guarantee.",
+    "Contact silence shorter than configured rearm may merge genuine rapid recontacts; other components/sources are independent.",
+    "LastImpact is a replicated latest snapshot, not a reliable cosmetic event queue; displayed frame is observed resolution frame.",
+    "No movement GAS modifiers, active GA, SpringPunch integration or death rules in 10D."
+  ],
+  "source_and_configuration_hashes": [
+    {
+      "path": "Config/DefaultEditor.ini",
+      "sha256": "25920e87560682479062a06afef5e0046d23789e72200634d852becbe1db407b",
+      "sha256_lf": "93e2a86f768d743f483c7d5746dda10dffa7d12dea3ed2abf9d5a3362e807d36"
+    },
+    {
+      "path": "Config/DefaultEngine.ini",
+      "sha256": "c671501d82ab3bd959f92aed3b5a849b4a313efdd969212b680a0333d241f4e7",
+      "sha256_lf": "8631a6d7e4b1226182d90d40e6d71ce6f050d934f0b1c25ee6735303fdeb873a"
+    },
+    {
+      "path": "Config/DefaultGame.ini",
+      "sha256": "95806451d108463bbb3c0a16ddce5547eb81421590f96f40e9f969fbcb8a0064",
+      "sha256_lf": "bf203871c37b833e7646f9a640b5280779dd9dc5a89965fab7c768d2ad12e6b8"
+    },
+    {
+      "path": "Config/DefaultInput.ini",
+      "sha256": "fc9bf4eb5d2727bb6f80f24ffcb846698ddc717dae0dc9455524ebf472eeced0",
+      "sha256_lf": "b64f36cb4a165380dd69595e46b9c1736fcbcae6efa671f16928f1c0905c8967"
+    },
+    {
+      "path": "HAL_Future_Creation.uproject",
+      "sha256": "096c2a6d8ecd920bffe64b68b91160e1c9276be131a2d42e476e56286c7f1af9",
+      "sha256_lf": "169a7ff8f13cf444a3746be0e0c2d4a26e6bb74fba0cd23cbc0fa1ddf13268b4"
+    },
+    {
+      "path": "Source/HAL_Future_Creation.Target.cs",
+      "sha256": "58c105452a13e33ebc86b2a4d7094a237b32b488147df027fc3921e3b029a067",
+      "sha256_lf": "54582624cbffba3523ad5aa50c697966b53d01e9d06918da22cec1b3215c4ae2"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp",
+      "sha256": "0b667ea53f9bd507c691699ee93a2e4b606f904813e7f93e6110c1fde5264f65",
+      "sha256_lf": "b580e3548573201f7f15956eb2dd4216e0ed2a6184d55e8f56ddfc91ba3ada22"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h",
+      "sha256": "32374bdb4930e47916eaecb178a62ceb54081c35d212785482d2053bb284f925",
+      "sha256_lf": "903db0d936895214598c7862d20e4245c9e50bc576a46a962b069a082d8a0f16"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BallControlComponent.cpp",
+      "sha256": "bf904501cd8718b39b18590109cf251578363af2afd6ea16ba0af96e06e48397",
+      "sha256_lf": "873948a1767789110709fee4c2426faef52a170f83dc08a076d8bf7d90c4518d"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BallControlComponent.h",
+      "sha256": "d10a807fdd76c8815fa964d708c21a83332a1da4859137ad23b20def47ed634e",
+      "sha256_lf": "b948a64f599657ab8316d9920a06506b30f0c124e71e697a8e117935091c0ce7"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BasicBallActor.cpp",
+      "sha256": "41877037be7bdb5e1802029b8c8dfd27240689ceaf9cdf4ae8943687bf854d27",
+      "sha256_lf": "bae2ab2f3d350f1696121d421810b4fafc9ed50009d78501e4a786ae0e363b5c"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BasicBallActor.h",
+      "sha256": "de8f89ac018a67204daa6c36ceba57e4ce68e0bd3e0d9454010617837d02f492",
+      "sha256_lf": "65dc5c1ae7ed5e5e6fc117023dacf8d821159362be2e2301e2db13fe625e203b"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/CombatResolver.cpp",
+      "sha256": "53964a56105523d4be7b41bf25f587201270954f008ada99686850f76abaac31",
+      "sha256_lf": "c866f6d1b38f9142f8e09e81b0b9a3e1333f5002ca1625b21e5a0160283e0235"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/CombatResolver.h",
+      "sha256": "bb71327614a5e75902a76a6abcdd56b6a6148a50e61f90b31d2f6d1470908784",
+      "sha256_lf": "2132431b59007908b73f1e6665c3d8e99ec8c60777a7586e5d7d7251445d0600"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HAL_Future_Creation.Build.cs",
+      "sha256": "9dc4e598f234aace9d92be6ccdc88b34b397e3d211e0219c020b53b086831110",
+      "sha256_lf": "66e034d06097bc00ab51e0bab28ecc99df9ee0b50268c51ee96f01f0c8ee7dd0"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HAL_Future_Creation.cpp",
+      "sha256": "c30949e314ea2a4beb3c509be675c71ab5d1dc9ba965e701adc21935f72d7b05",
+      "sha256_lf": "5a57aeb0efff73cb3a60783009b3ceeeca5428f7a47b54d2dfbd2c90b4f6fffb"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HAL_Future_Creation.h",
+      "sha256": "4694b655856b269fc41b195971214f8e629857c7e5d6f34002a066cd4af3037c",
+      "sha256_lf": "0d37e860b0dc4e7437e8d630be91adc963451d81a1ebfa926862d20f79a294e5"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALAbilitySystemComponent.cpp",
+      "sha256": "6baf25c1a1c46112e919d472dbe491897177941444264dcd2880c8f0da324e54",
+      "sha256_lf": "7947c301da50ed524a4f46697e238f1160401162c2913172e2907b1adaf05071"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALAbilitySystemComponent.h",
+      "sha256": "48170809cbe753f934fb5e0a721a4c486c5a43cd122cfff21cc98b016bcec14a",
+      "sha256_lf": "40f78c1a7d59f7f174097ed30f5412ae6417ff67eaec391e7297fdf007124815"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALApplyDamageEffect.cpp",
+      "sha256": "e394e61a895d90e3e652752c2e233f177667bd6b81bd1425c0afabfb7a6331ef",
+      "sha256_lf": "e394e61a895d90e3e652752c2e233f177667bd6b81bd1425c0afabfb7a6331ef"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALApplyDamageEffect.h",
+      "sha256": "6e9abaea88bf43b4f346b7bcd56db15e53f9e462a11ff3287a3284a322302f71",
+      "sha256_lf": "6e9abaea88bf43b4f346b7bcd56db15e53f9e462a11ff3287a3284a322302f71"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALCombatAttributeSet.cpp",
+      "sha256": "386a00f6c371152b38e1999ad0c2cffeac0f78f9464b59d10584285a5139c874",
+      "sha256_lf": "430da75bb72cd78f27d3810e6632b08953a23c3a7adaa8c5926beb9142ce3168"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALCombatAttributeSet.h",
+      "sha256": "4bcbc870d23fb53a5e933c0061f82d9bebf01357b8ad5e0cad3c28d918611d3c",
+      "sha256_lf": "b9575c4e38a410558dfd24937314b9721265293c4ab78653674111e61f8fcd36"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALCombatEffectContext.cpp",
+      "sha256": "3500c787dc0801dccfc8dbb41998caae7c148d46653394f48b7ce4317fa8fc86",
+      "sha256_lf": "56cc94b0254213c5a71e29a02b2d1b876e915a42405311e5adb624a6255927cc"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALCombatEffectContext.h",
+      "sha256": "29cf632e00107b79af87db6e9f70e7e5de00235ab42c5f9948f1fd768e0cad3c",
+      "sha256_lf": "ecc6b08af7e357bb6eca88bb5b9a6173d9980f876429c00969381673e91b6872"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALCombatTypes.cpp",
+      "sha256": "b7512d3e457c0a595918e7f1fe185bd58800f00f7af5582abed589bb23bd4df9",
+      "sha256_lf": "fe715e3c2d70bdb7bfb637edc13f6c8899c545fb271e0cb845f410def315d3ea"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALCombatTypes.h",
+      "sha256": "261c29afa604ed9da418e89f33964769bda7f815daceef5b717b28c977946d0d",
+      "sha256_lf": "e7fc0b176f143f368839ee75266d5c57249b8be5d0c174047a217c33491c5fb4"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDebugHUDWidget.cpp",
+      "sha256": "e8bf6ded83a3aa1a165a09abd42b267cbed2d36c4978b20e174482a8063fe66e",
+      "sha256_lf": "7562beee3258cd53209a27fbf1cc46ed569247c8517f5fb88914af7a87b4ee6b"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDebugHUDWidget.h",
+      "sha256": "1bf0290c71ac9c9e0617e2b8f9059047c40b7821ad5fec8c1e168c577f682675",
+      "sha256_lf": "1bf0290c71ac9c9e0617e2b8f9059047c40b7821ad5fec8c1e168c577f682675"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameplayTags.cpp",
+      "sha256": "82185051c5786c3900d51b98c8851f8bc586d277a0e42b4e882e56d992a5b97e",
+      "sha256_lf": "a39da509a28ec916a9055de9d9e505878383e0bf0de4ba1bb5a8dd40eaf31897"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameplayTags.h",
+      "sha256": "0cb8de3fd8d93437b3a37f13e95ebadfb806aa7e2751c7879bcd75b61fe3bd1d",
+      "sha256_lf": "eef63454d22d8875b9b34cddff38a4535c333c8515bab57f101277c4e003e5e8"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHealthAttributeSet.cpp",
+      "sha256": "03b56be18f63f7d26c41463908c0c8e7c6ac019f05dd725432cc0af94206bd46",
+      "sha256_lf": "03b56be18f63f7d26c41463908c0c8e7c6ac019f05dd725432cc0af94206bd46"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHealthAttributeSet.h",
+      "sha256": "5427a77b8be3b918e12d47e8bc121a76594df751248e3f10c896d76b9fa13c1f",
+      "sha256_lf": "5427a77b8be3b918e12d47e8bc121a76594df751248e3f10c896d76b9fa13c1f"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactAttributeSet.cpp",
+      "sha256": "598f64058975b7f0b25928be050cb368353ed310eca194b1dab0ee25453a5889",
+      "sha256_lf": "598f64058975b7f0b25928be050cb368353ed310eca194b1dab0ee25453a5889"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactAttributeSet.h",
+      "sha256": "08f7325e501dac505d24a01a293e809fcc574f05eee3bda11c7f2668a1156d10",
+      "sha256_lf": "08f7325e501dac505d24a01a293e809fcc574f05eee3bda11c7f2668a1156d10"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactReceiverComponent.cpp",
+      "sha256": "a08d5fd40ecf8c6294e5698b2f5f6c60c5cf83769f8908190755e4cd1ccae781",
+      "sha256_lf": "a08d5fd40ecf8c6294e5698b2f5f6c60c5cf83769f8908190755e4cd1ccae781"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactReceiverComponent.h",
+      "sha256": "fcbf71cc8485f7ce3605ee647c715f5f2061caeb1da8db8ee509daed3b95eb60",
+      "sha256_lf": "fcbf71cc8485f7ce3605ee647c715f5f2061caeb1da8db8ee509daed3b95eb60"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactSourceComponent.h",
+      "sha256": "31cb443124191e0903893f620ec92441ee9b2ac8f3dccece58093ba029ea29f6",
+      "sha256_lf": "31cb443124191e0903893f620ec92441ee9b2ac8f3dccece58093ba029ea29f6"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactTypes.cpp",
+      "sha256": "8622fe67105782a3d3d7d6e447b99abe4f73e6ae4bf3ed795b15b4bdf622928f",
+      "sha256_lf": "8622fe67105782a3d3d7d6e447b99abe4f73e6ae4bf3ed795b15b4bdf622928f"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactTypes.h",
+      "sha256": "a1a9ba313963bd50f5d779fda6832e22be011ac6b027de0f45e83b8409399bfa",
+      "sha256_lf": "a1a9ba313963bd50f5d779fda6832e22be011ac6b027de0f45e83b8409399bfa"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMatchGameMode.cpp",
+      "sha256": "f61d8efd0e7f45dd032f5223713342565278d83cae5589397f7b14cd9d417740",
+      "sha256_lf": "f61d8efd0e7f45dd032f5223713342565278d83cae5589397f7b14cd9d417740"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMatchGameMode.h",
+      "sha256": "6610edb40aa6a2bd14c215b27f3bdfd60e3e4c441afd73ca5410c049a77d2efe",
+      "sha256_lf": "6610edb40aa6a2bd14c215b27f3bdfd60e3e4c441afd73ca5410c049a77d2efe"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMatchGameState.cpp",
+      "sha256": "5e1d7aa4ecd462b629fe75eb5987e99c0dbfe49f7850ce048a4a5e674903a10a",
+      "sha256_lf": "5e1d7aa4ecd462b629fe75eb5987e99c0dbfe49f7850ce048a4a5e674903a10a"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMatchGameState.h",
+      "sha256": "6947edc040deef4c723e661ea6607bc47a71324baa399e77ea91228f8a1866eb",
+      "sha256_lf": "6947edc040deef4c723e661ea6607bc47a71324baa399e77ea91228f8a1866eb"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMatchLobbyWidget.cpp",
+      "sha256": "a8a947de18e68210c83eeee674f25ed72b491341960ed479686dd59375cdf392",
+      "sha256_lf": "a8a947de18e68210c83eeee674f25ed72b491341960ed479686dd59375cdf392"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMatchLobbyWidget.h",
+      "sha256": "06699c1509377ee8187a46561d4ba8f364a6736ea1c5f08ac54fa7ca40dd0f7d",
+      "sha256_lf": "06699c1509377ee8187a46561d4ba8f364a6736ea1c5f08ac54fa7ca40dd0f7d"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALNetworkGameInstance.cpp",
+      "sha256": "bda57d356d107e70e31ef32b715917998869483f6e357d6662108ce40f4bea65",
+      "sha256_lf": "bda57d356d107e70e31ef32b715917998869483f6e357d6662108ce40f4bea65"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALNetworkGameInstance.h",
+      "sha256": "fc3a0c0db91150b116d8dbbf112fba12ba2429dc08f2344c0c2a56362d26ab6f",
+      "sha256_lf": "fc3a0c0db91150b116d8dbbf112fba12ba2429dc08f2344c0c2a56362d26ab6f"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALNetworkMenuGameMode.cpp",
+      "sha256": "3a0d9dc29d947497346f96f4d4f06df980929f61271251cea967b26dddb5ae45",
+      "sha256_lf": "3a0d9dc29d947497346f96f4d4f06df980929f61271251cea967b26dddb5ae45"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALNetworkMenuGameMode.h",
+      "sha256": "b5863e1fdf7b28df16c16bbec1b5ed8abd4bfb4805415ad9bab8126668e279f4",
+      "sha256_lf": "b5863e1fdf7b28df16c16bbec1b5ed8abd4bfb4805415ad9bab8126668e279f4"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALNetworkMenuWidget.cpp",
+      "sha256": "a4d8ec9dd7d3f35e97eac08277cc983e42eb33a1453c721236d1741ef5e67cc1",
+      "sha256_lf": "a4d8ec9dd7d3f35e97eac08277cc983e42eb33a1453c721236d1741ef5e67cc1"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALNetworkMenuWidget.h",
+      "sha256": "48e7e54378ebe8d5217ba784ebbfabb0d6fe796f5ea93ed27004cbf33a56fb71",
+      "sha256_lf": "48e7e54378ebe8d5217ba784ebbfabb0d6fe796f5ea93ed27004cbf33a56fb71"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerController.cpp",
+      "sha256": "4358dcc6d7d7dc2f8fa96784cee33c271fe77716220c5b0e32289a182ec25dae",
+      "sha256_lf": "f943214ae3a7e1b6fb80556f93aa6ea2b6d419b4a8c2d5885b1cd0cdaa09487a"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerController.h",
+      "sha256": "77de83d24d006756367b7a93e818ad6e65c8953f3ea85756834e9e4c9589c375",
+      "sha256_lf": "77de83d24d006756367b7a93e818ad6e65c8953f3ea85756834e9e4c9589c375"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerStart.h",
+      "sha256": "4fc03f6cb7ed93d42ff6fa6d4f9a6d035a8b0f7bb3810e17dd22c79247e66a77",
+      "sha256_lf": "4fc03f6cb7ed93d42ff6fa6d4f9a6d035a8b0f7bb3810e17dd22c79247e66a77"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerState.cpp",
+      "sha256": "7a8c9a1010ab07b609a7e2fdd2b8f6f028e88acb0c770046ceb24becc5ad94ea",
+      "sha256_lf": "773c9a5feb03a41a13a5a3b8473a778f7d13993824838ff5fd9f272895b3f2a5"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerState.h",
+      "sha256": "227355dc57bdeea3cfebd19fdb1f678d710806776ec5daaeb9cbf053085e6b59",
+      "sha256_lf": "623c53239310ff736e7f62bedf7c278d3c205f52a73d629ed16bff2430e39634"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/PassiveTestVehicle.cpp",
+      "sha256": "60f1578fcf8b481277279b0129ce3fed52c21d74404b9f3bb3dd27f4f8595b9b",
+      "sha256_lf": "4e477bba4180d6a04efc61fd9d82b3e95c9e7a26522b9f1a5aaf6dada1eb6d05"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/PassiveTestVehicle.h",
+      "sha256": "4cede749607e5e48b01946a01ae54f6ff3cd663543951d088697969eea3bc4fd",
+      "sha256_lf": "7918df7f5bd19637e1de427e2dda9ed149e5f4d9c5be79b5b143cb62838b0f75"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/SpringPunchGimmick.cpp",
+      "sha256": "122d541946deb11ffaebca61b16a91482ef4f961209f6b5ee71efa9c59a5b033",
+      "sha256_lf": "b7b107dfd19908c6b7de06f6e4d0cd27070ad791f307c5f1d7e4abed3d43a28a"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/SpringPunchGimmick.h",
+      "sha256": "94f66607e2e8dcb3389a9ced2759a1b789b0ca49adcd587955af30d2418d65a0",
+      "sha256_lf": "a2cf85619e915617bc81738ef8374f116cc812fdc2bb48417931a1f1960bb034"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALCombatTests.cpp",
+      "sha256": "380dc41d89f90f309a2637f8eca40bfcfbe4ba9e57f28372bd8c9881151fb184",
+      "sha256_lf": "846ed58c3c3b32c16714bdccb7c8d65e7031dfc55cd138f0855beebaac0f25d8"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALHealthGASTests.cpp",
+      "sha256": "4a098b78567965cfd7e934750aedc0b833f6cb2637cc113d928729b6ceccc74d",
+      "sha256_lf": "4a098b78567965cfd7e934750aedc0b833f6cb2637cc113d928729b6ceccc74d"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALImpactTests.cpp",
+      "sha256": "54cb0a46e7eab9eeb2474c146c6fbcca0213bcc207fbe7bfcc4d93c0c7a9a297",
+      "sha256_lf": "54cb0a46e7eab9eeb2474c146c6fbcca0213bcc207fbe7bfcc4d93c0c7a9a297"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/VehicleConfigurationTests.cpp",
+      "sha256": "d46447b8cd32266ffd6c6e32a5188193cbef12dba1dcf4b1e7d480da7ba87281",
+      "sha256_lf": "d46447b8cd32266ffd6c6e32a5188193cbef12dba1dcf4b1e7d480da7ba87281"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/VehicleNetPhysicsDataTests.cpp",
+      "sha256": "d4f68c9df07f6be6f4ddda637d7f024d9f9b34452b1dca748d153d5ba3901a03",
+      "sha256_lf": "d4f68c9df07f6be6f4ddda637d7f024d9f9b34452b1dca748d153d5ba3901a03"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/VehicleWallEscapeTests.cpp",
+      "sha256": "83fcfda65ecf382ffab2bac3378d17f324ef5e81debc4be3e6d2ac2d53dcca6d",
+      "sha256_lf": "83fcfda65ecf382ffab2bac3378d17f324ef5e81debc4be3e6d2ac2d53dcca6d"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+      "sha256": "862c7cfcff6b6382fda189f1e65267c764dde1e733fa6f6c7f7d6447eaf82c53",
+      "sha256_lf": "152b207cc9afecdf09baf756bba07339d1b5f73713ebbb5741a75ac71858f9df"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.h",
+      "sha256": "be34bf74fdef4e9c99757a9f87f957640b9093a2471c4f6577b076d45c294f3c",
+      "sha256_lf": "f8446f1b942f333a8995691a4d975ef2fcf67c73c5c5c2877db70d17909c9823"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleConfigurationApplication.cpp",
+      "sha256": "573b369bf99a7d855c2a98fa7107a3ebc65d7e8e525b586c5d47fb5a4ed07346",
+      "sha256_lf": "573b369bf99a7d855c2a98fa7107a3ebc65d7e8e525b586c5d47fb5a4ed07346"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleConfigurationApplication.h",
+      "sha256": "9646b9d7f03627e33d8751daa1899c4041607a42ec9f65dae65940fdba93aecf",
+      "sha256_lf": "9646b9d7f03627e33d8751daa1899c4041607a42ec9f65dae65940fdba93aecf"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleConfigurationTypes.cpp",
+      "sha256": "d61e6e6449824628f19c346d395fe94e68f43d7f17598af3f0e94fd56bc612b6",
+      "sha256_lf": "0b0d29149d991a6d2af27a4694dc77031d971430c8668113be6588bcaf56632b"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleConfigurationTypes.h",
+      "sha256": "acdf8e4c40690dc04041b83690588b3fb84c5cae1ddac51e1c756de9f2372ac6",
+      "sha256_lf": "51bc1cd66ec09e02a7426f2f09607da8bd8c9d39b45c876ae962010ba4958bf6"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleDefinition.cpp",
+      "sha256": "7b426fe1337196583058ce6d91001b56844854b992140d5a588dd5d9d097d084",
+      "sha256_lf": "a52222a0777af0e8d67a2df6069584236aa51d71790ccc319e5b57132d3234ae"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleDefinition.h",
+      "sha256": "3012d47627c986dc66bae0e4e98c181b7c465754154d8e3a801f9df746fcfb75",
+      "sha256_lf": "731831d5bcb8f1c058d1e91283612a376ae3e8943afb22a8e4dbe496b87f94c3"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleHealthComponent.cpp",
+      "sha256": "097e3c2e78794838d475b258d6b8e281c46975c50ea28c3dea60d87f03cf381d",
+      "sha256_lf": "c9753f6465d809fb7cd0dcf0deaca6cf6db5b0b303b01442e25c4fbeb5699471"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleHealthComponent.h",
+      "sha256": "9c34ceeb540246f4afb3f98cb78857aaaa3e8e71daafba80dceab856ac120e5d",
+      "sha256_lf": "2ccde1eab73b5802e2b0f99ed719349e6ed3e859d8659aaee987d752d02fb78a"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleHitContext.h",
+      "sha256": "fc57720187226dd670e574510ff79a27542fd669baa069412e3f82c2a6b632ce",
+      "sha256_lf": "fc57720187226dd670e574510ff79a27542fd669baa069412e3f82c2a6b632ce"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleInputCmd.h",
+      "sha256": "7923f023028533e8f67e27934781f005c3d26130aca9e59a6253ffd809dcf4ec",
+      "sha256_lf": "7923f023028533e8f67e27934781f005c3d26130aca9e59a6253ffd809dcf4ec"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleKnockbackSettings.cpp",
+      "sha256": "d4e5c42496d49ce86c9c236cd9d1dbb8a9268ec8b28f023e0ddd3a5c0906d92e",
+      "sha256_lf": "5cfcd6b68d36243f3fb6c356ae46ddfb129f58e1424f3c04e47b2c70d174833a"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleKnockbackSettings.h",
+      "sha256": "59e8a4d72b90c12d1fba0f5b6d343ad632cb3d6c04108264d98ed5905f94b1a7",
+      "sha256_lf": "916e928a060678ec1174d2fabfb7db1d71dcfc64583ec55b84e7acc3e79245fb"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleKnockbackTypes.h",
+      "sha256": "a1a349b3976deb697626156761bbe66c53f85c948c50171554e39f851115e82d",
+      "sha256_lf": "b39acaeb0a835b14431703fac6c60dab9cabe292450006a03d24857d818ee6d8"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleNetPhysicsData.cpp",
+      "sha256": "76f46f4d59c77593aca5e59316e247bfedd16f22fdb0f16a553206156ff6a22b",
+      "sha256_lf": "76f46f4d59c77593aca5e59316e247bfedd16f22fdb0f16a553206156ff6a22b"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleNetPhysicsData.h",
+      "sha256": "926de0043412fb90d5d4e6465f26ef2961167069ea528c41ccdd28a24cd37a89",
+      "sha256_lf": "926de0043412fb90d5d4e6465f26ef2961167069ea528c41ccdd28a24cd37a89"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleWallEscapeMath.h",
+      "sha256": "f3988e88083fbe57fbc78af9f5b9fea2c2ac0655df981c4a056b2a4cffa6fe59",
+      "sha256_lf": "f3988e88083fbe57fbc78af9f5b9fea2c2ac0655df981c4a056b2a4cffa6fe59"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor.Target.cs",
+      "sha256": "746659e0dba7c14d3233a4e1962f7435d792bc53a70c8982ebf8251b4b7559c5",
+      "sha256_lf": "25b8aaca7ee1d9b2887d3225556541d45f27911e6f351ab452b80aea59049bc9"
+    },
+    {
+      "path": "Tools/InspectPhase10DIntegration.py",
+      "sha256": "e3b4d4f14f264fd4024e17e6fd8fc4ba1a1cb08783deedd2d02b4643caa83c75",
+      "sha256_lf": "e3b4d4f14f264fd4024e17e6fd8fc4ba1a1cb08783deedd2d02b4643caa83c75"
+    }
+  ],
+  "evidence_hashes": [
+    {
+      "path": "Saved/Phase10D/Build_Editor_Final.log",
+      "sha256": "b4c3d06dd530a07987ed5a65c97a87147e6930be999088d0c175bc1ab2e467fd"
+    },
+    {
+      "path": "Saved/Phase10D/Build_Game_Final.log",
+      "sha256": "c2877306565d4dfca652900ac8a4134455c381b1e4a7d2bf9d2e9cba01dd8a98"
+    },
+    {
+      "path": "Saved/Phase10D/Automation_First/index.json",
+      "sha256": "5c837f56226faafb0610d7cc63814ab4b666970bfdfc201e1c78a434e9a2c083"
+    },
+    {
+      "path": "Saved/Phase10D/Automation_Final/index.json",
+      "sha256": "7b8f16e40f68926cde321cc2f2c393e3f07412785ad521f4d9b0a965e00aa4d6"
+    },
+    {
+      "path": "Saved/Phase10D/SavedAssets.json",
+      "sha256": "287684feac0ac7b58f5b801020e1b51edbeb12750d622392a400629840c1d21a"
+    },
+    {
+      "path": "Saved/Phase10D/Smoke_Host.log",
+      "sha256": "d52910fda54d0adb00df038dbc9c3fc3d18c6e6579111cd47de9c3222ed946d0"
+    },
+    {
+      "path": "Saved/Phase10D/Smoke_Client.log",
+      "sha256": "432effbef936360224fb96be270fa0766583434b9eb5d40505645754538969b6"
+    },
+    {
+      "path": "Saved/Phase10D/SmokeProcessIdentity.json",
+      "sha256": "4b901365dfa06c985ecc43a09fe15cbb18d5bfd03d567d2c444fa2a304307fca"
+    },
+    {
+      "path": "Saved/Phase10D/AssetsBefore.json",
+      "sha256": "0696619456822f9d12d04edf703769bf2fc125ff6605eedadafff3b8ee51b6c5"
+    },
+    {
+      "path": "Saved/Phase10D/AssetsAfter.json",
+      "sha256": "0696619456822f9d12d04edf703769bf2fc125ff6605eedadafff3b8ee51b6c5"
+    }
+  ]
+}

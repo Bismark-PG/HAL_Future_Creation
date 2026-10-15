@@ -148,7 +148,7 @@ bool FBallDebugConfig::Validate(FString& Error) const
 
 bool FBallGameplayConfig::Validate(FString& Error) const
 {
-	return State.Validate(Error) && Acquisition.Validate(Error) && Damage.Validate(Error) && Debug.Validate(Error);
+	return State.Validate(Error) && Acquisition.Validate(Error) && Damage.Validate(Error) && Impact.Validate(Error) && Debug.Validate(Error);
 }
 
 bool FVehicleInitialHealthConfig::Validate(FString& Error) const

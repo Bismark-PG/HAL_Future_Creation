@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-10-15",
+  "timezone": "Asia/Tokyo",
+  "git_branch": "main",
+  "git_head": "1eb02c4c8cae47cd010337912bbd165abdfce256",
+  "working_tree_at_start": "clean",
+  "scope": "Cross-device code/document receipt, saved asset commit/hash checks and user test feedback; no gameplay implementation or new build/test run",
+  "source_verification": {
+    "reference": "Docs/Combat/MVPB_Phase10C_Verification_20261014.json",
+    "files_checked": 73,
+    "raw_hash_matches": 29,
+    "line_ending_only_differences": 44,
+    "unexpected_content_differences": [],
+    "method": "Compared raw SHA-256, then UTF-8 text converted to LF and CRLF against the recorded hashes. Historical manifest was not rewritten."
+  },
+  "assets": [
+    {
+      "path": "Content/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.uasset",
+      "sha256": "9c8a5d523e5b8891bb13a95dda93b815bbf79c91ec8d76eb7173720d0bbda599"
+    },
+    {
+      "path": "Content/Data/MVP_B/DA_Vehicle_Passive_TestBaseline_v1.uasset",
+      "sha256": "d21fd4ad32850391e89184559ba1b7b56762003d119422a7d4ba3f4248c4b5cb"
+    },
+    {
+      "path": "Content/Data/MVP_B/DA_Ball_Normal_TestBaseline_v1.uasset",
+      "sha256": "83c22a9a3255d3750d8481622384d3e44428a18774ab7cc6e576bc8e2c418341"
+    }
+  ],
+  "asset_evidence_boundary": "Latest commit modifies exactly these three DA assets and all three packages contain the AttackSnapshotV1 name. User confirms related assets updated and tested. No Unreal property deserialization, Compile or Save was performed here; exact saved numeric values were not re-exported, and this is not a replacement parameter baseline.",
+  "team_feedback": {
+    "reported_on": "2026-10-15",
+    "result": "User reports Phase10C completed on another computer, related Blueprint/assets updated, and tested.",
+    "status": "Team completion feedback accepted; local source/document receipt complete",
+    "limits": "Feedback did not separately enumerate maps, V1 status snapshots, actual RTT/loss/jitter conditions or per-case logs. Do not label all detailed network conditions as independently verified."
+  },
+  "engine_and_binary": {
+    "other_device_recorded_engine": "5.8.3-58210709+++UE5+Release-5.8",
+    "other_device_recorded_checks": "Editor/Game Development succeeded; 22/22 automation succeeded; legacy-asset smoke. These remain the original October 14 evidence.",
+    "local_installed_engine": "5.8.2-56702186+++UE5+Release-5.8",
+    "local_module_path": "Binaries/Win64/UnrealEditor-HAL_Future_Creation.dll",
+    "local_module_last_write": "2026-10-13 16:29:12 (filesystem-reported local time)",
+    "local_module_has_combat_result_signature": false,
+    "local_module_has_combat_ready_signature": false,
+    "local_recent_logs": "October 15 host/client logs use UE5.8.2 and record HP100->75->50 on both vehicles, but no HAL Combat / CombatVersion snapshots. The installed project DLL predates Phase10C, so these logs are not accepted as V1 verification.",
+    "next_local_run": "Align this device with the team-tested engine patch (5.8.3) and fully compile the current Editor/Game targets before testing V1. Do not copy Binaries through Git or rely on the old module/Live Coding."
+  },
+  "boundaries": [
+    "No code, config values, Blueprint or map assets modified during receipt.",
+    "No build, automation, Unreal asset inspection or manual gameplay run performed during this receipt.",
+    "Impact resistance/immunity, explicit tiers and minimum drop tier remain Phase10D.",
+    "EffectTags remain snapshot metadata; concrete status GE/GA and movement bridge remain later stages.",
+    "SpringPunch integration remains deferred until Phase10 is complete."
+  ]
+}

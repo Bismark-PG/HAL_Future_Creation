@@ -18,6 +18,8 @@ struct FVehicleHitContext
 	/** Monotonic per source Actor; pair with its network identity for future GAS deduplication. */
 	uint32 ServerHitEventSequence = 0;
 	UPrimitiveComponent* TargetPhysicsBody = nullptr;
+	/** Optional physical contact identity, used to merge explicit attacks with collision callbacks. */
+	UPrimitiveComponent* SourcePhysicsBody = nullptr;
 	FVector ImpactPoint = FVector::ZeroVector;
 	FVector ImpactNormal = FVector::ZeroVector;
 	FVector NormalImpulse = FVector::ZeroVector;

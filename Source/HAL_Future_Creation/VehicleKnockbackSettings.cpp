@@ -33,6 +33,7 @@ bool UVehicleKnockbackSettings::InitializeRules()
 		return false;
 	}
 	CachedRules = CachedDefinition->BallImpacts;
+	CachedCollisionRules = CachedDefinition->CollisionImpacts;
 	bRulesValid = true;
 	return true;
 }
@@ -53,6 +54,19 @@ bool UVehicleKnockbackSettings::GetRuntimeRules(FVehicleKnockbackConfig& OutRule
 	OutRules.HeavyTier = HeavyTier;
 	OutRules.MaxAirborneAngularSpeed = MaxAirborneAngularSpeed;
 	OutRules.GroundProbeExtraDistance = GroundProbeExtraDistance;
+	return true;
+}
+
+bool UVehicleKnockbackSettings::GetCollisionImpactRules(FHALCollisionImpactRules& OutRules) const
+{
+	if (ConfigurationSource == EVehicleConfigurationSource::Definition)
+	{
+		if (!bRulesInitialized || !bRulesValid) { return false; }
+		OutRules = CachedCollisionRules;
+		return true;
+	}
+	if (ConfigurationSource != EVehicleConfigurationSource::Legacy) { return false; }
+	OutRules = FHALCollisionImpactRules();
 	return true;
 }
 

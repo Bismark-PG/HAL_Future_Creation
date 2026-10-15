@@ -17,6 +17,9 @@
 #include "VehicleHealthComponent.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALCombatAttributeSet.h"
+#include "HALImpactAttributeSet.h"
+#include "HALImpactReceiverComponent.h"
+#include "HALGameplayTags.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
@@ -126,6 +129,15 @@ void UHALDebugHUDWidget::RefreshStatus()
 			Text += FString::Printf(TEXT("Combat %s: ATK=%.1f Delta=%.2f Taken=%.2f\n"),
 				ASC->GetCombatConfigVersion() == EHALCombatConfigVersion::AttackSnapshotV1 ? TEXT("V1") : TEXT("Legacy"),
 				Combat->GetAttackPower(), Combat->GetOutputMultiplierDelta(), Combat->GetDamageTakenMultiplier());
+		}
+		if (const UHALImpactReceiverComponent* Receiver = Vehicle->FindComponentByClass<UHALImpactReceiverComponent>())
+		{
+			const auto* Impact = ASC ? ASC->GetSet<UHALImpactAttributeSet>() : nullptr;
+			const auto Last = Receiver->GetLastImpact();
+			Text += FString::Printf(TEXT("Impact V%d: Reduce=%.0f Immune=%d Last=%d->%d Drop=%d\n"),
+				int32(Receiver->GetConfiguration().Version), Impact ? Impact->GetTierReduction() : 0,
+				ASC && ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_ImpactImmune),
+				int32(Last.SourceTier), int32(Last.EffectiveTier), Last.bBallDropped);
 		}
 		// Read the game-thread body snapshot; movement's live async physics fields must not be read here.
 		const UPrimitiveComponent* Body = Cast<UPrimitiveComponent>(Vehicle->GetRootComponent());

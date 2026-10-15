@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "HALPlayerController.h"
+#include "HALImpactAttributeSet.h"
+#include "HALImpactReceiverComponent.h"
 
 #include "ArcadeVehicleMovementComponent.h"
 #include "Engine/Engine.h"
@@ -44,6 +46,16 @@ void AHALPlayerController::BeginPlay()
 
 void AHALPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+#if !UE_BUILD_SHIPPING
+	for (const auto& WeakASC : DebugImpactImmuneTargets)
+	{
+		if (auto* ASC = WeakASC.Get())
+		{
+			ASC->RemoveLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune, 1, EGameplayTagReplicationState::TagOnly);
+		}
+	}
+	DebugImpactImmuneTargets.Empty();
+#endif
 	if (DebugHUD)
 	{
 		DebugHUD->RemoveFromParent();
@@ -142,7 +154,48 @@ void AHALPlayerController::HALGASStatus()
 			Combat ? Combat->GetAttackPower() : 0.0f, Combat ? Combat->GetOutputMultiplierDelta() : 0.0f,
 			Combat ? Combat->GetDamageTakenMultiplier() : 0.0f,
 			ASC && ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_DamageImmune) ? 1 : 0);
+		const UHALImpactAttributeSet* Impact = ASC ? ASC->GetSet<UHALImpactAttributeSet>() : nullptr;
+		const UHALImpactReceiverComponent* Receiver = It->FindComponentByClass<UHALImpactReceiverComponent>();
+		const FHALImpactSummary Last = Receiver ? Receiver->GetLastImpact() : FHALImpactSummary();
+		Status += FString::Printf(TEXT(" ImpactReady=%d ImpactVersion=%d Reduction=%.0f ImpactImmune=%d LastTier=%d->%d Drop=%d ImpactFrame=%d"),
+			ASC && ASC->IsImpactInitialized(), Receiver ? int32(Receiver->GetConfiguration().Version) : -1,
+			Impact ? Impact->GetTierReduction() : 0, ASC && ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_ImpactImmune),
+			int32(Last.SourceTier), int32(Last.EffectiveTier), Last.bBallDropped, Last.ServerPhysicsFrame);
 		UE_LOG(LogTemp, Display, TEXT("%s"), *Status);
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 8.0f, FColor::Green, Status); }
 	}
+}
+
+void AHALPlayerController::HALImpactDebug(int32 PlayerId, int32 Reduction, bool bImmune)
+{
+#if !UE_BUILD_SHIPPING
+	if (!HasAuthority() || !IsLocalController() || Reduction < 0 || Reduction > 3)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("HALImpactDebug: use the host console; args: PlayerId Reduction(0..3) Immune(0/1)."));
+		return;
+	}
+	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
+	{
+		const APlayerState* State = It->GetPlayerState();
+		const UVehicleHealthComponent* Health = It->FindComponentByClass<UVehicleHealthComponent>();
+		UHALAbilitySystemComponent* ASC = Health ? Health->GetBoundAbilitySystem() : nullptr;
+		if (!State || State->GetPlayerId() != PlayerId || !ASC || !ASC->IsImpactInitialized()) { continue; }
+		ASC->SetNumericAttributeBase(UHALImpactAttributeSet::GetTierReductionAttribute(), Reduction);
+		const bool bAdded = DebugImpactImmuneTargets.Contains(ASC);
+		if (bImmune && !bAdded)
+		{
+			ASC->AddLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune, 1, EGameplayTagReplicationState::TagOnly);
+			DebugImpactImmuneTargets.Add(ASC);
+		}
+		else if (!bImmune && bAdded)
+		{
+			ASC->RemoveLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune, 1, EGameplayTagReplicationState::TagOnly);
+			DebugImpactImmuneTargets.Remove(ASC);
+		}
+		ASC->GetOwner()->ForceNetUpdate();
+		HALGASStatus();
+		return;
+	}
+	UE_LOG(LogTemp, Warning, TEXT("HALImpactDebug: no ready Pawn with PlayerId=%d."), PlayerId);
+#endif
 }
