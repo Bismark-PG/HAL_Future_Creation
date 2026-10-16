@@ -50,14 +50,69 @@ Avatar清理记录对象身份，旧Pawn的延迟回调不能清掉新Pawn的效
 
 ## 5. 以后改时长／换技能时怎么配置
 
-原生类可以直接使用，不必为了本轮测试创建以下资产。要给策划调参时，由团队手工建立：
+原生类已经可以运行。本节是把现有免疫技能变为团队可调资产的操作，不是再次编写技能。四个新资产和现有GameMode的引用须由团队在Editor手工完成；本节没有编辑任何资产。以下以保持8秒／20秒为例，确认接线有效后再调数值。
 
-1. 分别创建`HALImpactImmunityEffect`、`HALImpactImmunityCooldownEffect`的GE子蓝图，例如`GE_ImpactImmunity`和`GE_ImpactImmunityCooldown`。Class Defaults搜索**Duration**，保持Has Duration，在Duration Magnitude的Scalable Float常数中调整秒数；保留各自继承的Tag／组件／作用域。免疫GE的刷新策略不要误改为累加时长。
-2. 创建`HALImpactImmunityAbility`的子蓝图，例如`GA_ImpactImmunity`，在Class Defaults把`Immunity Effect Class`和继承的`Cooldown Gameplay Effect Class`指向上述两个GE。
-3. 若需替换原生默认授予，创建`HALPlayerState`的轻量子蓝图，在`Default Abilities`将原主技能项的Ability替换为新GA，InputTag保持`Input.Ability.Primary`、Level保持1。不要再加一个相同输入Tag的项。
-4. 在网络GameMode子蓝图将Player State Class指向该PlayerState子蓝图，保留已调Default Pawn和其他类。Compile／Save确有改动的资产、重启整局测试；不要在运行中改CDO来假装技能状态已刷新。
+### 5.1 创建两个GE子蓝图
 
-未来可叠层GE自行选择Stacking Type／Stack Limit等，不修改本免疫GE来代表所有Buff。其他技能可配其他GA类别／输入Tag，再通过相同ASC入口激活；本轮不建完整技能栏。
+1. 停止PIE／Standalone测试。Content Browser可新建项目内目录，例如`/Game/Gameplay/Effects`；目录只用于整理，不是C++硬编码依赖。
+2. 空白处右键 **Blueprint Class → All Classes**，搜索并选择 **HALImpactImmunityEffect**，创建`GE_ImpactImmunity`。不要选`HALDebugImpactImmunityEffect`，也不要在此例改选普通`GameplayEffect`；本例依靠原生父类的免疫Tag、刷新和作用域配置。
+3. 打开资产，点击 **Class Defaults**。若只有数据默认值页面，直接编辑；若需完整工具栏，点击 **Open Full Blueprint Editor**。清空Details过滤，再搜索`Duration`。
+4. **Duration Policy**保留 **Has Duration**。展开 **Duration Magnitude**：计算类型保持 **Scalable Float**，展开其Scalable Float值并填写 **Value = 8**，不选Data Table／Curve Table行。不同面板可能将该常数直接显示在Magnitude行；目标是修改持续时长的Scalable Float常数。不要把8填到Period中。
+5. 保留父类组件：授予`State.Combat.ImpactImmune`，效果自身有`Effect.Scope.Avatar`和`Effect.Vehicle.ImpactImmunity`。前者是目标的有效状态，后两者是GE自身分类；Avatar清理按效果分类查找，不能混放。无需在Event Graph手动加Tag／定时移除。
+6. 需要核对刷新时，清空搜索并找 **Stacking**：**Stacking Type = Aggregate by Target**、**Stack Limit Count = 1**、**Stack Duration Refresh Policy = Refresh on Successful Application**；**Deny Overflow Application**保持关闭，以允许已达一层时成功重施并刷新。其他设置沿用父类。Compile／Save。
+7. 用同样的 **Blueprint Class → All Classes**流程，以 **HALImpactImmunityCooldownEffect**为父类创建`GE_ImpactImmunityCooldown`。在Class Defaults将 **Duration Policy = Has Duration**、**Duration Magnitude = Scalable Float，Value = 20**。保留其授予的`Cooldown.Ability.ImpactImmunity`；不要添加`Effect.Scope.Avatar`，否则换Pawn可能清掉冷却。Compile／Save。
+
+两个GE分别表达“持续状态”和“再次发动的限制”，所以免疫8秒到期后冷却还应剩约12秒。
+
+### 5.2 创建并配置GA子蓝图
+
+1. Content Browser可新建`/Game/Gameplay/Abilities`。右键 **Blueprint Class → All Classes**，选 **HALImpactImmunityAbility**，创建`GA_ImpactImmunity`。
+2. 打开 **Class Defaults**，Details搜索`Immunity`，把 **Immunity Effect Class**指向刚创建的`GE_ImpactImmunity`。
+3. 清空搜索，再搜`Cooldown`，在继承的 **Cooldowns**分类中把 **Cooldown Gameplay Effect Class**指向`GE_ImpactImmunityCooldown`。该字段来自引擎GameplayAbility，不是去Local DA里找。
+4. 保留原生父类的 **Instanced Per Actor／Server Only**设置。无需添加ActivateAbility Event Graph、RPC、Tick、Delay或手动冷却。Compile／Save。
+
+### 5.3 将GA配到PlayerState的初始授予
+
+1. 在项目蓝图目录创建 **HALPlayerState**的子蓝图，例如`BP_HALPlayerState`。若项目已实际使用同基类的PlayerState子蓝图，直接编辑现用子蓝图，不重复创建平行配置。
+2. 打开 **Class Defaults**，搜索`Default Abilities`，展开 **GAS → Abilities → Default Abilities**。原生默认通常已有一项；修改这一项，不在后面再加一个相同InputTag的项。
+3. 配置为下表，Compile／Save。若数组确实为空，再用`+`添加一项；当前示例总共只需一项主技能。
+
+| 字段 | 本例值 | 含义 |
+|---|---|---|
+| Ability | `GA_ImpactImmunity` | 实际授予的GA子蓝图Class |
+| Input Tag | `Input.Ability.Primary` | 输入槽身份；不要填Ability Tag或Cooldown Tag |
+| Level | `1` | 授予等级，本例直接使用常数8／20 |
+
+### 5.4 让实际GameMode使用这份PlayerState
+
+1. 打开测试场景实际使用的`BP_MVPB_ListenGameMode`，点击 **Class Defaults**，搜索`Player State Class`，改为`BP_HALPlayerState`。修改的是PlayerState，不是PlayerController或Default Pawn。
+2. 保留现有Default Pawn `BP_RoundedVehiclePawn`及其他类引用。Compile／Save这个GameMode。
+3. 打开`MVPB_NetTest`的 **World Settings**，确认 **GameMode Override**仍指向这份GameMode；若原本正确，无需修改或重存地图。菜单Entry的GameMode不承担这份车辆技能配置，不把Entry改成对战GameMode。
+4. 完整结束旧游戏进程／PIE，再重新Host／Join并Start，确保新PlayerState和授予在新局生成。这里只编辑配置蓝图，不需要重新编译C++；已有实例不会因修改Class Defaults可靠地变成新授予。
+
+### 5.5 确认新资产确实被使用
+
+1. 两端执行`hal.AbilityLog 1`与`HALGASStatus`，本地玩家`PrimarySkillGranted=1`。执行`HALUseSkill`；若第4节IA／IMC／Local已接线，也可按主技能键。
+2. 主机日志应出现包含`GA_ImpactImmunity`的`Ability accepted`，`Effect added`应出现`GE_ImpactImmunity`和`GE_ImpactImmunityCooldown`的子蓝图名，而不只是原生类名。Granted=1只能证明有技能，不能单独证明已切到新GA资产。
+3. 初始剩余约8／20；约第8秒免疫结束、冷却剩12，第20秒可再发动。修改GE时长后须开新局再核对；其他独立免疫来源会影响状态合并，先移除此前HALImpactDebug自己的免疫。
+
+后续只调整这项技能的数值时，通常改两个GE并开新局即可；不必每次重建PlayerState或改GameMode。后续换主技能时，只替换当前PlayerState的那项Ability引用；IA／IMC和`Input.Ability.Primary`可继续表示同一个主技能键。
+
+### 5.6 哪些结构沿用，哪些不能套给全部Buff
+
+| 层次 | 当前实现 | 未来使用边界 |
+|---|---|---|
+| 项目接入层 | PlayerState持ASC、Avatar绑定、可配置授予／去重、InputTag激活、GAS权威请求、效果查询／复制 | 后续GA／GE可复用，不为每个Buff再写网络RPC或到期计时系统 |
+| 生命周期约定 | `Effect.Scope.Avatar`清理、旧Pawn身份保护、Owner退出清理、按GE贡献移除 | 后续效果选择自己的作用域；需要跨Avatar保留的效果不应盲目带Avatar Tag |
+| GAS现有能力 | Duration、Modifier、Tag、叠层／刷新／驱散 | 属于引擎通用能力，本轮已接入并测试；不需要自己再造一套Buff管理器 |
+| 免疫技能专用 | HALImpactImmunityAbility／免疫GE／免疫冷却GE、对应Tag和许可检查 | 是可沿用的正式技能实现。可配置免疫变体，但GA明确检查免疫Tag和TieredV1，不能只把GE替成加速／攻击Buff就期待通用 |
+| 调试／验证 | HALUseSkill、HALImpactDebug无限GE、调试HUD／日志、自动化夹具 | 是开发工具，不代表正式技能演出或玩家获取Buff的渠道 |
+
+未来同类免疫变体可以沿用本节全套配置。不同语义的新Buff通常以原生`GameplayEffect`或合适的项目C++ GE父类创建配置资产，填写已有Attribute的Modifier／Tag、Duration及每个GE自己的叠层规则；不继承本免疫GE来避免误带免疫和刷新规则。效果由已有／新建的服务器C++ GA、拾取或机关入口施加；被动／机关Buff不必为了施加一个GE额外创建GA。
+
+新动作、新目标选择或复杂许可由对应C++ GA实现，再做轻量GA子蓝图引用效果与数值，复用同一ASC与授予入口。不同技能若不共享冷却，应使用各自冷却Tag，不能全部复用`Cooldown.Ability.ImpactImmunity`。当前只接了一个Primary输入槽；增加额外技能键还需在C++补对应输入路由／Tag／本地Action引用，不能只在Default Abilities任填一个新Tag就自动获得按键。
+
+玩家不同车型的配置化技能库／运行时替换尚未建设，当前DefaultAbilities属于PlayerState初始配置；这不会自动按Vehicle DA挑不同技能。加速、减速、低抓地GE进入车辆有效运动参数与Network Physics历史的桥接仍属于未施工10-F；不能声称现在只配GE就能正确改变网络驾驶。物理动作和命中仍走现有Movement／Combat Resolver，GA／GE不接管每帧物理。
 
 ## 6. 验证记录与局限
 
