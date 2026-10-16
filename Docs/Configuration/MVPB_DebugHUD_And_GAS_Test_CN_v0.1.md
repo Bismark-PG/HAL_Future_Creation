@@ -127,4 +127,6 @@ HALGASStatus
 
 上方两条启动命令已默认开启`hal.AbilityLog 1`。日志搜索`Ability accepted`、`Ability rejected`、`Effect added`／`Effect removed`；服务器才记录权威接受。测试技能前清除此前`HALImpactDebug`的免疫贡献，避免独立无限免疫掩盖8秒到期；该命令现在使用独立调试GE，关闭不会移除技能GE。
 
-按键／手柄接线、数值配置和双向受击验收步骤见[10-E操作说明第3～5节](../Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)。当前已完成33项普通回归与真实双端技能请求／复制测试；真人按键、持球受击和网络扰动仍待团队反馈，见[10-E验证摘要](../Combat/MVPB_Phase10E_Verification_20261016.json)。
+按键／手柄接线、数值配置和双向受击验收步骤见[10-E操作说明第3～5节](../Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)。原施工已完成33项普通回归与真实双端技能请求／复制测试，见[10-E原验证摘要](../Combat/MVPB_Phase10E_Verification_20261016.json)；随后团队实测反馈见下段，历史自动化不当作本次重跑。
+
+2026-10-16团队补充：接线已提交，用户报告双端免疫开始／消失和效果正常；两局日志确认双方作为受击目标时Heavy在免疫中降到None、仍扣25HP且两端一致，客户端目标后续命中恢复Heavy，见[本次手动复核](../Combat/MVPB_Phase10E_ManualLogReview_20261016.json)。这次实际仍使用旧启动命令，缺`hal.AbilityLog 1`／`hal.ImpactPhysicsLog 1`；后续复制本页更新命令，或在双方游戏控制台先执行`hal.AbilityLog 1`。开启后才记录新的技能／GE事件，不会补写此前发生的过程；无需修改Buff逻辑。输入边沿、目标持球与扰动细项继续按实际结果补齐。

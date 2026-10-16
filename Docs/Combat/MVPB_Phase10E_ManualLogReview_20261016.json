@@ -1,0 +1,1150 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-10-16",
+  "date_timezone": "Asia/Tokyo",
+  "log_timestamp_timezone": "UTC",
+  "branch": "main",
+  "git_head": "6850e8a2b2a51d49798a21f340c36ecdcc84c307",
+  "worktree_at_start": "Clean; team GA/GE/PlayerState/IA/IMC/Local/GameMode setup committed in6850e8a",
+  "task": "Read-only review of latest two manual Listen Server sessions; archive evidence and update status. No gameplay fix, compile, automation or new runtime session.",
+  "engine": "5.8.2-56702186+++UE5+Release-5.8 (both log metadata and installed Build.version)",
+  "user_feedback": "Immunity Buff begins/ends and its effect works; host/client observations appear normal.",
+  "source_review": "100 source/config files match original 10E verification raw or LF-normalized hashes; no gameplay code drift observed.",
+  "sessions": [
+    {
+      "key": "backup",
+      "local_start_host": "2026-10-16 17:01:55 JST",
+      "role_under_test": "Host shoots client vehicle",
+      "server_target": "BP_RoundedVehiclePawn_C_1",
+      "owner": "BP_HALPlayerState_C_1",
+      "client_avatar": "BP_RoundedVehiclePawn_C_0",
+      "hp_on_both": [
+        100,
+        75,
+        50,
+        25
+      ],
+      "hits": [
+        {
+          "utc": "2026-10-16T08:02:53.852Z",
+          "host_line": 1792,
+          "attack": "5ADD447A4FC89DBD62A682A4AA8E6365",
+          "source_tier": 3,
+          "effective_tier": 3,
+          "immune": 0,
+          "outcome": "Applied",
+          "actual_damage": 25,
+          "hp_after": 75
+        },
+        {
+          "utc": "2026-10-16T08:03:09.005Z",
+          "host_line": 1844,
+          "attack": "4781B8D14CE18085A0E1CAAD4D26B554",
+          "source_tier": 3,
+          "effective_tier": 0,
+          "immune": 1,
+          "outcome": "Suppressed",
+          "drop": 0,
+          "actual_damage": 25,
+          "hp_after": 50
+        },
+        {
+          "utc": "2026-10-16T08:03:21.589Z",
+          "host_line": 1879,
+          "attack": "BF92FCFB4DF5D992F705DBB9FDE02000",
+          "source_tier": 3,
+          "effective_tier": 3,
+          "immune": 0,
+          "outcome": "Applied",
+          "actual_damage": 25,
+          "hp_after": 25
+        }
+      ],
+      "conclusion": "Client target has normal -> immune -> normal hit behavior; damage stays independent, HP converges. Immune removal precedes third hit but exact expiry time is not logged."
+    },
+    {
+      "key": "latest",
+      "local_start_host": "2026-10-16 17:04:29 JST",
+      "role_under_test": "Client shoots host vehicle",
+      "server_target": "BP_RoundedVehiclePawn_C_0",
+      "owner": "BP_HALPlayerState_C_0",
+      "client_avatar": "BP_RoundedVehiclePawn_C_1",
+      "hp_on_both": [
+        100,
+        75,
+        50
+      ],
+      "hits": [
+        {
+          "utc": "2026-10-16T08:05:38.982Z",
+          "host_line": 1812,
+          "attack": "843E94B440E22D7A5C614AA4C8773C0F",
+          "source_tier": 3,
+          "effective_tier": 3,
+          "immune": 0,
+          "outcome": "Applied",
+          "actual_damage": 25,
+          "hp_after": 75
+        },
+        {
+          "utc": "2026-10-16T08:05:51.460Z",
+          "host_line": 1851,
+          "attack": "0B8D19B94CA8D4ACEAECD4BA97112866",
+          "source_tier": 3,
+          "effective_tier": 0,
+          "immune": 1,
+          "outcome": "Suppressed",
+          "drop": 0,
+          "actual_damage": 25,
+          "hp_after": 50
+        }
+      ],
+      "conclusion": "Host target has normal -> immune hit behavior and matching client HP. No post-expiry host-target hit in latest log; expiry behavior is user feedback."
+    }
+  ],
+  "findings": {
+    "confirmed": "Five unique authoritative ball hits, two immune hits: Heavy3 -> None0, Impact6/Suppressed, damage25, Drop0; other hits Heavy3 -> Heavy3/Applied. Both roles represented across two sessions; corresponding HP traces converge.",
+    "no_critical_diagnostics": "All four logs have no Ensure/Assertion/Fatal and no observed GAS tag-replication policy diagnostics.",
+    "known_menu_issue": "InputMode:UIOnly Attempting to focus Non-Focusable widget SObjectWidget recurs in Entry; pre-existing status item, independent of observed combat success; not fixed this review.",
+    "shutdown_network_errors": "Backup client Host closed the connection/ConnectionLost coincides with host exit at08:03:25UTC; consistent with orderly host shutdown, not evidence of a mid-test failure.",
+    "boot_warnings": "Optional aqProf/Vtune/PIX profiler DLLs missing, TSR16bit driver fallback, EditorDataStorageUI widget factories, r.MotionVectorSimulation thread-safety warning; successful game startup/normal exit. No driver or engine changes made.",
+    "duplicate_hp_notifications": "Host same-value75->75/50->50/25->25 notifications occur alongside one authoritative event per hit; actual HP loss remains25, not double damage.",
+    "legacy_ball_log": "Legacy hit vehicle text can say tier Light for an immune hit; HAL Combat EffectiveTier0/Impact6 is the authoritative V1 result. Display/schema issue only, no code fix in log review."
+  },
+  "evidence_limits": [
+    "Both sessions launch without hal.AbilityLog 1; no LogHALAbility events or HALGASStatus snapshots. Cannot derive exact8s GE expiry/20s cooldown, repeated-skill rejection or actual GA/GE asset names from these manual logs. Prior automated evidence remains separate.",
+    "No independent key/controller-edge proof: committed IA/IMC/Local changes plus user functional feedback, no input-method detail.",
+    "No target-held-ball test during immune hit: Drop0 alone is not proof that an actually held ball was retained.",
+    "No hal.ImpactPhysicsLog in launch and no physics action-consumption lines; this review does not add Internal velocity/impulse proof.",
+    "Loopback127.0.0.1, no recorded HALNetMetrics/actualRTT/loss/jitter result. Not four physical PCs or5.8.3 acceptance.",
+    "Avatar-cleared logs at shutdown do not replace an explicit active-effect cleanup/Avatar-swap verification."
+  ],
+  "next_logging": "In both game consoles before further skill testing: hal.AbilityLog 1, then HALGASStatus snapshots if useful. Updated launch commands already include hal.AbilityLog 1 and hal.ImpactPhysicsLog 1.",
+  "assets": {
+    "current_count": 329,
+    "source_of_change": "Committed team Editor setup in6850e8a, not agent edits",
+    "added_count": 5,
+    "changed_existing_count": 3,
+    "added_or_changed_from_original_10e": [
+      {
+        "Path": "Content/Blueprints/GA/GA_ImpactImmunity.uasset",
+        "SHA256": "BF2B18EF58F44C5B268C92CEC3E994037D2F4D6F4FF932D238E25ACADFA6D145"
+      },
+      {
+        "Path": "Content/Blueprints/Gamemode/BP_MVPB_ListenGameMode.uasset",
+        "SHA256": "C733D7ABC75039A2C08F7666DBE6CC1B62179E237A4E5B950970E74B5EEC1C94"
+      },
+      {
+        "Path": "Content/Blueprints/GE/GE_ImpactImmunity.uasset",
+        "SHA256": "3229A779EAF9AB4191B4EE07B18FAAE9B26E0884DDFF36EE0B8310296A36FBC9"
+      },
+      {
+        "Path": "Content/Blueprints/GE/GE_ImpactImmunityCooldown.uasset",
+        "SHA256": "82902433D9AF45415133736DBB6745CD88ACBFDFDDA4E316FAAB7B09CE0FB731"
+      },
+      {
+        "Path": "Content/Blueprints/PlayerState/BP_HALPlayerState.uasset",
+        "SHA256": "9FD1469D06E2F5F169E88D56B3E375FED3BC6E795EA6A77FB141C5F64D49A8C2"
+      },
+      {
+        "Path": "Content/Data/MVP_B/DA_Local_TestBaseline_v1.uasset",
+        "SHA256": "1D5B1703382644F3EB1435FD2D15A60D50B1DC48CC78F414DD34EFE21F73789A"
+      },
+      {
+        "Path": "Content/Input/Vehicle/IA_PrimarySkill.uasset",
+        "SHA256": "8136781E696FF373521F10ECEE6220E74012E776D5BBB7854BE79B7B92B01B6F"
+      },
+      {
+        "Path": "Content/Input/Vehicle/IMC_Vehicle.uasset",
+        "SHA256": "C24CD48E235551A11192F3D1E7B89A414CC075FE141A8D5BD1A56F12E1B74159"
+      }
+    ],
+    "saved_manifest_path": "Saved/Phase10E/ManualReview_Assets_20261016.json",
+    "saved_manifest_sha256": "CC1E597559C5DEA20583B9B82F713EFD78ED17478F233DF2A9ACB5CBB66D7EAB",
+    "scope": "No binary asset editing or live field export. Does not certify GE defaults or references not printed in logs."
+  },
+  "logs": [
+    {
+      "key": "backup_host",
+      "original": "Saved/Logs/MVPB_GAS_Host-backup-2026.10.16-08.03.26.log",
+      "snapshot": "Saved/Phase10E/ManualReview_20261016/Backup_Host.log",
+      "sha256": "E558EEB41E7A958451C3934EB425B68262AD41CA0A505B01840F4A9BBCA8DB29",
+      "bytes": 253663,
+      "line_count": 1961,
+      "file_open": "Log file open, 10/16/26 17:01:55",
+      "file_close": "[2026.10.16-08.03.26:580][765]Log file closed, 10/16/26 17:03:26",
+      "launch": [
+        {
+          "line": 461,
+          "text": "LogInit: Command Line: /Game/Maps/MVPB_NetEntry -game -log -windowed -ResX=960 -ResY=540 -abslog=D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\Logs\\MVPB_GAS_Host.log -ExecCmds=\"hal.DebugHUD 1,hal.GASLog 1,hal.BallNetLog 1,hal.CombatLog 1,hal.VehicleNetLog 1,hal.VehicleHistoryLog 1\""
+        }
+      ],
+      "ability_log_event_count": 0,
+      "ability_log_enabled_in_launch": false,
+      "manual_gas_status_count": 0,
+      "ensure_count": 0,
+      "fatal_or_assertion_count": 0,
+      "errors": [
+        {
+          "line": 1578,
+          "text": "[2026.10.16-08.02.15:153][  0]LogPlayerController: Error: InputMode:UIOnly - Attempting to focus Non-Focusable widget SObjectWidget [Widget.cpp(976)]!"
+        }
+      ],
+      "warnings": [
+        {
+          "line": 981,
+          "text": "[2026.10.16-08.01.58:232][  0]LogD3D12RHI: Warning: TSR 16-bit VALU is disabled on NVIDIA due to known compiler bugs in drivers older than 610.00."
+        },
+        {
+          "line": 1533,
+          "text": "[2026.10.16-08.02.15:030][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'ActorLayersWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1534,
+          "text": "[2026.10.16-08.02.15:033][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AlertWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1535,
+          "text": "[2026.10.16-08.02.15:034][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AlertHeaderWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1536,
+          "text": "[2026.10.16-08.02.15:035][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'UObjectLabelWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1537,
+          "text": "[2026.10.16-08.02.15:035][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'FolderCompatibilityWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1538,
+          "text": "[2026.10.16-08.02.15:036][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DiskSizeWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1539,
+          "text": "[2026.10.16-08.02.15:036][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetDataItemTypeWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1540,
+          "text": "[2026.10.16-08.02.15:036][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetDataLabelWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1541,
+          "text": "[2026.10.16-08.02.15:037][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetDataVirtualPathWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1542,
+          "text": "[2026.10.16-08.02.15:037][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetNameWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1543,
+          "text": "[2026.10.16-08.02.15:038][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1544,
+          "text": "[2026.10.16-08.02.15:038][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1545,
+          "text": "[2026.10.16-08.02.15:039][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1546,
+          "text": "[2026.10.16-08.02.15:040][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1547,
+          "text": "[2026.10.16-08.02.15:040][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1548,
+          "text": "[2026.10.16-08.02.15:040][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'StaticMeshTrianglesWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1549,
+          "text": "[2026.10.16-08.02.15:040][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'OutlinerUnsavedWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1550,
+          "text": "[2026.10.16-08.02.15:040][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'OutlinerUnsavedHeaderConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1551,
+          "text": "[2026.10.16-08.02.15:041][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'SocketWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1552,
+          "text": "[2026.10.16-08.02.15:041][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'TypeInfoWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1553,
+          "text": "[2026.10.16-08.02.15:041][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'VisibilityWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1590,
+          "text": "[2026.10.16-08.02.15:411][  0]LogConsoleManager: Warning: Console variable 'r.MotionVectorSimulation' used in the render thread. Rendering artifacts could happen. Use ECVF_RenderThreadSafe or don't use in render thread."
+        }
+      ],
+      "ball_hits": [
+        {
+          "line": 1792,
+          "text": "[2026.10.16-08.02.53:852][ 59]LogTemp: HAL Combat: Attack=5ADD447A4FC89DBD62A682A4AA8E6365 Pulse=1 PlayerId=257 Source=Combat.Source.Ball Mode=1 Target=BP_RoundedVehiclePawn_C_1 Raw=25.00 Resolved=25.00 Actual=25.00 DamageImmune=0 Impact=5 LegacyTier=2 SourceTier=3 EffectiveTier=3 ImpactImmune=0 Drop=0 Frame=1974"
+        },
+        {
+          "line": 1844,
+          "text": "[2026.10.16-08.03.09:005][706]LogTemp: HAL Combat: Attack=4781B8D14CE18085A0E1CAAD4D26B554 Pulse=1 PlayerId=257 Source=Combat.Source.Ball Mode=1 Target=BP_RoundedVehiclePawn_C_1 Raw=25.00 Resolved=25.00 Actual=25.00 DamageImmune=0 Impact=6 LegacyTier=0 SourceTier=3 EffectiveTier=0 ImpactImmune=1 Drop=0 Frame=2883"
+        },
+        {
+          "line": 1879,
+          "text": "[2026.10.16-08.03.21:589][355]LogTemp: HAL Combat: Attack=BF92FCFB4DF5D992F705DBB9FDE02000 Pulse=1 PlayerId=257 Source=Combat.Source.Ball Mode=1 Target=BP_RoundedVehiclePawn_C_1 Raw=25.00 Resolved=25.00 Actual=25.00 DamageImmune=0 Impact=5 LegacyTier=2 SourceTier=3 EffectiveTier=3 ImpactImmune=0 Drop=0 Frame=3638"
+        }
+      ],
+      "hp_changes": [
+        {
+          "line": 1788,
+          "text": "[2026.10.16-08.02.53:849][ 59]LogTemp: Vehicle BP_RoundedVehiclePawn_C_1 GAS HP: 100.0 -> 75.0"
+        },
+        {
+          "line": 1790,
+          "text": "[2026.10.16-08.02.53:851][ 59]LogTemp: Vehicle BP_RoundedVehiclePawn_C_1 GAS HP: 75.0 -> 75.0"
+        },
+        {
+          "line": 1840,
+          "text": "[2026.10.16-08.03.09:003][706]LogTemp: Vehicle BP_RoundedVehiclePawn_C_1 GAS HP: 75.0 -> 50.0"
+        },
+        {
+          "line": 1842,
+          "text": "[2026.10.16-08.03.09:005][706]LogTemp: Vehicle BP_RoundedVehiclePawn_C_1 GAS HP: 50.0 -> 50.0"
+        },
+        {
+          "line": 1875,
+          "text": "[2026.10.16-08.03.21:585][355]LogTemp: Vehicle BP_RoundedVehiclePawn_C_1 GAS HP: 50.0 -> 25.0"
+        },
+        {
+          "line": 1877,
+          "text": "[2026.10.16-08.03.21:589][355]LogTemp: Vehicle BP_RoundedVehiclePawn_C_1 GAS HP: 25.0 -> 25.0"
+        }
+      ],
+      "health_owner_snapshots": [
+        {
+          "line": 1679,
+          "text": "[2026.10.16-08.02.21:161][  5]LogHALGAS: Health initialized Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 MaxHP=100.0"
+        },
+        {
+          "line": 1680,
+          "text": "[2026.10.16-08.02.21:161][  5]LogHALGAS: Health state Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Authority=1 HP=100.0 MaxHP=100.0"
+        },
+        {
+          "line": 1681,
+          "text": "[2026.10.16-08.02.21:162][  5]LogHALGAS: Health state Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Authority=1 HP=100.0 MaxHP=100.0"
+        },
+        {
+          "line": 1720,
+          "text": "[2026.10.16-08.02.26:706][404]LogHALGAS: Health initialized Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 MaxHP=100.0"
+        },
+        {
+          "line": 1721,
+          "text": "[2026.10.16-08.02.26:706][404]LogHALGAS: Health state Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Authority=1 HP=100.0 MaxHP=100.0"
+        },
+        {
+          "line": 1789,
+          "text": "[2026.10.16-08.02.53:849][ 59]LogHALGAS: Health state Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Authority=1 HP=75.0 MaxHP=100.0"
+        },
+        {
+          "line": 1791,
+          "text": "[2026.10.16-08.02.53:851][ 59]LogHALGAS: Health state Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Authority=1 HP=75.0 MaxHP=100.0"
+        },
+        {
+          "line": 1841,
+          "text": "[2026.10.16-08.03.09:004][706]LogHALGAS: Health state Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Authority=1 HP=50.0 MaxHP=100.0"
+        },
+        {
+          "line": 1843,
+          "text": "[2026.10.16-08.03.09:005][706]LogHALGAS: Health state Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Authority=1 HP=50.0 MaxHP=100.0"
+        },
+        {
+          "line": 1876,
+          "text": "[2026.10.16-08.03.21:585][355]LogHALGAS: Health state Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Authority=1 HP=25.0 MaxHP=100.0"
+        },
+        {
+          "line": 1878,
+          "text": "[2026.10.16-08.03.21:589][355]LogHALGAS: Health state Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Authority=1 HP=25.0 MaxHP=100.0"
+        }
+      ],
+      "lifecycle": [
+        {
+          "line": 1676,
+          "text": "[2026.10.16-08.02.21:159][  5]LogHALMatch: Player joined: HALPlayerController_0, Pawn=BP_RoundedVehiclePawn_C_0, Start=HALPlayerStart_1."
+        },
+        {
+          "line": 1722,
+          "text": "[2026.10.16-08.02.26:706][404]LogHALMatch: Player joined: HALPlayerController_1, Pawn=BP_RoundedVehiclePawn_C_1, Start=HALPlayerStart_2."
+        },
+        {
+          "line": 1723,
+          "text": "[2026.10.16-08.02.26:707][404]LogNet: Join succeeded: Wths50794-69D6D4DF4A"
+        },
+        {
+          "line": 1737,
+          "text": "[2026.10.16-08.02.31:332][776]LogHALMatch: Match phase changed to Playing with 2 players."
+        },
+        {
+          "line": 1895,
+          "text": "[2026.10.16-08.03.25:006][764]LogHALGAS: Avatar cleared Owner=BP_HALPlayerState_C_0 FormerAvatar=BP_RoundedVehiclePawn_C_0"
+        },
+        {
+          "line": 1896,
+          "text": "[2026.10.16-08.03.25:006][764]LogHALMatch: Player left: HALPlayerController_0."
+        },
+        {
+          "line": 1911,
+          "text": "[2026.10.16-08.03.25:009][765]LogHALGAS: Avatar cleared Owner=BP_HALPlayerState_C_1 FormerAvatar=BP_RoundedVehiclePawn_C_1"
+        }
+      ],
+      "close_connection": [
+        {
+          "line": 1559,
+          "text": "[2026.10.16-08.02.15:051][  0]LogWorld: BeginTearingDown for /Temp/Untitled_0"
+        },
+        {
+          "line": 1650,
+          "text": "[2026.10.16-08.02.20:793][  5]LogWorld: BeginTearingDown for /Game/Maps/MVPB_NetEntry"
+        },
+        {
+          "line": 1899,
+          "text": "[2026.10.16-08.03.25:007][765]LogWindows: FPlatformMisc::RequestExit(0, UGameEngine::Tick.ViewportClosed)"
+        },
+        {
+          "line": 1900,
+          "text": "[2026.10.16-08.03.25:008][765]LogWindows: FPlatformMisc::RequestExitWithStatus(0, 0, UGameEngine::Tick.ViewportClosed)"
+        },
+        {
+          "line": 1901,
+          "text": "[2026.10.16-08.03.25:008][765]LogCore: Engine exit requested (reason: Win RequestExit)"
+        },
+        {
+          "line": 1906,
+          "text": "[2026.10.16-08.03.25:008][765]LogWorld: BeginTearingDown for /Game/Maps/MVPB_NetTest"
+        }
+      ],
+      "ball_consumption": [
+        {
+          "line": 1794,
+          "text": "[2026.10.16-08.02.53:853][ 59]LogTemp: Ball BP_BasicBall_C_1: Launched -> Free Seq=3 Holder=None Launcher=None PlayerId=-1 ServerFrame=-1"
+        },
+        {
+          "line": 1846,
+          "text": "[2026.10.16-08.03.09:005][706]LogTemp: Ball BP_BasicBall_C_1: Launched -> Free Seq=6 Holder=None Launcher=None PlayerId=-1 ServerFrame=-1"
+        },
+        {
+          "line": 1881,
+          "text": "[2026.10.16-08.03.21:590][355]LogTemp: Ball BP_BasicBall_C_1: Launched -> Free Seq=9 Holder=None Launcher=None PlayerId=-1 ServerFrame=-1"
+        }
+      ],
+      "impact_physics_log_count": 0
+    },
+    {
+      "key": "backup_client",
+      "original": "Saved/Logs/MVPB_GAS_Client-backup-2026.10.16-08.03.27.log",
+      "snapshot": "Saved/Phase10E/ManualReview_20261016/Backup_Client.log",
+      "sha256": "E46B6AC94F4E249DF3DB7E1289772C010C003894FF037AFAB60B7D0E90ED37D0",
+      "bytes": 235333,
+      "line_count": 1878,
+      "file_open": "Log file open, 10/16/26 17:02:03",
+      "file_close": "[2026.10.16-08.03.27:522][677]LogCore: Engine exit requested (reason: ConsoleCtrl RequestExit; note: exit was already requested)",
+      "launch": [
+        {
+          "line": 461,
+          "text": "LogInit: Command Line: /Game/Maps/MVPB_NetEntry -game -log -windowed -ResX=960 -ResY=540 -abslog=D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\Logs\\MVPB_GAS_Client.log -ExecCmds=\"hal.DebugHUD 1,hal.GASLog 1,hal.BallNetLog 1,hal.CombatLog 1,hal.VehicleNetLog 1,hal.VehicleHistoryLog 1\""
+        }
+      ],
+      "ability_log_event_count": 0,
+      "ability_log_enabled_in_launch": false,
+      "manual_gas_status_count": 0,
+      "ensure_count": 0,
+      "fatal_or_assertion_count": 0,
+      "errors": [
+        {
+          "line": 1577,
+          "text": "[2026.10.16-08.02.15:191][  0]LogPlayerController: Error: InputMode:UIOnly - Attempting to focus Non-Focusable widget SObjectWidget [Widget.cpp(976)]!"
+        },
+        {
+          "line": 1788,
+          "text": "[2026.10.16-08.03.25:021][277]LogNet: Error: UEngine::BroadcastNetworkFailure: FailureType = FailureReceived, ErrorString = Host closed the connection., Driver = Name:GameNetDriver Def:GameNetDriver IpNetDriver_0"
+        },
+        {
+          "line": 1796,
+          "text": "[2026.10.16-08.03.25:022][278]LogNet: Error: UEngine::BroadcastNetworkFailure: FailureType = ConnectionLost, ErrorString = Your connection to the host has been lost., Driver = Name:GameNetDriver Def:GameNetDriver IpNetDriver_0"
+        },
+        {
+          "line": 1820,
+          "text": "[2026.10.16-08.03.25:097][278]LogPlayerController: Error: InputMode:UIOnly - Attempting to focus Non-Focusable widget SObjectWidget [Widget.cpp(976)]!"
+        }
+      ],
+      "warnings": [
+        {
+          "line": 981,
+          "text": "[2026.10.16-08.02.05:164][  0]LogD3D12RHI: Warning: TSR 16-bit VALU is disabled on NVIDIA due to known compiler bugs in drivers older than 610.00."
+        },
+        {
+          "line": 1532,
+          "text": "[2026.10.16-08.02.15:027][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'ActorLayersWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1533,
+          "text": "[2026.10.16-08.02.15:027][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AlertWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1534,
+          "text": "[2026.10.16-08.02.15:033][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AlertHeaderWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1535,
+          "text": "[2026.10.16-08.02.15:033][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'UObjectLabelWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1536,
+          "text": "[2026.10.16-08.02.15:035][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'FolderCompatibilityWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1537,
+          "text": "[2026.10.16-08.02.15:036][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DiskSizeWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1538,
+          "text": "[2026.10.16-08.02.15:036][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetDataItemTypeWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1539,
+          "text": "[2026.10.16-08.02.15:036][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetDataLabelWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1540,
+          "text": "[2026.10.16-08.02.15:037][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetDataVirtualPathWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1541,
+          "text": "[2026.10.16-08.02.15:037][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetNameWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1542,
+          "text": "[2026.10.16-08.02.15:038][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1543,
+          "text": "[2026.10.16-08.02.15:039][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1544,
+          "text": "[2026.10.16-08.02.15:039][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1545,
+          "text": "[2026.10.16-08.02.15:040][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1546,
+          "text": "[2026.10.16-08.02.15:040][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1547,
+          "text": "[2026.10.16-08.02.15:041][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'StaticMeshTrianglesWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1548,
+          "text": "[2026.10.16-08.02.15:041][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'OutlinerUnsavedWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1549,
+          "text": "[2026.10.16-08.02.15:041][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'OutlinerUnsavedHeaderConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1550,
+          "text": "[2026.10.16-08.02.15:042][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'SocketWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1551,
+          "text": "[2026.10.16-08.02.15:043][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'TypeInfoWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1552,
+          "text": "[2026.10.16-08.02.15:051][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'VisibilityWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1589,
+          "text": "[2026.10.16-08.02.15:413][  0]LogConsoleManager: Warning: Console variable 'r.MotionVectorSimulation' used in the render thread. Rendering artifacts could happen. Use ECVF_RenderThreadSafe or don't use in render thread."
+        },
+        {
+          "line": 1789,
+          "text": "[2026.10.16-08.03.25:021][277]LogNet: Warning: Network Failure: GameNetDriver[FailureReceived]: Host closed the connection."
+        }
+      ],
+      "ball_hits": [],
+      "hp_changes": [
+        {
+          "line": 1738,
+          "text": "[2026.10.16-08.02.53:850][869]LogTemp: Vehicle BP_RoundedVehiclePawn_C_0 GAS HP: 100.0 -> 75.0"
+        },
+        {
+          "line": 1760,
+          "text": "[2026.10.16-08.03.09:015][156]LogTemp: Vehicle BP_RoundedVehiclePawn_C_0 GAS HP: 75.0 -> 50.0"
+        },
+        {
+          "line": 1777,
+          "text": "[2026.10.16-08.03.21:602][ 24]LogTemp: Vehicle BP_RoundedVehiclePawn_C_0 GAS HP: 50.0 -> 25.0"
+        }
+      ],
+      "health_owner_snapshots": [
+        {
+          "line": 1700,
+          "text": "[2026.10.16-08.02.26:888][877]LogHALGAS: Health state Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_1 Authority=0 HP=100.0 MaxHP=100.0"
+        },
+        {
+          "line": 1701,
+          "text": "[2026.10.16-08.02.26:888][877]LogHALGAS: Health state Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_1 Authority=0 HP=100.0 MaxHP=100.0"
+        },
+        {
+          "line": 1706,
+          "text": "[2026.10.16-08.02.26:891][877]LogHALGAS: Health state Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_0 Authority=0 HP=100.0 MaxHP=100.0"
+        },
+        {
+          "line": 1707,
+          "text": "[2026.10.16-08.02.26:908][878]LogHALGAS: Health state Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_0 Authority=0 HP=100.0 MaxHP=100.0"
+        },
+        {
+          "line": 1739,
+          "text": "[2026.10.16-08.02.53:851][869]LogHALGAS: Health state Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_0 Authority=0 HP=75.0 MaxHP=100.0"
+        },
+        {
+          "line": 1761,
+          "text": "[2026.10.16-08.03.09:015][156]LogHALGAS: Health state Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_0 Authority=0 HP=50.0 MaxHP=100.0"
+        },
+        {
+          "line": 1778,
+          "text": "[2026.10.16-08.03.21:602][ 24]LogHALGAS: Health state Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_0 Authority=0 HP=25.0 MaxHP=100.0"
+        }
+      ],
+      "lifecycle": [
+        {
+          "line": 1806,
+          "text": "[2026.10.16-08.03.25:028][278]LogHALGAS: Avatar cleared Owner=BP_HALPlayerState_C_1 FormerAvatar=BP_RoundedVehiclePawn_C_0"
+        }
+      ],
+      "close_connection": [
+        {
+          "line": 1558,
+          "text": "[2026.10.16-08.02.15:054][  0]LogWorld: BeginTearingDown for /Temp/Untitled_0"
+        },
+        {
+          "line": 1669,
+          "text": "[2026.10.16-08.02.26:549][875]LogWorld: BeginTearingDown for /Game/Maps/MVPB_NetEntry"
+        },
+        {
+          "line": 1788,
+          "text": "[2026.10.16-08.03.25:021][277]LogNet: Error: UEngine::BroadcastNetworkFailure: FailureType = FailureReceived, ErrorString = Host closed the connection., Driver = Name:GameNetDriver Def:GameNetDriver IpNetDriver_0"
+        },
+        {
+          "line": 1789,
+          "text": "[2026.10.16-08.03.25:021][277]LogNet: Warning: Network Failure: GameNetDriver[FailureReceived]: Host closed the connection."
+        },
+        {
+          "line": 1790,
+          "text": "[2026.10.16-08.03.25:021][277]LogHALNetworkMenu: Display: Host closed the connection."
+        },
+        {
+          "line": 1791,
+          "text": "[2026.10.16-08.03.25:022][277]LogNet: NetworkFailure: FailureReceived, Error: 'Host closed the connection.'"
+        },
+        {
+          "line": 1796,
+          "text": "[2026.10.16-08.03.25:022][278]LogNet: Error: UEngine::BroadcastNetworkFailure: FailureType = ConnectionLost, ErrorString = Your connection to the host has been lost., Driver = Name:GameNetDriver Def:GameNetDriver IpNetDriver_0"
+        },
+        {
+          "line": 1797,
+          "text": "[2026.10.16-08.03.25:023][278]LogHALNetworkMenu: Display: Your connection to the host has been lost."
+        },
+        {
+          "line": 1802,
+          "text": "[2026.10.16-08.03.25:027][278]LogWorld: BeginTearingDown for /Game/Maps/MVPB_NetTest"
+        },
+        {
+          "line": 1832,
+          "text": "[2026.10.16-08.03.26:945][676]LogWindows: FPlatformMisc::RequestExit(0, UGameEngine::Tick.ViewportClosed)"
+        },
+        {
+          "line": 1833,
+          "text": "[2026.10.16-08.03.26:945][676]LogWindows: FPlatformMisc::RequestExitWithStatus(0, 0, UGameEngine::Tick.ViewportClosed)"
+        },
+        {
+          "line": 1834,
+          "text": "[2026.10.16-08.03.26:945][676]LogCore: Engine exit requested (reason: Win RequestExit)"
+        },
+        {
+          "line": 1839,
+          "text": "[2026.10.16-08.03.26:947][677]LogWorld: BeginTearingDown for /Game/Maps/MVPB_NetEntry"
+        },
+        {
+          "line": 1878,
+          "text": "[2026.10.16-08.03.27:522][677]LogCore: Engine exit requested (reason: ConsoleCtrl RequestExit; note: exit was already requested)"
+        }
+      ],
+      "ball_consumption": [],
+      "impact_physics_log_count": 0
+    },
+    {
+      "key": "latest_host",
+      "original": "Saved/Logs/MVPB_GAS_Host.log",
+      "snapshot": "Saved/Phase10E/ManualReview_20261016/Latest_Host.log",
+      "sha256": "E1BE0C8CEC89E95FE4CC7924707870BB6E14165E192179CA357A6DC15CC41F5D",
+      "bytes": 248506,
+      "line_count": 1931,
+      "file_open": "Log file open, 10/16/26 17:04:29",
+      "file_close": "[2026.10.16-08.05.57:856][400]Log file closed, 10/16/26 17:05:57",
+      "launch": [
+        {
+          "line": 461,
+          "text": "LogInit: Command Line: /Game/Maps/MVPB_NetEntry -game -log -windowed -ResX=960 -ResY=540 -abslog=D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\Logs\\MVPB_GAS_Host.log -ExecCmds=\"hal.DebugHUD 1,hal.GASLog 1,hal.BallNetLog 1,hal.CombatLog 1,hal.VehicleNetLog 1,hal.VehicleHistoryLog 1\""
+        }
+      ],
+      "ability_log_event_count": 0,
+      "ability_log_enabled_in_launch": false,
+      "manual_gas_status_count": 0,
+      "ensure_count": 0,
+      "fatal_or_assertion_count": 0,
+      "errors": [
+        {
+          "line": 1579,
+          "text": "[2026.10.16-08.04.36:880][  0]LogPlayerController: Error: InputMode:UIOnly - Attempting to focus Non-Focusable widget SObjectWidget [Widget.cpp(976)]!"
+        }
+      ],
+      "warnings": [
+        {
+          "line": 981,
+          "text": "[2026.10.16-08.04.31:529][  0]LogD3D12RHI: Warning: TSR 16-bit VALU is disabled on NVIDIA due to known compiler bugs in drivers older than 610.00."
+        },
+        {
+          "line": 1534,
+          "text": "[2026.10.16-08.04.36:782][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'ActorLayersWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1535,
+          "text": "[2026.10.16-08.04.36:782][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AlertWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1536,
+          "text": "[2026.10.16-08.04.36:783][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AlertHeaderWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1537,
+          "text": "[2026.10.16-08.04.36:783][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'UObjectLabelWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1538,
+          "text": "[2026.10.16-08.04.36:783][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'FolderCompatibilityWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1539,
+          "text": "[2026.10.16-08.04.36:783][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DiskSizeWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1540,
+          "text": "[2026.10.16-08.04.36:784][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetDataItemTypeWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1541,
+          "text": "[2026.10.16-08.04.36:784][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetDataLabelWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1542,
+          "text": "[2026.10.16-08.04.36:784][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetDataVirtualPathWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1543,
+          "text": "[2026.10.16-08.04.36:784][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetNameWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1544,
+          "text": "[2026.10.16-08.04.36:785][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1545,
+          "text": "[2026.10.16-08.04.36:785][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1546,
+          "text": "[2026.10.16-08.04.36:785][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1547,
+          "text": "[2026.10.16-08.04.36:785][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1548,
+          "text": "[2026.10.16-08.04.36:786][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1549,
+          "text": "[2026.10.16-08.04.36:786][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'StaticMeshTrianglesWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1550,
+          "text": "[2026.10.16-08.04.36:786][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'OutlinerUnsavedWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1551,
+          "text": "[2026.10.16-08.04.36:786][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'OutlinerUnsavedHeaderConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1552,
+          "text": "[2026.10.16-08.04.36:786][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'SocketWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1553,
+          "text": "[2026.10.16-08.04.36:788][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'TypeInfoWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1554,
+          "text": "[2026.10.16-08.04.36:788][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'VisibilityWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1597,
+          "text": "[2026.10.16-08.04.36:983][  0]LogConsoleManager: Warning: Console variable 'r.MotionVectorSimulation' used in the render thread. Rendering artifacts could happen. Use ECVF_RenderThreadSafe or don't use in render thread."
+        }
+      ],
+      "ball_hits": [
+        {
+          "line": 1812,
+          "text": "[2026.10.16-08.05.38:982][846]LogTemp: HAL Combat: Attack=843E94B440E22D7A5C614AA4C8773C0F Pulse=1 PlayerId=258 Source=Combat.Source.Ball Mode=1 Target=BP_RoundedVehiclePawn_C_0 Raw=25.00 Resolved=25.00 Actual=25.00 DamageImmune=0 Impact=5 LegacyTier=2 SourceTier=3 EffectiveTier=3 ImpactImmune=0 Drop=0 Frame=2618"
+        },
+        {
+          "line": 1851,
+          "text": "[2026.10.16-08.05.51:460][915]LogTemp: HAL Combat: Attack=0B8D19B94CA8D4ACEAECD4BA97112866 Pulse=1 PlayerId=258 Source=Combat.Source.Ball Mode=1 Target=BP_RoundedVehiclePawn_C_0 Raw=25.00 Resolved=25.00 Actual=25.00 DamageImmune=0 Impact=6 LegacyTier=0 SourceTier=3 EffectiveTier=0 ImpactImmune=1 Drop=0 Frame=3366"
+        }
+      ],
+      "hp_changes": [
+        {
+          "line": 1808,
+          "text": "[2026.10.16-08.05.38:980][846]LogTemp: Vehicle BP_RoundedVehiclePawn_C_0 GAS HP: 100.0 -> 75.0"
+        },
+        {
+          "line": 1810,
+          "text": "[2026.10.16-08.05.38:982][846]LogTemp: Vehicle BP_RoundedVehiclePawn_C_0 GAS HP: 75.0 -> 75.0"
+        },
+        {
+          "line": 1847,
+          "text": "[2026.10.16-08.05.51:457][915]LogTemp: Vehicle BP_RoundedVehiclePawn_C_0 GAS HP: 75.0 -> 50.0"
+        },
+        {
+          "line": 1849,
+          "text": "[2026.10.16-08.05.51:460][915]LogTemp: Vehicle BP_RoundedVehiclePawn_C_0 GAS HP: 50.0 -> 50.0"
+        }
+      ],
+      "health_owner_snapshots": [
+        {
+          "line": 1669,
+          "text": "[2026.10.16-08.04.55:492][658]LogHALGAS: Health initialized Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 MaxHP=100.0"
+        },
+        {
+          "line": 1670,
+          "text": "[2026.10.16-08.04.55:492][658]LogHALGAS: Health state Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Authority=1 HP=100.0 MaxHP=100.0"
+        },
+        {
+          "line": 1671,
+          "text": "[2026.10.16-08.04.55:492][658]LogHALGAS: Health state Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Authority=1 HP=100.0 MaxHP=100.0"
+        },
+        {
+          "line": 1710,
+          "text": "[2026.10.16-08.04.59:775][  4]LogHALGAS: Health initialized Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 MaxHP=100.0"
+        },
+        {
+          "line": 1711,
+          "text": "[2026.10.16-08.04.59:777][  4]LogHALGAS: Health state Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Authority=1 HP=100.0 MaxHP=100.0"
+        },
+        {
+          "line": 1809,
+          "text": "[2026.10.16-08.05.38:981][846]LogHALGAS: Health state Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Authority=1 HP=75.0 MaxHP=100.0"
+        },
+        {
+          "line": 1811,
+          "text": "[2026.10.16-08.05.38:982][846]LogHALGAS: Health state Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Authority=1 HP=75.0 MaxHP=100.0"
+        },
+        {
+          "line": 1848,
+          "text": "[2026.10.16-08.05.51:458][915]LogHALGAS: Health state Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Authority=1 HP=50.0 MaxHP=100.0"
+        },
+        {
+          "line": 1850,
+          "text": "[2026.10.16-08.05.51:460][915]LogHALGAS: Health state Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Authority=1 HP=50.0 MaxHP=100.0"
+        }
+      ],
+      "lifecycle": [
+        {
+          "line": 1666,
+          "text": "[2026.10.16-08.04.55:491][658]LogHALMatch: Player joined: HALPlayerController_0, Pawn=BP_RoundedVehiclePawn_C_0, Start=HALPlayerStart_1."
+        },
+        {
+          "line": 1712,
+          "text": "[2026.10.16-08.04.59:777][  4]LogHALMatch: Player joined: HALPlayerController_1, Pawn=BP_RoundedVehiclePawn_C_1, Start=HALPlayerStart_2."
+        },
+        {
+          "line": 1713,
+          "text": "[2026.10.16-08.04.59:777][  4]LogNet: Join succeeded: Wths50794-E40CEFF64B"
+        },
+        {
+          "line": 1733,
+          "text": "[2026.10.16-08.05.07:557][642]LogHALMatch: Match phase changed to Playing with 2 players."
+        },
+        {
+          "line": 1869,
+          "text": "[2026.10.16-08.05.55:974][249]LogHALGAS: Avatar cleared Owner=BP_HALPlayerState_C_1 FormerAvatar=BP_RoundedVehiclePawn_C_1"
+        },
+        {
+          "line": 1870,
+          "text": "[2026.10.16-08.05.55:974][249]LogHALMatch: Player left: HALPlayerController_1."
+        },
+        {
+          "line": 1874,
+          "text": "[2026.10.16-08.05.56:789][399]LogHALGAS: Avatar cleared Owner=BP_HALPlayerState_C_0 FormerAvatar=BP_RoundedVehiclePawn_C_0"
+        },
+        {
+          "line": 1875,
+          "text": "[2026.10.16-08.05.56:792][399]LogHALMatch: Player left: HALPlayerController_0."
+        }
+      ],
+      "close_connection": [
+        {
+          "line": 1560,
+          "text": "[2026.10.16-08.04.36:789][  0]LogWorld: BeginTearingDown for /Temp/Untitled_0"
+        },
+        {
+          "line": 1640,
+          "text": "[2026.10.16-08.04.55:335][658]LogWorld: BeginTearingDown for /Game/Maps/MVPB_NetEntry"
+        },
+        {
+          "line": 1878,
+          "text": "[2026.10.16-08.05.56:795][399]LogWindows: FPlatformMisc::RequestExit(0, UGameEngine::Tick.ViewportClosed)"
+        },
+        {
+          "line": 1879,
+          "text": "[2026.10.16-08.05.56:795][399]LogWindows: FPlatformMisc::RequestExitWithStatus(0, 0, UGameEngine::Tick.ViewportClosed)"
+        },
+        {
+          "line": 1880,
+          "text": "[2026.10.16-08.05.56:795][400]LogCore: Engine exit requested (reason: Win RequestExit)"
+        },
+        {
+          "line": 1885,
+          "text": "[2026.10.16-08.05.56:798][400]LogWorld: BeginTearingDown for /Game/Maps/MVPB_NetTest"
+        }
+      ],
+      "ball_consumption": [
+        {
+          "line": 1776,
+          "text": "[2026.10.16-08.05.24:707][906]LogTemp: Ball BP_BasicBall_C_1: Launched -> Free Seq=3 Holder=None Launcher=None PlayerId=-1 ServerFrame=-1"
+        },
+        {
+          "line": 1814,
+          "text": "[2026.10.16-08.05.38:984][846]LogTemp: Ball BP_BasicBall_C_1: Launched -> Free Seq=6 Holder=None Launcher=None PlayerId=-1 ServerFrame=-1"
+        },
+        {
+          "line": 1853,
+          "text": "[2026.10.16-08.05.51:461][915]LogTemp: Ball BP_BasicBall_C_1: Launched -> Free Seq=9 Holder=None Launcher=None PlayerId=-1 ServerFrame=-1"
+        }
+      ],
+      "impact_physics_log_count": 0
+    },
+    {
+      "key": "latest_client",
+      "original": "Saved/Logs/MVPB_GAS_Client.log",
+      "snapshot": "Saved/Phase10E/ManualReview_20261016/Latest_Client.log",
+      "sha256": "220301AACDD0333A6A22D0E75593DCD101E57EA60894C947C10B226EC8457067",
+      "bytes": 230148,
+      "line_count": 1830,
+      "file_open": "Log file open, 10/16/26 17:04:40",
+      "file_close": "[2026.10.16-08.05.57:006][410]Log file closed, 10/16/26 17:05:57",
+      "launch": [
+        {
+          "line": 461,
+          "text": "LogInit: Command Line: /Game/Maps/MVPB_NetEntry -game -log -windowed -ResX=960 -ResY=540 -abslog=D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\Logs\\MVPB_GAS_Client.log -ExecCmds=\"hal.DebugHUD 1,hal.GASLog 1,hal.BallNetLog 1,hal.CombatLog 1,hal.VehicleNetLog 1,hal.VehicleHistoryLog 1\""
+        }
+      ],
+      "ability_log_event_count": 0,
+      "ability_log_enabled_in_launch": false,
+      "manual_gas_status_count": 0,
+      "ensure_count": 0,
+      "fatal_or_assertion_count": 0,
+      "errors": [
+        {
+          "line": 1578,
+          "text": "[2026.10.16-08.04.48:143][  0]LogPlayerController: Error: InputMode:UIOnly - Attempting to focus Non-Focusable widget SObjectWidget [Widget.cpp(976)]!"
+        }
+      ],
+      "warnings": [
+        {
+          "line": 981,
+          "text": "[2026.10.16-08.04.42:224][  0]LogD3D12RHI: Warning: TSR 16-bit VALU is disabled on NVIDIA due to known compiler bugs in drivers older than 610.00."
+        },
+        {
+          "line": 1533,
+          "text": "[2026.10.16-08.04.47:993][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'ActorLayersWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1534,
+          "text": "[2026.10.16-08.04.47:994][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AlertWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1535,
+          "text": "[2026.10.16-08.04.47:995][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AlertHeaderWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1536,
+          "text": "[2026.10.16-08.04.47:995][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'UObjectLabelWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1537,
+          "text": "[2026.10.16-08.04.47:995][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'FolderCompatibilityWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1538,
+          "text": "[2026.10.16-08.04.47:995][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DiskSizeWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1539,
+          "text": "[2026.10.16-08.04.47:995][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetDataItemTypeWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1540,
+          "text": "[2026.10.16-08.04.47:995][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetDataLabelWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1541,
+          "text": "[2026.10.16-08.04.47:995][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetDataVirtualPathWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1542,
+          "text": "[2026.10.16-08.04.47:995][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'AssetNameWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1543,
+          "text": "[2026.10.16-08.04.47:997][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1544,
+          "text": "[2026.10.16-08.04.47:997][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1545,
+          "text": "[2026.10.16-08.04.47:997][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1546,
+          "text": "[2026.10.16-08.04.47:997][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1547,
+          "text": "[2026.10.16-08.04.47:998][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'DynamicAssetDataColumnBaseWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1548,
+          "text": "[2026.10.16-08.04.47:998][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'StaticMeshTrianglesWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1549,
+          "text": "[2026.10.16-08.04.47:998][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'OutlinerUnsavedWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1550,
+          "text": "[2026.10.16-08.04.47:998][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'OutlinerUnsavedHeaderConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1551,
+          "text": "[2026.10.16-08.04.47:998][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'SocketWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1552,
+          "text": "[2026.10.16-08.04.47:998][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'TypeInfoWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1553,
+          "text": "[2026.10.16-08.04.47:998][  0]LogEditorDataStorageUI: Warning: Unable to register widget factory 'VisibilityWidgetConstructor' as purpose '0' isn't registered."
+        },
+        {
+          "line": 1590,
+          "text": "[2026.10.16-08.04.48:280][  0]LogConsoleManager: Warning: Console variable 'r.MotionVectorSimulation' used in the render thread. Rendering artifacts could happen. Use ECVF_RenderThreadSafe or don't use in render thread."
+        }
+      ],
+      "ball_hits": [],
+      "hp_changes": [
+        {
+          "line": 1744,
+          "text": "[2026.10.16-08.05.38:989][531]LogTemp: Vehicle BP_RoundedVehiclePawn_C_1 GAS HP: 100.0 -> 75.0"
+        },
+        {
+          "line": 1762,
+          "text": "[2026.10.16-08.05.51:465][850]LogTemp: Vehicle BP_RoundedVehiclePawn_C_1 GAS HP: 75.0 -> 50.0"
+        }
+      ],
+      "health_owner_snapshots": [
+        {
+          "line": 1689,
+          "text": "[2026.10.16-08.04.59:971][201]LogHALGAS: Health state Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_1 Authority=0 HP=100.0 MaxHP=100.0"
+        },
+        {
+          "line": 1690,
+          "text": "[2026.10.16-08.04.59:971][201]LogHALGAS: Health state Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_1 Authority=0 HP=100.0 MaxHP=100.0"
+        },
+        {
+          "line": 1693,
+          "text": "[2026.10.16-08.04.59:972][201]LogHALGAS: Health state Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_0 Authority=0 HP=100.0 MaxHP=100.0"
+        },
+        {
+          "line": 1695,
+          "text": "[2026.10.16-08.04.59:987][202]LogHALGAS: Health state Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_0 Authority=0 HP=100.0 MaxHP=100.0"
+        },
+        {
+          "line": 1745,
+          "text": "[2026.10.16-08.05.38:989][531]LogHALGAS: Health state Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_1 Authority=0 HP=75.0 MaxHP=100.0"
+        },
+        {
+          "line": 1763,
+          "text": "[2026.10.16-08.05.51:465][850]LogHALGAS: Health state Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_1 Authority=0 HP=50.0 MaxHP=100.0"
+        }
+      ],
+      "lifecycle": [
+        {
+          "line": 1788,
+          "text": "[2026.10.16-08.05.55:964][410]LogHALGAS: Avatar cleared Owner=BP_HALPlayerState_C_1 FormerAvatar=BP_RoundedVehiclePawn_C_0"
+        }
+      ],
+      "close_connection": [
+        {
+          "line": 1559,
+          "text": "[2026.10.16-08.04.48:000][  0]LogWorld: BeginTearingDown for /Temp/Untitled_0"
+        },
+        {
+          "line": 1658,
+          "text": "[2026.10.16-08.04.59:622][199]LogWorld: BeginTearingDown for /Game/Maps/MVPB_NetEntry"
+        },
+        {
+          "line": 1775,
+          "text": "[2026.10.16-08.05.55:961][409]LogWindows: FPlatformMisc::RequestExit(0, UGameEngine::Tick.ViewportClosed)"
+        },
+        {
+          "line": 1776,
+          "text": "[2026.10.16-08.05.55:962][409]LogWindows: FPlatformMisc::RequestExitWithStatus(0, 0, UGameEngine::Tick.ViewportClosed)"
+        },
+        {
+          "line": 1777,
+          "text": "[2026.10.16-08.05.55:962][409]LogCore: Engine exit requested (reason: Win RequestExit)"
+        },
+        {
+          "line": 1782,
+          "text": "[2026.10.16-08.05.55:963][410]LogWorld: BeginTearingDown for /Game/Maps/MVPB_NetTest"
+        }
+      ],
+      "ball_consumption": [],
+      "impact_physics_log_count": 0
+    }
+  ],
+  "acceptance": "Record the reported normal dual-role immunity start/end/behavior and the logged damage/impact/HP convergence subtests as passed. Full10E perturbation/input-edge/held-ball/precise manual timing coverage remains incomplete. No automatic10F development.",
+  "handoff": "Raw snapshots under Saved are local-only. This JSON and status/implementation notes are the shared review evidence; original10E Verification JSON unchanged."
+}

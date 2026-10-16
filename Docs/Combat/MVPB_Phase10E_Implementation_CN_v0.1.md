@@ -1,6 +1,6 @@
 # MVP-B 10-E：主动冲击免疫GA／持续GE施工与操作（v0.1）
 
-日期：2026-10-16（Asia/Tokyo）。基点`main / aa278bd4a315c4afd0ccaf4eab7217d39e8b82cd`，本轮开始工作区干净；本机UE5.8.2 CL56702186。[已确认规格](MVPB_Phase10E_Ability_Effect_Plan_CN_v0.1.md)保持，用户随后明确授权GA／GE本体施工。**代码、Editor／Game编译、33项普通自动化和真实双进程技能请求／复制检查完成；团队输入接线与实际对战验收待完成。** 详细证据见[本轮验证摘要](MVPB_Phase10E_Verification_20261016.json)，接续从[Project_Status](../Project_Status_CN.md)开始。
+日期：2026-10-16（Asia/Tokyo）。原施工基点`main / aa278bd4a315c4afd0ccaf4eab7217d39e8b82cd`，原施工开始工作区干净；本机UE5.8.2 CL56702186。[已确认规格](MVPB_Phase10E_Ability_Effect_Plan_CN_v0.1.md)保持。**代码、Editor／Game编译、33项普通自动化和真实双进程技能请求／复制检查完成；随后团队接线已提交6850e8a，并反馈双端免疫生效／消失及效果正常。本次手动日志确认双向受击、伤害独立与HP收敛，完整扰动等细项仍待补。** 原施工证据见[验证摘要](MVPB_Phase10E_Verification_20261016.json)，新反馈与日志见第7节及[手动日志复核](MVPB_Phase10E_ManualLogReview_20261016.json)。接续从[Project_Status](../Project_Status_CN.md)开始。
 
 ## 1. 本轮行为与边界
 
@@ -128,4 +128,26 @@ Avatar清理记录对象身份，旧Pawn的延迟回调不能清掉新Pawn的效
 
 施工中的失败均保留：5.8.2的`UGameplayEffect::SetStackingType`未导出导致初次链接失败，改为构造／测试模板局部设置公开默认属性；原生构造中`FindOrAddComponent`创建未命名对象导致首次启动失败，改为命名`CreateDefaultSubobject`；测试夹具缺少完整Actor初始化导致退出用例失败，补齐引擎生命周期；调试Loose Tag与GE的复制策略警告通过上述独立调试GE修正。初次联机测试错误用墙钟断言GAS时长，改用服务器游戏时钟与实际GE持续时间，不调整8／20或工程时间配置。各次失败日志及最终结果分别记录，不以进程退出码替代自动化报告。
 
-本机仅5.8.2，未验证5.8.3。真人键鼠／手柄、持球击中、延迟／丢包／抖动和四台真实有线PC仍须团队按实际结果留档；不因无UI自动化通过就声称这些子项已验收。
+以上为原施工验证时点。本机仅5.8.2，未验证5.8.3；随后团队基础双端免疫反馈见下节。按键／手柄输入边沿、持球受击、延迟／丢包／抖动和四台真实有线PC仍须按实际结果留档，不因自动化或本次局部手动日志通过就扩大验收范围。
+
+## 7. 团队双端免疫反馈与日志复核（2026-10-16）
+
+用户报告免疫Buff正常生效／消失、免疫效果有效，客户端与主机表现均暂未见问题。本轮接收干净`main / 6850e8a2b2a51d49798a21f340c36ecdcc84c307`，团队已经提交GA／两份GE／BP_HALPlayerState、GameMode引用、IA／IMC和Local接线。原10-E摘要所列100份源码／配置按原始或LF归一化哈希全部一致，无生产源码改动。本轮只读日志、记录文件哈希并维护文档，不启动游戏、重编、跑自动化或修改资产。
+
+检查最新`Saved/Logs/MVPB_GAS_Host.log`／`MVPB_GAS_Client.log`及紧邻的一组`08.03.26／08.03.27`备份，合计两局四份日志；均为UE5.8.2，Entry进入NetTest、127.0.0.1同机双进程。双方运行的ASC Owner确为`BP_HALPlayerState`。下面时间已由日志UTC转为日本时间：
+
+| 日本时间 | 攻击方向 | 服务器结果 | 两端受击者HP |
+|---|---|---|---|
+| 17:02:53.852 | 主机→客户端 | 无免疫，Heavy→Heavy，Applied | 100→75 |
+| 17:03:09.005 | 主机→客户端 | ImpactImmune=1，Heavy→None，Suppressed，Drop=0 | 75→50 |
+| 17:03:21.589 | 主机→客户端 | 免疫已不在，Heavy→Heavy，Applied | 50→25 |
+| 17:05:38.982 | 客户端→主机 | 无免疫，Heavy→Heavy，Applied | 100→75 |
+| 17:05:51.460 | 客户端→主机 | ImpactImmune=1，Heavy→None，Suppressed，Drop=0 | 75→50 |
+
+五次攻击ID各不相同，各次`Raw／Resolved／Actual=25`；两次免疫命中`SourceTier=3、EffectiveTier=0、Impact=6`（Suppressed），说明免疫只抑制规则冲击，伤害仍有效。其余命中`EffectiveTier=3、Impact=5`（Applied）；客户端目标第三次命中已恢复正常档位。双方HP记录收敛，服务器的75→75／50→50等同值通知不是二次扣血。最后一局未记录主机目标免疫结束后的再次命中；主机端消失与双端观感来自用户反馈，分别保留证据来源。
+
+四份日志均无Ensure／Assertion／Fatal，未见GAS Tag复制策略警告。仍有已知Entry错误`InputMode:UIOnly - Attempting to focus Non-Focusable widget`，本轮不修UI；启动期还见可选性能分析DLL缺失、TSR驱动回退、EditorDataStorageUI注册及渲染CVar线程提示。备份客户端的Host closed／ConnectionLost发生于主机`ViewportClosed`退出之后，不作为对战中异常断线。旧球`hit vehicle`文字仍可能把免疫结果显示为`tier Light`，这是兼容枚举输出，V1实际结算看`HAL Combat`的EffectiveTier与Impact，不据此判定免疫失败。
+
+本次启动命令是未含`hal.AbilityLog 1`／`hal.ImpactPhysicsLog 1`的旧版本，四份日志均无`LogHALAbility`或`HALGASStatus`快照。因而不能从本次日志单独证明精确8秒GE／20秒冷却、重复技能请求拒绝、实际GA／GE子蓝图类名或物理动作消费；此前自动化仍是独立历史证据。后续测试开始前可在两端执行`hal.AbilityLog 1`，必要时拍下`HALGASStatus`；更新后的启动命令已经包含这些日志开关。无须为此修改技能逻辑。
+
+本次确认基础双端免疫功能的团队反馈和上述日志子项。尚无明确的键鼠／手柄按住边沿、目标持球受击、Avatar替换／带活动GE退出、100ms实测RTT／1%丢包／20ms抖动或四机的新实测证据，不标记10-E全矩阵通过，不自动进入10-F。当前共有329资产，与原324资产基线相比为团队有意新增5项、修改3项，哈希另存于复核JSON；未重新导出GE字段，不将资产存在等同于逐字段校验。原始日志快照在`Saved/Phase10E/ManualReview_20261016`，不随Git同步；[新复核JSON](MVPB_Phase10E_ManualLogReview_20261016.json)保留关键原文、行号和哈希，原施工JSON不回写。

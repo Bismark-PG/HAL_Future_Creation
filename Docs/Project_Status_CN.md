@@ -5,7 +5,7 @@
 ## 1. 先读什么、先检查什么
 
 1. 完整阅读根目录 [AGENTS.md](../AGENTS.md) 和本文件。
-2. 当前先阅读 [10-E主动免疫／持续GE规格](Combat/MVPB_Phase10E_Ability_Effect_Plan_CN_v0.1.md)、[10-E实施与Editor接线](Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)和[10-E验证摘要](Combat/MVPB_Phase10E_Verification_20261016.json)：8秒免疫／发动时起20秒冷却的GA／GE已实现，团队按键与实际对战验收待完成。再读 [10-D施工与最新反馈](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)第9～10节，以及[线程修复验证](Combat/MVPB_Phase10D_ThreadFix_Verification_20261015.json)和[原10-D摘要](Combat/MVPB_Phase10D_Verification_20261015.json)区分时间点。然后阅读 [10-C实施／团队反馈](Combat/MVPB_Phase10C_Implementation_CN_v0.1.md)、[10-C原验证](Combat/MVPB_Phase10C_Verification_20261014.json)和 [跨设备核对](Combat/MVPB_Phase10C_Handoff_20261015.json)。规则背景见 [10-C独立伤害](Combat/MVPB_Phase10C_Combat_Plan_CN_v0.1.md)、[10-A规格](Combat/MVPB_Phase10A_GAS_Impact_Spec_CN_v0.1.md)、[GAS总体方案](Combat/MVPB_GAS_Architecture_Overview_CN_v0.1.md)及[保存基线](Combat/MVPB_Phase10A_Baseline_20260930.json)。双端命令、物理执行日志、`HALSpawnBall`及`HALUseSkill`用法见 [调试操作](Configuration/MVPB_DebugHUD_And_GAS_Test_CN_v0.1.md)；独立命令证据见[补球验证](Combat/MVPB_DebugBall_Verification_20261016.json)。
+2. 当前先阅读 [10-E主动免疫／持续GE规格](Combat/MVPB_Phase10E_Ability_Effect_Plan_CN_v0.1.md)、[10-E实施与Editor接线](Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)、[原施工验证](Combat/MVPB_Phase10E_Verification_20261016.json)和[最新手动日志复核](Combat/MVPB_Phase10E_ManualLogReview_20261016.json)：GA／GE已实现，团队接线已提交并反馈基础双端免疫正常，日志确认双向伤害／冲击独立和HP一致；完整扰动等细项仍待补。再读 [10-D施工与最新反馈](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)第9～10节，以及[线程修复验证](Combat/MVPB_Phase10D_ThreadFix_Verification_20261015.json)和[原10-D摘要](Combat/MVPB_Phase10D_Verification_20261015.json)区分时间点。然后阅读 [10-C实施／团队反馈](Combat/MVPB_Phase10C_Implementation_CN_v0.1.md)、[10-C原验证](Combat/MVPB_Phase10C_Verification_20261014.json)和 [跨设备核对](Combat/MVPB_Phase10C_Handoff_20261015.json)。规则背景见 [10-C独立伤害](Combat/MVPB_Phase10C_Combat_Plan_CN_v0.1.md)、[10-A规格](Combat/MVPB_Phase10A_GAS_Impact_Spec_CN_v0.1.md)、[GAS总体方案](Combat/MVPB_GAS_Architecture_Overview_CN_v0.1.md)及[保存基线](Combat/MVPB_Phase10A_Baseline_20260930.json)。双端命令、物理执行日志、`HALSpawnBall`及`HALUseSkill`用法见 [调试操作](Configuration/MVPB_DebugHUD_And_GAS_Test_CN_v0.1.md)；独立命令证据见[补球验证](Combat/MVPB_DebugBall_Verification_20261016.json)。
 3. 以 [MVP-B Listen Server v0.2 计划](MVP_B_Listen_Server_Plan_CN_v0.2.md)和对应 `Docs/Networking/` 实施记录确认已存在的网络边界。早期 [MVP-A→MVP-B 交接](MVP_A_to_MVP_B_Handoff_CN_v1.0.md)用于追踪背景，不能把旧参数当成当前 DA。
 4. 在本机执行 `git status --short`、`git branch --show-current`、`git rev-parse HEAD`，对照 `.uproject`、模块 `Build.cs`、`Source/`、`Config/`、相关测试和邻近说明；以 Editor 的 About 或引擎 `Engine/Build/Build.version` 核对实际补丁版本。
 5. 修改前先汇报当前工程与本记录的差异和本次任务范围；保留已有改动。不因历史记录写了“下一步”就自动施工未获用户授权的环节。
@@ -14,17 +14,17 @@
 
 | 项目 | 2026-10-16 接续核对结果与团队反馈 |
 |---|---|
-| 开发阶段 | 10-E主动GA／免疫GE／冷却GE、授予／生命周期、输入接口与调试显示代码完成；编译／普通自动化／真实双端请求与复制检查通过，团队接线和实际对战验收待完成；10-D完整扰动验收仍待补 |
-| 当前本机分支／代码提交 | `main / 517b497fba7102aa4350aef5b1024c3d3ec2e8e9`；本轮开始工作区干净，上轮10-E源码／测试／留档已提交。本轮仅补充GE／GA配置操作及复用边界、更新状态；未执行提交／Push或远端核查 |
-| 引擎基线 | 本机UE `5.8.2-56702186+++UE5+Release-5.8`，本次Editor／Game成功、33项普通自动化0警告／0失败；实际双进程Host／Client技能检查各1项通过。原10-C另一设备为5.8.3 CL58210709，本轮未验证该补丁，团队仍需统一 |
+| 开发阶段 | 10-E代码与原编译／自动化完成；团队基础双端免疫生效／消失及效果反馈通过，两局日志确认双向免疫命中／伤害独立／HP收敛；重复输入、持球及完整扰动等细项仍待补，10-D扰动验收继续保留 |
+| 当前本机分支／代码提交 | `main / 6850e8a2b2a51d49798a21f340c36ecdcc84c307`；本轮开始工作区干净，团队GA／GE／PlayerState／输入接线及此前说明已提交。本轮仅日志复核与文档／证据留档，未提交／Push或核查远端 |
+| 引擎基线 | 本机及四份手动日志均UE `5.8.2-56702186+++UE5+Release-5.8`。原Editor／Game成功、33项自动化及两组Host／Client各1项通过证据保持；本轮没有重编／重跑。原10-C另一设备5.8.3 CL58210709未在本轮验证 |
 | 本机运行前置 | 当前10-E的Editor／Game已完整构建，不使用Live Coding；后续改C++仍需退出Editor并完整重编，不能混用旧二进制 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
 | GAS 当前实现 | PlayerState可配置DefaultAbilities原生授予主技能；ServerOnly GA施加8秒免疫GE与20秒冷却GE；同类合法重施刷新、Avatar清免疫保冷却、Owner退出清理，其他GE可各自叠层。HALImpactDebug改用独立无限调试GE保持Mixed复制一致 |
 | 当前 HP／冲击 | 10-C伤害／快照保留；10-D同帧Internal读写已有28项自动化证据，用户2026-10-16确认击飞效果恢复。保留现有档位、水平补足和DA，各档实际响应后续调整；本次反馈未列双向角色／扰动明细 |
-| 当前 Editor 接线 | 当前324资产前后SHA一致，四份10-D DA保持原值，未编辑或重导出资产。新增Local.PrimarySkillAction可选，留空不影响原操控；团队按实施文档创建Bool IA并接现用IMC／Local。原生GA／GE可直接用控制台测试，无需先创建技能蓝图 |
+| 当前 Editor 接线 | 团队6850e8a已提交GA／两份GE／BP_HALPlayerState、GameMode／IA／IMC／Local，共329资产。双方运行Owner已为BP_HALPlayerState；本次无GE类名／逐字段导出，不声称完成全部引用检查。相对原324基线新增5项、修改3项为团队有意变更，本轮未修改资产 |
 | 测试地图 | 单机回归 `/Game/Maps/Test`；联机玩法 `/Game/Maps/MVPB_NetTest`；完整菜单 Host／Join 从 `/Game/Maps/MVPB_NetEntry` 启动 |
 
-代码提交号是本次交接的比较基点，后续提交会变化。10-B原基点为fa883fe5，10-C原施工基点为272ba87；原验证JSON记录当时文件，不回写历史证据。此前10月15日核对73份10-C源码、10月16日核对线程修复10份源码／配置及四份DA的历史结果保留。当前517b497已包含上轮GA／GE和验证JSON；本轮对JSON所列100份源码／配置按原始或LF归一化哈希核对全部一致，无源码改动或新编译／自动化。补充文档仍需正常提交才能跨设备同步，未联网核查远端。
+代码提交号是本次交接的比较基点，后续提交会变化。10-B原基点为fa883fe5，10-C原施工基点为272ba87；原验证JSON记录当时文件，不回写历史证据。此前10月15日核对73份10-C源码、10月16日核对线程修复10份源码／配置及四份DA的历史结果保留。当前6850e8a包含10-E本体及团队配置；本轮对原10-E摘要100份源码／配置按原始或LF归一化哈希核对全部一致，无源码改动或新编译／自动化。手动日志摘要和更新文档仍需正常提交才能跨设备同步，未联网核查远端。
 
 ## 3. 已完成与验收状态
 
@@ -38,7 +38,7 @@
 | 10-B 调试显示补充 | 新增 C++ 半透明只读 HUD，`hal.DebugHUD 1/0`；`HALGASStatus` 增加 PlayerId；最终两个 Target 编译、既有自动化 16/16 及双端初始数值／实际渲染检查通过 | 自动化在最终字号微调前执行，微调后重新编译并看截图；不改玩法或资产。后续驾驶／持球／冲击回归已有团队完成反馈，具体延迟工况和 HUD 观感未单独留档，详见操作说明和 [HUD 验证摘要](Configuration/MVPB_DebugHUD_Verification_20261013.json) |
 | 10-C | 共用Action／请求／结果、快照、战斗Attribute和独立伤害完成；原UE5.8.3两个Target／22项自动化通过。用户2026-10-15报告另一设备已完成相关资产更新和测试，三个DA迁移已提交 | 10-D本轮只读导出确认三份Damage/Combat配置为AttackSnapshotV1，并验证当前代码下的初始HP复制；没有重做10-C真人扰动验收，不覆盖用户已完成反馈 |
 | 10-D | 全来源档位、GAS降档／免疫、统一脱球及动作、DA迁移和线程修复已提交；上一轮两个Target／28项自动化通过。用户本轮确认击飞效果恢复，接受先保留档位、实际力度以后调整 | 本轮是团队功能反馈，未提供新日志或角色／网络条件细项。其余三档／抗性／连续接触及扰动回归仍待补齐，不写成完整验收；5.8.3未复测 |
-| 10-E | 原生GA／免疫GE／冷却GE、默认授予、Avatar／Owner清理、输入Tag接口、HALUseSkill和HUD完成；Editor／Game、33/33普通自动化及实际两端技能请求／复制检查通过，见本轮验证JSON | 已测8／20游戏秒、冷却拒绝、刷新／驱散／独立来源／其他GE叠层、免疫不免伤和清理；网络smoke不驱动车辆或模拟命中。团队IA／IMC／Local接线、双向持球受击／到期恢复、100ms RTT／1%丢包／20ms抖动和四机未验收；未新增正式技能演出 |
+| 10-E | 原生GA／GE、授予／清理、输入／调试完成；原Editor／Game、33/33普通回归与真实激活smoke通过。团队接线已提交，报告双端免疫开始／消失及效果正常；本轮两局五次命中确认双方受击、免疫Heavy→None且伤害25、HP收敛，客户端目标后续命中恢复Heavy | 手动日志未启用hal.AbilityLog，缺精确8／20计时／重复请求／实际GE类名记录；团队一般观感与日志子项分别留档。按住输入、目标持球保球、活动效果退出／换Avatar、100ms RTT／1%丢包／20ms抖动及四机未有本次新实测证据，未新增正式技能演出 |
 | 独立调试补球 | 新HALSpawnBall由服务器按调用者车辆生成配置的BP_BasicBall；Editor／Game和29/29自动化通过。实际NetTest主机执行成功、客户端接收动态球通过，324资产前后未变 | 客户端实际输入命令发起RPC、驾驶捕获／发射及真人观感待团队反馈；无网络扰动测试，不算10-E技能验证，见独立验证JSON |
 | 10-F | 运动效果桥接与集成回归范围已拆分 | 尚未施工／验收；网络物理帧历史、加速／低抓地及四机回归继续保留 |
 | 独立弹簧拳原型 | 另一成员负责；已有伸缩状态机、服务器目标检测及每次攻击去重 | 用户指定阶段 10 完成后再接伤害／冲击，本轮及 10-C 不改该模块；原型尚不具备标准战斗结算与状态复制 |
@@ -93,7 +93,7 @@
 
 ## 6. 下一环节和待确定项
 
-当前下一步是**10-E团队接线与实际对战验收**：按[实施记录第3～5节](Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)用HALUseSkill先测试，再将可选Bool IA接到现用IMC／Local DA。互换主机／客户端，验证8秒免疫期间仍扣25HP但无规则击飞／脱球、自然推挤保留，到期恢复；重复按下／按住不绕过发动时起20秒冷却，退出不遗留效果，再补既定扰动矩阵并回传日志。代码与自动化完成不等同10-E全部验收；未来10-F仍需另行授权与确认方案。
+当前**10-E团队接线已提交，基础双端免疫功能已获正常反馈与日志子项支持**，不再要求重复已完成的接线。下一次测试先在双方开启`hal.AbilityLog 1`（更新后的双端命令已含此项），补精确GE／冷却、按住／重复输入、目标持球受击／到期恢复、带活动效果退出等细项，再补既定100ms实测RTT／1%丢包／20ms抖动矩阵。具体已证实与缺失证据见[实施第7节](Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)和[手动复核JSON](Combat/MVPB_Phase10E_ManualLogReview_20261016.json)。本轮未启动新游戏／修代码，未将局部通过扩大为10-E全验收；未来10-F仍需另行授权与确认方案。
 
 10-D目前没有发现阻塞10-E的程序缺陷，也无必需追加功能；用户确认击飞恢复，档位响应力度以后调参。尚缺的降档／免疫／脱球、连续接触、双向角色及网络扰动细项继续随集成回归补齐，不把进到10-E等同10-D完整验收；新发现的缺陷仍须修。独立命中目标禁捕继续只留档，弹簧拳战斗接入继续等阶段10完成，不在此扩展。
 
@@ -105,7 +105,7 @@
 |---|---|
 | 10-C 后续证据补充 | 已有迁移提交、新资产哈希和团队完成反馈；若要宣称特定RTT／丢包／抖动门槛已通过，再补当次细项日志；本机重编后可另导出V1字段与运行状态，不覆盖旧记录 |
 | 10-D 后续回归／调参 | 击飞恢复已获团队反馈；补三档／降档／免疫／脱球、连续接触、双向及网络扰动记录；档位响应与碰撞标尺数值以后调整，不作为新增开发功能 |
-| 10-E 团队验收 | 无额外核心算式待定；GA／GE与授予／清理已实现。按文档接IA／IMC／Local并反馈双端实际受击、到期恢复、重复输入与退出结果；正式技能表现素材暂未指定，当前用调试HUD观察 |
+| 10-E 团队验收 | 无额外核心算式待定；基础双端免疫反馈和双向命中日志子项已记录，接线已提交。下次开AbilityLog，补精确计时、输入边沿、目标持球、带效果退出及扰动细项；正式表现素材暂未指定，当前用调试HUD |
 | 10-F 编码前 | GAS 有效运动参数进入物理帧历史、重模拟恢复和校正的机制 |
 | 团队环境变更时 | 5.8.3 实际编译／资产加载／双进程联机验证及统一升级记录；四台有线 PC 的最终测试证据 |
 
@@ -143,3 +143,4 @@
 - 2026-10-16：随后用户授权GA／GE本体。以干净main/aa278bd为基点，实现ServerOnly冲击免疫GA、8秒GE／发动时起20秒冷却GE、可配置默认授予、Avatar作用域清理保冷却／Owner退出清理、可选Bool动作输入与HALUseSkill／HUD／日志。HALImpactDebug免疫贡献改为独立无限GE以兼容Mixed复制，关闭不驱散技能。最终UE5.8.2 Editor／Game构建成功，33/33普通自动化0警告／0失败；真实NetTest双进程7795和独立60FPS复验7796均Host／Client各1项通过，验证客户端先发、同帧重复请求服务器拒绝、双方Tag复制／到期与20游戏秒冷却；60FPS服务器游戏／墙钟均20秒。首次链接／CDO构造／测试夹具／复制警告及初次联机墙钟断言失败分别留档，未伪装通过。324资产哈希前后未变，四个最终专用进程均自动退出。团队输入资产接线、真实双向持球受击／到期恢复／网络扰动、5.8.3和四机未验收；10-F／弹簧拳／禁捕未扩展。源码和文档未提交，详见[10-E实施](Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)与[验证摘要](Combat/MVPB_Phase10E_Verification_20261016.json)。
 - 2026-10-16：随后核对main/517b497，10-E实现已提交、工作区起始干净，本机仍5.8.2；与10-E摘要100份源码／配置全部一致。按用户问题将[实施记录第5节](Combat/MVPB_Phase10E_Implementation_CN_v0.1.md#5-以后改时长换技能时怎么配置)展开为GE／GA／PlayerState／GameMode逐步配置和日志核对，区分通用接入、免疫专用技能与调试工具；明确新Buff不统一继承免疫父类、多输入槽／车型技能库未建设、运动桥接仍待10-F。本轮仅文档变更，无编译／运行／新测试或资产修改，不回写原验证JSON，也未收到新增团队验收反馈。
 - 2026-10-16：用户询问五份DA用途。按当前源码修订[DA速查](Configuration/MVPB_DataAsset_QuickGuide_CN_v1.0.md)，补充10-C攻击力／球动作倍率与10-D明确档位、公共物理响应／自然碰撞标尺，标明Legacy字段不再作为V1调参入口，并说明Local／GA／GE／PlayerState职责。本轮接续已见用户正在保存的GameMode、GA／GE／PlayerState及IA资产改动，全部保留，未导出保存值或核验其接线／效果，不将其视作新的团队验收。仅文档修订，无源码／资产修改或新编译／运行测试。
+- 2026-10-16：接收干净main/6850e8a，团队接线及此前文档均已提交，源码／配置100项与原10-E摘要一致。用户报告免疫Buff正常生效／消失、效果有效、双端观感正常；复核最新及紧邻备份两局四日志，5次唯一球命中包含双向受击与2次免疫Heavy→None／Suppressed／Drop0，伤害各25且HP两端一致；客户端目标第三次命中恢复Heavy。无Ensure／Assertion／Fatal或GAS Tag复制警告；Entry焦点错误继续存在，备份客户端Host closed在主机ViewportClosed退出时出现。手动启动未开AbilityLog，未独立证明8／20精确计时、重复技能或GE类名；持球／活动效果退出／输入边沿／扰动／四机仍待补。329资产为团队新增5／改3，本轮不改源码／资产，不重编或跑新测试。日志归档到Saved并新增[手动复核JSON](Combat/MVPB_Phase10E_ManualLogReview_20261016.json)，原验证JSON保留；没有自动施工10-F。
