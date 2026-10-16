@@ -1,0 +1,387 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-10-16",
+  "date_timezone": "Asia/Tokyo",
+  "branch": "main",
+  "git_base": "663e1b0a2002afbde9edf72588a3c479757b6fdf",
+  "uncommitted_delivery": true,
+  "scope": "HALSpawnBall Development command and confirmed 10E specification only; GA/immunity GE/cooldown GE not implemented.",
+  "preexisting_changes": "Preserved the prior-turn Phase10D implementation/status documentation edits. No asset edits at turn start.",
+  "engine_version": "5.8.2-56702186+++UE5+Release-5.8",
+  "rules_confirmed": {
+    "impact_immunity_seconds": 8,
+    "cooldown_seconds": 20,
+    "cooldown_starts": "Successful authority activation",
+    "same_effect_reapplication": "Refresh to 8 seconds from successful application, no duration addition",
+    "future_stackable_effects": "Stacking is per GE, no global prohibition",
+    "exit": "Clean granted ability/effects",
+    "implementation_status": "Specification only"
+  },
+  "command": {
+    "name": "HALSpawnBall",
+    "arguments": "None",
+    "mode": "Non-Shipping local controller; authority computes class, possessed vehicle and transform; client sends owned Server RPC with no target/transform/class",
+    "default_class": "/Game/Blueprints/Balls/BP_BasicBall.BP_BasicBall_C",
+    "configuration": "UHALDebugSettings in Config/DefaultGame.ini; no hardcoded asset path in C++",
+    "forward_cm": 350,
+    "height_offset_cm": 100,
+    "spawn_state": "Free, no launcher or attack",
+    "blocked": "DontSpawnIfColliding, report failure",
+    "missing_class": "Reject, no native fallback",
+    "shipping": "Entry points are no-ops",
+    "host_path": "Direct authority handler; client path uses Server RPC",
+    "lifetime": "Normal world actor, no automatic debug lifespan; end the test world to clear"
+  },
+  "builds": {
+    "Editor_Win64_Development": "Succeeded",
+    "Game_Win64_Development": "Succeeded",
+    "method": "Full targets with Editor closed, no Live Coding"
+  },
+  "automation": {
+    "filter": "HAL.FutureCreation",
+    "succeeded": 29,
+    "succeeded_with_warnings": 0,
+    "failed": 0,
+    "not_run": 0,
+    "new_test": "HAL.FutureCreation.Debug.BallSpawnAuthoredConfigurationAndBlocking",
+    "coverage": "Configured authored class/DA loads; one Free replicated ball at current vehicle heading; radius matches saved DA; no stale holder/launcher; blocked/no vehicle/wrong Pawn/missing class reject",
+    "limitation": "Isolated authority world; not a client RPC transport test. Explicit PreInitializeComponents mirrors gameplay configuration in an uninitialized test world.",
+    "tests": [
+      {
+        "path": "HAL.FutureCreation.Ball.ControlledProxyPresentation",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Ball.VehicleExitCleanup",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.BallMigrationAndConsumption",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.ConfigurationAndContext",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.DamageImpactIndependence",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.PulsesTargetsAndDedup",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.PureDamageAndActualRemoval",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Combat.SnapshotAndSourceLifetime",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.CombatRulesSource",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.InitializationAndIsolation",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.NoFallback",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.PlayerAndBallInitialization",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Configuration.Validation",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Debug.BallSpawnAuthoredConfigurationAndBlocking",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.GAS.Health.BoundsAndIsolation",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.GAS.Health.PlayerStateAvatarLifecycle",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.AllSourcesAndContactEpisodes",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.AuthorityPhysicsReplayContract",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.BallSnapshotDropAndCallbackMerge",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.GASResistanceAndIndependentDamage",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.SolverThreadExecutionAndReplay",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Impact.TiersCalibrationAndEnergyBudget",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.PhysicsInput.HistorySerialization",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.PhysicsInput.Validation",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.Blend",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.ComponentContact",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.Eligibility",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.ThrottleProjection",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "path": "HAL.FutureCreation.Vehicle.WallEscape.YawControl",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      }
+    ]
+  },
+  "initial_failures": [
+    {
+      "succeeded": 28,
+      "failed": 1,
+      "cause": "Isolated controller lacked the local intent normally set by GameMode, so public command returned without spawning",
+      "change": "Test fixture calls SetAsLocalPlayerController."
+    },
+    {
+      "succeeded": 28,
+      "failed": 1,
+      "cause": "Local fixture still had no Player/net driver; routing the authority-side command through generated RPC was absorbed",
+      "change": "Authority calls the same validated implementation directly; real clients retain the owned Server RPC. This also supports local debug execution without a network connection."
+    }
+  ],
+  "smoke": {
+    "mode": "Two hidden UnrealEditor -game -NullRHI processes, loopback Listen Server",
+    "map": "/Game/Maps/MVPB_NetTest",
+    "port": 7794,
+    "host_spawn_records": [
+      "[2026.10.16-06.00.12:209][  0]LogTemp: Display: HALSpawnBall: PlayerId=256 Spawned=BP_BasicBall_C_0 Class=BP_BasicBall_C Location=V(X=-40.00, Y=-1060.00, Z=192.00)"
+    ],
+    "join_succeeded": true,
+    "client_dynamic_ball_receipts": [
+      "[2026.10.16-06.00.32:877][ 88]LogNetPackageMap: SerializeNewActor END: Finished Serializing. Actor: BP_BasicBall_C_0, FullNetGUIDPath: [28]BP_BasicBall_C_0, Channel: 8, IsLoading: 1, IsDynamic: 1"
+    ],
+    "ensure_assert_or_fatal": 0,
+    "limitation": "Host invoked HALSpawnBall at startup; client received the dynamic actor. Client-initiated command, UI feedback, human capture/launch and network perturbation were not exercised. Engine startup widget warnings are not zero-runtime-warning evidence.",
+    "host_pid": 30304,
+    "client_pid": 59276,
+    "cleaned_up_utc": "2026-10-16T06:01:52.0071781Z",
+    "remaining_task_processes": 0,
+    "cleanup": "Matched exact executable, project and task log arguments before Stop-Process; one process exited asynchronously and was confirmed absent in a follow-up query."
+  },
+  "asset_protection": {
+    "before_count": 324,
+    "after_count": 324,
+    "changed_count": 0,
+    "note": "324 current assets include previously committed DrivingLab assets; compare within this run, not against the old 320-asset snapshot",
+    "team_da_hashes": [
+      {
+        "Path": "Content\\Data\\MVP_B\\DA_Ball_Normal_TestBaseline_v1.uasset",
+        "SHA256": "06A393B4D71E2DEC97E38A31BCF33C8CD49B98B17142B16561ED90B2F870B1A8"
+      },
+      {
+        "Path": "Content\\Data\\MVP_B\\DA_Combat_TestBaseline_v1.uasset",
+        "SHA256": "2C913AAF7E42570101C9789DE8AF6989FAAAC8BC50933AFBFD6209814722580B"
+      },
+      {
+        "Path": "Content\\Data\\MVP_B\\DA_Vehicle_Passive_TestBaseline_v1.uasset",
+        "SHA256": "4E2973AF7CDAC9185A875C3576465B10523F91EA9BEE185ABF4394F20DD657D1"
+      },
+      {
+        "Path": "Content\\Data\\MVP_B\\DA_Vehicle_Player_TestBaseline_v1.uasset",
+        "SHA256": "D20E510E76FBF4D1FC40C758AAE655FAEB7295668A44727BFDB63ED167D8E113"
+      }
+    ]
+  },
+  "preserved": [
+    "Existing vehicle/ball/combat DA tuning and BP assets.",
+    "Damage, impact, pickup lock, natural collision and physics response algorithms.",
+    "No GA/GE implementation, movement buffs, SpringPunch or match/death framework changes.",
+    "Historical 10D verification and pre-fix diagnosis JSON unchanged."
+  ],
+  "pending": [
+    "Team invoke HALSpawnBall from both host and client consoles; confirm only one ball per invocation, two-end visibility, capture and launch.",
+    "10E GA/GE implementation and full acceptance.",
+    "UE5.8.3, network perturbation and four real wired PCs not newly tested.",
+    "Commit/push intended sources, config and docs for handoff; not performed here."
+  ],
+  "source_and_config_manifest": [
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerController.cpp",
+      "sha256": "0C24D73EBB4C479E0561D31AB006C9AD50AE47FB00EE4C41906D52A15A8958EA",
+      "lf_normalized_sha256": "C864E727BAFEFE8181CD2E5FF5B6943644D9E0958BB8E9ECF78404126FB0EBFF"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerController.h",
+      "sha256": "022E7CA6AA5AF8CCE841D6AA19B4AF1B6C145E65B665456393709F0AB34D460A",
+      "lf_normalized_sha256": "022E7CA6AA5AF8CCE841D6AA19B4AF1B6C145E65B665456393709F0AB34D460A"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDebugSettings.h",
+      "sha256": "D061E88FA31836EF280AF41B02BD37C245246A4140CA0E543A34B720BEE5E1E8",
+      "lf_normalized_sha256": "D061E88FA31836EF280AF41B02BD37C245246A4140CA0E543A34B720BEE5E1E8"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALDebugBallTests.cpp",
+      "sha256": "BAEF455786730D578CD43FFF1DC446C76D598ED5728BCB5BE37245CED598E4DE",
+      "lf_normalized_sha256": "BAEF455786730D578CD43FFF1DC446C76D598ED5728BCB5BE37245CED598E4DE"
+    },
+    {
+      "path": "Config/DefaultGame.ini",
+      "sha256": "60BE1A069CE6331D5491C70A044491BEAB0A68B4F5E96E49A1459CD968483C4B",
+      "lf_normalized_sha256": "F10BD4540BBD5F2BBB276A4BFB11FB31E32B50697FDA7FFE02CED18A87A73AE0"
+    },
+    {
+      "path": "HAL_Future_Creation.uproject",
+      "sha256": "096C2A6D8ECD920BFFE64B68B91160E1C9276BE131A2D42E476E56286C7F1AF9",
+      "lf_normalized_sha256": "169A7FF8F13CF444A3746BE0E0C2D4A26E6BB74FBA0CD23CBC0FA1DDF13268B4"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HAL_Future_Creation.Build.cs",
+      "sha256": "9DC4E598F234AACE9D92BE6CCDC88B34B397E3D211E0219C020B53B086831110",
+      "lf_normalized_sha256": "66E034D06097BC00AB51E0BAB28ECC99DF9EE0B50268C51EE96F01F0C8EE7DD0"
+    }
+  ],
+  "local_evidence_manifest": [
+    {
+      "path": "Saved/Phase10E/DebugBall_Build_Editor.log",
+      "sha256": "44D334EF6D4CCD9A7B9A9072DD76E97A730DEC1258D7224F0B41A058E0F6FB84"
+    },
+    {
+      "path": "Saved/Phase10E/DebugBall_Build_Game.log",
+      "sha256": "BC06C56C754E13D34A2079EACE9E21CC4060D9BF2ADD4BAB0C89D43D925B6E88"
+    },
+    {
+      "path": "Saved/Phase10E/DebugBall_Automation/index.json",
+      "sha256": "FA4BDB263120FDF1F4A24ED79BC71F5C4C377D3D8E5A31D86CBAC50E2D0C06E5"
+    },
+    {
+      "path": "Saved/Phase10E/DebugBall_Automation.log",
+      "sha256": "BD22BD521D3AF080DA409FA8F5D003BA77A82DC25640C2AB57B49FF9EE21D00D"
+    },
+    {
+      "path": "Saved/Phase10E/DebugBall_InitialAutomation.json",
+      "sha256": "CA600C4951397E1A89F3DD8D6219DF05A5943B755A65224B9DA4D4553818C1ED"
+    },
+    {
+      "path": "Saved/Phase10E/DebugBall_InitialAutomation.log",
+      "sha256": "41DA0BFB4DD3849A09585D19247AAFE4362E0A1713466F4E571B297F83F0915E"
+    },
+    {
+      "path": "Saved/Phase10E/DebugBall_FixtureRpcAutomation.json",
+      "sha256": "4562B145744B217C9366BC4D6C80AF836DE401EA4E60D2D4749536AEE4DF02D9"
+    },
+    {
+      "path": "Saved/Phase10E/DebugBall_FixtureRpcAutomation.log",
+      "sha256": "F7BF17F98B9B7707128D9E575B2DB24DAE2933D1F47292CECC1B13B5033B792C"
+    },
+    {
+      "path": "Saved/Phase10E/DebugBall_Smoke_Host.log",
+      "sha256": "E325E64CE7B4F22DD3AE5345E34568D9D244AB901A5DC70DB91A072C5DE27FCA"
+    },
+    {
+      "path": "Saved/Phase10E/DebugBall_Smoke_Client.log",
+      "sha256": "EC294BBE61BE5984658863D9192BCA6F8D6CACC04EDB68199FA9FB0DBC2DA302"
+    },
+    {
+      "path": "Saved/Phase10E/DebugBall_Smoke_ProcessIdentity.json",
+      "sha256": "2F7B1ED9909DB62234AA0BA6FA550504903A46DC5C8ECF27E3FBDFD19CAB6ED0"
+    },
+    {
+      "path": "Saved/Phase10E/DebugBall_AssetsBefore.json",
+      "sha256": "7E0FF839EE32B4EF2841A411993118F53CD83336C95D8E82D6D5BA0369181FCB"
+    },
+    {
+      "path": "Saved/Phase10E/DebugBall_AssetsAfter.json",
+      "sha256": "7E0FF839EE32B4EF2841A411993118F53CD83336C95D8E82D6D5BA0369181FCB"
+    }
+  ],
+  "evidence_note": "Saved artifacts are local/ignored; this shared summary records results and hashes, and does not claim fresh GAS skill tests."
+}

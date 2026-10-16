@@ -12,6 +12,8 @@
 #include "HALMatchGameState.h"
 #include "HALNetworkGameInstance.h"
 #include "HALDebugHUDWidget.h"
+#include "HALDebugSettings.h"
+#include "BasicBallActor.h"
 #include "TestVehiclePawn.h"
 #include "EngineUtils.h"
 #include "HALAbilitySystemComponent.h"
@@ -197,5 +199,81 @@ void AHALPlayerController::HALImpactDebug(int32 PlayerId, int32 Reduction, bool 
 		return;
 	}
 	UE_LOG(LogTemp, Warning, TEXT("HALImpactDebug: no ready Pawn with PlayerId=%d."), PlayerId);
+#endif
+}
+
+void AHALPlayerController::HALSpawnBall()
+{
+#if !UE_BUILD_SHIPPING
+	if (!IsLocalController()) { return; }
+	// The RPC has no class, target or transform arguments: authority derives them from this owner.
+	if (HasAuthority()) { ServerSpawnDebugBall_Implementation(); }
+	else { ServerSpawnDebugBall(); }
+#endif
+}
+
+void AHALPlayerController::ServerSpawnDebugBall_Implementation()
+{
+#if !UE_BUILD_SHIPPING
+	ATestVehiclePawn* Vehicle = Cast<ATestVehiclePawn>(GetPawn());
+	FString Message;
+	ABasicBallActor* Ball = nullptr;
+	const UHALDebugSettings* Settings = GetDefault<UHALDebugSettings>();
+	if (!HasAuthority() || !IsValid(Vehicle) || Vehicle->GetController() != this || !Vehicle->IsConfigurationValid())
+	{
+		Message = TEXT("HALSpawnBall: no valid possessed vehicle. Enter the test map first.");
+	}
+	else if (!FMath::IsFinite(Settings->BallForwardDistance) || Settings->BallForwardDistance <= 0
+		|| !FMath::IsFinite(Settings->BallHeightOffset) || Settings->BallHeightOffset < 0)
+	{
+		Message = TEXT("HALSpawnBall: invalid distances in Project Settings > HAL Debug.");
+	}
+	else
+	{
+		UClass* BallClass = Settings->DefaultBallClass.LoadSynchronous();
+		const FVector Forward = Vehicle->GetActorForwardVector().GetSafeNormal2D();
+		if (!BallClass || !BallClass->IsChildOf(ABasicBallActor::StaticClass()) || BallClass->HasAnyClassFlags(CLASS_Abstract))
+		{
+			Message = TEXT("HALSpawnBall: configure Default Ball Class in Project Settings > HAL Debug.");
+		}
+		else if (Forward.IsNearlyZero())
+		{
+			Message = TEXT("HALSpawnBall: the vehicle has no horizontal forward direction.");
+		}
+		else
+		{
+			const FVector Location = Vehicle->GetActorLocation() + Forward * Settings->BallForwardDistance
+				+ FVector::UpVector * Settings->BallHeightOffset;
+			FActorSpawnParameters Params;
+			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::DontSpawnIfColliding;
+			Ball = GetWorld()->SpawnActor<ABasicBallActor>(BallClass, Location, FRotator::ZeroRotator, Params);
+			if (Ball && !Ball->IsConfigurationValid())
+			{
+				Ball->Destroy();
+				Ball = nullptr;
+				Message = TEXT("HALSpawnBall: authored ball configuration is invalid; no fallback was spawned.");
+			}
+			else if (!Ball)
+			{
+				Message = TEXT("HALSpawnBall: spawn position blocked. Move away from the wall or other ball and retry.");
+			}
+			else
+			{
+				Message = FString::Printf(TEXT("HALSpawnBall: PlayerId=%d Spawned=%s Class=%s Location=%s"),
+					PlayerState ? PlayerState->GetPlayerId() : INDEX_NONE, *Ball->GetName(), *BallClass->GetName(),
+					*Ball->GetActorLocation().ToCompactString());
+			}
+		}
+	}
+	UE_LOG(LogTemp, Display, TEXT("%s"), *Message);
+	ClientDebugBallResult(Message, Ball != nullptr);
+#endif
+}
+
+void AHALPlayerController::ClientDebugBallResult_Implementation(const FString& Message, bool bSuccess)
+{
+#if !UE_BUILD_SHIPPING
+	if (!HasAuthority()) { UE_LOG(LogTemp, Display, TEXT("%s"), *Message); }
+	if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 5.0f, bSuccess ? FColor::Green : FColor::Yellow, Message); }
 #endif
 }

@@ -42,6 +42,9 @@ public:
 	/** Development host console only. Changes test resistance without creating content assets. */
 	UFUNCTION(Exec)
 	void HALImpactDebug(int32 PlayerId, int32 Reduction, bool bImmune);
+	/** Development only: request one authored Free ball in front of this controller's current vehicle. */
+	UFUNCTION(Exec)
+	void HALSpawnBall();
 
 private:
 	UPROPERTY(Transient)
@@ -50,4 +53,8 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestStartMatch();
+	UFUNCTION(Server, Reliable)
+	void ServerSpawnDebugBall();
+	UFUNCTION(Client, Reliable)
+	void ClientDebugBallResult(const FString& Message, bool bSuccess);
 };
