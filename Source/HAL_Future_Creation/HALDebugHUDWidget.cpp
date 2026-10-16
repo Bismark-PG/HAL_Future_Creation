@@ -124,6 +124,13 @@ void UHALDebugHUDWidget::RefreshStatus()
 		const UVehicleHealthComponent* Health = Vehicle->FindComponentByClass<UVehicleHealthComponent>();
 		const UHALAbilitySystemComponent* ASC = Health ? Health->GetBoundAbilitySystem() : nullptr;
 		const UHALCombatAttributeSet* Combat = ASC ? ASC->GetSet<UHALCombatAttributeSet>() : nullptr;
+		if (ASC)
+		{
+			Text += FString::Printf(TEXT("Primary skill: Granted=%d Immune=%.1fs CD=%.1fs (-1=unknown)\n"),
+				ASC->HasAbilityForInput(HALGameplayTags::Input_Ability_Primary),
+				ASC->GetEffectTimeRemaining(HALGameplayTags::State_Combat_ImpactImmune),
+				ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity));
+		}
 		if (Combat && ASC->IsCombatInitialized())
 		{
 			Text += FString::Printf(TEXT("Combat %s: ATK=%.1f Delta=%.2f Taken=%.2f\n"),

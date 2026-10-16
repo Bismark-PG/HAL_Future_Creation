@@ -4,6 +4,7 @@
 #include "HALHealthAttributeSet.h"
 #include "HALCombatAttributeSet.h"
 #include "HALImpactAttributeSet.h"
+#include "HALGameplayTags.h"
 #include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHALGAS, Log, All);
@@ -13,6 +14,141 @@ static TAutoConsoleVariable<int32> CVarHALGASLog(TEXT("hal.GASLog"), 0,
 UHALAbilitySystemComponent::UHALAbilitySystemComponent()
 {
 	SetIsReplicatedByDefault(true);
+}
+
+void UHALAbilitySystemComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	AbilityFailedCallbacks.AddUObject(this, &ThisClass::LogAbilityFailed);
+	OnActiveGameplayEffectAddedDelegateToSelf.AddUObject(this, &ThisClass::LogEffectAdded);
+	OnAnyGameplayEffectRemovedDelegate().AddUObject(this, &ThisClass::LogEffectRemoved);
+}
+
+void UHALAbilitySystemComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		CancelAllAbilities();
+		RemoveActiveEffects(FGameplayEffectQuery());
+		ClearAllAbilities();
+	}
+	AbilityFailedCallbacks.RemoveAll(this);
+	OnActiveGameplayEffectAddedDelegateToSelf.RemoveAll(this);
+	OnAnyGameplayEffectRemovedDelegate().RemoveAll(this);
+	BoundAvatarKey = FObjectKey();
+	Super::EndPlay(EndPlayReason);
+}
+
+void UHALAbilitySystemComponent::RemoveAvatarEffects()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) { return; }
+	CancelAllAbilities();
+	const int32 Removed = RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(
+		FGameplayTagContainer(HALGameplayTags::Effect_Scope_Avatar)));
+	if (HALAbilities::ShouldLog())
+	{
+		UE_LOG(LogHALAbility, Log, TEXT("Avatar effects cleared: Owner=%s Removed=%d Cooldown=%.2fs"),
+			*GetNameSafe(GetOwner()), Removed, GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity));
+	}
+}
+
+void UHALAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor)
+{
+	const FObjectKey NextAvatar(InAvatarActor);
+	if (BoundAvatarKey != FObjectKey() && BoundAvatarKey != NextAvatar) { RemoveAvatarEffects(); }
+	Super::InitAbilityActorInfo(InOwnerActor, InAvatarActor);
+	BoundAvatarKey = NextAvatar;
+}
+
+void UHALAbilitySystemComponent::GrantAbilities(const TArray<FHALAbilityGrant>& Grants, UObject* Source)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !Source) { return; }
+	TSet<FGameplayTag> Inputs;
+	for (const auto& Grant : Grants)
+	{
+		if (!Grant.Ability || Grant.Ability->HasAnyClassFlags(CLASS_Abstract) || !Grant.InputTag.IsValid()
+			|| Grant.Level < 1 || Inputs.Contains(Grant.InputTag))
+		{
+			UE_LOG(LogHALAbility, Error, TEXT("Invalid or duplicate input grant on %s."), *GetNameSafe(Source));
+			continue;
+		}
+		Inputs.Add(Grant.InputTag);
+		const bool bExists = GetActivatableAbilities().ContainsByPredicate([&](const FGameplayAbilitySpec& Spec)
+		{
+			return Spec.Ability && Spec.Ability->GetClass() == Grant.Ability && Spec.SourceObject == Source
+				&& Spec.GetDynamicSpecSourceTags().HasTagExact(Grant.InputTag);
+		});
+		if (bExists) { continue; }
+		FGameplayAbilitySpec Spec(Grant.Ability, Grant.Level, INDEX_NONE, Source);
+		Spec.GetDynamicSpecSourceTags().AddTag(Grant.InputTag);
+		GiveAbility(Spec);
+	}
+}
+
+bool UHALAbilitySystemComponent::HasAbilityForInput(FGameplayTag InputTag) const
+{
+	return InputTag.IsValid() && GetActivatableAbilities().ContainsByPredicate([&](const FGameplayAbilitySpec& Spec)
+	{
+		return Spec.Ability && !Spec.PendingRemove && Spec.GetDynamicSpecSourceTags().HasTagExact(InputTag);
+	});
+}
+
+bool UHALAbilitySystemComponent::TryActivateAbilityInput(FGameplayTag InputTag)
+{
+	if (!InputTag.IsValid() || !GetAvatarActor()) { return false; }
+	TArray<FGameplayAbilitySpecHandle> Handles;
+	{
+		ABILITYLIST_SCOPE_LOCK();
+		for (const auto& Spec : GetActivatableAbilities())
+		{
+			if (Spec.Ability && !Spec.PendingRemove && Spec.GetDynamicSpecSourceTags().HasTagExact(InputTag)) { Handles.Add(Spec.Handle); }
+		}
+	}
+	const bool bRequested = Handles.Num() == 1 && TryActivateAbility(Handles[0], true);
+	if (HALAbilities::ShouldLog())
+	{
+		UE_LOG(LogHALAbility, Log, TEXT("Ability input: Owner=%s Avatar=%s Authority=%d Input=%s Matches=%d Requested=%d"),
+			*GetNameSafe(GetOwner()), *GetNameSafe(GetAvatarActor()), GetOwner()->HasAuthority(),
+			*InputTag.ToString(), Handles.Num(), bRequested);
+	}
+	return bRequested;
+}
+
+float UHALAbilitySystemComponent::GetEffectTimeRemaining(FGameplayTag GrantedTag) const
+{
+	if (!HasMatchingGameplayTag(GrantedTag)) { return 0; }
+	const TArray<float> Times = GetActiveEffectsTimeRemaining(FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(FGameplayTagContainer(GrantedTag)));
+	if (Times.IsEmpty()) { return -1; } // Loose tags / remote Mixed replication do not carry a duration.
+	float Remaining = 0;
+	for (float Time : Times) { if (Time < 0) { return -1; } Remaining = FMath::Max(Remaining, Time); }
+	return Remaining;
+}
+
+void UHALAbilitySystemComponent::LogAbilityFailed(const UGameplayAbility* Ability, const FGameplayTagContainer& Reasons)
+{
+	if (HALAbilities::ShouldLog())
+	{
+		UE_LOG(LogHALAbility, Log, TEXT("Ability rejected: Owner=%s Avatar=%s Ability=%s Reasons=%s"),
+			*GetNameSafe(GetOwner()), *GetNameSafe(GetAvatarActor()), *GetNameSafe(Ability), *Reasons.ToStringSimple());
+	}
+}
+
+void UHALAbilitySystemComponent::LogEffectAdded(UAbilitySystemComponent* Target, const FGameplayEffectSpec& Spec, FActiveGameplayEffectHandle Handle)
+{
+	if (HALAbilities::ShouldLog())
+	{
+		UE_LOG(LogHALAbility, Log, TEXT("Effect added: Owner=%s Authority=%d Effect=%s Duration=%.2fs Stacks=%d"),
+			*GetNameSafe(GetOwner()), GetOwner()->HasAuthority(), *GetNameSafe(Spec.Def), Spec.GetDuration(), Spec.GetStackCount());
+	}
+}
+
+void UHALAbilitySystemComponent::LogEffectRemoved(const FActiveGameplayEffect& Effect)
+{
+	if (HALAbilities::ShouldLog())
+	{
+		UE_LOG(LogHALAbility, Log, TEXT("Effect removed: Owner=%s Authority=%d Effect=%s"),
+			*GetNameSafe(GetOwner()), GetOwner()->HasAuthority(), *GetNameSafe(Effect.Spec.Def));
+	}
 }
 
 void UHALAbilitySystemComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -77,8 +213,7 @@ bool UHALAbilitySystemComponent::InitializeHealth(float SavedMaxHP)
 
 void UHALAbilitySystemComponent::ClearAvatarIfCurrent(const AActor* ExpectedAvatar)
 {
-	if (!ExpectedAvatar || GetAvatarActor() != ExpectedAvatar) { return; }
-	CancelAllAbilities();
+	if (!ExpectedAvatar || BoundAvatarKey != FObjectKey(ExpectedAvatar)) { return; }
 	InitAbilityActorInfo(GetOwner(), nullptr);
 	if (CVarHALGASLog.GetValueOnGameThread() > 0)
 	{

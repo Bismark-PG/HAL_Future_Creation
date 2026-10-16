@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "GameplayEffectTypes.h"
 #include "HALPlayerController.generated.h"
 
 class UHALDebugHUDWidget;
@@ -45,11 +46,14 @@ public:
 	/** Development only: request one authored Free ball in front of this controller's current vehicle. */
 	UFUNCTION(Exec)
 	void HALSpawnBall();
+	/** Request the current primary skill through the same local input/GAS path as an Input Action. */
+	UFUNCTION(Exec)
+	void HALUseSkill();
 
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<UHALDebugHUDWidget> DebugHUD;
-	TSet<TWeakObjectPtr<UHALAbilitySystemComponent>> DebugImpactImmuneTargets;
+	TMap<TWeakObjectPtr<UHALAbilitySystemComponent>, FActiveGameplayEffectHandle> DebugImpactImmuneTargets;
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestStartMatch();

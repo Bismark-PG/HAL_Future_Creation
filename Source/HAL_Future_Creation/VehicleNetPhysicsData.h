@@ -27,12 +27,13 @@ struct HAL_FUTURE_CREATION_API FVehicleNetInputData
 	{
 		Cmd.Sanitize();
 		Cmd.bLaunch = false;
+		Cmd.bPrimarySkill = false;
 	}
 
 	/** Network requests are rejected rather than silently clamped on the server. */
 	bool IsValidContinuousInput() const
 	{
-		return InputSequence != 0 && !Cmd.bLaunch
+		return InputSequence != 0 && !Cmd.bLaunch && !Cmd.bPrimarySkill
 			&& FMath::IsFinite(Cmd.Steering) && Cmd.Steering >= -1.0f && Cmd.Steering <= 1.0f
 			&& FMath::IsFinite(Cmd.Throttle) && Cmd.Throttle >= 0.0f && Cmd.Throttle <= 1.0f
 			&& FMath::IsFinite(Cmd.Brake) && Cmd.Brake >= 0.0f && Cmd.Brake <= 1.0f;

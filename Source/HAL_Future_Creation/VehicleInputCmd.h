@@ -35,6 +35,9 @@ struct HAL_FUTURE_CREATION_API FVehicleInputCmd
 	/** Whether the launch control is held. Reserved for the ball phase. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle Input")
 	bool bLaunch = false;
+	/** Local discrete ability edge; excluded from continuous input and physics replay. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle Input")
+	bool bPrimarySkill = false;
 
 	void Sanitize()
 	{

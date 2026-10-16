@@ -59,6 +59,8 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Vehicle|Input")
 	FVehicleInputCmd GetCurrentInputCommand() const { return CurrentInputCommand; }
+	/** Local discrete request shared by Enhanced Input and the test console. No target or result parameters. */
+	bool RequestPrimarySkill();
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Vehicle|Configuration")
@@ -132,6 +134,8 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Input")
 	TObjectPtr<UInputAction> LaunchAction;
+	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Input")
+	TObjectPtr<UInputAction> PrimarySkillAction;
 
 	/** Unreliable client input snapshots per second until Network Physics history is wired in phase 4. */
 	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Network", meta = (ClampMin = "1.0", ClampMax = "60.0", Units = "Hz"))
@@ -152,6 +156,7 @@ private:
 	void SendInputSnapshot();
 	void ExpireRemoteInput();
 	void ProcessLaunchRequest(const FVehicleLaunchRequest& Request);
+	bool DispatchAbilityInput(const FVehicleInputCmd& Request);
 
 	UFUNCTION(Server, Unreliable)
 	void ServerSubmitVehicleInput(const FVehicleNetInputData& Input);
@@ -172,6 +177,8 @@ private:
 	void OnHandbrakeCompleted(const FInputActionValue& Value);
 	void OnLaunchStarted(const FInputActionValue& Value);
 	void OnLaunchCompleted(const FInputActionValue& Value);
+	void OnPrimarySkillStarted(const FInputActionValue& Value);
+	void OnPrimarySkillCompleted(const FInputActionValue& Value);
 
 	UFUNCTION()
 	void OnCollisionRootHit(

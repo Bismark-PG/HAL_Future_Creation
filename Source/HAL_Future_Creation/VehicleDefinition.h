@@ -143,6 +143,9 @@ public:
 	TObjectPtr<UInputAction> HandbrakeAction;
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputAction> LaunchAction;
+	/** Optional skill edge. Existing local assets stay valid until the team wires this action. */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> PrimarySkillAction;
 	UPROPERTY(EditAnywhere, Category = "Camera")
 	FVehicleCameraConfig Camera;
 	bool Validate(FString& Error) const;

@@ -8,6 +8,7 @@
 #include "VehicleKnockbackSettings.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALPlayerState.h"
+#include "HALGameplayTags.h"
 
 #include "ArcadeVehicleMovementComponent.h"
 #include "BallControlComponent.h"
@@ -238,6 +239,7 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 	{
 		ASC->InitializeCombat(RuntimeCombatConfig);
 		ASC->InitializeImpact(ImpactReceiver->GetConfiguration());
+		State->GrantVehicleAbilities();
 	}
 }
 
@@ -284,6 +286,12 @@ void ATestVehiclePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	{
 		EnhancedInput->BindAction(LaunchAction, ETriggerEvent::Started, this, &ThisClass::OnLaunchStarted);
 		EnhancedInput->BindAction(LaunchAction, ETriggerEvent::Completed, this, &ThisClass::OnLaunchCompleted);
+	}
+	if (PrimarySkillAction)
+	{
+		EnhancedInput->BindAction(PrimarySkillAction, ETriggerEvent::Started, this, &ThisClass::OnPrimarySkillStarted);
+		EnhancedInput->BindAction(PrimarySkillAction, ETriggerEvent::Completed, this, &ThisClass::OnPrimarySkillCompleted);
+		EnhancedInput->BindAction(PrimarySkillAction, ETriggerEvent::Canceled, this, &ThisClass::OnPrimarySkillCompleted);
 	}
 
 	if (!DefaultMappingContext || !SteeringAction || !ThrottleAction || !BrakeAction || !HandbrakeAction || !LaunchAction)
@@ -354,6 +362,7 @@ bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
 		BrakeAction = Local->BrakeAction;
 		HandbrakeAction = Local->HandbrakeAction;
 		LaunchAction = Local->LaunchAction;
+		PrimarySkillAction = Local->PrimarySkillAction;
 		UE_LOG(LogTemp, Log, TEXT("%s: using VehicleDefinition %s."), *GetName(), *GetNameSafe(Definition));
 	}
 	return true;
@@ -626,6 +635,32 @@ void ATestVehiclePawn::OnLaunchCompleted(const FInputActionValue& Value)
 {
 	CurrentInputCommand.bLaunch = false;
 	PushInputCommand();
+}
+
+bool ATestVehiclePawn::RequestPrimarySkill()
+{
+	FVehicleInputCmd Request = CurrentInputCommand;
+	Request.bPrimarySkill = true;
+	return DispatchAbilityInput(Request);
+}
+
+bool ATestVehiclePawn::DispatchAbilityInput(const FVehicleInputCmd& Request)
+{
+	if (!Request.bPrimarySkill || !IsLocallyControlled() || !bConfigurationValid) { return false; }
+	UHALAbilitySystemComponent* ASC = Cast<UHALAbilitySystemComponent>(GetAbilitySystemComponent());
+	// Discrete gameplay is dispatched once on the GT; it never enters the Chaos history/RPC payload.
+	return ASC && ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary);
+}
+
+void ATestVehiclePawn::OnPrimarySkillStarted(const FInputActionValue& Value)
+{
+	CurrentInputCommand.bPrimarySkill = true;
+	DispatchAbilityInput(CurrentInputCommand);
+}
+
+void ATestVehiclePawn::OnPrimarySkillCompleted(const FInputActionValue& Value)
+{
+	CurrentInputCommand.bPrimarySkill = false;
 }
 
 void ATestVehiclePawn::OnCollisionRootHit(

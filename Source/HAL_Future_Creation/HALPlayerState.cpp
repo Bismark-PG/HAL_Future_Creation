@@ -4,6 +4,8 @@
 #include "HALHealthAttributeSet.h"
 #include "HALCombatAttributeSet.h"
 #include "HALImpactAttributeSet.h"
+#include "HALImpactImmunityAbility.h"
+#include "HALGameplayTags.h"
 
 AHALPlayerState::AHALPlayerState()
 {
@@ -15,6 +17,14 @@ AHALPlayerState::AHALPlayerState()
 	AbilitySystem->AddAttributeSetSubobject(CombatAttributes.Get());
 	ImpactAttributes = CreateDefaultSubobject<UHALImpactAttributeSet>(TEXT("ImpactAttributes"));
 	AbilitySystem->AddAttributeSetSubobject(ImpactAttributes.Get());
+	FHALAbilityGrant& Primary = DefaultAbilities.AddDefaulted_GetRef();
+	Primary.Ability = UHALImpactImmunityAbility::StaticClass();
+	Primary.InputTag = HALGameplayTags::Input_Ability_Primary;
+}
+
+void AHALPlayerState::GrantVehicleAbilities()
+{
+	if (HasAuthority()) { AbilitySystem->GrantAbilities(DefaultAbilities, this); }
 }
 
 UAbilitySystemComponent* AHALPlayerState::GetAbilitySystemComponent() const

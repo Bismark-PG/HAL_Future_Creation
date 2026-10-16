@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerState.h"
 #include "AbilitySystemInterface.h"
+#include "HALAbilityTypes.h"
 #include "HALPlayerState.generated.h"
 
 class UHALAbilitySystemComponent;
@@ -21,6 +22,13 @@ public:
 	AHALPlayerState();
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	UHALAbilitySystemComponent* GetHALAbilitySystemComponent() const { return AbilitySystem; }
+	/** Called after Avatar binding, authority only. Existing specs survive a repeated bind. */
+	void GrantVehicleAbilities();
+
+protected:
+	/** Initial player loadout. Additional grant sources can use the same ASC contract later. */
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Abilities", meta = (TitleProperty = "InputTag"))
+	TArray<FHALAbilityGrant> DefaultAbilities;
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = "GAS")

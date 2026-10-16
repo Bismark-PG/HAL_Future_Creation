@@ -81,6 +81,7 @@ bool FVehiclePhysicsHistoryInput::NetSerialize(FArchive& Ar, UPackageMap* Map, b
 	{
 		Input.Cmd.bHandbrake = Handbrake != 0;
 		Input.Cmd.bLaunch = false;
+		Input.Cmd.bPrimarySkill = false;
 		Input.PhysicsFrame = LocalFrame;
 	}
 	bOutSuccess = !Ar.IsError();

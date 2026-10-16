@@ -3,6 +3,7 @@
 #include "Engine/StaticMesh.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "Misc/DataValidation.h"
+#include "InputAction.h"
 
 namespace
 {
@@ -66,6 +67,10 @@ bool UVehicleLocalConfig::Validate(FString& Error) const
 	if (!DefaultMappingContext || !SteeringAction || !ThrottleAction || !BrakeAction || !HandbrakeAction || !LaunchAction)
 	{
 		return Fail(Error, TEXT("LocalConfig requires all six existing Enhanced Input references."));
+	}
+	if (PrimarySkillAction && PrimarySkillAction->ValueType != EInputActionValueType::Boolean)
+	{
+		return Fail(Error, TEXT("Optional PrimarySkillAction must use Digital (bool)."));
 	}
 	return Camera.Validate(Error);
 }

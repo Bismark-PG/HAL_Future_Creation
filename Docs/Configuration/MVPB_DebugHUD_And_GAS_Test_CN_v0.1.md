@@ -1,6 +1,6 @@
 # MVP-B 调试 HUD 与 10-B 双端 HP 检查（v0.1）
 
-初版日期：2026-10-13；双端启动命令更新：2026-10-15；生成球命令补充：2026-10-16。范围：调试显示与测试操作；`HALSpawnBall`会临时生成一个服务器球，不改保存的DA或蓝图资产。当前10-D迁移／验收见[冲击施工记录](../Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)，10-B历史HP子项按本文保留，最新状态见 [Project_Status](../Project_Status_CN.md)。
+初版日期：2026-10-13；生成球与技能操作／启动日志更新：2026-10-16。范围：调试显示与测试操作；`HALSpawnBall`会临时生成一个服务器球，不改保存的DA或蓝图资产。当前10-D迁移／验收见[冲击施工记录](../Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)，10-B历史HP子项按本文保留，最新状态见 [Project_Status](../Project_Status_CN.md)。
 
 ## 1. 在一台电脑启动两个独立游戏进程
 
@@ -11,13 +11,13 @@
 **第一窗口：准备作为主机**
 
 ```powershell
-& 'D:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\UnrealProjects\HAL_Future_Creation\HAL_Future_Creation.uproject' '/Game/Maps/MVPB_NetEntry' -game -log -windowed -ResX=960 -ResY=540 '-abslog=D:\UnrealProjects\HAL_Future_Creation\Saved\Logs\MVPB_GAS_Host.log' '-ExecCmds=hal.DebugHUD 1,hal.GASLog 1,hal.BallNetLog 1,hal.CombatLog 1,hal.VehicleNetLog 1,hal.VehicleHistoryLog 1,hal.ImpactPhysicsLog 1'
+& 'D:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\UnrealProjects\HAL_Future_Creation\HAL_Future_Creation.uproject' '/Game/Maps/MVPB_NetEntry' -game -log -windowed -ResX=960 -ResY=540 '-abslog=D:\UnrealProjects\HAL_Future_Creation\Saved\Logs\MVPB_GAS_Host.log' '-ExecCmds=hal.DebugHUD 1,hal.GASLog 1,hal.BallNetLog 1,hal.CombatLog 1,hal.VehicleNetLog 1,hal.VehicleHistoryLog 1,hal.ImpactPhysicsLog 1,hal.AbilityLog 1'
 ```
 
 **第二窗口：准备作为客户端**
 
 ```powershell
-& 'D:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\UnrealProjects\HAL_Future_Creation\HAL_Future_Creation.uproject' '/Game/Maps/MVPB_NetEntry' -game -log -windowed -ResX=960 -ResY=540 '-abslog=D:\UnrealProjects\HAL_Future_Creation\Saved\Logs\MVPB_GAS_Client.log' '-ExecCmds=hal.DebugHUD 1,hal.GASLog 1,hal.BallNetLog 1,hal.CombatLog 1,hal.VehicleNetLog 1,hal.VehicleHistoryLog 1,hal.ImpactPhysicsLog 1'
+& 'D:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\UnrealProjects\HAL_Future_Creation\HAL_Future_Creation.uproject' '/Game/Maps/MVPB_NetEntry' -game -log -windowed -ResX=960 -ResY=540 '-abslog=D:\UnrealProjects\HAL_Future_Creation\Saved\Logs\MVPB_GAS_Client.log' '-ExecCmds=hal.DebugHUD 1,hal.GASLog 1,hal.BallNetLog 1,hal.CombatLog 1,hal.VehicleNetLog 1,hal.VehicleHistoryLog 1,hal.ImpactPhysicsLog 1,hal.AbilityLog 1'
 ```
 
 两端的开关完全相同，Host／Join换图后仍保留在各自进程内；退出后不改写项目配置。它们分别开启文字HUD、GAS属性、球状态／命中、权威战斗结算、车辆网络输入／发射和物理帧历史日志。`hal.CombatLog`的结算内容来自服务器，客户端开启后也不会自行结算伤害／冲击，所以两端日志条数和内容无需完全相同。此版本不自动开启碰撞球形Gizmo，也不注入延迟／丢包。
@@ -111,3 +111,20 @@ HALSpawnBall
 主机日志及请求端日志搜索`HALSpawnBall:`可见成功／失败、调用者PlayerId及生成位置；请求端同时有短暂屏幕提示。Shipping版本命令不生效。项目设置中搜索`HAL Debug`可由团队调整默认类别、距离和高度；C++不硬编码资产路径，默认引用保存在`Config/DefaultGame.ini`，不修改现有资产。
 
 本轮UE5.8.2的Editor／Game编译成功，29/29自动化0警告／0失败；新测试覆盖已配置球、车头相对位置和阻挡／缺失配置等拒绝。实际NetTest隐藏主机执行命令成功，客户端Join后收到对应动态球；324资产前后未变、专用进程已清理。客户端亲自输入命令发起RPC、真人捕获／发射和网络扰动尚未实测。详见[生成球命令验证摘要](../Combat/MVPB_DebugBall_Verification_20261016.json)。
+
+## 7. 10-E主动技能与免疫／冷却检查
+
+使用最新完整构建进入NetTest，两端加入并由主机Start后，在想发动的一端执行：
+
+```text
+HALUseSkill
+HALGASStatus
+```
+
+原生PlayerState已授予首个GA，无需先创建GA／GE蓝图。服务器接受后自身免疫规则冲击8秒，冷却从发动起20秒；不免伤、不清除已有速度。冷却内重复输入拒绝，不能连按刷新。客户端的`Requested=1`只是提交请求，以复制后的状态判断是否发动成功。
+
+本地HUD新增`Primary skill: Granted / Immune / CD`；`HALGASStatus`新增`PrimarySkillGranted`、`ImmunityRemaining`、`CooldownRemaining`。默认约t=8免疫归0、冷却剩12，t=20冷却归0可再发动。其他客户端不一定能看到远端Spec与GE时长，远端Granted=0或时长=-1不代表技能失效；用`ImpactImmune`与本地Owner状态核对。旧Test地图没有匹配GameState时技能拒绝，先用联机测试图。
+
+上方两条启动命令已默认开启`hal.AbilityLog 1`。日志搜索`Ability accepted`、`Ability rejected`、`Effect added`／`Effect removed`；服务器才记录权威接受。测试技能前清除此前`HALImpactDebug`的免疫贡献，避免独立无限免疫掩盖8秒到期；该命令现在使用独立调试GE，关闭不会移除技能GE。
+
+按键／手柄接线、数值配置和双向受击验收步骤见[10-E操作说明第3～5节](../Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)。当前已完成33项普通回归与真实双端技能请求／复制测试；真人按键、持球受击和网络扰动仍待团队反馈，见[10-E验证摘要](../Combat/MVPB_Phase10E_Verification_20261016.json)。

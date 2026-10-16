@@ -3,6 +3,7 @@
 #include "HALPlayerController.h"
 #include "HALImpactAttributeSet.h"
 #include "HALImpactReceiverComponent.h"
+#include "HALImpactImmunityEffects.h"
 
 #include "ArcadeVehicleMovementComponent.h"
 #include "Engine/Engine.h"
@@ -49,11 +50,11 @@ void AHALPlayerController::BeginPlay()
 void AHALPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 #if !UE_BUILD_SHIPPING
-	for (const auto& WeakASC : DebugImpactImmuneTargets)
+	for (const auto& Entry : DebugImpactImmuneTargets)
 	{
-		if (auto* ASC = WeakASC.Get())
+		if (auto* ASC = Entry.Key.Get())
 		{
-			ASC->RemoveLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune, 1, EGameplayTagReplicationState::TagOnly);
+			ASC->RemoveActiveGameplayEffect(Entry.Value);
 		}
 	}
 	DebugImpactImmuneTargets.Empty();
@@ -163,6 +164,10 @@ void AHALPlayerController::HALGASStatus()
 			ASC && ASC->IsImpactInitialized(), Receiver ? int32(Receiver->GetConfiguration().Version) : -1,
 			Impact ? Impact->GetTierReduction() : 0, ASC && ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_ImpactImmune),
 			int32(Last.SourceTier), int32(Last.EffectiveTier), Last.bBallDropped, Last.ServerPhysicsFrame);
+		Status += FString::Printf(TEXT(" PrimarySkillGranted=%d ImmunityRemaining=%.2f CooldownRemaining=%.2f"),
+			ASC && ASC->HasAbilityForInput(HALGameplayTags::Input_Ability_Primary),
+			ASC ? ASC->GetEffectTimeRemaining(HALGameplayTags::State_Combat_ImpactImmune) : 0,
+			ASC ? ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity) : 0);
 		UE_LOG(LogTemp, Display, TEXT("%s"), *Status);
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 8.0f, FColor::Green, Status); }
 	}
@@ -183,15 +188,18 @@ void AHALPlayerController::HALImpactDebug(int32 PlayerId, int32 Reduction, bool 
 		UHALAbilitySystemComponent* ASC = Health ? Health->GetBoundAbilitySystem() : nullptr;
 		if (!State || State->GetPlayerId() != PlayerId || !ASC || !ASC->IsImpactInitialized()) { continue; }
 		ASC->SetNumericAttributeBase(UHALImpactAttributeSet::GetTierReductionAttribute(), Reduction);
-		const bool bAdded = DebugImpactImmuneTargets.Contains(ASC);
+		const FActiveGameplayEffectHandle* Existing = DebugImpactImmuneTargets.Find(ASC);
+		const bool bAdded = Existing && ASC->GetActiveGameplayEffect(*Existing);
 		if (bImmune && !bAdded)
 		{
-			ASC->AddLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune, 1, EGameplayTagReplicationState::TagOnly);
-			DebugImpactImmuneTargets.Add(ASC);
+			FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
+			Context.AddSourceObject(this);
+			const auto Effect = ASC->ApplyGameplayEffectToSelf(GetDefault<UHALDebugImpactImmunityEffect>(), 1, Context);
+			if (Effect.IsValid()) { DebugImpactImmuneTargets.Add(ASC, Effect); }
 		}
-		else if (!bImmune && bAdded)
+		else if (!bImmune && Existing)
 		{
-			ASC->RemoveLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune, 1, EGameplayTagReplicationState::TagOnly);
+			ASC->RemoveActiveGameplayEffect(*Existing);
 			DebugImpactImmuneTargets.Remove(ASC);
 		}
 		ASC->GetOwner()->ForceNetUpdate();
@@ -210,6 +218,17 @@ void AHALPlayerController::HALSpawnBall()
 	if (HasAuthority()) { ServerSpawnDebugBall_Implementation(); }
 	else { ServerSpawnDebugBall(); }
 #endif
+}
+
+void AHALPlayerController::HALUseSkill()
+{
+	if (!IsLocalController()) { return; }
+	ATestVehiclePawn* Vehicle = Cast<ATestVehiclePawn>(GetPawn());
+	const bool bRequested = Vehicle && Vehicle->RequestPrimarySkill();
+	const FString Message = FString::Printf(TEXT("HALUseSkill: Requested=%d Authority=%d Pawn=%s (check GAS status for authority result)."),
+		bRequested, HasAuthority(), *GetNameSafe(Vehicle));
+	UE_LOG(LogTemp, Display, TEXT("%s"), *Message);
+	if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 4.0f, bRequested ? FColor::Cyan : FColor::Yellow, Message); }
 }
 
 void AHALPlayerController::ServerSpawnDebugBall_Implementation()

@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "AbilitySystemComponent.h"
 #include "HALCombatTypes.h"
+#include "HALAbilityTypes.h"
+#include "UObject/ObjectKey.h"
 #include "HALAbilitySystemComponent.generated.h"
 
 DECLARE_MULTICAST_DELEGATE(FHALHealthInitialized);
@@ -16,6 +18,16 @@ class HAL_FUTURE_CREATION_API UHALAbilitySystemComponent : public UAbilitySystem
 public:
 	UHALAbilitySystemComponent();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor) override;
+	/** Authority-only, idempotent for the same source/class/input. Does not reset active cooldowns. */
+	void GrantAbilities(const TArray<FHALAbilityGrant>& Grants, UObject* Source);
+	bool HasAbilityForInput(FGameplayTag InputTag) const;
+	/** Uses GAS's own activation RPC; true on a client means a request, not authority acceptance. */
+	bool TryActivateAbilityInput(FGameplayTag InputTag);
+	/** Read-only GAS query. -1 means an infinite/unknown source, not zero remaining time. */
+	float GetEffectTimeRemaining(FGameplayTag GrantedTag) const;
 
 	/** Authority-only, once per ASC lifetime. Repeated Avatar binding never heals or resets HP. */
 	bool InitializeHealth(float SavedMaxHP);
@@ -32,6 +44,12 @@ public:
 	FHALHealthInitialized OnHealthInitialized;
 
 private:
+	void RemoveAvatarEffects();
+	void LogAbilityFailed(const UGameplayAbility* Ability, const FGameplayTagContainer& Reasons);
+	void LogEffectAdded(UAbilitySystemComponent* Target, const FGameplayEffectSpec& Spec, FActiveGameplayEffectHandle Handle);
+	void LogEffectRemoved(const FActiveGameplayEffect& Effect);
+	/** Identity still compares correctly during Pawn destruction when a weak Avatar getter is already null. */
+	FObjectKey BoundAvatarKey;
 	UFUNCTION()
 	void OnRep_HealthInitialized();
 	UPROPERTY(ReplicatedUsing = OnRep_HealthInitialized)
