@@ -7,6 +7,7 @@
 #include "VehicleConfigurationApplication.h"
 #include "VehicleKnockbackSettings.h"
 #include "HALAbilitySystemComponent.h"
+#include "HALMovementEffectBridge.h"
 #include "HALPlayerState.h"
 #include "HALGameplayTags.h"
 
@@ -82,6 +83,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	NetworkPhysicsSettings = CreateDefaultSubobject<UNetworkPhysicsSettingsComponent>(TEXT("VehicleNetworkPhysicsSettings"));
 	NetworkPhysicsHistory = CreateDefaultSubobject<UNetworkPhysicsComponent>(TEXT("VehicleNetworkPhysicsHistory"));
 	NetworkPhysicsHistory->SetAutoActivate(false);
+	MovementEffectBridge = CreateDefaultSubobject<UHALMovementEffectBridge>(TEXT("MovementEffectBridge"));
 
 	BallControlPoint = CreateDefaultSubobject<USceneComponent>(TEXT("BallControlPoint"));
 	BallControlPoint->SetupAttachment(CollisionRoot);
@@ -235,6 +237,7 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 	}
 	ASC->InitAbilityActorInfo(State, this);
 	Health->BindToAbilitySystem(ASC);
+	MovementEffectBridge->Bind(ASC, State->GetPlayerId());
 	if (HasAuthority() && bConfigurationValid)
 	{
 		ASC->InitializeCombat(RuntimeCombatConfig);
@@ -245,6 +248,7 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 
 void ATestVehiclePawn::UninitializeAbilitySystem()
 {
+	MovementEffectBridge->Unbind();
 	UHALAbilitySystemComponent* ASC = Health->GetBoundAbilitySystem();
 	Health->UnbindFromAbilitySystem();
 	if (ASC) { ASC->ClearAvatarIfCurrent(this); }

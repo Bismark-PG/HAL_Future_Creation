@@ -15,6 +15,8 @@ struct FArcadeVehicleConfig;
 struct FBodyInstance;
 
 class UPrimitiveComponent;
+class FVehicleRewindCallback;
+namespace Chaos { class FPBDRigidsSolver; }
 
 /**
  * Applies arcade driving forces to a Chaos-simulated primitive.
@@ -40,6 +42,7 @@ public:
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void OnUnregister() override;
 	virtual void Activate(bool bReset = false) override;
 	virtual void Deactivate() override;
 	virtual void AsyncPhysicsTickComponent(float DeltaTime, float SimTime) override;
@@ -63,6 +66,10 @@ public:
 	int32 GetResimulationRunCount() const { return ResimulationRunCount.Load(); }
 	bool CaptureNetState(FVehicleNetStateData& OutState) const;
 	bool RestoreNetState(const FVehicleNetStateData& State);
+	void ConfigureMovementEffects(FGuid Epoch, UNetworkPhysicsComponent* History, bool bAuthority, int32 PlayerId);
+	void SetMovementTickOffsetReady(bool bReady) { bMovementTickOffsetReady.Store(bReady); }
+	bool QueueMovementParameters(const FHALMovementSnapshot& Value);
+	FHALMovementStatus GetMovementEffectStatus() const;
 
 	UFUNCTION(BlueprintPure, Category = "Arcade Vehicle|Debug")
 	bool IsGrounded() const { return bGrounded; }
@@ -71,8 +78,19 @@ public:
 	float GetForwardSpeed() const { return ForwardSpeed; }
 
 private:
+	void RegisterRewindTick();
+	void UnregisterRewindTick();
+	FVehicleRewindCallback* RewindTick = nullptr;
+	Chaos::FPBDRigidsSolver* RewindTickSolver = nullptr;
 	friend class FVehicleWallEscapeContactTest;
 	friend class FHALImpactPhysicsThreadTest;
+	friend class FHALMovementSolverTest;
+	void ApplyPendingMovementConfiguration();
+	void ApplyMovementAction(const FVehicleMovementParameterAction& Action);
+	void PrepareMovementFrame(Chaos::FPBDRigidsSolver* Solver, int32 LocalFrame, bool bReplay);
+	void ImportMovementTimeline(const FHALMovementTimeline& Timeline, Chaos::FPBDRigidsSolver* Solver, int32 LocalFrame, bool bRequestRewind);
+	void CollectMovementAuthority(Chaos::FPBDRigidsSolver* Solver, int32 LocalFrame);
+	bool RequestMovementRewind(Chaos::FPBDRigidsSolver* Solver, int32 LocalFrame, int32 RequestedLocalFrame, bool bRequireCheckpoint = false);
 	void SimulateVehicleStep(const FVehicleNetInputData& StepInput, float DeltaTime);
 	bool UpdateGroundContact(const FVector& BodyLocation, FVector& OutGroundNormal) const;
 	void UpdateWallEscape(const FTransform& BodyTransform, const FVector& GroundNormal, const FVector& ForwardDirection,
@@ -101,6 +119,35 @@ private:
 	bool bWasResimulating = false; // Physics thread only.
 	mutable uint32 NextInputSequence = 0;
 	FVector PendingRecoilDeltaVelocity = FVector::ZeroVector;
+	UPROPERTY(Transient) TObjectPtr<UNetworkPhysicsComponent> MovementHistory;
+	FGuid MovementEpochExternal;
+	bool bMovementResetPending = false;
+	bool bStandaloneMovementPending = false;
+	FHALMovementSnapshot PendingStandaloneMovement;
+	FHALMovementStatus PublishedMovementStatus; // Protected by PendingPhysicsDataLock.
+	TAtomic<bool> bMovementAuthority{false};
+	TAtomic<bool> bMovementTickOffsetReady{false};
+	TAtomic<int32> MovementPlayerId{INDEX_NONE};
+	// Everything below is physics-thread-owned. No ASC or effect handles are accessed here.
+	FGuid MovementEpoch;
+	FHALMovementTimeline MovementAuthorityTimeline;
+	TArray<FHALMovementSnapshot> MovementActions;
+	FHALMovementSnapshot CurrentMovement;
+	struct FUsedMovementFrame
+	{
+		int32 LocalFrame = INDEX_NONE;
+		FGuid Epoch;
+		FHALMovementSnapshot Value;
+		bool bMapped = false;
+	};
+	TArray<FUsedMovementFrame> UsedMovementFrames;
+	TSet<int32> ProcessedMovementStates;
+	int32 MovementWindowFrames = 128;
+	int32 MovementRewindRequests = 0;
+	int32 MovementLastRewind = INDEX_NONE;
+	int32 LatestMovementAuthorityFrame = INDEX_NONE;
+	bool bMovementRecovery = false;
+	bool bMovementDriveAllowed = true;
 #if !UE_BUILD_SHIPPING
 	bool bLoggedFirstPhysicsStep = false;
 #endif

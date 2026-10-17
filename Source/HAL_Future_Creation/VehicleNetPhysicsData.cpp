@@ -116,6 +116,14 @@ void FVehiclePhysicsHistoryState::InterpolateData(const FNetworkPhysicsData& Min
 	State.LinearVelocity = FMath::Lerp(Min.State.LinearVelocity, Max.State.LinearVelocity, Alpha);
 	State.AngularVelocityRadians = FMath::Lerp(Min.State.AngularVelocityRadians, Max.State.AngularVelocityRadians, Alpha);
 	State.PhysicsFrame = LocalFrame;
+	// Movement parameters are discrete. Retain the timeline covering this frame;
+	// never Lerp a multiplier or select a revision by nearest endpoint.
+	const int32 ServerTarget = ServerFrame;
+	FHALMovementSnapshot Value;
+	State.MovementTimeline = Min.State.MovementTimeline;
+	State.MovementTimeline.Merge(Max.State.MovementTimeline, FHALMovementTimeline::MaximumEntries - 2);
+	if (State.MovementTimeline.Query(ServerTarget - 1, Value)) { State.MovementSnapshot = Value; }
+	else { State.MovementSnapshot = {}; }
 }
 
 bool FVehiclePhysicsHistoryState::CompareData(const FNetworkPhysicsData& PredictedData)
@@ -123,6 +131,19 @@ bool FVehiclePhysicsHistoryState::CompareData(const FNetworkPhysicsData& Predict
 	const auto& Predicted = static_cast<const FVehiclePhysicsHistoryState&>(PredictedData);
 	// Chaos compares and rewinds the rigid body using the Settings Data Asset thresholds.
 	// This comparison covers movement memory which Chaos does not know about.
+	if (!State.MovementSnapshot.Equals(Predicted.State.MovementSnapshot)) { return false; }
+	const auto& A = State.MovementTimeline;
+	const auto& B = Predicted.State.MovementTimeline;
+	if (!A.IsEmpty() && !B.IsEmpty() && A.Epoch == B.Epoch)
+	{
+		// Compare only shared known coverage. Sliding the window or filling unknown
+		// frames alone is not a mismatch; a missed old boost remains a mismatch after expiry.
+		for (int64 Frame = FMath::Max(A.StartFrame, B.StartFrame); Frame <= FMath::Min(A.EndFrame, B.EndFrame); ++Frame)
+		{
+			FHALMovementSnapshot Actual, Used;
+			if (A.Query(int32(Frame), Actual) && B.Query(int32(Frame), Used) && !Actual.Equals(Used)) { return false; }
+		}
+	}
 	if (State.bWallEscapeActive != Predicted.State.bWallEscapeActive
 		|| !FMath::IsNearlyEqual(State.WallEscapeBlend, Predicted.State.WallEscapeBlend, 0.02f)
 		|| State.WallEscapeNormals.Num() != Predicted.State.WallEscapeNormals.Num()) { return false; }
@@ -137,6 +158,11 @@ bool FVehiclePhysicsHistoryState::NetSerialize(FArchive& Ar, UPackageMap* Map, b
 {
 	SerializeFrames(Ar);
 	Ar << State.Position << State.Rotation << State.LinearVelocity << State.AngularVelocityRadians;
+	State.MovementSnapshot.Serialize(Ar);
+	if ((!State.MovementSnapshot.IsUnset() && !State.MovementSnapshot.IsValid()) || !State.MovementTimeline.Serialize(Ar))
+	{
+		Ar.SetError(); bOutSuccess = false; return false;
+	}
 	uint8 WallActive = State.bWallEscapeActive ? 1 : 0;
 	Ar << WallActive << State.WallEscapeBlend;
 	uint8 Count = Ar.IsSaving() ? uint8(FMath::Min(State.WallEscapeNormals.Num(), 2)) : 0;

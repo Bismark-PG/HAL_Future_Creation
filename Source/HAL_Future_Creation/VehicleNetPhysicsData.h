@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Physics/NetworkPhysicsComponent.h"
 #include "VehicleInputCmd.h"
+#include "HALMovementTypes.h"
 #include "VehicleNetPhysicsData.generated.h"
 
 /** One continuous input sample for a Chaos physics frame. Launch remains a separate edge event. */
@@ -133,6 +134,19 @@ struct HAL_FUTURE_CREATION_API FVehicleImpactAction : public FNetworkPhysicsActi
 	}
 };
 
+/** An absolute parameter change. Server authoring only; replay never consults GAS. */
+USTRUCT()
+struct HAL_FUTURE_CREATION_API FVehicleMovementParameterAction : public FNetworkPhysicsActionPayload
+{
+	GENERATED_BODY()
+	UPROPERTY() FHALMovementSnapshot Value;
+	virtual const EActionAuthorStyle GetAuthorStyle() const override { return EActionAuthorStyle::Authority; }
+	virtual bool IsNearlyEqual(const FNetworkPhysicsActionPayload& Other) const override
+	{
+		return Value.Equals(static_cast<const FVehicleMovementParameterAction&>(Other).Value);
+	}
+};
+
 /** Rigid body and movement state needed to compare/restore a predicted vehicle frame. */
 USTRUCT()
 struct HAL_FUTURE_CREATION_API FVehicleNetStateData
@@ -168,6 +182,8 @@ struct HAL_FUTURE_CREATION_API FVehicleNetStateData
 	/** A launch accepted between physics frames is applied once on the next step. */
 	UPROPERTY()
 	FVector PendingRecoilDeltaVelocity = FVector::ZeroVector;
+	UPROPERTY() FHALMovementSnapshot MovementSnapshot;
+	UPROPERTY() FHALMovementTimeline MovementTimeline;
 };
 
 /** UE 5.8 Network Physics frame history. Continuous controls only; launch keeps its idempotent RPC. */

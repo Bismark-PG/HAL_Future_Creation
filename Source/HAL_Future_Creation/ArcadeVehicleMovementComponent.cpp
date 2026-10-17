@@ -16,6 +16,26 @@
 #include "PhysicsEngine/BodyInstance.h"
 #include "GameFramework/Pawn.h"
 #include "VehicleWallEscapeMath.h"
+#include "Chaos/SimCallbackObject.h"
+
+// UE 5.8 deliberately omits frozen-game-thread callbacks (including the generic
+// ActorComponent AsyncPhysicsTick) during rewind. Keep its normal-step path and
+// supply only the missing replay steps, after Network Physics restored inputs/actions.
+class FVehicleRewindCallback : public Chaos::TSimCallbackObject<Chaos::FSimCallbackNoInput,
+	Chaos::FSimCallbackNoOutput, Chaos::ESimCallbackOptions::Presimulate | Chaos::ESimCallbackOptions::Rewind>
+{
+public:
+	TAtomic<UArcadeVehicleMovementComponent*> Movement{nullptr};
+	virtual FName GetFNameForStatId() const override { return TEXT("HALVehicleRewind"); }
+	virtual void OnPreSimulate_Internal() override
+	{
+		if (!GetSolver()->IsResimming()) { return; }
+		if (auto* Component = Movement.Load())
+		{
+			Component->AsyncPhysicsTickComponent(GetDeltaTime_Internal(), GetSimTime_Internal());
+		}
+	}
+};
 
 #if !UE_BUILD_SHIPPING
 static TAutoConsoleVariable<int32> CVarHALVehicleHistoryLog(
@@ -69,7 +89,36 @@ void UArcadeVehicleMovementComponent::EndPlay(const EEndPlayReason::Type EndPlay
 {
 	bShouldRunPhysics.Store(false);
 	SetAsyncPhysicsTickEnabled(false);
+	UnregisterRewindTick();
 	Super::EndPlay(EndPlayReason);
+}
+
+void UArcadeVehicleMovementComponent::OnUnregister()
+{
+	UnregisterRewindTick();
+	Super::OnUnregister();
+}
+
+void UArcadeVehicleMovementComponent::RegisterRewindTick()
+{
+	if (RewindTick || !HasBegunPlay() || !bUseNetworkPhysicsHistory.Load()) { return; }
+	if (auto* World = GetWorld(); World && World->GetPhysicsScene())
+	{
+		RewindTickSolver = World->GetPhysicsScene()->GetSolver();
+		RewindTick = RewindTickSolver->CreateAndRegisterSimCallbackObject_External<FVehicleRewindCallback>();
+		RewindTick->Movement.Store(this);
+	}
+}
+
+void UArcadeVehicleMovementComponent::UnregisterRewindTick()
+{
+	if (!RewindTick) { return; }
+	// The solver can retain this callback in rewind history after removal. Revoke
+	// its component pointer, then finish any in-flight call before component teardown.
+	RewindTick->Movement.Store(nullptr);
+	RewindTickSolver->WaitOnPendingTasks_External();
+	RewindTickSolver->UnregisterAndFreeSimCallbackObject_External(RewindTick);
+	RewindTick = nullptr; RewindTickSolver = nullptr;
 }
 
 void UArcadeVehicleMovementComponent::Activate(bool bReset)
@@ -94,6 +143,7 @@ void UArcadeVehicleMovementComponent::AsyncPhysicsTickComponent(float DeltaTime,
 	if (!bShouldRunPhysics.Load()) { return; }
 	int32 CurrentPhysicsFrame = INDEX_NONE;
 	bool bIsResimming = false;
+	Chaos::FPBDRigidsSolver* MovementSolver = nullptr;
 	if (const UWorld* World = GetWorld())
 	{
 		if (const FPhysScene_Chaos* Scene = static_cast<const FPhysScene_Chaos*>(World->GetPhysicsScene()))
@@ -101,6 +151,7 @@ void UArcadeVehicleMovementComponent::AsyncPhysicsTickComponent(float DeltaTime,
 			if (Chaos::FPhysicsSolver* Solver = Scene->GetSolver())
 			{
 				auto* RigidSolver = static_cast<Chaos::FPBDRigidsSolver*>(Solver);
+				MovementSolver = RigidSolver;
 				CurrentPhysicsFrame = RigidSolver->GetCurrentFrame();
 				bIsResimming = static_cast<Chaos::FPhysicsSolverBase*>(Solver)->IsResimming();
 			}
@@ -147,6 +198,7 @@ void UArcadeVehicleMovementComponent::AsyncPhysicsTickComponent(float DeltaTime,
 			*GetNameSafe(GetOwner()), DeltaTime, StepInput.PhysicsFrame);
 	}
 #endif
+	PrepareMovementFrame(MovementSolver, CurrentPhysicsFrame, bIsResimming);
 	SimulateVehicleStep(StepInput, DeltaTime);
 }
 
@@ -247,6 +299,7 @@ void UArcadeVehicleMovementComponent::RefreshPhysicsTick()
 	const bool bEnable = Owner && IsActive() && UpdatedPrimitive && UpdatedPrimitive->IsSimulatingPhysics()
 		&& (Owner->HasAuthority() || (bUseNetworkPhysicsHistory.Load() && Pawn && Pawn->IsLocallyControlled()));
 	bShouldRunPhysics.Store(bEnable);
+	if (bEnable) { RegisterRewindTick(); }
 	SetAsyncPhysicsTickEnabled(bEnable);
 }
 
@@ -284,10 +337,17 @@ void UArcadeVehicleMovementComponent::BuildHistoryState(FVehicleNetStateData& Ou
 	OutState.bWallEscapeActive = bWallEscapeActive;
 	OutState.WallEscapeBlend = WallEscapeBlend;
 	OutState.WallEscapeNormals = WallEscapeNormals;
+	OutState.MovementSnapshot = CurrentMovement;
+	OutState.MovementTimeline = MovementAuthorityTimeline;
 }
 
 void UArcadeVehicleMovementComponent::ApplyHistoryState(const FVehicleNetStateData& InState)
 {
+	ApplyPendingMovementConfiguration();
+	FBodyInstance* Body = UpdatedPrimitive ? UpdatedPrimitive->GetBodyInstance() : nullptr;
+	auto* Solver = Body ? Body->GetPhysicsActor()->GetSolver<Chaos::FPhysicsSolver>() : nullptr;
+	ImportMovementTimeline(InState.MovementTimeline, Solver, Solver ? Solver->GetCurrentFrame() : INDEX_NONE, false);
+	if (InState.MovementSnapshot.IsValid() && InState.MovementSnapshot.Epoch == MovementEpoch) { CurrentMovement = InState.MovementSnapshot; }
 	// Chaos owns the rigid-body rewind. The custom history restores only movement memory.
 	bWallEscapeActive = InState.bWallEscapeActive;
 	WallEscapeBlend = FMath::Clamp(InState.WallEscapeBlend, 0.0f, 1.0f);
@@ -313,6 +373,11 @@ void UArcadeVehicleMovementComponent::QueueRecoil(const FVector& DeltaVelocity)
 void UArcadeVehicleMovementComponent::ApplyAction_Internal(
 	const TInstancedStruct<FNetworkPhysicsActionPayload>& ActionInstance)
 {
+	if (const auto* Parameters = ActionInstance.GetPtr<FVehicleMovementParameterAction>())
+	{
+		ApplyMovementAction(*Parameters);
+		return;
+	}
 	if (const auto* Impact = ActionInstance.GetPtr<FVehicleImpactAction>())
 	{
 		if (!bShouldRunPhysics.Load() || !Impact->IsValid() || !UpdatedPrimitive) { return; }
@@ -511,7 +576,7 @@ void UArcadeVehicleMovementComponent::UpdateWallEscape(
 				break;
 			}
 		}
-		if (bDrawWallEscapeDebug)
+		if (bDrawWallEscapeDebug && IsInGameThread())
 		{
 			DrawDebugLine(World, Start, End, FColor::Cyan, false, 0.0f, 0, 3.0f);
 		}
@@ -528,7 +593,7 @@ void UArcadeVehicleMovementComponent::UpdateWallEscape(
 	{
 		WallEscapeNormals.Reset();
 	}
-	if (bDrawWallEscapeDebug && World)
+	if (bDrawWallEscapeDebug && World && IsInGameThread())
 	{
 		const FVector Start = BodyTransform.GetLocation();
 		for (const FVector& Normal : WallEscapeNormals)
@@ -560,7 +625,7 @@ bool UArcadeVehicleMovementComponent::UpdateGroundContact(const FVector& BodyLoc
 		GroundTraceChannel,
 		QueryParams);
 
-	if (bDrawGroundDebug)
+	if (bDrawGroundDebug && IsInGameThread())
 	{
 		const FColor TraceColor = bHit ? FColor::Green : FColor::Red;
 		DrawDebugLine(World, TraceStart, TraceEnd, TraceColor, false, 0.0f, 0, 2.0f);
@@ -591,6 +656,10 @@ void UArcadeVehicleMovementComponent::ApplyLongitudinalForces(
 	// Brake wins when both face buttons are held, producing deterministic input.
 	const bool bBrakeHeld = InputCommand.Brake > KINDA_SMALL_NUMBER;
 	const bool bThrottleHeld = InputCommand.Throttle > KINDA_SMALL_NUMBER && !bBrakeHeld;
+	const float EffectiveForwardAcceleration = ForwardAcceleration * CurrentMovement.AccelerationScale;
+	const float EffectiveReverseAcceleration = ReverseAcceleration * CurrentMovement.AccelerationScale;
+	const float EffectiveMaxForwardSpeed = MaxForwardSpeed * CurrentMovement.SpeedScale;
+	const float EffectiveMaxReverseSpeed = MaxReverseSpeed * CurrentMovement.SpeedScale;
 
 	float RequestedAcceleration = 0.0f;
 	if (bBrakeHeld)
@@ -599,9 +668,9 @@ void UArcadeVehicleMovementComponent::ApplyLongitudinalForces(
 		{
 			RequestedAcceleration = -BrakeDeceleration * InputCommand.Brake;
 		}
-		else if (CurrentForwardSpeed > -MaxReverseSpeed)
+		else if (bMovementDriveAllowed && CurrentForwardSpeed > -EffectiveMaxReverseSpeed)
 		{
-			RequestedAcceleration = -ReverseAcceleration * InputCommand.Brake;
+			RequestedAcceleration = -EffectiveReverseAcceleration * InputCommand.Brake;
 		}
 	}
 	else if (bThrottleHeld)
@@ -610,9 +679,9 @@ void UArcadeVehicleMovementComponent::ApplyLongitudinalForces(
 		{
 			RequestedAcceleration = BrakeDeceleration * InputCommand.Throttle;
 		}
-		else if (CurrentForwardSpeed < MaxForwardSpeed)
+		else if (bMovementDriveAllowed && CurrentForwardSpeed < EffectiveMaxForwardSpeed)
 		{
-			RequestedAcceleration = ForwardAcceleration * InputCommand.Throttle;
+			RequestedAcceleration = EffectiveForwardAcceleration * InputCommand.Throttle;
 		}
 	}
 
@@ -622,16 +691,17 @@ void UArcadeVehicleMovementComponent::ApplyLongitudinalForces(
 		DriveAcceleration = VehicleWallEscape::ConstrainThrottle(DriveAcceleration,
 			WallEscapeNormals, WallEscapeIntoWallThrottleScale, WallEscapeBlend);
 	}
-	// Do not suppress braking, reversing, coasting drag or speed-limit corrections.
+	// Base drag/braking remain independent. An unknown replay frame cannot
+	// impose a guessed speed cap; known zero scales still use normal corrections.
 	float ResistanceAcceleration = -CurrentForwardSpeed * CoastingDragRate;
 
-	if (CurrentForwardSpeed > MaxForwardSpeed)
+	if (bMovementDriveAllowed && CurrentForwardSpeed > EffectiveMaxForwardSpeed)
 	{
-		ResistanceAcceleration -= (CurrentForwardSpeed - MaxForwardSpeed) * OverspeedCorrectionRate;
+		ResistanceAcceleration -= (CurrentForwardSpeed - EffectiveMaxForwardSpeed) * OverspeedCorrectionRate;
 	}
-	else if (CurrentForwardSpeed < -MaxReverseSpeed)
+	else if (bMovementDriveAllowed && CurrentForwardSpeed < -EffectiveMaxReverseSpeed)
 	{
-		ResistanceAcceleration -= (CurrentForwardSpeed + MaxReverseSpeed) * OverspeedCorrectionRate;
+		ResistanceAcceleration -= (CurrentForwardSpeed + EffectiveMaxReverseSpeed) * OverspeedCorrectionRate;
 	}
 
 	FPhysicsInterface::AddForce_AssumesLocked(Body.GetPhysicsActor(),

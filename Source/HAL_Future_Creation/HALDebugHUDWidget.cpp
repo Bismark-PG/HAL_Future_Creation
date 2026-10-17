@@ -152,6 +152,12 @@ void UHALDebugHUDWidget::RefreshStatus()
 		const float ForwardSpeed = Body ? FVector::DotProduct(Velocity, Body->GetForwardVector()) : 0.0f;
 		const FVehicleInputCmd Input = Vehicle->GetCurrentInputCommand();
 		const UArcadeVehicleMovementComponent* Movement = Vehicle->FindComponentByClass<UArcadeVehicleMovementComponent>();
+		if (Movement)
+		{
+			const auto Parameters = Movement->GetMovementEffectStatus();
+			Text += FString::Printf(TEXT("Movement: Accel=%.2f Speed=%.2f Ready=%d Recover=%d Rev=%u\n"),
+				Parameters.Value.AccelerationScale, Parameters.Value.SpeedScale, Parameters.bReady, Parameters.bRecovery, Parameters.Value.Revision);
+		}
 		Text += FString::Printf(TEXT("Speed XY=%.0f cm/s (%.1f km/h)\nForward=%.0f cm/s  Vertical=%.0f cm/s\n"
 			"Input: Throttle=%.2f Brake=%.2f Steer=%.2f\nHandbrake=%d  Launch=%d\nPhysics frame=%d  Resim runs=%d\n"),
 			Velocity.Size2D(), Velocity.Size2D() * 0.036f, ForwardSpeed, Velocity.Z,

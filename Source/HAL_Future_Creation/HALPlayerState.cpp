@@ -4,6 +4,7 @@
 #include "HALHealthAttributeSet.h"
 #include "HALCombatAttributeSet.h"
 #include "HALImpactAttributeSet.h"
+#include "HALMovementAttributeSet.h"
 #include "HALImpactImmunityAbility.h"
 #include "HALGameplayTags.h"
 
@@ -17,6 +18,8 @@ AHALPlayerState::AHALPlayerState()
 	AbilitySystem->AddAttributeSetSubobject(CombatAttributes.Get());
 	ImpactAttributes = CreateDefaultSubobject<UHALImpactAttributeSet>(TEXT("ImpactAttributes"));
 	AbilitySystem->AddAttributeSetSubobject(ImpactAttributes.Get());
+	MovementAttributes = CreateDefaultSubobject<UHALMovementAttributeSet>(TEXT("MovementAttributes"));
+	AbilitySystem->AddAttributeSetSubobject(MovementAttributes.Get());
 	FHALAbilityGrant& Primary = DefaultAbilities.AddDefaulted_GetRef();
 	Primary.Ability = UHALImpactImmunityAbility::StaticClass();
 	Primary.InputTag = HALGameplayTags::Input_Ability_Primary;

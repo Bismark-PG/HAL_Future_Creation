@@ -5,7 +5,7 @@
 ## 1. 先读什么、先检查什么
 
 1. 完整阅读根目录 [AGENTS.md](../AGENTS.md) 和本文件。
-2. 当前先阅读[10-F-1具体技术规格](Combat/MVPB_Phase10F1_Spec_CN_v0.1.md)、[当前保存基线](Combat/MVPB_Phase10F1_Baseline_20261017.json)、[F1验证摘要](Combat/MVPB_Phase10F1_Verification_20261017.json)和[10-F分步计划](Combat/MVPB_Phase10F_Movement_Effects_Plan_CN_v0.1.md)：首例玩法／F1规格／基线完成，UE5.8.3两个Target与35项自动化通过，下一步为10-F-2生产桥接；引擎机制探针不等于实际运动Buff联机验收。再读 [10-E规格](Combat/MVPB_Phase10E_Ability_Effect_Plan_CN_v0.1.md)、[10-E实施与接线](Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)、[原施工验证](Combat/MVPB_Phase10E_Verification_20261016.json)和[手动日志复核](Combat/MVPB_Phase10E_ManualLogReview_20261016.json)：团队基础双端免疫反馈和双向伤害／冲击独立子项保持，完整扰动等细项随集成回归补齐。10-D线程修复见[施工记录第9～10节](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)与[修复验证](Combat/MVPB_Phase10D_ThreadFix_Verification_20261015.json)。规则背景见[10-A规格](Combat/MVPB_Phase10A_GAS_Impact_Spec_CN_v0.1.md)、[GAS总体方案](Combat/MVPB_GAS_Architecture_Overview_CN_v0.1.md)与[历史保存基线](Combat/MVPB_Phase10A_Baseline_20260930.json)，不能用旧快照覆盖当前DA。双端启动／调试见[操作说明](Configuration/MVPB_DebugHUD_And_GAS_Test_CN_v0.1.md)，各DA职责见[DA速查](Configuration/MVPB_DataAsset_QuickGuide_CN_v1.0.md)。
+2. 当前先阅读[10-F-2实施](Combat/MVPB_Phase10F2_Implementation_CN_v0.1.md)、[F2验证摘要](Combat/MVPB_Phase10F2_Verification_20261017.json)、[10-F-1技术规格](Combat/MVPB_Phase10F1_Spec_CN_v0.1.md)、[保存基线](Combat/MVPB_Phase10F1_Baseline_20261017.json)和[分步计划](Combat/MVPB_Phase10F_Movement_Effects_Plan_CN_v0.1.md)：F2桥接完成，下一入口为10-F-3正式5秒GE；本轮双端检查不等于F4真人组合／完整扰动／四机验收。再读[10-E实施与接线](Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)和[手动日志复核](Combat/MVPB_Phase10E_ManualLogReview_20261016.json)，保留团队基础免疫反馈及双向伤害／冲击独立子项。10-D线程修复见[施工记录](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)及[修复验证](Combat/MVPB_Phase10D_ThreadFix_Verification_20261015.json)。规则背景见[10-A规格](Combat/MVPB_Phase10A_GAS_Impact_Spec_CN_v0.1.md)、[GAS总体方案](Combat/MVPB_GAS_Architecture_Overview_CN_v0.1.md)。双端启动／调试见[操作说明](Configuration/MVPB_DebugHUD_And_GAS_Test_CN_v0.1.md)，各DA职责见[速查](Configuration/MVPB_DataAsset_QuickGuide_CN_v1.0.md)。
 3. 以 [MVP-B Listen Server v0.2 计划](MVP_B_Listen_Server_Plan_CN_v0.2.md)和对应 `Docs/Networking/` 实施记录确认已存在的网络边界。早期 [MVP-A→MVP-B 交接](MVP_A_to_MVP_B_Handoff_CN_v1.0.md)用于追踪背景，不能把旧参数当成当前 DA。
 4. 在本机执行 `git status --short`、`git branch --show-current`、`git rev-parse HEAD`，对照 `.uproject`、模块 `Build.cs`、`Source/`、`Config/`、相关测试和邻近说明；以 Editor 的 About 或引擎 `Engine/Build/Build.version` 核对实际补丁版本。
 5. 修改前先汇报当前工程与本记录的差异和本次任务范围；保留已有改动。不因历史记录写了“下一步”就自动施工未获用户授权的环节。
@@ -14,17 +14,17 @@
 
 | 项目 | 2026-10-17 接续核对结果与既有团队反馈 |
 |---|---|
-| 开发阶段 | 10-F-1具体技术规格／保存基线完成，首例玩法已定；下一开发入口为10-F-2运动桥接。生产运动Attribute／桥接／加速GE未实现，真实效果双端／四机待后续；10-D／10-E剩余细项随集成回归保留 |
-| 当前本机分支／代码提交 | `main / b8feb7b88e9cf871828a154696b0c82688c0a914`；本轮保留此前两份文档未提交改动，新增F1规格／基线／验证、只读工具和两个机制探针，更新文档及忽略例外。交付未提交／Push，未核查远端 |
-| 引擎基线 | 当前UE `5.8.3-58210709+++UE5+Release-5.8`；本轮完整Editor／Game成功、全部35/35自动化0警告／0失败，包含原33项及2个F1引擎机制探针。10-E原5.8.2真实技能双端证据保持；本轮未在5.8.3新跑技能联机、运动Buff或四机 |
-| 本机运行前置 | 已用当前源码完整重编Editor／Game，10月14日旧DLL前置问题已解除；无Live Coding。三个本轮命令行UE进程均正常退出，未终止用户Editor；后续修改C++仍需按正常流程完整重编 |
+| 开发阶段 | 10-F-2运动Attribute／桥接／权威帧时间线与恢复完成，下一入口10-F-3正式5秒GE和服务器调试施加入口。F2仅用2秒原生测试夹具GE验证桥接；F4完整组合／扰动／四机及10-D／10-E剩余细项保留 |
+| 当前本机分支／代码提交 | `main / ca38226716392389ac19d4b0184629f020b7713f`；用户已提交F1，起始工作区干净。本轮F2源码、测试和文档尚未提交／Push，未核查远端 |
+| 引擎基线 | UE `5.8.3-58210709+++UE5+Release-5.8`；最终Editor／Game成功、39/39普通自动化0警告／0失败（原35＋新4）。最终80ms／1500ms单向注入各Host／Client报告成功，含实际回滚与历史不足恢复；不是RTT测量／完整技能或四机验收 |
+| 本机运行前置 | 已用最终源码重编Editor／Game，无Live Coding；专用测试进程结束清理。新增真实回滚驾驶补充回调，后续团队须在F4覆盖持球／发射／碰撞／墙角等组合体验 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
 | GAS 当前实现 | PlayerState可配置DefaultAbilities原生授予主技能；ServerOnly GA施加8秒免疫GE与20秒冷却GE；同类合法重施刷新、Avatar清免疫保冷却、Owner退出清理，其他GE可各自叠层。HALImpactDebug改用独立无限调试GE保持Mixed复制一致 |
 | 当前 HP／冲击 | 10-C伤害／快照保留；10-D同帧Internal读写已有28项自动化证据，用户2026-10-16确认击飞效果恢复。保留现有档位、水平补足和DA，各档实际响应后续调整；本次反馈未列双向角色／扰动明细 |
-| 当前 Editor 接线 | 本轮只读导出五DA／网络DA、七类默认值和两地图引用，补充确认NetTest的团队GA／8秒免疫GE／20秒冷却GE引用；Test仍用原生HALPlayerState。329资产整个施工前后未变，不等于PIE／运行覆盖或新联机验收 |
+| 当前 Editor 接线 | 沿用F1保存导出的五DA／网络DA、七类默认值和地图引用；F2原生组件无需资产接线。329资产整个F2施工／验证前后未变；本轮无新DA字段导出，不把哈希保护当实际渲染／真人验收 |
 | 测试地图 | 单机回归 `/Game/Maps/Test`；联机玩法 `/Game/Maps/MVPB_NetTest`；完整菜单 Host／Join 从 `/Game/Maps/MVPB_NetEntry` 启动 |
 
-代码提交号是本次交接的比较基点，后续提交会变化。10-B原基点为fa883fe5，10-C原施工基点为272ba87；原验证JSON不回写历史证据。接续初次核对原10-E清单99项源码／配置内容一致（含换行归一），仅`.gitignore`有已知文档白名单差异；随后本轮仅新增测试探针，不改生产源码／配置。当前329资产前后SHA-256全部一致，完整保存配置／引用与新基线已独立留档。新工具／探针／规格／基线／验证及状态须一起正常提交才能交接；远端未查，Saved／Binaries不提交。
+代码提交号是本次交接的比较基点，后续提交会变化。F1保存基线与历史验证保持，F2新增／修改生产源码、必要测试与文档，不改项目配置和团队资产；329资产施工前后SHA-256核对见F2验证摘要。历史测试不冒充本次复测。
 
 ## 3. 已完成与验收状态
 
@@ -40,7 +40,7 @@
 | 10-D | 全来源档位、GAS降档／免疫、统一脱球及动作、DA迁移和线程修复已提交；上一轮两个Target／28项自动化通过。用户本轮确认击飞效果恢复，接受先保留档位、实际力度以后调整 | 本轮是团队功能反馈，未提供新日志或角色／网络条件细项。其余三档／抗性／连续接触及扰动回归仍待补齐，不写成完整验收；5.8.3未复测 |
 | 10-E | 原生GA／GE、授予／清理、输入／调试完成；原Editor／Game、33/33普通回归与真实激活smoke通过。团队接线已提交，报告双端免疫开始／消失及效果正常；本轮两局五次命中确认双方受击、免疫Heavy→None且伤害25、HP收敛，客户端目标后续命中恢复Heavy | 手动日志未启用hal.AbilityLog，缺精确8／20计时／重复请求／实际GE类名记录；团队一般观感与日志子项分别留档。按住输入、目标持球保球、活动效果退出／换Avatar、100ms RTT／1%丢包／20ms抖动及四机未有本次新实测证据，未新增正式技能演出 |
 | 独立调试补球 | 新HALSpawnBall由服务器按调用者车辆生成配置的BP_BasicBall；Editor／Game和29/29自动化通过。实际NetTest主机执行成功、客户端接收动态球通过，324资产前后未变 | 客户端实际输入命令发起RPC、驾驶捕获／发射及真人观感待团队反馈；无网络扰动测试，不算10-E技能验证，见独立验证JSON |
-| 10-F | 首例5游戏秒、加速度1.5／速度上限1.25、一层刷新及三组规则已确认；[10-F-1规格](Combat/MVPB_Phase10F1_Spec_CN_v0.1.md)／保存基线／引擎机制探针完成。UE5.8.3 Editor／Game与35/35自动化通过 | 当前完成的是F1契约与机制可行性验证，尚无生产运动Attribute／桥接／GE，未测试运动效果实际联机；F2实现、F3首例效果及F4完整集成／四机均待完成 |
+| 10-F | F1规格／保存基线保持，F2生产运动Attribute／桥接／权威时间线／回滚和恢复完成；最终UE5.8.3两Target、39项普通自动化和80ms／1500ms注入双端通过，见[F2实施](Combat/MVPB_Phase10F2_Implementation_CN_v0.1.md)及[验证](Combat/MVPB_Phase10F2_Verification_20261017.json) | 当前网络检查使用2秒原生夹具GE；F3正式5秒GE／一层刷新／调试入口尚未实现，F4真人驾驶组合、完整扰动和四机待完成。新增驾驶回滚补充回调需随F4覆盖体验 |
 | 独立弹簧拳原型 | 另一成员负责；已有伸缩状态机、服务器目标检测及每次攻击去重 | 用户指定阶段 10 完成后再接伤害／冲击，本轮及 10-C 不改该模块；原型尚不具备标准战斗结算与状态复制 |
 
 本次 10-B 构建证据：UE 5.8.2 的 Editor/Game Development Target 均成功，`HAL.FutureCreation` 自动化 16/16 通过，报告原位于 `Saved/Automation/MVPB_Phase10B_Final/index.json`；隐藏双进程 Join succeeded，客户端收到两辆车的 GAS HP=100／MaxHP=100。历史阶段 9 的 14/14 结果保留在对应记录中。本次没有真人驾驶／命中及延迟测试。`Saved/` 不随 Git 交接，新电脑不存在这些报告不代表测试失败，也不能声称已重跑；共享摘要见 10-B Verification JSON。
@@ -93,15 +93,15 @@
 
 ## 6. 下一环节和待确定项
 
-当前下一开发入口为**10-F-2生产运动桥接**，以[10-F-1具体规格](Combat/MVPB_Phase10F1_Spec_CN_v0.1.md)及[当前基线](Combat/MVPB_Phase10F1_Baseline_20261017.json)为施工依据。首例玩法无其他已知待确认项，不重复询问已接受规则；F1已固定可靠Authority绝对参数动作＋有界时间线State检查点、PostSolve的F+1起点语义、同帧顺序／迟到／缺锚点恢复和生命周期。F2须实现最小属性／桥接／消费并验证真实Solver与双端恢复，不能把F1的35项成功当桥接已完成。后续F3接入正式测试GE，F4做组合／扰动／四机，不一次越过各出口。
+当前下一开发入口为**10-F-3首个正式运动GE**。F2已实现[既定规格](Combat/MVPB_Phase10F1_Spec_CN_v0.1.md)的最小运动属性、服务器采样、可靠Authority绝对参数动作、有界State时间线和Movement消费，完成真实Solver／双端迟到及缺历史恢复。F3实现5游戏秒、×1.5／×1.25、按目标跨来源一层刷新和窄服务器调试施加入口，验证刷新／驱散／自然到期、权限和Avatar清理，保留原免疫主技能；首例玩法无其他已知待确认项。F4做完整组合／扰动／四机，不以F2测试夹具或39项普通回归替代。
 
-`ArcadeVehicleMovementComponent`的`MaxForwardSpeed`同时用于纵向驱动／超速修正和高速转向衰减。F1已规定驾驶使用乘倍率后的有效上限、转向继续用基础速度参照，不能覆盖基础字段。当前生产物理历史仍只有输入、刚体状态和脱困记忆；新的参数快照／序号／时间线协议已定稿但尚未实现。
+`ArcadeVehicleMovementComponent`保持基础配置，纵向驾驶／上限在消费时乘当帧倍率，转向继续用基础速度参照。物理历史已加入Epoch／Revision／快照及分段时间线。F2发现UE5.8通用Async Tick在回滚时被跳过，已补仅重模拟时执行原驾驶的Chaos回调，详见[F2实施第3节](Combat/MVPB_Phase10F2_Implementation_CN_v0.1.md#3-本轮发现并修复的既有回滚缺口)；不得把该回调再用于正常帧重复施力。
 
 10-E接线已提交，基础双端免疫反馈与日志子项保持，不再重复已完成的接线。其余精确GE／冷却、输入边沿、目标持球／到期恢复、带活动效果退出及100ms实测RTT／1%丢包／20ms抖动矩阵随集成回归补齐；下一次双方先开`hal.AbilityLog 1`，具体边界见[10-E实施第7节](Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)和[手动复核](Combat/MVPB_Phase10E_ManualLogReview_20261016.json)。四台真实有线PC仍是最终环境，不以同机双端替代。
 
 10-D目前没有发现阻塞10-E的程序缺陷，也无必需追加功能；用户确认击飞恢复，档位响应力度以后调参。尚缺的降档／免疫／脱球、连续接触、双向角色及网络扰动细项继续随集成回归补齐，不把进到10-E等同10-D完整验收；新发现的缺陷仍须修。独立命中目标禁捕继续只留档，弹簧拳战斗接入继续等阶段10完成，不在此扩展。
 
-旧10-C操作只用于未迁移副本，不要求团队重复已完成内容。10-D／10-E的5.8.2证据保持；本轮5.8.3已完成当前代码构建与35项普通回归，但未新跑技能联机或运动效果，四台有线PC仍待另记。跨设备提交时一起带上源码、文档及团队手工保存的DA，不提交Saved／Binaries。
+旧10-C操作只用于未迁移副本，不要求团队重复已完成内容。10-D／10-E的5.8.2证据保持；本轮5.8.3已完成最终构建、39项普通回归和运动桥接双端smoke；未重做完整真人技能／运动组合，四台有线PC仍待另记。跨设备提交时一起带上源码、文档及团队手工保存的DA，不提交Saved／Binaries。
 
 10-B回归反馈与旧证据保留；它们不代替10-C新规则和V1接线后的测试。后续记录实际提交／UE补丁／DA哈希／单向注入与实测RTT，不能将同机日志时间差当RTT。弹簧拳由另一成员独立开发，等阶段10完成后再接伤害／冲击；10-C只提供共用入口，该模块与资产本轮未修改。
 
@@ -110,8 +110,8 @@
 | 10-C 后续证据补充 | 已有迁移提交、新资产哈希和团队完成反馈；若要宣称特定RTT／丢包／抖动门槛已通过，再补当次细项日志；本机重编后可另导出V1字段与运行状态，不覆盖旧记录 |
 | 10-D 后续回归／调参 | 击飞恢复已获团队反馈；补三档／降档／免疫／脱球、连续接触、双向及网络扰动记录；档位响应与碰撞标尺数值以后调整，不作为新增开发功能 |
 | 10-E 团队验收 | 无额外核心算式待定；基础双端免疫反馈和双向命中日志子项已记录，接线已提交。下次开AbilityLog，补精确计时、输入边沿、目标持球、带效果退出及扰动细项；正式表现素材暂未指定，当前用调试HUD |
-| 10-F-2 实施与验证 | 按已定F1协议实现运动Attribute／快照／时间线／动作与消费，验证真实Solver线程、双端互换、迟到／缺锚点恢复和无效果基线；有新缺陷就修复，不把技术实施细节反复转成玩法审批 |
-| 团队环境变更时 | 本机5.8.3构建／资产加载／35项回归已记录；仍需该补丁的真实联机／统一升级和四台有线PC最终测试证据 |
+| 10-F-3 实施与验证 | 按已确认规则增加正式5秒GE、一层刷新和服务器调试施加入口，验证开始／刷新／驱散／自然到期／权限／Avatar清理；F2测试GE只作夹具，不作为正式效果接线 |
+| 团队环境变更时 | 本机5.8.3最终构建／39项回归／桥接双端已记录；仍需团队统一补丁及真人组合／完整扰动和四台有线PC证据 |
 
 ## 7. 两台电脑如何接续和维护本文件
 
@@ -127,6 +127,7 @@
 
 ## 8. 本次更新记录
 
+- 2026-10-17：用户提交F1后指定开始10-F-2；以干净main/ca38226实施最小运动Attribute、原生Avatar桥接、可靠Authority参数动作、离散有界时间线、历史比较与Recovery、有效施力和诊断。第一轮真实客户端测试因驾驶重模拟计数0失败，定位UE5.8通用Async Tick被PT-only回滚跳过，补仅回滚执行原驾驶的Chaos回调；另清理过时恢复前缀与未知上限。最终UE5.8.3 Editor／Game成功，39/39普通自动化0测试警告／0失败；80ms／1500ms单向注入各Host／Client共4份报告全部成功，客户端实际重模拟79／52次、回滚请求3／4次，后者检测Recovery并恢复Ready／1/1。329资产前后SHA-256全同，专用进程退出，未改配置／DA／弹簧拳。F2网络用2秒原生夹具GE，F3正式5秒GE／刷新入口和F4完整真人组合／扰动／四机仍待完成；代码文档未提交／Push。见[F2实施](Combat/MVPB_Phase10F2_Implementation_CN_v0.1.md)与[验证摘要](Combat/MVPB_Phase10F2_Verification_20261017.json)。
 - 2026-10-17：用户授权开始当前小步，完成10-F-1具体技术规格、只读新基线与两个UE历史／动作机制探针；选定可靠Authority绝对参数动作＋有界时间线State检查点，固定PostSolve的F+1语义、迟到／缺帧恢复及线程／身份边界。本机UE5.8.3完整Editor／Game成功、35/35自动化0警告／0失败；最终基线导出0错误／0警告，329资产整个施工／验证前后未变。首轮无效CVar警告与并行UBT争用Trace.uba失败分别留档，修正后顺序构建／最终导出通过。仅新增测试／工具／文档，未改生产移动／GAS源码、DA或弹簧拳，无新运动GE／真实效果联机或四机验收；三个专用命令行UE进程均正常退出。下一入口10-F-2；交付尚未提交／Push，见[F1验证摘要](Combat/MVPB_Phase10F1_Verification_20261017.json)。
 - 2026-10-17：用户进一步明确同意10-F首例三组规则：前进／倒车同步加成且保留其他基础参数与转向参照；两类倍率分别clamp(1+增量和,0,3)；同GE按目标跨来源一层刷新、不同GE贡献独立、到期保留速度及Avatar作用域清理。首例当前无其他已知玩法待确认项；10-F-1仍须完成物理帧技术规格与新基线，尚无施工／编译／运行或新验收。本轮仅维护计划与状态文档，保留此前未提交修改。
 - 2026-10-17：用户确认10-F首例5游戏秒、加速度×1.5、速度上限×1.25、一层刷新作为测试方案。更新10-F计划第4节与状态；第6.1节集中记录作用范围、不同GE合并／0～3测试保护范围、多来源与到期／Avatar清理三组待确认建议，未擅自记为用户决定。物理帧同步／迟到恢复等技术路线由后续引擎检查定稿。本轮仅文档，无源码／资产编辑、新编译／运行或10-F验收。

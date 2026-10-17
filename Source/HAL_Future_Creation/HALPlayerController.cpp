@@ -168,6 +168,13 @@ void AHALPlayerController::HALGASStatus()
 			ASC && ASC->HasAbilityForInput(HALGameplayTags::Input_Ability_Primary),
 			ASC ? ASC->GetEffectTimeRemaining(HALGameplayTags::State_Combat_ImpactImmune) : 0,
 			ASC ? ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity) : 0);
+		if (const auto* Movement = It->FindComponentByClass<UArcadeVehicleMovementComponent>())
+		{
+			const auto Parameters = Movement->GetMovementEffectStatus();
+			Status += FString::Printf(TEXT(" MovementReady=%d AccelScale=%.4f SpeedScale=%.4f MovementRevision=%u MovementFrame=%d Recovery=%d Rewinds=%d"),
+				Parameters.bReady, Parameters.Value.AccelerationScale, Parameters.Value.SpeedScale, Parameters.Value.Revision,
+				Parameters.ServerFrame, Parameters.bRecovery, Parameters.RewindRequests);
+		}
 		UE_LOG(LogTemp, Display, TEXT("%s"), *Status);
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 8.0f, FColor::Green, Status); }
 	}
