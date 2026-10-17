@@ -130,6 +130,9 @@ void UHALDebugHUDWidget::RefreshStatus()
 				ASC->HasAbilityForInput(HALGameplayTags::Input_Ability_Primary),
 				ASC->GetEffectTimeRemaining(HALGameplayTags::State_Combat_ImpactImmune),
 				ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity));
+			Text += FString::Printf(TEXT("Movement boost: %s %.1fs (-1=remote unknown)\n"),
+				ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Boost) ? TEXT("ACTIVE") : TEXT("off"),
+				ASC->GetEffectTimeRemaining(HALGameplayTags::State_Movement_Boost));
 		}
 		if (Combat && ASC->IsCombatInitialized())
 		{

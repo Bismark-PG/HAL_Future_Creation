@@ -8,6 +8,8 @@ namespace HALGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_ImpactImmunity, "Cooldown.Ability.ImpactImmunity", "Owner-scoped cooldown, retained across Avatar replacement.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Scope_Avatar, "Effect.Scope.Avatar", "Remove this active effect when the current Avatar changes or is lost.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_ImpactImmunity, "Effect.Vehicle.ImpactImmunity", "Identifies the native timed immunity effect, separate from other immunity sources.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Movement_Boost, "Effect.Vehicle.MovementBoost", "Identifies the first movement boost family; debug removal preserves other movement GEs.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Movement_Boost, "State.Movement.Boost", "Movement boost is active; actual scales are consumed from per-physics-frame history.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Combat_ImpactImmune, "State.Combat.ImpactImmune", "Blocks rule impact/drop from every source, not natural Chaos contacts or damage.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_Collision, "Combat.Source.Collision", "Server-adapted natural contact episode; never deals ordinary collision damage.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Combat_DamageImmune, "State.Combat.DamageImmune", "Blocks only the damage branch, never impact or hit acceptance.");

@@ -164,10 +164,11 @@ void AHALPlayerController::HALGASStatus()
 			ASC && ASC->IsImpactInitialized(), Receiver ? int32(Receiver->GetConfiguration().Version) : -1,
 			Impact ? Impact->GetTierReduction() : 0, ASC && ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_ImpactImmune),
 			int32(Last.SourceTier), int32(Last.EffectiveTier), Last.bBallDropped, Last.ServerPhysicsFrame);
-		Status += FString::Printf(TEXT(" PrimarySkillGranted=%d ImmunityRemaining=%.2f CooldownRemaining=%.2f"),
+		Status += FString::Printf(TEXT(" PrimarySkillGranted=%d ImmunityRemaining=%.2f CooldownRemaining=%.2f BoostRemaining=%.2f"),
 			ASC && ASC->HasAbilityForInput(HALGameplayTags::Input_Ability_Primary),
 			ASC ? ASC->GetEffectTimeRemaining(HALGameplayTags::State_Combat_ImpactImmune) : 0,
-			ASC ? ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity) : 0);
+			ASC ? ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity) : 0,
+			ASC ? ASC->GetEffectTimeRemaining(HALGameplayTags::State_Movement_Boost) : 0);
 		if (const auto* Movement = It->FindComponentByClass<UArcadeVehicleMovementComponent>())
 		{
 			const auto Parameters = Movement->GetMovementEffectStatus();

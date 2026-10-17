@@ -49,6 +49,12 @@ public:
 	/** Request the current primary skill through the same local input/GAS path as an Input Action. */
 	UFUNCTION(Exec)
 	void HALUseSkill();
+	/** Development only: request the server-configured movement boost on this controller's own Avatar. */
+	UFUNCTION(Exec)
+	void HALMovementBoost();
+	/** Development only: remove this Avatar's boost family, preserving other movement GEs/cooldowns. */
+	UFUNCTION(Exec)
+	void HALClearMovementBoost();
 
 private:
 	UPROPERTY(Transient)
@@ -61,4 +67,8 @@ private:
 	void ServerSpawnDebugBall();
 	UFUNCTION(Client, Reliable)
 	void ClientDebugBallResult(const FString& Message, bool bSuccess);
+	UFUNCTION(Server, Reliable)
+	void ServerRequestMovementBoost(bool bRemove);
+	UFUNCTION(Client, Reliable)
+	void ClientMovementBoostResult(const FString& Message, bool bSuccess);
 };

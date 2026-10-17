@@ -1,6 +1,8 @@
 # MVP-B 调试 HUD 与 10-B 双端 HP 检查（v0.1）
 
-初版日期：2026-10-13；生成球与技能操作／启动日志更新：2026-10-16。范围：调试显示与测试操作；`HALSpawnBall`会临时生成一个服务器球，不改保存的DA或蓝图资产。当前10-D迁移／验收见[冲击施工记录](../Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)，10-B历史HP子项按本文保留，最新状态见 [Project_Status](../Project_Status_CN.md)。
+10-F-3运动加速的最新入口见[第8节](#8-10-f-3运动加速与刷新检查)，完整规则／可选Editor配置见[实施记录](../Combat/MVPB_Phase10F3_Implementation_CN_v0.1.md)。
+
+初版日期：2026-10-13；生成球／技能／运动GE操作与启动日志更新：2026-10-17。范围：调试显示与测试操作；`HALSpawnBall`会临时生成一个服务器球，不改保存的DA或蓝图资产。当前10-D迁移／验收见[冲击施工记录](../Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)，10-B历史HP子项按本文保留，最新状态见 [Project_Status](../Project_Status_CN.md)。
 
 ## 1. 在一台电脑启动两个独立游戏进程
 
@@ -11,13 +13,13 @@
 **第一窗口：准备作为主机**
 
 ```powershell
-& 'D:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\UnrealProjects\HAL_Future_Creation\HAL_Future_Creation.uproject' '/Game/Maps/MVPB_NetEntry' -game -log -windowed -ResX=960 -ResY=540 '-abslog=D:\UnrealProjects\HAL_Future_Creation\Saved\Logs\MVPB_GAS_Host.log' '-ExecCmds=hal.DebugHUD 1,hal.GASLog 1,hal.BallNetLog 1,hal.CombatLog 1,hal.VehicleNetLog 1,hal.VehicleHistoryLog 1,hal.ImpactPhysicsLog 1,hal.AbilityLog 1'
+& 'D:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\HAL_Future_Creation\HAL_Future_Creation.uproject' '/Game/Maps/MVPB_NetEntry' -game -log -windowed -ResX=960 -ResY=540 '-abslog=D:\HAL_Future_Creation\Saved\Logs\MVPB_GAS_Host.log' '-ExecCmds=hal.DebugHUD 1,hal.GASLog 1,hal.BallNetLog 1,hal.CombatLog 1,hal.VehicleNetLog 1,hal.VehicleHistoryLog 1,hal.ImpactPhysicsLog 1,hal.AbilityLog 1,hal.MovementEffectLog 1'
 ```
 
 **第二窗口：准备作为客户端**
 
 ```powershell
-& 'D:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\UnrealProjects\HAL_Future_Creation\HAL_Future_Creation.uproject' '/Game/Maps/MVPB_NetEntry' -game -log -windowed -ResX=960 -ResY=540 '-abslog=D:\UnrealProjects\HAL_Future_Creation\Saved\Logs\MVPB_GAS_Client.log' '-ExecCmds=hal.DebugHUD 1,hal.GASLog 1,hal.BallNetLog 1,hal.CombatLog 1,hal.VehicleNetLog 1,hal.VehicleHistoryLog 1,hal.ImpactPhysicsLog 1,hal.AbilityLog 1'
+& 'D:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\HAL_Future_Creation\HAL_Future_Creation.uproject' '/Game/Maps/MVPB_NetEntry' -game -log -windowed -ResX=960 -ResY=540 '-abslog=D:\HAL_Future_Creation\Saved\Logs\MVPB_GAS_Client.log' '-ExecCmds=hal.DebugHUD 1,hal.GASLog 1,hal.BallNetLog 1,hal.CombatLog 1,hal.VehicleNetLog 1,hal.VehicleHistoryLog 1,hal.ImpactPhysicsLog 1,hal.AbilityLog 1,hal.MovementEffectLog 1'
 ```
 
 两端的开关完全相同，Host／Join换图后仍保留在各自进程内；退出后不改写项目配置。它们分别开启文字HUD、GAS属性、球状态／命中、权威战斗结算、车辆网络输入／发射和物理帧历史日志。`hal.CombatLog`的结算内容来自服务器，客户端开启后也不会自行结算伤害／冲击，所以两端日志条数和内容无需完全相同。此版本不自动开启碰撞球形Gizmo，也不注入延迟／丢包。
@@ -130,3 +132,22 @@ HALGASStatus
 按键／手柄接线、数值配置和双向受击验收步骤见[10-E操作说明第3～5节](../Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)。原施工已完成33项普通回归与真实双端技能请求／复制测试，见[10-E原验证摘要](../Combat/MVPB_Phase10E_Verification_20261016.json)；随后团队实测反馈见下段，历史自动化不当作本次重跑。
 
 2026-10-16团队补充：接线已提交，用户报告双端免疫开始／消失和效果正常；两局日志确认双方作为受击目标时Heavy在免疫中降到None、仍扣25HP且两端一致，客户端目标后续命中恢复Heavy，见[本次手动复核](../Combat/MVPB_Phase10E_ManualLogReview_20261016.json)。这次实际仍使用旧启动命令，缺`hal.AbilityLog 1`／`hal.ImpactPhysicsLog 1`；后续复制本页更新命令，或在双方游戏控制台先执行`hal.AbilityLog 1`。开启后才记录新的技能／GE事件，不会补写此前发生的过程；无需修改Buff逻辑。输入边沿、目标持球与扰动细项继续按实际结果补齐。
+
+## 8. 10-F-3运动加速与刷新检查
+
+使用最新完整构建，Host／Join进入NetTest并Start到Playing。在想加速的一端自己的游戏控制台输入：
+
+```text
+HALMovementBoost
+HALGASStatus
+```
+
+默认持续5游戏秒，加速度×1.5、前进／倒车驾驶上限×1.25。约2秒后再次执行，剩余时间重新接近5秒，仍一层、倍率不翻倍；最后一次刷新约5秒后恢复1／1。HUD增加Movement boost的ACTIVE／剩余时间，物理行可核对有效倍率；远端Mixed时长可能为-1，看该玩家Owner端。刷新同值不增加物理Revision，真正开始／结束才增加。
+
+```text
+HALClearMovementBoost
+```
+
+此命令只清该加速族，不清其他独立运动GE、免疫或冷却。两命令均无参数，只操作调用者自己的当前车辆；Waiting／无合法Avatar／错误配置拒绝，Shipping禁用。服务器`hal.MovementBoostDebug 0`关闭后续调试施加，1恢复；关闭时仍可在Playing中清理已有加速。原免疫主技能与`HALUseSkill`保持，无新输入绑定或DefaultAbilities接线。
+
+本页启动命令已加`hal.MovementEffectLog 1`，可在控制台设为0关闭。日志搜索`HALMovementBoost:`和`Movement frame/action`，区分服务器GAS接受时刻与物理实际生效帧。正式GE、项目设置中可选GE子类和团队手工Editor步骤见[10-F-3实施](../Combat/MVPB_Phase10F3_Implementation_CN_v0.1.md)，证据见[F3验证摘要](../Combat/MVPB_Phase10F3_Verification_20261017.json)。完整物理组合与四机属于F4，尚未以本页命令自动验收。

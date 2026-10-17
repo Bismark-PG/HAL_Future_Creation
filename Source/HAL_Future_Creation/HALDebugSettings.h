@@ -5,6 +5,7 @@
 #include "HALDebugSettings.generated.h"
 
 class ABasicBallActor;
+class UHALMovementBoostEffect;
 
 /** Development helpers reference authored content; they never replace its tuned values. */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "HAL Debug"))
@@ -13,6 +14,12 @@ class HAL_FUTURE_CREATION_API UHALDebugSettings : public UDeveloperSettings
 	GENERATED_BODY()
 
 public:
+	UHALDebugSettings();
+
+	/** Authority-selected GE. Native five-second default; an optional authored child can tune it. */
+	UPROPERTY(Config, EditAnywhere, Category = "Movement")
+	TSoftClassPtr<UHALMovementBoostEffect> MovementBoostEffectClass;
+
 	UPROPERTY(Config, EditAnywhere, Category = "Ball")
 	TSoftClassPtr<ABasicBallActor> DefaultBallClass;
 
