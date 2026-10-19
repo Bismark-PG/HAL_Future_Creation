@@ -2,7 +2,7 @@
 
 日期：2026-10-17（Asia/Tokyo）。施工基点`main / 599d60ab5856eea348d1b20e3bd437d4ff6fa8f5`，起始工作区干净；实际UE`5.8.3-58210709+++UE5+Release-5.8`。用户授权接续下一步，本轮完成10-F-3，不扩展F4完整集成或弹簧拳接入。架构沿用[F1规格](MVPB_Phase10F1_Spec_CN_v0.1.md)与[F2桥接](MVPB_Phase10F2_Implementation_CN_v0.1.md)，保存DA基线继续使用[F1记录](MVPB_Phase10F1_Baseline_20261017.json)。本轮证据见[F3验证摘要](MVPB_Phase10F3_Verification_20261017.json)，不覆盖F2历史报告。
 
-2026-10-19技能入口补充：用户要求复用原Primary替换免疫，现已增加`HALMovementBoostAbility`；最终UE5.8.3 Editor／Game完整构建、45/45普通回归及正常GA请求的真实Host／客户端各1/1通过（80ms单向注入）。见[独立验证](MVPB_Phase10F3Ability_Verification_20261019.json)。团队应按[加速GA／GE详细配置](MVPB_Phase10F3_Movement_Ability_CN_v0.1.md)手工接线。下文3.1／3.2保留开发前的缺口分析，不能再据此判断源码仍缺少运动GA；10月17日的42项／双端结果仍只证明当时GE调试路径。
+2026-10-19技能入口补充：用户要求复用原Primary替换免疫，现已增加`HALMovementBoostAbility`；原最终UE5.8.3 Editor／Game、45/45及正常GA真实双端通过（80ms单向注入），见[施工验证](MVPB_Phase10F3Ability_Verification_20261019.json)。随后团队按[详细配置](MVPB_Phase10F3_Movement_Ability_CN_v0.1.md)完成接线，报告双端符合逻辑；本次[手动日志](MVPB_Phase10F3Ability_ManualLogReview_20261019.json)确认8次激活／4段效果正常，当前下一入口F4。下文3.1／3.2保留开发前的缺口分析，不能再据此判断源码仍缺少运动GA；10月17日的42项／双端结果仍只证明当时GE调试路径。
 
 ## 1. 正式测试GE
 

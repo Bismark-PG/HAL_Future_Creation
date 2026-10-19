@@ -2,6 +2,8 @@
 
 日期：2026-10-19（Asia/Tokyo）。施工基点`main / e8b18ceb55e38c7b47189f22300f13b572e7895c`，实际UE`5.8.3-58210709+++UE5+Release-5.8`。起始保留此前4份未提交说明改动。用户明确要求通过释放技能启动加速，复用现有Primary并替换免疫技能，不新增输入槽。沿用[F3的5秒GE](MVPB_Phase10F3_Implementation_CN_v0.1.md)和[F2运动桥接](MVPB_Phase10F2_Implementation_CN_v0.1.md)，不改蓝图资产／地图、车辆DA或网络物理协议。验证结果在本轮独立记录，不覆盖10月17日证据。
 
+最新团队反馈：同日团队已手工完成加速GA／GE及Primary替换，报告双端表现符合逻辑；12:04～12:05的日志确认正常技能链路、刷新与到期恢复，见第9节及[手动复核摘要](MVPB_Phase10F3Ability_ManualLogReview_20261019.json)。当前下一入口为10-F-4集成回归。第2～7节保留为可重复使用的配置流程，不要求重建已完成的资产。
+
 ## 1. 代码职责与配置链
 
 新增`UHALMovementBoostAbility`，`InstancedPerActor / ServerOnly`。它检查当前PlayerState／车辆Avatar、配置与Health／Movement属性、Playing阶段及合法GE，随后通过正常GAS接口施加`MovementEffectClass`并结束本次GA。五秒持续、跨来源一层刷新和自然到期仍由GE管理，Movement按原物理历史消费。
@@ -105,8 +107,31 @@ GE引用留空、时长非正、Period不为0、Tag／一层刷新配置不合�
 - **最终普通回归45/45通过，0测试警告／0失败／0未运行**。新增3项覆盖正常Primary激活、同帧重复／两秒刷新／自然GAS到期、调试开关与设置独立、Avatar／其他冷却／HP隔离、空GE／非正时长／非零Period／非车辆Avatar拒绝；旧42项也在最终源码下重跑，不借用历史报告。
 - **真实Listen Server／客户端各1/1通过**，测试`HAL.NetworkSmoke.Phase10F3Ability`，NetTest、NullRHI、60FPS，主机发送方向注入80ms（非实测RTT）。夹具仅替换运行时PlayerState的Primary为原生加速GA，关闭调试施加；客户端先经`RequestPrimarySkill → ASC → GA`正常请求，主机确认对方生效后发动自己的技能。重复请求仍一层、无免疫／免疫冷却；两秒刷新后物理Revision仍为2，原到期点继续有效，最后刷新至物理恢复主机约5.034、客户端约5.150游戏秒，恢复1／1且Revision变3。客户端完成时已有4次回滚请求；不将此当作完整恢复／驾驶手感验收。
 - Waiting用例在普通权威World确认拒绝；双端夹具的客户端Waiting尝试由本地CanActivate拒绝，不声称该次请求到达服务器。Playing后的真实客户端激活由服务器日志及Owner复制／物理消费共同确认。
-- **329份uasset／umap施工前后SHA-256全部相同**，134份源码／配置哈希另存摘要。三个最终UE测试进程正常退出，最终日志未见Error／Ensure／Assertion／Fatal。当前保存资产仍是原免疫授予；以上第3～6节由团队手工接线。未执行真人按键／手感／HUD实际渲染验证，未提交或Push。
+- **329份uasset／umap施工前后SHA-256全部相同**，134份源码／配置哈希另存摘要。三个最终UE测试进程正常退出，最终日志未见Error／Ensure／Assertion／Fatal。施工交付时保存资产仍是原免疫授予；后续团队接线见第9节。本段构建／自动化过程未执行真人按键／手感／HUD实际渲染验证，未提交或Push。
 
-本轮代码／编译／自动化出口已完成。下一步是团队按第3～7节保存GA／GE／PlayerState引用并实际按键测试，然后进入F4。自动化证明的是原生类和正常技能激活通道，不代替团队保存的子蓝图接线或真人按住／松开行为验收。原始报告位于`Saved/Phase10F3Ability`，不随Git同步；共享验证摘要保存哈希、测试清单和关键日志。
+施工交付时的代码／编译／自动化出口已完成，团队接线及后续实测记录见第9节。自动化证明的是原生类和正常技能激活通道，不代替团队保存的子蓝图接线或真人按住／松开行为验收。原始报告位于`Saved/Phase10F3Ability`，不随Git同步；共享验证摘要保存哈希、测试清单和关键日志。
 
 F4的完整持球／发射／冲击／免疫组合、网络丢包／抖动与四台有线PC仍保留。本次只替换当前Primary的测试配置，不建设第二槽位、技能库或运行时换技能框架。
+
+## 9. 团队双端反馈与日志复核（2026-10-19）
+
+用户报告双端表现符合逻辑。本轮接收`main / a38498e46e0cb1275f347af1e1badf7d104222f0`，加速GA源码／文档已提交；当前331份资产，团队新增`GA_MovementBoost`／`GE_MovementBoost`、修改`BP_HALPlayerState`，这3项仍未提交。代理只读日志及哈希、维护文档，没有改源码／资产、启动UE或重跑编译／自动化。原摘要中134份源码／配置哈希全部一致，45项等构建证据仍是之前独立的验证结果。
+
+复核`Saved/Logs/MVPB_10C_Host.log`与`MVPB_10C_Client_2.log`，确认UE5.8.3、Entry进入NetTest、127.0.0.1:7777，12:03:00开始双人Playing。另检查紧邻Client_2备份与早先Client启动日志，它们不是额外一局配对测试。快照保存在`Saved/Phase10F3Ability/ManualReview_20261019`；[共享JSON](MVPB_Phase10F3Ability_ManualLogReview_20261019.json)保存原文、行号与SHA-256，不覆盖施工验证JSON。
+
+详细Ability／Movement日志中途才开启，完整观察到服务器接受8次技能：主机PlayerId257四次，客户端PlayerId258四次；实际类均为`GA_MovementBoost_C`／`GE_MovementBoost_C`，Duration／Remaining均5秒，Primary输入Matches均1。主机两个效果窗口各含一次刷新，客户端首个窗口含两次刷新，第二个无刷新；每次新窗口Stacks=1，刷新期间数值始终1.50／1.25，没有额外物理Revision边界，也未见免疫／免疫冷却GE被施加。
+
+下表时间为日本时间12点，秒差使用日志UTC时间戳计算；GA自身另记录5游戏秒。它们不是RTT指标。
+
+| 发动者／窗口 | 最后一次发动或刷新 | GE移除 | 秒差 | 物理Revision／恢复 |
+|---|---|---|---:|---|
+| 主机1 | 12:04:17.851 | 12:04:22.851 | 5.000 | 4→5，1／1 |
+| 主机2 | 12:04:25.966 | 12:04:30.969 | 5.003 | 6→7，1／1 |
+| 客户端1 | 12:04:54.506 | 12:04:59.511 | 5.005 | 2→3，1／1 |
+| 客户端2 | 12:05:00.127 | 12:05:05.128 | 5.001 | 4→5，1／1 |
+
+客户端Owner日志对应收到两次新GE与两次移除，物理消费确认2／4为加速、3／5为恢复。共159条服务器、1681条客户端物理采样均Ready=1、Recovery=0；客户端回滚请求计数最大5，存在实际Replay记录，末尾恢复1／1。Replay逐帧日志数量不是独立回滚次数或性能结论。Actor后缀在不同进程不一致属正常：服务器客户端Pawn_C_1在客户端为本地Pawn_C_0，按PlayerId／Epoch关联，不把名字差异当错误目标。
+
+未见Ensure／Assertion／Fatal、GAS配置／复制警告或对战中NetworkFailure／超时。两端Entry启动各有既有`InputMode:UIOnly - Attempting to focus Non-Focusable widget`错误，另有音频采样率转换和EditorDataStorageUI启动提示；不声称日志零Error。客户端12:05:10.558关闭窗口，主机随即清理连接，主机12:05:11.708也正常关闭，属于主动退出。
+
+**结论：团队加速GA／GE接线和基础双端技能实测通过，观察到的刷新、到期、复制及物理恢复正常，当前没有新增阻塞问题；下一入口10-F-4。** 已有少量控球／碰撞脱球记录，仍不能代替完整发射／冲击／免疫组合、按住输入边沿、带活动GE退出／换Avatar、实测RTT／丢包／抖动和四机验收。本轮未施工F4、未提交或Push；换机前应将上述3项团队资产与本次留档一起提交。

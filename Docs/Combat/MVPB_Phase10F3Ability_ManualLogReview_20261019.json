@@ -1,0 +1,1049 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-10-19",
+  "date_timezone": "Asia/Tokyo",
+  "branch": "main",
+  "git_head": "a38498e46e0cb1275f347af1e1badf7d104222f0",
+  "engine": "5.8.3-58210709+++UE5+Release-5.8",
+  "user_feedback": "Team reports both ends behave as intended after configuring the movement GA/GE and replacing Primary immunity",
+  "scope": "Read-only review of existing manual-test logs and asset/source hashes; document update only. No build, automation rerun, game startup, Blueprint/config/source edit or new F4 implementation",
+  "conclusion": "Observed movement ability path normal: saved GA/GE child classes, unique Primary input, server-authoritative activation, target-only1.5/1.25 scales, one-layer refresh and approx5s final expiry with neutral physics restored on authority and owning client. Known Entry UI focus error persists; no new ability/network/physics fault found in this run",
+  "session": {
+    "map": "/Game/Maps/MVPB_NetTest",
+    "entry": "/Game/Maps/MVPB_NetEntry",
+    "address": "127.0.0.1:7777",
+    "type": "Same-machine graphical game processes using UnrealEditor -game",
+    "host_owner": "BP_HALPlayerState_C_0",
+    "host_player_id": 257,
+    "client_owner": "BP_HALPlayerState_C_1",
+    "client_player_id": 258,
+    "play_start_tokyo": "2026-10-19 12:03:00.352 +09:00",
+    "detailed_ability_window_tokyo": "2026-10-19 12:04:15.314 to12:05:05.143",
+    "network_conditions": "No recorded quantified RTT, loss or jitter experiment; ordinary local loopback evidence only",
+    "actor_identity_note": "Pawn suffixes differ across processes: server client Pawn_C_1 is client local Pawn_C_0; match PlayerId/Epoch and PlayerState, not local Actor names"
+  },
+  "counts": {
+    "accepted_on_server": 8,
+    "host_activations": 4,
+    "client_activations": 4,
+    "completed_effect_windows": 4,
+    "host_effect_windows": 2,
+    "client_effect_windows": 2,
+    "active_effects_left_in_observed_windows": 0,
+    "host_primary_input_matches": 4,
+    "client_primary_input_matches": 4,
+    "all_logged_primary_matches_one": true,
+    "boost_effect_added_on_server": 4,
+    "all_added_stack_counts_one": true,
+    "unwanted_immunity_or_cooldown_effect_applications": 0
+  },
+  "ability_acceptances": [
+    {
+      "event": {
+        "line": 1768,
+        "raw": "[2026.10.19-03.04.15:314][200]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=274.947",
+        "utc": "2026-10-19T03:04:15.314Z",
+        "tokyo": "2026-10-19 12:04:15.314 +09:00"
+      },
+      "owner": "BP_HALPlayerState_C_0",
+      "avatar": "BP_RoundedVehiclePawn_C_0",
+      "ability": "GA_MovementBoost_C_0",
+      "effect": "Default__GE_MovementBoost_C",
+      "duration": 5.0,
+      "remaining": 5.0,
+      "game_time": 274.947
+    },
+    {
+      "event": {
+        "line": 1777,
+        "raw": "[2026.10.19-03.04.17:851][717]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=277.484",
+        "utc": "2026-10-19T03:04:17.851Z",
+        "tokyo": "2026-10-19 12:04:17.851 +09:00"
+      },
+      "owner": "BP_HALPlayerState_C_0",
+      "avatar": "BP_RoundedVehiclePawn_C_0",
+      "ability": "GA_MovementBoost_C_0",
+      "effect": "Default__GE_MovementBoost_C",
+      "duration": 5.0,
+      "remaining": 5.0,
+      "game_time": 277.484
+    },
+    {
+      "event": {
+        "line": 1801,
+        "raw": "[2026.10.19-03.04.23:800][907]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=283.433",
+        "utc": "2026-10-19T03:04:23.8Z",
+        "tokyo": "2026-10-19 12:04:23.800 +09:00"
+      },
+      "owner": "BP_HALPlayerState_C_0",
+      "avatar": "BP_RoundedVehiclePawn_C_0",
+      "ability": "GA_MovementBoost_C_0",
+      "effect": "Default__GE_MovementBoost_C",
+      "duration": 5.0,
+      "remaining": 5.0,
+      "game_time": 283.433
+    },
+    {
+      "event": {
+        "line": 1808,
+        "raw": "[2026.10.19-03.04.25:966][347]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=285.599",
+        "utc": "2026-10-19T03:04:25.966Z",
+        "tokyo": "2026-10-19 12:04:25.966 +09:00"
+      },
+      "owner": "BP_HALPlayerState_C_0",
+      "avatar": "BP_RoundedVehiclePawn_C_0",
+      "ability": "GA_MovementBoost_C_0",
+      "effect": "Default__GE_MovementBoost_C",
+      "duration": 5.0,
+      "remaining": 5.0,
+      "game_time": 285.599
+    },
+    {
+      "event": {
+        "line": 1853,
+        "raw": "[2026.10.19-03.04.45:296][737]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=304.924",
+        "utc": "2026-10-19T03:04:45.296Z",
+        "tokyo": "2026-10-19 12:04:45.296 +09:00"
+      },
+      "owner": "BP_HALPlayerState_C_1",
+      "avatar": "BP_RoundedVehiclePawn_C_1",
+      "ability": "GA_MovementBoost_C_0",
+      "effect": "Default__GE_MovementBoost_C",
+      "duration": 5.0,
+      "remaining": 5.0,
+      "game_time": 304.924
+    },
+    {
+      "event": {
+        "line": 1865,
+        "raw": "[2026.10.19-03.04.49:518][412]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=309.146",
+        "utc": "2026-10-19T03:04:49.518Z",
+        "tokyo": "2026-10-19 12:04:49.518 +09:00"
+      },
+      "owner": "BP_HALPlayerState_C_1",
+      "avatar": "BP_RoundedVehiclePawn_C_1",
+      "ability": "GA_MovementBoost_C_0",
+      "effect": "Default__GE_MovementBoost_C",
+      "duration": 5.0,
+      "remaining": 5.0,
+      "game_time": 309.146
+    },
+    {
+      "event": {
+        "line": 1880,
+        "raw": "[2026.10.19-03.04.54:506][217]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=314.132",
+        "utc": "2026-10-19T03:04:54.506Z",
+        "tokyo": "2026-10-19 12:04:54.506 +09:00"
+      },
+      "owner": "BP_HALPlayerState_C_1",
+      "avatar": "BP_RoundedVehiclePawn_C_1",
+      "ability": "GA_MovementBoost_C_0",
+      "effect": "Default__GE_MovementBoost_C",
+      "duration": 5.0,
+      "remaining": 5.0,
+      "game_time": 314.132
+    },
+    {
+      "event": {
+        "line": 1905,
+        "raw": "[2026.10.19-03.05.00:127][135]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=319.754",
+        "utc": "2026-10-19T03:05:00.127Z",
+        "tokyo": "2026-10-19 12:05:00.127 +09:00"
+      },
+      "owner": "BP_HALPlayerState_C_1",
+      "avatar": "BP_RoundedVehiclePawn_C_1",
+      "ability": "GA_MovementBoost_C_0",
+      "effect": "Default__GE_MovementBoost_C",
+      "duration": 5.0,
+      "remaining": 5.0,
+      "game_time": 319.754
+    }
+  ],
+  "windows": [
+    {
+      "role": "Host",
+      "owner": "BP_HALPlayerState_C_0",
+      "player": 257,
+      "activations": [
+        {
+          "event": {
+            "line": 1768,
+            "raw": "[2026.10.19-03.04.15:314][200]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=274.947",
+            "utc": "2026-10-19T03:04:15.314Z",
+            "tokyo": "2026-10-19 12:04:15.314 +09:00"
+          },
+          "owner": "BP_HALPlayerState_C_0",
+          "avatar": "BP_RoundedVehiclePawn_C_0",
+          "ability": "GA_MovementBoost_C_0",
+          "effect": "Default__GE_MovementBoost_C",
+          "duration": 5.0,
+          "remaining": 5.0,
+          "game_time": 274.947
+        },
+        {
+          "event": {
+            "line": 1777,
+            "raw": "[2026.10.19-03.04.17:851][717]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=277.484",
+            "utc": "2026-10-19T03:04:17.851Z",
+            "tokyo": "2026-10-19 12:04:17.851 +09:00"
+          },
+          "owner": "BP_HALPlayerState_C_0",
+          "avatar": "BP_RoundedVehiclePawn_C_0",
+          "ability": "GA_MovementBoost_C_0",
+          "effect": "Default__GE_MovementBoost_C",
+          "duration": 5.0,
+          "remaining": 5.0,
+          "game_time": 277.484
+        }
+      ],
+      "first": {
+        "line": 1768,
+        "raw": "[2026.10.19-03.04.15:314][200]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=274.947",
+        "utc": "2026-10-19T03:04:15.314Z",
+        "tokyo": "2026-10-19 12:04:15.314 +09:00"
+      },
+      "removed": {
+        "line": 1796,
+        "raw": "[2026.10.19-03.04.22:851][719]LogHALAbility: Effect removed: Owner=BP_HALPlayerState_C_0 Authority=1 Effect=Default__GE_MovementBoost_C",
+        "utc": "2026-10-19T03:04:22.851Z",
+        "tokyo": "2026-10-19 12:04:22.851 +09:00"
+      },
+      "last_activation": {
+        "line": 1777,
+        "raw": "[2026.10.19-03.04.17:851][717]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=277.484",
+        "utc": "2026-10-19T03:04:17.851Z",
+        "tokyo": "2026-10-19 12:04:17.851 +09:00"
+      },
+      "last_activation_to_removed_wall_seconds": 5.0,
+      "activation_count": 2,
+      "physics_start": {
+        "event": {
+          "line": 1770,
+          "raw": "[2026.10.19-03.04.15:318][201]LogTemp: Movement action: Player=257 Epoch=344A659446FE16BC4703E39FBFC07B0E Revision=4 Frame=16496 Accel=1.5000 Speed=1.2500",
+          "utc": "2026-10-19T03:04:15.318Z",
+          "tokyo": "2026-10-19 12:04:15.318 +09:00"
+        },
+        "player": 257,
+        "epoch": "344A659446FE16BC4703E39FBFC07B0E",
+        "revision": 4,
+        "frame": 16496,
+        "acceleration": 1.5,
+        "speed": 1.25
+      },
+      "physics_end": {
+        "event": {
+          "line": 1797,
+          "raw": "[2026.10.19-03.04.22:867][722]LogTemp: Movement action: Player=257 Epoch=344A659446FE16BC4703E39FBFC07B0E Revision=5 Frame=16949 Accel=1.0000 Speed=1.0000",
+          "utc": "2026-10-19T03:04:22.867Z",
+          "tokyo": "2026-10-19 12:04:22.867 +09:00"
+        },
+        "player": 257,
+        "epoch": "344A659446FE16BC4703E39FBFC07B0E",
+        "revision": 5,
+        "frame": 16949,
+        "acceleration": 1.0,
+        "speed": 1.0
+      },
+      "last_activation_to_physics_boundary_wall_seconds": 5.016,
+      "same_value_refresh_preserved_revision": true,
+      "observed_host_frame_values": [
+        {
+          "values": "1.5, 1.25",
+          "samples": 8
+        }
+      ]
+    },
+    {
+      "role": "Host",
+      "owner": "BP_HALPlayerState_C_0",
+      "player": 257,
+      "activations": [
+        {
+          "event": {
+            "line": 1801,
+            "raw": "[2026.10.19-03.04.23:800][907]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=283.433",
+            "utc": "2026-10-19T03:04:23.8Z",
+            "tokyo": "2026-10-19 12:04:23.800 +09:00"
+          },
+          "owner": "BP_HALPlayerState_C_0",
+          "avatar": "BP_RoundedVehiclePawn_C_0",
+          "ability": "GA_MovementBoost_C_0",
+          "effect": "Default__GE_MovementBoost_C",
+          "duration": 5.0,
+          "remaining": 5.0,
+          "game_time": 283.433
+        },
+        {
+          "event": {
+            "line": 1808,
+            "raw": "[2026.10.19-03.04.25:966][347]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=285.599",
+            "utc": "2026-10-19T03:04:25.966Z",
+            "tokyo": "2026-10-19 12:04:25.966 +09:00"
+          },
+          "owner": "BP_HALPlayerState_C_0",
+          "avatar": "BP_RoundedVehiclePawn_C_0",
+          "ability": "GA_MovementBoost_C_0",
+          "effect": "Default__GE_MovementBoost_C",
+          "duration": 5.0,
+          "remaining": 5.0,
+          "game_time": 285.599
+        }
+      ],
+      "first": {
+        "line": 1801,
+        "raw": "[2026.10.19-03.04.23:800][907]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=283.433",
+        "utc": "2026-10-19T03:04:23.8Z",
+        "tokyo": "2026-10-19 12:04:23.800 +09:00"
+      },
+      "removed": {
+        "line": 1820,
+        "raw": "[2026.10.19-03.04.30:969][353]LogHALAbility: Effect removed: Owner=BP_HALPlayerState_C_0 Authority=1 Effect=Default__GE_MovementBoost_C",
+        "utc": "2026-10-19T03:04:30.969Z",
+        "tokyo": "2026-10-19 12:04:30.969 +09:00"
+      },
+      "last_activation": {
+        "line": 1808,
+        "raw": "[2026.10.19-03.04.25:966][347]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=285.599",
+        "utc": "2026-10-19T03:04:25.966Z",
+        "tokyo": "2026-10-19 12:04:25.966 +09:00"
+      },
+      "last_activation_to_removed_wall_seconds": 5.003,
+      "activation_count": 2,
+      "physics_start": {
+        "event": {
+          "line": 1803,
+          "raw": "[2026.10.19-03.04.23:819][911]LogTemp: Movement action: Player=257 Epoch=344A659446FE16BC4703E39FBFC07B0E Revision=6 Frame=17006 Accel=1.5000 Speed=1.2500",
+          "utc": "2026-10-19T03:04:23.819Z",
+          "tokyo": "2026-10-19 12:04:23.819 +09:00"
+        },
+        "player": 257,
+        "epoch": "344A659446FE16BC4703E39FBFC07B0E",
+        "revision": 6,
+        "frame": 17006,
+        "acceleration": 1.5,
+        "speed": 1.25
+      },
+      "physics_end": {
+        "event": {
+          "line": 1821,
+          "raw": "[2026.10.19-03.04.30:987][357]LogTemp: Movement action: Player=257 Epoch=344A659446FE16BC4703E39FBFC07B0E Revision=7 Frame=17436 Accel=1.0000 Speed=1.0000",
+          "utc": "2026-10-19T03:04:30.987Z",
+          "tokyo": "2026-10-19 12:04:30.987 +09:00"
+        },
+        "player": 257,
+        "epoch": "344A659446FE16BC4703E39FBFC07B0E",
+        "revision": 7,
+        "frame": 17436,
+        "acceleration": 1.0,
+        "speed": 1.0
+      },
+      "last_activation_to_physics_boundary_wall_seconds": 5.021,
+      "same_value_refresh_preserved_revision": true,
+      "observed_host_frame_values": [
+        {
+          "values": "1.5, 1.25",
+          "samples": 7
+        }
+      ]
+    },
+    {
+      "role": "Client",
+      "owner": "BP_HALPlayerState_C_1",
+      "player": 258,
+      "activations": [
+        {
+          "event": {
+            "line": 1853,
+            "raw": "[2026.10.19-03.04.45:296][737]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=304.924",
+            "utc": "2026-10-19T03:04:45.296Z",
+            "tokyo": "2026-10-19 12:04:45.296 +09:00"
+          },
+          "owner": "BP_HALPlayerState_C_1",
+          "avatar": "BP_RoundedVehiclePawn_C_1",
+          "ability": "GA_MovementBoost_C_0",
+          "effect": "Default__GE_MovementBoost_C",
+          "duration": 5.0,
+          "remaining": 5.0,
+          "game_time": 304.924
+        },
+        {
+          "event": {
+            "line": 1865,
+            "raw": "[2026.10.19-03.04.49:518][412]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=309.146",
+            "utc": "2026-10-19T03:04:49.518Z",
+            "tokyo": "2026-10-19 12:04:49.518 +09:00"
+          },
+          "owner": "BP_HALPlayerState_C_1",
+          "avatar": "BP_RoundedVehiclePawn_C_1",
+          "ability": "GA_MovementBoost_C_0",
+          "effect": "Default__GE_MovementBoost_C",
+          "duration": 5.0,
+          "remaining": 5.0,
+          "game_time": 309.146
+        },
+        {
+          "event": {
+            "line": 1880,
+            "raw": "[2026.10.19-03.04.54:506][217]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=314.132",
+            "utc": "2026-10-19T03:04:54.506Z",
+            "tokyo": "2026-10-19 12:04:54.506 +09:00"
+          },
+          "owner": "BP_HALPlayerState_C_1",
+          "avatar": "BP_RoundedVehiclePawn_C_1",
+          "ability": "GA_MovementBoost_C_0",
+          "effect": "Default__GE_MovementBoost_C",
+          "duration": 5.0,
+          "remaining": 5.0,
+          "game_time": 314.132
+        }
+      ],
+      "first": {
+        "line": 1853,
+        "raw": "[2026.10.19-03.04.45:296][737]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=304.924",
+        "utc": "2026-10-19T03:04:45.296Z",
+        "tokyo": "2026-10-19 12:04:45.296 +09:00"
+      },
+      "removed": {
+        "line": 1902,
+        "raw": "[2026.10.19-03.04.59:511][ 34]LogHALAbility: Effect removed: Owner=BP_HALPlayerState_C_1 Authority=1 Effect=Default__GE_MovementBoost_C",
+        "utc": "2026-10-19T03:04:59.511Z",
+        "tokyo": "2026-10-19 12:04:59.511 +09:00"
+      },
+      "last_activation": {
+        "line": 1880,
+        "raw": "[2026.10.19-03.04.54:506][217]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=314.132",
+        "utc": "2026-10-19T03:04:54.506Z",
+        "tokyo": "2026-10-19 12:04:54.506 +09:00"
+      },
+      "last_activation_to_removed_wall_seconds": 5.005,
+      "activation_count": 3,
+      "physics_start": {
+        "event": {
+          "line": 1854,
+          "raw": "[2026.10.19-03.04.45:302][738]LogTemp: Movement action: Player=258 Epoch=E6B3FDF04C7AD050B9E4FAB8A1E1A47A Revision=2 Frame=18295 Accel=1.5000 Speed=1.2500",
+          "utc": "2026-10-19T03:04:45.302Z",
+          "tokyo": "2026-10-19 12:04:45.302 +09:00"
+        },
+        "player": 258,
+        "epoch": "E6B3FDF04C7AD050B9E4FAB8A1E1A47A",
+        "revision": 2,
+        "frame": 18295,
+        "acceleration": 1.5,
+        "speed": 1.25
+      },
+      "physics_end": {
+        "event": {
+          "line": 1903,
+          "raw": "[2026.10.19-03.04.59:517][ 35]LogTemp: Movement action: Player=258 Epoch=E6B3FDF04C7AD050B9E4FAB8A1E1A47A Revision=3 Frame=19148 Accel=1.0000 Speed=1.0000",
+          "utc": "2026-10-19T03:04:59.517Z",
+          "tokyo": "2026-10-19 12:04:59.517 +09:00"
+        },
+        "player": 258,
+        "epoch": "E6B3FDF04C7AD050B9E4FAB8A1E1A47A",
+        "revision": 3,
+        "frame": 19148,
+        "acceleration": 1.0,
+        "speed": 1.0
+      },
+      "last_activation_to_physics_boundary_wall_seconds": 5.011,
+      "same_value_refresh_preserved_revision": true,
+      "observed_host_frame_values": [
+        {
+          "values": "1.5, 1.25",
+          "samples": 15
+        }
+      ],
+      "owner_physics_first_boost": {
+        "line": 3058,
+        "raw": "[2026.10.19-03.04.45:338][502]LogTemp: Movement frame: Player=258 Epoch=E6B3FDF04C7AD050B9E4FAB8A1E1A47A Revision=2 ServerFrame=18297 LocalFrame=6457 Accel=1.5000 Speed=1.2500 Ready=1 Replay=1 Recovery=0 Window=64 Rewinds=1 Authority=0",
+        "utc": "2026-10-19T03:04:45.338Z",
+        "tokyo": "2026-10-19 12:04:45.338 +09:00"
+      },
+      "owner_physics_first_neutral": {
+        "line": 3241,
+        "raw": "[2026.10.19-03.04.59:550][321]LogTemp: Movement frame: Player=258 Epoch=E6B3FDF04C7AD050B9E4FAB8A1E1A47A Revision=3 ServerFrame=19150 LocalFrame=7310 Accel=1.0000 Speed=1.0000 Ready=1 Replay=1 Recovery=0 Window=64 Rewinds=2 Authority=0",
+        "utc": "2026-10-19T03:04:59.55Z",
+        "tokyo": "2026-10-19 12:04:59.550 +09:00"
+      }
+    },
+    {
+      "role": "Client",
+      "owner": "BP_HALPlayerState_C_1",
+      "player": 258,
+      "activations": [
+        {
+          "event": {
+            "line": 1905,
+            "raw": "[2026.10.19-03.05.00:127][135]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=319.754",
+            "utc": "2026-10-19T03:05:00.127Z",
+            "tokyo": "2026-10-19 12:05:00.127 +09:00"
+          },
+          "owner": "BP_HALPlayerState_C_1",
+          "avatar": "BP_RoundedVehiclePawn_C_1",
+          "ability": "GA_MovementBoost_C_0",
+          "effect": "Default__GE_MovementBoost_C",
+          "duration": 5.0,
+          "remaining": 5.0,
+          "game_time": 319.754
+        }
+      ],
+      "first": {
+        "line": 1905,
+        "raw": "[2026.10.19-03.05.00:127][135]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=319.754",
+        "utc": "2026-10-19T03:05:00.127Z",
+        "tokyo": "2026-10-19 12:05:00.127 +09:00"
+      },
+      "removed": {
+        "line": 1917,
+        "raw": "[2026.10.19-03.05.05:128][950]LogHALAbility: Effect removed: Owner=BP_HALPlayerState_C_1 Authority=1 Effect=Default__GE_MovementBoost_C",
+        "utc": "2026-10-19T03:05:05.128Z",
+        "tokyo": "2026-10-19 12:05:05.128 +09:00"
+      },
+      "last_activation": {
+        "line": 1905,
+        "raw": "[2026.10.19-03.05.00:127][135]LogHALAbility: Movement ability: Accepted=1 Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_1 Ability=GA_MovementBoost_C_0 Effect=Default__GE_MovementBoost_C Duration=5.000 Remaining=5.000 GameTime=319.754",
+        "utc": "2026-10-19T03:05:00.127Z",
+        "tokyo": "2026-10-19 12:05:00.127 +09:00"
+      },
+      "last_activation_to_removed_wall_seconds": 5.001,
+      "activation_count": 1,
+      "physics_start": {
+        "event": {
+          "line": 1906,
+          "raw": "[2026.10.19-03.05.00:137][137]LogTemp: Movement action: Player=258 Epoch=E6B3FDF04C7AD050B9E4FAB8A1E1A47A Revision=4 Frame=19185 Accel=1.5000 Speed=1.2500",
+          "utc": "2026-10-19T03:05:00.137Z",
+          "tokyo": "2026-10-19 12:05:00.137 +09:00"
+        },
+        "player": 258,
+        "epoch": "E6B3FDF04C7AD050B9E4FAB8A1E1A47A",
+        "revision": 4,
+        "frame": 19185,
+        "acceleration": 1.5,
+        "speed": 1.25
+      },
+      "physics_end": {
+        "event": {
+          "line": 1918,
+          "raw": "[2026.10.19-03.05.05:135][951]LogTemp: Movement action: Player=258 Epoch=E6B3FDF04C7AD050B9E4FAB8A1E1A47A Revision=5 Frame=19485 Accel=1.0000 Speed=1.0000",
+          "utc": "2026-10-19T03:05:05.135Z",
+          "tokyo": "2026-10-19 12:05:05.135 +09:00"
+        },
+        "player": 258,
+        "epoch": "E6B3FDF04C7AD050B9E4FAB8A1E1A47A",
+        "revision": 5,
+        "frame": 19485,
+        "acceleration": 1.0,
+        "speed": 1.0
+      },
+      "last_activation_to_physics_boundary_wall_seconds": 5.008,
+      "same_value_refresh_preserved_revision": true,
+      "observed_host_frame_values": [
+        {
+          "values": "1.5, 1.25",
+          "samples": 5
+        }
+      ],
+      "owner_physics_first_boost": {
+        "line": 3252,
+        "raw": "[2026.10.19-03.05.00:166][440]LogTemp: Movement frame: Player=258 Epoch=E6B3FDF04C7AD050B9E4FAB8A1E1A47A Revision=4 ServerFrame=19187 LocalFrame=7347 Accel=1.5000 Speed=1.2500 Ready=1 Replay=1 Recovery=0 Window=64 Rewinds=3 Authority=0",
+        "utc": "2026-10-19T03:05:00.166Z",
+        "tokyo": "2026-10-19 12:05:00.166 +09:00"
+      },
+      "owner_physics_first_neutral": {
+        "line": 3291,
+        "raw": "[2026.10.19-03.05.05:176][427]LogTemp: Movement frame: Player=258 Epoch=E6B3FDF04C7AD050B9E4FAB8A1E1A47A Revision=5 ServerFrame=19485 LocalFrame=7645 Accel=1.0000 Speed=1.0000 Ready=1 Replay=1 Recovery=0 Window=64 Rewinds=5 Authority=1",
+        "utc": "2026-10-19T03:05:05.176Z",
+        "tokyo": "2026-10-19 12:05:05.176 +09:00"
+      }
+    }
+  ],
+  "logs": [
+    {
+      "original": "Saved/Logs/MVPB_10C_Host.log",
+      "snapshot": {
+        "path": "Saved/Phase10F3Ability/ManualReview_20261019/MVPB_10C_Host.log",
+        "sha256": "89E582C216CCEE111FE94FADCC70B2CF2BAE9F14787EAE7DA6A5986F36040C1C",
+        "bytes": 273907
+      },
+      "line_count": 2004,
+      "role": "Test Listen Server",
+      "errors": [
+        {
+          "line": 1582,
+          "raw": "[2026.10.19-02.59.35:172][  0]LogPlayerController: Error: InputMode:UIOnly - Attempting to focus Non-Focusable widget SObjectWidget [Widget.cpp(976)]!",
+          "utc": "2026-10-19T02:59:35.172Z",
+          "tokyo": "2026-10-19 11:59:35.172 +09:00"
+        }
+      ],
+      "severe_count": 0,
+      "ability_rejected_count": 0,
+      "network_failure_count": 0,
+      "direct_boost_debug_apply_count": 0,
+      "milestones": [
+        {
+          "line": 1637,
+          "raw": "[2026.10.19-02.59.40:369][587]LogHALNetworkMenu: Display: Opening Listen Server...",
+          "utc": "2026-10-19T02:59:40.369Z",
+          "tokyo": "2026-10-19 11:59:40.369 +09:00"
+        },
+        {
+          "line": 1710,
+          "raw": "[2026.10.19-03.02.57:690][579]LogNet: Join succeeded: DESKTOP-DFOR581-0AA4",
+          "utc": "2026-10-19T03:02:57.69Z",
+          "tokyo": "2026-10-19 12:02:57.690 +09:00"
+        },
+        {
+          "line": 1714,
+          "raw": "[2026.10.19-03.03.00:352][  5]LogHALMatch: Match phase changed to Playing with 2 players.",
+          "utc": "2026-10-19T03:03:00.352Z",
+          "tokyo": "2026-10-19 12:03:00.352 +09:00"
+        },
+        {
+          "line": 1719,
+          "raw": "[2026.10.19-03.03.42:107][ 36]hal.AbilityLog = \"1\"",
+          "utc": "2026-10-19T03:03:42.107Z",
+          "tokyo": "2026-10-19 12:03:42.107 +09:00"
+        },
+        {
+          "line": 1720,
+          "raw": "[2026.10.19-03.03.51:999][ 26]hal.MovementEffectLog = \"1\"",
+          "utc": "2026-10-19T03:03:51.999Z",
+          "tokyo": "2026-10-19 12:03:51.999 +09:00"
+        },
+        {
+          "line": 1767,
+          "raw": "[2026.10.19-03.04.15:314][200]LogHALAbility: Effect added: Owner=BP_HALPlayerState_C_0 Authority=1 Effect=Default__GE_MovementBoost_C Duration=5.00s Stacks=1",
+          "utc": "2026-10-19T03:04:15.314Z",
+          "tokyo": "2026-10-19 12:04:15.314 +09:00"
+        },
+        {
+          "line": 1769,
+          "raw": "[2026.10.19-03.04.15:316][200]LogHALAbility: Ability input: Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Authority=1 Input=Input.Ability.Primary Matches=1 Requested=1",
+          "utc": "2026-10-19T03:04:15.316Z",
+          "tokyo": "2026-10-19 12:04:15.316 +09:00"
+        },
+        {
+          "line": 1770,
+          "raw": "[2026.10.19-03.04.15:318][201]LogTemp: Movement action: Player=257 Epoch=344A659446FE16BC4703E39FBFC07B0E Revision=4 Frame=16496 Accel=1.5000 Speed=1.2500",
+          "utc": "2026-10-19T03:04:15.318Z",
+          "tokyo": "2026-10-19 12:04:15.318 +09:00"
+        },
+        {
+          "line": 1778,
+          "raw": "[2026.10.19-03.04.17:851][717]LogHALAbility: Ability input: Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Authority=1 Input=Input.Ability.Primary Matches=1 Requested=1",
+          "utc": "2026-10-19T03:04:17.851Z",
+          "tokyo": "2026-10-19 12:04:17.851 +09:00"
+        },
+        {
+          "line": 1796,
+          "raw": "[2026.10.19-03.04.22:851][719]LogHALAbility: Effect removed: Owner=BP_HALPlayerState_C_0 Authority=1 Effect=Default__GE_MovementBoost_C",
+          "utc": "2026-10-19T03:04:22.851Z",
+          "tokyo": "2026-10-19 12:04:22.851 +09:00"
+        },
+        {
+          "line": 1797,
+          "raw": "[2026.10.19-03.04.22:867][722]LogTemp: Movement action: Player=257 Epoch=344A659446FE16BC4703E39FBFC07B0E Revision=5 Frame=16949 Accel=1.0000 Speed=1.0000",
+          "utc": "2026-10-19T03:04:22.867Z",
+          "tokyo": "2026-10-19 12:04:22.867 +09:00"
+        },
+        {
+          "line": 1800,
+          "raw": "[2026.10.19-03.04.23:800][907]LogHALAbility: Effect added: Owner=BP_HALPlayerState_C_0 Authority=1 Effect=Default__GE_MovementBoost_C Duration=5.00s Stacks=1",
+          "utc": "2026-10-19T03:04:23.8Z",
+          "tokyo": "2026-10-19 12:04:23.800 +09:00"
+        },
+        {
+          "line": 1802,
+          "raw": "[2026.10.19-03.04.23:801][907]LogHALAbility: Ability input: Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Authority=1 Input=Input.Ability.Primary Matches=1 Requested=1",
+          "utc": "2026-10-19T03:04:23.801Z",
+          "tokyo": "2026-10-19 12:04:23.801 +09:00"
+        },
+        {
+          "line": 1803,
+          "raw": "[2026.10.19-03.04.23:819][911]LogTemp: Movement action: Player=257 Epoch=344A659446FE16BC4703E39FBFC07B0E Revision=6 Frame=17006 Accel=1.5000 Speed=1.2500",
+          "utc": "2026-10-19T03:04:23.819Z",
+          "tokyo": "2026-10-19 12:04:23.819 +09:00"
+        },
+        {
+          "line": 1809,
+          "raw": "[2026.10.19-03.04.25:966][347]LogHALAbility: Ability input: Owner=BP_HALPlayerState_C_0 Avatar=BP_RoundedVehiclePawn_C_0 Authority=1 Input=Input.Ability.Primary Matches=1 Requested=1",
+          "utc": "2026-10-19T03:04:25.966Z",
+          "tokyo": "2026-10-19 12:04:25.966 +09:00"
+        },
+        {
+          "line": 1820,
+          "raw": "[2026.10.19-03.04.30:969][353]LogHALAbility: Effect removed: Owner=BP_HALPlayerState_C_0 Authority=1 Effect=Default__GE_MovementBoost_C",
+          "utc": "2026-10-19T03:04:30.969Z",
+          "tokyo": "2026-10-19 12:04:30.969 +09:00"
+        },
+        {
+          "line": 1821,
+          "raw": "[2026.10.19-03.04.30:987][357]LogTemp: Movement action: Player=257 Epoch=344A659446FE16BC4703E39FBFC07B0E Revision=7 Frame=17436 Accel=1.0000 Speed=1.0000",
+          "utc": "2026-10-19T03:04:30.987Z",
+          "tokyo": "2026-10-19 12:04:30.987 +09:00"
+        },
+        {
+          "line": 1852,
+          "raw": "[2026.10.19-03.04.45:296][737]LogHALAbility: Effect added: Owner=BP_HALPlayerState_C_1 Authority=1 Effect=Default__GE_MovementBoost_C Duration=5.00s Stacks=1",
+          "utc": "2026-10-19T03:04:45.296Z",
+          "tokyo": "2026-10-19 12:04:45.296 +09:00"
+        },
+        {
+          "line": 1854,
+          "raw": "[2026.10.19-03.04.45:302][738]LogTemp: Movement action: Player=258 Epoch=E6B3FDF04C7AD050B9E4FAB8A1E1A47A Revision=2 Frame=18295 Accel=1.5000 Speed=1.2500",
+          "utc": "2026-10-19T03:04:45.302Z",
+          "tokyo": "2026-10-19 12:04:45.302 +09:00"
+        },
+        {
+          "line": 1902,
+          "raw": "[2026.10.19-03.04.59:511][ 34]LogHALAbility: Effect removed: Owner=BP_HALPlayerState_C_1 Authority=1 Effect=Default__GE_MovementBoost_C",
+          "utc": "2026-10-19T03:04:59.511Z",
+          "tokyo": "2026-10-19 12:04:59.511 +09:00"
+        },
+        {
+          "line": 1903,
+          "raw": "[2026.10.19-03.04.59:517][ 35]LogTemp: Movement action: Player=258 Epoch=E6B3FDF04C7AD050B9E4FAB8A1E1A47A Revision=3 Frame=19148 Accel=1.0000 Speed=1.0000",
+          "utc": "2026-10-19T03:04:59.517Z",
+          "tokyo": "2026-10-19 12:04:59.517 +09:00"
+        },
+        {
+          "line": 1904,
+          "raw": "[2026.10.19-03.05.00:126][135]LogHALAbility: Effect added: Owner=BP_HALPlayerState_C_1 Authority=1 Effect=Default__GE_MovementBoost_C Duration=5.00s Stacks=1",
+          "utc": "2026-10-19T03:05:00.126Z",
+          "tokyo": "2026-10-19 12:05:00.126 +09:00"
+        },
+        {
+          "line": 1906,
+          "raw": "[2026.10.19-03.05.00:137][137]LogTemp: Movement action: Player=258 Epoch=E6B3FDF04C7AD050B9E4FAB8A1E1A47A Revision=4 Frame=19185 Accel=1.5000 Speed=1.2500",
+          "utc": "2026-10-19T03:05:00.137Z",
+          "tokyo": "2026-10-19 12:05:00.137 +09:00"
+        },
+        {
+          "line": 1917,
+          "raw": "[2026.10.19-03.05.05:128][950]LogHALAbility: Effect removed: Owner=BP_HALPlayerState_C_1 Authority=1 Effect=Default__GE_MovementBoost_C",
+          "utc": "2026-10-19T03:05:05.128Z",
+          "tokyo": "2026-10-19 12:05:05.128 +09:00"
+        },
+        {
+          "line": 1918,
+          "raw": "[2026.10.19-03.05.05:135][951]LogTemp: Movement action: Player=258 Epoch=E6B3FDF04C7AD050B9E4FAB8A1E1A47A Revision=5 Frame=19485 Accel=1.0000 Speed=1.0000",
+          "utc": "2026-10-19T03:05:05.135Z",
+          "tokyo": "2026-10-19 12:05:05.135 +09:00"
+        },
+        {
+          "line": 1940,
+          "raw": "[2026.10.19-03.05.10:564][855]LogHALAbility: Avatar effects cleared: Owner=BP_HALPlayerState_C_1 Removed=0 Cooldown=0.00s",
+          "utc": "2026-10-19T03:05:10.564Z",
+          "tokyo": "2026-10-19 12:05:10.564 +09:00"
+        },
+        {
+          "line": 1942,
+          "raw": "[2026.10.19-03.05.10:564][855]LogHALMatch: Player left: HALPlayerController_1.",
+          "utc": "2026-10-19T03:05:10.564Z",
+          "tokyo": "2026-10-19 12:05:10.564 +09:00"
+        },
+        {
+          "line": 1946,
+          "raw": "[2026.10.19-03.05.11:708][205]LogHALAbility: Avatar effects cleared: Owner=BP_HALPlayerState_C_0 Removed=0 Cooldown=0.00s",
+          "utc": "2026-10-19T03:05:11.708Z",
+          "tokyo": "2026-10-19 12:05:11.708 +09:00"
+        },
+        {
+          "line": 1948,
+          "raw": "[2026.10.19-03.05.11:708][205]LogHALMatch: Player left: HALPlayerController_0.",
+          "utc": "2026-10-19T03:05:11.708Z",
+          "tokyo": "2026-10-19 12:05:11.708 +09:00"
+        },
+        {
+          "line": 1951,
+          "raw": "[2026.10.19-03.05.11:708][205]LogWindows: FPlatformMisc::RequestExit(0, UGameEngine::Tick.ViewportClosed)",
+          "utc": "2026-10-19T03:05:11.708Z",
+          "tokyo": "2026-10-19 12:05:11.708 +09:00"
+        }
+      ]
+    },
+    {
+      "original": "Saved/Logs/MVPB_10C_Client_2.log",
+      "snapshot": {
+        "path": "Saved/Phase10F3Ability/ManualReview_20261019/MVPB_10C_Client_2.log",
+        "sha256": "C96ED6081F7F225C08B8D9246298908DA70925FDE5BBA43C9A8B1D6DFABE568C",
+        "bytes": 618816
+      },
+      "line_count": 3460,
+      "role": "Paired test client",
+      "errors": [
+        {
+          "line": 1581,
+          "raw": "[2026.10.19-03.02.41:190][  0]LogPlayerController: Error: InputMode:UIOnly - Attempting to focus Non-Focusable widget SObjectWidget [Widget.cpp(976)]!",
+          "utc": "2026-10-19T03:02:41.19Z",
+          "tokyo": "2026-10-19 12:02:41.190 +09:00"
+        }
+      ],
+      "severe_count": 0,
+      "ability_rejected_count": 0,
+      "network_failure_count": 0,
+      "direct_boost_debug_apply_count": 0,
+      "milestones": [
+        {
+          "line": 1656,
+          "raw": "[2026.10.19-03.02.57:430][694]LogNet: UPendingNetGame::SendInitialJoin: Sending hello. [UNetConnection] RemoteAddr: 127.0.0.1:7777, Name: IpConnection_0, Driver: Name:PendingNetDriver Def:GameNetDriver IpNetDriver_0, IsServer: NO, PC: NULL, Owner: NULL, UniqueId: INVALID",
+          "utc": "2026-10-19T03:02:57.43Z",
+          "tokyo": "2026-10-19 12:02:57.430 +09:00"
+        },
+        {
+          "line": 1700,
+          "raw": "[2026.10.19-03.04.01:888][817]hal.AbilityLog = \"1\"",
+          "utc": "2026-10-19T03:04:01.888Z",
+          "tokyo": "2026-10-19 12:04:01.888 +09:00"
+        },
+        {
+          "line": 1701,
+          "raw": "[2026.10.19-03.04.06:591][750]hal.MovementEffectLog = \"1\"",
+          "utc": "2026-10-19T03:04:06.591Z",
+          "tokyo": "2026-10-19 12:04:06.591 +09:00"
+        },
+        {
+          "line": 2178,
+          "raw": "[2026.10.19-03.04.15:326][220]LogTemp: Movement action: Player=257 Epoch=344A659446FE16BC4703E39FBFC07B0E Revision=4 Frame=16496 Accel=1.5000 Speed=1.2500",
+          "utc": "2026-10-19T03:04:15.326Z",
+          "tokyo": "2026-10-19 12:04:15.326 +09:00"
+        },
+        {
+          "line": 3056,
+          "raw": "[2026.10.19-03.04.45:288][492]LogHALAbility: Ability input: Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_0 Authority=0 Input=Input.Ability.Primary Matches=1 Requested=1",
+          "utc": "2026-10-19T03:04:45.288Z",
+          "tokyo": "2026-10-19 12:04:45.288 +09:00"
+        },
+        {
+          "line": 3057,
+          "raw": "[2026.10.19-03.04.45:310][496]LogHALAbility: Effect added: Owner=BP_HALPlayerState_C_1 Authority=0 Effect=Default__GE_MovementBoost_C Duration=5.00s Stacks=1",
+          "utc": "2026-10-19T03:04:45.31Z",
+          "tokyo": "2026-10-19 12:04:45.310 +09:00"
+        },
+        {
+          "line": 3062,
+          "raw": "[2026.10.19-03.04.45:350][505]LogTemp: Movement rewind: Player=258 Requested=6458 Accepted=6458 Current=6462 Coverage=18234..18297",
+          "utc": "2026-10-19T03:04:45.35Z",
+          "tokyo": "2026-10-19 12:04:45.350 +09:00"
+        },
+        {
+          "line": 3103,
+          "raw": "[2026.10.19-03.04.49:515][338]LogHALAbility: Ability input: Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_0 Authority=0 Input=Input.Ability.Primary Matches=1 Requested=1",
+          "utc": "2026-10-19T03:04:49.515Z",
+          "tokyo": "2026-10-19 12:04:49.515 +09:00"
+        },
+        {
+          "line": 3192,
+          "raw": "[2026.10.19-03.04.54:504][324]LogHALAbility: Ability input: Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_0 Authority=0 Input=Input.Ability.Primary Matches=1 Requested=1",
+          "utc": "2026-10-19T03:04:54.504Z",
+          "tokyo": "2026-10-19 12:04:54.504 +09:00"
+        },
+        {
+          "line": 3240,
+          "raw": "[2026.10.19-03.04.59:520][315]LogHALAbility: Effect removed: Owner=BP_HALPlayerState_C_1 Authority=0 Effect=Default__GE_MovementBoost_C",
+          "utc": "2026-10-19T03:04:59.52Z",
+          "tokyo": "2026-10-19 12:04:59.520 +09:00"
+        },
+        {
+          "line": 3244,
+          "raw": "[2026.10.19-03.04.59:566][324]LogTemp: Movement rewind: Player=258 Requested=7311 Accepted=7311 Current=7314 Coverage=19087..19150",
+          "utc": "2026-10-19T03:04:59.566Z",
+          "tokyo": "2026-10-19 12:04:59.566 +09:00"
+        },
+        {
+          "line": 3250,
+          "raw": "[2026.10.19-03.05.00:124][432]LogHALAbility: Ability input: Owner=BP_HALPlayerState_C_1 Avatar=BP_RoundedVehiclePawn_C_0 Authority=0 Input=Input.Ability.Primary Matches=1 Requested=1",
+          "utc": "2026-10-19T03:05:00.124Z",
+          "tokyo": "2026-10-19 12:05:00.124 +09:00"
+        },
+        {
+          "line": 3251,
+          "raw": "[2026.10.19-03.05.00:140][435]LogHALAbility: Effect added: Owner=BP_HALPlayerState_C_1 Authority=0 Effect=Default__GE_MovementBoost_C Duration=5.00s Stacks=1",
+          "utc": "2026-10-19T03:05:00.14Z",
+          "tokyo": "2026-10-19 12:05:00.140 +09:00"
+        },
+        {
+          "line": 3255,
+          "raw": "[2026.10.19-03.05.00:199][447]LogTemp: Movement rewind: Player=258 Requested=7349 Accepted=7349 Current=7352 Coverage=19125..19188",
+          "utc": "2026-10-19T03:05:00.199Z",
+          "tokyo": "2026-10-19 12:05:00.199 +09:00"
+        },
+        {
+          "line": 3288,
+          "raw": "[2026.10.19-03.05.05:143][421]LogHALAbility: Effect removed: Owner=BP_HALPlayerState_C_1 Authority=0 Effect=Default__GE_MovementBoost_C",
+          "utc": "2026-10-19T03:05:05.143Z",
+          "tokyo": "2026-10-19 12:05:05.143 +09:00"
+        },
+        {
+          "line": 3289,
+          "raw": "[2026.10.19-03.05.05:159][424]LogTemp: Movement rewind: Player=258 Requested=7645 Accepted=7645 Current=7650 Coverage=19422..19485",
+          "utc": "2026-10-19T03:05:05.159Z",
+          "tokyo": "2026-10-19 12:05:05.159 +09:00"
+        },
+        {
+          "line": 3290,
+          "raw": "[2026.10.19-03.05.05:176][427]LogTemp: Movement action: Player=258 Epoch=E6B3FDF04C7AD050B9E4FAB8A1E1A47A Revision=5 Frame=19485 Accel=1.0000 Speed=1.0000",
+          "utc": "2026-10-19T03:05:05.176Z",
+          "tokyo": "2026-10-19 12:05:05.176 +09:00"
+        },
+        {
+          "line": 3405,
+          "raw": "[2026.10.19-03.05.10:558][492]LogWindows: FPlatformMisc::RequestExit(0, UGameEngine::Tick.ViewportClosed)",
+          "utc": "2026-10-19T03:05:10.558Z",
+          "tokyo": "2026-10-19 12:05:10.558 +09:00"
+        }
+      ]
+    },
+    {
+      "original": "Saved/Logs/MVPB_10C_Client_2-backup-2026.10.19-03.02.31.log",
+      "snapshot": {
+        "path": "Saved/Phase10F3Ability/ManualReview_20261019/MVPB_10C_Client_2-backup-2026.10.19-03.02.31.log",
+        "sha256": "929F9995D06E4F8DAEFD8C73FF9611A46D374B0F3E701B296FFC89AA093B8CC5",
+        "bytes": 216570
+      },
+      "line_count": 1759,
+      "role": "Earlier startup/independent listen attempt, not an extra paired test",
+      "errors": [
+        {
+          "line": 1581,
+          "raw": "[2026.10.19-03.00.28:068][  0]LogPlayerController: Error: InputMode:UIOnly - Attempting to focus Non-Focusable widget SObjectWidget [Widget.cpp(976)]!",
+          "utc": "2026-10-19T03:00:28.068Z",
+          "tokyo": "2026-10-19 12:00:28.068 +09:00"
+        }
+      ],
+      "severe_count": 0,
+      "ability_rejected_count": 0,
+      "network_failure_count": 0,
+      "direct_boost_debug_apply_count": 0,
+      "milestones": [
+        {
+          "line": 1649,
+          "raw": "[2026.10.19-03.02.17:567][120]LogHALNetworkMenu: Display: Opening Listen Server...",
+          "utc": "2026-10-19T03:02:17.567Z",
+          "tokyo": "2026-10-19 12:02:17.567 +09:00"
+        },
+        {
+          "line": 1703,
+          "raw": "[2026.10.19-03.02.30:237][848]LogHALMatch: Player left: HALPlayerController_0.",
+          "utc": "2026-10-19T03:02:30.237Z",
+          "tokyo": "2026-10-19 12:02:30.237 +09:00"
+        },
+        {
+          "line": 1706,
+          "raw": "[2026.10.19-03.02.30:237][848]LogWindows: FPlatformMisc::RequestExit(0, UGameEngine::Tick.ViewportClosed)",
+          "utc": "2026-10-19T03:02:30.237Z",
+          "tokyo": "2026-10-19 12:02:30.237 +09:00"
+        }
+      ]
+    },
+    {
+      "original": "Saved/Logs/MVPB_10C_Client.log",
+      "snapshot": {
+        "path": "Saved/Phase10F3Ability/ManualReview_20261019/MVPB_10C_Client.log",
+        "sha256": "4B1E80DD7B24391B5B736267A37656E3ED5897EA73C26F732493DEE94E906F32",
+        "bytes": 40913
+      },
+      "line_count": 505,
+      "role": "Earlier startup/independent listen attempt, not an extra paired test",
+      "errors": [],
+      "severe_count": 0,
+      "ability_rejected_count": 0,
+      "network_failure_count": 0,
+      "direct_boost_debug_apply_count": 0,
+      "milestones": []
+    }
+  ],
+  "physics": {
+    "host_samples": 159,
+    "client_owner_samples": 1681,
+    "host_not_ready": 0,
+    "client_not_ready": 0,
+    "host_recovery": 0,
+    "client_recovery": 0,
+    "client_replay_samples": 1617,
+    "client_rewind_request_max": 5.0,
+    "client_last_sample": {
+      "Line": 3399,
+      "Player": 258,
+      "Epoch": "E6B3FDF04C7AD050B9E4FAB8A1E1A47A",
+      "Revision": 5,
+      "ServerFrame": 19805,
+      "LocalFrame": 7965,
+      "Accel": 1.0,
+      "Speed": 1.0,
+      "Ready": 1,
+      "Replay": 1,
+      "Recovery": 0,
+      "Rewinds": 5,
+      "Authority": 0,
+      "Raw": "[2026.10.19-03.05.10:432][472]LogTemp: Movement frame: Player=258 Epoch=E6B3FDF04C7AD050B9E4FAB8A1E1A47A Revision=5 ServerFrame=19805 LocalFrame=7965 Accel=1.0000 Speed=1.0000 Ready=1 Replay=1 Recovery=0 Window=64 Rewinds=5 Authority=0"
+    },
+    "sample_count_note": "Movement frame logs are sampled at every60 local physics frames plus all replay calls; replay line count is not a count of distinct rewind requests, nor a performance verdict"
+  },
+  "known_log_issues": [
+    "One preexisting InputMode:UIOnly focus Non-Focusable widget Error on each paired Entry menu startup; gameplay proceeds normally",
+    "Startup audio48000/44100 rate conversion and EditorDataStorageUI widget registration warnings; no new gameplay-specific warning",
+    "Client closes viewport at12:05:10.558, server connection cleanup follows12:05:10.563; host closes viewport12:05:11.708. Intentional shutdown, no in-game ConnectionLost/timeout"
+  ],
+  "source_baseline": {
+    "comparison": "Docs/Combat/MVPB_Phase10F3Ability_Verification_20261019.json",
+    "checked_count": 134,
+    "different": [],
+    "all_same": true,
+    "historical_verification": "Previous45/45, Editor/Game and native GA smoke preserved as historical evidence; not rerun for this log review"
+  },
+  "team_assets": {
+    "total": 331,
+    "changes_since_329_asset_native_validation": [
+      {
+        "path": "Content/Blueprints/GA/GA_MovementBoost.uasset",
+        "kind": "Team new asset",
+        "sha256": "07C1118A7FF9255294788E6CAEAA9122EE722B8D94E4B055AF5ABA30E841AE0C"
+      },
+      {
+        "path": "Content/Blueprints/GE/GE_MovementBoost.uasset",
+        "kind": "Team new asset",
+        "sha256": "EA88192EDAD8A17AEC971BB1BF65BF03EB5550DCFD3E5687107FA72F18A24781"
+      },
+      {
+        "path": "Content/Blueprints/PlayerState/BP_HALPlayerState.uasset",
+        "kind": "Team modified existing asset",
+        "sha256": "83EDA47F7E4649166C738DE750761EF0AD5A9B5ADC3EA329AA1D518CFE9FE70A"
+      }
+    ],
+    "git_start": "M BP_HALPlayerState; untracked GA_MovementBoost and GE_MovementBoost; all retained; team assets not yet committed",
+    "agent_edits": "None",
+    "fields": "Runtime class use and effect semantics confirmed by logs; no new full CDO export or Blueprint graph inspection",
+    "unchanged_during_review": true,
+    "protected_count": 331
+  },
+  "limits": [
+    "Ability and movement logging were enabled mid-session; only the complete observed cycles are counted. Earlier host movement revision3 does not reconstruct an unlogged extra cast",
+    "Counts and duration timing correlate logs; final-refresh-to-removal intervals use log UTC timestamps, not network RTT. GA records independently report Duration5.000 and Remaining5.000 game seconds",
+    "User feedback covers basic dual-end behavior. Logs do not independently prove exact physical key, hold/release edge cases, full launch/impact/immunity matrix, active-effect exit/Avatar replacement, measured RTT/loss/jitter or four-PC acceptance",
+    "Some capture and collision/drop records exist; they do not close the full F4 physical matrix",
+    "This turn updates status to F4 next-entry, without implementing or marking F4 complete; no commit/push performed"
+  ],
+  "log_snapshot_final_check": [
+    {
+      "path": "Saved/Logs/MVPB_10C_Host.log",
+      "matches_snapshot": true,
+      "bytes": 273907
+    },
+    {
+      "path": "Saved/Logs/MVPB_10C_Client_2.log",
+      "matches_snapshot": true,
+      "bytes": 618816
+    },
+    {
+      "path": "Saved/Logs/MVPB_10C_Client_2-backup-2026.10.19-03.02.31.log",
+      "matches_snapshot": true,
+      "bytes": 216570
+    },
+    {
+      "path": "Saved/Logs/MVPB_10C_Client.log",
+      "matches_snapshot": true,
+      "bytes": 40913
+    }
+  ]
+}
