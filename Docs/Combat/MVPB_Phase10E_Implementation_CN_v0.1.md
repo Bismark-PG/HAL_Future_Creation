@@ -112,7 +112,7 @@ Avatar清理记录对象身份，旧Pawn的延迟回调不能清掉新Pawn的效
 
 新动作、新目标选择或复杂许可由对应C++ GA实现，再做轻量GA子蓝图引用效果与数值，复用同一ASC与授予入口。不同技能若不共享冷却，应使用各自冷却Tag，不能全部复用`Cooldown.Ability.ImpactImmunity`。当前只接了一个Primary输入槽；增加额外技能键还需在C++补对应输入路由／Tag／本地Action引用，不能只在Default Abilities任填一个新Tag就自动获得按键。
 
-玩家不同车型的配置化技能库／运行时替换尚未建设，当前DefaultAbilities属于PlayerState初始配置；这不会自动按Vehicle DA挑不同技能。加速、减速、低抓地GE进入车辆有效运动参数与Network Physics历史的桥接仍属于未施工10-F；不能声称现在只配GE就能正确改变网络驾驶。物理动作和命中仍走现有Movement／Combat Resolver，GA／GE不接管每帧物理。
+玩家不同车型的配置化技能库／运行时替换尚未建设，当前DefaultAbilities属于PlayerState初始配置；这不会自动按Vehicle DA挑不同技能。2026-10-19接续补充：F2运动桥接、F3加速GE和窄`HALMovementBoostAbility`现已实现；用户选择替换原Primary的免疫授予，复用原按键，第二技能输入不在本轮范围。最终Editor／Game、45项普通回归及真实GA双端通过；团队子蓝图接线／实际按键仍需手工完成，具体步骤与证据见[加速技能补充](MVPB_Phase10F3_Movement_Ability_CN_v0.1.md)。免疫GA不能直接换任意Buff GE使用。物理动作与命中仍走Movement／Combat Resolver，GA／GE不接管每帧物理。
 
 ## 6. 验证记录与局限
 
