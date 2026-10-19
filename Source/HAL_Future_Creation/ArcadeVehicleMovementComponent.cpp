@@ -210,6 +210,7 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	{
 		bGrounded = false;
 		ForwardSpeed = 0.0f;
+		{ FScopeLock Lock(&PendingPhysicsDataLock); PublishedPresentationInput = FHALVehiclePresentationInput(); }
 		ResetWallEscape();
 		return;
 	}
@@ -218,6 +219,7 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		? Body->GetBodyInstanceAsyncPhysicsTickHandle() : FBodyInstanceAsyncPhysicsTickHandle();
 	if (!PhysicsHandle.IsValid())
 	{
+		{ FScopeLock Lock(&PendingPhysicsDataLock); PublishedPresentationInput = FHALVehiclePresentationInput(); }
 		return;
 	}
 	FVector RecoilDeltaVelocity;
@@ -241,6 +243,14 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	const FVector RightDirection = FVector::CrossProduct(GroundNormal, ForwardDirection).GetSafeNormal();
 
 	ForwardSpeed = FVector::DotProduct(Velocity, ForwardDirection);
+	{
+		FScopeLock Lock(&PendingPhysicsDataLock);
+		PublishedPresentationInput.Steering = FMath::IsFinite(InputCommand.Steering)
+			? FMath::Clamp(InputCommand.Steering, -1.f, 1.f) : 0;
+		PublishedPresentationInput.PhysicsFrame = StepInput.PhysicsFrame;
+		PublishedPresentationInput.bGrounded = bGrounded;
+		PublishedPresentationInput.bValid = true;
+	}
 
 	if (!bGrounded || ForwardDirection.IsNearlyZero() || RightDirection.IsNearlyZero())
 	{
@@ -261,6 +271,13 @@ void UArcadeVehicleMovementComponent::SetUpdatedPrimitive(UPrimitiveComponent* I
 {
 	UpdatedPrimitive = InPrimitive;
 	ResetWallEscape();
+}
+
+FHALVehiclePresentationInput UArcadeVehicleMovementComponent::GetPresentationInput() const
+{
+	if (!bShouldRunPhysics.Load()) { return FHALVehiclePresentationInput(); }
+	FScopeLock Lock(&PendingPhysicsDataLock);
+	return PublishedPresentationInput;
 }
 
 void UArcadeVehicleMovementComponent::SetInputCommand(const FVehicleInputCmd& InInputCommand)

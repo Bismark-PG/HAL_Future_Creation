@@ -4,6 +4,7 @@
 
 #include "Components/ActorComponent.h"
 #include "CoreMinimal.h"
+#include "HALVehiclePresentationTypes.h"
 #include "Engine/EngineTypes.h"
 #include "HAL/CriticalSection.h"
 #include "Templates/Atomic.h"
@@ -70,6 +71,8 @@ public:
 	void SetMovementTickOffsetReady(bool bReady) { bMovementTickOffsetReady.Store(bReady); }
 	bool QueueMovementParameters(const FHALMovementSnapshot& Value);
 	FHALMovementStatus GetMovementEffectStatus() const;
+	/** Thread-safe copy of the last actually consumed input; for cosmetic observers only. */
+	FHALVehiclePresentationInput GetPresentationInput() const;
 
 	UFUNCTION(BlueprintPure, Category = "Arcade Vehicle|Debug")
 	bool IsGrounded() const { return bGrounded; }
@@ -107,6 +110,7 @@ private:
 	FVehicleInputCmd PendingInputCommand;
 	uint32 PendingNetworkInputSequence = 0;
 	mutable FCriticalSection PendingPhysicsDataLock;
+	FHALVehiclePresentationInput PublishedPresentationInput; // Protected by PendingPhysicsDataLock.
 	FVehicleInputCmd InputCommand;
 	FVehicleNetInputData LastPhysicsInput;
 	FVehicleNetInputData AppliedHistoryInput;

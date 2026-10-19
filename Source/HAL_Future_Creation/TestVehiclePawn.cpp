@@ -8,6 +8,7 @@
 #include "VehicleKnockbackSettings.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALMovementEffectBridge.h"
+#include "HALVehiclePresentationComponent.h"
 #include "HALPlayerState.h"
 #include "HALGameplayTags.h"
 
@@ -17,6 +18,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
@@ -70,6 +72,14 @@ ATestVehiclePawn::ATestVehiclePawn()
 	VisualMesh->SetupAttachment(CollisionRoot);
 	VisualMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	VisualMesh->SetSimulatePhysics(false);
+
+	SkeletalVisual = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalVisual"));
+	SkeletalVisual->SetupAttachment(CollisionRoot);
+	SkeletalVisual->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	SkeletalVisual->SetSimulatePhysics(false);
+	SkeletalVisual->SetVisibility(false);
+	SkeletalVisual->SetHiddenInGame(true);
+	VehiclePresentation = CreateDefaultSubobject<UHALVehiclePresentationComponent>(TEXT("VehiclePresentation"));
 
 	ForwardArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("ForwardArrow"));
 	ForwardArrow->SetupAttachment(CollisionRoot);
@@ -332,6 +342,7 @@ void ATestVehiclePawn::AddDefaultInputContext()
 
 bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
 {
+	VehiclePresentation->Configure(nullptr, CollisionRoot, VisualMesh, SkeletalVisual, bPreview);
 	if (ConfigurationSource == EVehicleConfigurationSource::Legacy) { return true; }
 	FString Error;
 	if (ConfigurationSource != EVehicleConfigurationSource::Definition || !Definition || !Definition->Validate(Error)
@@ -344,6 +355,7 @@ bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
 	CollisionRoot->SetStaticMesh(Definition->CollisionMesh);
 	VehicleConfiguration::ApplyBody(*CollisionRoot, Definition->Physics);
 	VehicleConfiguration::ApplyVisual(*VisualMesh, Definition->Visual);
+	VehiclePresentation->Configure(Definition->Presentation, CollisionRoot, VisualMesh, SkeletalVisual, bPreview);
 	BallControlPoint->SetRelativeTransform(Definition->BallControlPoint);
 	ForwardArrow->SetRelativeTransform(Definition->ForwardArrowTransform);
 	ForwardArrow->ArrowColor = Definition->ForwardArrowColor;

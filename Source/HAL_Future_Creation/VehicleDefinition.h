@@ -13,6 +13,7 @@ class UStaticMesh;
 class UMaterialInterface;
 class UInputMappingContext;
 class UInputAction;
+class UHALVehiclePresentationConfig;
 
 UENUM(BlueprintType)
 enum class EVehicleCollisionShape : uint8 { ConvexMesh, Box };
@@ -185,6 +186,9 @@ public:
 	FHALVehicleImpactConfig Impact;
 	UPROPERTY(EditAnywhere, Category = "Visual")
 	FVehicleVisualConfig Visual;
+	/** Optional visual-only rig. Invalid/unready rig falls back to Visual, without disabling gameplay. */
+	UPROPERTY(EditAnywhere, Category = "Visual")
+	TObjectPtr<UHALVehiclePresentationConfig> Presentation;
 	UPROPERTY(EditAnywhere, Category = "Local")
 	TObjectPtr<UVehicleLocalConfig> LocalConfig;
 	UPROPERTY(EditAnywhere, Category = "Marker")

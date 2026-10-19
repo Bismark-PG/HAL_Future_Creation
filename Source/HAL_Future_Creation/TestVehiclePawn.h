@@ -27,6 +27,8 @@ class UStaticMeshComponent;
 class UVehicleHealthComponent;
 class UHALImpactReceiverComponent;
 class UHALMovementEffectBridge;
+class UHALVehiclePresentationComponent;
+class USkeletalMeshComponent;
 struct FInputActionValue;
 
 /** Minimal player vehicle used to validate MVP-A ground handling. */
@@ -81,6 +83,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
 	TObjectPtr<UStaticMeshComponent> VisualMesh;
+
+	/** Optional visual-only mesh; collision and simulation remain on VehiclePhysicsBody. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
+	TObjectPtr<USkeletalMeshComponent> SkeletalVisual;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
+	TObjectPtr<UHALVehiclePresentationComponent> VehiclePresentation;
 
 	/** Visible MVP marker for the physical forward / future launch direction. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
@@ -149,6 +157,9 @@ protected:
 	float RemoteInputTimeoutSeconds = 0.25f;
 
 private:
+#if WITH_DEV_AUTOMATION_TESTS
+	friend struct FHALPresentationTestAccess;
+#endif
 	void InitializeAbilitySystem();
 	FVehicleCombatConfig RuntimeCombatConfig;
 	void UninitializeAbilitySystem();
