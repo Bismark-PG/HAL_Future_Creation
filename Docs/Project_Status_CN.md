@@ -1,11 +1,11 @@
 # HAL Future Creation：项目状态与接续入口
 
-最后更新：**2026-10-19（Asia/Tokyo）**。本文件维护最新进度、已确认决策和后续入口；详细规则、资产数值和验证证据由链接文档提供。加速GA代码／编译／自动化出口及团队GA／GE接线、基础双端实测均已完成；本次手动日志确认正常激活、刷新、约5秒到期及物理恢复，无新增阻塞问题。**当前下一入口为10-F-4集成回归**，完整阶段10尚未验收。新对话不需要依赖另一设备的聊天历史，但必须核对实际工程。
+最后更新：**2026-10-19（Asia/Tokyo）**。本文件维护最新进度、已确认决策和后续入口；详细规则、资产数值和验证证据由链接文档提供。10-F-1～3及加速GA、团队接线和基础双端实测均完成，相关资产和复核已提交`c825d8d`。**用户已决定将10-F-4完整集成／扰动／四机测试后置至MVP-B收尾，当前暂不施工F4-A；后续开发按用户指定事项推进。** 最终验收未完成，后续各项开发仍保留相关编译／自动化及必要双端基本检查。
 
 ## 1. 先读什么、先检查什么
 
 1. 完整阅读根目录 [AGENTS.md](../AGENTS.md) 和本文件。
-2. 当前先读[加速GA及详细配置／团队反馈](Combat/MVPB_Phase10F3_Movement_Ability_CN_v0.1.md)、[手动日志复核](Combat/MVPB_Phase10F3Ability_ManualLogReview_20261019.json)、[原施工验证](Combat/MVPB_Phase10F3Ability_Verification_20261019.json)，再读[原F3实施](Combat/MVPB_Phase10F3_Implementation_CN_v0.1.md)、[原F3验证](Combat/MVPB_Phase10F3_Verification_20261017.json)、[F2桥接](Combat/MVPB_Phase10F2_Implementation_CN_v0.1.md)、[F1规格](Combat/MVPB_Phase10F1_Spec_CN_v0.1.md)、[保存基线](Combat/MVPB_Phase10F1_Baseline_20261017.json)和[分步计划](Combat/MVPB_Phase10F_Movement_Effects_Plan_CN_v0.1.md)。F3代码出口、团队原Primary替换和基础双端反馈已完成；进入F4前先核对本机新GA／GE／PlayerState是否已随Git同步。再读[10-E实施](Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)及[手动日志复核](Combat/MVPB_Phase10E_ManualLogReview_20261016.json)，保留团队免疫反馈与双向伤害／冲击独立子项；10-D修复见[施工记录](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)。规则背景见[GAS总体方案](Combat/MVPB_GAS_Architecture_Overview_CN_v0.1.md)，双端启动和本轮命令见[操作说明](Configuration/MVPB_DebugHUD_And_GAS_Test_CN_v0.1.md)，DA职责见[速查](Configuration/MVPB_DataAsset_QuickGuide_CN_v1.0.md)。
+2. 按用户当前指定的后续功能读取相关规格；涉及GAS／运动时先读[加速GA及团队反馈](Combat/MVPB_Phase10F3_Movement_Ability_CN_v0.1.md)、[手动日志](Combat/MVPB_Phase10F3Ability_ManualLogReview_20261019.json)、[施工验证](Combat/MVPB_Phase10F3Ability_Verification_20261019.json)、[F2桥接](Combat/MVPB_Phase10F2_Implementation_CN_v0.1.md)、[F1规格](Combat/MVPB_Phase10F1_Spec_CN_v0.1.md)与[保存基线](Combat/MVPB_Phase10F1_Baseline_20261017.json)。F1～F3及团队接线／基础反馈完成，331资产已提交；[F4方案](Combat/MVPB_Phase10F4_Integration_Plan_CN_v0.1.md)与[总计划](Combat/MVPB_Phase10F_Movement_Effects_Plan_CN_v0.1.md)保留，但A～D整体按用户决定后置至MVP-B收尾，不能沿旧入口自动开工。10-D／10-E欠项见各自[施工记录](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)、[实施](Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)及[手动日志](Combat/MVPB_Phase10E_ManualLogReview_20261016.json)。规则背景见[GAS总体方案](Combat/MVPB_GAS_Architecture_Overview_CN_v0.1.md)，双端启动见[操作说明](Configuration/MVPB_DebugHUD_And_GAS_Test_CN_v0.1.md)，DA职责见[速查](Configuration/MVPB_DataAsset_QuickGuide_CN_v1.0.md)。
 3. 以 [MVP-B Listen Server v0.2 计划](MVP_B_Listen_Server_Plan_CN_v0.2.md)和对应 `Docs/Networking/` 实施记录确认已存在的网络边界。早期 [MVP-A→MVP-B 交接](MVP_A_to_MVP_B_Handoff_CN_v1.0.md)用于追踪背景，不能把旧参数当成当前 DA。
 4. 在本机执行 `git status --short`、`git branch --show-current`、`git rev-parse HEAD`，对照 `.uproject`、模块 `Build.cs`、`Source/`、`Config/`、相关测试和邻近说明；以 Editor 的 About 或引擎 `Engine/Build/Build.version` 核对实际补丁版本。
 5. 修改前先汇报当前工程与本记录的差异和本次任务范围；保留已有改动。不因历史记录写了“下一步”就自动施工未获用户授权的环节。
@@ -14,19 +14,21 @@
 
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
-| 开发阶段 | 10-F-3代码／编译／自动化及团队加速GA接线、基础双端实测完成；手动日志中8次成功激活／4个完整效果窗口正常，见[第9节](Combat/MVPB_Phase10F3_Movement_Ability_CN_v0.1.md#9-团队双端反馈与日志复核2026-10-19)。当前下一入口F4完整物理组合／扰动／四机，原10-D／10-E剩余细项保留 |
-| 当前本机分支／代码提交 | `main / a38498e46e0cb1275f347af1e1badf7d104222f0`，加速GA源码／文档已提交；本轮开始仅团队新增GA／GE和PlayerState修改未提交，全部保留。本次新增复核留档及状态更新，未核查远端、未提交／Push |
+| 开发阶段 | F1～F3、加速GA及团队基础双端实测完成；F4-A～D按用户决定后置至MVP-B收尾。[原方案](Combat/MVPB_Phase10F4_Integration_Plan_CN_v0.1.md)保留，完整F4／阶段10最终验收仍未完成；后续功能按用户指定，不将F4-A当立即施工入口 |
+| 当前本机分支／代码提交 | `main / c825d8d2516c56da3b71029562344ea68f975101`，3项团队接线资产及手动复核均已提交；保留未提交F4方案／入口／白名单改动，本次增加独立弹簧拳交接注意事项及分工记录，无源码／资产修改、未提交／Push |
 | 引擎基线 | UE `5.8.3-58210709+++UE5+Release-5.8`；最终Editor／Game Development成功，45/45普通回归0测试警告／0失败，真实GA Host／客户端各1/1成功。主机发送方向注入80ms，非实测RTT；F2的1500ms恢复及原F3调试GE证据保持，未当作本轮复测 |
-| 本机运行前置 | 本轮只读检查现有日志，无新编译／启动UE／自动化；134份源码／配置哈希与之前验证一致。团队当前两游戏窗口正常退出，日志未见崩溃／异常断线；F2回滚驾驶完整组合仍随F4覆盖 |
+| 本机运行前置 | 本轮仅文档排期，无新构建／UE启动／自动化或F4验收。此前134份源码／配置与原验证一致；后续功能有源码修改时仍完整编译并做相关验证，不能把最终集成测试后置理解为取消最小检查 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
 | GAS 当前实现 | `HALMovementBoostAbility`，ServerOnly施加可配非周期GE后立即结束，无默认费用／冷却，独立于debug；5游戏秒、+0.5／+0.25、按目标一层刷新及Avatar作用域。团队已在原Primary替换为加速GA；原免疫GA／GE／冷却及调试入口保留 |
 | 当前 HP／冲击 | 10-C伤害／快照保留；10-D同帧Internal读写已有28项自动化证据，用户2026-10-16确认击飞效果恢复。保留现有档位、水平补足和DA，各档实际响应后续调整；本次反馈未列双向角色／扰动明细 |
-| 当前 Editor 接线 | 团队已创建`GA_MovementBoost`／`GE_MovementBoost`并修改`BP_HALPlayerState`；日志确认实际使用这两个子类、Primary Matches=1、5秒及1.5／1.25倍率。331资产中上述新增2／修改1仍未提交；代理不编辑资产，未新做完整CDO／蓝图图表导出 |
+| 当前 Editor 接线 | 团队`GA_MovementBoost`／`GE_MovementBoost`及`BP_HALPlayerState`替换已随c825d8d提交；此前日志确认实际子类、Primary Matches1、5秒及1.5／1.25。当前331资产，代理不编辑资产，未新做完整CDO／蓝图图表导出 |
 | 测试地图 | 单机回归 `/Game/Maps/Test`；联机玩法 `/Game/Maps/MVPB_NetTest`；完整菜单 Host／Join 从 `/Game/Maps/MVPB_NetEntry` 启动 |
 
 代码提交号是本次交接的比较基点，后续提交会变化。F1保存基线及F2历史证据保持；10月17日F3的原生GE／调试入口证据见原摘要。本轮运动GA补充不改保存配置、DA／地图或F2物理协议；329资产前后哈希全同，134份源码／配置及最终两Target／45项／正常GA双端证据见[本轮摘要](Combat/MVPB_Phase10F3Ability_Verification_20261019.json)。首次Live Coding阻塞、补Period防护前的通过记录独立保留；历史结果不冒充本次复测。
 
 上段329资产是代码施工时的保护结果。随后团队新建2份加速资产并修改PlayerState，本次已记录331份资产及3项变化哈希，134份源码／配置未变化；新结论见[手动复核](Combat/MVPB_Phase10F3Ability_ManualLogReview_20261019.json)。本次没有重跑构建／45项自动化，也不把团队基本双端反馈写成F4完整验收。
+
+随后c825d8d已提交上述3项资产和手动复核文档；不再把“资产未提交”作为当前阻塞。新的[F4方案](Combat/MVPB_Phase10F4_Integration_Plan_CN_v0.1.md)只记录待执行矩阵、分工和门槛，不代表F4测试已完成。
 
 ## 3. 已完成与验收状态
 
@@ -43,8 +45,9 @@
 | 10-E | 原生GA／GE、授予／清理、输入／调试完成；原Editor／Game、33/33普通回归与真实激活smoke通过。团队接线已提交，报告双端免疫开始／消失及效果正常；本轮两局五次命中确认双方受击、免疫Heavy→None且伤害25、HP收敛，客户端目标后续命中恢复Heavy | 手动日志未启用hal.AbilityLog，缺精确8／20计时／重复请求／实际GE类名记录；团队一般观感与日志子项分别留档。按住输入、目标持球保球、活动效果退出／换Avatar、100ms RTT／1%丢包／20ms抖动及四机未有本次新实测证据，未新增正式技能演出 |
 | 独立调试补球 | 新HALSpawnBall由服务器按调用者车辆生成配置的BP_BasicBall；Editor／Game和29/29自动化通过。实际NetTest主机执行成功、客户端接收动态球通过，324资产前后未变 | 客户端实际输入命令发起RPC、驾驶捕获／发射及真人观感待团队反馈；无网络扰动测试，不算10-E技能验证，见独立验证JSON |
 | 10-F | F1／F2规格、基线、桥接及F3正式GE／调试入口完成；原两Target／42项／80ms调试GE证据保持，见[F3实施](Combat/MVPB_Phase10F3_Implementation_CN_v0.1.md)及[验证](Combat/MVPB_Phase10F3_Verification_20261017.json)。加速GA追加证据及团队反馈见下一行 | F3状态共存和基本双端反馈不是完整物理组合；F4驾驶／控球／发射／冲击／免疫／退出、完整扰动与四机待完成。F2回滚驾驶补充回调仍需覆盖组合体验 |
-| 10-F-3技能补充 | 加速GA、Tag、可配非周期GE／许可／刷新、3项新增普通测试、真实GA双端夹具及配置步骤完成；之前Editor／Game、45/45及双端通过。团队已接线并报告双端符合逻辑；本次日志确认主机／客户端各4次激活、4段效果约5秒到期及倍率恢复，未见新增阻塞问题 | 手动日志中的倍率与生命周期通过，客户端实际Replay、末尾Ready1／Recovery0／倍率1。完整输入边沿／发射／冲击／免疫／带GE退出／换Avatar及F4网络矩阵仍待覆盖；团队3项资产未提交，见[详细记录](Combat/MVPB_Phase10F3_Movement_Ability_CN_v0.1.md) |
-| 独立弹簧拳原型 | 另一成员负责；已有伸缩状态机、服务器目标检测及每次攻击去重 | 用户指定阶段 10 完成后再接伤害／冲击，本轮及 10-C 不改该模块；原型尚不具备标准战斗结算与状态复制 |
+| 10-F-3技能补充 | 加速GA、Tag、可配非周期GE／许可／刷新、3项新增普通测试、真实GA双端夹具及配置步骤完成；之前Editor／Game、45/45及双端通过。团队接线与基础双端反馈／日志复核通过，c825d8d已提交；主机／客户端各4次激活、4段效果到期恢复正常 | 完整输入边沿／发射／冲击／免疫／带GE退出／换Avatar及F4网络矩阵仍待覆盖；见[详细记录](Combat/MVPB_Phase10F3_Movement_Ability_CN_v0.1.md) |
+| 10-F-4准备／后置 | [F4执行方案](Combat/MVPB_Phase10F4_Integration_Plan_CN_v0.1.md)已留档，HALNetMetrics缺RTT等诊断亦列待补；用户决定整个A～D在MVP-B末尾统一执行，当前暂不施工 | 完整集成／网络扰动／四机仍未验收；旧45项／80ms单向smoke不代替F4。后续开发继续相关编译／自动化／必要双端验证，阻塞缺陷及时修复 |
+| 独立弹簧拳接入分工 | 用户已明确将该部分交给另一成员；现有伸缩／服务器Sweep／每拳目标集合，尚无实际标准伤害／冲击及完整状态复制。已提供[交接注意事项](Combat/MVPB_SpringPunch_Combat_Handoff_CN_v0.1.md) | 本会话只整理接口／约束，不修改机关源码／资产，不标记接入完成。基础伤害／档位／方向／有效阶段／比赛启动规则尚未定，负责成员先对接；最小编译／自动化／双端验证仍须完成 |
 
 本次 10-B 构建证据：UE 5.8.2 的 Editor/Game Development Target 均成功，`HAL.FutureCreation` 自动化 16/16 通过，报告原位于 `Saved/Automation/MVPB_Phase10B_Final/index.json`；隐藏双进程 Join succeeded，客户端收到两辆车的 GAS HP=100／MaxHP=100。历史阶段 9 的 14/14 结果保留在对应记录中。本次没有真人驾驶／命中及延迟测试。`Saved/` 不随 Git 交接，新电脑不存在这些报告不代表测试失败，也不能声称已重跑；共享摘要见 10-B Verification JSON。
 
@@ -96,26 +99,28 @@
 
 ## 6. 下一环节和待确定项
 
-当前下一入口为**10-F-4集成回归**。10-F-3加速GA代码／编译／45项及真实自动化双端已通过；团队已按[详细配置](Combat/MVPB_Phase10F3_Movement_Ability_CN_v0.1.md)创建／引用加速GA／GE并替换原Primary，报告双端符合逻辑。本次手动日志确认这两个子类实际运行、8次权威接受／4段完整效果、一层刷新及约5秒到期恢复，未发现新增阻塞问题；不再把GA开发或团队基本接线列为待办。
+**排期调整：用户决定将剩余10-F-4完整测试统一放到MVP-B收尾，当前不再以F4-A作为下一施工入口。** F1～F3、加速GA和团队接线／基础双端反馈已完成，代码／资产可继续作为开发基线；下一功能事项按用户后续指定，本次不自行选择或开工新模块。完整矩阵与门槛仍见[F4方案](Combat/MVPB_Phase10F4_Integration_Plan_CN_v0.1.md)，后置不等于最终验收通过。
 
-F4仍需真实驾驶／漂移／持球／发射／冲击／免疫／退出及墙角／腾空／连续接触组合、实测RTT／1%丢包／20ms抖动和四台有线PC。本次少量控球／碰撞脱球记录与团队基本观感不能代替完整矩阵；未自动施工F4。保留原免疫资产，不提前扩展第二槽位、技能库或弹簧拳；换机前先将当前两份新GA／GE及PlayerState修改与留档一起正常提交。
+MVP-B收尾时使用届时冻结的同一提交／构建／资产，统一覆盖驾驶／漂移／持球／发射／冲击／免疫／退出、墙角／腾空／连续接触、100ms实测RTT／1%丢包／20ms抖动及四台有线PC；150ms／3%／50ms压力档单列。合并阶段9和10-D／10-E重叠欠项，逐项保留结果，不能用基础日志代替。F4-A诊断／夹具也暂不施工，届时按A→B→C→D恢复。
+
+后续每项开发仍保留完整编译、相关自动化、涉及联机时必要双端基本验证；真实阻塞缺陷及时处理。阶段10最终验收未完成。用户现明确将弹簧拳战斗／联机接入交给另一成员，本会话只提供[交接注意事项](Combat/MVPB_SpringPunch_Combat_Handoff_CN_v0.1.md)，不代为施工或预设新伤害数值；该成员需对接尚未确定的机关规则与交付范围。完整矩阵仍并入MVP-B末尾统一测试。
 
 `ArcadeVehicleMovementComponent`保持基础配置，纵向驾驶／上限在消费时乘当帧倍率，转向继续用基础速度参照。物理历史已加入Epoch／Revision／快照及分段时间线。F2发现UE5.8通用Async Tick在回滚时被跳过，已补仅重模拟时执行原驾驶的Chaos回调，详见[F2实施第3节](Combat/MVPB_Phase10F2_Implementation_CN_v0.1.md#3-本轮发现并修复的既有回滚缺口)；不得把该回调再用于正常帧重复施力。
 
 10-E接线已提交，基础双端免疫反馈与日志子项保持，不再重复已完成的接线。其余精确GE／冷却、输入边沿、目标持球／到期恢复、带活动效果退出及100ms实测RTT／1%丢包／20ms抖动矩阵随集成回归补齐；下一次双方先开`hal.AbilityLog 1`，具体边界见[10-E实施第7节](Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)和[手动复核](Combat/MVPB_Phase10E_ManualLogReview_20261016.json)。四台真实有线PC仍是最终环境，不以同机双端替代。
 
-10-D目前没有发现阻塞10-E的程序缺陷，也无必需追加功能；用户确认击飞恢复，档位响应力度以后调参。尚缺的降档／免疫／脱球、连续接触、双向角色及网络扰动细项继续随集成回归补齐，不把进到10-E等同10-D完整验收；新发现的缺陷仍须修。独立命中目标禁捕继续只留档，弹簧拳战斗接入继续等阶段10完成，不在此扩展。
+10-D目前没有发现阻塞10-E的程序缺陷，也无必需追加功能；用户确认击飞恢复，档位响应力度以后调参。尚缺的降档／免疫／脱球、连续接触、双向角色及网络扰动细项继续随集成回归补齐，不把进到10-E等同10-D完整验收；新发现的缺陷仍须修。独立命中目标禁捕继续只留档，弹簧拳接入由另一成员负责，本会话不扩展该模块。
 
 旧10-C操作只用于未迁移副本，不要求团队重复已完成内容。10-D／10-E的5.8.2证据保持；本轮5.8.3已完成最终构建、45项普通回归与正常加速GA的真实双端请求／刷新／到期检查；未重做完整真人物理组合，四台有线PC仍待另记。跨设备提交时一起带上源码、文档及团队手工保存的资产，不提交Saved／Binaries。
 
-10-B回归反馈与旧证据保留；它们不代替10-C新规则和V1接线后的测试。后续记录实际提交／UE补丁／DA哈希／单向注入与实测RTT，不能将同机日志时间差当RTT。弹簧拳由另一成员独立开发，等阶段10完成后再接伤害／冲击；10-C只提供共用入口，该模块与资产本轮未修改。
+10-B回归反馈与旧证据保留；它们不代替10-C新规则和V1接线后的测试。后续记录实际提交／UE补丁／DA哈希／单向注入与实测RTT，不能将同机日志时间差当RTT。弹簧拳原型及接入由另一成员独立负责，10-C／10-D提供共用结算与物理入口；本次仅交接文档，该模块与资产未修改。
 
 | 何时确定 | 尚需具体确定的内容 |
 |---|---|
 | 10-C 后续证据补充 | 已有迁移提交、新资产哈希和团队完成反馈；若要宣称特定RTT／丢包／抖动门槛已通过，再补当次细项日志；本机重编后可另导出V1字段与运行状态，不覆盖旧记录 |
 | 10-D 后续回归／调参 | 击飞恢复已获团队反馈；补三档／降档／免疫／脱球、连续接触、双向及网络扰动记录；档位响应与碰撞标尺数值以后调整，不作为新增开发功能 |
 | 10-E 团队验收 | 无额外核心算式待定；基础双端免疫反馈和双向命中日志子项已记录，接线已提交。下次开AbilityLog，补精确计时、输入边沿、目标持球、带效果退出及扰动细项；正式表现素材暂未指定，当前用调试HUD |
-| 10-F-4 集成回归 | 原Primary加速GA／GE接线与基础双端反馈已完成；下一步覆盖真实物理组合／角色互换／退出，补100ms实测RTT、1%丢包／20ms抖动和四台有线PC。F2回滚驾驶变化需覆盖，不以基本GE状态与单局日志代替完整验收 |
+| MVP-B收尾统一验收 | 10-F-4完整A～D矩阵已由用户后置；届时合并原阶段9／10-D／10-E欠项，覆盖真实物理组合／角色互换／退出、100ms实测RTT／1%loss／20msjitter、压力档与四台有线PC。F2回滚驾驶需覆盖，不以单局日志代替完整验收 |
 | 团队环境变更时 | 本机5.8.3最终两Target／45项回归／正常GA双端已记录；仍需团队统一补丁及真人组合／完整扰动和四台有线PC证据 |
 
 ## 7. 两台电脑如何接续和维护本文件
@@ -132,6 +137,9 @@ F4仍需真实驾驶／漂移／持球／发射／冲击／免疫／退出及墙
 
 ## 8. 本次更新记录
 
+- 2026-10-19弹簧拳交接：用户明确将战斗／联机接入交另一成员并询问注意事项。本次核对当前原型与CombatResolver／Action／ImpactReceiver接口，新增[交接说明](Combat/MVPB_SpringPunch_Combat_Handoff_CN_v0.1.md)，覆盖无ASC机关固定伤害来源、独立抵抗／免疫、持久每拳Action与bHitAccepted消费、默认bApplyImpact=false／LegacyMeasurement的易漏点、方向法线约定、V1配置、Sweep末段、服务器时序复制／客户端表现、待定玩法及最小验证。保留现有未提交F4方案改动，未修改源码／资产、构建／启动UE或运行新测试；未给新机关数值定案，也未提交／Push或代替成员施工。
+- 2026-10-19排期调整：用户提出10-F剩余测试在MVP-B末尾统一进行，已采纳为F4-A～D整体后置，当前不施工诊断／夹具或执行完整矩阵；F1～F3和加速GA、团队基础双端结论保持。保留原F4方案与验收门槛，最终冻结同一构建后合并阶段9／10-D／10-E欠项统一执行；后续功能仍按改动做编译／相关自动化／必要双端验证，阻塞缺陷及时处理。仅调整文档排期，保留上轮未提交说明，无源码／资产／新构建或测试，不将后置写成最终验收通过，也不自动开工弹簧拳／其他新模块。
+- 2026-10-19 F4方案：用户报告已提交Git并询问下一步范围／方案；确认干净`main/c825d8d`包含3项团队加速接线资产和手动复核文档，实际UE5.8.3。新增[F4执行方案](Combat/MVPB_Phase10F4_Integration_Plan_CN_v0.1.md)，细分A本机程序验证／必要诊断、B低延迟双端玩法、C主验收／压力扰动、D四台有线PC；沿用既定10分钟、1秒振荡、球状态收敛与幂等门槛。识别现有HALNetMetrics只记物理帧／ResimRuns，不能证明RTT／loss／jitter；加速与免疫共存使用测试夹具或独立配置轮次，不加第二正式槽位。仅方案／文档／Git白名单，无源码／资产修改、构建／UE运行或新F4验收；下一施工入口F4-A，本轮未提交／Push。
 - 2026-10-19团队实测接续：接收`main/a38498e`，GA源码／文档已提交，团队新GA／GE及PlayerState修改仍未提交。用户报告双端符合逻辑；本次只读核对12:04～12:05主机／Client_2日志及两个启动参考日志，8次成功激活（双方各4）、4段完整效果，实际GA／GE子类和唯一Primary正常；末次刷新至GE移除5.000／5.003／5.005／5.001日志秒，倍率1.5／1.25且同值刷新不新增Revision，到期均恢复1／1。客户端1681条物理采样均Ready1／Recovery0，实际Replay且回滚请求最大5；无崩溃／GAS告警／对战异常断线，既有Entry不可聚焦Widget错误与启动提示保留。134份源码／配置与原验证一致，331资产中的团队新增2／修改1已留哈希，代理不改资产／源码、不重编／跑自动化、不提交／Push。基本接线与双端实测通过，当前下一入口F4完整集成；见[手动复核JSON](Combat/MVPB_Phase10F3Ability_ManualLogReview_20261019.json)及[实施第9节](Combat/MVPB_Phase10F3_Movement_Ability_CN_v0.1.md#9-团队双端反馈与日志复核2026-10-19)。
 - 2026-10-19：用户授权补完整加速GA并复用原Primary替换免疫。新增窄ServerOnly运动GA、可配非周期GE、能力Tag，接现有输入／GAS激活；施加后结束GA，默认无费用／冷却，重复发动刷新5秒。新增3项普通测试与真实双端夹具，提供GE→GA→PlayerState→原输入的详细步骤。首次Editor构建被Live Coding阻止，用户保存关闭后完整编译成功；复核补非零Period拒绝以防基础属性残留，最终重新顺序构建Editor／Game均成功，45/45普通回归0测试警告／0失败，正常GA Host／客户端各1/1成功（主机单向注入80ms）。双方刷新保持Revision2，最后刷新至物理恢复约5.034／5.150游戏秒且变3，客户端完成时4次回滚请求。Waiting客户端尝试是本地拒绝，权威拒绝另有普通测试；不伪称预赛请求到达服务器。329资产全同，134份源码／配置哈希留档，最终专用进程全部正常退出。保留起始4份文档改动，无蓝图／地图／保存Config／DA或弹簧拳编辑，未提交／Push。当前下一步团队手工替换Primary及实际按键测试，随后F4；详见[配置](Combat/MVPB_Phase10F3_Movement_Ability_CN_v0.1.md)与[本轮证据](Combat/MVPB_Phase10F3Ability_Verification_20261019.json)。
 - 2026-10-19：用户明确需要与此前免疫一样，通过技能释放发动加速，而非debug命令。复核main/e8b18ce，源码仍无运动GA，现有Primary路由／授予可复用，免疫GA的专用校验不能套用。将当前下一入口从F4调整为F3补充运动GA，再做F4；原GE／桥接／调试验证保留，不宣称完整技能链已完成。本轮仅说明缺口与更新文档，未新增C++／资产／配置、编译或运行测试；保留此前3份未提交说明改动。

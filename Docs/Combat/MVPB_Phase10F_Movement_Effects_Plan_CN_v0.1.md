@@ -2,7 +2,9 @@
 
 日期：2026-10-16（Asia/Tokyo）。留档基点：`main / e811b58c169213f47d2f4a07c8e4546828f467ca`，本轮开始工作区干净。本机引擎UE5.8.2 CL56702186；其他设备的实际版本须重新核对。
 
-**状态：10-F-3及加速GA补充代码／编译／自动化完成，团队已在原Primary替换免疫并报告基础双端表现符合逻辑；本次手动日志复核通过，下一入口10-F-4集成回归。** 8次权威接受／4段效果确认实际GA／GE子类、刷新与约5秒到期恢复，见[技能记录第9节](MVPB_Phase10F3_Movement_Ability_CN_v0.1.md#9-团队双端反馈与日志复核2026-10-19)和[手动复核](MVPB_Phase10F3Ability_ManualLogReview_20261019.json)。之前最终Editor／Game、45项及80ms单向注入真实GA双端证据见[原施工验证](MVPB_Phase10F3Ability_Verification_20261019.json)，本次不冒充重跑。原F3调试GE的42项及双端证据保持于[F3实施](MVPB_Phase10F3_Implementation_CN_v0.1.md)和[原摘要](MVPB_Phase10F3_Verification_20261017.json)。[F1规格／基线](MVPB_Phase10F1_Spec_CN_v0.1.md)与[F2历史恢复证据](MVPB_Phase10F2_Implementation_CN_v0.1.md)保持。F4真人物理组合、实测RTT／丢包／抖动及四机尚待完成，不把基本双端观感或单局日志当完整验收。
+**状态：10-F-3及加速GA补充代码／编译／自动化、团队接线和基本双端实测完成；用户决定将剩余10-F-4统一后置至MVP-B收尾，当前暂不施工F4。** 8次权威接受／4段效果确认实际GA／GE子类、刷新与约5秒到期恢复，见[技能记录第9节](MVPB_Phase10F3_Movement_Ability_CN_v0.1.md#9-团队双端反馈与日志复核2026-10-19)和[手动复核](MVPB_Phase10F3Ability_ManualLogReview_20261019.json)。之前最终Editor／Game、45项及80ms单向注入真实GA双端证据见[原施工验证](MVPB_Phase10F3Ability_Verification_20261019.json)，本次不冒充重跑。原F3调试GE的42项及双端证据保持于[F3实施](MVPB_Phase10F3_Implementation_CN_v0.1.md)和[原摘要](MVPB_Phase10F3_Verification_20261017.json)。[F1规格／基线](MVPB_Phase10F1_Spec_CN_v0.1.md)与[F2历史恢复证据](MVPB_Phase10F2_Implementation_CN_v0.1.md)保持。F4真人物理组合、实测RTT／丢包／抖动及四机仍未验收，原门槛保留。
+
+F4准备补充：已确认`main/c825d8d`提交团队3项接线资产及复核文档，制定方案时起始工作区干净。[F4执行方案](MVPB_Phase10F4_Integration_Plan_CN_v0.1.md)已留档，恢复时按A本机测试／必要诊断→B双端玩法→C扰动→D四机推进；现按用户决定整套后置到MVP-B收尾。后续各功能仍做相关编译／自动化／必要双端检查，不以最终测试后置为由跳过最小验证；本次仅排期更新。
 
 2026-10-17接续补充：用户先确认首例**5游戏秒、加速度×1.5、速度上限×1.25、最多一层且合法重施刷新**作为测试方案，随后明确同意第6.1节三组规则：作用范围、不同GE合并／0～3测试保护范围、多来源／到期／Avatar清理。首例玩法确认完成，不再重复索要这些决定；后续10-F-1交付已链接于上段。
 
@@ -46,7 +48,7 @@ GAS管理效果施加、持续、叠层／刷新、移除与有效数值；Movem
 | 10-F-2：运动桥接 | 增加最少所需属性与事件订阅、线程安全快照、服务器权威帧同步／历史及Movement消费 | 2026-10-17完成；最终两个Target、39/39普通回归及双进程迟到／缺历史恢复通过。修复UE5.8通用Async Tick不执行驾驶回滚的缺口；真人组合仍留F4 |
 | 10-F-3：首个运动GE | 配置持续加速效果，增加可关闭的服务器调试施加入口及HUD／日志；给团队资产步骤 | 2026-10-17完成；5游戏秒原生GE／一层刷新、只操作当前Avatar的请求与选择性清除、服务器开关、可选Editor配置步骤；42项普通回归与真实Owner RPC／刷新／自然到期双端通过，保留免疫主技能 |
 | 10-F-3补充：技能入口 | 窄C++运动GA施加正式GE，原Primary替换免疫，复用现有输入与GAS请求 | 2026-10-19原两Target／45项／真实GA双端通过；随后团队接线、基础双端反馈和手动日志复核通过，当前仅留完整F4验收 |
-| 10-F-4：集成回归 | 驾驶／控球／发射／冲击／免疫组合、双端互换、网络扰动、四台真实有线PC | 分工况记录证据、遗留问题和结论，补10-D／10-E未关闭项目；不得用同机双进程替代四机 |
+| 10-F-4：集成回归 | 驾驶／控球／发射／冲击／免疫组合、双端互换、网络扰动、四台真实有线PC | [具体方案](MVPB_Phase10F4_Integration_Plan_CN_v0.1.md)保留，用户已后置到MVP-B收尾；届时分工况记录证据，合并10-D／10-E及阶段9重叠欠项；不得用同机双进程替代四机 |
 
 按用户一贯要求，每次只实施明确指定的小步，交付后更新状态和证据。进入10-F-2前应完成10-F-1；代码完成、编译通过、自动化通过和团队实测分别记录。
 
@@ -100,7 +102,7 @@ GAS管理效果施加、持续、叠层／刷新、移除与有效数值；Movem
 2. **不同GE合并与数值范围**：两类有效倍率分别按`clamp(1 + sum(各活动GE的倍率增量), 0, 3)`计算，例如+0.5与-0.3合并为1.2，不连乘。0～3为首轮可调测试保护范围，不是最终平衡值；0只限制主动驱动／驾驶上限，不冻结Chaos刚体、清零速度或免除冲击。最终有效值钳制，不破坏各GE原始贡献，移除后按剩余贡献重新计算；非有限值拒绝。叠加层数策略继续由各GE定义。
 3. **多来源、到期与清理**：本次定时加速GE按目标聚合，同一目标无论来源重施均共用一层，成功重施从本次起再计5秒，不增加强度或累计时长；不同GE的贡献分别保留／移除。到期或合法驱散时仅恢复有效参数，保留真实线速度／角速度，接地时沿用现有阻尼／超速修正，腾空时不额外制动。首例为Avatar作用域，换车／失去Avatar清理，不带到新车，不重置HP或其他冷却；Owner退出沿用现有清理。未来区域重叠的按来源退出不能通过移除本次共享定时GE来误清其他来源，应届时使用独立贡献句柄。
 
-用户已明确同意上述三组规则，不再重复确认。服务器确认效果、事件驱动采样、线程安全传递、历史帧重放和序号／Avatar隔离沿用既定架构约束；具体Solver生效帧、同帧更新顺序、迟到／窗口不足恢复路线、精度和日志属于10-F-1技术设计，应检查本机引擎后落档，不要求用户选择底层API。首例继续不新增主动GA／冷却或替换免疫Primary技能。
+用户已明确同意上述三组规则，不再重复确认。服务器确认效果、事件驱动采样、线程安全传递、历史帧重放和序号／Avatar隔离沿用既定架构约束；具体Solver契约已在F1固定、F2实施。原定首例不新增GA，后续10月19日用户追加授权并已完成运动GA及Primary替换，仍无新增费用／冷却；F4不新增第二槽位。
 
 ## 7. 计划中的验证矩阵
 
@@ -123,7 +125,7 @@ GAS管理效果施加、持续、叠层／刷新、移除与有效数值；Movem
 | 入口 | 重点 |
 |---|---|
 | `HAL_Future_Creation.uproject`、模块`HAL_Future_Creation.Build.cs` | GAS插件／模块依赖已存在，不重复安装第三方插件 |
-| `Source/HAL_Future_Creation/HALPlayerState.*`、`HALAbilitySystemComponent.*`、三个已有`HAL*AttributeSet.*` | Owner／Avatar、初始化／复制、作用域与属性通知；目前没有运动AttributeSet |
+| `Source/HAL_Future_Creation/HALPlayerState.*`、`HALAbilitySystemComponent.*`、`HAL*AttributeSet.*` | Owner／Avatar、HP／战斗／冲击／运动属性初始化／复制、作用域与通知；运动AttributeSet及桥接已在F2实现 |
 | `TestVehiclePawn.*`、`VehicleDefinition.*`、`VehicleConfigurationTypes.*` | DA应用、已调基础参数、Local输入与Avatar绑定／清理 |
 | `ArcadeVehicleMovementComponent.*` | AsyncPhysicsTick、输入／状态历史、真正施力、现有超速修正及线程边界 |
 | `VehicleNetPhysicsData.*` | Network Physics Apply／Build／Compare／NetSerialize、已有动作载荷和历史状态；不能在客户端输入里增加可信Buff结果 |
@@ -139,6 +141,8 @@ GAS管理效果施加、持续、叠层／刷新、移除与有效数值；Movem
 
 初版留档时保存资产共329份，6850e8a团队接线新增5份、修改3份属于有意变更；见[手动复核JSON](MVPB_Phase10E_ManualLogReview_20261016.json)。随后F1完成新的保存DA／引用基线，F2／F3分别保护329资产哈希全同；F3未重新导出DA数值，也未保存蓝图／地图。
 
+运动GA补充后团队新增GA／GE、修改PlayerState，当前331资产，3项变化哈希见[加速技能手动复核](MVPB_Phase10F3Ability_ManualLogReview_20261019.json)，已在c825d8d提交。F4保护当前保存值，不能以早期329资产快照覆盖这次接线。
+
 接收设备以实际提交／资产和[F1保存基线](MVPB_Phase10F1_Baseline_20261017.json)核对玩家车辆、Local、球、Combat／网络配置；另存副本或调参时记录原因和差异。2026-09-30的[10-A快照](MVPB_Phase10A_Baseline_20260930.json)用于历史追踪，不能替代已迁移资产。旧验证JSON保持原样，新阶段新增记录。
 
 代码代理不编辑`.uasset`／`.umap`或Blueprint Event Graph。F3已提供[可选GE子类与设置步骤](MVPB_Phase10F3_Implementation_CN_v0.1.md#3-可选editor配置以后调整数值)，团队手工完成保存与验证；默认原生GE可直接测试，无需新增资产。首例GE直接继承UGameplayEffect，不借用免疫GE父类。
@@ -149,9 +153,9 @@ GAS管理效果施加、持续、叠层／刷新、移除与有效数值；Movem
 
 接收设备：先检查未提交改动和分支，再Pull并记录实际HEAD；完整读AGENTS／状态／本文及当前F3实施，再核对源码和UE Build.version。`Saved/Phase10E`／`Phase10F1～3`原始报告通常不随Git出现；共享摘要可作历史证据，不能冒充新机复测。C++施工时退出Editor／游戏后完整重编，避免Live Coding旧二进制；各轮启动／编译记录分别保留。
 
-F1～F3及追加运动GA代码／编译／自动化、团队接线与基本双端实测均已完成，当前下一入口**10-F-4集成回归**；新GA／GE／PlayerState仍需随Git提交才能换机同步。可复制给新设备的接续提示：
+F1～F3及追加运动GA代码／编译／自动化、团队接线与基本双端实测均已完成，新GA／GE／PlayerState及复核已随c825d8d提交；[F4方案](MVPB_Phase10F4_Integration_Plan_CN_v0.1.md)准备完成但按用户决定后置到MVP-B收尾，不作为立即施工入口。可复制给新设备的接续提示：
 
-> 这是HAL_Future_Creation项目的接续开发。请完整读AGENTS.md、Docs/Project_Status_CN.md、10-F计划、MVPB_Phase10F3_Movement_Ability_CN_v0.1.md及其施工／手动复核JSON，再核对Git、实际UE补丁、源码／配置和F1保存基线。F1规格、F2运动桥接／恢复、F3正式5秒GE／调试入口及正常Primary加速GA均已完成，已有UE5.8.3两Target／45项／真实GA双端证据。团队已创建GA／GE并替换原Primary、沿用原输入，报告双端符合逻辑；手动日志8次激活／4段效果正常。接收设备先确认3项团队接线资产已提交到达，再按本次用户指定工作开展F4完整真人物理组合／实测扰动／四台有线PC，不把基本双端测试当F4已验收。保护已调DA；新机日志缺失不表示历史测试失败，也不能假称复测；蓝图／GE／DA操作给团队Editor步骤，不直接编辑资产。
+> 这是HAL_Future_Creation项目的接续开发。请完整读AGENTS.md、Docs/Project_Status_CN.md、10-F总计划及相关规格，再核对Git、实际UE补丁、源码／配置和F1基线。F1～F3及正常Primary加速GA、团队接线和基础双端实测已完成，已有两Target／45项／真实GA双端与手动日志证据，c825d8d已提交331资产。用户已将10-F-4整套集成／扰动／四机测试后置至MVP-B收尾，不自动启动F4-A；后续功能按用户本次指定范围开发，并保留相关编译／自动化／必要双端基本验证。F4原方案与门槛仍保留，末尾统一执行；不将后置当作最终验收通过。现有HALNetMetrics不含RTT，不能用帧差证明网络工况；保留单Primary，不自动提前接弹簧拳，保护已调DA。新机缺少Saved不表示历史测试失败，也不能假称复测；蓝图／GE／DA操作给团队Editor步骤，不直接编辑资产。
 
 ## 11. 初版留档与后续交付
 
