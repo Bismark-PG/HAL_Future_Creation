@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+2026-10-20车辆碰撞／控球点团队反馈：用户在调整并测试后确认“暂时没有功能性问题”。当前工程为干净`main/fd41bbb`，该提交包含生成器修复及验证留档、玩家Vehicle Definition／MVPB_NetTest更新和新`SM_Car01_Collision1`资产。本次把该反馈记录为团队基础功能初测未见问题；未提供逐项清单、双端／网络条件、四机或新日志，不扩写为完整验收。代理本轮仅更新文档，未重新编译、运行Unreal或导出最终资产数值；上次269 cm／Z92／旧DA引用是诊断时点数据，不代表团队调整后的基线。详见[操作文档第9.4节](Configuration/Vehicle_Collision_Generator_CN_v0.1.md#94-团队调整后测试反馈2026-10-20)。
+
 2026-10-20车辆碰撞工具修复与出生排查（当前会话）：从`main/7d0f180`接续，团队已提交`SM_Car01_Collision`。修复生成器可视三角形绕序与UE约定相反造成的缺顶面外观，凸包顶点／物理规则不变；旧网格须读取配方生成新版本，参数Version1兼容，新结果记录GeneratorRevision2。UE5.8.2 Editor／Game Development成功，真实渲染工具回归6/6通过、0测试错误／警告，实际缩略图已检查。原日志明确出生碰撞拒绝于(-390,-1060,92)；新代理456×288×269 cm、起点Z92与地面高度不匹配，独立物理世界验证Z92重叠／Z200避开。保存玩家DA却仍引用旧200×140×70代理，独立当前保存配置Listen启动成功生成Pawn，故不能把原PIE内存配置等同保存基线。354份资产哈希未变，代理未改BP／DA／地图；待团队手动重新生成、接DA、核对四起点高度及球控制点，并做新代理真人双端回归。详见[操作与排查第9节](Configuration/Vehicle_Collision_Generator_CN_v0.1.md#9-缩略图面朝向修复与出生碰撞排查2026-10-20)和[本轮验证摘要](Configuration/Vehicle_Collision_Generator_WindingFix_Verification_20261020.json)。以下弹簧拳等其他工作记录保持。
 
 2026-10-20弹簧拳第二步（最新）：已授权并完成阶段/起始时间/时长/距离/原点/拳次的RepNotify快照、客户端服务器时间插值与旧BP非复制标记兼容；权威命中不变，不新增比赛阶段门控。UE5.8.2 Editor/Game成功，专项1/1，普通回归49/50（唯一仍为Car_01接线后的旧无Rig假设）。真实正常时间60FPS、端口7799双进程以原生拳+现有BP混测，Host/Client各1/1通过，双方观察两拳伸出/收回且两玩家HP75/Medium，无客户端Action。原生初测通过；加速时间混测曾超时，改正常时间后相同严格断言通过，失败证据保留。不代表画面/手感、实际晚加入、网络扰动、持球/免疫/加速组合或四机完成；详见[同步摘要](Combat/SpringPunch_Replication_Verification_20261020.json)与[交接](Combat/MVPB_SpringPunch_Combat_Handoff_CN_v0.1.md)。保留团队4份资产改动，代理未改资产、未提交/Push。
