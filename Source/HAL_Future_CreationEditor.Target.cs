@@ -11,5 +11,6 @@ public class HAL_Future_CreationEditorTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V7;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;
 		ExtraModuleNames.Add("HAL_Future_Creation");
+		ExtraModuleNames.Add("HAL_Future_CreationEditor");
 	}
 }

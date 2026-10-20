@@ -1,0 +1,1653 @@
+{
+  "schema_version": 1,
+  "task": "Vehicle collision proxy Editor generator v0.1",
+  "recorded_at": "2026-10-20T16:10:46.9286235+09:00",
+  "git": {
+    "branch": "main",
+    "head": "a11228a33d79814ffb24374144bb8167eede64a4",
+    "committed_or_pushed": false
+  },
+  "preserved_preexisting_changes": [
+    "Docs/Project_Status_CN.md",
+    "Docs/Presentation/MVPB_Vehicle_Presentation_Status_Review_20261020.json",
+    "Build_Editor.cmd",
+    "Tools/BuildEditor.ps1",
+    "Docs/Configuration/Build_Editor_Tool_CN.md"
+  ],
+  "engine": {
+    "root": "D:/Program Files/Epic Games/UE_5.8",
+    "version": "5.8.2",
+    "changelist": 56702186,
+    "other_pc_5_8_3_not_retested": true
+  },
+  "implementation": {
+    "module": "HAL_Future_CreationEditor (Editor, PostEngineInit)",
+    "menu": "Tools / HAL Tools section / HAL Vehicle Collision Generator",
+    "units": "cm, full length/width/height; centered pivot; +X front",
+    "shape": "XY rounded rectangle with independent front/rear quarter-circle corner radii, extruded with flat Z caps",
+    "radius_rule": "0 <= each radius <= width/2; front + rear <= length",
+    "max_segments_per_corner": 8,
+    "max_convex_input_vertices": 72,
+    "output": "new unique unsaved UStaticMesh with one FKConvexElem; SimpleAndComplex; one LOD/material slot; editable mesh description",
+    "recipe": "version 1 text values in FMetaData; no custom Editor UObject serialized into the asset",
+    "runtime_source_or_saved_config_changed": false,
+    "existing_vehicle_asset_automatically_assigned": false,
+    "editor_module_in_game_uht": false
+  },
+  "builds": [
+    {
+      "target": "HAL_Future_CreationEditor Win64 Development",
+      "result": "Succeeded",
+      "evidence": {
+        "path": "Saved/CollisionGenerator/Editor_PreviewFixed.log",
+        "bytes": 7771,
+        "sha256": "E8D374D74D16945998935B97836DA6CAC3737F5CE7A45871089D887D8140E26F"
+      }
+    },
+    {
+      "target": "HAL_Future_Creation Win64 Development",
+      "result": "Succeeded",
+      "evidence": {
+        "path": "Saved/CollisionGenerator/Game_Final.log",
+        "bytes": 11148,
+        "sha256": "9924492E9C9BA88E09B7B186AFD128BDEB4B42EDA944975286DB314933C40DE2"
+      }
+    }
+  ],
+  "final_automation": {
+    "mode": "real rendering Editor-Cmd, RenderOffscreen, Entry map; final source including preview fix",
+    "filter": "HAL.Editor (four generator tests and one UI test)",
+    "succeeded": 5,
+    "failed": 0,
+    "tests": [
+      {
+        "fullTestPath": "HAL.Editor.CollisionGenerator.ConvexClosedGeometry",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.Editor.CollisionGenerator.ParameterValidation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.Editor.CollisionGenerator.RecipePersistenceAndUniqueAssets",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.Editor.CollisionGenerator.SinglePhysicsBody",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.EditorUI.CollisionGenerator.Panel",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      }
+    ],
+    "process_exit_code": 0,
+    "report": {
+      "path": "Saved/CollisionGenerator/Automation_Rendered_Final/index.json",
+      "bytes": 2712,
+      "sha256": "80B0248DFA31B7EBD22B1B1BBB1BCE7DC1DBBBC9EA01635B9FE63A8033FCA458"
+    },
+    "log": {
+      "path": "Saved/CollisionGenerator/Automation_Rendered_Final.log",
+      "bytes": 277332,
+      "sha256": "5714DB9D6DBCE57F34F31056098B29CD60DB93CE32109F942D4B2020CDCB2224"
+    },
+    "screenshot": {
+      "path": "Docs/Configuration/VehicleCollisionGenerator_Panel_20261020.png",
+      "bytes": 43975,
+      "sha256": "58247858AE122A507CB584B8B918511BA959EBC8386825C0E38A9E0256893F93"
+    },
+    "screenshot_visually_inspected": true,
+    "startup_warnings": [
+      "NVIDIA driver TSR 16-bit VALU disabled for old driver",
+      "r.MotionVectorSimulation render-thread-safe flag warning"
+    ]
+  },
+  "intermediate_history": [
+    {
+      "result": "sandbox launch did not start UBT",
+      "note": "Re-ran build using approved external toolchain access."
+    },
+    {
+      "evidence": "Saved/CollisionGenerator/Editor_Initial.log",
+      "result": "link failed",
+      "fix": "Replaced non-exported deprecated FKConvexElem::GetVolume with exported FKAggregateGeom::GetScaledVolume; use SetCustomizedCollision."
+    },
+    {
+      "evidence": "Saved/CollisionGenerator/Editor_APIAdjusted.log",
+      "result": "UI test compile failed",
+      "fix": "Use public menu section lookup and PNGCompressImageArray."
+    },
+    {
+      "evidence": "Saved/CollisionGenerator/Automation_Initial/index.json",
+      "result": "3/4",
+      "process_exit_code": 0,
+      "fix": "Serialization fixture had changed the package mount path despite metadata soft object path keys. Mount Saved under a unique /Game test root, save at the same package path and move the memory copy aside before reload; no production recipe logic change."
+    },
+    {
+      "evidence": "Saved/CollisionGenerator/Automation_Final/index.json",
+      "result": "4/4, before UI paint fix"
+    },
+    {
+      "evidence": "Saved/CollisionGenerator/UI_Initial.log",
+      "result": "rendering UI crashed with TArray self-reference assertion",
+      "fix": "Copy first preview point before appending to close its polyline. Final rendering run then passed all 5 tests."
+    }
+  ],
+  "asset_protection": {
+    "before_count": 353,
+    "after_count": 353,
+    "all_sha256_identical": true,
+    "changed": [],
+    "added": [],
+    "removed": [],
+    "tests_save_only_under": "Saved/CollisionGenerator/RecipeProbe/<unique id>/",
+    "source_asset_manifest": [
+      {
+        "path": "Content/BP_TestGameMode.uasset",
+        "sha256": "8112D9C674EEF521C9745EEB01B405336C3D2F74A3EDCBA3C94F3D6673CFDDF0"
+      },
+      {
+        "path": "Content/BP_TestVehicle.uasset",
+        "sha256": "F7866819D2650B2176478F3A20288328E1B9F5E922730069C50F82F6B4E80DEE"
+      },
+      {
+        "path": "Content/Map.umap",
+        "sha256": "9892A41DDD1FD4729E1999A47D0414AAB10FFAC5F33C9CB0EC734C38F581438A"
+      },
+      {
+        "path": "Content/Test.umap",
+        "sha256": "CC4455D9C9752E7B1ACE10E829F1716D32B7C96869D09C15491DE662647C56C3"
+      },
+      {
+        "path": "Content/Assets/Cars/PA_Car_01.uasset",
+        "sha256": "FC9A11D91A62FCA8DE24C0682E1879C8D33BECA7720093073BDB05C0A461F920"
+      },
+      {
+        "path": "Content/Assets/Cars/SK_Car_01.uasset",
+        "sha256": "FE5FCC1B1C9EFA439464332EF55DB0A14BD0FB4839C53F24B24948E75DF142C3"
+      },
+      {
+        "path": "Content/Assets/Cars/SKM_Car_01.uasset",
+        "sha256": "2EAD7C7EA34CA280161D262EC059CD7119C5D811421F0F15669ECA9453D8E5CE"
+      },
+      {
+        "path": "Content/Assets/Materials/Brake_light.uasset",
+        "sha256": "CCEA5E7E37FE661E810A36288C408D61549A7BCD07465BC39FDF59E671A523B4"
+      },
+      {
+        "path": "Content/Assets/Materials/Color.uasset",
+        "sha256": "570D2BEBDD0104B1C72E4103D790B8F80B740D787C321F96812EAE2AC4809D7E"
+      },
+      {
+        "path": "Content/Assets/Materials/Decals_21.uasset",
+        "sha256": "A4308DBF1F7253B41ED3672613AB0B1AC597B6F83E7AB35DF7EF6194088E7821"
+      },
+      {
+        "path": "Content/Assets/Materials/Decals1.uasset",
+        "sha256": "5FFFBBB6CEF613622CA41B483860F405BEC2F753A1F612E60994B05136FD5F7D"
+      },
+      {
+        "path": "Content/Assets/Materials/Glass.uasset",
+        "sha256": "18A422A8822A79ECB75A4FB2EE0296897C40ED4CFFCD7ACA4D726194EEA4D411"
+      },
+      {
+        "path": "Content/Assets/Materials/Light_Fog.uasset",
+        "sha256": "49E226E0DE5216B1E69ADE45E61FAC51707B040EF4363D03EAC7BD423F4A1FF3"
+      },
+      {
+        "path": "Content/Assets/Materials/Light_Headlight.uasset",
+        "sha256": "B13C60326511B51943554CF94A5B0525B47DF64D4E2E2B119E8B26939B904973"
+      },
+      {
+        "path": "Content/Assets/Materials/Light_Reverse.uasset",
+        "sha256": "601F13C7C404B962384CEFF499448C22BF8058E0ACF90D9F110C8B89BAB9F261"
+      },
+      {
+        "path": "Content/Assets/Materials/Light_Turbine.uasset",
+        "sha256": "355A484C1D29225D811B1BA5C0817C10FCA2410F9186D9072080C2828A71EF6B"
+      },
+      {
+        "path": "Content/Assets/Materials/Metal.uasset",
+        "sha256": "3DE5F90F9EB6FEF3DE64E4F969820BBC9977F390B69676DE782032805C6E8F34"
+      },
+      {
+        "path": "Content/Assets/Materials/Pipe_light.uasset",
+        "sha256": "7CA9ECF06A945DCA454296A0D124B6A31826E49B8C8F4F74F7522BC606ADD42D"
+      },
+      {
+        "path": "Content/Assets/Materials/Tire.uasset",
+        "sha256": "033F172BEEE6CBD1E82DCC6C350B9388B52D7D2995190196F37DA0F317CDBA95"
+      },
+      {
+        "path": "Content/Assets/Textures/Decals_2.uasset",
+        "sha256": "D1CA7CC16003B60EDB8E213939A1A7E5B1938B9DBBF15660C5E0D45E55C4B3AC"
+      },
+      {
+        "path": "Content/Assets/Textures/Decals.uasset",
+        "sha256": "A06E36AF6E8166EEBE2BDD9B9FCEA0D6102A4AE6C8D8ECCB8AD1B3EC6BAD1E74"
+      },
+      {
+        "path": "Content/Assets/Textures/Textures1.uasset",
+        "sha256": "EC0D5DDFDE1DBDDC4824A7092AC44395DC6D2A64D03971CABEFC72CA1FB4DB09"
+      },
+      {
+        "path": "Content/Assets/Textures/Tire_Color.uasset",
+        "sha256": "AF892C8C7E3CC871DCA79DF47ABDE2D58475E71756482B4A99B35C6BB5F01BDE"
+      },
+      {
+        "path": "Content/Assets/Textures/Tire_Normal.uasset",
+        "sha256": "C7B42D42283B9CBCAD4547B75A2C43D1FCEE3013FAA8B045D02BB3B9998FD29D"
+      },
+      {
+        "path": "Content/Blueprints/AnimBP/ABP_Car01.uasset",
+        "sha256": "11C077E09FE55490724D07CFCC29FEEFF25081D3B6FEB2B2D73C3C57289CA4F8"
+      },
+      {
+        "path": "Content/Blueprints/Balls/BP_BasicBall.uasset",
+        "sha256": "B47D684494BC0F2326C36D4D2CFA585F84AA0A1FAA704200B70AF6B6891ECD72"
+      },
+      {
+        "path": "Content/Blueprints/GA/GA_ImpactImmunity.uasset",
+        "sha256": "BF2B18EF58F44C5B268C92CEC3E994037D2F4D6F4FF932D238E25ACADFA6D145"
+      },
+      {
+        "path": "Content/Blueprints/GA/GA_MovementBoost.uasset",
+        "sha256": "07C1118A7FF9255294788E6CAEAA9122EE722B8D94E4B055AF5ABA30E841AE0C"
+      },
+      {
+        "path": "Content/Blueprints/Gamemode/BP_MVPA_GameMode.uasset",
+        "sha256": "0593502AFB3C0C1DB469178BCEB3D05CD056D7EA43F35706DE7FBF0DD8C494A6"
+      },
+      {
+        "path": "Content/Blueprints/Gamemode/BP_MVPB_ListenGameMode.uasset",
+        "sha256": "C733D7ABC75039A2C08F7666DBE6CC1B62179E237A4E5B950970E74B5EEC1C94"
+      },
+      {
+        "path": "Content/Blueprints/GE/GE_ImpactImmunity.uasset",
+        "sha256": "3229A779EAF9AB4191B4EE07B18FAAE9B26E0884DDFF36EE0B8310296A36FBC9"
+      },
+      {
+        "path": "Content/Blueprints/GE/GE_ImpactImmunityCooldown.uasset",
+        "sha256": "82902433D9AF45415133736DBB6745CD88ACBFDFDDA4E316FAAB7B09CE0FB731"
+      },
+      {
+        "path": "Content/Blueprints/GE/GE_MovementBoost.uasset",
+        "sha256": "EA88192EDAD8A17AEC971BB1BF65BF03EB5550DCFD3E5687107FA72F18A24781"
+      },
+      {
+        "path": "Content/Blueprints/MapMechanic/BP_SpringPunch.uasset",
+        "sha256": "88D478AB4B44E26103ACA9A96BECD7F7720CE5CD9B53E60D299FF7DE27EC2DD4"
+      },
+      {
+        "path": "Content/Blueprints/Network/BP_MVPB_NetworkGameInstance.uasset",
+        "sha256": "87DBE120D100752C4CD7FF82F3D5B24D4E098173C95734A6A70431287DC8E58F"
+      },
+      {
+        "path": "Content/Blueprints/PlayerState/BP_HALPlayerState.uasset",
+        "sha256": "83EDA47F7E4649166C738DE750761EF0AD5A9B5ADC3EA329AA1D518CFE9FE70A"
+      },
+      {
+        "path": "Content/Blueprints/Vehicles/BP_PassiveTestVehicle.uasset",
+        "sha256": "249DB929E3A0ABB4FC77617D4C260F154424324BA14EE19BDD4D58C03C7BB5DE"
+      },
+      {
+        "path": "Content/Blueprints/Vehicles/BP_RoundedVehiclePawn.uasset",
+        "sha256": "323172D89FBCA1F33AF0F8B9877948406AE7AEED43D2BF30370E50935C418A9F"
+      },
+      {
+        "path": "Content/Blueprints/Vehicles/BP_TestVehiclePawn.uasset",
+        "sha256": "324346243999E731172C1945ADC177959CBCF38277421F9EE37BF0F17BA23879"
+      },
+      {
+        "path": "Content/Data/Car_Presentation/DA_Car01_Presentation.uasset",
+        "sha256": "9FEBA439492A434408BE32BB8EE864A4D403F065D0322A1F2814560BB0AD0BF5"
+      },
+      {
+        "path": "Content/Data/MVP_B/DA_Ball_Normal_TestBaseline_v1.uasset",
+        "sha256": "06A393B4D71E2DEC97E38A31BCF33C8CD49B98B17142B16561ED90B2F870B1A8"
+      },
+      {
+        "path": "Content/Data/MVP_B/DA_Combat_TestBaseline_v1.uasset",
+        "sha256": "2C913AAF7E42570101C9789DE8AF6989FAAAC8BC50933AFBFD6209814722580B"
+      },
+      {
+        "path": "Content/Data/MVP_B/DA_Local_TestBaseline_v1.uasset",
+        "sha256": "1D5B1703382644F3EB1435FD2D15A60D50B1DC48CC78F414DD34EFE21F73789A"
+      },
+      {
+        "path": "Content/Data/MVP_B/DA_Vehicle_Passive_TestBaseline_v1.uasset",
+        "sha256": "4E2973AF7CDAC9185A875C3576465B10523F91EA9BEE185ABF4394F20DD657D1"
+      },
+      {
+        "path": "Content/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.uasset",
+        "sha256": "E270242DB2015A36C32EE8333115EBBF9928525FA363B9F3CB09EC54EC7C0058"
+      },
+      {
+        "path": "Content/Data/Network/DA_NetworkPhysics_Ball_MVPB.uasset",
+        "sha256": "FBB7124256E5F5D797E086A54E55335CC867A010FA8479500743032F815D7A16"
+      },
+      {
+        "path": "Content/Data/Network/DA_NetworkPhysics_MVPB.uasset",
+        "sha256": "48E78ECA68F7249D20153D67821D912FB077E0509D1400719F1C86F0866F4F17"
+      },
+      {
+        "path": "Content/DrivingLab/BP_DrivingLabGameMode.uasset",
+        "sha256": "44BDA704281A2A3CB5F5BC1DB8034095C923A19A99C89DD60B2BF31A5516D499"
+      },
+      {
+        "path": "Content/DrivingLab/BP_DrivingLabVehicle.uasset",
+        "sha256": "DDFE83910CC9CA2844298109FCC272A968771EADE2713ABF1AF2A05439ADBDCA"
+      },
+      {
+        "path": "Content/DrivingLab/DA_DrivingLabVehicle.uasset",
+        "sha256": "3147CBC29A322EEC1C6F8565A140988D14743ECBA649BF332610CAE55E05DDB7"
+      },
+      {
+        "path": "Content/DrivingLab/DrivingLab_Test.umap",
+        "sha256": "44DCBC8BD9C68C9125C87C959B8E34E6FFA9F37347E5DF5478F6652D2980233B"
+      },
+      {
+        "path": "Content/GameScene/DarkcatTest.umap",
+        "sha256": "3D05B6462BEDC199A98574E2E4363B05FBDD36E3310863588087E3CDF90C00C3"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Maps/BattleStadium_Demonstration_Level_01.umap",
+        "sha256": "B8B95C06FE3562FA590879B00532C0CE665FF8755056AE4BE959E004168A7DC0"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Maps/BattleStadium_Demonstration_Level_02.umap",
+        "sha256": "E00CBA0BEDB6FEFCD72F46CB606F40F4817079FE0EF7BAB22749EC2594F65B0D"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Maps/BattleStadium_Demonstration_Level_03.umap",
+        "sha256": "CF4B6A85590B2C7E64720315384896A984A12EBF968B824F3A42AADD5C37A648"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Maps/DarkcatTest_stadium.umap",
+        "sha256": "67867171D48CDC321AC90AA97733F2FE4144E84CED246C15ACA80C52144BCC66"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_000_Viewers_2.uasset",
+        "sha256": "A76D5E50F80D6D758095499C72535AC6B8CAD29404A1400C91EFA584A95DBCAD"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_001_Glass.uasset",
+        "sha256": "2EF88DC2C7632C8B4655CE3A1403DE7A28E8942C60A5B6F4B30307ED925B043B"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_002_Color.uasset",
+        "sha256": "9A7348E3103D55361A8EE37A2CC14F258E1A8ADD48DE0CEE31D1AD66E8E4C1EB"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_003_Emission_Light.uasset",
+        "sha256": "864998FEF29E4265C67C3D888719B63295B902B85EEEC4214B1675FFC86F2181"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_004_Emission.uasset",
+        "sha256": "69777743731B23B87A532CBA7632B24E89DE27643459F4B48EB0C9F8B9AA09AE"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_005_Transition_1.uasset",
+        "sha256": "1D00D3A5698B38277A8CDEEFF4D8EB71FC731715799BF3DDD5090D2A9529B1CB"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_006_Transition_3.uasset",
+        "sha256": "22521CD1B801C434C784D6C7FC2FDC1EEED1F539DAD528570DB0FB37D5FD7246"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_007_Transition_2.uasset",
+        "sha256": "EAE24A69C559F747A6F165B3BB9A6395EEB4DF4C3F0E71226F64A4407FEBBF63"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_008_Viewers_1.uasset",
+        "sha256": "9DB78480DB2DAE61FEAA50D3F4376CA6721757983B7711A3471D259C48FD2447"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_009_Hologram.uasset",
+        "sha256": "FC342B0F57AE9DF3216D13EFD29EBA46D9B123BD6860716BFD993F7E852CF078"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_010_Metal.uasset",
+        "sha256": "FF29EC7D03E2C980204DFF0DC511B4F9FE6988EE77000F44B39A31F16AA29341"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_011_Transition_4.uasset",
+        "sha256": "545A6A92906616DFF72850ABF35AE377E35562CB3ABCA0B1BABF3585E7312EA2"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_012_Battle_stadium_text.uasset",
+        "sha256": "695C7910D69E5B108A05882BC80E395F9E69BFB9B918B09983F04A74A144B8AA"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_013_Default_Material.uasset",
+        "sha256": "F94D3D0BC019C96D4A8E9E9D610CBB02408D036CFEAB469D05983BED0B73CA0E"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_014_Fog_Material.uasset",
+        "sha256": "D227494789341DABC0AAC87BFC53328A475C88B41ED8E8A3983A8B9793D8373F"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_015_Pink_water.uasset",
+        "sha256": "5AE61203CFF9CB5A3F36931359A32B2899252E3551C401FF68C0C0843183BC50"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Materials/M_016_Tank_track.uasset",
+        "sha256": "AAE86565860C443AC288D865DC041BF28EA7461539481F81A01CD0EFAC0CECB6"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0000_stand_viewers_001.uasset",
+        "sha256": "DAE948B0D4BC5E8A8AAB7532FE8B0E6498C618E3FF500440ED369A959CFF5CCD"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0001_stand_viewers_002.uasset",
+        "sha256": "B3DF449C9563B45FB61D38CA435914A561C7B0D2EED6269FD227F9085830F348"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0002_canopy_001.uasset",
+        "sha256": "380218BB9ADD0F43962DD73184AE54497DD292FE476225ADF1AA230F3C0E2259"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0003_door_002.uasset",
+        "sha256": "6A0F16DE165A50412F2633A7D938D9C455FD65CE8A84EA96330841AF8C405877"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0004_door_003.uasset",
+        "sha256": "621698478DC9FC03EC1C3EAEF423CC0119A892AC71E7CEB2184D5D0C950CA3D3"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0005_door_004.uasset",
+        "sha256": "5A5011FAFC7100168F0118DF5957355C381B4EAA89C49CA3F747B38DC21F9A77"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0006_door_005.uasset",
+        "sha256": "B117D8AF4CFFEE8407A950E16FE62C58CD677E75F569DBAE14CE63F7E2F6D85E"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0007_door_006.uasset",
+        "sha256": "B06733C8FFE7A80195FBEC2660E72F3A9A890A29DD7A564897EC6953B67EFFA1"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0008_door_007.uasset",
+        "sha256": "290E1F61522B743676835E6FFA744B289E812E85A5D8F5FBCE8552E1383EC8CE"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0009_flag_002.uasset",
+        "sha256": "9547EB048D7BF748EEB843BDAAE51C7ACA7E2B1A700D184E42FE63B5DF7998E0"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0010_holder_001.uasset",
+        "sha256": "4313DA9CC24F907F637DA306E63127DEC1C76252D0289FCC07D251A64F76461C"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0011_speakers_002.uasset",
+        "sha256": "D22D3A6EF3288E1C4B7783CC1B710EEDF0F8E8A2B750B52C455873143737ECB8"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0012_spotlight_001.uasset",
+        "sha256": "983224F7117D09778DF069B84B6C208E261A04275C4C1C3F4AD11A65658B99BD"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0013_spotlight_002.uasset",
+        "sha256": "77EF802D0A100BF4791B322622BE2877E4A7D945C06F7FF498CB13BCAA016B6A"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0014_spotlight_003.uasset",
+        "sha256": "8B897941BC698C7840FC65A14E3E4E9B2B61BBA1BBBD8F682C584C20EA4D77FC"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0015_stadium_001.uasset",
+        "sha256": "EAEA65975443453D41807534F390BD8EC0AE670F1C9E2A9E6DF05E8B98285675"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0016_stadium_002.uasset",
+        "sha256": "2FDB7276E7A58960698D923A0474345EF14E8F51F57EC9850B0FECF704404E96"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0017_stadium_003.uasset",
+        "sha256": "EBBC2D311B8AE834B6D507B1B2A66A4833E78A58258A88588B9010313323724B"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0018_stadium_004.uasset",
+        "sha256": "B586815818730D323E5AEFA8B15FE5D7780CFFAEB3B596DD6D28B259FAC2914F"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0019_stadium_005.uasset",
+        "sha256": "BECF8FECA51E3DAEA18EF379EBF85E71085B1DDA60BD1A9D8EE6BCC9A6B9013E"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0020_stadium_006.uasset",
+        "sha256": "4A7D37E489478C9B3B787C4E91AC286A1F5FA50E5D4158F11968FD643F7FC36A"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0021_stand_001.uasset",
+        "sha256": "9996FC4F71BB36F923344966655DF00AF066B0796C0663CDEFFE401E709BB890"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0022_stand_003.uasset",
+        "sha256": "E860F503C1A37AA13366CBD601A646FF2F6E3F05F085BBB9D87C1A0B1D61A48A"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0023_stand_002.uasset",
+        "sha256": "BD4664387ED0036B3CD6B945D5B6B4F41884C912109540A35D97CEBB1B8089FF"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0024_tower_006.uasset",
+        "sha256": "2F2854BD860B6E6FEB73976A9C1CE13C94B67D3143DA4E6CB2BF3FB281DC48AE"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0025_battle_stadium_003.uasset",
+        "sha256": "13BB7A1B6A4E16301663606E25BF3AB77C23CC8E1DB9F6D51B56BD4681BA8CA0"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0026_battle_stadium_002.uasset",
+        "sha256": "688858A4657A31B673D34F484F89284C7CD5D5FA654CA25F26435FC52D767276"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0027_TV_001.uasset",
+        "sha256": "C8D617F9EC213EE2A473A84F0E23BA6EC2F97CD466BEAB2B9C64AED73F29BA7F"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0028_wall_006.uasset",
+        "sha256": "6AE5346B53D44D4383CA8D3513F1A29673C5D624003AEA8AFD496D02F2BB729E"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0029_air_balloon_001.uasset",
+        "sha256": "80B6054BF2C45A0E738EB6AD6AC057110FC63A58C72082F95B6BA27A4EBA680A"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0030_airship_001.uasset",
+        "sha256": "DC972E30DB6F7B6571387054045F81290308D719B2809E3B406161210BDDC05F"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0031_airship_propeller_001.uasset",
+        "sha256": "43448514BEE0F2F7F210DCD96C73130CD2D667781852FCFF325E2122A356AFE9"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0032_airship_propeller_002.uasset",
+        "sha256": "03816C80AC83C3F20FBA0E0E2642605A6AF5227C98C1A27D507275ECBA292337"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0033_airship_propeller_003.uasset",
+        "sha256": "B1424C4776020825AFDA4C2771F460B84B39DAF77DF1B6755FA5487D7116AC5E"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0034_airship_propeller_004.uasset",
+        "sha256": "7C6F3E852EA2A92819F5B3BAA5090145EF029DB51D94AAB0650F0DE53F04132F"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0035_drums_001_StaticPose.uasset",
+        "sha256": "C9E44D690C9535F46152BF6EA41EFF52AFA4092C56139225714BD5766956C0F0"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0036_Octopus_001_StaticPose.uasset",
+        "sha256": "CA0BA00DE9A352F0F5C86DE47A2AA25F9F9D7A286668C9C0D2D811026A3CFFB6"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0037_Aeromen_001_StaticPose.uasset",
+        "sha256": "ABF6311EA67775F55DFA5B8550F606E46CAAA2FA05752E834C6AE712C542E4AF"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0038_Aeromen_002_StaticPose.uasset",
+        "sha256": "181707AFBD36EE242EFA5C3A05569A1FDCDEF28665FF11B3A33889636AAC593A"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0039_Robot_002_StaticPose.uasset",
+        "sha256": "5092D0DE54859841D2FD1DECB3CFB060277952309CEAD9492F0825D59B6E8AC0"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0040_Robot_001_StaticPose.uasset",
+        "sha256": "B366DDEC66CDF07AAFE952E2EC14884B63806924DBE0A858AD2A4A3A2FA999F2"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0041_Pig_001_StaticPose.uasset",
+        "sha256": "7ECD38AA49FE1C71D0A2D628D4A733ABC861A7B041352E22F6007ECAE77CA765"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0042_Ostrich_001_StaticPose.uasset",
+        "sha256": "B164D2EA7EBD4E0FF22A9AAEFFAB2ED18B121EA6ED298B499B57AD2C8FCA74CA"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0043_Chick_001_StaticPose.uasset",
+        "sha256": "908948EFB238EBDF53A49B53A5AF544367234BA07DF6F31C819FD0931C5D8814"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0044_Cactus_001_StaticPose.uasset",
+        "sha256": "35DE72589520A2C79DF149132F5401E54F8C6F246552A5A82E9B5EBFD79A72D3"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0045_Bull_001_StaticPose.uasset",
+        "sha256": "4CE6341F3DD492D491584C39E664F25BB84AED552916DAB784C47717E3FF5C3B"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0046_Bird_002_StaticPose.uasset",
+        "sha256": "7310361887FB38F078AD90428F6F8D4E6FDF4AEB536FE9F99F483AC73161BF69"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0047_Eggshell_001_StaticPose.uasset",
+        "sha256": "CBFFA2BD0A0BDD0572D384F3F0B7123020ED9073A67AA469FA21258481685682"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0048_Bird_001_StaticPose.uasset",
+        "sha256": "4F58995CEBD72BB4A1EF4E3CE5D8140F74FA8FB6BF154DF60EEC1C20FE3535A7"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0049_podium_004.uasset",
+        "sha256": "3CDCB9B4EA9C69FAD3D6DDF681BC9E31687583DFB4FEC2CCED66C960EE9D62F3"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0050_podium_005.uasset",
+        "sha256": "289F0D3676E464F471993E07E5E879CA62F4F9E88C75662D6D38AA5CEA5BE194"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0051_podium_006.uasset",
+        "sha256": "C1135F47EFF2C7FDCB1EE63F7097BA588FB0D4A50097D895C57CAB0551CBA9AC"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0052_podium_001.uasset",
+        "sha256": "EB72FFDCC3EB010BD829078032DFE996E8C2BEE6D84E5A9BD8B14C098CAD95F3"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0053_podium_002.uasset",
+        "sha256": "FB25E746BE303D83747B1A2978323D4F518547BC07A27620E09CAE8989C38C98"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0054_podium_003.uasset",
+        "sha256": "8C084C929A3B14E2FF8BA4AB4096525F7EA09F6A9AED9698EDFCF603C8E4BD50"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0055_Plane.uasset",
+        "sha256": "CE2F3650B138E2F952C3C28B357ED53984CC922F9BD66F9C9F5298F9B63B87F5"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0056_door_001.uasset",
+        "sha256": "B27BAA7EB760ECCC5A30ACDF8BDE7FA0A79A9F910EA36EE6B2E8BA408187B375"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0057_firework_002.uasset",
+        "sha256": "7243E4A05A5645C053F45A3F601095C0041E0DB6ED274E101A3ACAFBCE778CAA"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0058_base_circle_inflatable_001.uasset",
+        "sha256": "A38D4170BBE1202FF0B01D0F9D9EF525D7B740E57470B17E93B28096CC1D5260"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0059_base_circle_inflatable_002.uasset",
+        "sha256": "A79CBCC56738D4658042652514936A37F6EF6C6F6AACB9C3CC72443EE3D406A1"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0060_base_circle_water_001.uasset",
+        "sha256": "C818E1F849638B3023D924FB91BAC65DCB2D800FD9B98276F2427CA6E99A4069"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0061_bridge_001.uasset",
+        "sha256": "9BEA0F6A9342718ACD1884BA81BB5BB31DD1C490E3A432ECE901D96A367F7D22"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0062_bridge_002.uasset",
+        "sha256": "F96A58001A6421059168A73DA8E9A37D959E1C2F45E2F54ABA24686C2A2F85FA"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0063_bridge_003.uasset",
+        "sha256": "CB57C1B4EC9C3927FE58A3D928C605143A3C45264E7ABC50080B54EB4FCCB133"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0064_coin_001.uasset",
+        "sha256": "6A51744B5692F91013D483C24A3FC6A041CBF2AF7914F833CACA091458C87FFF"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0065_color_box_001.uasset",
+        "sha256": "66A6EF80A0F4AE6ED40EA809DC62CEF3E4B0E15141D9EE6EB9CCEDD7CF324ACF"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0066_color_box_002.uasset",
+        "sha256": "06B58A63F6C1EC01D6F04CCEDC10A624233A6B0915976248CC6097955E1D03F0"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0067_color_box_003.uasset",
+        "sha256": "5E4D4CB4D1AD0870BDF6BD6D4FC7B8507E236902E1BD18D11BE4AE56504531A8"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0068_color_box_004.uasset",
+        "sha256": "4D7E62E6698FDBFB0DB783204AF33167E67D98D251FB4672E4D984BB383B0B32"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0069_color_box_005.uasset",
+        "sha256": "33DC9B05EB8975CABD1D3DA2D365E634A772031E2CA7A619607A59D885AA975B"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0070_color_box_006.uasset",
+        "sha256": "092A35DCCD5283D01F9B06EB08CFEF2A545C188BF1B07BF0BD1DB28FB6125918"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0071_color_box_007.uasset",
+        "sha256": "55023106BDFBB156D9ED88C97DE73F9E72FBBD927F856F6BB38FDE3F492380D3"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0072_color_box_008.uasset",
+        "sha256": "9CB92306731A680A46A295E2A164814680EEB4E5BAAFD791C998C49CEFA372EB"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0073_crown_001.uasset",
+        "sha256": "2790E881FE747E1510CC6832FD68FC9C60C16C7C58EC193B1B7D70EB807B1BDC"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0074_drone_001.uasset",
+        "sha256": "E1BDE4A2142836757BEEFA61C1F975CA7B5791940C126F72E883ABF9BE3F683A"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0075_drone_eye_001.uasset",
+        "sha256": "5A43B4B0350B3DD70744D54F5269E6D0D9F1A02A59D98BB83B65C24F6AA97C06"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0076_drone_propeller_001.uasset",
+        "sha256": "656372596A6757DCA957224777E60E073DAC607361FE2AAB5A70049E2C14C302"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0077_drone_indicator_001.uasset",
+        "sha256": "6915EC787E8AEEC6217F3514215B4A44521B5C5FEAC587A081DF0C0A0343DD66"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0078_heart_001.uasset",
+        "sha256": "AB5BCC1A1443D530506AD96583E29A0F88309A51DF7ADBABEC41777EFC7E70E3"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0079_net_001.uasset",
+        "sha256": "6480388C57F48A3F130DFAB4606236BB595D565FD0CDF3487742508012FBFEBA"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0080_obstacle_18_001.uasset",
+        "sha256": "480A1ABBC27895BA2EBE4F1C2F5AD1BDBBD3E99949D76572E631A8AA196CA429"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0081_obstacle_19_001.uasset",
+        "sha256": "4E65D5ECFF40B8C18E8F9DF80C23A8A86A8ED085EB9BD34B68E897398527C284"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0082_obstacle_20_001.uasset",
+        "sha256": "DC37ED568026AAD260AC21D836A9E7470FD7E6C6D96EEC5F84F91829BDC1883E"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0083_obstacle_21_001.uasset",
+        "sha256": "651E4557FCC3C679F6614A3046E65973791387FAC65B5618941A6D6202BE46EA"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0084_octagon_001.uasset",
+        "sha256": "AE7E2141D5B332F8C5C66BEC22ED38BF74020B37EA1DF4E33C0A8B37075F8700"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0085_octagon_002.uasset",
+        "sha256": "97DBA91A7A7859823F756E4FEFD69FA00F1AA08AAE863032F1E83C798E2468E3"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0086_ring_001.uasset",
+        "sha256": "F5A47224F63B16AA8136E1421F2D60FE95C4A9567EB94C12BED404431D981975"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0087_road_001.uasset",
+        "sha256": "0323F3EE532D610E104AE44B6326DA58DCADE41E87772871589E0C70E2458F70"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0088_tower_007.uasset",
+        "sha256": "A5DDB2DF0301CD457AD3A3F2DE588C3DCFDEEE816B306A4A488271E9A16239D7"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0089_tower_009.uasset",
+        "sha256": "1B6FE68867E7EA2133AC4B66EF116E53770A28A183CEE3CFBA707AE7A2CEBD42"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0090_tower_015.uasset",
+        "sha256": "B68CBD11F5D41E2E3A9D94AB0768283177A7830B2DE6CB5E5994795CB82E81AE"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0091_tower_top_002.uasset",
+        "sha256": "E80324311133E770431D6406B0BBA90ADED07B05D55952CFC57C299F90A185A1"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0092_trampoline_3_001.uasset",
+        "sha256": "F621368EF5C350D125CB6CDB0CAFC13BCFC7215E889602ADB38CB88978A33420"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0093_trampoline_3_002.uasset",
+        "sha256": "41FE796A1889A2387E7B7B3DB6145FFA3DE00EA8CD4D334B712A248299551789"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0094_wall_001.uasset",
+        "sha256": "DE69056630368288B587D836FE0B7BE0DBE85C24CE66BA1E0F15D043FE9528DF"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0095_wall_002.uasset",
+        "sha256": "2922F93B1388E83F3BC56E7EFB7C282B9518DFA37CBC423A6776539956DC79E2"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0096_wall_008.uasset",
+        "sha256": "308F327D4D7C9B611A5B7A5C3361283818E4C8693E3C608C2B4D3AF82407EE5F"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0097_ball_001.uasset",
+        "sha256": "F745BE357D3FF1A35074D240A0C205D9B175110407E0A761D916AAC7D4F28DB5"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0098_arc_001.uasset",
+        "sha256": "FECD4D570AD896B444E8400A8A20DBC12FC263E0E94189E793858476E822DDD5"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0099_arc_002.uasset",
+        "sha256": "24BB5CEE7774E96E3276D30872A331A65F729A5E85E21D2914DB33D9591B99E5"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0100_arc_003.uasset",
+        "sha256": "3A01E3D6F50A3656C570C1BECFFABD14D679C971C09C1C5B5CA0A589DA627F92"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0101_arc_004.uasset",
+        "sha256": "D647BC36B3494AFF72D3B502075264CF5B3B41F647DBAC8D6A85CC97D1475EEA"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0102_arch_003.uasset",
+        "sha256": "059E209BC7E8290FEAC2A9CF3E0E9D650DF4FEEE2426AA7954C7606853D25ECA"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0103_base_circle_inflatable_003.uasset",
+        "sha256": "5BBEE3A06D9FF5D1471A83E587A816FA31A6ACAC2E4B4DC2FE185CECDCA5F2A6"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0104_box_003.uasset",
+        "sha256": "1CA874589A3DEB9177D3C7E1E3FF66039D3E9C9FA955E26C9E7188B0E1DC52B9"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0105_box_011.uasset",
+        "sha256": "077C7CCC0E57140ADBAFB8AF420DAF4DE36B9DAA84D0E625F9FD6AE020713500"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0106_box_012.uasset",
+        "sha256": "E80C5DD8914DECF8FDF2BC39CAC1664B0F49CB766E21D1F99A6EA8983B67D076"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0107_box_013.uasset",
+        "sha256": "961489672F0F5F91EB8BC416ECAC241DEBF448BB4C38212BC25041495611FB0E"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0108_obstacle_6_001.uasset",
+        "sha256": "A9DBD3DB0984C0FCBCA470FA5F1D065AF0B5DE4496251ACAB7710982678C3C65"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0109_obstacle_8_001.uasset",
+        "sha256": "F9F008B91BD98C5D4073E23E7575AACD238E0AC09231B6B0D699AFEF7B369CBE"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0110_obstacle_8_002.uasset",
+        "sha256": "355600839F90B957DA6F1B3CD569E2C10D0E27314F327BEDF115DF4DFC999300"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0111_obstacle_14_001.uasset",
+        "sha256": "91190B4E1968A1E2BD1DD3039E1FFDC2ACB1B0BAB4781FE5AADAFEB76719BD14"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0112_obstacle_14_002.uasset",
+        "sha256": "9C0AA36BC3F5167D151A2FC24B63A6A7B7486F616EB1BE35F992CBA948F35A2A"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0113_propeller_trampoline_1_001.uasset",
+        "sha256": "3747FEC5400DC7AFA5126CDE54D090E8963E0B3C64C72AB501E41FB7ABCA4FF5"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0114_propeller_trampoline_2_001.uasset",
+        "sha256": "396790083E1638C2D020EA0F138F09CEFB0F93C7B18E6F00514AFAF2FAE71857"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0115_tower_001.uasset",
+        "sha256": "F252F78AEBCE9027B0F41B0A95CE92ADFB725A9CA6FAEDA263ED77E94CC879D1"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0116_tower_003.uasset",
+        "sha256": "AD8642FA83544D8B9083DD29F31223169CEC8CAF989C4D7841B7B65A7B9B6367"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0117_tower_005.uasset",
+        "sha256": "74F825EC52213DAC0AE254550AD8869E1022C35C6B6393B4367C731D58CF8AF6"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0118_tower_top_001.uasset",
+        "sha256": "22401B19ABED3531C96AB409811BA8D2A2D6A7F517DD270C5DB6D43C25CF5438"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0119_wall_003.uasset",
+        "sha256": "A461601CBD7D56E92DE69CDD807E9F74924B2FC57E16F1ABDF6F6F5E093EB53A"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0120_wall_004.uasset",
+        "sha256": "D28D01054B52E7AB4C707F145A6950F91D6D390ED6DE3C87F0A8D8ACB68F385B"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0121_wall_007.uasset",
+        "sha256": "4B4647C1C84DA843A2BB9D5F72C58E1D8D34FD8FCE452F264C845BDA5D09013A"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0122_wall_009.uasset",
+        "sha256": "4136BEEBC55E2CCAFBF5B808169F803F22AFADA540DAAD126B2077891CE04EC5"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0123_wall_010.uasset",
+        "sha256": "5B14723CDC7BC68C0B37CADA0E0267D86E25BE7370DE6482776DA7C31E16CE9F"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0124_wall_014.uasset",
+        "sha256": "4A734FDDD82116AA5311F978A734FA0D1C4C9F5E2D71EDDB2D87A0F96D7FF11D"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0125_diamond_001.uasset",
+        "sha256": "D30D837A5934BC9F71CF17F338904ED306644BFBFF50CB14F69A118BB8018382"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0126_star_002.uasset",
+        "sha256": "A185CCB3A73358B2D3430315EE04AA1C2C2189E784AD54CAF7E08134603D429F"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0127_tower_012.uasset",
+        "sha256": "816EA7FD473B4C393ABD2CFCE61D3C55A60540533FC7A26798B2C4761889E242"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0128_base_circle_inflatable_004.uasset",
+        "sha256": "41DBD543FBC5FA3CFDB9AFF4D4C4F41AA36D00CB8F7E5C498469BCAE8351984B"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0129_battle_stadium_001.uasset",
+        "sha256": "5919501CEDDAD0761A8C9E08973CFC0B0F88D3E77F26579B2F809BE97DEDA615"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0130_car_place_001.uasset",
+        "sha256": "3A379BF3169613831ECDA83D439A4AC62C063EAAC4ED609D10A6A00763A82657"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0131_fence_001.uasset",
+        "sha256": "D94EF198762DD0A1BC65CFE43848E9E28D57D73B08F0D19D2278EACEF0D64757"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0132_finish_001.uasset",
+        "sha256": "3C4A78F5B0E5010F985DCA6826F0A3F8F469ED9CCF6ABFB4764553E4BDB116B7"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0133_finish_002.uasset",
+        "sha256": "19D1079F0EA10CADACBA80C8BE65E98B4A72EBAAAD5DBFF4E60CEF77490A8DDB"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0134_race_track_circle_001.uasset",
+        "sha256": "B01A65E3EE6D2669E44565EE835FED15C1CA0BEA15C277B147462DE3AA0DD07C"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0135_race_track_circle_002.uasset",
+        "sha256": "F44E39C00962642D3AEE941A365356B361D9B634C77C9013F5B0A24925DDB2E7"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0136_unicorn_001.uasset",
+        "sha256": "A9B03291B6EA2F56ED1673A6D7B335CCD9B25F03E51967C7EBAD9B031B9C6C6C"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0137_car_1_001.uasset",
+        "sha256": "731D241BEEFF9226C26E31618858CBC6D1D87835CA140C43729A0C67355BEC30"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0138_car_1_wheel_001.uasset",
+        "sha256": "FCF15BE35A9229590659F025F46C67EF4D5F408D5F7C79C42E3EC704E087C007"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0139_car_1_wheel_002.uasset",
+        "sha256": "2534D5D1F55383494D65B539A502AC6FDC96509E2686913AF39F47BB8F4B7826"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0140_car_1_wheel_003.uasset",
+        "sha256": "4523C389463DC774757435783FB438559DFA6CEAA176FF0C3DA26039400C7B59"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0141_car_1_wheel_004.uasset",
+        "sha256": "9E2A766AF191FAA69D14B27CA62EA0E5162A7981FFD3F4726BE47C41BAC99724"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0142_car_2_001.uasset",
+        "sha256": "D0A03F3C924B1498FFB3DF4ED1C70534D00FB8C198332AB6A1679193C6DF20DC"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0143_car_2_wheel_001.uasset",
+        "sha256": "63E78FC58B720B6D8733E903802180B7EFA7601BC64EE01CDA721E94E511CB63"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0144_car_2_wheel_002.uasset",
+        "sha256": "D3BE4188A268242AE5F09E6CEB2EDBD5B29A68B797E4C91B13DF562477D819E1"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0145_car_2_wheel_003.uasset",
+        "sha256": "953E92BCEF4743D4A8D53ED431956D9F4B445F9556B58E0CC18442F87AAD548F"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0146_car_2_wheel_004.uasset",
+        "sha256": "44B1393F053342A87C9E7FF1E335116D4DBFAED49BCFBA0ABF80725B5CC53E5A"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0147_car_3_001.uasset",
+        "sha256": "A7EBCD93A7FF4BB89AE802F980E48C76BF992864C376C3CA9A10F55A64BAA166"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0148_car_3_flap_001.uasset",
+        "sha256": "5C15BFF71FAC2453EA111B202C29C2A8637C072CE1516C5E5E968F6732566463"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0149_car_3_flap_002.uasset",
+        "sha256": "08D93000980CFFE0E3C066428F09C068267332DE9561CCE5C5C4063624A81E46"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0150_car_3_flap_003.uasset",
+        "sha256": "438876580D1A3F66FBC21F8E66402C56417C4298C2D73CC023AFB0571E88B864"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0151_car_3_flap_004.uasset",
+        "sha256": "6B076E665C032991BB45BA2FC01AB3291B997A632EEA30811F05D1C757C00E18"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0152_car_3_flap_005.uasset",
+        "sha256": "06AD20A00ACB4D41075AE88E9DF6A4238B9FA9BC6F64408BEB2DEF293E29DFF3"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0153_car_3_flap_006.uasset",
+        "sha256": "C1C0B559294094D3B0EF91C3ADA0BFAC6AD59DBC0B87466EF7B806D3501B6EA2"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0154_car_3_propeller_001.uasset",
+        "sha256": "5D703708AAAEE39FB0FDFF2BE2072455B321951488A43FDC35D8CCC635DBF879"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0155_car_3_propeller_002.uasset",
+        "sha256": "50EC277304C13156A1A2CD9CC9754DB23AD6555204BBD2F3245F30B712ECEDB3"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0156_car_4_001.uasset",
+        "sha256": "18791FF109364781C7D41BD216AFC1B7F91014B7E0CD79020D70FC06EA19C401"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0157_car_4_key_001.uasset",
+        "sha256": "BDC7245F253BDDBA43AB8A4EDA0D2906A6470C2D4FC28FE2714E629A60141EB2"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0158_car_4_wheel_001.uasset",
+        "sha256": "7C7AAEF2F5D7F2F022DBA5BD867C6CAA8AA04F677CF19C49FAD27CFDC5DF4323"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0159_car_4_wheel_002.uasset",
+        "sha256": "E9F4A67C9B874DDE92799F4871CA648E772CC3C08C03061794E517C721B98EA0"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0160_car_4_wheel_003.uasset",
+        "sha256": "D3FD6BF1B374CCAE918A345B49D0D31CB3595E2A4DF005F35D141BF1B8861091"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0161_car_4_wheel_004.uasset",
+        "sha256": "98150592A683D1E82CA5E2EB378B56D35F10DD9CA1C9337C7423F8FA1FD79990"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0162_car_5_001.uasset",
+        "sha256": "6E4313EC2C581D7EA9A7B2C2330319D75A6009A6B1CF0640AF82AE0EB3F3A341"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0163_car_5_wheel_001.uasset",
+        "sha256": "4B5B015A1002D6C4129AB99BD9A1615A2256D949B5EA64A675A875BCB06EB1AF"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0164_car_5_wheel_002.uasset",
+        "sha256": "1DD17E2D0FE3DC46EC85F1F5001834C00CCB6B792123ADD00C87F838C1B17EC7"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0165_car_5_wheel_003.uasset",
+        "sha256": "BECFFAED57A4BE36B015B198C5553A1F43867A9D20B0C96671B86F45D60EAB78"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0166_car_5_wheel_004.uasset",
+        "sha256": "1D45C06B026A8694F20472F490672D8A16ECBA674DA6877676F8ADE94B18C5F3"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0167_car_6_001.uasset",
+        "sha256": "4682FAE76448FADE1AD1E0F7E56AE459D18912CCB1AA6865E79ABE1E0B7404B9"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0168_car_6_wheel_001.uasset",
+        "sha256": "D47B5F03C2CA28C1342DF82F332986A791DB392AC6C9ED984298D87EE05D0936"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0169_car_6_wheel_003.uasset",
+        "sha256": "3F6D318D680BB513D66C998CBD455986F67D3BCD1D39EE4B7C23579F84B4CAF4"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0170_car_6_wheel_002.uasset",
+        "sha256": "6B34BAD12AC611DE5BDED1EAEDB2B4A777AFAB132436B045D669EEA93DB6D3BB"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0171_car_7_001.uasset",
+        "sha256": "22A4879985537EB4684972E8F71BD856149A345A1B063A9D6A21BFD8322E9EE2"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0172_car_7_wheel_001.uasset",
+        "sha256": "4FEAA21A66CA27EFA75434D22D56F81057924483CBD96FEE6F4267D6A9F371C1"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0173_car_7_wheel_002.uasset",
+        "sha256": "992085BCB9A3F95B9F71BE49EA8F698DB355BBBE6B65396A9107012E84E45C74"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0174_car_7_wheel_003.uasset",
+        "sha256": "8C434F0646A2A36F4EA454D6E98B7921287CA899F388EC21E987D01D0C8AF465"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0175_car_7_wheel_004.uasset",
+        "sha256": "6EA3B79137B4279F281FCF6EC34BB086127BF1524FA02344DF616D38ABDD77B5"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0176_car_9_001.uasset",
+        "sha256": "8D322934DCF5E43CFA38F75407C33D610EF3683D2147D6CED766DA5243276400"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0177_car_9_wheel_001.uasset",
+        "sha256": "E437251294ABA4388433C3EB454C542B92CBD3ACE98F5A1C2F3FD116818E610C"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0178_car_9_wheel_002.uasset",
+        "sha256": "D2A1B0FE5DF0EF7172A3FCC78D4894F111773EA6881EB59664567A7284C55C7E"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0179_car_9_wheel_003.uasset",
+        "sha256": "7F12D6F3401A399DF9765E266B54A748F7494EBEBF3BC51F4DC8D803F00458AA"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0180_car_9_wheel_004.uasset",
+        "sha256": "AC3664B6B576F0440D7AF508D53E74FFCF4A056A186F3271C2F9589A5CCC0AF0"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0181_car_8_001.uasset",
+        "sha256": "D5FB9130B302359A706B941DEE2C22D98D11C018AB76C7F2B9509ECD5530E62C"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0182_car_8_wheel_001.uasset",
+        "sha256": "2742A9682E25E7A4B9FABF4CA6271BEE18F3567FC8FF095550A0B7C26E72098E"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0183_car_8_wheel_002.uasset",
+        "sha256": "19B27396E089D89017C7EC6DE2D4B0B61F0C0488ADB92718E6902C6C300D4594"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0184_car_8_wheel_003.uasset",
+        "sha256": "E2AC76ED5E980F2E90D42102112EB10C59B024D18D37DE863523708B97195FE2"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0185_car_8_wheel_004.uasset",
+        "sha256": "D2F95966D364DB1C0E24EE47949A0A3CF4DDC5D4845F6190EF3BFE85B12831CA"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0186_car_10_001.uasset",
+        "sha256": "FFB8EE1952E03C0A48B460969D663B8D5A92FB5A91B0163760287474712B9393"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0187_car_10_wheel_001.uasset",
+        "sha256": "ED32390083C532C6794AE01DE7DADEFF9C4783329A2BB555245D859E02CB39AE"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0188_car_10_wheel_002.uasset",
+        "sha256": "A01E81B99917E544DC8344AAF718F371283F66338E58373DAA03C674770013D3"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0189_car_10_wheel_003.uasset",
+        "sha256": "2C687DB5233E24EEDD24A5F361790A79AD476B4B458AB24E90CE6073441C28E1"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0190_car_10_wheel_004.uasset",
+        "sha256": "D234E15B23EB0BFAC035A14ED62C802A380CFAD8FE63CDF840C717C9F0BABC46"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0191_tank_2_001.uasset",
+        "sha256": "B32C187A2303E71B02EB39C689F6D7B85FDBDE9B08B2D1D2D6FC5EC51953B7A0"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0192_tank_2_tower_001.uasset",
+        "sha256": "73A5927263CAB5B38FD0ECF91C54AF9BDC61C25105B98C54BD3647D68677C4A2"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0193_tank_2_gun_001.uasset",
+        "sha256": "129FC2C1312C2EBD2C470638E2EEB39108BC18C922D2FF003EEF84F124AFEA0F"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0194_tank_2_track_001.uasset",
+        "sha256": "3975A1C8C72675C0FA2FBD16C05532C516C0C9B343480ECB79998AEF212562A6"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0195_tank_2_track_002.uasset",
+        "sha256": "916D142CC1CF6E68AF63CE9FC79AD191C74C4A4BF94CE25730D7CA8309362B93"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0196_tank_2_wheel_001.uasset",
+        "sha256": "90AF9E5DC9900851EB3CBE495B4173488FDE9862F9A699139BF805D939458D8D"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0197_tank_2_wheel_002.uasset",
+        "sha256": "49A91B707FBC55D40F785E0EAC3A356BE7F5FE1FD3C37C9C9C595A3ECDBF70E6"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0198_tank_2_wheel_003.uasset",
+        "sha256": "81E2E6BE32E3F7C081C4B8AA1D32A16A07217EABBA0A7050783A05362AD545D1"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0199_tank_2_wheel_004.uasset",
+        "sha256": "1520ACF51D7DC75CD473B65A75CD67FEDF336F826DF1C71A080DAFCA339C2612"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0200_tank_2_wheel_005.uasset",
+        "sha256": "810500DFFC3AD348DEA9125CB47949B26D7FDF43FD852887B3B57B4FD6B64DC1"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0201_tank_2_wheel_006.uasset",
+        "sha256": "012A952BB2C2E9831C3FE533A4E310D097C7E5DCE8DFBAFF74ADBC7E2045D2D4"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0202_tank_2_wheel_007.uasset",
+        "sha256": "8E183D9F32954640A42A28D74B9775A87357144D21C121734C76D4E62AFC48C2"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0203_tank_2_wheel_008.uasset",
+        "sha256": "730078D0B345C8132196C28F922541132768B120B866EBF7A054028F753F2AB5"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0204_tank_1_001.uasset",
+        "sha256": "7FC3144A46830E74F6485A605A59DA827D0062386B1757360609941678B443E0"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0205_tank_1_tower_001.uasset",
+        "sha256": "1D7FE890168894A4591A84BE33ABD91B8DA80E1E66D9EAE890EA446C9106D5CC"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0206_tank_1_wheel_001.uasset",
+        "sha256": "148A68D7AE1DE3A506B404D8770CCE5317AC84782B0E59A6899AD592480E423F"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0207_tank_1_wheel_002.uasset",
+        "sha256": "C3902D66BF2CCFB927A60951A02E2E200853A714440585C5BD35CB384837AF8D"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0208_tank_1_wheel_003.uasset",
+        "sha256": "1960D6FD2046C05544F082A6696B8E9C3D7C281EE13E8AD53293849C1C7A51B7"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0209_tank_1_wheel_004.uasset",
+        "sha256": "1EEC7953441FAA1830844E0D36ADF0BBD2B76D630400319F5A3D6414D423F3F1"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0210_tank_4_001.uasset",
+        "sha256": "F06BD0A8A750B840CBE453503CA487E032BC8043779DFA89B1831D4DB39D0462"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0211_tank_4_tower_001.uasset",
+        "sha256": "AE9F155CA3A795BA685D87E91EAEE24013AF6CAC6C007D2761E9E520FE0192D2"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0212_tank_4_gun_001.uasset",
+        "sha256": "7B483B5391DE6F52ADB00066F0BF3D5D2119F3E61E69E2511D7208D69611B14D"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0213_tank_4_track_001.uasset",
+        "sha256": "CD5844830F4D97616B95DC31B795D8DBE72ACE7FC6F29F18717AF2E6D556D75C"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0214_tank_4_track_002.uasset",
+        "sha256": "43D94A87174E31CAD85022F5D6D6BF70C07D2455E76E8D35AD4B8A662C370637"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0215_tank_4_track_003.uasset",
+        "sha256": "15E5888BE43A76C6B0AA204BDA34856019E25C00362F1FB9063ECBAFFEB77B27"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0216_tank_4_wheel_001.uasset",
+        "sha256": "56552B0AC55816C4D4BB5CB49845F43DD3FCE44E4D511F8E917C0C6612319C23"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0217_tank_4_wheel_002.uasset",
+        "sha256": "0867AD21CE81FE357396E405D82974D329699CD1099615D366E0F461BCE0E1ED"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0218_tank_4_wheel_003.uasset",
+        "sha256": "5A59FB513779E7C2FE05529FD74429DCB431C25A3AAA35C81D1E6F72C32E1D8D"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0219_tank_4_wheel_004.uasset",
+        "sha256": "0F33122AE16208C32F9459367F426C3E76CAB04A1D47F0C3FEBDFBEC32B96EF9"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0220_tank_4_wheel_005.uasset",
+        "sha256": "CAFD41D45298094243C4C5D38BC0DFDAB238AA3293A419494764FFF90FAFDC18"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0221_tank_4_wheel_007.uasset",
+        "sha256": "05FB6FFDD2D2D84DD66526C72D6E9C6CBD35A62F19C66039107829DBFBA7F666"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0222_tank_4_wheel_008.uasset",
+        "sha256": "A7C109782BA057FC648CEB86C6EAF98D83FD95EB3AC1CE6B8B72B762B2537C66"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0223_tank_4_wheel_009.uasset",
+        "sha256": "4196D0A6722D3250D168AC4A80BD0548F0394395B8A4B276453900C6DE208BDF"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0224_tank_4_wheel_010.uasset",
+        "sha256": "00450D3E2A82D398460F69BCFA23ED6FEC1C891298ADD16ACFECEC89352D7B41"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0225_tank_5_001.uasset",
+        "sha256": "B0CD76250EEB354E36A587F88D44CD3A2576FFC2794483CB07BCC4659B14D089"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0226_tank_5_gun_001.uasset",
+        "sha256": "0F0153755F79248794F3A972CF3C9CE5297EE31FA80194EBEEABFC5ECD760A57"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0227_tank_5_tower_001.uasset",
+        "sha256": "C5BDE0F379FFD4FDA51FB7C4761740B3CC990CC1B8EDA724C1099D8B5200667F"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0228_tank_5_wheel_001.uasset",
+        "sha256": "7AE545F6B260A0A69D7C5FB360D068D3C73E8A6AA42A523C92F267FEAB31181D"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0229_tank_5_wheel_002.uasset",
+        "sha256": "77F1B7F82F59A968ED237E5A290DE2F3E7E4E1C4B9083974ADBA35976A487C62"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0230_tank_5_wheel_003.uasset",
+        "sha256": "F7647353CE38817D1A0929745505FFDAEC5048A88CDCE8DA6017C4FC708D0DF0"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0231_tank_5_wheel_004.uasset",
+        "sha256": "24E4C84BB8877DEA5FA1A7ECDDCA0DAB4EF4DE4E5B045211744677BC638071B4"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0232_tank_3_001.uasset",
+        "sha256": "E551B46304EB3BB109057B8755FA5778F642E8B5872B79BB3E1AACABF2419EE7"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0233_tank_3_tower_001.uasset",
+        "sha256": "914B18A790A957EDB1C5E7F31B1A67DE3DE7E5F79BC3F2607BB0B2A3D38F2256"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0234_tank_3_gun_001.uasset",
+        "sha256": "F1AB0D4EB4AF8DD5E5A4C07C9578898706FE6BED6FDA42BD686AFDA549AC05C5"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0235_tank_3_wheel_001.uasset",
+        "sha256": "DAEBE45A2086BF06951B74DDF4C4ADA25605EEB07C27AEB867A064E170EEC524"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0236_tank_3_wheel_002.uasset",
+        "sha256": "7FE6ADB7C94DBD07968DD5EA2ACDFE97AD113A59E0C5B1193AF7557851445125"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0237_tank_3_wheel_003.uasset",
+        "sha256": "4DD620415DAC86E54560FCACDBF7376C313B95993C47B74ECFA7B2FAEFB94F20"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0238_tank_3_wheel_004.uasset",
+        "sha256": "AA9B7A67C1B26CEECC606C2DB808DC9E75C304228D541E0AA6EA2876EE9D1D26"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0239_tank_6_001.uasset",
+        "sha256": "B47FA1D0421F477FC68D71C7F4E64703155742FF0773E6917B2E6DCF12839AE9"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0240_tank_6_gun_001.uasset",
+        "sha256": "164C294D5D65DC353B897C84A00085BD893BFF6DE5C3E7A78699FAF0EB33B03F"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0241_tank_6_tower_001.uasset",
+        "sha256": "C6ADAB8D70F35BDD6ECA74B3AED4AA033DD0250855D6AAC75F46D90584B3C46F"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0242_tank_6_track_001.uasset",
+        "sha256": "530A0FD26EB124656997611D4BE6F1D3EB257192CFC6D795C0A1FCE001076613"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0243_tank_6_track_002.uasset",
+        "sha256": "D514D679BDBA85E1798B0C3C386DA1A8CC2C0088C1B07353315798F474236780"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0244_tank_6_wheel_001.uasset",
+        "sha256": "E8FF5EC8A7D9789D825CF0AF798CCC65091A8954336EE89A821510FB46BDCD3F"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0245_tank_6_wheel_002.uasset",
+        "sha256": "B0A294773F1F76BFD679469887AA9D330260A530A0A8B44AF8208C12A9D9EC71"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0246_tank_6_wheel_003.uasset",
+        "sha256": "740015131117AC919946A980F25262DC40E7A2D3957200E479AFFA850FFEC83E"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0247_tank_6_wheel_004.uasset",
+        "sha256": "4330DC54AC184601FD2404640D90CDD140716370006FA4DA5F9734963C6D2386"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0248_tank_6_wheel_005.uasset",
+        "sha256": "AE4552525B374A87B6526ACDF2213FBB4AB6F50FFB11CAFFC86AEC159FD384EF"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0249_tank_6_wheel_006.uasset",
+        "sha256": "4B3B249125D0C7409624463617B454537DE16EED1013C5D7F2EC8F0C4156C2B4"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0250_tank_6_wheel_007.uasset",
+        "sha256": "DAFDD76ACDBB0B43D373252D41075DF670C3283FF8B4FE10BEA41258641386BD"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0251_tank_6_wheel_008.uasset",
+        "sha256": "245DCC6671CD54CE5202BDCAFB045A88A6BCE7D6EA08034E46AF1BB7DF85B5B9"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0252_base_circle_inflatable_005.uasset",
+        "sha256": "91407E59322EE62340ACBEDDB37B82FE5299381C920DDDC3BA7F83C61AEEB0DC"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0253_base_circle_inflatable_006.uasset",
+        "sha256": "429FAAD51C055E66906B2A11F2DE88BB0D6E8E53812BB47C06F7E5EBC858EA09"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0254_base_circle_inflatable_007.uasset",
+        "sha256": "6F1A43FF8F3E4B71A3626EE55590CF6E55838ED32B47BC5EF2EA2954074E1BFF"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0255_podium_007.uasset",
+        "sha256": "9833E1282D324F458F21651D209BEDDC99908555FB0E5525E5EB0DCD6A3FD062"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Meshes/SM_0256_Cylinder.uasset",
+        "sha256": "4A8B5400C2C103BB3BD5A11B86803A05199E7DC937350EE92530C9F2F7AEAE0C"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Textures/T_0884031bce0edca4f8a825ec9305c9b5.uasset",
+        "sha256": "FAF27E5F04F6000E766100FE04EEFB2A7EB04F6CD9A9FEC18586FDA935743506"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Textures/T_22dc2b338e748ed418d66daa2cd19866.uasset",
+        "sha256": "96D704342A7908F250803E222FEF082C84F151AAEA7D813B51647DB5434FC399"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Textures/T_32b4e6b2aa342d448a2c185534f552c1.uasset",
+        "sha256": "838517FF284078C43CF61A37105200F9A061C5FDADDE263CF7E347637E3BB892"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Textures/T_5261eb0b280aebe4b8b4e5a4f300e589.uasset",
+        "sha256": "0176DB29DC3478542EA89C032743367B3DC584AFED618613DBE58B650ECFF32C"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Textures/T_8f3b2fcbd2b6b194d8ba2821d91cfae2.uasset",
+        "sha256": "331F7502EF9280AEC126EE01031B140166CCFA2F928276CE86C86F497840DE8A"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Textures/T_b09aed1c819e66248863189166626e5b.uasset",
+        "sha256": "BBA6425DE3CC6F3D903CA913BA03611E96E11DBAFEA35B4E67ECC46CCFB30B87"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Textures/T_d42f4f38ea938dc439ad585cd29de0bb.uasset",
+        "sha256": "BE614AA4C61E99CBAF0BA11CC61D13A9C8CE6662ED4373E5B867D0E6392C9F4D"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Textures/T_d48d4099f3e5a804c8d1e22a9657ccc3.uasset",
+        "sha256": "8DB4B78F4192EB65BE5D3DDB6ED01286E3C12407B2D8F65F70A42822F0A2957B"
+      },
+      {
+        "path": "Content/Imported/BattleStadium/Textures/T_e4d8041694d19f44c9351a6bc633a4e0.uasset",
+        "sha256": "21434B3F1E05F6035652DB11E94168B5012FD6B4060886E06D8CF431C236EA10"
+      },
+      {
+        "path": "Content/Input/Vehicle/IA_PrimarySkill.uasset",
+        "sha256": "8136781E696FF373521F10ECEE6220E74012E776D5BBB7854BE79B7B92B01B6F"
+      },
+      {
+        "path": "Content/Input/Vehicle/IA_VehicleBrake.uasset",
+        "sha256": "B343F5463D70EAA82B31C1C3C5BE488D887EBB90522380291B6526D361958762"
+      },
+      {
+        "path": "Content/Input/Vehicle/IA_VehicleHandbrake.uasset",
+        "sha256": "06C80ED9549FED62B128635DE124CAF7382A71BAD02679E14B9B945992CE6F38"
+      },
+      {
+        "path": "Content/Input/Vehicle/IA_VehicleLaunch.uasset",
+        "sha256": "8CE5D2802D95C444D4DA41D3B68038EF906B851A75C0B60FF6583FF8BD454F62"
+      },
+      {
+        "path": "Content/Input/Vehicle/IA_VehicleSteering.uasset",
+        "sha256": "89E3CB9B6437720FE6785A7C0F3C99ED8CF33E2FA6A5E6A297866AFBECCC3D8C"
+      },
+      {
+        "path": "Content/Input/Vehicle/IA_VehicleThrottle.uasset",
+        "sha256": "3F9239F6DF740AC113EFF42455183F3AC4A108C1E73BD8217E0C332A9BA82F32"
+      },
+      {
+        "path": "Content/Input/Vehicle/IMC_Vehicle.uasset",
+        "sha256": "C24CD48E235551A11192F3D1E7B89A414CC075FE141A8D5BD1A56F12E1B74159"
+      },
+      {
+        "path": "Content/Maps/MVPB_NetEntry.umap",
+        "sha256": "FED082D1434C305FB15D275E07A8D607A43F0ED5143EB5B2B24BF508A9933761"
+      },
+      {
+        "path": "Content/Maps/MVPB_NetTest.umap",
+        "sha256": "F757A2C722FBF6C78EB6B76B677102275948C24833D8D536AC9C7A97A4098BE8"
+      },
+      {
+        "path": "Content/Maps/Test.umap",
+        "sha256": "0D9AD162FE9652262F29ABC958D178CD9F2FB6EB86645506816EDA39601A90AE"
+      },
+      {
+        "path": "Content/Meshes/SM_CarCollisionProxy.uasset",
+        "sha256": "05D4D1D63887A9D08937184DC2F50B8AA59BA4958BA6E53F8C1BE87FA61CC4E7"
+      },
+      {
+        "path": "Content/Meshes/SM_MVP_RoundedVehicle.uasset",
+        "sha256": "4CD7A6438EE69773C2D8B3F66675CCEB28CB7C12A50017261E379FC23C1118C8"
+      },
+      {
+        "path": "Content/UI/Network/WBP_MVPB_MatchLobby.uasset",
+        "sha256": "9F1B35D2E809C34AA1DA49EB87CF0180E1C59F113818D755A5D71621926BC875"
+      },
+      {
+        "path": "Content/UI/Network/WBP_MVPB_NetMenu.uasset",
+        "sha256": "3CB6129CD7ABF4B158D8F0110E5F6AA0011EC1B128D597734D78A6A2BF5A2714"
+      }
+    ]
+  },
+  "source_files": [
+    {
+      "path": "HAL_Future_Creation.uproject",
+      "bytes": 575,
+      "sha256": "07100B2E1554EF47889893C47407522D4D22CA27B60EE37DB7C5F8C970FFCCE5",
+      "normalized_lf_sha256": "D4CB3020F716028FB175173CDDC75FCBD5A0C562B6CDE9B14D6C188A2F612332"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor.Target.cs",
+      "bytes": 509,
+      "sha256": "A86DC25614F57B2DD2702C180993A048B10BB49A27FCCC58EA60500DBEE0E91A",
+      "normalized_lf_sha256": "9625D059FB98836D299106F3DBBA9B3B1E6591957D947540C68CA459CC5CFBF2"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/HAL_Future_CreationEditor.Build.cs",
+      "bytes": 483,
+      "sha256": "B0BF9B587C0A69340E35DF7EE4101C92E561EE8BF158C5FFD58EDCB68F2D31D7",
+      "normalized_lf_sha256": "B0BF9B587C0A69340E35DF7EE4101C92E561EE8BF158C5FFD58EDCB68F2D31D7"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALFutureCreationEditorModule.cpp",
+      "bytes": 1976,
+      "sha256": "1539CC7209DC6A625864901B0F6F694939F0BE26E3595CAEA45E36FF93B0DEB8",
+      "normalized_lf_sha256": "1539CC7209DC6A625864901B0F6F694939F0BE26E3595CAEA45E36FF93B0DEB8"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALVehicleCollisionGenerator.cpp",
+      "bytes": 9898,
+      "sha256": "F183124DCCB173D587A7A893ED6D0AA15A0AF1C0DDD135981D026D4FD1F11749",
+      "normalized_lf_sha256": "F183124DCCB173D587A7A893ED6D0AA15A0AF1C0DDD135981D026D4FD1F11749"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALVehicleCollisionGenerator.h",
+      "bytes": 931,
+      "sha256": "B22DB6466792F6B869CE6E07BFCAF9D8BD67F3A164B49BC6EDB63888E2B40501",
+      "normalized_lf_sha256": "B22DB6466792F6B869CE6E07BFCAF9D8BD67F3A164B49BC6EDB63888E2B40501"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/SHALVehicleCollisionGenerator.cpp",
+      "bytes": 8015,
+      "sha256": "32091AB5E64182C0FDAD77E571FDE132C8763EEBFE3BA3D5648DB98FC1DEF5FB",
+      "normalized_lf_sha256": "32091AB5E64182C0FDAD77E571FDE132C8763EEBFE3BA3D5648DB98FC1DEF5FB"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/SHALVehicleCollisionGenerator.h",
+      "bytes": 100,
+      "sha256": "E27C4BBA5C65EE65CA303E2003D6A773A70CA27F9708B9B83D1861A233741CA3",
+      "normalized_lf_sha256": "E27C4BBA5C65EE65CA303E2003D6A773A70CA27F9708B9B83D1861A233741CA3"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALCollisionGeneratorUITests.cpp",
+      "bytes": 2607,
+      "sha256": "C5F9DCC649725EEFAE4AEAB422B1D8F60DBDBB716A988309850548130B6AD7EE",
+      "normalized_lf_sha256": "C5F9DCC649725EEFAE4AEAB422B1D8F60DBDBB716A988309850548130B6AD7EE"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleCollisionGeneratorTests.cpp",
+      "bytes": 12088,
+      "sha256": "E3F052B2F9DE1C938F93C6B193C5098E30CDF6718CD6E0FA1F8BB988BACBA199",
+      "normalized_lf_sha256": "E3F052B2F9DE1C938F93C6B193C5098E30CDF6718CD6E0FA1F8BB988BACBA199"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Public/HALVehicleCollisionGeneratorSettings.h",
+      "bytes": 2158,
+      "sha256": "AA1493C4125F85730C9C9864235E2F323E4E4ACD8631C83FE8666790A08E62AB",
+      "normalized_lf_sha256": "AA1493C4125F85730C9C9864235E2F323E4E4ACD8631C83FE8666790A08E62AB"
+    }
+  ],
+  "game_uht_evidence": {
+    "path": "Intermediate/Build/Win64/HAL_Future_Creation/HAL_Future_Creation.uhtmanifest",
+    "bytes": 1327643,
+    "sha256": "69FB93F624EF07CEF9DF1AC2E84F50CBBC459CDD73EBB1E5C83CB97D4787A064"
+  },
+  "processes": "All dedicated Editor / Editor-Cmd processes exited; no Editor, Cmd or LiveCoding process remains at verification time.",
+  "not_performed": [
+    "No production collision mesh/DA/Blueprint/map saved or assigned",
+    "No actual Car_01 driving/ball/impact/Listen Server acceptance",
+    "No rerun of historical HAL.FutureCreation 49 tests or prior networking probes",
+    "No UE5.8.3 retest",
+    "No complete packaged-game/cook acceptance",
+    "No VP-2 or physical suspension implementation",
+    "No Git commit/push"
+  ]
+}
