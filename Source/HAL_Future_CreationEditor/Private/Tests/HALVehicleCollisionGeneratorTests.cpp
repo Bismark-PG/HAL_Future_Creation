@@ -2,6 +2,7 @@
 
 #include "HALVehicleCollisionGenerator.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
@@ -10,7 +11,10 @@
 #include "Misc/AutomationTest.h"
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
+#include "MeshDescription.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "StaticMeshAttributes.h"
+#include "StaticMeshOperations.h"
 #include "UObject/MetaData.h"
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
@@ -123,6 +127,25 @@ bool FHALCollisionBodyTest::RunTest(const FString&)
 	TestEqual(TEXT("Physics-compatible collision mode"), Setup->GetCollisionTraceFlag(), CTF_UseSimpleAndComplex);
 	TestNotNull(TEXT("Editable source retained for future rebuild/cook"), Mesh->GetMeshDescription(0));
 	TestEqual(TEXT("One material section"), Mesh->GetStaticMaterials().Num(), 1);
+	// Exercise the engine's actual face convention, rather than just signed mathematical volume.
+	FMeshDescription RenderSource(*Mesh->GetMeshDescription(0));
+	FStaticMeshAttributes RenderAttributes(RenderSource);
+	RenderAttributes.RegisterTriangleNormalAndTangentAttributes();
+	FStaticMeshOperations::ComputeTriangleTangentsAndNormals(RenderSource);
+	const auto EngineNormals = RenderAttributes.GetTriangleNormals();
+	const auto InstanceNormals = RenderAttributes.GetVertexInstanceNormals();
+	for (const FTriangleID Triangle : RenderSource.Triangles().GetElementIDs())
+	{
+		const auto Instances = RenderSource.GetTriangleVertexInstances(Triangle);
+		FVector3f Center = FVector3f::ZeroVector;
+		for (const FVertexInstanceID Instance : Instances)
+		{
+			Center += RenderSource.GetVertexPosition(RenderSource.GetVertexInstanceVertex(Instance)) / 3;
+			TestTrue(TEXT("UE-derived face normal matches the stored outward vertex normal"),
+				FVector3f::DotProduct(EngineNormals[Triangle], InstanceNormals[Instance]) > 0.99f);
+		}
+		TestTrue(TEXT("UE renderer sees the outside of the closed convex proxy"), FVector3f::DotProduct(EngineNormals[Triangle], Center) > 0);
+	}
 	TestFalse(TEXT("Generator refuses to rebuild existing mesh data"), HALVehicleCollision::BuildMesh(*Mesh, P, Error));
 
 	const auto Options = UWorld::InitializationValues().AllowAudioPlayback(false).RequiresHitProxies(false)
@@ -141,6 +164,26 @@ bool FHALCollisionBodyTest::RunTest(const FString&)
 	TestTrue(TEXT("Generated mesh creates a real dynamic body"), Body->BodyInstance.IsValidBodyInstance());
 	TestTrue(TEXT("Vehicle-compatible simulation"), Body->IsSimulatingPhysics());
 	TestEqual(TEXT("Authored mass can be retained"), Body->GetMass(), 800.f, 0.1f);
+	AActor* Floor = World->SpawnActor<AActor>();
+	UBoxComponent* FloorBody = NewObject<UBoxComponent>(Floor);
+	Floor->SetRootComponent(FloorBody);
+	FloorBody->InitBoxExtent(FVector(2000, 2000, 50));
+	FloorBody->SetCollisionProfileName(TEXT("BlockAll"));
+	FloorBody->SetWorldLocation(FVector(0, 0, -50));
+	FloorBody->RegisterComponent();
+	TestFalse(TEXT("Old 70 cm body clears a flat floor at center Z=92"),
+		World->EncroachingBlockingGeometry(Actor, FVector(0, 0, 92), FRotator::ZeroRotator));
+	TStrongObjectPtr<UStaticMesh> TallMesh(NewObject<UStaticMesh>());
+	P.LengthCm = 456; P.WidthCm = 288; P.HeightCm = 269;
+	P.FrontRadiusCm = 120; P.RearRadiusCm = 120;
+	if (TestTrue(TEXT("Tall centered proxy generated"), HALVehicleCollision::BuildMesh(*TallMesh, P, Error)))
+	{
+		Body->SetStaticMesh(TallMesh.Get());
+		TestTrue(TEXT("269 cm body intersects the floor at center Z=92"),
+			World->EncroachingBlockingGeometry(Actor, FVector(0, 0, 92), FRotator::ZeroRotator));
+		TestFalse(TEXT("269 cm body clears the floor at center Z=200"),
+			World->EncroachingBlockingGeometry(Actor, FVector(0, 0, 200), FRotator::ZeroRotator));
+	}
 	World->DestroyWorld(false);
 	return true;
 }

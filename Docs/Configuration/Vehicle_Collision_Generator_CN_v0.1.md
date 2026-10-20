@@ -98,3 +98,37 @@
 本轮编译、自动化、界面及资产保护的最终结果见[验证摘要](Vehicle_Collision_Generator_Verification_20261020.json)和[项目状态入口](../Project_Status_CN.md)；工具本身通过不等于新车型碰撞已完成真人双端验收，也不代表完整游戏已打包／Cook 验证。
 
 本机使用UE5.8.2 CL56702186；最终真实渲染Editor中5/5工具测试通过，0测试错误／警告，截图已人工检查。初次链接错误与UI探针访问私有API已修正；初次保存探针改变包路径导致配方软路径不匹配，改为同路径真实重载后通过；首次界面绘制命中TArray禁止自引用追加的断言，改为复制首点再闭合预览轮廓，并在最终渲染进程复测全部5项。历史失败日志保留，不能以引擎退出码0替代报告结果。最终渲染启动日志仍有NVIDIA旧驱动TSR和r.MotionVectorSimulation线程标记提示，工具测试本身为0警告。
+
+## 9. 缩略图面朝向修复与出生碰撞排查（2026-10-20）
+
+### 9.1 已确认的问题与证据边界
+
+团队报告 `SM_Car01_Collision` 的缩略图像缺失顶面，同时进游戏报 `Player joined without a vehicle Pawn`。本轮确认是两个需要分别处理的问题：
+
+- **可视网格朝向错误**：原生成器沿用数学叉积的三角形绕序，UE 使用反向叉积推导面法线，导致可视外表面被背面剔除。已只反转提交给 MeshDescription 的三角形绕序；凸包仍由同一组顶点烹制，不改变尺寸或物理规则。旧验证覆盖了几何、动态刚体和二维参数面板，没有检查真实 Static Mesh 缩略图，未能发现此问题。本轮增加 UE 实际面法线断言和真实缩略图渲染。
+- **车辆出生被碰撞拒绝**：原游戏日志在自定义报错之前，已明确记录 `SpawnActor failed because of collision`，位置为 `(-390,-1060,92)`。该自定义报错是没有生成 Pawn 的后续提示，不表示一定丢失 Blueprint 父类。生成资产具有一个真实凸包，并非缺失碰撞。
+
+保存资产的只读检查得到新代理整体尺寸 **456×288×269 cm**、前后半径120 cm、分段4；本地原点在中心，Z范围为 `[-134.5,134.5]`。四个已保存 HALPlayerStart 的中心均为 Z=92。测试地图 Floor 的保存包围盒上表面约Z=-0.5，因此若使用新代理、缩放为1且无旋转，底部将到Z=-42.5，进入地面约42 cm。独立游戏物理世界回归确认这种尺寸在中心Z=92时与平地重叠，Z=200时不重叠；这不是对原报错瞬间 PIE 状态的采样。
+
+**当前保存状态与当时 PIE 仍需区分**：本轮读到的玩家 `DA_Vehicle_Player_TestBaseline_v1.CollisionMesh` 仍为旧 `/Game/Meshes/SM_CarCollisionProxy`，整体200×140×70 cm。使用该保存配置在独立 `MVPB_NetTest?listen` 启动，得到 `Pawn=BP_RoundedVehiclePawn_C_0`，无出生碰撞失败。尚不能从保存文件断言原报错时的内存 DA 引用、临时覆盖或其他未保存关卡状态。普通 Editor 世界探针没有取得有效物理查询结果，不作为“地图没有重叠”的证据。
+
+### 9.2 团队操作：修复旧生成结果并重新接入
+
+1. 本机本轮已关闭 Editor 并重编成功，可重新打开。其他电脑同步源码后，先关闭 Editor／Live Coding，执行根目录 `Build_Editor.cmd`，成功后再打开。
+2. 在 Content Browser 选中旧 `SM_Car01_Collision`，打开 **Tools → HAL Vehicle Collision Generator**，点击 **Load Selected Mesh Recipe**。旧配方Version=1仍可读取。
+3. 核对 Height 是否确实希望为269 cm（2.69米厚）。它是**车身物理代理的厚度**，不必包含尾翼、车顶等全部视觉高度。按实际需要调整；工具不替团队决定新的碰撞尺寸。
+4. 用新名字，如 `SM_Car01_Collision_v2`，点击 **Create New Mesh**。在新资产 Static Mesh Editor 中检查实体顶面及 **Show → Simple Collision** 的凸包，再Ctrl+S。保留旧资产用于回退，现有资产不会随工具重编自动修好。
+5. 打开实际玩家 Vehicle Definition：当前为 `/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1`。在 **Physics → Collision Shape** 保持Convex Mesh；**Collision Mesh** 选择刚保存的新网格，核对Scale=(1,1,1)，保存DA。只修改BP组件Static Mesh可能被运行时DA覆盖。
+6. 打开 `MVPB_NetTest`，在World Outliner选择四个HALPlayerStart，在Details的 **Transform → Location → Z** 核对高度。安全起点按 `地面高度 + 新代理总高度×世界Z缩放÷2 + 余量` 计算。保持269 cm厚时，当前平地可先把四个起点Z调为200，XY／旋转／SpawnSlot保持原值；同时查看周围墙体、机关和其他车辆是否重叠。保存地图。若缩小了厚度，应重新计算，不机械使用200。
+7. 骨骼表现DA中的相对位置也要对齐新的物理根；不能用改变PlayerStart高度来掩盖车身／车轮相对偏移。456 cm长的新代理前端X=228，旧Ball Control Point的X=170会落在内部，使用新形状时也需把球中心调整到车头外并留足球半径和间隙。
+8. 完整停止并重新Play，先确认能生成／驾驶，再做双端、控球／发射和碰撞回归。不要用Always Spawn或关闭根碰撞绕过出生重叠；它们可能让车辆一出生就发生穿透和弹飞。
+
+新生成资产追加 `HALCollision.GeneratorRevision=2` 元数据，参数配方Version仍为1。这用于追踪生成器修订，不自动迁移已保存网格或DA。
+
+### 9.3 本轮验证
+
+本机UE5.8.2 CL56702186，Editor／Game Development构建成功；最终真实渲染Editor中 **6/6工具测试通过，0测试错误／警告**。包括实际UE面法线一致性、70／269 cm两种厚度的出生地面重叠、保存重载、二维面板及真实网格缩略图。下面是临时生成的相同456×288×269 cm参数网格的实际缩略图，不是手工补画或修改团队资产的结果。
+
+![修复后实际生成网格的缩略图](VehicleCollisionGenerator_MeshThumbnail_WindingFix_20261020.png)
+
+验证摘要见[本轮独立记录](Vehicle_Collision_Generator_WindingFix_Verification_20261020.json)。原5/5记录保留为历史，不等同本轮。团队原有354份资产哈希前后相同；未修改任何Blueprint／DA／地图，也尚未完成团队新代理重新接线、出生和驾驶的真人双端复测。
