@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-20",
+  "base_commit": "a11228a",
+  "engine": "5.8.2-56702186",
+  "scope": "Spring punch step 1: server combat adapter only; no replicated presentation or match-stage gating.",
+  "defaults": {
+    "damage": 25,
+    "impact": "Medium",
+    "direction": "SceneRoot local +X, projected horizontally by shared impact rules",
+    "active_phase": "Extending",
+    "balance_status": "Editable provisional test defaults, not final user-selected balance."
+  },
+  "builds": {
+    "Editor_Win64_Development": "Succeeded after user closed Editor; initial link failed LNK1104 due to locked DLL.",
+    "Game_Win64_Development": "Succeeded"
+  },
+  "automation": {
+    "filter": "HAL.FutureCreation",
+    "passed": 49,
+    "failed": 1,
+    "passed_with_warnings": 0,
+    "not_run": 0,
+    "report": "Saved/SpringPunch/Combat_20261020/index.json",
+    "log": "Saved/SpringPunch/Combat_20261020.log",
+    "new_test": "HAL.FutureCreation.SpringPunch.CombatLifecycle",
+    "new_test_result": "Success",
+    "coverage": [
+      "Fixed damage and Medium impact accepted through CombatResolver",
+      "Duplicate callback rejected, multiple targets and subsequent punch accepted",
+      "Retracting rejected and phase end closes action",
+      "Impact immunity still takes damage; damage immunity still takes impact",
+      "Immune accepted hit consumed; HP zero and zero damage allow impact",
+      "Unready target rejected without consumption, same-punch retry accepted",
+      "Actual swept target takes one hit; repeated sweep cannot double damage",
+      "EndPlay closes action and negative damage cannot begin attack"
+    ],
+    "failure": {
+      "test": "HAL.FutureCreation.Presentation.OptionalRigPreservesGameplay",
+      "assertions": [
+        "No optional asset leaves presentation tick disabled",
+        "No rig selected"
+      ],
+      "analysis": "Existing fixture loads saved BP_RoundedVehiclePawn and assumes no skeletal presentation. Current team assets select Car_01. Presentation source/test/assets were not modified by this work."
+    }
+  },
+  "remaining": [
+    "Manual standalone punch feel and authored Blueprint parameters",
+    "Listen Server host/client targets, replicated HP/impact/drop and network replay verification",
+    "Replicated punch phases and synchronized presentation are a later step",
+    "Full impairment and four-player acceptance remain deferred",
+    "No restoration of discarded bomb or temporary PlayerState setup for placed player Pawns"
+  ],
+  "assets": "No Blueprint, map or Data Asset edits by agent.",
+  "git": "No commit or push. Earlier Project_Status analysis edits retained."
+}

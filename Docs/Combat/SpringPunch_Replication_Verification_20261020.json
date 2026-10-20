@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-20",
+  "base_commit": "a11228a",
+  "engine": "5.8.2-56702186",
+  "scope": "Replicated spring punch phase snapshots, server-only combat and client presentation reconstruction",
+  "implementation": [
+    "RepNotify phase/state, server start time, duration, distance, origin and punch number",
+    "Server PostInitializeComponents enables replication for old Blueprint nonreplicated defaults",
+    "Client uses GameState server clock, clamps phase progress and never starts an action or sweeps",
+    "Server retains final extension sweep and original BeginPlay loop",
+    "Screen HP debug stays local to standalone/host"
+  ],
+  "build": {"Editor_Development_Win64": "Succeeded", "Game_Development_Win64": "Succeeded"},
+  "automation": {
+    "unit": {"passed": 1, "failed": 0, "report": "Saved/SpringPunch/Replication_Unit/index.json"},
+    "ordinary_regression": {
+      "passed": 49,
+      "failed": 1,
+      "passed_with_warnings": 0,
+      "report": "Saved/SpringPunch/Replication_Final_Regression/index.json",
+      "known_failure": "Presentation.OptionalRigPreservesGameplay expects no rig on the saved player Blueprint, but team assets now use Car_01. Same two assertions as the pre-replication run."
+    },
+    "network": {
+      "map": "/Game/Maps/MVPB_NetTest",
+      "port": 7799,
+      "timing": "Normal game time, t.MaxFPS 60, NullRHI",
+      "host": {"passed": 1, "failed": 0, "report": "Saved/SpringPunch/Replication_RealTime_Host/index.json"},
+      "client": {"passed": 1, "failed": 0, "report": "Saved/SpringPunch/Replication_RealTime_Client/index.json"},
+      "coverage": "Runtime native actor plus saved BP_SpringPunch, each forced to old nonreplicated flag before initialization. Both actors observed extending/retracting/rest on both roles; both player targets HP75 and observed Medium; client action never active.",
+      "fault_scan": "No Ensure, assertion, fatal or GAS warnings in final role logs. Generic editor startup warnings remain."
+    }
+  },
+  "iterations": [
+    "First compile failed due to DOREPLIFETIME requiring the OutLifetimeProps parameter name; fixed before testing.",
+    "Initial native-only two-process smoke passed.",
+    "Strict native/Blueprint mixed test timed out with accelerated fixed game time; both HP changes occurred. Failed reports retained at Saved/SpringPunch/Replication_Final_Host and Replication_Final_Client.",
+    "Normal time capped at 60 FPS passed identical strict phase/HP assertions."
+  ],
+  "limits": [
+    "No rendered screen/mesh visual or human feel validation",
+    "Late snapshot reconstruction unit-tested; no live late-joining/relevancy/packet-loss matrix",
+    "Live network test does not cover held ball, immunity and boost combinations; existing ordinary impact/GAS regressions pass",
+    "Full impairment/four-player validation deferred; match-stage gating unchanged"
+  ],
+  "assets": "Retained team changes to BP_SpringPunch, DrivingLab GameMode, vehicle DA and map; no asset edits by agent.",
+  "git": "No commit/push. Prior stage 1/debug/source/document changes retained."
+}

@@ -1,5 +1,15 @@
 # HAL Future Creation：项目状态与接续入口
 
+2026-10-20弹簧拳第二步（最新）：已授权并完成阶段/起始时间/时长/距离/原点/拳次的RepNotify快照、客户端服务器时间插值与旧BP非复制标记兼容；权威命中不变，不新增比赛阶段门控。UE5.8.2 Editor/Game成功，专项1/1，普通回归49/50（唯一仍为Car_01接线后的旧无Rig假设）。真实正常时间60FPS、端口7799双进程以原生拳+现有BP混测，Host/Client各1/1通过，双方观察两拳伸出/收回且两玩家HP75/Medium，无客户端Action。原生初测通过；加速时间混测曾超时，改正常时间后相同严格断言通过，失败证据保留。不代表画面/手感、实际晚加入、网络扰动、持球/免疫/加速组合或四机完成；详见[同步摘要](Combat/SpringPunch_Replication_Verification_20261020.json)与[交接](Combat/MVPB_SpringPunch_Combat_Handoff_CN_v0.1.md)。保留团队4份资产改动，代理未改资产、未提交/Push。
+
+2026-10-20弹簧拳屏幕扣血调试：新增BP默认开关Debug Damage On Screen，实际扣血时黄色文字显示6秒，包含拳头/目标名称、HP前后、实际扣血、有效冲击档位及Applied状态；只读展示，不改变结算，不额外向远端复制。保留团队DrivingLab GameMode/DA/地图改动。用户关闭Editor后，UE5.8.2 Editor/Game Development均构建成功。最新模块弹簧拳专项1/1通过、0测试警告/失败，报告Saved/SpringPunch/ScreenDebug_20261020/index.json。此为无视窗结算回归，尚未验证实际文字渲染及开关画面；前次49/50不冒充本轮结果。
+
+2026-10-20 DrivingLab不能操控诊断：当前15:20:05本地Editor日志显示BP_DrivingLabVehicle_C_0使用DA_DrivingLabVehicle后报`TieredV1 rules require migrated VehicleDefinition.Impact`，随后物理模拟与控球关闭。源码PreInitializeComponents在配置校验失败时禁用模拟/碰撞，输入初始化也跳过；本次证据指向DrivingLab专用DA未迁移Impact，不能以更换PlayerState解决。团队须手动在DA顶层Impact将Version设TieredV1，保存后重新Play；代理未改资产，保留团队DrivingLab_Test.umap修改。本轮只读诊断，尚无修正后复测。HALGASStatus由HALPlayerController提供，普通DrivingLab控制器不保证支持，不能单凭命令无输出判断GAS缺失。
+
+2026-10-20弹簧拳第一步施工：用户授权接入统一战斗结算，已新增可调25伤害/Medium测试默认值、独立机关SourceTag、每拳Action快照、固定出拳方向ExplicitTier、接受后去重与阶段/销毁清理；保持原时序及仅Extending车辆检测，不恢复炸弹、不新增联机表现复制。专项测试代码覆盖重复/多目标/下一拳、两类免疫、HP0/零伤害、拒绝后重试与Sweep。用户关闭Editor后，UE5.8.2 Editor/Game Win64 Development均构建成功。完整普通自动化49/50：新增SpringPunch.CombatLifecycle通过；唯一失败Presentation.OptionalRigPreservesGameplay仍假设保存玩家资产未选骨架Rig，与已接入Car_01的当前资产不符，本轮不修改表现测试/资产。没有本轮真人或Listen Server双端受击验收，联机阶段表现仍未实施。报告Saved/SpringPunch/Combat_20261020/index.json，共享证据见Docs/Combat/SpringPunch_Combat_Verification_20261020.json。详见[交接文件新增第一步](Combat/MVPB_SpringPunch_Combat_Handoff_CN_v0.1.md)，本轮未改资产或提交。
+
+2026-10-20本机接续分析：实际为干净`main/a11228a`，团队Car_01接线资产已提交。用户说明已discard旧炸弹；本次检索Source／Config／Docs未发现HALBombActor、HALUseBomb、HALBombTest或PrepareStandaloneCombatTarget，旧炸弹验证不适用于当前源码。相较f4b17d2已纳入10-D物理线程修复、10-E免疫技能、10-F运动桥接及加速GA／GE、补球调试与VP-1表现底座。此设备`D:/Unreal Shit/UE_5.8`实际是5.8.2-56702186，与下文另一设备5.8.3历史环境不同；49项及双端结果均为既有记录，本轮仅核对Git、源码、配置与验证摘要，没有新编译、Unreal运行、资产字段导出或新验收。只补本接续说明，未恢复炸弹、修改玩法或资产；F4后置与表现待测事项保持。
+
 最后更新：**2026-10-20（Asia/Tokyo）**。本文件维护最新进度、已确认决策和后续入口；详细规则、资产数值和验证证据由链接文档提供。10-F-1～3及加速GA、团队接线和基础双端实测均完成，相关资产和复核已提交`c825d8d`。**用户已决定将10-F-4完整集成／扰动／四机测试后置至MVP-B收尾，当前暂不施工F4-A；后续开发按用户指定事项推进。** 最终验收未完成，后续各项开发仍保留相关编译／自动化及必要双端基本检查。
 
 当前推进**车辆模型与基础Rig表现**：VP-0代码核对／VP-1原生底座已在9983c5f提交，原两个Target／49项普通自动化／数据双端证据保持。Car_01素材20份已随2e4176d到达，原只读检查确认17骨骼结构、权重和依赖满足接线基础条件，351份资产哈希前后相同；见[素材检查](Presentation/MVPB_Car01_AssetInspection_CN_v0.1.md)及[数据报告](Presentation/MVPB_Car01_AssetInspection_20261020.json)。用户现已完成ABP／DA／BP配置并报告游戏可见小车，但左右输入令前轮绕前向轴侧倾；当前入口是按[配置流程第4.2节](Presentation/MVPB_Vehicle_Model_Import_And_AnimBP_Setup_CN_v0.1.md#42-确定转向滚动轴与符号)核对前轮SteeringAxis=Y／Sign=-1、节点Bone Space与完整Rotation接线，修正结果待实测。最终半径／缩放、实际滚动与基本双端仍待团队；VP-2～4未施工，弹簧拳仍由另一成员负责。

@@ -1,5 +1,30 @@
 # 弹簧拳：战斗与联机接入交接注意事项（v0.1）
 
+## 2026-10-20：第二步阶段同步
+
+用户已授权继续本会话施工。机关默认复制，并在服务器PostInitializeComponents纠正旧蓝图保存的非复制标记；不编辑蓝图资产。每次阶段切换原子更新一个RepNotify结构，含阶段、服务器起始游戏时间、本阶段时长、伸出距离、收回原点与拳次编号，ForceNetUpdate；客户端以GameState服务器时间计算伸缩位置，只在伸缩阶段Tick。迟到资料直接恢复当前进度，已过期阶段夹到端点，新的休息阶段恢复原点并停Tick。不逐帧复制拳位置、不用可靠位置RPC、不在客户端检测/补算伤害；原BeginPlay循环与比赛阶段规则保持，未加入Waiting暂停。
+
+源码与测试：SpringPunchGimmick.h/.cpp新增阶段复制；HALImpactTests补迟到快照/端点/原点及不创建攻击测试；新增HALSpringPunchNetworkTests.cpp，仅显式`HAL.NetworkSmoke.SpringPunch`运行。测试在NetTest运行时生成一个原生拳头和一个现有BP_SpringPunch，模拟旧非复制默认值，验证主机及客户端均收到两个拳头Extending/Retracting/Cooldown、第一拳号、两台玩家HP100→75、Medium档位，且客户端无活动Action。没有修改保存地图或机关资产。
+
+最终正常时间双进程（t.MaxFPS 60，端口7799）Host/Client各1/1、0测试警告/失败；专项1/1通过。全套普通回归49/50，唯一失败仍是Car_01已接线后旧OptionalRigPreservesGameplay假设“未选Rig”，与本轮同步无关。本轮无画面渲染/人工体验、新网络扰动/四机或真实晚加入测试；晚到快照由普通测试模拟。最初原生双端通过后，严格混合测试在加速游戏时间下超时；保留失败记录，改为真实60FPS后相同阶段断言通过，没有减弱断言。首轮构建复制宏参数名错误已修正。
+
+团队下一步：将已有BP_SpringPunch手动放进MVPB_NetTest（如果尚未放置），用双人Listen Server正常Play，两台车轮流受击，核对拳的时序/击退/持球脱球及免疫。原屏幕扣血Debug仍仅显示单人/主机，不因本轮阶段复制扩展到客户端。完整扰动/四机继续后置。详细本机证据见[阶段同步摘要](SpringPunch_Replication_Verification_20261020.json)。
+
+## 2026-10-20：第一步战斗接入
+
+同日屏幕调试补充：SpringPunch蓝图Class Defaults → Spring Punch → Debug新增`Debug Damage On Screen`（默认关闭），实际接受命中且ActualHPRemoved>0时显示黄色文字6秒：拳头/车辆名称、HP前后值/实际扣血、抵抗后的Impact档位0～3及Applied是否成功。与原Debug Punch Hits范围/日志开关独立，免疫伤害、HP0或重复拒绝不刷扣血文字。仅非Shipping、Standalone/Listen主机本地屏幕；不额外复制到远端客户端，不代表阶段表现同步已实现。代理未修改蓝图，开关由团队手动勾选并保存。
+
+用户现已授权本会话实施第一步统一战斗结算；下方10月19日的原型说明与分工是历史交接基点。此次保持原BeginPlay循环、仅Extending攻击、车辆目标及原伸缩时长；联机阶段表现复制仍未实现，不把第一步称为完整机关交付。
+
+- 暂用可编辑测试默认值：`Spring Punch > Combat > Base Damage = 25`（0～10000）、`Impact Tier = Medium`（None/Light/Medium/Heavy）。用户未指定最终平衡数值，此处不是最终玩法定案。
+- 固定沿SceneRoot局部+X出拳方向推动车辆，抬升/翻转沿用公共档位响应。机关使用`Combat.Source.SpringPunch`和SourceFixedDamage，不借玩家攻击力，不新增ASC/GA。
+- 每次进入Extending创建一个Action并快照伤害/档位；每个目标最多接受一次，拒绝不提前消耗。同拳多目标各自结算；0伤害、免疫与HP0沿用共用独立分支。
+- 所有命中经CombatResolver；只对合法接受的目标添加本拳缓存。阶段转换与EndPlay关闭Action；保留伸到终点的最后一段Sweep。客户端显式不启动权威阶段、不检测、不结算。
+- 公共Combat配置必须为TieredV1；非法伤害/档位或未迁移规则不开启攻击，Debug Punch Hits可查看原因。目标仍需现有有效GAS和Impact配置；没有恢复旧炸弹的预放玩家车临时初始化。
+- 团队操作：编译后手动打开既有SpringPunch蓝图的Class Defaults，检查上述Combat参数和Debug Punch Hits；保存后用具备GAS的玩家/被动靶车测试。未自动编辑蓝图、地图或DA。
+
+本轮验证：UE5.8.2 Editor/Game Win64 Development均成功（Editor首次被占用，用户关闭后重链成功）。普通自动化49/50，新增SpringPunch.CombatLifecycle通过；唯一失败为旧Presentation.OptionalRigPreservesGameplay对“未选骨架Rig”的断言，与团队已接入Car_01的资产不符，本轮未改表现测试/资产。没有真人或Listen Server双端受击验收；不得把此结果视作完整机关联机交付。共享证据见[验证摘要](SpringPunch_Combat_Verification_20261020.json)。
+
 日期：2026-10-19（Asia/Tokyo）。检查基点`main / c825d8d2516c56da3b71029562344ea68f975101`，本机UE`5.8.3-58210709+++UE5+Release-5.8`。用户指定本部分交由另一位成员开发；本文提供接口与约束，不代表已完成接入或已确认新伤害数值。本会话不修改机关源码／资产，不代替负责成员施工。
 
 先完整读取根目录[AGENTS.md](../../AGENTS.md)与[项目状态](../Project_Status_CN.md)，核对接收设备Git改动、引擎补丁、已保存资产。10-F-4整套集成／扰动／四机测试已由用户后置至MVP-B收尾；本模块仍需编译、针对性自动化和基本双端检查。原45项／F3双端报告是历史底座证据，不能冒充新机关已通过。

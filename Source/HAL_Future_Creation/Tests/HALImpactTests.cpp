@@ -9,6 +9,7 @@
 #include "../HALGameplayTags.h"
 #include "../HALHealthAttributeSet.h"
 #include "../CombatResolver.h"
+#include "../SpringPunchGimmick.h"
 #include "../PassiveTestVehicle.h"
 #include "../BasicBallActor.h"
 #include "../TestVehiclePawn.h"
@@ -19,6 +20,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SceneComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -342,6 +344,92 @@ bool FHALImpactBallPipelineTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Effective Medium drops exactly once"), Drop.ImpactSummary.bBallDropped && Control->GetHeldBall() == nullptr);
 	TestEqual(TEXT("Dropped ball returns Free"), Held->GetBallState(), EBasicBallState::Free);
 	TestFalse(TEXT("Drop preserves existing reacquire lock"), Held->CanBeControlledBy(Pawn));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSpringPunchCombatTest, "HAL.FutureCreation.SpringPunch.CombatLifecycle",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALSpringPunchCombatTest::RunTest(const FString& Parameters)
+{
+	FImpactWorld F;
+	auto* Punch = F.World->SpawnActor<ASpringPunchGimmick>();
+	auto* A = F.Target();
+	auto* B = F.Target();
+	A->SetActorLocation(FVector(200, 0, 0));
+	B->SetActorLocation(FVector(300, 0, 0));
+	auto Hit = [](AActor* Target)
+	{
+		return FHitResult(Target, Body(Target), Target->GetActorLocation(), FVector::UpVector);
+	};
+	Punch->EnterState(ESpringPunchState::Extending);
+	const FGuid FirstId = Punch->PunchAction.GetSnapshot().AttackId;
+	const auto First = Punch->ResolvePunchHit(Hit(A));
+	TestTrue(TEXT("Fixed damage and authored impact accepted"), First.bHitAccepted && First.bImpactApplied);
+	TestEqual(TEXT("Default damage"), First.ActualHPRemoved, 25.0f);
+	TestEqual(TEXT("Default tier"), First.ImpactSummary.EffectiveTier, EHALImpactTier::Medium);
+	TestEqual(TEXT("Same punch repeated callback rejected"), Punch->ResolvePunchHit(Hit(A)).RejectReason, EHALHitRejectReason::Duplicate);
+	TestTrue(TEXT("Same punch accepts second target"), Punch->ResolvePunchHit(Hit(B)).bHitAccepted);
+	Punch->EnterState(ESpringPunchState::Retracting);
+	TestFalse(TEXT("Retracting cannot deal damage"), Punch->ResolvePunchHit(Hit(A)).bHitAccepted);
+	TestFalse(TEXT("Phase end closes action"), Punch->PunchAction.IsActive());
+	Punch->EnterState(ESpringPunchState::Extending);
+	TestTrue(TEXT("Next punch has fresh identity"), Punch->PunchAction.GetSnapshot().AttackId != FirstId);
+	TestTrue(TEXT("Next punch can hit again"), Punch->ResolvePunchHit(Hit(A)).bHitAccepted);
+
+	ASC(B)->AddLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune);
+	const auto ImmuneImpact = Punch->ResolvePunchHit(Hit(B));
+	TestEqual(TEXT("Impact immunity still takes damage"), ImmuneImpact.ActualHPRemoved, 25.0f);
+	TestEqual(TEXT("Impact immunity suppresses tier"), ImmuneImpact.ImpactSummary.EffectiveTier, EHALImpactTier::None);
+	ASC(B)->RemoveLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune);
+	ASC(B)->AddLooseGameplayTag(HALGameplayTags::State_Combat_DamageImmune);
+	Punch->EnterState(ESpringPunchState::Extending);
+	const auto ImmuneDamage = Punch->ResolvePunchHit(Hit(B));
+	TestTrue(TEXT("Damage immunity still receives impact"), ImmuneDamage.bHitAccepted && ImmuneDamage.bImpactApplied);
+	TestEqual(TEXT("Damage immune HP unchanged"), ImmuneDamage.ActualHPRemoved, 0.0f);
+	TestFalse(TEXT("Immune hit is consumed"), Punch->ResolvePunchHit(Hit(B)).bHitAccepted);
+	ASC(B)->RemoveLooseGameplayTag(HALGameplayTags::State_Combat_DamageImmune);
+	Punch->BaseDamage = 0;
+	Punch->EnterState(ESpringPunchState::Extending);
+	ASC(A)->SetNumericAttributeBase(UHALHealthAttributeSet::GetCurrentHPAttribute(), 0);
+	TestTrue(TEXT("HP zero and zero damage still allow impact"), Punch->ResolvePunchHit(Hit(A)).bImpactApplied);
+
+	// A target may finish GAS initialization later during the same punch.
+	auto* Late = F.Target();
+	Late->SetActorLocation(FVector(2000, 0, 0));
+	ASC(Late)->ClearActorInfo();
+	TestEqual(TEXT("Unready target is rejected"), Punch->ResolvePunchHit(Hit(Late)).RejectReason, EHALHitRejectReason::TargetNotReady);
+	ASC(Late)->InitAbilityActorInfo(Late, Late);
+	TestTrue(TEXT("Rejected target can retry in the same punch"), Punch->ResolvePunchHit(Hit(Late)).bHitAccepted);
+	// A separate fully configured target exercises the actual sweep and per-punch cache.
+	Punch->BaseDamage = 25;
+	Punch->EnterState(ESpringPunchState::Extending);
+	Punch->PreviousHitBoxWorldLocation = FVector::ZeroVector;
+	Punch->PunchPivot->SetRelativeLocation(FVector(400, 0, 0));
+	const float Before = ASC(B)->GetSet<UHALHealthAttributeSet>()->GetCurrentHP();
+	Punch->ScanPunchHits();
+	TestEqual(TEXT("Swept target takes one hit"), ASC(B)->GetSet<UHALHealthAttributeSet>()->GetCurrentHP(), Before - 25);
+	Punch->PreviousHitBoxWorldLocation = FVector::ZeroVector;
+	Punch->ScanPunchHits();
+	TestEqual(TEXT("Repeated sweep cannot double damage"), ASC(B)->GetSet<UHALHealthAttributeSet>()->GetCurrentHP(), Before - 25);
+	Punch->EndPlay(EEndPlayReason::Destroyed);
+	TestFalse(TEXT("EndPlay closes action"), Punch->PunchAction.IsActive());
+	Punch->BaseDamage = -1;
+	TestFalse(TEXT("Invalid damage rejected"), Punch->BeginPunchAttack());
+	Punch->Phase.State = ESpringPunchState::Extending;
+	Punch->Phase.StartedAt = F.World->GetTimeSeconds() - 1;
+	Punch->Phase.Duration = 2;
+	Punch->Phase.Distance = 400;
+	Punch->Phase.RetractedLocation = FVector(10, 0, 0);
+	Punch->OnRep_Phase();
+	TestTrue(TEXT("Late phase snapshot reconstructs midpoint"), Punch->PunchPivot->GetRelativeLocation().Equals(FVector(210, 0, 0), 0.1));
+	TestFalse(TEXT("Applying replicated phase never starts an attack"), Punch->PunchAction.IsActive());
+	Punch->Phase.StartedAt -= 20;
+	Punch->OnRep_Phase();
+	TestTrue(TEXT("Expired phase clamps at endpoint"), Punch->PunchPivot->GetRelativeLocation().Equals(FVector(410, 0, 0), 0.1));
+	Punch->Phase.State = ESpringPunchState::Cooldown;
+	Punch->OnRep_Phase();
+	TestTrue(TEXT("Rest phase restores authored origin"), Punch->PunchPivot->GetRelativeLocation().Equals(FVector(10, 0, 0), 0.1));
+	TestFalse(TEXT("Rest phase disables tick"), Punch->IsActorTickEnabled());
 	return true;
 }
 

@@ -2,6 +2,7 @@
 
 namespace HALGameplayTags
 {
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_SpringPunch, "Combat.Source.SpringPunch", "Environment-owned spring punch; fixed damage and authored impact tier.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Input_Ability_Primary, "Input.Ability.Primary", "Local primary skill edge; never replayed by Network Physics.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_ImpactImmunity, "Ability.Vehicle.ImpactImmunity", "Timed self impact immunity, with separate owner cooldown.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_MovementBoost, "Ability.Vehicle.MovementBoost", "Instant server action applies the configured timed movement boost; repeated presses refresh its GE.");

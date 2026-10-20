@@ -5,17 +5,25 @@
 #include "Components/BoxComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Engine/World.h"
+#include "Engine/Engine.h"
 #include "TimerManager.h"
 #include "VehicleHealthComponent.h"
 #include "CollisionQueryParams.h"
 #include "CollisionShape.h"
 #include "DrawDebugHelpers.h"
+#include "CombatResolver.h"
+#include "HALGameplayTags.h"
+#include "VehicleKnockbackSettings.h"
+#include "GameFramework/GameStateBase.h"
+#include "Net/UnrealNetwork.h"
 
 ASpringPunchGimmick::ASpringPunchGimmick()
 {
 	// Tick は使用可能にするが、初期状態では停止しておく。
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
+	bReplicates = true;
+	SetNetUpdateFrequency(10);
 
 	// ギミック全体の基準となるルートを作成する。
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
@@ -52,25 +60,56 @@ ASpringPunchGimmick::ASpringPunchGimmick()
 	DirectionArrow->SetHiddenInGame(true);
 }
 
+void ASpringPunchGimmick::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	// Existing Blueprint defaults may still contain the old nonreplicated flag.
+	if (GetNetMode() != NM_Client && HasAuthority() && !GetIsReplicated()) { SetReplicates(true); }
+}
+
+void ASpringPunchGimmick::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ASpringPunchGimmick, Phase);
+}
+
+double ASpringPunchGimmick::GetPhaseTime() const
+{
+	const AGameStateBase* State = GetWorld()->GetGameState();
+	return GetNetMode() == NM_Client && State ? State->GetServerWorldTimeSeconds() : GetWorld()->GetTimeSeconds();
+}
+
+void ASpringPunchGimmick::OnRep_Phase()
+{
+	CurrentState = Phase.State;
+	StateStartTime = Phase.StartedAt;
+	RetractedRelativeLocation = Phase.RetractedLocation;
+	SetActorTickEnabled(CurrentState == ESpringPunchState::Extending || CurrentState == ESpringPunchState::Retracting);
+	UpdatePunchVisual();
+}
+
 void ASpringPunchGimmick::BeginPlay()
 {
 	Super::BeginPlay();
 
 	// Blueprint で設定した拳の初期相対位置を保存する。
-	RetractedRelativeLocation = PunchPivot->GetRelativeLocation();
+	if (GetNetMode() != NM_Client) { RetractedRelativeLocation = PunchPivot->GetRelativeLocation(); }
 
 	// 初期状態では表示更新を停止する。
 	SetActorTickEnabled(false);
 
 	// サーバー側で最初の待機状態を開始する。
-	if (HasAuthority())
+	if (GetNetMode() != NM_Client && HasAuthority())
 	{
 		EnterState(ESpringPunchState::Idle);
 	}
+	else { OnRep_Phase(); }
 }
 
 void ASpringPunchGimmick::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	PunchAction.Close();
+	HitActorsThisPunch.Reset();
 	// 終了後に状態遷移が呼び出されないようにする。
 	if (UWorld* World = GetWorld())
 	{
@@ -93,7 +132,7 @@ void ASpringPunchGimmick::Tick(float DeltaTime)
 void ASpringPunchGimmick::EnterState(ESpringPunchState NewState)
 {
 	// 状態の切り替えはサーバー側だけで行う。
-	if (!HasAuthority())
+	if (GetNetMode() == NM_Client || !HasAuthority())
 	{
 		return;
 	}
@@ -107,10 +146,12 @@ void ASpringPunchGimmick::EnterState(ESpringPunchState NewState)
 	// 前の状態で設定したタイマーを解除する。
 	FTimerManager& TimerManager = World->GetTimerManager();
 	TimerManager.ClearTimer(StateTimerHandle);
+	PunchAction.Close();
 
 	// 新しい状態と、その開始時刻を記録する。
 	CurrentState = NewState;
 	StateStartTime = World->GetTimeSeconds();
+	if (NewState == ESpringPunchState::Extending) { ++Phase.PunchNumber; }
 
 	// 新しいパンチの開始時に、ヒット記録と判定開始位置を初期化する。
 	if (CurrentState == ESpringPunchState::Extending)
@@ -120,6 +161,7 @@ void ASpringPunchGimmick::EnterState(ESpringPunchState NewState)
 		// 拳を初期位置にそろえてから、攻撃ボックスの位置を記録する。
 		PunchPivot->SetRelativeLocation(RetractedRelativeLocation);
 		PreviousHitBoxWorldLocation = HitBox->GetComponentLocation();
+		BeginPunchAttack();
 	}
 
 	float Duration = 0.0f;
@@ -150,6 +192,13 @@ void ASpringPunchGimmick::EnterState(ESpringPunchState NewState)
 		SetActorTickEnabled(false);
 		return;
 	}
+	Phase.State = NewState;
+	Phase.StartedAt = StateStartTime;
+	Phase.Duration = Duration;
+	Phase.Distance = FMath::Max(0.0f, PunchDistance);
+	Phase.RetractedLocation = RetractedRelativeLocation;
+	UpdatePunchVisual();
+	ForceNetUpdate();
 
 	// 拳が伸縮している間だけ、表示更新用の Tick を有効にする。
 	const bool bMoving =
@@ -180,7 +229,7 @@ void ASpringPunchGimmick::EnterState(ESpringPunchState NewState)
 void ASpringPunchGimmick::AdvanceState()
 {
 	// 状態遷移はサーバー側だけで実行する。
-	if (!HasAuthority())
+	if (GetNetMode() == NM_Client || !HasAuthority())
 	{
 		return;
 	}
@@ -199,7 +248,7 @@ void ASpringPunchGimmick::AdvanceState()
 		// 描画フレームの間隔に関係なく、伸び切った位置を確定する。
 		PunchPivot->SetRelativeLocation(
 			RetractedRelativeLocation +
-			FVector(FMath::Max(0.0f, PunchDistance), 0.0f, 0.0f));
+			FVector(Phase.Distance, 0.0f, 0.0f));
 
 		// 戻る状態へ移る前に、最後の移動区間も判定する。
 		ScanPunchHits();
@@ -233,12 +282,12 @@ void ASpringPunchGimmick::UpdatePunchVisual()
 	// 現在の状態が始まってからの経過時間を求める。
 	const double ElapsedTime = FMath::Max(
 		0.0,
-		World->GetTimeSeconds() - StateStartTime);
+		GetPhaseTime() - Phase.StartedAt);
 
 	// 初期位置からローカル X 軸方向へ伸ばした位置。
 	const FVector ExtendedRelativeLocation =
 		RetractedRelativeLocation +
-		FVector(FMath::Max(0.0f, PunchDistance), 0.0f, 0.0f);
+		FVector(Phase.Distance, 0.0f, 0.0f);
 
 	switch (CurrentState)
 	{
@@ -247,7 +296,7 @@ void ASpringPunchGimmick::UpdatePunchVisual()
 		// 伸びる動作の進行度を 0～1 に制限する。
 		const float Alpha = FMath::Clamp(
 			static_cast<float>(
-				ElapsedTime / FMath::Max(0.01f, ExtendDuration)),
+				ElapsedTime / FMath::Max(0.01f, Phase.Duration)),
 			0.0f,
 			1.0f);
 
@@ -264,7 +313,7 @@ void ASpringPunchGimmick::UpdatePunchVisual()
 		// 戻る動作の進行度を 0～1 に制限する。
 		const float Alpha = FMath::Clamp(
 			static_cast<float>(
-				ElapsedTime / FMath::Max(0.01f, RetractDuration)),
+				ElapsedTime / FMath::Max(0.01f, Phase.Duration)),
 			0.0f,
 			1.0f);
 
@@ -287,7 +336,7 @@ void ASpringPunchGimmick::ScanPunchHits()
 {
 	// 非複製アクターでもクライアント側の攻撃判定は実行しない。
 	if (GetNetMode() == NM_Client || !HasAuthority() ||
-		CurrentState != ESpringPunchState::Extending)
+		CurrentState != ESpringPunchState::Extending || !PunchAction.IsActive())
 	{
 		return;
 	}
@@ -337,13 +386,18 @@ void ASpringPunchGimmick::ScanPunchHits()
 			continue;
 		}
 
-		HitActorsThisPunch.Add(TargetKey);
-		bFoundNewTarget = true;
-		// 現段階では検出結果だけを記録し、ダメージや衝撃は与えない。
+		const FHALCombatHitResult Result = ResolvePunchHit(Hit);
+		if (Result.bHitAccepted)
+		{
+			HitActorsThisPunch.Add(TargetKey);
+			bFoundNewTarget = true;
+		}
 		if (bDebugPunchHits)
 		{
-			UE_LOG(LogTemp, Log, TEXT("SpringPunch [%s] detected [%s]"),
-				*GetNameSafe(this), *GetNameSafe(Target));
+			UE_LOG(LogTemp, Log, TEXT("SpringPunch [%s] Attack=%s Target=%s Accepted=%d Reject=%d Damage=%.2f Impact=%d Tier=%d Drop=%d"),
+				*GetNameSafe(this), *PunchAction.GetSnapshot().AttackId.ToString(), *GetNameSafe(Target),
+				Result.bHitAccepted, int32(Result.RejectReason), Result.ActualHPRemoved,
+				int32(Result.ImpactOutcome), int32(Result.ImpactSummary.EffectiveTier), Result.ImpactSummary.bBallDropped);
 		}
 	}
 
@@ -355,4 +409,67 @@ void ASpringPunchGimmick::ScanPunchHits()
 		DrawDebugBox(World, End, HalfExtent, Rotation, Color, false, 0.15f);
 		DrawDebugLine(World, Start, End, Color, false, 0.15f, 0, 2.0f);
 	}
+}
+
+bool ASpringPunchGimmick::BeginPunchAttack()
+{
+	PunchAction.Close();
+	FHALCollisionImpactRules Rules;
+	if (GetNetMode() == NM_Client || !HasAuthority() || CurrentState != ESpringPunchState::Extending
+		|| !FMath::IsFinite(BaseDamage) || BaseDamage < 0 || BaseDamage > 10000
+		|| uint8(ImpactTier) > uint8(EHALImpactTier::Heavy)
+		|| !GetDefault<UVehicleKnockbackSettings>()->GetCollisionImpactRules(Rules)
+		|| Rules.Version != EHALImpactVersion::TieredV1)
+	{
+		if (bDebugPunchHits) { UE_LOG(LogTemp, Warning, TEXT("SpringPunch [%s]: attack not ready; check damage, tier and TieredV1 combat rules."), *GetName()); }
+		return false;
+	}
+	FHALAttackSourceSnapshot Source;
+	Source.SourceActor = this;
+	Source.SourceTag = HALGameplayTags::Combat_Source_SpringPunch;
+	Source.DamageMode = EHALDamageMode::SourceFixedDamage;
+	Source.FixedDamage = BaseDamage;
+	Source.Impact.Version = EHALImpactVersion::TieredV1;
+	Source.Impact.Tier = ImpactTier;
+	return PunchAction.Begin(*this, Source);
+}
+
+FHALCombatHitResult ASpringPunchGimmick::ResolvePunchHit(const FHitResult& Hit)
+{
+	if (GetNetMode() == NM_Client || !HasAuthority() || CurrentState != ESpringPunchState::Extending)
+	{
+		FHALCombatHitResult Result;
+		Result.RejectReason = EHALHitRejectReason::ClosedAction;
+		return Result;
+	}
+	FHALCombatHitRequest Request;
+	Request.AttackId = PunchAction.GetSnapshot().AttackId;
+	Request.PulseSequence = PunchAction.GetPulseSequence();
+	Request.bApplyDamage = true;
+	Request.bApplyImpact = true;
+	Request.Impact.Mode = EHALImpactMode::ExplicitTier;
+	Request.Impact.Tier = PunchAction.GetSnapshot().Impact.Tier;
+	Request.Hit.SourceActor = this;
+	Request.Hit.TargetActor = Hit.GetActor();
+	Request.Hit.TargetPhysicsBody = Hit.GetActor()
+		? Cast<UPrimitiveComponent>(Hit.GetActor()->GetRootComponent()) : nullptr;
+	Request.Hit.ImpactPoint = Hit.ImpactPoint;
+	// The punch travels along its parent's local +X, independent of the struck face.
+	Request.Hit.ImpactNormal = -SceneRoot->GetForwardVector();
+	const UVehicleHealthComponent* Health = Hit.GetActor()
+		? Hit.GetActor()->FindComponentByClass<UVehicleHealthComponent>() : nullptr;
+	const float HPBefore = Health ? Health->GetCurrentHP() : 0.0f;
+	const FHALCombatHitResult Result = FCombatResolver::ResolveCombatHit(PunchAction, Request);
+#if !UE_BUILD_SHIPPING
+	if (bDebugDamageOnScreen && Result.bHitAccepted && Result.ActualHPRemoved > 0 && GEngine
+		&& GetNetMode() != NM_DedicatedServer)
+	{
+		const FString Tier = StaticEnum<EHALImpactTier>()->GetNameStringByValue(int64(Result.ImpactSummary.EffectiveTier));
+		const FString Message = FString::Printf(TEXT("[SpringPunch] %s -> %s | HP %.1f -> %.1f (-%.1f) | Impact %s (%d), Applied=%s"),
+			*GetActorNameOrLabel(), *Hit.GetActor()->GetActorNameOrLabel(), HPBefore, HPBefore - Result.ActualHPRemoved,
+			Result.ActualHPRemoved, *Tier, int32(Result.ImpactSummary.EffectiveTier), Result.bImpactApplied ? TEXT("Yes") : TEXT("No"));
+		GEngine->AddOnScreenDebugMessage(INDEX_NONE, 6.0f, FColor::Yellow, Message);
+	}
+#endif
+	return Result;
 }

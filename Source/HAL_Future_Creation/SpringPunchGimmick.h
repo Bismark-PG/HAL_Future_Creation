@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "HALCombatTypes.h"
 #include "SpringPunchGimmick.generated.h"
 
 class USceneComponent;
@@ -21,6 +22,19 @@ enum class ESpringPunchState : uint8
 	Cooldown     // 次の攻撃まで待つ。
 };
 
+/** One coherent server phase, sufficient for late join and relevancy re-entry. */
+USTRUCT()
+struct FSpringPunchPhase
+{
+	GENERATED_BODY()
+	UPROPERTY() ESpringPunchState State = ESpringPunchState::Idle;
+	UPROPERTY() double StartedAt = 0;
+	UPROPERTY() float Duration = 1;
+	UPROPERTY() float Distance = 0;
+	UPROPERTY() FVector RetractedLocation = FVector::ZeroVector;
+	UPROPERTY() uint32 PunchNumber = 0;
+};
+
 UCLASS()
 class HAL_FUTURE_CREATION_API ASpringPunchGimmick : public AActor
 {
@@ -29,8 +43,18 @@ class HAL_FUTURE_CREATION_API ASpringPunchGimmick : public AActor
 public:	
 	// このアクターのプロパティに初期値を設定する。
 	ASpringPunchGimmick();
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PostInitializeComponents() override;
 
 protected:
+	/** Test baseline, damage per accepted target per punch. Zero still allows impact. */
+	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Combat", meta = (ClampMin = "0.0", ClampMax = "10000.0"))
+	float BaseDamage = 25.0f;
+
+	/** Rule response uses the shared tier table, resistance and immunity. */
+	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Combat")
+	EHALImpactTier ImpactTier = EHALImpactTier::Medium;
+
 	// ゲーム開始時、またはスポーン後にプレイを開始するときに呼び出される。
 	virtual void BeginPlay() override;
 	// 終了時にタイマーと表示更新を停止する。
@@ -74,6 +98,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Debug")
 	bool bDebugPunchHits = false;
 
+	/** Show accepted HP damage, target and resolved impact for 6 seconds on the local authority screen. Development only. */
+	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Debug")
+	bool bDebugDamageOnScreen = false;
+
 	// ギミック全体の位置と向きの基準。
 	UPROPERTY(VisibleAnywhere, Category = "Spring Punch|Components")
 	TObjectPtr<USceneComponent> SceneRoot;
@@ -105,6 +133,15 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
+	friend class FHALSpringPunchLiveTest;
+	friend class FHALSpringPunchCombatTest;
+	UPROPERTY(ReplicatedUsing = OnRep_Phase)
+	FSpringPunchPhase Phase;
+	UFUNCTION() void OnRep_Phase();
+	double GetPhaseTime() const;
+	FHALCombatAction PunchAction;
+	bool BeginPunchAttack();
+	FHALCombatHitResult ResolvePunchHit(const FHitResult& Hit);
 	// 現在のパンチで処理済みのアクター。同じ対象への多重ヒットを防ぐ。
 	TSet<TWeakObjectPtr<AActor>> HitActorsThisPunch;
 
