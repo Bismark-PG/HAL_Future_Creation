@@ -92,6 +92,17 @@ Epic 的 FBX 导入文档说明其管线使用 FBX 2020.2；导出版本不同�
 5. 四轮分别记录，不依赖镜像外观或 Skeleton Tree 的显示顺序。后轮虽然首轮不转向，名称与轴字段仍保持有效。
 6. 清除临时预览变换，回到正确参考姿态；不要把校准用的临时偏移烘焙进正式参考姿态。
 
+#### Car_01：按左右键时前轮绕车头方向侧倾
+
+UE 的车辆／世界坐标约定为 X 前、Y 右、Z 上，但 DA 的 SteeringAxis 表示 **steer 骨骼局部轴**。Car_01 的参考姿态检查显示，steer 的局部 Z 指向 Mesh +X，局部 Y 指向 Mesh -Z。因此沿用默认 SteeringAxis=Z 时，在 Bone Space 中会绕前向轴侧倾；应使用 Y，再用 -1 补偿轴向符号。
+
+1. 停止 PIE，打开实际被 VehicleDefinition.Presentation 引用的表现 DA。展开 Wheels，按 Wheel 身份找到 FL 和 FR，将两项均设为 **SteeringAxis=Y、SteeringSign=-1、bSteers=true**。这次只校准转向通道，SpinAxis／SpinSign 属于轮胎滚动。
+2. 在 AnimBP 核对两个转向节点的 Bone to Modify 分别是 Wheel_FL_steer_jnt、Wheel_FR_steer_jnt；Rotation Mode=Add to Existing，**Rotation Space=Bone Space**，Translation／Scale Mode=Ignore。
+3. Rotation 分别直接连接 Presentation.FL.SteeringRotation／Presentation.FR.SteeringRotation 的完整 Rotator；不要拆分后只取 Z／Yaw，也不要用 SteeringDegrees 另造一个世界 Z 旋转。图中 Local To Component 不会自动将节点的 Rotation Space 设为 Bone Space。
+4. 编译／保存 AnimBP 和 DA，重新进入游戏。低速向左／向右时，两前轮应在水平面转向；回中后恢复中立。如果轴正确但左右相反，再核对模型相对朝向与 SteeringSign。
+
+这是依据原始 Car_01 参考姿态和当前 C++／引擎节点实现给出的校准步骤。2026-10-20 用户已报告接线后模型显示、前轮侧倾；当次未读取新资产的实际字段／图，尚未收到修正后实测结果，不记为已解决。
+
 ### 4.3 半径与显示对齐
 
 `RadiusCm` 表示**在游戏场景里的实际滚动半径，单位 cm，包含模型／组件缩放后的结果**。例如源模型半径 20 cm、最终视觉统一缩放 1.5，则实际半径应填写 30 cm；若物理根还有缩放，也须计入实际测量。
@@ -244,6 +255,7 @@ Reference Pose
 | 两套车身同时显示 | 检查是否手动添加了额外 Mesh／ChildActor；正常接入只控制现有 VisualMesh 与新增 SkeletalVisual |
 | 模型显示但轮子不动 | AnimClass 是否实际 AnimBP、父类是否正确、Graph 是否连接 Rotation、运行快照是否有效 |
 | 轮子方向反了 | 修改对应 SpinSign／SteeringSign，检查所选局部轴；不要把物理转向输入反号 |
+| Car_01前轮按左右键时绕车头方向侧倾 | 按第4.2节校准：FL／FR SteeringAxis=Y、SteeringSign=-1，steer节点使用Bone Space／Add to Existing并直接连接完整SteeringRotation |
 | 轮子绕车身公转／歪摆 | 检查骨骼轴心、父级、Bone to Modify 和 Rotation Space，回到单轴预览定位 |
 | 平移／参考姿态错位 | Translation 设 Ignore，Rotation 设 Add to Existing，核对是否误用了 Replace Existing |
 | 只有本地车有转向 | 检查两端是否同步同一 Definition／表现配置，组件是否实际启用，远端实例的数据与网络连接 |
