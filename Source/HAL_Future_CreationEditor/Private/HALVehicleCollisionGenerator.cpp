@@ -21,6 +21,7 @@ namespace
 	{
 		auto& Data = Mesh.GetOutermost()->GetMetaData();
 		Data.SetValue(&Mesh, TEXT("HALCollision.Version"), TEXT("1"));
+		Data.SetValue(&Mesh, TEXT("HALCollision.GeneratorRevision"), TEXT("2"));
 		const auto SetFloat = [&](const TCHAR* Key, float Value) {
 			Data.SetValue(&Mesh, Key, *FString::Printf(TEXT("%.9g"), Value));
 		};
@@ -139,7 +140,10 @@ bool HALVehicleCollision::BuildMesh(UStaticMesh& Mesh, const FHALVehicleCollisio
 		const FVector3f Normal(FVector::CrossProduct(B - A, C - A).GetSafeNormal());
 		const FVector3f Tangent((B - A).GetSafeNormal());
 		TArray<FVertexInstanceID, TInlineAllocator<3>> Instances;
-		for (const int32 Index : { Triangle.X, Triangle.Y, Triangle.Z })
+		// Geometry uses the mathematical cross(B-A, C-A) convention. UE derives
+		// a face normal with cross(C-A, B-A), so reverse render winding while
+		// keeping the outward normal and the independent convex vertices unchanged.
+		for (const int32 Index : { Triangle.X, Triangle.Z, Triangle.Y })
 		{
 			const FVertexInstanceID ID = Description.CreateVertexInstance(IDs[Index]);
 			Instances.Add(ID);

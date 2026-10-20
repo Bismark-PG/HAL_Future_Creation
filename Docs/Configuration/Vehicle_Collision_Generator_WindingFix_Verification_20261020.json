@@ -1,0 +1,192 @@
+{
+  "date": "2026-10-20",
+  "timezone": "Asia/Tokyo",
+  "base_commit": "7d0f180de4f4c5f15b43855821ead4eab8baf01d",
+  "branch": "main",
+  "engine": "5.8.2-56702186+++UE5+Release-5.8",
+  "scope": "Editor generator render winding fix, read-only saved configuration diagnosis, spawn clearance regression; no team asset changes.",
+  "render_fix": {
+    "cause": "MeshDescription triangles used mathematical cross(B-A,C-A) winding; UE derives normals with cross(C-A,B-A).",
+    "change": "Reverse render indices only; retain original outward vertex normals and independent convex vertices.",
+    "recipe_parameter_version": 1,
+    "generator_revision": 2,
+    "old_assets": "Not modified or auto-migrated. Load old recipe, create and save a new asset, then assign DA manually.",
+    "original_verification_gap": "Previous 5/5 covered mathematical geometry, physics and 2D panel, but did not render the actual mesh thumbnail or verify UE-derived triangle normals."
+  },
+  "builds": [
+    {
+      "result": "Succeeded",
+      "log": "Saved/CollisionGenerator/WindingFix_Editor_WithRegression_20261020.log",
+      "target": "HAL_Future_CreationEditor Win64 Development"
+    },
+    {
+      "result": "Succeeded",
+      "log": "Saved/CollisionGenerator/WindingFix_Game_20261020.log",
+      "target": "HAL_Future_Creation Win64 Development"
+    }
+  ],
+  "automation": {
+    "filter": "HAL.Editor",
+    "report": "Saved/CollisionGenerator/WindingFix_Automation_20261020/index.json",
+    "succeeded": 6,
+    "failed": 0,
+    "succeeded_with_warnings": 0,
+    "tests": [
+      {
+        "fullTestPath": "HAL.Editor.CollisionGenerator.ConvexClosedGeometry",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "fullTestPath": "HAL.Editor.CollisionGenerator.ParameterValidation",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "fullTestPath": "HAL.Editor.CollisionGenerator.RecipePersistenceAndUniqueAssets",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "fullTestPath": "HAL.Editor.CollisionGenerator.SinglePhysicsBody",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "fullTestPath": "HAL.EditorUI.CollisionGenerator.MeshThumbnail",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "fullTestPath": "HAL.EditorUI.CollisionGenerator.Panel",
+        "state": "Success",
+        "entries": []
+      }
+    ],
+    "assertions_added": [
+      "UE face normals agree with stored outward vertex normals; triangle centers face outward.",
+      "Flat-floor independent Game physics world: 70 cm proxy clear at Z92; 269 cm proxy overlaps at Z92 and is clear at Z200.",
+      "Real 512x512 thumbnail rendered from a transient 456x288x269 cm proxy, without modifying the team mesh."
+    ],
+    "screenshot": "Docs/Configuration/VehicleCollisionGenerator_MeshThumbnail_WindingFix_20261020.png",
+    "screenshot_sha256": "58221B93B3898D2C7013B4CDB71D637821FA7F9A7BA472834C89ADC911F8721A",
+    "visual_review": "Top cap and external side faces are visible; actual rendered thumbnail inspected.",
+    "startup_warnings": "Engine startup contains existing NVIDIA TSR driver and r.MotionVectorSimulation diagnostics; test entries have zero warnings/errors."
+  },
+  "saved_asset_diagnosis": {
+    "probe": "Saved/CollisionGenerator/Car01Spawn_Diagnostic_20261020_v4.json",
+    "new_proxy_path": "/Game/Meshes/Collision/SM_Car01_Collision",
+    "new_proxy_dimensions_cm": [
+      456,
+      288,
+      269
+    ],
+    "new_proxy_half_height_cm": 134.5,
+    "new_proxy_convex_count": 1,
+    "saved_vehicle_definition": "/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1",
+    "saved_collision_mesh": "/Game/Meshes/SM_CarCollisionProxy",
+    "saved_old_dimensions_cm": [
+      200,
+      140,
+      70
+    ],
+    "saved_root_scale": [
+      1,
+      1,
+      1
+    ],
+    "starts": [
+      {
+        "name": "HALPlayerStart_1",
+        "location": [
+          -390.0,
+          -1060.0,
+          92.0
+        ],
+        "rotation": "(Pitch=0.000000,Yaw=0.000000,Roll=0.000000)",
+        "slot": 0
+      },
+      {
+        "name": "HALPlayerStart_2",
+        "location": [
+          -380.0,
+          1000.0,
+          92.0
+        ],
+        "rotation": "(Pitch=0.000000,Yaw=0.000000,Roll=0.000000)",
+        "slot": 1
+      },
+      {
+        "name": "HALPlayerStart_3",
+        "location": [
+          1450.0,
+          1010.0,
+          92.0
+        ],
+        "rotation": "(Pitch=0.000000,Yaw=0.000000,Roll=0.000000)",
+        "slot": 2
+      },
+      {
+        "name": "HALPlayerStart_4",
+        "location": [
+          1460.0,
+          -1190.0,
+          92.0
+        ],
+        "rotation": "(Pitch=0.000000,Yaw=0.000000,Roll=0.000000)",
+        "slot": 3
+      }
+    ],
+    "saved_floor_bounds_top_z_approx": -0.5,
+    "inference": "Using the new centered proxy at Z92 would place its bottom at -42.5, below the saved floor surface. Actual failed PIE runtime DA/overrides were not sampled.",
+    "invalid_query_evidence_excluded": "Read-only Editor probes returned no floor trace or overlaps; these were not accepted as evidence of collision clearance. Game physics regression and native game startup are separate evidence."
+  },
+  "saved_config_spawn_smoke": {
+    "passed": true,
+    "map": "/Game/Maps/MVPB_NetTest?listen",
+    "port": 7803,
+    "rendering": "NullRHI",
+    "player_count": 1,
+    "result": "Player joined with BP_RoundedVehiclePawn_C_0 at HALPlayerStart_1 using the current saved old DA mesh.",
+    "log": "Saved/CollisionGenerator/SavedConfig_SpawnSmoke_20261020.log",
+    "excerpts": [
+      "[2026.10.20-08.10.16:531][  0]LogTemp: BP_RoundedVehiclePawn_C_0: using VehicleDefinition DA_Vehicle_Player_TestBaseline_v1.",
+      "[2026.10.20-08.10.16:532][  0]LogHALMatch: Player joined: HALPlayerController_0, Pawn=BP_RoundedVehiclePawn_C_0, Start=HALPlayerStart_1.",
+      "[2026.10.20-08.10.16:888][  0]LogTemp: Display: HAL Match: Local=1 Authority=1 Pawn=BP_RoundedVehiclePawn_C_0 PlayerId=256 Phase=WaitingForPlayers"
+    ]
+  },
+  "asset_protection": {
+    "before_count": 354,
+    "after_count": 354,
+    "all_hashes_unchanged": true,
+    "manifest_before": "Saved/CollisionGenerator/WindingFix_AssetsBefore_20261020.json",
+    "manifest_after": "Saved/CollisionGenerator/WindingFix_AssetsAfter_20261020.json"
+  },
+  "source_hashes": [
+    {
+      "sha256": "F16A545624C1DC387E62283971934B5C21EBF228AE38F7292D4F752741BDC8C0",
+      "path": "Source/HAL_Future_CreationEditor/Private/HALVehicleCollisionGenerator.cpp"
+    },
+    {
+      "sha256": "E754B12990091357C5BB6A65E803792F95DF1DCAEFAEED384784EE2A22D190F6",
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleCollisionGeneratorTests.cpp"
+    },
+    {
+      "sha256": "43BF70FAD81032188F6F972E5FA2317B616FD85FE3C84D5E0F9053188C1C604D",
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALCollisionGeneratorUITests.cpp"
+    }
+  ],
+  "team_followup": [
+    "Regenerate fixed mesh using the old recipe; verify intended physical height.",
+    "Save/assign new mesh in the actual Vehicle Definition, not just BP root component.",
+    "Recheck all four PlayerStart centers and obstacle clearance; Z200 is a safe starting trial for the reported height on the current flat floor.",
+    "Align visual body and move Ball Control Point beyond the new front edge with ball-radius clearance.",
+    "Restart and test spawn, driving, ball interactions and two-player observation. No new-proxy manual or network gameplay acceptance claimed."
+  ],
+  "exclusions": [
+    "No Blueprint, Data Asset or map edits.",
+    "No AlwaysSpawn workaround or root collision disabling.",
+    "No four-player, full gameplay suite, Cook/package or team new-proxy acceptance performed.",
+    "Previous verification JSON is retained unchanged as history; this is a separate result."
+  ]
+}
