@@ -250,11 +250,12 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 			Supplement = HALImpact::PhysicalSupplement(Tier.HorizontalDeltaSpeed, Natural, RelativeAfter, Ratio, Rules.MaximumRuleRestitution);
 			const auto* OtherBody = Hit.SourcePhysicsBody;
 			const auto* Other = Hit.SourceActor;
-			const bool bOrdinaryStatic = IsValid(OtherBody) && IsValid(Other) && OtherBody->GetOwner() == Other
-				&& OtherBody->Mobility == EComponentMobility::Static && OtherBody->GetCollisionObjectType() == ECC_WorldStatic
-				&& !OtherBody->IsSimulatingPhysics() && !Other->IsA<ABasicBallActor>()
-				&& !Other->FindComponentByClass<UHALImpactSourceComponent>() && !Other->FindComponentByClass<UHALImpactReceiverComponent>();
-			if (StabilityRules.SuppressesSupplement(bOrdinaryStatic, Hit.ImpactNormal, Direction))
+			Result.NaturalNormalDeltaSpeed = Natural;
+			Result.RelativeNormalSpeedAfter = RelativeAfter;
+			Result.SupportSourceReason = !StabilityRules.bSuppressSupportSupplement ? FName(TEXT("Disabled"))
+				: IsValid(OtherBody) && IsValid(Other) && OtherBody->GetOwner() == Other
+				? HALVehicleStability::ClassifySupportSource(OtherBody, Hit.ImpactPoint) : FName(TEXT("InvalidSource"));
+			if (StabilityRules.SuppressesSupplement(Result.SupportSourceReason == TEXT("StationaryWorld"), Hit.ImpactNormal, Direction))
 			{
 				Result.bSupportSupplementSuppressed = true;
 				Supplement = 0; // Keep accepted tier, resistance, contact episode and drop below.

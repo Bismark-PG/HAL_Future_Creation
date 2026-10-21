@@ -302,13 +302,16 @@ FHALCombatHitResult FCombatResolver::ResolveCombatHit(FHALCombatAction& Action, 
 	}
 	if (CVarHALCombatLog.GetValueOnGameThread() > 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("HAL Combat: Attack=%s Pulse=%u PlayerId=%d Source=%s Mode=%d Target=%s Raw=%.2f Resolved=%.2f Actual=%.2f DamageImmune=%d Impact=%d LegacyTier=%d SourceTier=%d EffectiveTier=%d ImpactImmune=%d Drop=%d Frame=%d SupportSuppressed=%d RuleDV=%s RuleUp=%.2f"),
+		UE_LOG(LogTemp, Log, TEXT("HAL Combat: Attack=%s Pulse=%u PlayerId=%d Source=%s Mode=%d Target=%s Raw=%.2f Resolved=%.2f Actual=%.2f DamageImmune=%d Impact=%d LegacyTier=%d SourceTier=%d EffectiveTier=%d ImpactImmune=%d Drop=%d Frame=%d SupportSuppressed=%d RuleDV=%s RuleUp=%.2f ContactActor=%s ContactBody=%s Mobility=%d ObjectType=%d SupportSource=%s Normal=%s NormalImpulse=%s NaturalDV=%.3f RelativeAfter=%.3f"),
 			*Result.AttackId.ToString(), Result.PulseSequence, Result.InstigatorPlayerId, *Source.SourceTag.ToString(),
 			int32(Source.DamageMode), *GetNameSafe(Target), Result.RawDamage, Result.ResolvedDamage, Result.ActualHPRemoved,
 			Result.bDamageImmune ? 1 : 0, int32(Result.ImpactOutcome), int32(Result.KnockbackTier),
 			int32(Result.ImpactSummary.SourceTier), int32(Result.ImpactSummary.EffectiveTier),
 			Result.ImpactSummary.bImmune ? 1 : 0, Result.ImpactSummary.bBallDropped ? 1 : 0, Result.ImpactSummary.ServerPhysicsFrame,
-			Result.bSupportSupplementSuppressed ? 1 : 0, *Result.RuleDeltaVelocity.ToString(), Result.RuleMinimumUpwardSpeed);
+			Result.bSupportSupplementSuppressed ? 1 : 0, *Result.RuleDeltaVelocity.ToString(), Result.RuleMinimumUpwardSpeed,
+			*GetNameSafe(Hit.SourceActor), *GetNameSafe(Hit.SourcePhysicsBody), Hit.SourcePhysicsBody ? int32(Hit.SourcePhysicsBody->Mobility) : -1,
+			Hit.SourcePhysicsBody ? int32(Hit.SourcePhysicsBody->GetCollisionObjectType()) : -1, *Result.SupportSourceReason.ToString(),
+			*Hit.ImpactNormal.ToString(), *Hit.NormalImpulse.ToString(), Result.NaturalNormalDeltaSpeed, Result.RelativeNormalSpeedAfter);
 	}
 	return Result;
 }

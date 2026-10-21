@@ -7,13 +7,20 @@
 #include "VehicleStabilityRules.generated.h"
 
 class UPhysicalMaterial;
+class UPrimitiveComponent;
+
+namespace HALVehicleStability
+{
+	/** GT-only contact classification. Mobility is permission to move, not proof of motion. */
+	HAL_FUTURE_CREATION_API FName ClassifySupportSource(const UPrimitiveComponent* SourceBody, const FVector& ContactPoint);
+}
 
 /** Pure contact policy; authority resolves it before queuing the existing physics action. */
 struct HAL_FUTURE_CREATION_API FVehicleContactStabilityRules
 {
 	bool bSuppressSupportSupplement = false;
 	float MinimumSupportUpDot = 1;
-	bool SuppressesSupplement(bool bOrdinaryStaticEnvironment, const FVector& Normal, const FVector& ImpulseDirection) const;
+	bool SuppressesSupplement(bool bOrdinaryStationaryEnvironment, const FVector& Normal, const FVector& ImpulseDirection) const;
 };
 
 /** Shared vehicle contact rules. Self-righting parameters will be added with that implementation. */
@@ -27,7 +34,7 @@ public:
 	/** Applied to vehicle collision roots only; does not replace the ball or arena material. */
 	UPROPERTY(EditDefaultsOnly, Category = "Contact")
 	TObjectPtr<UPhysicalMaterial> VehiclePhysicalMaterial;
-	/** Preserve impact tier/drop, but add no rule velocity on ordinary static support. */
+	/** Preserve impact tier/drop, but add no rule velocity on ordinary stationary WorldStatic support. */
 	UPROPERTY(EditDefaultsOnly, Category = "Contact")
 	bool bSuppressSupportSupplement = true;
 	/** Maximum slope from world up; both geometric normal and impulse must qualify. */

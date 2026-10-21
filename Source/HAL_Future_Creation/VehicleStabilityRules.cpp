@@ -2,11 +2,42 @@
 
 #include "Misc/Crc.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Components/PrimitiveComponent.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "BasicBallActor.h"
+#include "HALImpactReceiverComponent.h"
+#include "HALImpactSourceComponent.h"
 
-bool FVehicleContactStabilityRules::SuppressesSupplement(bool bOrdinaryStaticEnvironment,
+FName HALVehicleStability::ClassifySupportSource(const UPrimitiveComponent* SourceBody, const FVector& ContactPoint)
+{
+	check(IsInGameThread());
+	const AActor* Source = IsValid(SourceBody) ? SourceBody->GetOwner() : nullptr;
+	if (!IsValid(Source) || ContactPoint.ContainsNaN()) { return TEXT("InvalidSource"); }
+	if (Source->IsA<ABasicBallActor>() || Source->FindComponentByClass<UHALImpactReceiverComponent>()
+		|| Source->FindComponentByClass<UHALImpactSourceComponent>()) { return TEXT("SpecializedSource"); }
+	if (SourceBody->IsSimulatingPhysics()) { return TEXT("SimulatedSource"); }
+	if (SourceBody->GetCollisionObjectType() != ECC_WorldStatic) { return TEXT("NonWorldStatic"); }
+	const FBodyInstance* Body = SourceBody->GetBodyInstance();
+	if (!Body || !Body->IsValidBodyInstance()) { return TEXT("NoPhysicsBody"); }
+	// ComponentVelocity alone may omit kinematic rotation. Check both physics motion channels too.
+	const FVector ComponentV = SourceBody->GetComponentVelocity();
+	const FVector PointV = SourceBody->GetPhysicsLinearVelocityAtPoint(ContactPoint);
+	const FVector AngularV = SourceBody->GetPhysicsAngularVelocityInRadians();
+	if (ComponentV.ContainsNaN() || PointV.ContainsNaN() || AngularV.ContainsNaN()) { return TEXT("InvalidMotion"); }
+	if (!ComponentV.IsNearlyZero(KINDA_SMALL_NUMBER) || !PointV.IsNearlyZero(KINDA_SMALL_NUMBER)
+		|| !AngularV.IsNearlyZero(KINDA_SMALL_NUMBER)) { return TEXT("MovingSource"); }
+	// Catch a new kinematic target before the solver has produced its velocity.
+	const FTransform PhysicsPose = Body->GetUnrealWorldTransform(false, true);
+	const FTransform ComponentPose = SourceBody->GetComponentTransform();
+	if (PhysicsPose.ContainsNaN() || !PhysicsPose.GetLocation().Equals(ComponentPose.GetLocation(), KINDA_SMALL_NUMBER)
+		|| !PhysicsPose.GetRotation().Equals(ComponentPose.GetRotation(), KINDA_SMALL_NUMBER)) { return TEXT("PendingMotion"); }
+	return TEXT("StationaryWorld");
+}
+
+bool FVehicleContactStabilityRules::SuppressesSupplement(bool bOrdinaryStationaryEnvironment,
 	const FVector& Normal, const FVector& ImpulseDirection) const
 {
-	return bSuppressSupportSupplement && bOrdinaryStaticEnvironment && !Normal.ContainsNaN()
+	return bSuppressSupportSupplement && bOrdinaryStationaryEnvironment && !Normal.ContainsNaN()
 		&& !ImpulseDirection.ContainsNaN() && Normal.GetSafeNormal().Z >= MinimumSupportUpDot
 		&& ImpulseDirection.GetSafeNormal().Z >= MinimumSupportUpDot;
 }

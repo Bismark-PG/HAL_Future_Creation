@@ -161,9 +161,11 @@ namespace HALStabilityDiagnostic
 		// Use the same floor mesh/scale as both test maps; normalize its upper plane to Z=0.
 		const double FloorTop = Floor->GetStaticMesh()->GetBoundingBox().Max.Z * 8;
 		Floor->SetWorldLocation(FVector(0,0,-FloorTop));
+		if (FParse::Param(FCommandLine::Get(), TEXT("HALStabilityMovableFloor"))) { Floor->SetMobility(EComponentMobility::Movable); }
+		UStaticMeshComponent* Wall = nullptr;
 		if (bWall)
 		{
-			MeshBody(World, LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube")),
+			Wall = MeshBody(World, LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube")),
 				FTransform(FVector(1000,0,bTallWall ? 200 : 0)), StaticConfig, FVector(1,80,bTallWall ? 5 : 1), false);
 		}
 		TArray<FVector> Vertices;
@@ -192,6 +194,7 @@ namespace HALStabilityDiagnostic
 		Native.Add(Name+TEXT(",inertia_kg_cm2,")+Vec(Body->GetInertiaTensor()));
 		Native.Add(Name+TEXT(",initial_com_cm,")+Vec(Body->GetCenterOfMass()));
 		Native.Add(FString::Printf(TEXT("%s,collision_vertices,%d"), *Name, Vertices.Num()));
+		Native.Add(FString::Printf(TEXT("%s,floor_mobility,%d"), *Name, int32(Floor->Mobility)));
 		auto* Solver = World->GetPhysicsScene()->GetSolver();
 		Solver->SetThreadingMode_External(Chaos::EThreadingModeTemp::TaskGraph);
 		Solver->SetGenerateCollisionData(true);
@@ -199,6 +202,9 @@ namespace HALStabilityDiagnostic
 		Solver->GetEventManager()->FlipBuffersIfRequired();
 		Solver->SyncEvents_GameThread(); // Complete registration before consuming the first input.
 		FContactCollector Collector; Collector.BodyProxy = Body->BodyInstance.GetPhysicsActor();
+		TMap<const IPhysicsProxyBase*, UPrimitiveComponent*> Environment;
+		Environment.Add(Floor->BodyInstance.GetPhysicsActor(), Floor);
+		if (Wall) { Environment.Add(Wall->BodyInstance.GetPhysicsActor(), Wall); }
 		Solver->GetEventManager()->RegisterHandler<Chaos::FCollisionEventData>(Chaos::EEventType::Collision, &Collector, &FContactCollector::Receive);
 		auto* Probe = Solver->CreateAndRegisterSimCallbackObject_External<FProbe>();
 		TMap<const IPhysicsProxyBase*, double> LastSeen;
@@ -248,7 +254,9 @@ namespace HALStabilityDiagnostic
 					Consumed.Add(Contact.Other); ++Result.Episodes;
 					const auto& Outcome = Table.GetTierDefinition(HALImpact::ToLegacy(Tier));
 					Supplement = HALImpact::PhysicalSupplement(Outcome.HorizontalDeltaSpeed, Natural, RelativeAfter, 0, Rules.MaximumRuleRestitution);
-					if (SupportPolicy.SuppressesSupplement(true, Contact.Normal, Direction)) { Supplement = 0; }
+					auto* OtherBody = Environment.FindRef(Contact.Other);
+					const bool bStationary = HALVehicleStability::ClassifySupportSource(OtherBody, Contact.Location) == TEXT("StationaryWorld");
+					if (SupportPolicy.SuppressesSupplement(bStationary, Contact.Normal, Direction)) { Supplement = 0; }
 					if (bRuleSupplement) { PendingSupplement += Direction * Supplement; }
 				}
 				Result.MaxSupplement = FMath::Max(Result.MaxSupplement, Supplement);

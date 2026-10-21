@@ -108,6 +108,10 @@ struct FHALCombatHitResult
 	FVector RuleDeltaVelocity = FVector::ZeroVector;
 	float RuleMinimumUpwardSpeed = 0;
 	bool bSupportSupplementSuppressed = false;
+	/** GT contact diagnostics; command classification, not an integrated physics sample. */
+	FName SupportSourceReason;
+	float NaturalNormalDeltaSpeed = 0;
+	float RelativeNormalSpeedAfter = 0;
 	EHALImpactOutcome ImpactOutcome = EHALImpactOutcome::NotRequested;
 	float ImpactSpeed = 0.0f;
 	EVehicleKnockbackTier KnockbackTier = EVehicleKnockbackTier::Light;

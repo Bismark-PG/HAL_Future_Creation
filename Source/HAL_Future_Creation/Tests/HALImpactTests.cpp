@@ -25,6 +25,7 @@
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include "Engine/Level.h"
 #include "GameplayEffect.h"
 #include "UObject/UnrealType.h"
 #include <limits>
@@ -343,7 +344,7 @@ bool FHALImpactBallPipelineTest::RunTest(const FString& Parameters)
 	FHALCombatAction Heavy;
 	Begin(Heavy, Hazard, 0);
 	auto* Floor = NewObject<UBoxComponent>(Hazard); Hazard->SetRootComponent(Floor);
-	Floor->SetMobility(EComponentMobility::Static); Floor->SetCollisionObjectType(ECC_WorldStatic); Floor->RegisterComponent();
+	Floor->SetMobility(EComponentMobility::Movable); Floor->SetCollisionObjectType(ECC_WorldStatic); Floor->RegisterComponent();
 	auto SupportHit = Request(Heavy, Pawn, EHALImpactTier::Heavy, false);
 	SupportHit.Impact.Mode = EHALImpactMode::PhysicalContact;
 	SupportHit.Hit.SourceActor = Hazard; SupportHit.Hit.SourcePhysicsBody = Floor;
@@ -474,7 +475,32 @@ bool FHALStabilityContactTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Horizontal wall keeps bounded normal supplement"), !WallResult.bSupportSupplementSuppressed && WallResult.RuleDeltaVelocity.X > 0);
 	FloorBody->SetMobility(EComponentMobility::Movable);
 	const auto MovableResult = Physical(Floor, FloorBody, FVector::UpVector, EHALImpactMode::PhysicalContact);
-	TestTrue(TEXT("Movable environment is not ordinary static support"), !MovableResult.bSupportSupplementSuppressed && MovableResult.RuleDeltaVelocity.Z > 0);
+	TestTrue(TEXT("Movable but stationary WorldStatic floor suppresses support supplement"), MovableResult.bSupportSupplementSuppressed && MovableResult.RuleDeltaVelocity.IsNearlyZero());
+	FloorBody->ComponentVelocity = FVector(10,0,0);
+	const auto MovingResult = Physical(Floor, FloorBody, FVector::UpVector, EHALImpactMode::PhysicalContact);
+	TestTrue(TEXT("Reported component motion keeps original response"), !MovingResult.bSupportSupplementSuppressed
+		&& MovingResult.SupportSourceReason == TEXT("MovingSource") && MovingResult.RuleDeltaVelocity.Z > 0);
+	FloorBody->ComponentVelocity = FVector::ZeroVector;
+	FloorBody->SetPhysicsLinearVelocity(FVector(10,0,0));
+	TestTrue(TEXT("Kinematic fixture reports physics linear velocity"), FloorBody->GetPhysicsLinearVelocity().X > 9);
+	const auto KinematicLinear = Physical(Floor, FloorBody, FVector::UpVector, EHALImpactMode::PhysicalContact);
+	TestTrue(TEXT("Kinematic motion cannot hide behind zero ComponentVelocity"), !KinematicLinear.bSupportSupplementSuppressed
+		&& KinematicLinear.SupportSourceReason == TEXT("MovingSource"));
+	FloorBody->SetPhysicsLinearVelocity(FVector::ZeroVector);
+	FloorBody->SetPhysicsAngularVelocityInRadians(FVector(0,0,1));
+	TestTrue(TEXT("Kinematic fixture reports angular velocity"), FloorBody->GetPhysicsAngularVelocityInRadians().Z > .9);
+	const auto KinematicAngular = Physical(Floor, FloorBody, FVector::UpVector, EHALImpactMode::PhysicalContact);
+	TestTrue(TEXT("Rotation-only source is not stationary even at its axis"), !KinematicAngular.bSupportSupplementSuppressed
+		&& KinematicAngular.SupportSourceReason == TEXT("MovingSource"));
+	FloorBody->SetPhysicsAngularVelocityInRadians(FVector::ZeroVector);
+	FloorBody->SetCollisionObjectType(ECC_WorldDynamic);
+	const auto DynamicResult = Physical(Floor, FloorBody, FVector::UpVector, EHALImpactMode::PhysicalContact);
+	TestTrue(TEXT("Stationary WorldDynamic is not implicitly an ordinary floor"), !DynamicResult.bSupportSupplementSuppressed && DynamicResult.RuleDeltaVelocity.Z > 0);
+	FloorBody->SetCollisionObjectType(ECC_WorldStatic);
+	FloorBody->SetSimulatePhysics(true);
+	const auto SimulatedResult = Physical(Floor, FloorBody, FVector::UpVector, EHALImpactMode::PhysicalContact);
+	TestTrue(TEXT("Simulating WorldStatic remains an independent physics source"), !SimulatedResult.bSupportSupplementSuppressed && SimulatedResult.RuleDeltaVelocity.Z > 0);
+	FloorBody->SetSimulatePhysics(false);
 	FloorBody->SetMobility(EComponentMobility::Static);
 	auto* Profile = NewObject<UHALImpactSourceComponent>(Floor); Floor->AddInstanceComponent(Profile); Profile->RegisterComponent();
 	const auto AuthoredResult = Physical(Floor, FloorBody, FVector::UpVector, EHALImpactMode::PhysicalContact);
@@ -499,6 +525,55 @@ bool FHALStabilityContactTest::RunTest(const FString& Parameters)
 	const auto ImmuneResult = FCombatResolver::ResolveCombatHit(Immune, Hit);
 	TestEqual(TEXT("Impact immunity remains independent"), ImmuneResult.ImpactSummary.EffectiveTier, EHALImpactTier::None);
 	TestEqual(TEXT("Immunity/filter never cancels falling"), Body(Target)->GetPhysicsLinearVelocity().Z, -90.0);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSavedSupportTest, "HAL.FutureCreation.Stability.SavedMapFloors",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALSavedSupportTest::RunTest(const FString& Parameters)
+{
+	for (const TCHAR* Map : {TEXT("Test"), TEXT("MVPB_NetTest")})
+	{
+		const FString Path = FString::Printf(TEXT("/Game/Maps/%s.%s"), Map, Map);
+		auto* SavedWorld = LoadObject<UWorld>(nullptr, *Path);
+		if (!TestNotNull(Path+TEXT(" loads read-only"), SavedWorld)) { return false; }
+		auto* Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/MapTemplates/SM_Template_Map_Floor.SM_Template_Map_Floor"));
+		UStaticMeshComponent* SavedFloor = nullptr;
+		int32 Candidates = 0;
+		for (AActor* Actor : SavedWorld->PersistentLevel->Actors)
+		{
+			if (!IsValid(Actor)) { continue; }
+			TArray<UStaticMeshComponent*> Components; Actor->GetComponents(Components);
+			for (auto* Component : Components)
+			{
+				if (Component->GetStaticMesh() == Mesh) { SavedFloor = Component; ++Candidates; }
+			}
+		}
+		if (!TestEqual(Path+TEXT(" unambiguous template floor"), Candidates, 1)) { return false; }
+		// Copy saved settings into a separate transient world; never change the loaded map or its actors.
+		FImpactWorld F(true); auto* Target = F.Target(); auto* Floor = F.World->SpawnActor<AActor>();
+		auto* FloorBody = NewObject<UStaticMeshComponent>(Floor); Floor->AddInstanceComponent(FloorBody); Floor->SetRootComponent(FloorBody);
+		FloorBody->SetStaticMesh(SavedFloor->GetStaticMesh()); FloorBody->SetMobility(SavedFloor->Mobility);
+		// The source may already own a live Editor physics body. Never copy its runtime handles.
+		FloorBody->SetCollisionProfileName(SavedFloor->GetCollisionProfileName());
+		FloorBody->SetCollisionEnabled(SavedFloor->GetCollisionEnabled());
+		FloorBody->SetCollisionObjectType(SavedFloor->GetCollisionObjectType());
+		FloorBody->SetCollisionResponseToChannels(SavedFloor->GetCollisionResponseToChannels());
+		FloorBody->BodyInstance.bSimulatePhysics = SavedFloor->BodyInstance.bSimulatePhysics;
+		FloorBody->SetWorldTransform(SavedFloor->GetComponentTransform()); FloorBody->RegisterComponent();
+		FHALCombatAction Action; Begin(Action, Floor, 0);
+		auto Hit = Request(Action, Target, EHALImpactTier::Medium, false);
+		Hit.Impact.Mode = EHALImpactMode::PhysicalContact; Hit.Hit.SourceActor = Floor; Hit.Hit.SourcePhysicsBody = FloorBody;
+		Hit.Hit.ImpactNormal = FVector::UpVector; Hit.Hit.ImpactPoint = FloorBody->GetComponentLocation();
+		Hit.Hit.NormalImpulse = FVector::UpVector * Body(Target)->GetMass() * 150;
+		const auto Result = FCombatResolver::ResolveCombatHit(Action, Hit);
+		TestTrue(Path+TEXT(" real saved floor gets zero support command"), Result.bHitAccepted && Result.bImpactApplied
+			&& Result.bSupportSupplementSuppressed && Result.RuleDeltaVelocity.IsNearlyZero());
+		TestEqual(Path+TEXT(" Medium tier retained"), Result.ImpactSummary.EffectiveTier, EHALImpactTier::Medium);
+		AddInfo(FString::Printf(TEXT("Saved support: Map=%s Mobility=%d ObjectType=%d Simulated=%d Reason=%s Suppressed=%d RuleDV=%s"),
+			Map, int32(FloorBody->Mobility), int32(FloorBody->GetCollisionObjectType()), FloorBody->IsSimulatingPhysics(),
+			*Result.SupportSourceReason.ToString(), Result.bSupportSupplementSuppressed, *Result.RuleDeltaVelocity.ToString()));
+	}
 	return true;
 }
 
