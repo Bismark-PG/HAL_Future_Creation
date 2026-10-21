@@ -73,12 +73,14 @@
 
 ### 3.3 项目级引用与启用
 
-1. **Edit → Project Settings**，搜索 **Vehicle Stability**；展开`Shared Rules`。
+1. **Edit → Project Settings**，先清空搜索和筛选，在分类侧栏进入 **Game → Vehicle Stability**，再展开`Shared Rules`。若分类侧栏被收起，先展开分类导航。UE5.8搜索框可以限定在当前已选设置页内；直接搜索页名不保证跳转到该页。进入目标页后，可搜索`Use Shared Rules`定位字段。
 2. 勾选 **Use Shared Rules**，将 **Shared Rules**指向`DA_Vehicle_Stability_Test_v1`。确认不是原Combat DA，也不是车型VehicleDefinition或表现DA。
 3. 保存项目设置，核对`Config/DefaultGame.ini`中的`[/Script/HAL_Future_Creation.VehicleStabilitySettings]`：`bUseSharedRules=True`和`SharedRules`应指向所建资产。由团队提交这个配置文件以及新建的PM／DA；不只提交C++或文档。
 4. 保留现有玩家BP→VehicleDefinition→Presentation／ABP引用，不需要改玩家Event Graph或逐车设置PM。
 5. 完全结束旧局后重新进入测试图。独立Host／客户端均重新启动，使用同一代码、DA、PM和DefaultGame.ini；只改主机本地资产会触发配置不一致。
 6. 检查双方日志：快照启用、Restitution=0、SupportSlope=45、SuppressSupport=1，且没有`Invalid VehicleStabilityRules`／`VehicleStabilityRules mismatch`。错误时先修复并保存引用，再新开局。
+
+找不到设置页时，先使用上述分类入口并清空筛选，再核对Editor是否加载本工程的新DLL。新增原生设置类型时，旧Editor／Live Coding会话可能需要完整重启；只有本机尚未编译当前源码或编译失败时，才需要关闭Editor后构建`HAL_Future_CreationEditor / Development / Win64`。上一轮已经完整编译，不应仅因为搜索页名无结果就认定未编译。
 
 回退对照：停止本局，取消`Use Shared Rules`，保存并重新开局，恢复VehicleDefinition原材质和原支撑追加；或保持共享规则启用、只取消DA的`Suppress Support Supplement`，比较同材质下的规则追加。两种对照必须区分。无需删除原车型DA中的配置。
 

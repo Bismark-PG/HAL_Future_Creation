@@ -171,6 +171,8 @@ MVP-B收尾时使用届时冻结的同一提交／构建／资产，统一覆盖
 
 ## 8. 本次更新记录
 
+- 2026-10-21设置页定位排查：接收main/747eac7，团队新增共享DA及Physics目录资产仍未提交并保持。本机已有成功Editor构建，最近正常Editor日志也已加载该运行时DLL并打开VehicleStabilityRules资产；尚不能据搜索无结果认定未编译。按本机UE5.8.3的UDeveloperSettings实现确认Project／Game分类与Vehicle Stability页名，设置搜索支持当前页范围；修正文档为先清空搜索、分类侧栏Game→Vehicle Stability，再定位Shared Rules。仅源码／日志核对和文档更新，无新编译、UE运行、界面查看或资产修改，实际菜单可见性待团队核对；不把可能的搜索范围问题写成已复现原因。
+
 - 2026-10-21最小接触修正：接收干净main/699fc0c，新增VehicleStability共享DA／项目设置／World冻结快照，统一车辆材质并在Authority过滤普通静态支撑的规则追加；档位、独立伤害／抗性、脱球和显式击飞保持。配置签名复制并阻止不一致客户端模拟，补可关闭动作诊断及测试。最终UE5.8.3 Editor／Game均成功，52/52普通回归0测试警告／失败，16组真实Solver诊断1/1通过；最终Host／Client各1/1、签名4097445932、客户端重模拟55次，主机单向80ms。361资产哈希全同，无保存Config／BP／DA／地图或弹簧拳修改。首轮普通51/52因夹具立即读取未积分的冲量而失败；后续编译因UE材质枚举拼写差异失败，均修正并保留证据。提供PM→DA→项目引用详细手工步骤，正式开关仍关闭，姿态门控／自救及真人手感待做；下一代码入口扩展同一DA实现已确认自救，再VP-2。本轮未提交／Push，见[实施](Movement/MVPB_Vehicle_Stability_MinimalFix_CN_v0.1.md)及[证据](Movement/MVPB_Vehicle_Stability_MinimalFix_Verification_20261021.json)。
 
 - 2026-10-21反弹诊断／基线完成：以main/21d29b0、UE5.8.3保留既有文档施工，发现旧DLL落后后完整重编。只读导出当前DA／Test和NetTest，361资产前后全同；确认默认材质恢复系数0.3、代理456×288×269cm和墙体高度／地面露出情况。新增16组临时Solver对照、11520轨迹／2701接触数据；区分真实离地、接地摇摆和规则追加，详见[结论](Movement/MVPB_Vehicle_Stability_Diagnostic_CN_v0.1.md)、[基线](Movement/MVPB_Vehicle_Stability_Baseline_20261021.json)与[证据](Movement/MVPB_Vehicle_Stability_Diagnostic_Verification_20261021.json)。修正旧无Rig夹具为独立Definition副本，最终Editor／Game成功，普通50/50、诊断1/1均0测试警告／失败；首次Python受保护字段、诊断编译及事件交接失败保留。无玩法参数／资产修改、真人／新双端／F4验收或自救／全局DA实现。下一入口最小物理修正规格／实现；未提交／Push。
