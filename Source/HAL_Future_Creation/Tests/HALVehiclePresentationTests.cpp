@@ -44,7 +44,8 @@ namespace
 		FScopedHALLegacyCombatTestRules Rules;
 		UWorld* World;
 		ATestVehiclePawn* Pawn;
-		FPresentationWorld()
+		bool bNoRigFixtureCreated = false;
+		FPresentationWorld(bool bWithoutRig = false)
 		{
 			const auto Options = UWorld::InitializationValues().AllowAudioPlayback(false).RequiresHitProxies(false)
 				.CreatePhysicsScene(true).CreateNavigation(false).CreateAISystem(false).CreateFXSystem(false)
@@ -53,6 +54,7 @@ namespace
 			GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(World);
 			auto* Class = LoadClass<ATestVehiclePawn>(nullptr, TEXT("/Game/Blueprints/Vehicles/BP_RoundedVehiclePawn.BP_RoundedVehiclePawn_C"));
 			Pawn = Class ? World->SpawnActor<ATestVehiclePawn>(Class, FVector(0,0,1000), FRotator::ZeroRotator) : nullptr;
+			if (bWithoutRig) { bNoRigFixtureCreated = FHALPresentationTestAccess::SelectNoRigFixture(Pawn); }
 			if (Pawn) { Pawn->PreInitializeComponents(); Pawn->InitializeComponents(); Pawn->PostInitializeComponents(); }
 		}
 		~FPresentationWorld() { World->DestroyWorld(false); GEngine->DestroyWorldContext(World); }
@@ -123,8 +125,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALPresentationFallbackTest, "HAL.FutureCreati
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FHALPresentationFallbackTest::RunTest(const FString& Parameters)
 {
-	FPresentationWorld F;
+	FPresentationWorld F(true);
 	if (!TestNotNull(TEXT("Saved vehicle"), F.Pawn)) { return false; }
+	if (!TestTrue(TEXT("No-rig case uses its own definition without editing the saved player"), F.bNoRigFixtureCreated)) { return false; }
 	auto* Component = F.Pawn->FindComponentByClass<UHALVehiclePresentationComponent>();
 	auto* Mesh = F.Pawn->FindComponentByClass<USkeletalMeshComponent>();
 	auto* Body = FHALPresentationTestAccess::Body(F.Pawn);

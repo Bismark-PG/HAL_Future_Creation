@@ -88,6 +88,9 @@ private:
 	friend class FVehicleWallEscapeContactTest;
 	friend class FHALImpactPhysicsThreadTest;
 	friend class FHALMovementSolverTest;
+#if WITH_DEV_AUTOMATION_TESTS
+	friend struct FHALVehicleStabilityTestAccess;
+#endif
 	void ApplyPendingMovementConfiguration();
 	void ApplyMovementAction(const FVehicleMovementParameterAction& Action);
 	void PrepareMovementFrame(Chaos::FPBDRigidsSolver* Solver, int32 LocalFrame, bool bReplay);

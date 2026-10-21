@@ -1,0 +1,2118 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-10-21T10:40:49.397519+09:00",
+  "git_head": "21d29b08c17f015cd4e4568779ee441608a149cf",
+  "engine": "5.8.3-58210709+++UE5+Release-5.8",
+  "scope": "read_only_saved_baseline_and_transient_real_solver_contact_diagnostics_no_gameplay_tuning_change",
+  "production_behavior_changed": false,
+  "source_changes": [
+    "Development-only friend access for isolated solver diagnostic",
+    "Optional-rig fallback fixture duplicates saved definition and clears only the transient copy",
+    "Opt-in native diagnostic, outside the ordinary HAL.FutureCreation regression filter"
+  ],
+  "saved_baseline": {
+    "path": "Docs/Movement/MVPB_Vehicle_Stability_Baseline_20261021.json",
+    "sha256": "84c19d4db8c8c541e0bf16327ffed4f15b76ad12cbe3775366d86e6a800d9185"
+  },
+  "asset_protection": {
+    "before_count": 361,
+    "after_count": 361,
+    "all_sha256_equal": true,
+    "full_manifest_in_saved_baseline": true
+  },
+  "builds": {
+    "Editor_Development": {
+      "result": "Succeeded",
+      "log": "Saved/VehicleStability/20261021/Editor_NativePoseAccessFixed.log"
+    },
+    "Game_Development": {
+      "result": "Succeeded",
+      "log": "Saved/VehicleStability/20261021/Game_Final.log"
+    },
+    "warnings": "Existing MSVC14.51 vs preferred14.50 and engine C4996 deprecations remain; not a zero-warning build."
+  },
+  "ordinary_automation": {
+    "path": "Saved/VehicleStability/20261021/Automation_FixtureFixed/index.json",
+    "sha256": "1b178a1b4d35127e1f67bd3496ecdf1224ba79f9caaa00628128a4e98ad23b45",
+    "succeeded": 50,
+    "succeededWithWarnings": 0,
+    "failed": 0,
+    "notRun": 0,
+    "totalDuration": 17.0880126953125,
+    "tests": [
+      {
+        "fullTestPath": "HAL.FutureCreation.Ability.ActivationDamageAndCooldown",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Ability.AvatarAndOwnerCleanup",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Ability.DiscreteInputDoesNotReplay",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Ability.RefreshDispelAndIndependentStacks",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Ball.ControlledProxyPresentation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Ball.VehicleExitCleanup",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Combat.BallMigrationAndConsumption",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Combat.ConfigurationAndContext",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Combat.DamageImpactIndependence",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Combat.PulsesTargetsAndDedup",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Combat.PureDamageAndActualRemoval",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Combat.SnapshotAndSourceLifetime",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Configuration.CombatRulesSource",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Configuration.InitializationAndIsolation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Configuration.NoFallback",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Configuration.PlayerAndBallInitialization",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Configuration.Validation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Debug.BallSpawnAuthoredConfigurationAndBlocking",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.GAS.Health.BoundsAndIsolation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.GAS.Health.PlayerStateAvatarLifecycle",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Impact.AllSourcesAndContactEpisodes",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Impact.AuthorityPhysicsReplayContract",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Impact.BallSnapshotDropAndCallbackMerge",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Impact.GASResistanceAndIndependentDamage",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Impact.SolverThreadExecutionAndReplay",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Impact.TiersCalibrationAndEnergyBudget",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Movement.BoostCrossSourceRefreshAndSelectiveDispel",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Movement.BoostDebugGuardsAndAvatarCleanup",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Movement.BoostFiveGameSecondExpiry",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Movement.GASContributionsAndBinding",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Movement.SerializationAndDiscreteInterpolation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Movement.SolverForcesAndHistoricalReplay",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Movement.TimelineBoundariesAndPackets",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.MovementAbility.ActivationRefreshAndNaturalExpiry",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.MovementAbility.AvatarAndOtherCooldownIsolation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.MovementAbility.InvalidEffectAndAvatarGuards",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.MovementContract.AuthorityActionsAndReplay",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.MovementContract.AuthorityHistoryAndRecovery",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Presentation.ConfigurationAndRigContract",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Presentation.OptionalRigPreservesGameplay",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Presentation.SnapshotAndResetLifecycle",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Presentation.WheelMathAndFrameRates",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.SpringPunch.CombatLifecycle",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Vehicle.PhysicsInput.HistorySerialization",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Vehicle.PhysicsInput.Validation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Vehicle.WallEscape.Blend",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Vehicle.WallEscape.ComponentContact",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Vehicle.WallEscape.Eligibility",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Vehicle.WallEscape.ThrottleProjection",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Vehicle.WallEscape.YawControl",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      }
+    ]
+  },
+  "diagnostic_automation": {
+    "path": "Saved/VehicleStability/20261021/Diagnostics_EventAndPoseFixed/index.json",
+    "sha256": "0193589496ef4ef3d606fa65b62f66a2a8c52adfadaeabdd23be9607058ac30f",
+    "succeeded": 1,
+    "succeededWithWarnings": 0,
+    "failed": 0,
+    "notRun": 0,
+    "totalDuration": 0.4797115921974182,
+    "tests": [
+      {
+        "fullTestPath": "HAL.Diagnostics.VehicleStability.SavedContactComparison",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0
+      }
+    ]
+  },
+  "initial_failed_diagnostic": {
+    "path": "Saved/VehicleStability/20261021/Diagnostics_Initial/index.json",
+    "sha256": "167470cd550cc885eb4ab69295dc874a0559d09ac8261c9c360a78bd8d86d18b",
+    "succeeded": 0,
+    "succeededWithWarnings": 0,
+    "failed": 1,
+    "notRun": 0,
+    "totalDuration": 0.5138049125671387,
+    "tests": [
+      {
+        "fullTestPath": "HAL.Diagnostics.VehicleStability.SavedContactComparison",
+        "state": "Fail",
+        "errors": 16,
+        "warnings": 0
+      }
+    ]
+  },
+  "initial_failures": [
+    "Python read of protected FKConvexElem.VertexData rejected; final exporter retains struct text and native probe reads vertices.",
+    "Diagnostic build: global IPhysicsProxyBase namespace and TObjectPtr TestNotNull conversion corrected.",
+    "Diagnostic build: private/protected movement activation accessed through a dev-test-only friend accessor.",
+    "Initial runtime probe had trajectories but zero contact records: manual stepping lacked the event-buffer handoff; strict assertions failed.",
+    "Native solved pose uses particle GetP/GetQ inside PT because PostSolve precedes X/R commit; FRigidBodyHandle_Internal has no P/Q accessors."
+  ],
+  "experiment": {
+    "cases": 16,
+    "steps_per_case": 720,
+    "physics_dt_seconds": 0.016666666666666666,
+    "sample_count": 11520,
+    "body": "Saved player convex mesh and authored BodyInstance/scale; no driver/grip/landing assist forces",
+    "floor": "Engine template floor at saved scale8, upper plane normalized to Z=0",
+    "wall": "Engine cube at saved scale(1,80,1), centerZ0 => topZ50; tall control scaleZ5/centerZ200 => topZ450",
+    "low_material": "Transient duplicate: restitution0, override restitution combine=Min; friction remains authored",
+    "rules": "Raw Chaos normal impulse grouped per other proxy, production PhysicalSupplement helper and ApplyAction_Internal; isolated contact-episode clock, no ASC/delegate/RPC pipeline",
+    "stability_definition": "After first contact: speed<5cm/s, angular speed<0.1rad/s, bottom within5cm for >=0.5s; stable_at is start of final qualifying run; does not require upright",
+    "native_property_rows": [
+      [
+        "flat_drop_saved_natural",
+        "vehicle_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "flat_drop_saved_natural",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "flat_drop_saved_natural",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "flat_drop_saved_natural",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "flat_drop_saved_natural",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "634.500000000"
+      ],
+      [
+        "flat_drop_saved_natural",
+        "collision_vertices",
+        "40"
+      ],
+      [
+        "flat_drop_saved_rules",
+        "vehicle_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "flat_drop_saved_rules",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "flat_drop_saved_rules",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "flat_drop_saved_rules",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "flat_drop_saved_rules",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "634.500000000"
+      ],
+      [
+        "flat_drop_saved_rules",
+        "collision_vertices",
+        "40"
+      ],
+      [
+        "flat_drop_zero_min_natural",
+        "vehicle_material",
+        "/Temp/Untitled_3.Untitled:PersistentLevel.Actor_1.StaticMeshComponent_0.DefaultPhysicalMaterial",
+        "0.000000000",
+        "1",
+        "1"
+      ],
+      [
+        "flat_drop_zero_min_natural",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "flat_drop_zero_min_natural",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "flat_drop_zero_min_natural",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "flat_drop_zero_min_natural",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "634.500000000"
+      ],
+      [
+        "flat_drop_zero_min_natural",
+        "collision_vertices",
+        "40"
+      ],
+      [
+        "flat_drop_zero_min_rules",
+        "vehicle_material",
+        "/Temp/Untitled_4.Untitled:PersistentLevel.Actor_1.StaticMeshComponent_0.DefaultPhysicalMaterial",
+        "0.000000000",
+        "1",
+        "1"
+      ],
+      [
+        "flat_drop_zero_min_rules",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "flat_drop_zero_min_rules",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "flat_drop_zero_min_rules",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "flat_drop_zero_min_rules",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "634.500000000"
+      ],
+      [
+        "flat_drop_zero_min_rules",
+        "collision_vertices",
+        "40"
+      ],
+      [
+        "heavy_tumble_saved_natural",
+        "vehicle_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "heavy_tumble_saved_natural",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "heavy_tumble_saved_natural",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "heavy_tumble_saved_natural",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "heavy_tumble_saved_natural",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "215.515746003"
+      ],
+      [
+        "heavy_tumble_saved_natural",
+        "collision_vertices",
+        "40"
+      ],
+      [
+        "heavy_tumble_saved_rules",
+        "vehicle_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "heavy_tumble_saved_rules",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "heavy_tumble_saved_rules",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "heavy_tumble_saved_rules",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "heavy_tumble_saved_rules",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "215.515746003"
+      ],
+      [
+        "heavy_tumble_saved_rules",
+        "collision_vertices",
+        "40"
+      ],
+      [
+        "heavy_tumble_zero_min_natural",
+        "vehicle_material",
+        "/Temp/Untitled_7.Untitled:PersistentLevel.Actor_1.StaticMeshComponent_0.DefaultPhysicalMaterial",
+        "0.000000000",
+        "1",
+        "1"
+      ],
+      [
+        "heavy_tumble_zero_min_natural",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "heavy_tumble_zero_min_natural",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "heavy_tumble_zero_min_natural",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "heavy_tumble_zero_min_natural",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "215.515746003"
+      ],
+      [
+        "heavy_tumble_zero_min_natural",
+        "collision_vertices",
+        "40"
+      ],
+      [
+        "heavy_tumble_zero_min_rules",
+        "vehicle_material",
+        "/Temp/Untitled_8.Untitled:PersistentLevel.Actor_1.StaticMeshComponent_0.DefaultPhysicalMaterial",
+        "0.000000000",
+        "1",
+        "1"
+      ],
+      [
+        "heavy_tumble_zero_min_rules",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "heavy_tumble_zero_min_rules",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "heavy_tumble_zero_min_rules",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "heavy_tumble_zero_min_rules",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "215.515746003"
+      ],
+      [
+        "heavy_tumble_zero_min_rules",
+        "collision_vertices",
+        "40"
+      ],
+      [
+        "short_wall_saved_natural",
+        "vehicle_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "short_wall_saved_natural",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "short_wall_saved_natural",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "short_wall_saved_natural",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "short_wall_saved_natural",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "135.500000000"
+      ],
+      [
+        "short_wall_saved_natural",
+        "collision_vertices",
+        "40"
+      ],
+      [
+        "short_wall_saved_rules",
+        "vehicle_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "short_wall_saved_rules",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "short_wall_saved_rules",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "short_wall_saved_rules",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "short_wall_saved_rules",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "135.500000000"
+      ],
+      [
+        "short_wall_saved_rules",
+        "collision_vertices",
+        "40"
+      ],
+      [
+        "short_wall_zero_min_natural",
+        "vehicle_material",
+        "/Temp/Untitled_11.Untitled:PersistentLevel.Actor_2.StaticMeshComponent_0.DefaultPhysicalMaterial",
+        "0.000000000",
+        "1",
+        "1"
+      ],
+      [
+        "short_wall_zero_min_natural",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "short_wall_zero_min_natural",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "short_wall_zero_min_natural",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "short_wall_zero_min_natural",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "135.500000000"
+      ],
+      [
+        "short_wall_zero_min_natural",
+        "collision_vertices",
+        "40"
+      ],
+      [
+        "short_wall_zero_min_rules",
+        "vehicle_material",
+        "/Temp/Untitled_12.Untitled:PersistentLevel.Actor_2.StaticMeshComponent_0.DefaultPhysicalMaterial",
+        "0.000000000",
+        "1",
+        "1"
+      ],
+      [
+        "short_wall_zero_min_rules",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "short_wall_zero_min_rules",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "short_wall_zero_min_rules",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "short_wall_zero_min_rules",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "135.500000000"
+      ],
+      [
+        "short_wall_zero_min_rules",
+        "collision_vertices",
+        "40"
+      ],
+      [
+        "tall_wall_control_saved_natural",
+        "vehicle_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "tall_wall_control_saved_natural",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "tall_wall_control_saved_natural",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "tall_wall_control_saved_natural",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "tall_wall_control_saved_natural",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "135.500000000"
+      ],
+      [
+        "tall_wall_control_saved_natural",
+        "collision_vertices",
+        "40"
+      ],
+      [
+        "tall_wall_control_saved_rules",
+        "vehicle_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "tall_wall_control_saved_rules",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "tall_wall_control_saved_rules",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "tall_wall_control_saved_rules",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "tall_wall_control_saved_rules",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "135.500000000"
+      ],
+      [
+        "tall_wall_control_saved_rules",
+        "collision_vertices",
+        "40"
+      ],
+      [
+        "tall_wall_control_zero_min_natural",
+        "vehicle_material",
+        "/Temp/Untitled_15.Untitled:PersistentLevel.Actor_2.StaticMeshComponent_0.DefaultPhysicalMaterial",
+        "0.000000000",
+        "1",
+        "1"
+      ],
+      [
+        "tall_wall_control_zero_min_natural",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "tall_wall_control_zero_min_natural",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "tall_wall_control_zero_min_natural",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "tall_wall_control_zero_min_natural",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "135.500000000"
+      ],
+      [
+        "tall_wall_control_zero_min_natural",
+        "collision_vertices",
+        "40"
+      ],
+      [
+        "tall_wall_control_zero_min_rules",
+        "vehicle_material",
+        "/Temp/Untitled_16.Untitled:PersistentLevel.Actor_2.StaticMeshComponent_0.DefaultPhysicalMaterial",
+        "0.000000000",
+        "1",
+        "1"
+      ],
+      [
+        "tall_wall_control_zero_min_rules",
+        "floor_material",
+        "/Engine/EngineMaterials/DefaultPhysicalMaterial.DefaultPhysicalMaterial",
+        "0.300000012",
+        "0",
+        "0"
+      ],
+      [
+        "tall_wall_control_zero_min_rules",
+        "mass_kg",
+        "799.999938965"
+      ],
+      [
+        "tall_wall_control_zero_min_rules",
+        "inertia_kg_cm2",
+        "9703990.000000000",
+        "16560893.000000000",
+        "16616751.000000000"
+      ],
+      [
+        "tall_wall_control_zero_min_rules",
+        "initial_com_cm",
+        "-0.000000000",
+        "-0.000000000",
+        "135.500000000"
+      ],
+      [
+        "tall_wall_control_zero_min_rules",
+        "collision_vertices",
+        "40"
+      ]
+    ],
+    "results": [
+      {
+        "case": "flat_drop_saved_natural",
+        "first_contact_s": 1.033333333,
+        "first_contact_exit_vz_cm_s": 285.660980225,
+        "max_clearance_after_contact_cm": 28.213236425,
+        "stable_at_s": 1.816666667,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 29.0,
+        "qualified_episodes": 2.0,
+        "max_candidate_supplement_cm_s": 0.0,
+        "total_applied_supplement_cm_s": 0.0,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 29,
+        "first_wall_contact_s": null,
+        "final_up_dot_world_up": 0.9999999999175349,
+        "max_body_tilt_deg": 4.9163932991786625,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 0.9575113808801214,
+        "final_state": {
+          "case": "flat_drop_saved_natural",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": -7.353699172,
+          "y": -29.15534417,
+          "z": 134.499496886,
+          "qx": 5.5E-06,
+          "qy": 3.314E-06,
+          "qz": -0.003483097,
+          "qw": 0.99999392,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": -0.00300961,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": []
+      },
+      {
+        "case": "flat_drop_saved_rules",
+        "first_contact_s": 1.033333333,
+        "first_contact_exit_vz_cm_s": 285.660980225,
+        "max_clearance_after_contact_cm": 28.213236425,
+        "stable_at_s": 1.816666667,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 29.0,
+        "qualified_episodes": 2.0,
+        "max_candidate_supplement_cm_s": 0.0,
+        "total_applied_supplement_cm_s": 0.0,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 29,
+        "first_wall_contact_s": null,
+        "final_up_dot_world_up": 0.9999999999175349,
+        "max_body_tilt_deg": 4.9163932991786625,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 0.9575113808801214,
+        "final_state": {
+          "case": "flat_drop_saved_rules",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": -7.353699172,
+          "y": -29.15534417,
+          "z": 134.499496886,
+          "qx": 5.5E-06,
+          "qy": 3.314E-06,
+          "qz": -0.003483097,
+          "qw": 0.99999392,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": -0.00300961,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": []
+      },
+      {
+        "case": "flat_drop_zero_min_natural",
+        "first_contact_s": 1.033333333,
+        "first_contact_exit_vz_cm_s": 3.259025574,
+        "max_clearance_after_contact_cm": 0.0,
+        "stable_at_s": 1.2,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 25.0,
+        "qualified_episodes": 1.0,
+        "max_candidate_supplement_cm_s": 0.0,
+        "total_applied_supplement_cm_s": 0.0,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 25,
+        "first_wall_contact_s": null,
+        "final_up_dot_world_up": 0.9999999999999913,
+        "max_body_tilt_deg": 0.3326190220203421,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 1.0,
+        "final_state": {
+          "case": "flat_drop_zero_min_natural",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": -0.102959377,
+          "y": -0.345901925,
+          "z": 134.500005119,
+          "qx": 5.9E-08,
+          "qy": 2.9E-08,
+          "qz": 0.000460057,
+          "qw": 0.999999881,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": -1.9527E-05,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": []
+      },
+      {
+        "case": "flat_drop_zero_min_rules",
+        "first_contact_s": 1.033333333,
+        "first_contact_exit_vz_cm_s": 3.259025574,
+        "max_clearance_after_contact_cm": 0.0,
+        "stable_at_s": 1.2,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 25.0,
+        "qualified_episodes": 1.0,
+        "max_candidate_supplement_cm_s": 0.0,
+        "total_applied_supplement_cm_s": 0.0,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 25,
+        "first_wall_contact_s": null,
+        "final_up_dot_world_up": 0.9999999999999913,
+        "max_body_tilt_deg": 0.3326190220203421,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 1.0,
+        "final_state": {
+          "case": "flat_drop_zero_min_rules",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": -0.102959377,
+          "y": -0.345901925,
+          "z": 134.500005119,
+          "qx": 5.9E-08,
+          "qy": 2.9E-08,
+          "qz": 0.000460057,
+          "qw": 0.999999881,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": -1.9527E-05,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": []
+      },
+      {
+        "case": "heavy_tumble_saved_natural",
+        "first_contact_s": 1.4,
+        "first_contact_exit_vz_cm_s": 222.05039978,
+        "max_clearance_after_contact_cm": 21.377823221,
+        "stable_at_s": 9.333333333,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 460.0,
+        "qualified_episodes": 2.0,
+        "max_candidate_supplement_cm_s": 0.0,
+        "total_applied_supplement_cm_s": 0.0,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 460,
+        "first_wall_contact_s": null,
+        "final_up_dot_world_up": -7.5011249787149126E-06,
+        "max_body_tilt_deg": 149.93697642802636,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 0.957613814756672,
+        "final_state": {
+          "case": "heavy_tumble_saved_natural",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": 795.999990897,
+          "y": 59.33138025,
+          "z": 228.301190307,
+          "qx": 0.209475219,
+          "qy": 0.675369442,
+          "qz": 0.073691085,
+          "qw": -0.703253806,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": -0.001059188,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": []
+      },
+      {
+        "case": "heavy_tumble_saved_rules",
+        "first_contact_s": 1.4,
+        "first_contact_exit_vz_cm_s": 222.05039978,
+        "max_clearance_after_contact_cm": 21.377823221,
+        "stable_at_s": 9.333333333,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 460.0,
+        "qualified_episodes": 2.0,
+        "max_candidate_supplement_cm_s": 0.0,
+        "total_applied_supplement_cm_s": 0.0,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 460,
+        "first_wall_contact_s": null,
+        "final_up_dot_world_up": -7.5011249787149126E-06,
+        "max_body_tilt_deg": 149.93697642802636,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 0.957613814756672,
+        "final_state": {
+          "case": "heavy_tumble_saved_rules",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": 795.999990897,
+          "y": 59.33138025,
+          "z": 228.301190307,
+          "qx": 0.209475219,
+          "qy": 0.675369442,
+          "qz": 0.073691085,
+          "qw": -0.703253806,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": -0.001059188,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": []
+      },
+      {
+        "case": "heavy_tumble_zero_min_natural",
+        "first_contact_s": 1.4,
+        "first_contact_exit_vz_cm_s": 29.425397873,
+        "max_clearance_after_contact_cm": 4.299E-05,
+        "stable_at_s": 9.633333333,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 513.0,
+        "qualified_episodes": 1.0,
+        "max_candidate_supplement_cm_s": 113.159217834,
+        "total_applied_supplement_cm_s": 0.0,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 513,
+        "first_wall_contact_s": null,
+        "final_up_dot_world_up": 5.06866825067398E-07,
+        "max_body_tilt_deg": 149.93697642802636,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 1.0,
+        "final_state": {
+          "case": "heavy_tumble_zero_min_natural",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": 776.044019562,
+          "y": 63.055419169,
+          "z": 228.303676446,
+          "qx": 0.210909247,
+          "qy": 0.674920022,
+          "qz": 0.075266957,
+          "qw": -0.703089714,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": -4.167E-06,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": []
+      },
+      {
+        "case": "heavy_tumble_zero_min_rules",
+        "first_contact_s": 1.4,
+        "first_contact_exit_vz_cm_s": 29.425397873,
+        "max_clearance_after_contact_cm": 6.502812274,
+        "stable_at_s": 8.35,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 411.0,
+        "qualified_episodes": 2.0,
+        "max_candidate_supplement_cm_s": 113.159217834,
+        "total_applied_supplement_cm_s": 129.516819,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 411,
+        "first_wall_contact_s": null,
+        "final_up_dot_world_up": 4.023447686130055E-08,
+        "max_body_tilt_deg": 149.93697642802636,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 0.9764521193092621,
+        "final_state": {
+          "case": "heavy_tumble_zero_min_rules",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": 897.780149401,
+          "y": 316.024704645,
+          "z": 144.000014409,
+          "qx": 0.593026459,
+          "qy": 0.385122836,
+          "qz": -0.385122895,
+          "qw": -0.593026459,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": 5.45E-07,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": [
+          {
+            "case": "heavy_tumble_zero_min_rules",
+            "step": 84.0,
+            "time_s": 1.4,
+            "impulse_x": 0.0,
+            "impulse_y": 0.0,
+            "impulse_z": 525966.625,
+            "point_x": 603.493337535,
+            "point_y": 11.993223146,
+            "point_z": -3.93951238,
+            "normal_x": 0.0,
+            "normal_y": 0.0,
+            "normal_z": 1.0,
+            "natural_dv": 657.45833141,
+            "relative_after": -12.643883571,
+            "tier": 3.0,
+            "candidate_supplement": 113.159217834,
+            "rule_enabled": 1.0
+          },
+          {
+            "case": "heavy_tumble_zero_min_rules",
+            "step": 101.0,
+            "time_s": 1.683333333,
+            "impulse_x": 0.0,
+            "impulse_y": 0.0,
+            "impulse_z": 66475.46875,
+            "point_x": 612.427253268,
+            "point_y": 9.751715381,
+            "point_z": -0.370168763,
+            "normal_x": 0.0,
+            "normal_y": 0.0,
+            "normal_z": 1.0,
+            "natural_dv": 83.094342277,
+            "relative_after": -3.385607458,
+            "tier": 1.0,
+            "candidate_supplement": 16.357601166,
+            "rule_enabled": 1.0
+          }
+        ]
+      },
+      {
+        "case": "short_wall_saved_natural",
+        "first_contact_s": 0.05,
+        "first_contact_exit_vz_cm_s": 12.98787117,
+        "max_clearance_after_contact_cm": 3.448724015,
+        "stable_at_s": 1.833333333,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 106.0,
+        "qualified_episodes": 2.0,
+        "max_candidate_supplement_cm_s": 12.683844566,
+        "total_applied_supplement_cm_s": 0.0,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 107,
+        "first_wall_contact_s": 0.65,
+        "final_up_dot_world_up": 0.9999999999978264,
+        "max_body_tilt_deg": 12.843835689863031,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 0.9832869080779945,
+        "final_state": {
+          "case": "short_wall_saved_natural",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": 707.287972108,
+          "y": 59.791265988,
+          "z": 134.49990023,
+          "qx": -3.92E-07,
+          "qy": -9.66E-07,
+          "qz": -0.15978086,
+          "qw": 0.987152517,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": -0.000577214,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": []
+      },
+      {
+        "case": "short_wall_saved_rules",
+        "first_contact_s": 0.05,
+        "first_contact_exit_vz_cm_s": 12.98787117,
+        "max_clearance_after_contact_cm": 2.162192449,
+        "stable_at_s": 2.133333333,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 120.0,
+        "qualified_episodes": 2.0,
+        "max_candidate_supplement_cm_s": 12.683844566,
+        "total_applied_supplement_cm_s": 12.683844566,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 121,
+        "first_wall_contact_s": 0.65,
+        "final_up_dot_world_up": 0.9999999999976202,
+        "max_body_tilt_deg": 14.857123317969872,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 0.9902506963788301,
+        "final_state": {
+          "case": "short_wall_saved_rules",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": 694.186907169,
+          "y": 61.026155843,
+          "z": 134.500067911,
+          "qx": -1.054E-06,
+          "qy": 2.81E-07,
+          "qz": -0.170072362,
+          "qw": 0.985431552,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": -0.000266105,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": [
+          {
+            "case": "short_wall_saved_rules",
+            "step": 3.0,
+            "time_s": 0.05,
+            "impulse_x": -0.0,
+            "impulse_y": 0.0,
+            "impulse_z": 49394.6171875,
+            "point_x": 288.516120033,
+            "point_y": -69.922012329,
+            "point_z": -0.313268223,
+            "normal_x": -0.0,
+            "normal_y": 0.0,
+            "normal_z": 1.0,
+            "natural_dv": 61.743276195,
+            "relative_after": -2.975958841,
+            "tier": 1.0,
+            "candidate_supplement": 12.683844566,
+            "rule_enabled": 1.0
+          }
+        ]
+      },
+      {
+        "case": "short_wall_zero_min_natural",
+        "first_contact_s": 0.05,
+        "first_contact_exit_vz_cm_s": -0.686043382,
+        "max_clearance_after_contact_cm": 0.053204448,
+        "stable_at_s": 1.416666667,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 99.0,
+        "qualified_episodes": 2.0,
+        "max_candidate_supplement_cm_s": 115.248985291,
+        "total_applied_supplement_cm_s": 0.0,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 123,
+        "first_wall_contact_s": 0.65,
+        "final_up_dot_world_up": 0.9999999999999994,
+        "max_body_tilt_deg": 9.001149231402655,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 1.0,
+        "final_state": {
+          "case": "short_wall_zero_min_natural",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": 714.007621639,
+          "y": 19.701925997,
+          "z": 134.500000872,
+          "qx": 1.4E-08,
+          "qy": 9E-09,
+          "qz": -0.041004319,
+          "qw": 0.999158978,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": -5.524E-06,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": []
+      },
+      {
+        "case": "short_wall_zero_min_rules",
+        "first_contact_s": 0.05,
+        "first_contact_exit_vz_cm_s": -0.686043382,
+        "max_clearance_after_contact_cm": 0.004620404,
+        "stable_at_s": 1.566666667,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 104.0,
+        "qualified_episodes": 2.0,
+        "max_candidate_supplement_cm_s": 115.248985291,
+        "total_applied_supplement_cm_s": 115.248985291,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 105,
+        "first_wall_contact_s": 0.65,
+        "final_up_dot_world_up": 1.0,
+        "max_body_tilt_deg": 7.940714504315134,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 1.0,
+        "final_state": {
+          "case": "short_wall_zero_min_rules",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": 714.382119918,
+          "y": 31.671321797,
+          "z": 134.499999929,
+          "qx": -1E-09,
+          "qy": -1E-09,
+          "qz": -0.068249784,
+          "qw": 0.997668266,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": -5.64E-07,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": [
+          {
+            "case": "short_wall_zero_min_rules",
+            "step": 39.0,
+            "time_s": 0.65,
+            "impulse_x": -617189.788203808,
+            "impulse_y": 0.0,
+            "impulse_z": 5.510468684,
+            "point_x": 950.562751718,
+            "point_y": -24.019228075,
+            "point_z": 50.000000322,
+            "normal_x": -1.0,
+            "normal_y": 0.0,
+            "normal_z": 8.928E-06,
+            "natural_dv": 771.487294145,
+            "relative_after": 0.412274411,
+            "tier": 3.0,
+            "candidate_supplement": 115.248985291,
+            "rule_enabled": 1.0
+          }
+        ]
+      },
+      {
+        "case": "tall_wall_control_saved_natural",
+        "first_contact_s": 0.05,
+        "first_contact_exit_vz_cm_s": 12.98787117,
+        "max_clearance_after_contact_cm": 0.002903199,
+        "stable_at_s": 1.016666667,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 73.0,
+        "qualified_episodes": 2.0,
+        "max_candidate_supplement_cm_s": 12.683844566,
+        "total_applied_supplement_cm_s": 0.0,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 74,
+        "first_wall_contact_s": 0.65,
+        "final_up_dot_world_up": 0.9999999999895756,
+        "max_body_tilt_deg": 0.021767576348104917,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 1.0,
+        "final_state": {
+          "case": "tall_wall_control_saved_natural",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": 677.064838432,
+          "y": 0.377045699,
+          "z": 134.500192843,
+          "qx": -2.247E-06,
+          "qy": -4.04E-07,
+          "qz": 0.000926136,
+          "qw": 0.999999583,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": -0.000541,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": []
+      },
+      {
+        "case": "tall_wall_control_saved_rules",
+        "first_contact_s": 0.05,
+        "first_contact_exit_vz_cm_s": 12.98787117,
+        "max_clearance_after_contact_cm": 0.0,
+        "stable_at_s": 1.016666667,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 73.0,
+        "qualified_episodes": 2.0,
+        "max_candidate_supplement_cm_s": 12.683844566,
+        "total_applied_supplement_cm_s": 12.683844566,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 74,
+        "first_wall_contact_s": 0.65,
+        "final_up_dot_world_up": 0.9999999999814324,
+        "max_body_tilt_deg": 0.05442937124906793,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 1.0,
+        "final_state": {
+          "case": "tall_wall_control_saved_rules",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": 676.137940628,
+          "y": 0.474509132,
+          "z": 134.499879393,
+          "qx": 2.716E-06,
+          "qy": -1.381E-06,
+          "qz": 0.001121198,
+          "qw": 0.999999344,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": -0.001278824,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": [
+          {
+            "case": "tall_wall_control_saved_rules",
+            "step": 3.0,
+            "time_s": 0.05,
+            "impulse_x": -0.0,
+            "impulse_y": 0.0,
+            "impulse_z": 49394.6171875,
+            "point_x": 288.516120033,
+            "point_y": -69.922012329,
+            "point_z": -0.313268223,
+            "normal_x": -0.0,
+            "normal_y": 0.0,
+            "normal_z": 1.0,
+            "natural_dv": 61.743276195,
+            "relative_after": -2.975958841,
+            "tier": 1.0,
+            "candidate_supplement": 12.683844566,
+            "rule_enabled": 1.0
+          }
+        ]
+      },
+      {
+        "case": "tall_wall_control_zero_min_natural",
+        "first_contact_s": 0.05,
+        "first_contact_exit_vz_cm_s": -0.686043382,
+        "max_clearance_after_contact_cm": 0.0,
+        "stable_at_s": 0.666666667,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 60.0,
+        "qualified_episodes": 1.0,
+        "max_candidate_supplement_cm_s": 48.661743164,
+        "total_applied_supplement_cm_s": 0.0,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 84,
+        "first_wall_contact_s": 0.65,
+        "final_up_dot_world_up": 0.999999914758314,
+        "max_body_tilt_deg": 0.024306724920783264,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 1.0,
+        "final_state": {
+          "case": "tall_wall_control_zero_min_natural",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": 721.992936318,
+          "y": 0.006537819,
+          "z": 134.463540518,
+          "qx": -2.5726E-05,
+          "qy": 0.000204839,
+          "qz": -4.6336E-05,
+          "qw": 1.0,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": -0.131089279,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": []
+      },
+      {
+        "case": "tall_wall_control_zero_min_rules",
+        "first_contact_s": 0.05,
+        "first_contact_exit_vz_cm_s": -0.686043382,
+        "max_clearance_after_contact_cm": 0.0,
+        "stable_at_s": 0.716666667,
+        "final_speed_cm_s": 0.0,
+        "final_angular_rad_s": 0.0,
+        "contact_frames": 60.0,
+        "qualified_episodes": 1.0,
+        "max_candidate_supplement_cm_s": 48.661743164,
+        "total_applied_supplement_cm_s": 48.661743164,
+        "outputs": 720.0,
+        "worker": 1.0,
+        "contact_pair_records": 61,
+        "first_wall_contact_s": 0.65,
+        "final_up_dot_world_up": 0.9999999999999083,
+        "max_body_tilt_deg": 0.004142124091121295,
+        "after_first_contact_samples_with_bottom_within_1cm_fraction": 1.0,
+        "final_state": {
+          "case": "tall_wall_control_zero_min_rules",
+          "step": 720.0,
+          "time_s": 12.0,
+          "x": 720.497932687,
+          "y": 0.117006956,
+          "z": 134.500000735,
+          "qx": 6.2E-08,
+          "qy": -2.05E-07,
+          "qz": -0.000357598,
+          "qw": 0.99999994,
+          "vx": 0.0,
+          "vy": 0.0,
+          "vz": 0.0,
+          "wx": 0.0,
+          "wy": 0.0,
+          "wz": 0.0,
+          "bottom_z": -9.758E-05,
+          "contact_pairs": 0.0,
+          "next_rule_dvx": 0.0,
+          "next_rule_dvy": 0.0,
+          "next_rule_dvz": 0.0
+        },
+        "nonzero_applied_contact_samples": [
+          {
+            "case": "tall_wall_control_zero_min_rules",
+            "step": 39.0,
+            "time_s": 0.65,
+            "impulse_x": -681070.5625,
+            "impulse_y": -0.0,
+            "impulse_z": -0.0,
+            "point_x": 950.563728141,
+            "point_y": -24.016685352,
+            "point_z": 268.724884344,
+            "normal_x": -1.0,
+            "normal_y": -0.0,
+            "normal_z": -0.0,
+            "natural_dv": 851.338268077,
+            "relative_after": 0.568783045,
+            "tier": 3.0,
+            "candidate_supplement": 48.661743164,
+            "rule_enabled": 1.0
+          }
+        ]
+      }
+    ]
+  },
+  "key_findings": [
+    "Actual default vehicle/floor material restitution0.3; mass approximately800kg, linear/angular damping0.15/0.8.",
+    "Saved collision convex is456x288x269cm, scale1, forty vertices. Wall total height100cm with about50cm above floor.",
+    "Flat500cm drop: saved material rebound clearance28.213cm vs0 for zero/Min control; stable1.817s vs1.200s from release.",
+    "Heavy tumble: zero material nearly eliminates airborne clearance but still takes9.633s to low-speed settle and ends with car Up dot world Up near0; extended motion includes supported rocking, not only elastic flight.",
+    "Heavy tumble with zero/Min plus modeled contact-rule response gains6.503cm clearance and129.517cm/s summed additional velocity; does not imply this is the main cause in the untouched default-material game.",
+    "Saved presentation wheels RadiusCm10 and RelativeTransform identity; original imported radius about47.5 at scale1 needs separate configuration review."
+  ],
+  "limitations": [
+    "No manual viewport or current user-session log reproduction; no new host/client or impairment test.",
+    "Controlled contact scenarios do not include full gameplay movement, GAS resistance/drop or network history; rule qualification is an isolated model.",
+    "Tall-wall and zero-material variants are controls only; authored assets and actual wall/collision dimensions remain unchanged.",
+    "No physical fix, pose gate, self-righting implementation or shared rules DA has been added.",
+    "Baseline/verification JSON preserve durable values; bulk CSV traces and complete logs remain under ignored Saved with checksums recorded."
+  ],
+  "artifacts": {
+    "Saved/VehicleStability/20261021/Editor_Initial.log": {
+      "sha256": "ad6b4ebba2f2730dbe55f590493284f3d19e1f20c989bd71285bf2ea3c66e983",
+      "bytes": 46758
+    },
+    "Saved/VehicleStability/20261021/Inspection_Initial.log": {
+      "sha256": "05b1de89526390e2f8c09ac58d8943ba461aa15fba550ea150e2d8378055426d",
+      "bytes": 227702
+    },
+    "Saved/VehicleStability/20261021/Inspection_ConvexAccessFixed.log": {
+      "sha256": "9d7994b90ab55157c3873e16b4154de181a0d8056462d2ccd2cdf40911e5d4fc",
+      "bytes": 226115
+    },
+    "Saved/VehicleStability/20261021/Editor_DiagnosticInitial.log": {
+      "sha256": "d20d16b5f1c705fbe1bbf3388a52aed193006a5256299365e471a9181c22e087",
+      "bytes": 22919
+    },
+    "Saved/VehicleStability/20261021/Editor_DiagnosticFixed.log": {
+      "sha256": "363351ad073588428ae26c4e08a98fabb22d1ef255f48559017a00b6903b7ef1",
+      "bytes": 16229
+    },
+    "Saved/VehicleStability/20261021/Editor_DiagnosticAccessFixed.log": {
+      "sha256": "477e52f5cbebe7575734da915f2bfd9027d1d5deb715d5927f476862cf0c7301",
+      "bytes": 36227
+    },
+    "Saved/VehicleStability/20261021/Editor_EventHandoffFixed.log": {
+      "sha256": "4501140dac669595dcfddda6ed311f4bd62b3061198bcbfefeda5cd18e729938",
+      "bytes": 13793
+    },
+    "Saved/VehicleStability/20261021/Editor_SolvedPoseFixed.log": {
+      "sha256": "0409a094966fc26cd784ad808b14744267fcf6b9e91486d47518861ec20f69e2",
+      "bytes": 15781
+    },
+    "Saved/VehicleStability/20261021/Editor_NativePoseAccessFixed.log": {
+      "sha256": "a0473db79abd08daccc029d524ce7b006e658979fe9f7c52aba4e518727bd646",
+      "bytes": 13493
+    },
+    "Saved/VehicleStability/20261021/Solver_Initial.log": {
+      "sha256": "e3a3aa7d136a3e7490c0e23e770c76ae83d1ab0f72956c3dbbbb77d00e1a0396",
+      "bytes": 267047
+    },
+    "Saved/VehicleStability/20261021/Solver_EventAndPoseFixed.log": {
+      "sha256": "902f474f829adf47246c28ad61c1feada8dcfb7f3e01ca328fa0f28a75183399",
+      "bytes": 263853
+    },
+    "Saved/VehicleStability/20261021/Automation_FixtureFixed.log": {
+      "sha256": "972ebc45bb92d61e536fab19effa70f6797ab799882fecfcb57b56d4d486659e",
+      "bytes": 325444
+    },
+    "Saved/VehicleStability/20261021/Game_Final.log": {
+      "sha256": "0a6f0a2db691aab1fd3f08e445b7fd4c4cf9bb864d76670cbd38ab2ff4f85fc0",
+      "bytes": 43368
+    },
+    "Saved/VehicleStability/20261021/Solver_EventAndPoseFixed_contacts.csv": {
+      "sha256": "ce718c0d2b9c2bb665a43a6c0b2dfd96a3e0ae97cc61e931f1fbd9bb83a934c6",
+      "bytes": 547519
+    },
+    "Saved/VehicleStability/20261021/Solver_EventAndPoseFixed_native.csv": {
+      "sha256": "d401c7b481c1d8ec905102e274141efee799e400e1eb8b3443ad021b385aa962",
+      "bytes": 9017
+    },
+    "Saved/VehicleStability/20261021/Solver_EventAndPoseFixed_summary.csv": {
+      "sha256": "3de5f373338b3c382597d79f3a77fc528310a923afc5be0940ce466e314d60fe",
+      "bytes": 2456
+    },
+    "Saved/VehicleStability/20261021/Solver_EventAndPoseFixed_trace.csv": {
+      "sha256": "76b5f5bb836b47d07ea0d2681eccdf4606b0ac5f4dbe1b0a1710d8a8f1ca3fb0",
+      "bytes": 2981764
+    },
+    "Saved/VehicleStability/20261021/Solver_Initial_contacts.csv": {
+      "sha256": "26eb366b45386bc3773525cd4ae629b695e5b2366f5f68976f0d42b2073ff3e3",
+      "bytes": 164
+    },
+    "Saved/VehicleStability/20261021/Solver_Initial_native.csv": {
+      "sha256": "d401c7b481c1d8ec905102e274141efee799e400e1eb8b3443ad021b385aa962",
+      "bytes": 9017
+    },
+    "Saved/VehicleStability/20261021/Solver_Initial_summary.csv": {
+      "sha256": "221d137d7be7634dcb159b38b1d80f3ae65738f326cd8a47c04da4223b149c7d",
+      "bytes": 2422
+    },
+    "Saved/VehicleStability/20261021/Solver_Initial_trace.csv": {
+      "sha256": "ebf8648283ccc8cf03392a7d3abb536d0f621e290c50f7bd5626cb5c6adad01f",
+      "bytes": 2980847
+    }
+  },
+  "source_configuration_sha256": {
+    "Config/DefaultEditor.ini": "25920e87560682479062a06afef5e0046d23789e72200634d852becbe1db407b",
+    "Config/DefaultEngine.ini": "c671501d82ab3bd959f92aed3b5a849b4a313efdd969212b680a0333d241f4e7",
+    "Config/DefaultGame.ini": "60be1a069ce6331d5491c70a044491beab0a68b4f5e96e49a1459cd968483c4b",
+    "Config/DefaultInput.ini": "fc9bf4eb5d2727bb6f80f24ffcb846698ddc717dae0dc9455524ebf472eeced0",
+    "HAL_Future_Creation.uproject": "07100b2e1554ef47889893c47407522d4d22ca27b60ee37db7c5f8c970ffcce5",
+    "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp": "fad10cb0b18f762a6e5843d624d804899fbce10675f98a88552e2025aa97707a",
+    "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h": "f295368b197fd679b926e0447d76e76e2ccf25d04097992c62ca43623eaaa679",
+    "Source/HAL_Future_Creation/ArcadeVehicleMovementEffects.cpp": "6ca3dc6cc2539680211cd83441fa77fe7a9176d499bced475dfdb9d7b3625665",
+    "Source/HAL_Future_Creation/BallControlComponent.cpp": "ce48c95c0e943aa6da1f971004978155452009c8a12e9bec53f5b4bfde22fc26",
+    "Source/HAL_Future_Creation/BallControlComponent.h": "2982110cde3bc0434b5e43ec68a48f2899c3284644253fb0913170832b20fef3",
+    "Source/HAL_Future_Creation/BasicBallActor.cpp": "41877037be7bdb5e1802029b8c8dfd27240689ceaf9cdf4ae8943687bf854d27",
+    "Source/HAL_Future_Creation/BasicBallActor.h": "de8f89ac018a67204daa6c36ceba57e4ce68e0bd3e0d9454010617837d02f492",
+    "Source/HAL_Future_Creation/CombatResolver.cpp": "53964a56105523d4be7b41bf25f587201270954f008ada99686850f76abaac31",
+    "Source/HAL_Future_Creation/CombatResolver.h": "bb71327614a5e75902a76a6abcdd56b6a6148a50e61f90b31d2f6d1470908784",
+    "Source/HAL_Future_Creation/HAL_Future_Creation.Build.cs": "1c2f0406bd9dc89437e6912d43e8f0f79e43f877de9540a5c46e5e8d51fce95a",
+    "Source/HAL_Future_Creation/HAL_Future_Creation.cpp": "c30949e314ea2a4beb3c509be675c71ab5d1dc9ba965e701adc21935f72d7b05",
+    "Source/HAL_Future_Creation/HAL_Future_Creation.h": "4694b655856b269fc41b195971214f8e629857c7e5d6f34002a066cd4af3037c",
+    "Source/HAL_Future_Creation/HALAbilitySystemComponent.cpp": "4d573e57189488f7cf5c27a17c2451a34a07a7f35ecae76bf2d010db46c8cb32",
+    "Source/HAL_Future_Creation/HALAbilitySystemComponent.h": "bc5857e6b9dee38a12a28b577c59417c073f30603e56a70bff0df024dd2b43b7",
+    "Source/HAL_Future_Creation/HALAbilityTypes.cpp": "212d14f601ff94afb78460fbe2fd5b0e1855ab96e76338be09e681ea22e9474d",
+    "Source/HAL_Future_Creation/HALAbilityTypes.h": "56c7eb8986ac716bc184679dc044facd59c538b5c45c73a1e791a2016630b7df",
+    "Source/HAL_Future_Creation/HALApplyDamageEffect.cpp": "6c00f13679d808c3d9fcaa565130e070c837a943a3b1971f61e54efa3f0bcc55",
+    "Source/HAL_Future_Creation/HALApplyDamageEffect.h": "46c233cdb5ad7dd4323653b6ec3c529e45bfd220f64d8379a23f409388baab67",
+    "Source/HAL_Future_Creation/HALCombatAttributeSet.cpp": "430da75bb72cd78f27d3810e6632b08953a23c3a7adaa8c5926beb9142ce3168",
+    "Source/HAL_Future_Creation/HALCombatAttributeSet.h": "b9575c4e38a410558dfd24937314b9721265293c4ab78653674111e61f8fcd36",
+    "Source/HAL_Future_Creation/HALCombatEffectContext.cpp": "56cc94b0254213c5a71e29a02b2d1b876e915a42405311e5adb624a6255927cc",
+    "Source/HAL_Future_Creation/HALCombatEffectContext.h": "ecc6b08af7e357bb6eca88bb5b9a6173d9980f876429c00969381673e91b6872",
+    "Source/HAL_Future_Creation/HALCombatTypes.cpp": "fe715e3c2d70bdb7bfb637edc13f6c8899c545fb271e0cb845f410def315d3ea",
+    "Source/HAL_Future_Creation/HALCombatTypes.h": "261c29afa604ed9da418e89f33964769bda7f815daceef5b717b28c977946d0d",
+    "Source/HAL_Future_Creation/HALDebugHUDWidget.cpp": "94dc6d78858903f5b638a3b3938ed714ee20014acf1dca3e257e0e29f957a51c",
+    "Source/HAL_Future_Creation/HALDebugHUDWidget.h": "c00f7039419f37ae8a70ed415ed34e1c83a68d4d6f3506ca44163fe98a403946",
+    "Source/HAL_Future_Creation/HALDebugSettings.cpp": "901336dd26b1058094dd252375a004f7a6eb7d6c9b4a2b93ea67d75e025c28cc",
+    "Source/HAL_Future_Creation/HALDebugSettings.h": "0a7cfb4b45bf02431695ad1d218b82706cbd0838441bca54f25600998e13ccc8",
+    "Source/HAL_Future_Creation/HALGameplayTags.cpp": "086c038cbc7573b5b113b75137365a2860fff98acaa13cedc625dd206ac91a62",
+    "Source/HAL_Future_Creation/HALGameplayTags.h": "0dc3858638d6e4ba59c139969ea2d3c711cbf31ea42694dca7cab83a799783a5",
+    "Source/HAL_Future_Creation/HALHealthAttributeSet.cpp": "81c2ac742741de19877ac36237d72cb1125aa093848a6ac6b2ea5b091434df0a",
+    "Source/HAL_Future_Creation/HALHealthAttributeSet.h": "436ae984fef6b1dd6e53fd17823c998525ac19d7ae427d1831f94960d9b58f19",
+    "Source/HAL_Future_Creation/HALImpactAttributeSet.cpp": "379f5a208e5700ac0a840c6efe71dd6f42064f96372f1dd2ad2abe78c944283c",
+    "Source/HAL_Future_Creation/HALImpactAttributeSet.h": "51e3cf5b1b92a54a9779c0a81ae5e5338f36ef1ff12b6a074fe93aff267f306e",
+    "Source/HAL_Future_Creation/HALImpactImmunityAbility.cpp": "21dcb0892afeeedd6833b8116b31016a7d87c3a972a5dd330f127ac696ea9b16",
+    "Source/HAL_Future_Creation/HALImpactImmunityAbility.h": "acfaac4f35bd1873756d998b49e236c3d3040a5e7495d07c052762ec461e1dc1",
+    "Source/HAL_Future_Creation/HALImpactImmunityEffects.cpp": "657e9467648ecb2b2f806779b0741f6e964494f0257bb409f4cc660941c549f9",
+    "Source/HAL_Future_Creation/HALImpactImmunityEffects.h": "59ef6332d6da28dbef86202d672a844f0cdae22233394dc30460c3ffb08cb744",
+    "Source/HAL_Future_Creation/HALImpactReceiverComponent.cpp": "1f093b40d4b2cd566636c7caa5f8fe8086f7db7f614b8e25591662f466164fa1",
+    "Source/HAL_Future_Creation/HALImpactReceiverComponent.h": "bb721cd3262043219da2a729c5a564816787ec2e2b7fb23d16f6cdf8892e32aa",
+    "Source/HAL_Future_Creation/HALImpactSourceComponent.h": "de9bedfc70d88e1e6de09cf49f017d77bf5c2d6c8107a6093ba5a244ca74e2c3",
+    "Source/HAL_Future_Creation/HALImpactTypes.cpp": "5ae78fa8fa8d3d0b4568f844e0c2e3b95a2e56fa8666012b10ac461adc75552e",
+    "Source/HAL_Future_Creation/HALImpactTypes.h": "2920ab634d12e432dfab3690b3cc02a9592073588ce44e240db44cdeca3acd0e",
+    "Source/HAL_Future_Creation/HALMatchGameMode.cpp": "d98309c0180536e58885c33ac4a8615c459904889c851fe6ae80e373ee733f2f",
+    "Source/HAL_Future_Creation/HALMatchGameMode.h": "1b4f392c654e5837e204dbc267d5258a87db54baeb147e56470a4bbe914e9e70",
+    "Source/HAL_Future_Creation/HALMatchGameState.cpp": "be04601db72c12980b9e7a430d2af86246c9a977a30a251b4b13d482ec90aa69",
+    "Source/HAL_Future_Creation/HALMatchGameState.h": "9a65227351c232e676c18f79388cddaaff665531d88477f7a3e728036572340d",
+    "Source/HAL_Future_Creation/HALMatchLobbyWidget.cpp": "a537b2e3b537d0d815b99b744236d5734d1ef28f1dbbe0a7588dd8b7c7c550f0",
+    "Source/HAL_Future_Creation/HALMatchLobbyWidget.h": "b8b4f80dc160d8f0bb848c9ea91ee0f5e8777d68c6eed0faeb9874afed371359",
+    "Source/HAL_Future_Creation/HALMovementAttributeSet.cpp": "73942382469df6c36dc53ffbfbef99269b5d46390fa18a676c8b0383c80bbd54",
+    "Source/HAL_Future_Creation/HALMovementAttributeSet.h": "79937aeb78940f85e277ecb92d3cc68f09f10a23ef179c9f15c90d7b1cca304a",
+    "Source/HAL_Future_Creation/HALMovementBoostAbility.cpp": "dfc0f54f13ce4c111860fe9c0de35d100339cf644851733b85583816aa9fb37a",
+    "Source/HAL_Future_Creation/HALMovementBoostAbility.h": "d5b570c1731d22f0ced156317ee0a9634de450aa72dabb2288df4c70824c59fa",
+    "Source/HAL_Future_Creation/HALMovementBoostEffect.cpp": "48a4c83d63a78a9ed50253220ceb81efc5e9314d6d2d0d4a90f12725429a9368",
+    "Source/HAL_Future_Creation/HALMovementBoostEffect.h": "69fbd41ef2a2b68214681eb1f46a1e980ae81fc40edfaa152ee37ec6e7a2e435",
+    "Source/HAL_Future_Creation/HALMovementEffectBridge.cpp": "16ed7ba300f55833c864c8b884da743f4b7db3321b78320d64eec8bfe2d6146a",
+    "Source/HAL_Future_Creation/HALMovementEffectBridge.h": "b82e3c224950e8861335df7351764aae77c668f2101bdfc0260c72ed1c78a266",
+    "Source/HAL_Future_Creation/HALMovementTypes.cpp": "3c18bcf743b0b04991f9f862f40653f3b77cd9ced45245777d17832d75b9e57c",
+    "Source/HAL_Future_Creation/HALMovementTypes.h": "038885c2b18b6f4ad4ccb9f6c250ac10c77e9a5313045bb31c30fe6a34ceb554",
+    "Source/HAL_Future_Creation/HALNetworkGameInstance.cpp": "9fab065f866a9e115d9d97b536d111b52047f0f092ebcea63cbc2110fdc0b5ac",
+    "Source/HAL_Future_Creation/HALNetworkGameInstance.h": "47ecc6439a49825532a3c9aad6eb4a610a812d865306eca76aec44f0789a53ed",
+    "Source/HAL_Future_Creation/HALNetworkMenuGameMode.cpp": "21f51175057a1dfc32e205a8ec9b5df724f8ed1143810a30df80bab0be7a2c99",
+    "Source/HAL_Future_Creation/HALNetworkMenuGameMode.h": "4c3574ea5232c3ee2e3563cac25e2d1e3b595ea4e8510bcc816693cb1b6813fc",
+    "Source/HAL_Future_Creation/HALNetworkMenuWidget.cpp": "d6c15c77e6633cf9713ec01349224b2d98243e27915ebdc4ab604aefe76ec6e0",
+    "Source/HAL_Future_Creation/HALNetworkMenuWidget.h": "594e8956a02a90a8c1aad4bb394cb64f972f0fb8c22ae8058eff5733dd01442c",
+    "Source/HAL_Future_Creation/HALPlayerController.cpp": "2f8b7c4708cce8ac396c938c01900bf3ba3d6bf5fdfea4546571e8b0dec8b236",
+    "Source/HAL_Future_Creation/HALPlayerController.h": "6e8b9ea005f8425fbfd28ab4d569004d99c64b0775fc86c27bbc28e541538200",
+    "Source/HAL_Future_Creation/HALPlayerControllerMovementDebug.cpp": "f0e79acd03271306d0842953fc9e6e87332fb4a14be0428f0b7cad3f6eed0b06",
+    "Source/HAL_Future_Creation/HALPlayerStart.h": "7b1010b0421966236a65073b1eb28d16e821acfa505c0a8544731c0a0ea9cf76",
+    "Source/HAL_Future_Creation/HALPlayerState.cpp": "7583d3264cc1d20815103cdeca31dbf6c704d876eaea8ec45dc88498868b9d37",
+    "Source/HAL_Future_Creation/HALPlayerState.h": "e1640e38e9eb5a0ba7d84359b38b15e6bc914f84db0d8f6d853e91348bc96cc1",
+    "Source/HAL_Future_Creation/HALVehicleAnimInstance.cpp": "60405ab8a329044aa54e8d1e331874610ee0ac3bcfc9b516fb2cc0b6bae41a3f",
+    "Source/HAL_Future_Creation/HALVehicleAnimInstance.h": "bab43e3bd37302631778d56bcdfcd5ce9eaa2373b598e08730f453f22f9277f5",
+    "Source/HAL_Future_Creation/HALVehiclePresentationComponent.cpp": "d1ac219bbe657256c0d91b8800ca1034b75d63644d84073cb2edd7bab8cb49d2",
+    "Source/HAL_Future_Creation/HALVehiclePresentationComponent.h": "e264c8e49e7ade3eb20105cf23998a5d3bab677b484da864b12ea56c170eb621",
+    "Source/HAL_Future_Creation/HALVehiclePresentationConfig.cpp": "77f91b4f0b76b8593e3db01c1c5270aba8a6de8026a0ff7195552b7096d4eed0",
+    "Source/HAL_Future_Creation/HALVehiclePresentationConfig.h": "854e716b0d69923e9b2486183772af7856c5203ef6e07da817952dee8b73530e",
+    "Source/HAL_Future_Creation/HALVehiclePresentationTypes.cpp": "62244d52e43f3fff1e08286e3b6ae55baf0e1c035a8294321eb675d4071af339",
+    "Source/HAL_Future_Creation/HALVehiclePresentationTypes.h": "0a91d70c485bed3e00d76a7d4d4c77f03a3fb0da1e0ead32095d58190cc70e4c",
+    "Source/HAL_Future_Creation/PassiveTestVehicle.cpp": "60f1578fcf8b481277279b0129ce3fed52c21d74404b9f3bb3dd27f4f8595b9b",
+    "Source/HAL_Future_Creation/PassiveTestVehicle.h": "4cede749607e5e48b01946a01ae54f6ff3cd663543951d088697969eea3bc4fd",
+    "Source/HAL_Future_Creation/SpringPunchGimmick.cpp": "93e3cff091fea241888bc55150f5c75e4e25f6b9321130cf1fbaf8da1d63deaa",
+    "Source/HAL_Future_Creation/SpringPunchGimmick.h": "8171a31cceb7a13c47432ed0421cec93111d60815531d7e219b525ffd89be60a",
+    "Source/HAL_Future_Creation/Tests/HALAbilityNetworkSmokeTests.cpp": "9e16a9f4491fda3d657f0cccf023da2eb6f5bb3167a2b3e41cc5fe4d80d88f9a",
+    "Source/HAL_Future_Creation/Tests/HALAbilityTests.cpp": "cb1098c259ee348f463379903237170c07b6f4a5ab5b34ddcda8e69eb6b5b280",
+    "Source/HAL_Future_Creation/Tests/HALCombatTests.cpp": "fa9942c9d02bf56269b2709b48cb81a66b970a9e98a18651078f18745c1f4247",
+    "Source/HAL_Future_Creation/Tests/HALDebugBallTests.cpp": "909793666d771b0050e52f8fe0afe3818d6bfdd0dd1a189be0ce1567ba93439c",
+    "Source/HAL_Future_Creation/Tests/HALHealthGASTests.cpp": "1f22862e53b9d7d47bdc84f89967ff816c61ef3ac80bef159c7bef2776c65fcc",
+    "Source/HAL_Future_Creation/Tests/HALImpactPhysicsThreadTests.cpp": "75b59ca50ac67f6f81891e4949ebc0fdcfb84503c8567ddca39b2a4d5bca37fe",
+    "Source/HAL_Future_Creation/Tests/HALImpactTests.cpp": "28556dc5c99a273c7b2e1030df80b125398262c2e2b851be6e49ef93f53afeab",
+    "Source/HAL_Future_Creation/Tests/HALLegacyCombatTestRules.h": "beddfca91c8aa08449dd09342d13fbf7f9b3a8111a23b7702b389b373c731c30",
+    "Source/HAL_Future_Creation/Tests/HALMovementAbilityNetworkTests.cpp": "9a2d7237252d8dce161aa1bced0885f69842e83d0a15e59dcb89ffbaa13ed4e5",
+    "Source/HAL_Future_Creation/Tests/HALMovementAbilityTests.cpp": "ddca05d24c78c7089c0c31bf8acd3f3655e1b807f1fd08c8d6ec002e282fd70a",
+    "Source/HAL_Future_Creation/Tests/HALMovementAbilityTestSupport.h": "66322766b753292b9dfdb3016e40dc44d45a4e518929f62300d11bfe99cf1794",
+    "Source/HAL_Future_Creation/Tests/HALMovementBoostNetworkTests.cpp": "650176ed86f5ea9e2df1418c3c500471c1b262a0707e6978821725387bcd6299",
+    "Source/HAL_Future_Creation/Tests/HALMovementBoostTests.cpp": "17508c559a41de88dc4552df3de55b1dbb62a57b625d6a3f5d4d1160c947cd87",
+    "Source/HAL_Future_Creation/Tests/HALMovementHistoryContractTests.cpp": "65162f4fbb79f34bb02ae4ea4da022f46a968406656080ae8bf0ffa5d7d6991e",
+    "Source/HAL_Future_Creation/Tests/HALMovementNetworkTests.cpp": "d9e6c657c0e82f53872b56b39e1026a4758ac5865f74c39c4fde095be5d769bb",
+    "Source/HAL_Future_Creation/Tests/HALMovementSolverTests.cpp": "0cb49127479bf208995bc83c89f743eb0725b34c9cd068313b3fe7a42d3db85a",
+    "Source/HAL_Future_Creation/Tests/HALMovementTestEffect.cpp": "0def5acfbf70b11f34d0a55edd1423290d692ff0d0dfe18260655edc7dd4239c",
+    "Source/HAL_Future_Creation/Tests/HALMovementTestEffect.h": "7c49dcb8179888a6117860a9af5e1ebbc58315fdf097a93c02643271a96845a0",
+    "Source/HAL_Future_Creation/Tests/HALMovementTests.cpp": "a95a2c740dffa29da3fb42693720517d1a1011b832691dfc648107966c147646",
+    "Source/HAL_Future_Creation/Tests/HALSpringPunchNetworkTests.cpp": "ae576d83002dc2de7a3d5ffb1d9a36302d52a387d5d07f902c88fb399a987e1f",
+    "Source/HAL_Future_Creation/Tests/HALVehiclePresentationNetworkTests.cpp": "f352c7ad16fd8c0475735192588ca0752cf951a36dd997c6af7cca911c56d8d7",
+    "Source/HAL_Future_Creation/Tests/HALVehiclePresentationTests.cpp": "b91a4259e9957a8a379dccb81d669cc13ef3ae92609502f08821f1ace041a80f",
+    "Source/HAL_Future_Creation/Tests/HALVehiclePresentationTestSupport.h": "e0b6d05a60a2376f866925544a3f7fab1bcf02ea77b0d097afa095deaa38667d",
+    "Source/HAL_Future_Creation/Tests/HALVehicleStabilityDiagnostics.cpp": "ac8abe58a21ea5675a1095ff108273c784d060b9caa6384eb2b3e5a75066c7e6",
+    "Source/HAL_Future_Creation/Tests/VehicleConfigurationTests.cpp": "ac0faf298c48f7f2b768eedb0b97eff3951976cf8fcc7deb8bde414a8d547fc6",
+    "Source/HAL_Future_Creation/Tests/VehicleNetPhysicsDataTests.cpp": "5dd03bb10fb60460f3c66a3d54c3f9968d14bf28aa33db8900611b588e4868e0",
+    "Source/HAL_Future_Creation/Tests/VehicleWallEscapeTests.cpp": "9942e66b7473c144558303ac3b87e565c0055e89658d1d75850988cb1323e899",
+    "Source/HAL_Future_Creation/TestVehiclePawn.cpp": "c216eed2bb6f986359350a19b2ab9dd90cfd2a4b495f68a15482f8272c3f8ae4",
+    "Source/HAL_Future_Creation/TestVehiclePawn.h": "fb4b1860215fe5234cc2f5241e1ded5bab5f6212a67e783d97357cb668827c53",
+    "Source/HAL_Future_Creation/VehicleConfigurationApplication.cpp": "cb16659191ed3fe5dc65185c95f850bfe3d4586fca6415743b5c9175a6d68bdb",
+    "Source/HAL_Future_Creation/VehicleConfigurationApplication.h": "00f2863f596cac1af284a8e056fc79f6df80aba7a0f48645bc5c6a4ed0d0a9da",
+    "Source/HAL_Future_Creation/VehicleConfigurationTypes.cpp": "d61e6e6449824628f19c346d395fe94e68f43d7f17598af3f0e94fd56bc612b6",
+    "Source/HAL_Future_Creation/VehicleConfigurationTypes.h": "acdf8e4c40690dc04041b83690588b3fb84c5cae1ddac51e1c756de9f2372ac6",
+    "Source/HAL_Future_Creation/VehicleDefinition.cpp": "7284eba9dbdc09de9df8e9a795d61985e5ece2d23b55d219d700eee54726feb1",
+    "Source/HAL_Future_Creation/VehicleDefinition.h": "8657099e18dc7074c35a9dacb90bd6faa2848803c0ef6feae7bfc039c0f0eb32",
+    "Source/HAL_Future_Creation/VehicleHealthComponent.cpp": "097e3c2e78794838d475b258d6b8e281c46975c50ea28c3dea60d87f03cf381d",
+    "Source/HAL_Future_Creation/VehicleHealthComponent.h": "9c34ceeb540246f4afb3f98cb78857aaaa3e8e71daafba80dceab856ac120e5d",
+    "Source/HAL_Future_Creation/VehicleHitContext.h": "b7d35225dd0fe0e03b2deb9931e52facfe1f45dabe3cc23c9f1f4932a0e389a3",
+    "Source/HAL_Future_Creation/VehicleInputCmd.h": "3135dfada496a4ac21313034bd94104f11fe1538b5f3f49afb4a5585431b4b0b",
+    "Source/HAL_Future_Creation/VehicleKnockbackSettings.cpp": "884a4bb7a023fe764c52c3501acf672f811a89534cc14eac1a57c01f7f03572d",
+    "Source/HAL_Future_Creation/VehicleKnockbackSettings.h": "dd1ea32fa3042a2e02e278f14a23d87af17223a70415385b67f7a75af025b5a2",
+    "Source/HAL_Future_Creation/VehicleKnockbackTypes.h": "a1a349b3976deb697626156761bbe66c53f85c948c50171554e39f851115e82d",
+    "Source/HAL_Future_Creation/VehicleNetPhysicsData.cpp": "279bc9d2e33dd7f064c49a9b3dec491e8b61a8ecca6ba06b83208bc04e0a2489",
+    "Source/HAL_Future_Creation/VehicleNetPhysicsData.h": "c9b5ab56ec2371ef374c962a2988c61ba255a1f936971e10f92fc733faa3dd22",
+    "Source/HAL_Future_Creation/VehicleWallEscapeMath.h": "2489fd0e943881818d248fb31b84a4bb4e9424be97b11160c5fdf79dc80c3ac7",
+    "Source/HAL_Future_Creation.Target.cs": "58c105452a13e33ebc86b2a4d7094a237b32b488147df027fc3921e3b029a067",
+    "Source/HAL_Future_CreationEditor/HAL_Future_CreationEditor.Build.cs": "f8fb54cd296b81c3aed9946d30a1faf2d405eb511f7b2901ecc59d8fabf00bd1",
+    "Source/HAL_Future_CreationEditor/Private/HALFutureCreationEditorModule.cpp": "5c550e2b612729d1b96a117cf5c56c60e6518295ea9d1fe5f3cdd04c6d64a322",
+    "Source/HAL_Future_CreationEditor/Private/HALVehicleCollisionGenerator.cpp": "c68bf7871696fe4e657c65f0600a02fb8c132193a0da496dd45dca943da58118",
+    "Source/HAL_Future_CreationEditor/Private/HALVehicleCollisionGenerator.h": "4c550be0e47c1ac24415257361c135122926db247b591573764df73d5514c78a",
+    "Source/HAL_Future_CreationEditor/Private/SHALVehicleCollisionGenerator.cpp": "c822cff8b032759b91a80c3f18ea2a8943ffe1aa71401f6ca75b25bd735e7b59",
+    "Source/HAL_Future_CreationEditor/Private/SHALVehicleCollisionGenerator.h": "ff95a5d61620b9501246a7ebb7547a9a43d3c5a530c172d3c7ba223882a41c92",
+    "Source/HAL_Future_CreationEditor/Private/Tests/HALCollisionGeneratorUITests.cpp": "855a31fb69039f0d9edb531c909e8d649629163e1244d0065ad4e329ac70d7c7",
+    "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleCollisionGeneratorTests.cpp": "3879f62dbefa2c8babfde528ddf349458a570c90c4811323ac14c36b7a00e0d7",
+    "Source/HAL_Future_CreationEditor/Public/HALVehicleCollisionGeneratorSettings.h": "cab9d93d4db4ee8eb9f061c57ffdbde3e03237a5fabc323d7c318c59fa721dca",
+    "Source/HAL_Future_CreationEditor.Target.cs": "a86dc25614f57b2dd2702c180993a048b10bb49a27fccc58ea60500dbee0e91a",
+    "Tools/InspectVehicleStabilityBaseline.py": "d5f7a6a5182cfc70558f1cfd4776a6eb71c1dabb077cb6d095dcefece133dab8"
+  },
+  "process_cleanup": {
+    "all_exec_sessions_completed": true,
+    "editor_cmd_or_livecoding_processes_remaining": 0,
+    "method": "Get-Process by process name; all owned exec sessions returned completion"
+  }
+}

@@ -4,11 +4,21 @@
 #include "../HALVehiclePresentationComponent.h"
 #include "../HALVehiclePresentationConfig.h"
 #include "../TestVehiclePawn.h"
+#include "../VehicleDefinition.h"
 #include "Components/StaticMeshComponent.h"
 
 /** Headless data-path probe only: no imported rig or Blueprint/CDO/asset mutation. */
 struct FHALPresentationTestAccess
 {
+	/** Isolate the fallback fixture from whichever rig the team has saved on its player. */
+	static bool SelectNoRigFixture(ATestVehiclePawn* Pawn)
+	{
+		if (!Pawn || !Pawn->Definition) { return false; }
+		auto* Fixture = DuplicateObject<UVehicleDefinition>(Pawn->Definition, Pawn);
+		Fixture->Presentation = nullptr;
+		Pawn->Definition = Fixture;
+		return true;
+	}
 	static UHALVehiclePresentationComponent* EnableProbe(ATestVehiclePawn* Pawn)
 	{
 		auto* Result = Pawn->VehiclePresentation.Get();
