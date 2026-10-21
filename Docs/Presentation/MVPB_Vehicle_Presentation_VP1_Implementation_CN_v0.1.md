@@ -130,3 +130,5 @@ ObserverSteering 使用默认子对象组件复制，SkipOwner；服务器最多
 该插入小步的反弹诊断现已完成，见[诊断结果](../Movement/MVPB_Vehicle_Stability_Diagnostic_CN_v0.1.md)：16组真实Solver对照、当前Editor／Game成功及普通50/50，361资产未改；物理修正和自救仍未实现。新基线发现保存半径10cm及模型／物理支撑参考高度需复核，保留配置推导与未做本轮画面验证的边界。
 
 本次仅更新文档，未修改源码／Unreal资产、运行Editor、构建或测试，未提交／Push。
+
+后续接续更新（2026-10-21）：支撑分类修正与姿态门控／自救已完成，用户确认自救真人功能可用、表现以后优化。VP-2车身驾驶表现也已完成代码／构建／原生验证，待团队手工Chassis接线和画面验收，见[VP-2实施／配置](MVPB_Vehicle_Presentation_VP2_Implementation_CN_v0.1.md)。上文诊断时点“未实现”和旧轮半径排查不再作为当前阻塞，车轮修复正常反馈保持。

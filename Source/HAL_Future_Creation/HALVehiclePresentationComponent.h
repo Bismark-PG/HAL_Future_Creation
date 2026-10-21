@@ -10,7 +10,7 @@ class UPrimitiveComponent;
 class UStaticMeshComponent;
 class USkeletalMeshComponent;
 
-/** Visual-only, game-thread wheel animation and a one-byte observer steering state. */
+/** Visual-only wheel/chassis animation. Observers receive steering and a driving-lean permission bit. */
 UCLASS(ClassGroup = (Vehicle))
 class HAL_FUTURE_CREATION_API UHALVehiclePresentationComponent : public UActorComponent
 {
@@ -33,14 +33,18 @@ private:
 #endif
 	void StopPresentation();
 	void ResetPose();
-	float ReadSteering(float DeltaTime);
+	float ReadSteering(float DeltaTime, bool bDrivingLeanAllowed);
+	bool ReadDrivingLeanAllowed() const;
 	UPROPERTY(Transient) TObjectPtr<UHALVehiclePresentationConfig> Config;
 	UPROPERTY(Transient) TObjectPtr<UPrimitiveComponent> Body;
 	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> Fallback;
 	UPROPERTY(Transient) TObjectPtr<USkeletalMeshComponent> Mesh;
 	/** Server accepted input, quantized to [-127,127]. Owners use their own local input. */
 	UPROPERTY(Replicated) int8 ObserverSteering = 0;
+	/** Cosmetic only. Remote clients do not run the movement component's support probe. */
+	UPROPERTY(Replicated) bool bObserverDrivingLeanAllowed = false;
 	FHALVehiclePresentationFrame Frame;
+	FHALChassisPresentationState ChassisState;
 	FVector ReferenceWheelCenters[4] {};
 	float SpinDegrees[4] {};
 	FVector PreviousPosition = FVector::ZeroVector;

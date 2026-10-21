@@ -2,6 +2,7 @@
 #include "HALVehiclePresentationConfig.h"
 #include "HALVehicleAnimInstance.h"
 #include "ArcadeVehicleMovementComponent.h"
+#include "VehicleRecoveryComponent.h"
 #include "TestVehiclePawn.h"
 #include "AnimationRuntime.h"
 #include "Components/PrimitiveComponent.h"
@@ -22,6 +23,7 @@ void UHALVehiclePresentationComponent::GetLifetimeReplicatedProps(TArray<FLifeti
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME_CONDITION(UHALVehiclePresentationComponent, ObserverSteering, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(UHALVehiclePresentationComponent, bObserverDrivingLeanAllowed, COND_SkipOwner);
 }
 
 void UHALVehiclePresentationComponent::Configure(UHALVehiclePresentationConfig* InConfig, UPrimitiveComponent* InBody,
@@ -98,13 +100,28 @@ void UHALVehiclePresentationComponent::StopPresentation()
 void UHALVehiclePresentationComponent::ResetPose()
 {
 	Frame = FHALVehiclePresentationFrame();
+	ChassisState = FHALChassisPresentationState();
 	for (float& Angle : SpinDegrees) { Angle = 0; }
 	bHasSample = false;
 	PreviousController.Reset();
 	PublishElapsed = 0;
 }
 
-float UHALVehiclePresentationComponent::ReadSteering(float DeltaTime)
+bool UHALVehiclePresentationComponent::ReadDrivingLeanAllowed() const
+{
+	const auto* Pawn = Cast<APawn>(GetOwner());
+	if (!Pawn || !Body || Body->GetUpVector().Z <= 0) { return false; }
+	if (const auto* Recovery = Pawn->FindComponentByClass<UVehicleRecoveryComponent>(); Recovery && Recovery->IsExecuting()) { return false; }
+	if (Pawn->HasAuthority() || Pawn->IsLocallyControlled())
+	{
+		const auto* Movement = Pawn->FindComponentByClass<UArcadeVehicleMovementComponent>();
+		const auto Sample = Movement ? Movement->GetStabilityObservation() : FVehicleStabilityObservation();
+		return Sample.bValid && Sample.bNearGround && Sample.bDrivingAllowed && !Sample.Recovery.bActive;
+	}
+	return bObserverDrivingLeanAllowed;
+}
+
+float UHALVehiclePresentationComponent::ReadSteering(float DeltaTime, bool bDrivingLeanAllowed)
 {
 	auto* Pawn = Cast<ATestVehiclePawn>(GetOwner());
 	if (!Pawn) { return 0; }
@@ -125,7 +142,12 @@ float UHALVehiclePresentationComponent::ReadSteering(float DeltaTime)
 		{
 			PublishElapsed = FMath::Fmod(PublishElapsed, 1.f / 15.f);
 			const int8 Quantized = int8(FMath::RoundToInt(FMath::Clamp(Accepted, -1.f, 1.f) * 127.f));
-			if (ObserverSteering != Quantized) { ObserverSteering = Quantized; Pawn->ForceNetUpdate(); }
+			if (ObserverSteering != Quantized || bObserverDrivingLeanAllowed != bDrivingLeanAllowed)
+			{
+				ObserverSteering = Quantized;
+				bObserverDrivingLeanAllowed = bDrivingLeanAllowed;
+				Pawn->ForceNetUpdate();
+			}
 		}
 	}
 	if (Pawn->IsLocallyControlled())
@@ -153,7 +175,8 @@ void UHALVehiclePresentationComponent::TickComponent(float DeltaTime, ELevelTick
 	}
 	PreviousController = Pawn ? Pawn->GetController() : nullptr;
 	PreviousPosition = Position;
-	const float Steering = ReadSteering(DeltaTime);
+	const bool bDrivingLeanAllowed = ReadDrivingLeanAllowed();
+	const float Steering = ReadSteering(DeltaTime, bDrivingLeanAllowed);
 	// These external/game-thread physics APIs synchronize access to the rigid body.
 	const FVector Velocity = Body->GetPhysicsLinearVelocity();
 	const FVector Angular = Body->GetPhysicsAngularVelocityInRadians();
@@ -162,6 +185,16 @@ void UHALVehiclePresentationComponent::TickComponent(float DeltaTime, ELevelTick
 	Frame.SteeringDegrees = HALVehiclePresentation::SmoothSteering(Frame.SteeringDegrees,
 		Steering * Config->MaxSteeringDegrees, Config->SteeringResponseSeconds, DeltaTime);
 	Frame.ForwardSpeedCmPerSecond = FVector::DotProduct(Velocity, Body->GetForwardVector());
+	FHALChassisMotionSample ChassisSample;
+	ChassisSample.Position = Position;
+	ChassisSample.Velocity = Velocity;
+	ChassisSample.Rotation = Body->GetComponentQuat();
+	ChassisSample.bDrivingAllowed = bDrivingLeanAllowed;
+	HALVehiclePresentation::UpdateChassis(Config->Chassis, ChassisSample, DeltaTime, ChassisState);
+	Frame.ChassisRotation = HALVehiclePresentation::ChassisRotation(Config->Chassis, ChassisState);
+	Frame.ChassisPitchDegrees = ChassisState.PitchDegrees;
+	Frame.ChassisRollDegrees = ChassisState.RollDegrees;
+	Frame.bDrivingLeanActive = Config->Chassis.bEnabled && bDrivingLeanAllowed;
 	for (const auto& Wheel : Config->Wheels)
 	{
 		const int32 Slot = uint8(Wheel.Wheel);

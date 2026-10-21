@@ -93,6 +93,7 @@ private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALVehicleStabilityTestAccess;
 	friend struct FHALRecoveryTestAccess;
+	friend struct FHALPresentationTestAccess;
 #endif
 	void ApplyPendingMovementConfiguration();
 	void ApplyMovementAction(const FVehicleMovementParameterAction& Action);

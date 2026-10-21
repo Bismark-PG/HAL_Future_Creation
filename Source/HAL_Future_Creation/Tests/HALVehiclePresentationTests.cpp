@@ -111,6 +111,16 @@ bool FHALPresentationConfigTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Zero direction is not calibration"), Config->ValidateSettings(Error));
 	Config->Wheels[0].SpinSign = 1; Config->Wheels[0].SpinBone = TEXT("MissingWheel");
 	TestFalse(TEXT("Missing control bone rejected"), Config->ValidateRig(Rig, Error));
+	Config = MeasuredConfig(); Config->Chassis.PitchAxis = Config->Chassis.RollAxis;
+	TestFalse(TEXT("Chassis pitch and roll cannot share a calibrated axis"), Config->ValidateSettings(Error));
+	Config = MeasuredConfig(); Config->Chassis.PitchSign = 0;
+	TestFalse(TEXT("Chassis direction must be +/-1"), Config->ValidateSettings(Error));
+	Config = MeasuredConfig(); Config->Chassis.ResponseSeconds = std::numeric_limits<float>::quiet_NaN();
+	TestFalse(TEXT("Chassis response must be finite"), Config->ValidateSettings(Error));
+	Config = MeasuredConfig(); Config->Chassis.FullPitchAcceleration = Config->Chassis.AccelerationDeadZone;
+	TestFalse(TEXT("Chassis dead zone cannot consume its full acceleration range"), Config->ValidateSettings(Error));
+	Config = MeasuredConfig(); Config->Chassis.MaxRollDegrees = 11;
+	TestFalse(TEXT("Chassis visual amplitude is bounded"), Config->ValidateSettings(Error));
 	Config = MeasuredConfig(); Config->bReadyForUse = true;
 	TestFalse(TEXT("Ready cannot substitute for actual mesh and AnimClass"), Config->Validate(Error));
 	Config->Mesh = NewObject<USkeletalMesh>();
@@ -193,6 +203,160 @@ bool FHALPresentationFrameTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Teleport invalidates old sample"), Component->GetPresentationFrame().bValid);
 	F.Pawn->Destroy(); Anim->NativeUpdateAnimation(0.02f);
 	TestFalse(TEXT("Destroyed Pawn cannot leave old animation data"), Anim->Presentation.bValid);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALChassisMathTest, "HAL.FutureCreation.Presentation.ChassisAccelerationAndFrameRates",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALChassisMathTest::RunTest(const FString& Parameters)
+{
+	using namespace HALVehiclePresentation;
+	FHALChassisPresentationConfig Config;
+	Config.bEnabled = true;
+	for (const int32 FPS : {30, 60, 120})
+	{
+		FHALChassisPresentationState State;
+		FHALChassisMotionSample Sample;
+		Sample.bDrivingAllowed = true;
+		UpdateChassis(Config, Sample, 1.f / FPS, State);
+		for (int32 Index = 1; Index <= FPS; ++Index)
+		{
+			const double Time = double(Index) / FPS;
+			Sample.Velocity = FVector(1800, -900, 0) * Time;
+			Sample.Position = FVector(1800, -900, 0) * (.5 * Time * Time);
+			UpdateChassis(Config, Sample, 1.f / FPS, State);
+		}
+		const float Factor = 1.f - FMath::Exp(-1.f / Config.ResponseSeconds);
+		TestEqual(TEXT("Exponential acceleration filtering is stable at each FPS"), State.ForwardAcceleration, 1800 * Factor, .02f);
+		TestTrue(TEXT("Forward acceleration produces rearward lean and lateral sign is preserved"), State.PitchDegrees > 3.9f && State.RollDegrees < -1.8f);
+		TestTrue(TEXT("Mapped default pitch lifts the nose"), ChassisRotation(Config, State).RotateVector(FVector::ForwardVector).Z > 0);
+		for (int32 Index = 1; Index <= FPS; ++Index)
+		{
+			Sample.Velocity -= FVector(1800, 0, 0) / FPS;
+			Sample.Position += Sample.Velocity / FPS;
+			UpdateChassis(Config, Sample, 1.f / FPS, State);
+		}
+		TestTrue(TEXT("Actual deceleration produces forward lean"), State.PitchDegrees < -3.9f);
+		Sample.bDrivingAllowed = false;
+		for (int32 Index = 0; Index < FPS; ++Index)
+		{
+			Sample.Position += Sample.Velocity / FPS;
+			UpdateChassis(Config, Sample, 1.f / FPS, State);
+		}
+		TestTrue(TEXT("Airborne/inverted/recovery gate fades to neutral"), ChassisRotation(Config, State).IsNearlyZero(.02f));
+		// A 60 Hz body sampled at 120 Hz must not lose half its lean to pre-filter saturation.
+		State = {}; Sample = {}; Sample.bDrivingAllowed = true;
+		UpdateChassis(Config, Sample, 1.f / FPS, State);
+		for (int32 Index = 1; Index <= 2 * FPS; ++Index)
+		{
+			const double Time = double(Index) / FPS;
+			const double PhysicsTime = double(FMath::FloorToInt(Time * 60 + .0001)) / 60;
+			Sample.Velocity = FVector(1800 * PhysicsTime, 0, 0);
+			Sample.Position = FVector(900 * Time * Time, 0, 0);
+			UpdateChassis(Config, Sample, 1.f / FPS, State);
+		}
+		TestEqual(TEXT("Fixed-step body sampling retains full lean"), State.PitchDegrees, 4.f, .13f);
+	}
+	FHALChassisPresentationState State;
+	FHALChassisMotionSample Sample;
+	Sample.bDrivingAllowed = true; Sample.Velocity = FVector(1000, 0, 0);
+	UpdateChassis(Config, Sample, .02f, State);
+	for (int32 Index = 1; Index <= 40; ++Index)
+	{
+		Sample.Position += Sample.Velocity * .02f;
+		Sample.Rotation = FRotator(0, Index * 2, 0).Quaternion();
+		UpdateChassis(Config, Sample, .02f, State);
+	}
+	TestTrue(TEXT("Rotating local axes at constant world velocity does not invent acceleration"), ChassisRotation(Config, State).IsNearlyZero());
+	State.PitchDegrees = 3; State.RollDegrees = 2;
+	Config.PitchAxis = EHALBoneAxis::Z; Config.RollAxis = EHALBoneAxis::Y;
+	Config.PitchSign = 1; Config.RollSign = -1;
+	const FQuat Expected = AxisRotation(EHALBoneAxis::Y, -2).Quaternion() * AxisRotation(EHALBoneAxis::Z, 3).Quaternion();
+	TestTrue(TEXT("Calibrated axes/signs compose bone-local offsets"), ChassisRotation(Config, State).Quaternion().Equals(Expected, .0001));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALChassisSamplingTest, "HAL.FutureCreation.Presentation.ChassisSamplingAndGates",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALChassisSamplingTest::RunTest(const FString& Parameters)
+{
+	using namespace HALVehiclePresentation;
+	FHALChassisPresentationConfig Config; Config.bEnabled = true;
+	FHALChassisPresentationState State;
+	FHALChassisMotionSample Sample;
+	Sample.bDrivingAllowed = true; Sample.Velocity = FVector(1800, 0, 0);
+	UpdateChassis(Config, Sample, .02f, State);
+	TestEqual(TEXT("First sample seeds without inventing start acceleration"), State.PitchDegrees, 0.f);
+	for (int32 Index = 0; Index < 20; ++Index)
+	{
+		Sample.Velocity += FVector(100, 100, 0); Sample.Position += Sample.Velocity * .02f;
+		UpdateChassis(Config, Sample, .02f, State);
+	}
+	TestEqual(TEXT("Strong sustained motion cannot exceed pitch cap"), State.PitchDegrees, 4.f);
+	TestEqual(TEXT("Strong sustained motion cannot exceed roll cap"), State.RollDegrees, 4.f);
+	Sample.Position += FVector(200, 0, 0);
+	UpdateChassis(Config, Sample, .02f, State);
+	TestTrue(TEXT("Sub-teleport network correction clears old lean"), ChassisRotation(Config, State).IsNearlyZero());
+	Sample.Velocity += FVector(10000, 0, 0);
+	UpdateChassis(Config, Sample, .02f, State);
+	TestTrue(TEXT("Velocity spikes do not become an impact animation"), ChassisRotation(Config, State).IsNearlyZero());
+	Sample.bDrivingAllowed = false;
+	UpdateChassis(Config, Sample, .02f, State);
+	Sample.Velocity += FVector(200, 0, 0); Sample.bDrivingAllowed = true;
+	Sample.Position += Sample.Velocity * .02f;
+	UpdateChassis(Config, Sample, .02f, State);
+	TestTrue(TEXT("Landing/recovery exit seeds instead of differentiating airborne velocity"), ChassisRotation(Config, State).IsNearlyZero());
+	Sample.Velocity.X = std::numeric_limits<double>::quiet_NaN();
+	UpdateChassis(Config, Sample, .02f, State);
+	TestFalse(TEXT("Invalid velocity drops history"), State.bHasSample);
+	Sample = {}; Sample.bDrivingAllowed = true;
+	UpdateChassis(Config, Sample, .02f, State);
+	Sample.Velocity = FVector(30, 0, 0); Sample.Position += Sample.Velocity * .02f;
+	UpdateChassis(Config, Sample, .02f, State);
+	TestTrue(TEXT("Valid acceleration resumes after invalid data"), State.PitchDegrees > 0);
+	Config.bEnabled = false;
+	UpdateChassis(Config, Sample, .02f, State);
+	TestTrue(TEXT("Disabling chassis clears offsets and history"), !State.bHasSample && ChassisRotation(Config, State).IsNearlyZero());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALChassisComponentTest, "HAL.FutureCreation.Presentation.ChassisSnapshotPreservesPhysics",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALChassisComponentTest::RunTest(const FString& Parameters)
+{
+	FPresentationWorld F;
+	if (!TestNotNull(TEXT("Saved vehicle"), F.Pawn)) { return false; }
+	auto* Component = FHALPresentationTestAccess::EnableChassisProbe(F.Pawn);
+	auto* Body = FHALPresentationTestAccess::Body(F.Pawn);
+	FHALPresentationTestAccess::PublishSupport(F.Pawn, true);
+	Body->SetPhysicsLinearVelocity(FVector::ZeroVector);
+	Component->TickComponent(.02f, LEVELTICK_All, nullptr);
+	Body->SetPhysicsLinearVelocity(FVector(36, 18, 0));
+	const auto Transform = Body->GetComponentTransform();
+	const auto Velocity = Body->GetPhysicsLinearVelocity();
+	const auto Angular = Body->GetPhysicsAngularVelocityInRadians();
+	const float Mass = Body->GetMass();
+	Component->TickComponent(.02f, LEVELTICK_All, nullptr);
+	const auto Frame = Component->GetPresentationFrame();
+	TestTrue(TEXT("Grounded snapshot exposes chassis response"), Frame.bDrivingLeanActive && Frame.ChassisPitchDegrees > 0 && Frame.ChassisRollDegrees > 0);
+	TestTrue(TEXT("Chassis animation leaves root transform unchanged"), Body->GetComponentTransform().Equals(Transform));
+	TestTrue(TEXT("Chassis animation leaves root velocities unchanged"), Body->GetPhysicsLinearVelocity().Equals(Velocity) && Body->GetPhysicsAngularVelocityInRadians().Equals(Angular));
+	TestEqual(TEXT("Chassis animation leaves mass unchanged"), Body->GetMass(), Mass);
+	auto* Anim = NewObject<UHALVehicleAnimInstance>(F.Pawn->FindComponentByClass<USkeletalMeshComponent>());
+	Anim->NativeInitializeAnimation(); Anim->NativeUpdateAnimation(.02f);
+	TestTrue(TEXT("AnimInstance copies the chassis offset"), Anim->Presentation.ChassisRotation.Equals(Frame.ChassisRotation));
+	FHALPresentationTestAccess::PublishSupport(F.Pawn, true, true);
+	for (int32 Index = 0; Index < 60; ++Index) { Component->TickComponent(.02f, LEVELTICK_All, nullptr); }
+	TestTrue(TEXT("Executing recovery masks driving lean and decays the offset"), !Component->GetPresentationFrame().bDrivingLeanActive && Component->GetPresentationFrame().ChassisRotation.IsNearlyZero(.02f));
+	TestTrue(TEXT("Animation frame copy stays immutable"), Anim->Presentation.ChassisRotation.Equals(Frame.ChassisRotation));
+	Component->TickComponent(.5f, LEVELTICK_All, nullptr);
+	TestTrue(TEXT("Long frame resets chassis together with wheel history"), !Component->GetPresentationFrame().bValid && Component->GetPresentationFrame().ChassisRotation.IsNearlyZero());
+	FHALPresentationTestAccess::PublishSupport(F.Pawn, true);
+	Component->TickComponent(.02f, LEVELTICK_All, nullptr);
+	TestTrue(TEXT("Resume starts with neutral chassis"), Component->GetPresentationFrame().ChassisRotation.IsNearlyZero());
+	FHALPresentationTestAccess::DisableChassis(Component);
+	Component->TickComponent(.02f, LEVELTICK_All, nullptr);
+	TestTrue(TEXT("Chassis toggle keeps wheel presentation active"), Component->GetPresentationFrame().bValid && Component->GetPresentationFrame().ChassisRotation.IsNearlyZero());
 	return true;
 }
 #endif

@@ -4,6 +4,27 @@
 #include "Engine/SkeletalMesh.h"
 #include "Misc/DataValidation.h"
 
+bool FHALChassisPresentationConfig::Validate(FString& Error) const
+{
+	if (uint8(PitchAxis) > uint8(EHALBoneAxis::Z) || uint8(RollAxis) > uint8(EHALBoneAxis::Z) || PitchAxis == RollAxis
+		|| !FMath::IsFinite(PitchSign) || FMath::Abs(PitchSign) != 1 || !FMath::IsFinite(RollSign) || FMath::Abs(RollSign) != 1
+		|| !FMath::IsFinite(MaxPitchDegrees) || MaxPitchDegrees < 0 || MaxPitchDegrees > 10
+		|| !FMath::IsFinite(MaxRollDegrees) || MaxRollDegrees < 0 || MaxRollDegrees > 10
+		|| !FMath::IsFinite(FullPitchAcceleration) || FullPitchAcceleration < 1 || FullPitchAcceleration > 10000
+		|| !FMath::IsFinite(FullRollAcceleration) || FullRollAcceleration < 1 || FullRollAcceleration > 10000
+		|| !FMath::IsFinite(ResponseSeconds) || ResponseSeconds < .01f || ResponseSeconds > 2
+		|| !FMath::IsFinite(AccelerationDeadZone) || AccelerationDeadZone < 0 || AccelerationDeadZone > 500
+		|| AccelerationDeadZone >= FMath::Min(FullPitchAcceleration, FullRollAcceleration)
+		|| !FMath::IsFinite(CorrectionResetDistanceCm) || CorrectionResetDistanceCm < 1 || CorrectionResetDistanceCm > 1000
+		|| !FMath::IsFinite(MaximumSampleAcceleration) || MaximumSampleAcceleration < 1000 || MaximumSampleAcceleration > 100000
+		|| MaximumSampleAcceleration < FMath::Max(FullPitchAcceleration, FullRollAcceleration))
+	{
+		Error = TEXT("Chassis requires distinct valid axes, +/-1 signs, finite bounded lean/sampling settings and dead zone below full acceleration.");
+		return false;
+	}
+	return true;
+}
+
 UHALVehiclePresentationConfig::UHALVehiclePresentationConfig()
 {
 	const TCHAR* Names[] = { TEXT("FL"), TEXT("FR"), TEXT("BL"), TEXT("BR") };
@@ -20,6 +41,7 @@ UHALVehiclePresentationConfig::UHALVehiclePresentationConfig()
 
 bool UHALVehiclePresentationConfig::ValidateSettings(FString& Error) const
 {
+	if (!Chassis.Validate(Error)) { return false; }
 	auto Fail = [&Error](const TCHAR* Message) { Error = Message; return false; };
 	const FVector Scale = RelativeTransform.GetScale3D();
 	if (RelativeTransform.ContainsNaN() || !RelativeTransform.GetRotation().IsNormalized()
@@ -58,9 +80,9 @@ bool UHALVehiclePresentationConfig::ValidateRig(const FReferenceSkeleton& Skelet
 {
 	if (!ValidateSettings(Error)) { return false; }
 	const int32 Root = Skeleton.FindBoneIndex(RootBone);
-	const int32 Chassis = Skeleton.FindBoneIndex(ChassisBone);
-	if (Root == INDEX_NONE || Chassis == INDEX_NONE || Skeleton.GetParentIndex(Root) != INDEX_NONE
-		|| Skeleton.GetParentIndex(Chassis) != Root)
+	const int32 ChassisIndex = Skeleton.FindBoneIndex(ChassisBone);
+	if (Root == INDEX_NONE || ChassisIndex == INDEX_NONE || Skeleton.GetParentIndex(Root) != INDEX_NONE
+		|| Skeleton.GetParentIndex(ChassisIndex) != Root)
 	{ Error = TEXT("Rig needs a root bone and Chassis directly below that root."); return false; }
 	for (const auto& Wheel : Wheels)
 	{

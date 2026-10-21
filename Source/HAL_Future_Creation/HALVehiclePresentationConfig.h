@@ -9,6 +9,34 @@ class USkeletalMesh;
 class UHALVehicleAnimInstance;
 struct FReferenceSkeleton;
 
+/** Additional local chassis animation only. Never changes the physical vehicle pose. */
+USTRUCT(BlueprintType)
+struct HAL_FUTURE_CREATION_API FHALChassisPresentationConfig
+{
+	GENERATED_BODY()
+	/** Enable after calibrating Chassis local axes and adding its AnimGraph node. */
+	UPROPERTY(EditAnywhere, Category = "Chassis") bool bEnabled = false;
+	UPROPERTY(EditAnywhere, Category = "Axes") EHALBoneAxis PitchAxis = EHALBoneAxis::Y;
+	UPROPERTY(EditAnywhere, Category = "Axes", meta = (ClampMin = "-1", ClampMax = "1")) float PitchSign = -1;
+	UPROPERTY(EditAnywhere, Category = "Axes") EHALBoneAxis RollAxis = EHALBoneAxis::X;
+	UPROPERTY(EditAnywhere, Category = "Axes", meta = (ClampMin = "-1", ClampMax = "1")) float RollSign = 1;
+	UPROPERTY(EditAnywhere, Category = "Lean", meta = (ClampMin = "0", ClampMax = "10", Units = "deg")) float MaxPitchDegrees = 4;
+	UPROPERTY(EditAnywhere, Category = "Lean", meta = (ClampMin = "0", ClampMax = "10", Units = "deg")) float MaxRollDegrees = 4;
+	/** Magnitude of longitudinal acceleration (cm/s squared) that reaches MaxPitchDegrees. */
+	UPROPERTY(EditAnywhere, Category = "Lean", meta = (ClampMin = "1", ClampMax = "10000")) float FullPitchAcceleration = 1800;
+	/** Magnitude of lateral acceleration (cm/s squared) that reaches MaxRollDegrees. */
+	UPROPERTY(EditAnywhere, Category = "Lean", meta = (ClampMin = "1", ClampMax = "10000")) float FullRollAcceleration = 1800;
+	/** Exponential time constant, also used when fading back to neutral in the air/recovery. */
+	UPROPERTY(EditAnywhere, Category = "Lean", meta = (ClampMin = "0.01", ClampMax = "2", Units = "s")) float ResponseSeconds = .15f;
+	/** Small acceleration noise (cm/s squared) produces no additional lean. */
+	UPROPERTY(EditAnywhere, Category = "Lean", meta = (ClampMin = "0", ClampMax = "500")) float AccelerationDeadZone = 20;
+	/** Position error from expected motion; resets only chassis sampling, leaving wheel rolling intact. */
+	UPROPERTY(EditAnywhere, Category = "Sampling", meta = (ClampMin = "1", ClampMax = "1000", Units = "cm")) float CorrectionResetDistanceCm = 100;
+	/** Larger acceleration spikes (cm/s squared) are discarded, not converted into an impact animation. */
+	UPROPERTY(EditAnywhere, Category = "Sampling", meta = (ClampMin = "1000", ClampMax = "100000")) float MaximumSampleAcceleration = 20000;
+	bool Validate(FString& Error) const;
+};
+
 USTRUCT(BlueprintType)
 struct HAL_FUTURE_CREATION_API FHALWheelPresentationConfig
 {
@@ -57,6 +85,8 @@ public:
 	FName RootBone = TEXT("Root_jnt");
 	UPROPERTY(EditAnywhere, Category = "Bones")
 	FName ChassisBone = TEXT("Chassis_jnt");
+	UPROPERTY(EditAnywhere, Category = "Chassis")
+	FHALChassisPresentationConfig Chassis;
 	/** Exactly FL/FR/BL/BR, in any order. Names do not rebind AnimBP Modify Bone nodes. */
 	UPROPERTY(EditAnywhere, Category = "Wheels")
 	TArray<FHALWheelPresentationConfig> Wheels;

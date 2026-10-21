@@ -112,3 +112,9 @@ UE5.8.3 Win64 Development **Editor／Game均成功**；普通回归 **57/57，0�
 初次自救实现漏加了`UVehicleLocalConfig.SelfRightAction`及`ApplyDefinition`复制，且上文第4节原步骤错误地要求在BP填写。已补Local可选字段、类型／独立性校验和初始化复制，并修正第4节。原57项和三组双端用原生意图入口验证了后续物理流程，**没有覆盖这条缺失的Editor资产配置链路**；新增断言检查Definition模式的Local引用在BeginPlay／输入Setup前到达Pawn，且生成Started／Completed／Canceled三个Enhanced Input绑定。补充构建与回归证据另存于[本次摘要](MVPB_Vehicle_SelfRight_InputDefinitionFix_Verification_20261021.json)，不覆盖前次JSON。
 
 补充验证基点`main/c3f90ca`，本机UE5.8.3 Editor／Game Development均成功，重新运行完整普通回归57/57、0测试错误／警告。保留用户已保存的共享DA、IMC及新IA，364份uasset／umap相对本次开工全部SHA256相同，Config未改。没有重跑新Host／Client或验证团队实际输入接线；下一步重启Editor，在当前玩家Definition引用的Local Config中填写Self Right Action并保存，再新开游戏实测。本次修正未提交／Push。
+
+## 8. 团队真人验收与VP-2接续（2026-10-21）
+
+用户确认：**“自救真人验收已经完成，功能可以工作，表现可以后面再优化”**，并授权开始VP-2。将此记录为自救功能真人验收完成；表现优化列后续事项，不再将输入接线或基本功能作为VP-2阻塞。输入补充代码及团队Local DA／共享DA／IA／IMC已在`eae910e`提交。
+
+本条来自团队实际操作反馈，未附新的逐项角色／FPS／网络扰动清单或日志，不扩写为所有组合和四机最终验收。前文“尚无真人反馈／未提交”均保留为当时的历史记录，当前结论以本节及项目状态为准。
