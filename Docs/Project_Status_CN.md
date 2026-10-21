@@ -1,8 +1,10 @@
 # HAL Future Creation：项目状态与接续入口
 
-**2026-10-21 当前进度：VP-1保持结束；用户实测确认支撑修正后“弹动有效减少”，姿态操控限制＋长按自救已完成代码、构建与自动化，待团队手工输入接线及真人验收。** 当前比较基点为干净`main/f634292`，包含上一轮支撑修正与团队车轮配置。新增共享DA的Recovery组、物理姿态门控、服务器长按许可、有限翻正、球／技能执行期限制及网络物理动作／历史。详见[实现与详细配置](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md)、[本轮验证](Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json)。当前修改未提交／Push；上一轮53项及各历史证据不改写为本轮结果。
+**2026-10-21输入入口修正：BP灰色Input是Definition模式的预期锁定，实际填写位置为玩家Vehicle Definition引用的Local Config DA → Input → Self Right Action。** 上次自救实现漏接该DA字段及初始化复制，且配置文档误写为在BP填写，现已补齐并修正文档；不切Legacy、不解除旧字段锁定。本次基点`main/c3f90ca`，Editor／Game成功，普通回归重新57/57、0测试错误／警告；新增Local可选／bool独立性、初始化前复制、旧Pawn字段锁定／Local可编辑及三个Enhanced Input绑定断言。保留团队共享DA／IMC／新IA，364资产前后全同。尚无本次修正后的真人输入或新双端验收；下文三组网络结果属于前次施工证据。[正确配置](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#4-独立长按输入editor手工步骤)／[补充验证](Movement/MVPB_Vehicle_SelfRight_InputDefinitionFix_Verification_20261021.json)。未提交／Push。
 
-已确认规则现已实现：近地持续低速侧翻1秒、线速≤150cm/s／角速≤60°/s，合格后长按1.5秒；松手或条件失效清零。有限翻正最多2秒，执行允许滚转短暂离地，成功仍需近地且姿态／角速达标；外部有效Medium／Heavy打断，执行结束后冷却3秒。实际接受执行时Free脱球、无额外释放冲量，执行中禁接球／发射／新技能，既有效果自然计时。规则在同一共享DA可调并纳入World冻结快照／签名；单纯侧翻和长按阶段保持原发射／技能。团队须手工创建独立IA_SelfRight、映射建议R并填玩家Self Right Action，不新增GA／GE或Event Graph。
+**2026-10-21 当前进度：VP-1保持结束；用户实测确认支撑修正后“弹动有效减少”，姿态操控限制＋长按自救已完成代码、构建与自动化，待团队手工Local Config输入接线及真人验收。** 姿态／自救原施工基点为`main/f634292`，此后团队已提交为`c3f90ca`；最新输入接线补充以上文为准。新增共享DA的Recovery组、物理姿态门控、服务器长按许可、有限翻正、球／技能执行期限制及网络物理动作／历史。详见[实现与详细配置](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md)、[本轮验证](Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json)。当前修改未提交／Push；上一轮53项及各历史证据不改写为本轮结果。
+
+已确认规则现已实现：近地持续低速侧翻1秒、线速≤150cm/s／角速≤60°/s，合格后长按1.5秒；松手或条件失效清零。有限翻正最多2秒，执行允许滚转短暂离地，成功仍需近地且姿态／角速达标；外部有效Medium／Heavy打断，执行结束后冷却3秒。实际接受执行时Free脱球、无额外释放冲量，执行中禁接球／发射／新技能，既有效果自然计时。规则在同一共享DA可调并纳入World冻结快照／签名；单纯侧翻和长按阶段保持原发射／技能。团队须手工创建独立IA_SelfRight、映射建议R，并在玩家Definition引用的Local Config DA中填写Self Right Action，不新增GA／GE或Event Graph。
 
 本轮UE5.8.3 Editor／Game Development均成功；最终普通**57/57**、0测试错误／警告；新增真实Solver5工况／900步通过。实际MVPB_NetTest的30／60／120 NullRHI限帧双进程均各**1/1**，客户端重模拟分别29／44／61次；主机单向注入80ms，非实测RTT，临时签名2346082778一致。正式保存DA在普通回归的新签名915860017与临时资产路径不同，不跨夹具比较。363资产相对开工全同、Config未改。首次反射／测试编译问题、Editor占用、短暂离地过早退出及网络夹具启动同步问题已修复并保留失败证据。没有本轮真人接线／画面／几何手感或F4四机验收。
 
@@ -24,7 +26,7 @@
 
 最后更新：**2026-10-21（Asia/Tokyo）**。本文件维护最新进度、已确认决策和后续入口；详细规则、资产数值和验证证据由链接文档提供。10-F-1～3及加速GA、团队接线和基础双端实测均完成，相关资产和复核已提交`c825d8d`。**用户已决定将10-F-4完整集成／扰动／四机测试后置至MVP-B收尾，当前暂不施工F4-A；后续开发按用户指定事项推进。** 最终验收未完成，后续各项开发仍保留相关编译／自动化及必要双端基本检查。
 
-当前推进**车辆物理修正与后续Rig表现**：支撑过滤获团队“弹动有效减少”反馈，车轮已获修复正常反馈；姿态门控／长按自救代码及原生验证完成，先由团队按新文档配置IA／IMC／玩家引用、检查现有DA新增Recovery组并实测。随后按反馈收尾自救，再继续VP-2。代理／墙几何、VP-2～4与自然有限落地辅助尚未实现。
+当前推进**车辆物理修正与后续Rig表现**：支撑过滤获团队“弹动有效减少”反馈，车轮已获修复正常反馈；姿态门控／长按自救代码及原生验证完成，先由团队按新文档配置IA／IMC／Local Config引用、检查现有DA新增Recovery组并实测。随后按反馈收尾自救，再继续VP-2。代理／墙几何、VP-2～4与自然有限落地辅助尚未实现。
 
 ## 1. 先读什么、先检查什么
 
@@ -41,9 +43,9 @@
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
 | 开发阶段 | VP-1结束；支撑修正获团队正向反馈，姿态门控／长按自救代码和自动化完成；当前待团队手工输入接线及真人实测，随后VP-2。自然有限辅助与F4仍待做 |
-| 当前本机分支／代码提交 | `main / f634292`；上一轮与车轮DA已提交，开工干净。本轮新增姿态／自救实现、测试和文档，未改资产／Config，未提交／Push |
-| 引擎基线 | 本机UE `5.8.3-58210709+++UE5+Release-5.8`；本轮Editor／Game成功、57/57普通（含5组Solver）、30／60／120限帧双端各1/1；既有MSVC／引擎编译警告保留 |
-| 本机运行前置 | 重启加载新DLL，核对原共享DA新增Recovery组；团队创建独立IA／IMC映射并填玩家Self Right Action，停止旧局后新开Host／Client。363资产全同、Config未改；不将原生测试视为真实输入接线完成 |
+| 当前本机分支／代码提交 | `main / c3f90ca`；上轮姿态／自救已提交；本次补Local Config输入链路并保留团队共享DA／IMC／新IA改动。修正未提交／Push |
+| 引擎基线 | 本机UE `5.8.3-58210709+++UE5+Release-5.8`；本次输入修正两Target成功、普通57/57含配置绑定断言；三组限帧双端为上轮证据，本次未重跑。既有MSVC／引擎编译警告保留 |
+| 本机运行前置 | 重启加载新DLL，打开玩家Definition引用的Local Config DA，在Input.SelfRightAction选择IA_SelfRight并保存；IMC保持已有映射。BP旧Input置灰正常；不要切Legacy。团队真实输入／画面待测 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
 | GAS 当前实现 | `HALMovementBoostAbility`，ServerOnly施加可配非周期GE后立即结束，无默认费用／冷却，独立于debug；5游戏秒、+0.5／+0.25、按目标一层刷新及Avatar作用域。团队已在原Primary替换为加速GA；原免疫GA／GE／冷却及调试入口保留 |
 | 当前 HP／冲击 | 10-C伤害／快照保留；10-D同帧Internal读写已有28项自动化证据，用户2026-10-16确认击飞效果恢复。保留现有档位、水平补足和DA，各档实际响应后续调整；本次反馈未列双向角色／扰动明细 |
@@ -76,7 +78,7 @@
 | 独立弹簧拳接入分工 | 用户已明确将该部分交给另一成员；现有伸缩／服务器Sweep／每拳目标集合，尚无实际标准伤害／冲击及完整状态复制。已提供[交接注意事项](Combat/MVPB_SpringPunch_Combat_Handoff_CN_v0.1.md) | 本会话只整理接口／约束，不修改机关源码／资产，不标记接入完成。基础伤害／档位／方向／有效阶段／比赛启动规则尚未定，负责成员先对接；最小编译／自动化／双端验证仍须完成 |
 | 车辆表现VP-0／VP-1已结束 | 原生实现及10月19日数据双端历史证据保持，素材／接线已提交，用户确认VP-1收尾。10月21日本轮已修复旧OptionalRigPreservesGameplay的保存资产假设，普通50/50通过；见[收尾](Presentation/MVPB_Vehicle_Presentation_VP1_Implementation_CN_v0.1.md)与[本轮证据](Movement/MVPB_Vehicle_Stability_Diagnostic_Verification_20261021.json) | 没有新增逐项真人双端／扰动／四机证据；保存表现半径10cm及参考高度与原模型数据需复核，不回退VP-1阶段结论。VP-2～4未施工 |
 | Car_01素材检查 | 2e4176d新增20份素材全部可加载；17骨骼直接父级符合约定，5823源顶点均单骨骼权重1，四轮绑定各自spin；未见缺失依赖，351资产未改，见[检查](Presentation/MVPB_Car01_AssetInspection_CN_v0.1.md)／[原始数据](Presentation/MVPB_Car01_AssetInspection_20261020.json) | 仅NullRHI只读几何／资产数据检查；无真实AnimGraph姿态／材质渲染／性能／玩法双端验证。1个LOD／12个材质section留待实际四车测量，PA保留但不作为当前车辆物理根 |
-| 车辆反弹／姿态门控／长按自救 | 共享规则启用，支撑修正获“弹动有效减少”反馈；姿态门控与已确认自救规则已实现，57项及三组限帧双端通过，见[实现](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md) | 团队手工IA／IMC／玩家接线、实际画面／几何及完整攻击组合仍待验收；有限自然落地辅助未实现，车轮正常反馈保留 |
+| 车辆反弹／姿态门控／长按自救 | 共享规则启用，支撑修正获“弹动有效减少”反馈；姿态门控与已确认自救规则已实现，57项及三组限帧双端通过，见[实现](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md) | 团队手工IA／IMC／Local Config接线、实际画面／几何及完整攻击组合仍待验收；有限自然落地辅助未实现，车轮正常反馈保留 |
 
 本次 10-B 构建证据：UE 5.8.2 的 Editor/Game Development Target 均成功，`HAL.FutureCreation` 自动化 16/16 通过，报告原位于 `Saved/Automation/MVPB_Phase10B_Final/index.json`；隐藏双进程 Join succeeded，客户端收到两辆车的 GAS HP=100／MaxHP=100。历史阶段 9 的 14/14 结果保留在对应记录中。本次没有真人驾驶／命中及延迟测试。`Saved/` 不随 Git 交接，新电脑不存在这些报告不代表测试失败，也不能声称已重跑；共享摘要见 10-B Verification JSON。
 
@@ -130,7 +132,7 @@
 
 **排期调整：用户决定将剩余10-F-4完整测试统一放到MVP-B收尾，当前不再以F4-A作为下一施工入口。** 用户随后已授权车辆表现代码侧准备与接口，VP-0代码核对／VP-1底座及原生验证完成，完整矩阵与门槛仍见[F4方案](Combat/MVPB_Phase10F4_Integration_Plan_CN_v0.1.md)，后置不等于最终验收通过。
 
-当前下一入口为**团队配置并实测姿态门控／长按自救**，见[手工步骤](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#4-独立长按输入editor手工步骤)及[矩阵](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#5-调试与团队复测)。无需新增GA／GE；原共享DA增加Recovery组，IA／IMC／玩家引用由团队保存。检验侧翻禁驾驶、长按取消、低速／近地门槛、有限执行、球／技能限制、抗性后打断及冷却，再回到VP-2。低顶／墙角和自然摇摆继续按实际录像判断，不将本轮自救当成自动落地辅助。
+当前下一入口为**团队配置并实测姿态门控／长按自救**，见[手工步骤](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#4-独立长按输入editor手工步骤)及[矩阵](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#5-调试与团队复测)。无需新增GA／GE；原共享DA增加Recovery组，IA／IMC／Local Config引用由团队保存。检验侧翻禁驾驶、长按取消、低速／近地门槛、有限执行、球／技能限制、抗性后打断及冷却，再回到VP-2。低顶／墙角和自然摇摆继续按实际录像判断，不将本轮自救当成自动落地辅助。
 
 自救团队实测收尾后回到**VP-2车身驾驶表现**：加减速俯仰、转弯侧倾、限幅／阻尼、空中衰减与重置，由C++输出、AnimBP应用到Chassis。VP-1保持结束；视觉悬挂为VP-3，离散回弹为VP-4，四点物理悬挂／自然有限落地辅助另行设计。姿态门控／自救代码已完成，不再列未实现；VP-2～4与自然落地辅助仍未施工。
 
@@ -171,7 +173,9 @@ MVP-B收尾时使用届时冻结的同一提交／构建／资产，统一覆盖
 
 ## 8. 本次更新记录
 
-- 2026-10-21姿态门控／长按自救：从干净main/f634292接续，用户报告支撑修正后弹动有效减少。扩展原共享DA、服务器许可时钟、独立按住输入、有限物理翻正及动作／历史；执行边界Free脱球，执行中禁接球／发射／新技能，原效果及伤害／抗性分支保持。最终Editor／Game成功、57/57普通、真实Solver5组900步，30／60／120限帧双端各1/1及重模拟29／44／61次。363资产与Config保持，IA／IMC／玩家引用待团队手工保存，真人画面／几何手感与F4未验收。反射／测试编译、DLL占用、短暂离地与双端夹具同步失败记录保留，最终严格断言通过；见[实现](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md)和[证据](Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json)。未提交／Push。
+- 2026-10-21自救Definition输入入口补全：以main/c3f90ca接收团队共享DA／IMC修改与新IA，确认BP旧Input被CanEditChange锁定，前次漏加Local.SelfRightAction及复制且文档入口错误。新增可选bool独立输入、初始化复制及配置／实际绑定断言，修正操作为Definition→Local Config→Input；不解锁Pawn或切Legacy。Editor／Game成功，重新57/57、364资产全同，未新跑双端／真人；保留前次网络证据，下一步团队填写Local DA并实测。见顶部补充记录及JSON；未提交／Push。
+
+- 2026-10-21姿态门控／长按自救：从干净main/f634292接续，用户报告支撑修正后弹动有效减少。扩展原共享DA、服务器许可时钟、独立按住输入、有限物理翻正及动作／历史；执行边界Free脱球，执行中禁接球／发射／新技能，原效果及伤害／抗性分支保持。最终Editor／Game成功、57/57普通、真实Solver5组900步，30／60／120限帧双端各1/1及重模拟29／44／61次。363资产与Config保持，IA／IMC／Local Config引用待团队手工保存，真人画面／几何手感与F4未验收。反射／测试编译、DLL占用、短暂离地与双端夹具同步失败记录保留，最终严格断言通过；见[实现](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md)和[证据](Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json)。未提交／Push。
 
 - 2026-10-21普通静止支撑分类修正：以main/c747e4b接收用户已修复车轮DA，保留363资产和Config。用普通来源／WorldStatic／非模拟、组件及物理速度、当前姿态同步判定取代Mobility=Static门槛，保留特殊来源、有效档、伤害／抗性／免疫、脱球和ExplicitTier；补来源／预算可关闭日志、实际保存两图回归及Movable Solver。UE5.8.3 Editor／Game成功、普通53/53、Solver1/1（16组／11520步）、实际NetTest Host／Client各1/1，重模拟56次／单向80ms。实际Floor接触两玩家均StationaryWorld／Suppressed1／RuleDV0。首轮地图夹具复制物理运行体断言已修复，最终重编／重测通过；失败日志保留。侧面／车尾真人手感与自然摇摆仍待复测，姿态门控／自救未实现，F4后置保持；新增[实施](Movement/MVPB_Vehicle_Support_Classification_Fix_CN_v0.1.md)与[验证](Movement/MVPB_Vehicle_Support_Classification_Verification_20261021.json)，未提交／Push。
 

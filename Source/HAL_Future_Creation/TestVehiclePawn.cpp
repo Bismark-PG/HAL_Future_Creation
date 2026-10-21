@@ -390,6 +390,7 @@ bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
 		HandbrakeAction = Local->HandbrakeAction;
 		LaunchAction = Local->LaunchAction;
 		PrimarySkillAction = Local->PrimarySkillAction;
+		SelfRightAction = Local->SelfRightAction;
 		UE_LOG(LogTemp, Log, TEXT("%s: using VehicleDefinition %s."), *GetName(), *GetNameSafe(Definition));
 	}
 	return true;

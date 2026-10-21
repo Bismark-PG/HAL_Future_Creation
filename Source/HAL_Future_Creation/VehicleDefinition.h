@@ -147,6 +147,9 @@ public:
 	/** Optional skill edge. Existing local assets stay valid until the team wires this action. */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputAction> PrimarySkillAction;
+	/** Optional independent held recovery action. Leave empty only when recovery input is not wired yet. */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> SelfRightAction;
 	UPROPERTY(EditAnywhere, Category = "Camera")
 	FVehicleCameraConfig Camera;
 	bool Validate(FString& Error) const;

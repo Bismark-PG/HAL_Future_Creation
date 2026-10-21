@@ -18,6 +18,7 @@
 #include "Camera/CameraComponent.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
+#include "EnhancedInputComponent.h"
 #include "Engine/World.h"
 #include "Engine/StaticMesh.h"
 #include "GameFramework/PlayerState.h"
@@ -214,6 +215,17 @@ bool FConfigurationPlayerBallTest::RunTest(const FString& Parameters)
 	Local->BrakeAction = NewObject<UInputAction>();
 	Local->HandbrakeAction = NewObject<UInputAction>();
 	Local->LaunchAction = NewObject<UInputAction>();
+	FString InputError;
+	TestTrue(TEXT("Existing local configs may omit recovery input"),Local->Validate(InputError));
+	auto* RecoveryAction = NewObject<UInputAction>();
+	Local->SelfRightAction = RecoveryAction;
+	RecoveryAction->ValueType = EInputActionValueType::Axis1D;
+	TestFalse(TEXT("Recovery input must be Digital bool"),Local->Validate(InputError));
+	RecoveryAction->ValueType = EInputActionValueType::Boolean;
+	Local->SelfRightAction = Local->LaunchAction;
+	TestFalse(TEXT("Recovery must not reuse launch action"),Local->Validate(InputError));
+	Local->SelfRightAction = RecoveryAction;
+	TestTrue(TEXT("Independent recovery input is valid"),Local->Validate(InputError));
 	Local->Camera.FieldOfView = 100;
 	Definition->Movement.Steering.SteeringAngularAcceleration = 12;
 	Definition->BallControl.Launch.LaunchSpeedIncrement = 4567;
@@ -222,6 +234,19 @@ bool FConfigurationPlayerBallTest::RunTest(const FString& Parameters)
 	Player->SetPlayerState(Fixture.World->SpawnActor<AHALPlayerState>());
 	SetDefinition(Player, Definition);
 	Player->PreInitializeComponents();
+	const FObjectProperty* RecoveryInput = FindFProperty<FObjectProperty>(Player->GetClass(),TEXT("SelfRightAction"));
+	TestTrue(TEXT("Definition mode copies recovery input before BeginPlay/possession"),
+		RecoveryInput && RecoveryInput->GetObjectPropertyValue_InContainer(Player)==RecoveryAction);
+#if WITH_EDITOR
+	TestFalse(TEXT("Definition mode intentionally locks old Pawn input defaults"),Player->CanEditChange(RecoveryInput));
+	TestTrue(TEXT("Local DA remains the editable input source"),Local->CanEditChange(FindFProperty<FObjectProperty>(Local->GetClass(),TEXT("SelfRightAction"))));
+#endif
+	auto* EnhancedInput = NewObject<UEnhancedInputComponent>(Player);
+	Player->SetupPlayerInputComponent(EnhancedInput);
+	int32 RecoveryBindings = 0;
+	for (const auto& Binding : EnhancedInput->GetActionEventBindings())
+	{ if (Binding->GetAction()==RecoveryAction) { ++RecoveryBindings; } }
+	TestEqual(TEXT("Configured recovery reaches Enhanced Input press/release/cancel bindings"),RecoveryBindings,3);
 	Player->DispatchBeginPlay();
 	TestTrue(TEXT("Convex player configuration becomes valid"), Player->IsConfigurationValid());
 	TestEqual(TEXT("Player HP initializes from definition"), Player->FindComponentByClass<UVehicleHealthComponent>()->GetCurrentHP(), 180.0f);

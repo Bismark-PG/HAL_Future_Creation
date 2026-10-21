@@ -61,11 +61,11 @@
 
 1. Content Browser在现有输入目录新建 **Input → Input Action**，建议 `IA_SelfRight`，**Value Type=Digital (bool)**。不要添加Hold、Tap或持续时间Trigger，1.5秒由服务器代码计算。
 2. 打开玩家现有Input Mapping Context，新增 `IA_SelfRight` 映射。首轮键盘建议 **R**，控制器建议未占用的 **Gamepad Special Left**；如该键已用于菜单，选择另一个独立按键。不要占用Primary技能或发射键。
-3. 打开当前玩家 `BP_RoundedVehiclePawn`，进入 **Class Defaults → Vehicle → Input**，将新增 **Self Right Action** 设为 `IA_SelfRight`。保留原Default Mapping Context及其他Action引用；无需Event Graph连线。
-4. Compile并Save BP，保存IMC和IA。提交本轮原生源码、文档、共享DA及这些手工保存的资产；不提交Saved／Binaries／Intermediate。
+3. 打开当前玩家 `BP_RoundedVehiclePawn`，在Class Defaults清空搜索，查看 **Vehicle → Configuration → Definition**。打开其引用的玩家Vehicle Definition，再打开其中 **Local → Local Config** 指向的DA（现有基线通常为`DA_Local_TestBaseline_v1`）。在该 **Local Config DA → Input → Self Right Action** 中选择 `IA_SelfRight`。保留原Default Mapping Context及其他Action引用；无需Event Graph连线。**Definition模式下BP里的旧Input字段有意置灰，运行前由Local Config覆盖，不在BP里填写。**
+4. 保存 **Local Config DA、IMC和IA**。当前已有玩家Definition／Local引用时无需改BP；如果确实调整了引用，再Compile并Save对应BP。提交本轮原生源码、文档、共享DA及手工保存的输入配置资产；不提交Saved／Binaries／Intermediate。
 5. 重启Host／Client，新局按住映射键。松手的Completed／Canceled都会清除意图；换Pawn、退出、重新获得控制也会重置输入。若键盘失去游戏焦点，先释放再重新按住。
 
-代码入口是原生输入回调，不需要创建新的GA／GE，原加速技能配置保持。首版没有默认硬编码R键后备绑定，未配置IA／IMC／玩家引用时长按不会触发。
+代码入口是原生输入回调，不需要创建新的GA／GE，原加速技能配置保持。没有默认硬编码R键后备绑定；未配置IA／IMC／Local Config引用时长按不会触发。新增SelfRightAction为可选字段，旧Local资产仍可加载；填写时必须Digital (bool)，且不能与驾驶、发射、Primary Skill共用同一个IA。
 
 ## 5. 调试与团队复测
 
@@ -103,4 +103,12 @@ UE5.8.3 Win64 Development **Editor／Game均成功**；普通回归 **57/57，0�
 
 本轮363份uasset／umap相对开工前全部SHA256相同，Config未修改；既有车轮配置保留。编译仍有既有MSVC版本和引擎弃用警告，不宣称零编译警告。本轮未提交／Push。
 
-尚未验证：团队手工IA／IMC／玩家引用后的真实输入、HUD画面、低顶／墙角等几何手感、完整球／机关／技能组合与真实退出／换Avatar联机矩阵。普通测试已覆盖脱球／锁、技能拒绝、既有效果保留、免疫／抗性后打断档位、普通／自身接触排除及Owner退出接口，但不将这些孤立测试写成完整真人组合验收。完整网络扰动和四台真实PC继续留MVP-B收尾。
+尚未验证：团队手工IA／IMC／Local Config接线后的真实输入、HUD画面、低顶／墙角等几何手感、完整球／机关／技能组合与真实退出／换Avatar联机矩阵。普通测试已覆盖脱球／锁、技能拒绝、既有效果保留、免疫／抗性后打断档位、普通／自身接触排除及Owner退出接口，但不将这些孤立测试写成完整真人组合验收。完整网络扰动和四台真实PC继续留MVP-B收尾。
+
+## 7. Definition输入接线补充（2026-10-21）
+
+用户截图显示BP的Vehicle/Input均为灰色。`TestVehiclePawn::CanEditChange`在Definition模式下有意锁住旧Pawn配置，输入引用实际来自`VehicleDefinition.LocalConfig`；BP上显示的Primary Skill／Self Right为None也不能单独证明运行时引用为空。不要切换Legacy或解除旧字段锁定来绕过统一配置。
+
+初次自救实现漏加了`UVehicleLocalConfig.SelfRightAction`及`ApplyDefinition`复制，且上文第4节原步骤错误地要求在BP填写。已补Local可选字段、类型／独立性校验和初始化复制，并修正第4节。原57项和三组双端用原生意图入口验证了后续物理流程，**没有覆盖这条缺失的Editor资产配置链路**；新增断言检查Definition模式的Local引用在BeginPlay／输入Setup前到达Pawn，且生成Started／Completed／Canceled三个Enhanced Input绑定。补充构建与回归证据另存于[本次摘要](MVPB_Vehicle_SelfRight_InputDefinitionFix_Verification_20261021.json)，不覆盖前次JSON。
+
+补充验证基点`main/c3f90ca`，本机UE5.8.3 Editor／Game Development均成功，重新运行完整普通回归57/57、0测试错误／警告。保留用户已保存的共享DA、IMC及新IA，364份uasset／umap相对本次开工全部SHA256相同，Config未改。没有重跑新Host／Client或验证团队实际输入接线；下一步重启Editor，在当前玩家Definition引用的Local Config中填写Self Right Action并保存，再新开游戏实测。本次修正未提交／Push。

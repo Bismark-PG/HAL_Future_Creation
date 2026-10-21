@@ -72,6 +72,12 @@ bool UVehicleLocalConfig::Validate(FString& Error) const
 	{
 		return Fail(Error, TEXT("Optional PrimarySkillAction must use Digital (bool)."));
 	}
+	if (SelfRightAction && (SelfRightAction->ValueType != EInputActionValueType::Boolean
+		|| SelfRightAction == SteeringAction || SelfRightAction == ThrottleAction || SelfRightAction == BrakeAction
+		|| SelfRightAction == HandbrakeAction || SelfRightAction == LaunchAction || SelfRightAction == PrimarySkillAction))
+	{
+		return Fail(Error, TEXT("Optional SelfRightAction must use Digital (bool) and be distinct from driving, launch and PrimarySkill actions."));
+	}
 	return Camera.Validate(Error);
 }
 

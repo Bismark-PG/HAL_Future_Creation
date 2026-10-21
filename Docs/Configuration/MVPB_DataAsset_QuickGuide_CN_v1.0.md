@@ -1,5 +1,7 @@
 # MVP-B Data Asset 配置速查（现行10-E）
 
+2026-10-21输入接线补充：Definition模式下，BP的旧Input字段只读；自救输入填写在 **玩家Vehicle Definition → Local Config → Input → Self Right Action**。现已补齐可选Digital (bool)字段及初始化复制，具体按键仍在IMC；不要切Legacy绕过。详细步骤见[自救配置第4节](../Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#4-独立长按输入editor手工步骤)。
+
 初版：2026-09-18；更新：2026-10-16。适用：当前车辆、普通球与测试场景，按已迁移的10-C AttackSnapshotV1／10-D TieredV1说明字段用途。本次只按现有源码核对职责，没有重新导出DA保存值或修改资产，以下不作为新数值基线。旧文件名保留便于已有链接继续使用；接续入口见[Project_Status](../Project_Status_CN.md)。
 
 ## 1. 去哪里改
@@ -11,7 +13,7 @@
 | DA_Vehicle_Player_TestBaseline_v1 | VehicleDefinition | 玩家车型的基础配置：驾驶／漂移、控球、发射／后坐、脱球、初始HP／攻击力／受伤倍率、冲击降档／脱球资格、物理与外观；还引用Local DA |
 | DA_Vehicle_Passive_TestBaseline_v1 | VehicleDefinition | 被动物理测试车：Box尺寸、物理、初始HP／战斗与冲击配置、外观；不消费驾驶、控球或Local配置，不是第二名联机玩家的专属DA |
 | DA_Ball_Normal_TestBaseline_v1 | BallDefinition | 这种球的半径／物理／外观、攻击结束条件、拾取锁、伤害动作倍率与主动攻击冲击档位；球发射速度／后坐在玩家车辆DA |
-| DA_Local_TestBaseline_v1 | VehicleLocalConfig | 输入资产引用与跟随相机，含可选Primary Skill Action；具体按键在引用的IMC，驾驶施力参数在玩家车辆DA |
+| DA_Local_TestBaseline_v1 | VehicleLocalConfig | 输入资产引用与跟随相机，含可选Primary Skill Action、Self Right Action；具体按键在引用的IMC，驾驶施力参数在玩家车辆DA |
 | DA_Combat_TestBaseline_v1 | CombatRulesDefinition | 全场公共冲击标尺与三档物理响应：Light／Medium／Heavy各自推多远、抬多高／翻转，以及自然碰撞如何选档 |
 
 这些都是共享的配置资产，不是玩家运行时状态或存档。四名玩家可共用同一份玩家车辆DA／Local DA，各自的当前HP、Buff、冷却仍在各自ASC／PlayerState中；速度／球权在各自Actor／组件中。以后新增不同车型通常复制或新建车型DA并绑定对应Pawn；Local和公共Combat可继续共享，不按玩家人数复制一套DA。
@@ -39,7 +41,7 @@
 | 每个档位实际击飞效果 | Combat → BallImpacts.LightTier / MediumTier / HeavyTier | HorizontalDeltaSpeed、TargetVerticalSpeed、AirborneFlipTurns为公共物理响应；虽然分类仍叫BallImpacts，V1已供不同来源共用 |
 | 自然碰撞选档／来源上限／连续接触 | Combat → CollisionImpacts | Light／Medium／HeavyThreshold、Environment／FreeBallTierCap、ContactRearmSeconds、MaximumRuleRestitution；玩家车型自身CollisionTierCap在车辆Impact中 |
 | 相机距离、角度、跟随延迟 | Local → Camera | TargetArmLength、BoomTransform.Rotation.Pitch、CameraLagSpeed / bEnableCameraLag |
-| 输入映射、按键 | Local → Input 引用；打开所引用的 IMC | Local指定IMC与转向／油门／刹车／手刹／发射Action，另有可选PrimarySkillAction；具体键位在IMC中修改 |
+| 输入映射、按键 | Local → Input 引用；打开所引用的 IMC | Local指定IMC与转向／油门／刹车／手刹／发射Action，另有可选PrimarySkillAction及独立SelfRightAction；具体键位在IMC中修改，Definition模式下不改BP旧Input字段 |
 | 模型、材质与位置 | 车辆或球 → Visual | Mesh、Materials、RelativeTransform；外观尺寸与物理碰撞尺寸分别配置 |
 
 距离通常为 **cm**，速度 **cm/s**，时间 **s**，质量 **kg**；角度、角速度及高级物理字段以各字段单位提示为准。调参前保留已有值，每次优先改一组参数以方便比较。
