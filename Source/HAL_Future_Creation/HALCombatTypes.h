@@ -104,6 +104,10 @@ struct FHALCombatHitResult
 	float ActualHPRemoved = 0.0f;
 	bool bDamageImmune = false;
 	bool bImpactApplied = false;
+	/** Accepted rule response, before physics integration; excludes natural Chaos impulse. */
+	FVector RuleDeltaVelocity = FVector::ZeroVector;
+	float RuleMinimumUpwardSpeed = 0;
+	bool bSupportSupplementSuppressed = false;
 	EHALImpactOutcome ImpactOutcome = EHALImpactOutcome::NotRequested;
 	float ImpactSpeed = 0.0f;
 	EVehicleKnockbackTier KnockbackTier = EVehicleKnockbackTier::Light;

@@ -302,12 +302,13 @@ FHALCombatHitResult FCombatResolver::ResolveCombatHit(FHALCombatAction& Action, 
 	}
 	if (CVarHALCombatLog.GetValueOnGameThread() > 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("HAL Combat: Attack=%s Pulse=%u PlayerId=%d Source=%s Mode=%d Target=%s Raw=%.2f Resolved=%.2f Actual=%.2f DamageImmune=%d Impact=%d LegacyTier=%d SourceTier=%d EffectiveTier=%d ImpactImmune=%d Drop=%d Frame=%d"),
+		UE_LOG(LogTemp, Log, TEXT("HAL Combat: Attack=%s Pulse=%u PlayerId=%d Source=%s Mode=%d Target=%s Raw=%.2f Resolved=%.2f Actual=%.2f DamageImmune=%d Impact=%d LegacyTier=%d SourceTier=%d EffectiveTier=%d ImpactImmune=%d Drop=%d Frame=%d SupportSuppressed=%d RuleDV=%s RuleUp=%.2f"),
 			*Result.AttackId.ToString(), Result.PulseSequence, Result.InstigatorPlayerId, *Source.SourceTag.ToString(),
 			int32(Source.DamageMode), *GetNameSafe(Target), Result.RawDamage, Result.ResolvedDamage, Result.ActualHPRemoved,
 			Result.bDamageImmune ? 1 : 0, int32(Result.ImpactOutcome), int32(Result.KnockbackTier),
 			int32(Result.ImpactSummary.SourceTier), int32(Result.ImpactSummary.EffectiveTier),
-			Result.ImpactSummary.bImmune ? 1 : 0, Result.ImpactSummary.bBallDropped ? 1 : 0, Result.ImpactSummary.ServerPhysicsFrame);
+			Result.ImpactSummary.bImmune ? 1 : 0, Result.ImpactSummary.bBallDropped ? 1 : 0, Result.ImpactSummary.ServerPhysicsFrame,
+			Result.bSupportSupplementSuppressed ? 1 : 0, *Result.RuleDeltaVelocity.ToString(), Result.RuleMinimumUpwardSpeed);
 	}
 	return Result;
 }

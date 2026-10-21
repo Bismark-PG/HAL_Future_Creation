@@ -5,6 +5,7 @@
 #include "../HALImpactTypes.h"
 #include "../VehicleConfigurationApplication.h"
 #include "../VehicleDefinition.h"
+#include "../VehicleStabilityRules.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
@@ -140,12 +141,15 @@ namespace HALStabilityDiagnostic
 	}
 	FResult Run(UVehicleDefinition* Definition, const FVehicleKnockbackConfig& Table, const FHALCollisionImpactRules& Rules,
 		const FString& Name, const FQuat& Rotation, const FVector& InitialV, const FVector& InitialW,
-		double Clearance, bool bWall, bool bTallWall, bool bLowMaterial, bool bRuleSupplement,
+		double Clearance, bool bWall, bool bTallWall, bool bLowMaterial, bool bRuleSupplement, bool bSupportFilter,
 		TArray<FString>& Trace, TArray<FString>& ContactTrace, TArray<FString>& Native)
 	{
 		// Raw Chaos contacts + production budget helper + production action execution.
 		// Contact episode timing is isolated here; this is not a full GAS/RPC/delegate test.
 		FResult Result; Result.Name = Name;
+		FVehicleContactStabilityRules SupportPolicy;
+		SupportPolicy.bSuppressSupportSupplement = bSupportFilter;
+		SupportPolicy.MinimumSupportUpDot = FMath::Cos(PI/4);
 		const auto Options = UWorld::InitializationValues().AllowAudioPlayback(false).RequiresHitProxies(false)
 			.CreatePhysicsScene(true).CreateNavigation(false).CreateAISystem(false).CreateFXSystem(false)
 			.ShouldSimulatePhysics(true).SetTransactional(false);
@@ -244,6 +248,7 @@ namespace HALStabilityDiagnostic
 					Consumed.Add(Contact.Other); ++Result.Episodes;
 					const auto& Outcome = Table.GetTierDefinition(HALImpact::ToLegacy(Tier));
 					Supplement = HALImpact::PhysicalSupplement(Outcome.HorizontalDeltaSpeed, Natural, RelativeAfter, 0, Rules.MaximumRuleRestitution);
+					if (SupportPolicy.SuppressesSupplement(true, Contact.Normal, Direction)) { Supplement = 0; }
 					if (bRuleSupplement) { PendingSupplement += Direction * Supplement; }
 				}
 				Result.MaxSupplement = FMath::Max(Result.MaxSupplement, Supplement);
@@ -307,11 +312,16 @@ bool FHALVehicleStabilityDiagnostic::RunTest(const FString& Parameters)
 				Scenario == 1 ? FRotator(20,0,15).Quaternion() : FQuat::Identity,
 				Scenario == 1 ? FVector(450,0,750) : Scenario >= 2 ? FVector(1400,0,0) : FVector::ZeroVector,
 				Scenario == 1 ? FVector(0,5.13,.7) : FVector::ZeroVector,
-				Scenario == 0 ? 500 : 1, Scenario >= 2, Scenario == 3, bLow, bRules, Trace, Contacts, Native);
+				Scenario == 0 ? 500 : 1, Scenario >= 2, Scenario == 3, bLow, bRules,
+				FParse::Param(FCommandLine::Get(), TEXT("HALStabilitySupportFilter")), Trace, Contacts, Native);
 			TestEqual(Name+TEXT(" 720 real Solver outputs"), R.Outputs, 720);
 			TestTrue(Name+TEXT(" actual contact events captured"), R.ContactFrames > 0);
 			TestTrue(Name+TEXT(" worker executed probe/action"), R.bWorker);
 			TestTrue(Name+TEXT(" finite result"), FMath::IsFinite(R.FinalSpeed) && FMath::IsFinite(R.FinalAngular));
+			if (Scenario <= 1 && FParse::Param(FCommandLine::Get(), TEXT("HALStabilitySupportFilter")))
+			{
+				TestEqual(Name+TEXT(" ordinary floor never adds rule velocity"), R.TotalSupplement, 0.0);
+			}
 			Summary.Add(FString::Printf(TEXT("%s,%.9f,%.9f,%.9f,%.9f,%.9f,%.9f,%d,%d,%.9f,%.9f,%d,%d"),
 				*Name, R.FirstContact, R.FirstExitVz, R.ReboundClearance, R.StableAt, R.FinalSpeed, R.FinalAngular,
 				R.ContactFrames, R.Episodes, R.MaxSupplement, R.TotalSupplement, R.Outputs, R.bWorker));

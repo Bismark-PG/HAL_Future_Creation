@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
 
 #include "Misc/AutomationTest.h"
+#include "HALVehicleStabilityTestRules.h"
 #include "../HALImpactTypes.h"
 #include "../HALImpactAttributeSet.h"
 #include "../HALImpactReceiverComponent.h"
@@ -32,6 +33,7 @@ namespace
 {
 	struct FImpactWorld
 	{
+		FScopedHALStabilityTestRules Stability;
 		UVehicleKnockbackSettings* Settings = GetMutableDefault<UVehicleKnockbackSettings>();
 		EVehicleConfigurationSource OldSource = Settings->ConfigurationSource;
 		TSoftObjectPtr<UCombatRulesDefinition> OldAsset = Settings->CombatRules;
@@ -43,7 +45,7 @@ namespace
 			Settings->PostEditChangeProperty(Event);
 			Settings->InitializeRules();
 		}
-		FImpactWorld()
+		FImpactWorld(bool bSharedStability = false) : Stability(bSharedStability)
 		{
 			Settings->InitializeRules();
 			Rules = NewObject<UCombatRulesDefinition>();
@@ -282,7 +284,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALImpactBallPipelineTest, "HAL.FutureCreation
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FHALImpactBallPipelineTest::RunTest(const FString& Parameters)
 {
-	FImpactWorld F;
+	FImpactWorld F(true);
 	auto* Launcher = F.Target();
 	auto* Target = F.Target();
 	auto* Ball = F.World->SpawnActor<ABasicBallActor>();
@@ -340,7 +342,13 @@ bool FHALImpactBallPipelineTest::RunTest(const FString& Parameters)
 	PawnASC->RemoveLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune);
 	FHALCombatAction Heavy;
 	Begin(Heavy, Hazard, 0);
-	const auto Drop = FCombatResolver::ResolveCombatHit(Heavy, Request(Heavy, Pawn, EHALImpactTier::Heavy, false));
+	auto* Floor = NewObject<UBoxComponent>(Hazard); Hazard->SetRootComponent(Floor);
+	Floor->SetMobility(EComponentMobility::Static); Floor->SetCollisionObjectType(ECC_WorldStatic); Floor->RegisterComponent();
+	auto SupportHit = Request(Heavy, Pawn, EHALImpactTier::Heavy, false);
+	SupportHit.Impact.Mode = EHALImpactMode::PhysicalContact;
+	SupportHit.Hit.SourceActor = Hazard; SupportHit.Hit.SourcePhysicsBody = Floor;
+	SupportHit.Hit.ImpactNormal = FVector::UpVector; SupportHit.Hit.NormalImpulse = FVector(0,0,800000);
+	const auto Drop = FCombatResolver::ResolveCombatHit(Heavy, SupportHit);
 	TestTrue(TEXT("Effective Medium drops exactly once"), Drop.ImpactSummary.bBallDropped && Control->GetHeldBall() == nullptr);
 	TestEqual(TEXT("Dropped ball returns Free"), Held->GetBallState(), EBasicBallState::Free);
 	TestFalse(TEXT("Drop preserves existing reacquire lock"), Held->CanBeControlledBy(Pawn));
@@ -430,6 +438,138 @@ bool FHALSpringPunchCombatTest::RunTest(const FString& Parameters)
 	Punch->OnRep_Phase();
 	TestTrue(TEXT("Rest phase restores authored origin"), Punch->PunchPivot->GetRelativeLocation().Equals(FVector(10, 0, 0), 0.1));
 	TestFalse(TEXT("Rest phase disables tick"), Punch->IsActorTickEnabled());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALStabilityContactTest, "HAL.FutureCreation.Stability.SupportVersusAttacks",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALStabilityContactTest::RunTest(const FString& Parameters)
+{
+	FImpactWorld F(true);
+	auto* Target = F.Target();
+	auto* Shared = F.World->GetSubsystem<UVehicleStabilitySubsystem>();
+	TestTrue(TEXT("Shared material applied to vehicle root"), Body(Target)->BodyInstance.GetSimplePhysicalMaterial() == Shared->GetVehicleMaterial());
+	auto* Floor = F.World->SpawnActor<AActor>();
+	auto* FloorBody = NewObject<UBoxComponent>(Floor);
+	Floor->SetRootComponent(FloorBody); FloorBody->SetMobility(EComponentMobility::Static);
+	FloorBody->SetCollisionObjectType(ECC_WorldStatic); FloorBody->RegisterComponent();
+	auto Physical = [&](AActor* Source, UPrimitiveComponent* SourceBody, FVector Normal, EHALImpactMode Mode)
+	{
+		Body(Target)->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		Body(Target)->SetPhysicsAngularVelocityInRadians(FVector::ZeroVector);
+		FHALCombatAction Action; Begin(Action, Source, 0);
+		auto Hit = Request(Action, Target, EHALImpactTier::Medium, false);
+		Hit.Impact.Mode = Mode; Hit.Hit.SourceActor = Source; Hit.Hit.SourcePhysicsBody = SourceBody;
+		Hit.Hit.NormalImpulse = Normal * Body(Target)->GetMass() * 150;
+		Hit.Hit.ImpactNormal = Normal;
+		const auto Result = FCombatResolver::ResolveCombatHit(Action, Hit);
+		TestTrue(TEXT("Impact accepted independently of physical supplement"), Result.bHitAccepted && Result.bImpactApplied);
+		return Result;
+	};
+	const auto Support = Physical(Floor, FloorBody, FVector::UpVector, EHALImpactMode::PhysicalContact);
+	TestEqual(TEXT("Support retains Medium tier"), Support.ImpactSummary.EffectiveTier, EHALImpactTier::Medium);
+	TestTrue(TEXT("Ordinary static support queues zero rule velocity"), Support.bSupportSupplementSuppressed && Support.RuleDeltaVelocity.IsNearlyZero());
+	TestEqual(TEXT("Support does not damage"), ASC(Target)->GetSet<UHALHealthAttributeSet>()->GetCurrentHP(), 100.f);
+	const auto WallResult = Physical(Floor, FloorBody, FVector::ForwardVector, EHALImpactMode::PhysicalContact);
+	TestTrue(TEXT("Horizontal wall keeps bounded normal supplement"), !WallResult.bSupportSupplementSuppressed && WallResult.RuleDeltaVelocity.X > 0);
+	FloorBody->SetMobility(EComponentMobility::Movable);
+	const auto MovableResult = Physical(Floor, FloorBody, FVector::UpVector, EHALImpactMode::PhysicalContact);
+	TestTrue(TEXT("Movable environment is not ordinary static support"), !MovableResult.bSupportSupplementSuppressed && MovableResult.RuleDeltaVelocity.Z > 0);
+	FloorBody->SetMobility(EComponentMobility::Static);
+	auto* Profile = NewObject<UHALImpactSourceComponent>(Floor); Floor->AddInstanceComponent(Profile); Profile->RegisterComponent();
+	const auto AuthoredResult = Physical(Floor, FloorBody, FVector::UpVector, EHALImpactMode::PhysicalContact);
+	TestTrue(TEXT("Authored physical source is not suppressed by slope"), !AuthoredResult.bSupportSupplementSuppressed && AuthoredResult.RuleDeltaVelocity.Z > 0);
+	Profile->DestroyComponent();
+	auto* Vehicle = F.Target();
+	const auto VehicleResult = Physical(Vehicle, Body(Vehicle), FVector::UpVector, EHALImpactMode::PhysicalContact);
+	TestTrue(TEXT("Vehicle contact remains active"), !VehicleResult.bSupportSupplementSuppressed && VehicleResult.RuleDeltaVelocity.Z > 0);
+	auto* Ball = F.World->SpawnActor<ABasicBallActor>();
+	TestTrue(TEXT("Ball retains its own physical material"), Ball->GetPhysicsRoot()->BodyInstance.GetSimplePhysicalMaterial() != Shared->GetVehicleMaterial());
+	const auto BallResult = Physical(Ball, Ball->GetPhysicsRoot(), FVector::UpVector, EHALImpactMode::PhysicalContact);
+	TestTrue(TEXT("Free ball contact remains active"), !BallResult.bSupportSupplementSuppressed && BallResult.RuleDeltaVelocity.Z > 0);
+	const auto Attack = Physical(Floor, FloorBody, -FVector::ForwardVector, EHALImpactMode::ExplicitTier);
+	TestTrue(TEXT("Explicit Medium still authors upward target"), !Attack.bSupportSupplementSuppressed && Attack.RuleMinimumUpwardSpeed >= 499);
+	TestTrue(TEXT("Explicit Medium still authors flip"), Body(Target)->GetPhysicsAngularVelocityInRadians().Size() > 0);
+	ASC(Target)->AddLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune);
+	Body(Target)->SetPhysicsLinearVelocity(FVector(0,0,-90));
+	FHALCombatAction Immune; Begin(Immune, Floor, 0);
+	auto Hit = Request(Immune, Target, EHALImpactTier::Heavy, false);
+	Hit.Impact.Mode = EHALImpactMode::PhysicalContact; Hit.Hit.SourceActor = Floor; Hit.Hit.SourcePhysicsBody = FloorBody;
+	Hit.Hit.ImpactNormal = FVector::UpVector; Hit.Hit.NormalImpulse = FVector(0,0,800000);
+	const auto ImmuneResult = FCombatResolver::ResolveCombatHit(Immune, Hit);
+	TestEqual(TEXT("Impact immunity remains independent"), ImmuneResult.ImpactSummary.EffectiveTier, EHALImpactTier::None);
+	TestEqual(TEXT("Immunity/filter never cancels falling"), Body(Target)->GetPhysicsLinearVelocity().Z, -90.0);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALStabilitySnapshotTest, "HAL.FutureCreation.Stability.ValidationAndWorldSnapshot",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALStabilitySnapshotTest::RunTest(const FString& Parameters)
+{
+	float LegacyMass = 0;
+	FVector LegacyInertia = FVector::ZeroVector;
+	{
+		FImpactWorld F; auto* Target = F.Target();
+		LegacyMass = Body(Target)->GetMass(); LegacyInertia = Body(Target)->GetInertiaTensor();
+	}
+	{
+		FImpactWorld F(true); auto* Target = F.Target();
+		TestEqual(TEXT("Default-density shared material preserves configured mass"), Body(Target)->GetMass(), LegacyMass, .01f);
+		TestTrue(TEXT("Same geometry and mass preserve inertia after material update"), Body(Target)->GetInertiaTensor().Equals(LegacyInertia, .1));
+	}
+	FScopedHALStabilityTestRules Settings(true);
+	auto* Rules = Settings.Settings->SharedRules.Get();
+	FString Error;
+	TestTrue(TEXT("Test material valid"), Rules->Validate(Error));
+	Rules->MaximumSupportSlopeDegrees = std::numeric_limits<float>::quiet_NaN();
+	TestFalse(TEXT("Nonfinite slope rejected"), Rules->Validate(Error));
+	Rules->MaximumSupportSlopeDegrees = 81;
+	TestFalse(TEXT("Excess slope rejected"), Rules->Validate(Error));
+	Rules->MaximumSupportSlopeDegrees = 45;
+	Rules->VehiclePhysicalMaterial->Restitution = -1;
+	TestFalse(TEXT("Invalid material rejected"), Rules->Validate(Error));
+	Rules->VehiclePhysicalMaterial->Restitution = 0;
+	uint32 First = 0;
+	{
+		FImpactWorld F(true);
+		auto* Original = F.Stability.Settings->SharedRules.Get();
+		auto* A = F.Target();
+		auto* Shared = F.World->GetSubsystem<UVehicleStabilitySubsystem>(); First = Shared->GetSignature();
+		Original->MaximumSupportSlopeDegrees = 60; Original->VehiclePhysicalMaterial->Restitution = .1f;
+		auto* B = F.Target();
+		TestEqual(TEXT("Midmatch source edit cannot alter frozen restitution"), Shared->GetVehicleMaterial()->Restitution, 0.f);
+		TestEqual(TEXT("One snapshot for every vehicle"), Body(A)->BodyInstance.GetSimplePhysicalMaterial(), Body(B)->BodyInstance.GetSimplePhysicalMaterial());
+		TestEqual(TEXT("Snapshot signature frozen"), Shared->GetSignature(), First);
+	}
+	{
+		FImpactWorld F(true);
+		F.Stability.Settings->SharedRules.Get()->MaximumSupportSlopeDegrees = 60;
+		F.Target();
+		TestNotEqual(TEXT("New world consumes edited values"), F.World->GetSubsystem<UVehicleStabilitySubsystem>()->GetSignature(), First);
+		TestEqual(TEXT("New world applies new slope"), F.World->GetSubsystem<UVehicleStabilitySubsystem>()->GetContactRules().MinimumSupportUpDot, .5f, .0001f);
+	}
+	{
+		FImpactWorld F(true); F.Stability.Settings->SharedRules.Get()->bReadyForUse = false;
+		AddExpectedMessage(TEXT("Invalid VehicleStabilityRules"), ELogVerbosity::Error, EAutomationExpectedMessageFlags::Contains, 1);
+		auto* Invalid = F.Target();
+		TestFalse(TEXT("Invalid selected DA cannot silently fall back to old physics"), Body(Invalid)->IsSimulatingPhysics());
+	}
+	{
+		FImpactWorld F(true); auto* Target = F.Target(); auto* Receiver = Target->FindComponentByClass<UHALImpactReceiverComponent>();
+		TestTrue(TEXT("Authority signature initialized"), Receiver->HasMatchingStabilityRules());
+		Target->SetRole(ROLE_SimulatedProxy);
+		FindFProperty<FUInt32Property>(Receiver->GetClass(), TEXT("StabilitySignature"))->SetPropertyValue_InContainer(Receiver, 1);
+		AddExpectedMessage(TEXT("VehicleStabilityRules mismatch"), ELogVerbosity::Error, EAutomationExpectedMessageFlags::Contains, 1);
+		Receiver->ProcessEvent(Receiver->FindFunctionChecked(TEXT("OnRep_StabilitySignature")), nullptr);
+		TestFalse(TEXT("Mismatch stops client simulation"), Receiver->HasMatchingStabilityRules() || Body(Target)->IsSimulatingPhysics());
+		Target->SetRole(ROLE_Authority);
+	}
+	FVehicleContactStabilityRules Policy; Policy.bSuppressSupportSupplement = true; Policy.MinimumSupportUpDot = FMath::Cos(PI/4);
+	TestTrue(TEXT("Shallow support accepted"), Policy.SuppressesSupplement(true, FVector(0,.5,1), FVector(0,.5,1)));
+	TestFalse(TEXT("Steep wall excluded"), Policy.SuppressesSupplement(true, FVector(1,0,.1), FVector::UpVector));
+	TestFalse(TEXT("Ceiling excluded"), Policy.SuppressesSupplement(true, -FVector::UpVector, -FVector::UpVector));
+	TestFalse(TEXT("Impulse alone cannot turn wall into support"), Policy.SuppressesSupplement(true, FVector::ForwardVector, FVector::UpVector));
+	TestFalse(TEXT("Invalid direction excluded"), Policy.SuppressesSupplement(true, FVector::UpVector, FVector(std::numeric_limits<double>::infinity())));
 	return true;
 }
 

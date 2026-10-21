@@ -31,8 +31,40 @@ bool UHALImpactReceiverComponent::ApplyConfiguration(const FHALVehicleImpactConf
 	return true;
 }
 
-bool UHALImpactReceiverComponent::CheckConfiguredRules() const
+bool UHALImpactReceiverComponent::InitializeStabilityRules()
 {
+	if (bStabilityInitialized) { return bStabilityValid; }
+	bStabilityInitialized = true;
+	auto* Shared = GetWorld()->GetSubsystem<UVehicleStabilitySubsystem>();
+	if (!Shared || !Shared->InitializeRules()) { return false; }
+	StabilityRules = Shared->GetContactRules();
+	LocalStabilitySignature = Shared->GetSignature();
+	if (auto* Root = Cast<UPrimitiveComponent>(GetOwner()->GetRootComponent()))
+	{
+		if (auto* Material = Shared->GetVehicleMaterial()) { Root->SetPhysMaterialOverride(Material); }
+	}
+	bStabilityValid = true;
+	if (GetOwner()->HasAuthority()) { StabilitySignature = LocalStabilitySignature; }
+	else { OnRep_StabilitySignature(); }
+	return bStabilityValid;
+}
+
+void UHALImpactReceiverComponent::OnRep_StabilitySignature()
+{
+	if (!bStabilityInitialized || !StabilitySignature || StabilitySignature == LocalStabilitySignature) { return; }
+	bStabilityValid = false;
+	UE_LOG(LogTemp, Error, TEXT("%s: VehicleStabilityRules mismatch local=%u authority=%u. Client vehicle physics blocked; restart with matching configuration."),
+		*GetNameSafe(GetOwner()), LocalStabilitySignature, StabilitySignature);
+	if (auto* Movement = GetOwner()->FindComponentByClass<UArcadeVehicleMovementComponent>()) { Movement->Deactivate(); }
+	if (auto* Root = Cast<UPrimitiveComponent>(GetOwner()->GetRootComponent()))
+	{
+		Root->SetSimulatePhysics(false); Root->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+}
+
+bool UHALImpactReceiverComponent::CheckConfiguredRules()
+{
+	if (!InitializeStabilityRules()) { return false; }
 	FHALCollisionImpactRules Rules;
 	if (!GetDefault<UVehicleKnockbackSettings>()->GetCollisionImpactRules(Rules)) { return false; }
 	if (Rules.Version == EHALImpactVersion::TieredV1 && Config.Version != Rules.Version)
@@ -46,6 +78,7 @@ bool UHALImpactReceiverComponent::CheckConfiguredRules() const
 void UHALImpactReceiverComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	if (!InitializeStabilityRules()) { return; }
 	if (!GetOwner()->HasAuthority()) { return; }
 	FHALCollisionImpactRules Rules;
 	if (!GetDefault<UVehicleKnockbackSettings>()->GetCollisionImpactRules(Rules) || Rules.Version != EHALImpactVersion::TieredV1) { return; }
@@ -72,6 +105,7 @@ void UHALImpactReceiverComponent::GetLifetimeReplicatedProps(TArray<FLifetimePro
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UHALImpactReceiverComponent, LastImpact);
+	DOREPLIFETIME(UHALImpactReceiverComponent, StabilitySignature);
 }
 
 void UHALImpactReceiverComponent::ExpireContacts()
@@ -98,7 +132,7 @@ void UHALImpactReceiverComponent::SuppressContact(UPrimitiveComponent* OtherBody
 void UHALImpactReceiverComponent::HandleContact(UPrimitiveComponent* Body, AActor* Other,
 	UPrimitiveComponent* OtherBody, FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (!GetOwner()->HasAuthority() || !IsValid(Other) || Other == GetOwner() || !IsValid(Body)
+	if (!bStabilityValid || !GetOwner()->HasAuthority() || !IsValid(Other) || Other == GetOwner() || !IsValid(Body)
 		|| !IsValid(OtherBody) || OtherBody->GetOwner() != Other || Body != GetOwner()->GetRootComponent() || !Body->IsSimulatingPhysics()
 		|| NormalImpulse.ContainsNaN()) { return; }
 	FHALCollisionImpactRules Rules;
@@ -161,7 +195,7 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 	Result.ImpactOutcome = EHALImpactOutcome::TargetNotReady;
 	UHALAbilitySystemComponent* ASC = Cast<UHALAbilitySystemComponent>(UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetOwner()));
 	const UHALImpactAttributeSet* Attributes = ASC ? ASC->GetSet<UHALImpactAttributeSet>() : nullptr;
-	if (!GetOwner()->HasAuthority() || Config.Version != EHALImpactVersion::TieredV1 || !ASC
+	if (!bStabilityValid || !GetOwner()->HasAuthority() || Config.Version != EHALImpactVersion::TieredV1 || !ASC
 		|| !ASC->IsImpactInitialized() || ASC->GetAvatarActor() != GetOwner() || !Attributes) { return; }
 	Result.ImpactOutcome = EHALImpactOutcome::InvalidMeasurement;
 	if (Request.Impact.Mode == EHALImpactMode::LegacyMeasurement || !HALImpact::IsValidTier(Request.Impact.Tier)) { return; }
@@ -214,6 +248,17 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 			const float RelativeAfter = FVector::DotProduct(Body->GetPhysicsLinearVelocityAtPoint(Hit.ImpactPoint) - OtherVelocity, Direction);
 			const float Ratio = Hit.SourceMass > SMALL_NUMBER ? Mass / Hit.SourceMass : 0;
 			Supplement = HALImpact::PhysicalSupplement(Tier.HorizontalDeltaSpeed, Natural, RelativeAfter, Ratio, Rules.MaximumRuleRestitution);
+			const auto* OtherBody = Hit.SourcePhysicsBody;
+			const auto* Other = Hit.SourceActor;
+			const bool bOrdinaryStatic = IsValid(OtherBody) && IsValid(Other) && OtherBody->GetOwner() == Other
+				&& OtherBody->Mobility == EComponentMobility::Static && OtherBody->GetCollisionObjectType() == ECC_WorldStatic
+				&& !OtherBody->IsSimulatingPhysics() && !Other->IsA<ABasicBallActor>()
+				&& !Other->FindComponentByClass<UHALImpactSourceComponent>() && !Other->FindComponentByClass<UHALImpactReceiverComponent>();
+			if (StabilityRules.SuppressesSupplement(bOrdinaryStatic, Hit.ImpactNormal, Direction))
+			{
+				Result.bSupportSupplementSuppressed = true;
+				Supplement = 0; // Keep accepted tier, resistance, contact episode and drop below.
+			}
 		}
 		FVehicleImpactAction PhysicsAction;
 		PhysicsAction.EventSequence = ++NextEvent;
@@ -241,6 +286,8 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 			bQueued = true;
 		}
 		if (!bQueued) { return; }
+		Result.RuleDeltaVelocity = PhysicsAction.DeltaVelocity;
+		Result.RuleMinimumUpwardSpeed = PhysicsAction.bMinimumUpwardSpeed ? PhysicsAction.MinimumUpwardSpeed : 0;
 		Result.bImpactApplied = true;
 		Result.ImpactOutcome = EHALImpactOutcome::Applied;
 		if (Config.bDropOnImpact && uint8(Summary.EffectiveTier) >= uint8(Config.MinimumDropTier))
