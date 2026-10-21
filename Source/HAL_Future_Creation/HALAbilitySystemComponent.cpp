@@ -1,4 +1,5 @@
 #include "HALAbilitySystemComponent.h"
+#include "VehicleRecoveryComponent.h"
 
 #include "HAL/IConsoleManager.h"
 #include "HALHealthAttributeSet.h"
@@ -96,6 +97,7 @@ bool UHALAbilitySystemComponent::HasAbilityForInput(FGameplayTag InputTag) const
 bool UHALAbilitySystemComponent::TryActivateAbilityInput(FGameplayTag InputTag)
 {
 	if (!InputTag.IsValid() || !GetAvatarActor()) { return false; }
+	if (const auto* Recovery = GetAvatarActor()->FindComponentByClass<UVehicleRecoveryComponent>(); Recovery && Recovery->IsExecuting()) { return false; }
 	TArray<FGameplayAbilitySpecHandle> Handles;
 	{
 		ABILITYLIST_SCOPE_LOCK();
@@ -112,6 +114,12 @@ bool UHALAbilitySystemComponent::TryActivateAbilityInput(FGameplayTag InputTag)
 			*InputTag.ToString(), Handles.Num(), bRequested);
 	}
 	return bRequested;
+}
+
+bool UHALAbilitySystemComponent::AreAbilityTagsBlocked(const FGameplayTagContainer& Tags) const
+{
+	const auto* Recovery = GetAvatarActor() ? GetAvatarActor()->FindComponentByClass<UVehicleRecoveryComponent>() : nullptr;
+	return (Recovery && Recovery->IsExecuting()) || Super::AreAbilityTagsBlocked(Tags);
 }
 
 float UHALAbilitySystemComponent::GetEffectTimeRemaining(FGameplayTag GrantedTag) const

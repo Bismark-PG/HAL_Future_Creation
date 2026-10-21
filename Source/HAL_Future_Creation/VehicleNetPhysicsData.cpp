@@ -32,6 +32,7 @@ void FVehiclePhysicsHistoryInput::InterpolateData(const FNetworkPhysicsData& Min
 	Input.Cmd.Brake = FMath::Lerp(Min.Input.Cmd.Brake, Max.Input.Cmd.Brake, Alpha);
 	Input.Cmd.Steering = FMath::Lerp(Min.Input.Cmd.Steering, Max.Input.Cmd.Steering, Alpha);
 	Input.Cmd.bHandbrake = Alpha < 0.5f ? Min.Input.Cmd.bHandbrake : Max.Input.Cmd.bHandbrake;
+	Input.Cmd.bSelfRight = Alpha < 1.f ? Min.Input.Cmd.bSelfRight : Max.Input.Cmd.bSelfRight;
 	Input.PhysicsFrame = LocalFrame;
 }
 
@@ -42,6 +43,7 @@ void FVehiclePhysicsHistoryInput::MergeData(const FNetworkPhysicsData& FromData)
 	Input.Cmd.Brake = (Input.Cmd.Brake + Older.Input.Cmd.Brake) * 0.5f;
 	Input.Cmd.Steering = (Input.Cmd.Steering + Older.Input.Cmd.Steering) * 0.5f;
 	Input.Cmd.bHandbrake |= Older.Input.Cmd.bHandbrake;
+	Input.Cmd.bSelfRight &= Older.Input.Cmd.bSelfRight; // Missing release must not become a fresh held press.
 }
 
 void FVehiclePhysicsHistoryInput::DecayData(float DecayAmount)
@@ -50,7 +52,7 @@ void FVehiclePhysicsHistoryInput::DecayData(float DecayAmount)
 	Input.Cmd.Throttle *= Scale;
 	Input.Cmd.Brake *= Scale;
 	Input.Cmd.Steering *= Scale;
-	if (Scale <= 0.0f) { Input.Cmd.bHandbrake = false; }
+	if (Scale <= 0.0f) { Input.Cmd.bHandbrake = false; Input.Cmd.bSelfRight = false; }
 }
 
 void FVehiclePhysicsHistoryInput::ValidateData(const UActorComponent* NetworkComponent)
@@ -68,7 +70,7 @@ bool FVehiclePhysicsHistoryInput::CompareData(const FNetworkPhysicsData& Predict
 	return FMath::IsNearlyEqual(Input.Cmd.Throttle, Predicted.Input.Cmd.Throttle, 0.01f)
 		&& FMath::IsNearlyEqual(Input.Cmd.Brake, Predicted.Input.Cmd.Brake, 0.01f)
 		&& FMath::IsNearlyEqual(Input.Cmd.Steering, Predicted.Input.Cmd.Steering, 0.01f)
-		&& Input.Cmd.bHandbrake == Predicted.Input.Cmd.bHandbrake;
+		&& Input.Cmd.bHandbrake == Predicted.Input.Cmd.bHandbrake && Input.Cmd.bSelfRight == Predicted.Input.Cmd.bSelfRight;
 }
 
 bool FVehiclePhysicsHistoryInput::NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess)
@@ -77,9 +79,12 @@ bool FVehiclePhysicsHistoryInput::NetSerialize(FArchive& Ar, UPackageMap* Map, b
 	Ar << Input.Cmd.Throttle << Input.Cmd.Brake << Input.Cmd.Steering << Input.InputSequence;
 	uint8 Handbrake = Input.Cmd.bHandbrake ? 1 : 0;
 	Ar << Handbrake;
+	uint8 SelfRight = Input.Cmd.bSelfRight ? 1 : 0;
+	Ar << SelfRight;
 	if (Ar.IsLoading())
 	{
 		Input.Cmd.bHandbrake = Handbrake != 0;
+		Input.Cmd.bSelfRight = SelfRight != 0;
 		Input.Cmd.bLaunch = false;
 		Input.Cmd.bPrimarySkill = false;
 		Input.PhysicsFrame = LocalFrame;
@@ -116,6 +121,7 @@ void FVehiclePhysicsHistoryState::InterpolateData(const FNetworkPhysicsData& Min
 	State.LinearVelocity = FMath::Lerp(Min.State.LinearVelocity, Max.State.LinearVelocity, Alpha);
 	State.AngularVelocityRadians = FMath::Lerp(Min.State.AngularVelocityRadians, Max.State.AngularVelocityRadians, Alpha);
 	State.PhysicsFrame = LocalFrame;
+	State.Recovery = LocalFrame < Max.LocalFrame ? Min.State.Recovery : Max.State.Recovery;
 	// Movement parameters are discrete. Retain the timeline covering this frame;
 	// never Lerp a multiplier or select a revision by nearest endpoint.
 	const int32 ServerTarget = ServerFrame;
@@ -129,6 +135,9 @@ void FVehiclePhysicsHistoryState::InterpolateData(const FNetworkPhysicsData& Min
 bool FVehiclePhysicsHistoryState::CompareData(const FNetworkPhysicsData& PredictedData)
 {
 	const auto& Predicted = static_cast<const FVehiclePhysicsHistoryState&>(PredictedData);
+	if (State.bPoseDriveAllowed != Predicted.State.bPoseDriveAllowed
+		|| !FMath::IsNearlyEqual(State.PoseStableSeconds,Predicted.State.PoseStableSeconds,.025f)
+		|| !State.Recovery.Equals(Predicted.State.Recovery)) { return false; }
 	// Chaos compares and rewinds the rigid body using the Settings Data Asset thresholds.
 	// This comparison covers movement memory which Chaos does not know about.
 	if (!State.MovementSnapshot.Equals(Predicted.State.MovementSnapshot)) { return false; }
@@ -158,6 +167,9 @@ bool FVehiclePhysicsHistoryState::NetSerialize(FArchive& Ar, UPackageMap* Map, b
 {
 	SerializeFrames(Ar);
 	Ar << State.Position << State.Rotation << State.LinearVelocity << State.AngularVelocityRadians;
+	Ar << State.bPoseDriveAllowed << State.PoseStableSeconds;
+	State.Recovery.Serialize(Ar);
+	if (!FMath::IsFinite(State.PoseStableSeconds) || State.PoseStableSeconds < 0 || State.PoseStableSeconds > 1.1f) { Ar.SetError(); }
 	State.MovementSnapshot.Serialize(Ar);
 	if ((!State.MovementSnapshot.IsUnset() && !State.MovementSnapshot.IsValid()) || !State.MovementTimeline.Serialize(Ar))
 	{

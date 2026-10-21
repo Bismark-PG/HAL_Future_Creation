@@ -6,6 +6,7 @@
 #include "Physics/NetworkPhysicsComponent.h"
 #include "VehicleInputCmd.h"
 #include "HALMovementTypes.h"
+#include "VehicleRecoveryTypes.h"
 #include "VehicleNetPhysicsData.generated.h"
 
 /** One continuous input sample for a Chaos physics frame. Launch remains a separate edge event. */
@@ -147,6 +148,17 @@ struct HAL_FUTURE_CREATION_API FVehicleMovementParameterAction : public FNetwork
 	}
 };
 
+/** Authority phase change. Replay applies forces only; no ball, HP or GAS side effects. */
+USTRUCT()
+struct HAL_FUTURE_CREATION_API FVehicleRecoveryAction : public FNetworkPhysicsActionPayload
+{
+	GENERATED_BODY()
+	UPROPERTY() FVehicleRecoveryPhysicsState Value;
+	virtual const EActionAuthorStyle GetAuthorStyle() const override { return EActionAuthorStyle::Authority; }
+	virtual bool IsNearlyEqual(const FNetworkPhysicsActionPayload& Other) const override
+	{ return Value.Equals(static_cast<const FVehicleRecoveryAction&>(Other).Value); }
+};
+
 /** Rigid body and movement state needed to compare/restore a predicted vehicle frame. */
 USTRUCT()
 struct HAL_FUTURE_CREATION_API FVehicleNetStateData
@@ -184,6 +196,9 @@ struct HAL_FUTURE_CREATION_API FVehicleNetStateData
 	FVector PendingRecoilDeltaVelocity = FVector::ZeroVector;
 	UPROPERTY() FHALMovementSnapshot MovementSnapshot;
 	UPROPERTY() FHALMovementTimeline MovementTimeline;
+	UPROPERTY() bool bPoseDriveAllowed = false;
+	UPROPERTY() float PoseStableSeconds = 0;
+	UPROPERTY() FVehicleRecoveryPhysicsState Recovery;
 };
 
 /** UE 5.8 Network Physics frame history. Continuous controls only; launch keeps its idempotent RPC. */

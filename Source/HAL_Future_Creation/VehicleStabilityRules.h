@@ -4,6 +4,7 @@
 #include "Engine/DataAsset.h"
 #include "Engine/DeveloperSettings.h"
 #include "Subsystems/WorldSubsystem.h"
+#include "VehicleRecoveryTypes.h"
 #include "VehicleStabilityRules.generated.h"
 
 class UPhysicalMaterial;
@@ -23,7 +24,7 @@ struct HAL_FUTURE_CREATION_API FVehicleContactStabilityRules
 	bool SuppressesSupplement(bool bOrdinaryStationaryEnvironment, const FVector& Normal, const FVector& ImpulseDirection) const;
 };
 
-/** Shared vehicle contact rules. Self-righting parameters will be added with that implementation. */
+/** Shared vehicle contact, pose and recovery rules. */
 UCLASS(BlueprintType)
 class HAL_FUTURE_CREATION_API UVehicleStabilityRules : public UDataAsset
 {
@@ -40,6 +41,7 @@ public:
 	/** Maximum slope from world up; both geometric normal and impulse must qualify. */
 	UPROPERTY(EditDefaultsOnly, Category = "Contact", meta = (ClampMin = "0", ClampMax = "80", Units = "deg"))
 	float MaximumSupportSlopeDegrees = 45;
+	UPROPERTY(EditDefaultsOnly, Category = "Recovery") FVehicleRecoveryConfig Recovery;
 	bool Validate(FString& Error) const;
 };
 
@@ -63,12 +65,14 @@ class HAL_FUTURE_CREATION_API UVehicleStabilitySubsystem : public UWorldSubsyste
 public:
 	bool InitializeRules();
 	const FVehicleContactStabilityRules& GetContactRules() const { return ContactRules; }
+	const FVehicleRecoveryConfig& GetRecoveryRules() const { return RecoveryRules; }
 	UPhysicalMaterial* GetVehicleMaterial() const { return Material; }
 	uint32 GetSignature() const { return Signature; }
 private:
 	bool bInitialized = false;
 	bool bValid = false;
 	FVehicleContactStabilityRules ContactRules;
+	FVehicleRecoveryConfig RecoveryRules;
 	uint32 Signature = 0;
 	UPROPERTY(Transient) TObjectPtr<UPhysicalMaterial> Material;
 };

@@ -19,6 +19,7 @@
 #include "HALCombatAttributeSet.h"
 #include "HALImpactAttributeSet.h"
 #include "HALImpactReceiverComponent.h"
+#include "VehicleRecoveryComponent.h"
 #include "HALGameplayTags.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
@@ -150,6 +151,13 @@ void UHALDebugHUDWidget::RefreshStatus()
 				int32(Last.SourceTier), int32(Last.EffectiveTier), Last.bBallDropped);
 		}
 		// Read the game-thread body snapshot; movement's live async physics fields must not be read here.
+		if (const auto* Recovery = Vehicle->FindComponentByClass<UVehicleRecoveryComponent>())
+		{
+			const auto State = Recovery->GetStatus();
+			Text += FString::Printf(TEXT("Pose: Drive=%d Ground=%d  Self-right=%s\nHold=%.0f%% CD=%.1fs Outcome=%s\n"),
+				State.bDrivingAllowed,State.bNearGround,*UEnum::GetValueAsString(State.Phase),
+				State.HoldProgress*100,State.CooldownRemaining,*State.LastOutcome.ToString());
+		}
 		const UPrimitiveComponent* Body = Cast<UPrimitiveComponent>(Vehicle->GetRootComponent());
 		const FVector Velocity = Body ? Body->GetPhysicsLinearVelocity() : FVector::ZeroVector;
 		const float ForwardSpeed = Body ? FVector::DotProduct(Velocity, Body->GetForwardVector()) : 0.0f;

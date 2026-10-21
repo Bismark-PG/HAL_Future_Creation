@@ -46,6 +46,8 @@ public:
 	void HandleVehicleCollision(const FVector& NormalImpulse, const FHitResult& Hit);
 	/** Authority-only tier outcome; raw impulse never bypasses resistance in TieredV1. */
 	bool ReleaseFromImpact(const FVector& Direction);
+	/** Authority execution start: Free + existing reacquire lock, no release impulse or attack payload. */
+	void ReleaseForRecovery();
 
 	UFUNCTION(BlueprintPure, Category = "Ball Control|State")
 	ABasicBallActor* GetHeldBall() const { return HeldBall; }
@@ -112,6 +114,7 @@ private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend class FHALImpactBallPipelineTest;
 	friend class FConfigurationPlayerBallTest;
+	friend struct FHALRecoveryTestAccess;
 #endif
 	void EvaluateBallControl();
 	ABasicBallActor* FindBestCandidate() const;

@@ -26,6 +26,7 @@ public:
 	bool HasAbilityForInput(FGameplayTag InputTag) const;
 	/** Uses GAS's own activation RPC; true on a client means a request, not authority acceptance. */
 	bool TryActivateAbilityInput(FGameplayTag InputTag);
+	virtual bool AreAbilityTagsBlocked(const FGameplayTagContainer& Tags) const override;
 	/** Read-only GAS query. -1 means an infinite/unknown source, not zero remaining time. */
 	float GetEffectTimeRemaining(FGameplayTag GrantedTag) const;
 

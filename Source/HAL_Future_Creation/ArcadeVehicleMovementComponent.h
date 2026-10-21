@@ -73,6 +73,8 @@ public:
 	FHALMovementStatus GetMovementEffectStatus() const;
 	/** Thread-safe copy of the last actually consumed input; for cosmetic observers only. */
 	FHALVehiclePresentationInput GetPresentationInput() const;
+	FVehicleStabilityObservation GetStabilityObservation() const;
+	bool QueueRecovery(const FVehicleRecoveryPhysicsState& Value);
 
 	UFUNCTION(BlueprintPure, Category = "Arcade Vehicle|Debug")
 	bool IsGrounded() const { return bGrounded; }
@@ -90,6 +92,7 @@ private:
 	friend class FHALMovementSolverTest;
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALVehicleStabilityTestAccess;
+	friend struct FHALRecoveryTestAccess;
 #endif
 	void ApplyPendingMovementConfiguration();
 	void ApplyMovementAction(const FVehicleMovementParameterAction& Action);
@@ -99,6 +102,15 @@ private:
 	bool RequestMovementRewind(Chaos::FPBDRigidsSolver* Solver, int32 LocalFrame, int32 RequestedLocalFrame, bool bRequireCheckpoint = false);
 	void SimulateVehicleStep(const FVehicleNetInputData& StepInput, float DeltaTime);
 	bool UpdateGroundContact(const FVector& BodyLocation, FVector& OutGroundNormal) const;
+	FVehicleRecoveryConfig RecoveryRules;
+	FVector LocalBodyCenter = FVector::ZeroVector, LocalBodyExtent = FVector::ZeroVector;
+	FQuat GroundProbeRotation = FQuat::Identity; // Physics-owned, from the Internal body.
+	bool bPoseDriveAllowed = false;
+	float PoseStableSeconds = 0;
+	FVehicleRecoveryPhysicsState RecoveryPhysics;
+	FVehicleRecoveryPhysicsState PendingRecovery;
+	bool bPendingRecovery = false;
+	FVehicleStabilityObservation PublishedStability; // Protected by PendingPhysicsDataLock.
 	void UpdateWallEscape(const FTransform& BodyTransform, const FVector& GroundNormal, const FVector& ForwardDirection,
 		const FVector& Velocity, float DeltaTime);
 	void ResetWallEscape();

@@ -1,4 +1,5 @@
 #include "HALImpactReceiverComponent.h"
+#include "VehicleRecoveryComponent.h"
 
 #include "HALImpactAttributeSet.h"
 #include "HALImpactSourceComponent.h"
@@ -291,6 +292,8 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 		Result.RuleMinimumUpwardSpeed = PhysicsAction.bMinimumUpwardSpeed ? PhysicsAction.MinimumUpwardSpeed : 0;
 		Result.bImpactApplied = true;
 		Result.ImpactOutcome = EHALImpactOutcome::Applied;
+		if (auto* Recovery = GetOwner()->FindComponentByClass<UVehicleRecoveryComponent>())
+		{ Recovery->NotifyExternalImpact(Request,Summary.EffectiveTier); }
 		if (Config.bDropOnImpact && uint8(Summary.EffectiveTier) >= uint8(Config.MinimumDropTier))
 		{
 			if (UBallControlComponent* BallControl = GetOwner()->FindComponentByClass<UBallControlComponent>())

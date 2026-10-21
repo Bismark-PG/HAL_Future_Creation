@@ -17,6 +17,7 @@
 #include "GameFramework/Pawn.h"
 #include "VehicleWallEscapeMath.h"
 #include "Chaos/SimCallbackObject.h"
+#include "VehicleStabilityRules.h"
 
 // UE 5.8 deliberately omits frozen-game-thread callbacks (including the generic
 // ActorComponent AsyncPhysicsTick) during rewind. Keep its normal-step path and
@@ -49,11 +50,14 @@ static TAutoConsoleVariable<int32> CVarHALImpactPhysicsLog(
 UArcadeVehicleMovementComponent::UArcadeVehicleMovementComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	RecoveryRules.bEnabled = false; // Legacy/manual fixtures until a world snapshot is loaded.
 }
 
 void UArcadeVehicleMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	if (auto* Shared = GetWorld()->GetSubsystem<UVehicleStabilitySubsystem>(); Shared && Shared->InitializeRules())
+	{ RecoveryRules = Shared->GetRecoveryRules(); }
 
 	if (!UpdatedPrimitive)
 	{
@@ -76,6 +80,8 @@ void UArcadeVehicleMovementComponent::BeginPlay()
 			*GetNameSafe(UpdatedPrimitive));
 		return;
 	}
+	const FBoxSphereBounds Bounds = UpdatedPrimitive->CalcBounds(FTransform(UpdatedPrimitive->GetComponentScale()));
+	LocalBodyCenter = Bounds.Origin; LocalBodyExtent = Bounds.BoxExtent;
 	// Existing Blueprint templates can have Auto Activate disabled; Chaos requires
 	// every registered async-physics component to be active at callback time.
 	if (!IsActive())
@@ -233,9 +239,40 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(), RecoilDeltaVelocity, true);
 	}
 	const FTransform BodyTransform(PhysicsHandle->R(), PhysicsHandle->X());
+	GroundProbeRotation = BodyTransform.GetRotation();
+	{
+		FScopeLock Lock(&PendingPhysicsDataLock);
+		if (bPendingRecovery) { RecoveryPhysics = PendingRecovery; bPendingRecovery = false; }
+	}
 
 	FVector GroundNormal = FVector::UpVector;
 	bGrounded = UpdateGroundContact(BodyTransform.GetLocation(), GroundNormal);
+	if (RecoveryRules.bEnabled)
+	{
+		const bool bPoseValid = RecoveryRules.GroundIsValid(bGrounded,GroundNormal)
+			&& RecoveryRules.CanDrive(bPoseDriveAllowed,GroundProbeRotation.GetUpVector(),GroundNormal) && !RecoveryPhysics.bActive;
+		if (!bPoseValid) { bPoseDriveAllowed = false; PoseStableSeconds = 0; }
+		else
+		{
+			PoseStableSeconds = FMath::Min(RecoveryRules.DriveStableSeconds, PoseStableSeconds+DeltaTime);
+			bPoseDriveAllowed = PoseStableSeconds+KINDA_SMALL_NUMBER >= RecoveryRules.DriveStableSeconds;
+		}
+		if (RecoveryPhysics.bActive)
+		{
+			// A finite Internal-step guard also stops assistance if the GT is temporarily stalled.
+			const float Remaining = FMath::Max(0.f,RecoveryRules.MaximumExecutionSeconds-RecoveryPhysics.ElapsedSeconds);
+			const float Step = FMath::Min(DeltaTime,Remaining);
+			if (Step > 0)
+			{
+				const FVector Acceleration = HALVehicleRecovery::AngularAcceleration(RecoveryRules,RecoveryPhysics,
+					GroundProbeRotation.GetUpVector(),PhysicsHandle->W(),DeltaTime) * (Step/DeltaTime);
+				FPhysicsInterface::AddTorque_AssumesLocked(Body->GetPhysicsActor(),Acceleration,false,true,true);
+				RecoveryPhysics.ElapsedSeconds += Step;
+			}
+			if (RecoveryPhysics.ElapsedSeconds+KINDA_SMALL_NUMBER >= RecoveryRules.MaximumExecutionSeconds) { RecoveryPhysics.bActive = false; }
+		}
+	}
+	else { bPoseDriveAllowed = bGrounded; }
 
 	const FVector Velocity = PhysicsHandle->V();
 	const FVector ForwardDirection = FVector::VectorPlaneProject(
@@ -246,13 +283,25 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	{
 		FScopeLock Lock(&PendingPhysicsDataLock);
 		PublishedPresentationInput.Steering = FMath::IsFinite(InputCommand.Steering)
-			? FMath::Clamp(InputCommand.Steering, -1.f, 1.f) : 0;
+			&& bPoseDriveAllowed ? FMath::Clamp(InputCommand.Steering, -1.f, 1.f) : 0;
 		PublishedPresentationInput.PhysicsFrame = StepInput.PhysicsFrame;
 		PublishedPresentationInput.bGrounded = bGrounded;
 		PublishedPresentationInput.bValid = true;
+		PublishedStability.PhysicsFrame = StepInput.PhysicsFrame;
+		PublishedStability.bValid = true;
+		PublishedStability.bNearGround = bGrounded;
+		PublishedStability.bDrivingAllowed = bPoseDriveAllowed;
+		PublishedStability.bRecoveryHeld = InputCommand.bSelfRight;
+		PublishedStability.Up = GroundProbeRotation.GetUpVector();
+		PublishedStability.Forward = GroundProbeRotation.GetForwardVector();
+		PublishedStability.GroundNormal = GroundNormal;
+		PublishedStability.Speed = PhysicsHandle->V().Size();
+		PublishedStability.AngularSpeed = PhysicsHandle->W().Size();
+		PublishedStability.Recovery = RecoveryPhysics;
+		PublishedStability.PoseStableSeconds = PoseStableSeconds;
 	}
 
-	if (!bGrounded || ForwardDirection.IsNearlyZero() || RightDirection.IsNearlyZero())
+	if (!bGrounded || !bPoseDriveAllowed || ForwardDirection.IsNearlyZero() || RightDirection.IsNearlyZero())
 	{
 		ResetWallEscape();
 		return;
@@ -278,6 +327,29 @@ FHALVehiclePresentationInput UArcadeVehicleMovementComponent::GetPresentationInp
 	if (!bShouldRunPhysics.Load()) { return FHALVehiclePresentationInput(); }
 	FScopeLock Lock(&PendingPhysicsDataLock);
 	return PublishedPresentationInput;
+}
+
+FVehicleStabilityObservation UArcadeVehicleMovementComponent::GetStabilityObservation() const
+{
+	if (!bShouldRunPhysics.Load()) { return {}; }
+	FScopeLock Lock(&PendingPhysicsDataLock); return PublishedStability;
+}
+
+bool UArcadeVehicleMovementComponent::QueueRecovery(const FVehicleRecoveryPhysicsState& Value)
+{
+	check(IsInGameThread());
+	if (!GetOwner()->HasAuthority() || !RecoveryRules.bEnabled || !Value.Sequence || !Value.IsValid()
+		|| !UpdatedPrimitive || !UpdatedPrimitive->IsSimulatingPhysics()) { return false; }
+	if (bUseNetworkPhysicsHistory.Load())
+	{
+		auto* History = GetOwner()->FindComponentByClass<UNetworkPhysicsComponent>();
+		if (!History) { return false; }
+		FVehicleRecoveryAction Action; Action.Value = Value;
+		History->EnqueueImmediateAction_External(Action,uint32(0),true);
+	}
+	else { FScopeLock Lock(&PendingPhysicsDataLock); PendingRecovery = Value; bPendingRecovery = true; }
+	if (Value.bActive) { UpdatedPrimitive->WakeAllRigidBodies(); }
+	return true;
 }
 
 void UArcadeVehicleMovementComponent::SetInputCommand(const FVehicleInputCmd& InInputCommand)
@@ -356,6 +428,9 @@ void UArcadeVehicleMovementComponent::BuildHistoryState(FVehicleNetStateData& Ou
 	OutState.WallEscapeNormals = WallEscapeNormals;
 	OutState.MovementSnapshot = CurrentMovement;
 	OutState.MovementTimeline = MovementAuthorityTimeline;
+	OutState.bPoseDriveAllowed = bPoseDriveAllowed;
+	OutState.PoseStableSeconds = PoseStableSeconds;
+	OutState.Recovery = RecoveryPhysics;
 }
 
 void UArcadeVehicleMovementComponent::ApplyHistoryState(const FVehicleNetStateData& InState)
@@ -369,6 +444,9 @@ void UArcadeVehicleMovementComponent::ApplyHistoryState(const FVehicleNetStateDa
 	bWallEscapeActive = InState.bWallEscapeActive;
 	WallEscapeBlend = FMath::Clamp(InState.WallEscapeBlend, 0.0f, 1.0f);
 	WallEscapeNormals = InState.WallEscapeNormals;
+	if (InState.Recovery.IsValid()) { RecoveryPhysics = InState.Recovery; }
+	bPoseDriveAllowed = InState.bPoseDriveAllowed;
+	PoseStableSeconds = FMath::Clamp(InState.PoseStableSeconds,0.f,RecoveryRules.DriveStableSeconds);
 }
 
 void UArcadeVehicleMovementComponent::ResetInputCommand()
@@ -390,6 +468,13 @@ void UArcadeVehicleMovementComponent::QueueRecoil(const FVector& DeltaVelocity)
 void UArcadeVehicleMovementComponent::ApplyAction_Internal(
 	const TInstancedStruct<FNetworkPhysicsActionPayload>& ActionInstance)
 {
+	if (const auto* Recovery = ActionInstance.GetPtr<FVehicleRecoveryAction>())
+	{
+		if (bShouldRunPhysics.Load() && RecoveryRules.bEnabled && Recovery->Value.IsValid()
+			&& FVehicleNetInputData::IsNewerSequence(Recovery->Value.Sequence,RecoveryPhysics.Sequence))
+		{ RecoveryPhysics = Recovery->Value; }
+		return;
+	}
 	if (const auto* Parameters = ActionInstance.GetPtr<FVehicleMovementParameterAction>())
 	{
 		ApplyMovementAction(*Parameters);
@@ -481,6 +566,9 @@ bool UArcadeVehicleMovementComponent::CaptureNetState(FVehicleNetStateData& OutS
 	{
 		FScopeLock Lock(&PendingPhysicsDataLock);
 		OutState.PendingRecoilDeltaVelocity = PendingRecoilDeltaVelocity;
+		OutState.Recovery = PublishedStability.Recovery;
+		OutState.bPoseDriveAllowed = PublishedStability.bDrivingAllowed;
+		OutState.PoseStableSeconds = PublishedStability.PoseStableSeconds;
 	}
 	return true;
 }
@@ -490,7 +578,8 @@ bool UArcadeVehicleMovementComponent::RestoreNetState(const FVehicleNetStateData
 	if (!UpdatedPrimitive || !UpdatedPrimitive->IsSimulatingPhysics()
 		|| State.Position.ContainsNaN() || State.Rotation.ContainsNaN() || !State.Rotation.IsNormalized()
 		|| State.LinearVelocity.ContainsNaN() || State.AngularVelocityRadians.ContainsNaN()
-		|| State.PendingRecoilDeltaVelocity.ContainsNaN()
+		|| State.PendingRecoilDeltaVelocity.ContainsNaN() || !State.Recovery.IsValid()
+		|| !FMath::IsFinite(State.PoseStableSeconds) || State.PoseStableSeconds < 0 || State.PoseStableSeconds > 1
 		|| !FMath::IsFinite(State.WallEscapeBlend) || State.WallEscapeBlend < 0.0f
 		|| State.WallEscapeBlend > 1.0f || State.WallEscapeNormals.Num() > 2)
 	{
@@ -506,6 +595,9 @@ bool UArcadeVehicleMovementComponent::RestoreNetState(const FVehicleNetStateData
 	bWallEscapeActive = State.bWallEscapeActive;
 	WallEscapeBlend = State.WallEscapeBlend;
 	WallEscapeNormals = State.WallEscapeNormals;
+	RecoveryPhysics = State.Recovery;
+	bPoseDriveAllowed = State.bPoseDriveAllowed;
+	PoseStableSeconds = State.PoseStableSeconds;
 	{
 		FScopeLock Lock(&PendingPhysicsDataLock);
 		PendingRecoilDeltaVelocity = State.PendingRecoilDeltaVelocity;
@@ -629,8 +721,12 @@ bool UArcadeVehicleMovementComponent::UpdateGroundContact(const FVector& BodyLoc
 		return false;
 	}
 
-	const FVector TraceStart = BodyLocation;
-	const float TraceLength = UpdatedPrimitive->Bounds.BoxExtent.Z + GroundTraceExtraDistance;
+	const FVector TraceStart = BodyLocation + (RecoveryRules.bEnabled ? GroundProbeRotation.RotateVector(LocalBodyCenter) : FVector::ZeroVector);
+	const float ExtentZ = RecoveryRules.bEnabled
+		? FMath::Abs(GroundProbeRotation.GetAxisX().Z)*LocalBodyExtent.X
+			+ FMath::Abs(GroundProbeRotation.GetAxisY().Z)*LocalBodyExtent.Y
+			+ FMath::Abs(GroundProbeRotation.GetAxisZ().Z)*LocalBodyExtent.Z : UpdatedPrimitive->Bounds.BoxExtent.Z;
+	const float TraceLength = ExtentZ + (RecoveryRules.bEnabled ? RecoveryRules.SupportDistance : GroundTraceExtraDistance);
 	const FVector TraceEnd = TraceStart - (FVector::UpVector * TraceLength);
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ArcadeVehicleGroundTrace), false, GetOwner());

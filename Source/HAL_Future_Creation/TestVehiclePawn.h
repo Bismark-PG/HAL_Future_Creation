@@ -28,6 +28,7 @@ class UVehicleHealthComponent;
 class UHALImpactReceiverComponent;
 class UHALMovementEffectBridge;
 class UHALVehiclePresentationComponent;
+class UVehicleRecoveryComponent;
 class USkeletalMeshComponent;
 struct FInputActionValue;
 
@@ -64,6 +65,8 @@ public:
 	FVehicleInputCmd GetCurrentInputCommand() const { return CurrentInputCommand; }
 	/** Local discrete request shared by Enhanced Input and the test console. No target or result parameters. */
 	bool RequestPrimarySkill();
+	/** Same held input path as Enhanced Input; native tests may submit intent, never a pose/result. */
+	void SetSelfRightHeld(bool bHeld);
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Vehicle|Configuration")
@@ -96,6 +99,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
 	TObjectPtr<UArcadeVehicleMovementComponent> ArcadeMovement;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components") TObjectPtr<UVehicleRecoveryComponent> VehicleRecovery;
 
 	/** Assign the UE Network Physics Settings Data Asset here to opt this vehicle into phase 4. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
@@ -147,6 +151,7 @@ protected:
 	TObjectPtr<UInputAction> LaunchAction;
 	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Input")
 	TObjectPtr<UInputAction> PrimarySkillAction;
+	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Input") TObjectPtr<UInputAction> SelfRightAction;
 
 	/** Unreliable client input snapshots per second until Network Physics history is wired in phase 4. */
 	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Network", meta = (ClampMin = "1.0", ClampMax = "60.0", Units = "Hz"))
@@ -193,6 +198,8 @@ private:
 	void OnLaunchCompleted(const FInputActionValue& Value);
 	void OnPrimarySkillStarted(const FInputActionValue& Value);
 	void OnPrimarySkillCompleted(const FInputActionValue& Value);
+	void OnSelfRightStarted(const FInputActionValue& Value);
+	void OnSelfRightCompleted(const FInputActionValue& Value);
 
 	UFUNCTION()
 	void OnCollisionRootHit(

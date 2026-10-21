@@ -31,6 +31,9 @@ struct HAL_FUTURE_CREATION_API FVehicleInputCmd
 	/** Whether the drift / handbrake control is held. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle Input")
 	bool bHandbrake = false;
+	/** Held recovery intent; authority measures eligibility and duration, never trusts a client timer. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle Input")
+	bool bSelfRight = false;
 
 	/** Whether the launch control is held. Reserved for the ball phase. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle Input")

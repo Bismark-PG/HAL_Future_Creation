@@ -44,6 +44,7 @@ bool FVehicleContactStabilityRules::SuppressesSupplement(bool bOrdinaryStationar
 
 bool UVehicleStabilityRules::Validate(FString& Error) const
 {
+	if (!Recovery.Validate(Error)) { return false; }
 	if (!bReadyForUse || !IsValid(VehiclePhysicalMaterial))
 	{
 		Error = TEXT("ReadyForUse and a vehicle physical material are required"); return false;
@@ -81,6 +82,7 @@ bool UVehicleStabilitySubsystem::InitializeRules()
 	const auto* Settings = GetDefault<UVehicleStabilitySettings>();
 	if (!Settings->bUseSharedRules)
 	{
+		RecoveryRules.bEnabled = false;
 		Signature = FCrc::StrCrc32(TEXT("VehicleContactStabilityV1:Disabled"));
 		bValid = true; return true;
 	}
@@ -92,6 +94,7 @@ bool UVehicleStabilitySubsystem::InitializeRules()
 		return false;
 	}
 	ContactRules.bSuppressSupportSupplement = Definition->bSuppressSupportSupplement;
+	RecoveryRules = Definition->Recovery;
 	ContactRules.MinimumSupportUpDot = FMath::Cos(FMath::DegreesToRadians(Definition->MaximumSupportSlopeDegrees));
 	// Freeze the material too: editing the source DA/PM during PIE cannot change this world's history.
 	Material = DuplicateObject<UPhysicalMaterial>(Definition->VehiclePhysicalMaterial, this);
@@ -103,6 +106,7 @@ bool UVehicleStabilitySubsystem::InitializeRules()
 	Key += FString::Printf(TEXT(":%.9g:%.9g:%.9g:%d:%.9g:%d:%.9g:%.9g"), Material->Density,
 		Material->SleepLinearVelocityThreshold, Material->SleepAngularVelocityThreshold, Material->SleepCounterThreshold,
 		Material->RaiseMassToPower, int32(Material->SoftCollisionMode), Material->SoftCollisionThickness, Material->BaseFrictionImpulse);
+	Key += RecoveryRules.SignatureKey();
 	Signature = FCrc::StrCrc32(*Key);
 	if (!Signature) { Signature = 1; } // Zero means no authority snapshot received yet.
 	bValid = true;

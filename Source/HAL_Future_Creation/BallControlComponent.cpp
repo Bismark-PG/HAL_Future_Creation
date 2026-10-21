@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BallControlComponent.h"
+#include "VehicleRecoveryComponent.h"
 #include "VehicleKnockbackSettings.h"
 #include "VehicleConfigurationTypes.h"
 #include "VehicleConfigurationApplication.h"
@@ -103,6 +104,8 @@ bool UBallControlComponent::LaunchHeldBall(FVector& OutRecoilDeltaVelocity)
 {
 	OutRecoilDeltaVelocity = FVector::ZeroVector;
 	AActor* Owner = GetOwner();
+	if (const auto* Recovery = Owner ? Owner->FindComponentByClass<UVehicleRecoveryComponent>() : nullptr;
+		Recovery && Recovery->IsExecuting()) { return false; }
 	if (!Owner
 		|| !Owner->HasAuthority()
 		|| !IsValid(HeldBall)
@@ -178,12 +181,18 @@ bool UBallControlComponent::ReleaseFromImpact(const FVector& Direction)
 	return true;
 }
 
+void UBallControlComponent::ReleaseForRecovery()
+{
+	if (GetOwner()->HasAuthority()) { ReleaseHeldBall(FVector::ZeroVector,false); }
+}
+
 void UBallControlComponent::EvaluateBallControl()
 {
 	if (!GetOwner()->HasAuthority())
 	{
 		return;
 	}
+	if (const auto* Recovery = GetOwner()->FindComponentByClass<UVehicleRecoveryComponent>(); Recovery && Recovery->IsExecuting()) { return; }
 
 	if (!IsValid(HeldBall) && bConstraintActive)
 	{
@@ -310,6 +319,7 @@ bool UBallControlComponent::HasLineOfSightTo(const ABasicBallActor* Candidate) c
 
 bool UBallControlComponent::AcquireBall(ABasicBallActor* Candidate)
 {
+	if (const auto* Recovery = GetOwner()->FindComponentByClass<UVehicleRecoveryComponent>(); Recovery && Recovery->IsExecuting()) { return false; }
 	if (!Candidate || !Candidate->BeginControl(GetOwner()))
 	{
 		return false;

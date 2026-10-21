@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "TestVehiclePawn.h"
+#include "VehicleRecoveryComponent.h"
 #include "HALImpactReceiverComponent.h"
 #include "UObject/UnrealType.h"
 #include "VehicleDefinition.h"
@@ -90,6 +91,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 
 	ArcadeMovement = CreateDefaultSubobject<UArcadeVehicleMovementComponent>(TEXT("ArcadeMovement"));
 	ArcadeMovement->SetUpdatedPrimitive(CollisionRoot);
+	VehicleRecovery = CreateDefaultSubobject<UVehicleRecoveryComponent>(TEXT("VehicleRecovery"));
 	NetworkPhysicsSettings = CreateDefaultSubobject<UNetworkPhysicsSettingsComponent>(TEXT("VehicleNetworkPhysicsSettings"));
 	NetworkPhysicsHistory = CreateDefaultSubobject<UNetworkPhysicsComponent>(TEXT("VehicleNetworkPhysicsHistory"));
 	NetworkPhysicsHistory->SetAutoActivate(false);
@@ -181,6 +183,7 @@ void ATestVehiclePawn::PawnClientRestart()
 void ATestVehiclePawn::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+	if (VehicleRecovery) { VehicleRecovery->ResumeForOwner(); }
 	InitializeAbilitySystem();
 	if (ArcadeMovement)
 	{
@@ -191,6 +194,7 @@ void ATestVehiclePawn::PossessedBy(AController* NewController)
 
 void ATestVehiclePawn::UnPossessed()
 {
+	if (VehicleRecovery) { VehicleRecovery->CancelForOwnerExit(); }
 	UninitializeAbilitySystem();
 	if (ArcadeMovement) { ArcadeMovement->SetHistoryInputBlocked(true); }
 	GetWorldTimerManager().ClearTimer(InputSendTimerHandle);
@@ -204,6 +208,7 @@ void ATestVehiclePawn::UnPossessed()
 
 void ATestVehiclePawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (VehicleRecovery) { VehicleRecovery->CancelForOwnerExit(); }
 	UninitializeAbilitySystem();
 	if (ArcadeMovement) { ArcadeMovement->SetHistoryInputBlocked(true); }
 	if (bNetworkPhysicsHistoryActive && NetworkPhysicsHistory)
@@ -306,6 +311,12 @@ void ATestVehiclePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		EnhancedInput->BindAction(PrimarySkillAction, ETriggerEvent::Started, this, &ThisClass::OnPrimarySkillStarted);
 		EnhancedInput->BindAction(PrimarySkillAction, ETriggerEvent::Completed, this, &ThisClass::OnPrimarySkillCompleted);
 		EnhancedInput->BindAction(PrimarySkillAction, ETriggerEvent::Canceled, this, &ThisClass::OnPrimarySkillCompleted);
+	}
+	if (SelfRightAction)
+	{
+		EnhancedInput->BindAction(SelfRightAction,ETriggerEvent::Started,this,&ThisClass::OnSelfRightStarted);
+		EnhancedInput->BindAction(SelfRightAction,ETriggerEvent::Completed,this,&ThisClass::OnSelfRightCompleted);
+		EnhancedInput->BindAction(SelfRightAction,ETriggerEvent::Canceled,this,&ThisClass::OnSelfRightCompleted);
 	}
 
 	if (!DefaultMappingContext || !SteeringAction || !ThrottleAction || !BrakeAction || !HandbrakeAction || !LaunchAction)
@@ -609,6 +620,7 @@ void ATestVehiclePawn::OnHandbrakeCompleted(const FInputActionValue& Value)
 
 void ATestVehiclePawn::OnLaunchStarted(const FInputActionValue& Value)
 {
+	if (VehicleRecovery && VehicleRecovery->IsExecuting()) { return; }
 	CurrentInputCommand.bLaunch = true;
 	PushInputCommand();
 	FVehicleLaunchRequest Request;
@@ -678,6 +690,15 @@ void ATestVehiclePawn::OnPrimarySkillCompleted(const FInputActionValue& Value)
 {
 	CurrentInputCommand.bPrimarySkill = false;
 }
+
+void ATestVehiclePawn::SetSelfRightHeld(bool bHeld)
+{
+	if (!IsLocallyControlled() || !Controller || !bConfigurationValid) { return; }
+	CurrentInputCommand.bSelfRight = bHeld; PushInputCommand();
+	if (!HasAuthority() && !bNetworkPhysicsHistoryActive) { SendInputSnapshot(); }
+}
+void ATestVehiclePawn::OnSelfRightStarted(const FInputActionValue& Value) { SetSelfRightHeld(true); }
+void ATestVehiclePawn::OnSelfRightCompleted(const FInputActionValue& Value) { SetSelfRightHeld(false); }
 
 void ATestVehiclePawn::OnCollisionRootHit(
 	UPrimitiveComponent* HitComponent,
