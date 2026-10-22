@@ -2,6 +2,7 @@
 
 #include "SHALVehicleCollisionGenerator.h"
 #include "SHALVehicleAlignment.h"
+#include "VehicleAssetGenerator/HALVehicleAssetGenerator.h"
 #include "Framework/Docking/TabManager.h"
 #include "ToolMenus.h"
 #include "Widgets/Docking/SDockTab.h"
@@ -26,6 +27,12 @@ public:
 			}))
 			.SetDisplayName(LOCTEXT("AlignmentTab", "HAL Vehicle Visual Alignment"))
 			.SetMenuType(ETabSpawnerMenuType::Hidden);
+		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("HALVehicleAssetGenerator"),
+			FOnSpawnTab::CreateLambda([](const FSpawnTabArgs&) {
+				return SNew(SDockTab).TabRole(ETabRole::NomadTab) [ HALVehicleAssets::MakePanel() ];
+			}))
+			.SetDisplayName(LOCTEXT("AssetTab", "HAL Vehicle Asset Generator"))
+			.SetMenuType(ETabSpawnerMenuType::Hidden);
 		bRegisteredUI = true;
 		UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FHALFutureCreationEditorModule::RegisterMenus));
 	}
@@ -36,6 +43,7 @@ public:
 		if (UToolMenus::IsToolMenuUIEnabled()) { UToolMenus::UnregisterOwner(this); }
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("HALVehicleCollisionGenerator"));
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("HALVehicleAlignment"));
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("HALVehicleAssetGenerator"));
 	}
 private:
 	bool bRegisteredUI = false;
@@ -51,6 +59,10 @@ private:
 			TEXT("HALVehicleAlignment"), LOCTEXT("AlignmentEntry", "HAL Vehicle Visual Alignment"),
 			LOCTEXT("AlignmentHint", "Measure reference wheel geometry and preview an undoable visual height alignment."), FSlateIcon(),
 			FUIAction(FExecuteAction::CreateLambda([] { FGlobalTabmanager::Get()->TryInvokeTab(FName(TEXT("HALVehicleAlignment"))); })));
+		Menu->FindOrAddSection(TEXT("HALTools")).AddMenuEntry(
+			TEXT("HALVehicleAssetGenerator"), LOCTEXT("AssetEntry", "HAL Vehicle Asset Generator"),
+			LOCTEXT("AssetHint", "Create the vehicle Definition, Presentation, empty AnimBP and vehicle Blueprint for SKM_<model>."), FSlateIcon(),
+			FUIAction(FExecuteAction::CreateLambda([] { FGlobalTabmanager::Get()->TryInvokeTab(FName(TEXT("HALVehicleAssetGenerator"))); })));
 	}
 };
 

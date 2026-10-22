@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-22T17:20:09.3767709+09:00",
+  "git_base": "5f6c9efe7b02398682e9f0c4495b6b838ced5ace",
+  "branch": "main",
+  "engine": "5.8.3-58210709+++UE5+Release-5.8",
+  "scope": "Restore generator menu/window registration into synced Editor module; preserve collision/alignment tools; document full user workflow",
+  "module_count_changed": false,
+  "build_cs_matches_head": true,
+  "build": {
+    "target": "HAL_Future_CreationEditor Win64 Development",
+    "result": "Succeeded",
+    "log": "Saved/VehicleAssetGenerator/Reconnect_20261022/Editor_Build.log",
+    "sha256": "306D0BCDBD0515CDE5BB8A66474F8F97F961B57229AB715336D6E7DE86B22AEF",
+    "note": "UBA action-result store notices remain; compile and link completed."
+  },
+  "automation": {
+    "filter": "HAL.Editor",
+    "attempted": true,
+    "process_exit": 0,
+    "unreal_log_present": false,
+    "report_present": false,
+    "execution_verified": false,
+    "new_core_tests": 3,
+    "new_ui_tests": 1,
+    "compiled": true,
+    "reason": "UnrealEditor-Cmd returned without Unreal log, report or stdout/stderr. Exit code is not a test result."
+  },
+  "asset_protection": {
+    "before_count": 667,
+    "after_count": 667,
+    "changed_hash_count": 0,
+    "all_identical": true,
+    "before_manifest_sha256": "4740F70A9B1F2CC2AF255C091D68B5E7723A8EA5D6B86C0D8C45058CA28072F5",
+    "after_manifest_sha256": "4740F70A9B1F2CC2AF255C091D68B5E7723A8EA5D6B86C0D8C45058CA28072F5",
+    "preexisting_modified_asset": "Content/Assets/Cars/SKM_Car_01.uasset",
+    "content_assets_saved": false
+  },
+  "pending": [
+    "Actual menu/panel render and automated test execution",
+    "Create and save new model asset set, restart Editor and check references",
+    "Manual AnimGraph configuration and model calibration",
+    "Driving and Listen Server acceptance"
+  ],
+  "source_manifest": [
+    {
+      "path": "Source/HAL_Future_CreationEditor/Public/VehicleAssetGenerator/HALVehicleAssetGenerator.h",
+      "sha256": "BECBA8838B47B97F1193FF5ABE3412439EF15B22DA027481C24E8CFC5C2E543C"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Public/VehicleAssetGenerator/HALVehicleAssetGeneratorSettings.h",
+      "sha256": "14AE18F7DEB7E62C7C78A260B2E20C6748BE395204F7E602599B16D587576986"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/VehicleAssetGenerator/HALVehicleAssetGenerator.cpp",
+      "sha256": "9EBA7803019251DFB730826B31740DDAEEEEA8EA543A520C7642BB424B49283D"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/VehicleAssetGenerator/SHALVehicleAssetGenerator.cpp",
+      "sha256": "F02CA502A15B6203C6CA343EC337FC6BB5EE1E9522065300F50CD6EAA51CDE33"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALFutureCreationEditorModule.cpp",
+      "sha256": "1DBFD9B7E1680C110186B6FDFAB6005005C7D30290E345318E899D5FF02EA993"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/HAL_Future_CreationEditor.Build.cs",
+      "sha256": "2C03A06E7E81A513F66952E2DDDDA9440274757FF5865995F73A4BD4D3332517"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleAssetGeneratorTests.cpp",
+      "sha256": "C831BAC7BC5E5996BB3F85344A99E250C7F7C02049A1CAF6A2B0A762697C8840"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleAssetGeneratorUITests.cpp",
+      "sha256": "A586A5D7231FA7C2006DCDCD7FF8DF8A751324E8E228F4263EC81C94C36D08A9"
+    }
+  ],
+  "committed_or_pushed": false
+}
