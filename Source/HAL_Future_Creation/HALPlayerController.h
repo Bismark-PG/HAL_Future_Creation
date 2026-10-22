@@ -49,6 +49,8 @@ public:
 	/** Request the current primary skill through the same local input/GAS path as an Input Action. */
 	UFUNCTION(Exec)
 	void HALUseSkill();
+	/** Development only: server spawns one physical bomb and immediately starts its configured fuse. */
+	UFUNCTION(Exec) void HALSpawnBomb();
 	/** Development only: request the server-configured movement boost on this controller's own Avatar. */
 	UFUNCTION(Exec)
 	void HALMovementBoost();
@@ -57,6 +59,8 @@ public:
 	void HALClearMovementBoost();
 
 private:
+	UFUNCTION(Server, Reliable) void ServerSpawnDebugBomb();
+	UFUNCTION(Client, Reliable) void ClientDebugBombResult(const FString& Message, bool bSuccess);
 	UPROPERTY(Transient)
 	TObjectPtr<UHALDebugHUDWidget> DebugHUD;
 	TMap<TWeakObjectPtr<UHALAbilitySystemComponent>, FActiveGameplayEffectHandle> DebugImpactImmuneTargets;

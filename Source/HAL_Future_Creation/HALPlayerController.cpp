@@ -239,6 +239,13 @@ void AHALPlayerController::HALUseSkill()
 	if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 4.0f, bRequested ? FColor::Cyan : FColor::Yellow, Message); }
 }
 
+void AHALPlayerController::HALSpawnBomb()
+{
+#if !UE_BUILD_SHIPPING
+	if (IsLocalController()) { ServerSpawnDebugBomb(); }
+#endif
+}
+
 void AHALPlayerController::ServerSpawnDebugBall_Implementation()
 {
 #if !UE_BUILD_SHIPPING

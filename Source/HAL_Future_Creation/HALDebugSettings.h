@@ -6,6 +6,7 @@
 
 class ABasicBallActor;
 class UHALMovementBoostEffect;
+class AHALBombActor;
 
 /** Development helpers reference authored content; they never replace its tuned values. */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "HAL Debug"))
@@ -22,6 +23,11 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Ball")
 	TSoftClassPtr<ABasicBallActor> DefaultBallClass;
+
+	/** Development only. Native bomb by default; optional lightweight Blueprint prefab. */
+	UPROPERTY(Config, EditAnywhere, Category="Bomb") TSoftClassPtr<AHALBombActor> DefaultBombClass;
+	UPROPERTY(Config, EditAnywhere, Category="Bomb", meta=(ClampMin="1", ClampMax="5000", Units="cm")) float BombForwardDistance = 350;
+	UPROPERTY(Config, EditAnywhere, Category="Bomb", meta=(ClampMin="0", ClampMax="1000", Units="cm")) float BombHeightOffset = 100;
 
 	/** Horizontal distance from the current vehicle root, along its actual heading. */
 	UPROPERTY(Config, EditAnywhere, Category = "Ball", meta = (ClampMin = "1", Units = "cm"))

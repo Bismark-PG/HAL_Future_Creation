@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-10-22炸弹范围收敛（最新用户指令）：** 道具框架／拾取／施放尚未决定，本次删除此前新增的拾取Actor、库存组件、道具GA、UseItem输入／Tag及HUD，并还原相关车辆／Local Config／网络输入脚本。只保留实体炸弹落地倒数、独立爆炸范围及统一GAS伤害／TieredV1冲击；新增开发命令HALSpawnBomb，服务器生成一颗后立即倒数，直接放场景则仍落地才计时。测试默认3秒／500cm／25伤害／Heavy可调。基点main/fc9f2b9，本机UE5.8.2；删除后重新Editor／Game构建成功、普通63/63及7808双端指令Host／Client各1/1、0测试警告／失败；客户端HALSpawnBomb实际服务器生成、立即3秒计时／销毁／范围同步、近车扣25及Heavy、远车HP不变已验证。三项炸弹普通测试包含落地、GAS免疫／降档及真实定时器；旧拾取GA测试已移除，旧结果不作为本轮证据。团队模型／prefab接线、真人画面／手感／扰动／晚加入／四机仍未验收。入口见[本体与测试指令](Combat/MVPB_Bomb_Rebuild_CN_v0.1.md)及[验证摘要](Combat/Bomb_Rebuild_Verification_20261022.json)。未改资产或保存Config，未提交／Push；VP-3与F4保持。
+
 **2026-10-22团队反馈：VP-2俯仰表现真人初测成功，参数后续再调。** 用户明确确认已能看到俯仰变化；记录为该通道基本表现链路初测通过，不再将“尚未接线／看不到俯仰”作为当前阻塞。各30°可配上限和现有DA／AnimBP保留，参数尚未冻结。详细见[团队反馈](Presentation/MVPB_Vehicle_Presentation_VP2_Implementation_CN_v0.1.md#8-团队俯仰表现初测反馈2026-10-22)。下一开发入口可进入VP-3视觉悬挂的具体方案／接口准备，尚未施工；侧倾／漂移、双端角色及完整画面矩阵没有本次逐项反馈，不扩写为VP-2或F4全部验收。本轮仅更新文档，保留`main/846474d`下既有源码／测试／两份资产修改；没有新构建或运行，未提交／Push。
 
 **2026-10-22 VP-2调参补充：俯仰／侧倾各通道配置上限由10°放宽到30°。** 用户反馈实际前后倾不明显并明确要求放宽；本轮基点`main/846474d656b11648becff51545e8e4216f949dd5`，VP-2代码已提交，保留团队`ABP_Car01`与`DA_Car01_Presentation`两份未提交修改。同步Editor ClampMax与运行时校验，默认值仍各4°，DA实际数值不改。UE5.8.3 Editor／Game成功，相关表现回归**7/7、0测试警告／失败**，364资产相对本轮开工SHA256全同。团队继续在原DA调参、做实际模型画面验收；本轮未重跑完整60项或双端，也未宣称30°观感／穿模通过。[配置及本轮记录](Presentation/MVPB_Vehicle_Presentation_VP2_Implementation_CN_v0.1.md#7-俯仰侧倾上限放宽至302026-10-22)／[验证摘要](Presentation/MVPB_Vehicle_Presentation_VP2_Limit30_Verification_20261022.json)。本轮修改未提交／Push。
