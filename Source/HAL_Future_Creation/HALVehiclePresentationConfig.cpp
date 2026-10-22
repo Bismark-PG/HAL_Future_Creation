@@ -8,8 +8,8 @@ bool FHALChassisPresentationConfig::Validate(FString& Error) const
 {
 	if (uint8(PitchAxis) > uint8(EHALBoneAxis::Z) || uint8(RollAxis) > uint8(EHALBoneAxis::Z) || PitchAxis == RollAxis
 		|| !FMath::IsFinite(PitchSign) || FMath::Abs(PitchSign) != 1 || !FMath::IsFinite(RollSign) || FMath::Abs(RollSign) != 1
-		|| !FMath::IsFinite(MaxPitchDegrees) || MaxPitchDegrees < 0 || MaxPitchDegrees > 10
-		|| !FMath::IsFinite(MaxRollDegrees) || MaxRollDegrees < 0 || MaxRollDegrees > 10
+		|| !FMath::IsFinite(MaxPitchDegrees) || MaxPitchDegrees < 0 || MaxPitchDegrees > 30
+		|| !FMath::IsFinite(MaxRollDegrees) || MaxRollDegrees < 0 || MaxRollDegrees > 30
 		|| !FMath::IsFinite(FullPitchAcceleration) || FullPitchAcceleration < 1 || FullPitchAcceleration > 10000
 		|| !FMath::IsFinite(FullRollAcceleration) || FullRollAcceleration < 1 || FullRollAcceleration > 10000
 		|| !FMath::IsFinite(ResponseSeconds) || ResponseSeconds < .01f || ResponseSeconds > 2

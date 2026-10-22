@@ -12,6 +12,7 @@
 #include "Engine/Engine.h"
 #include "GameFramework/PlayerController.h"
 #include "ReferenceSkeleton.h"
+#include "UObject/UnrealType.h"
 #include <limits>
 
 namespace
@@ -119,8 +120,22 @@ bool FHALPresentationConfigTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Chassis response must be finite"), Config->ValidateSettings(Error));
 	Config = MeasuredConfig(); Config->Chassis.FullPitchAcceleration = Config->Chassis.AccelerationDeadZone;
 	TestFalse(TEXT("Chassis dead zone cannot consume its full acceleration range"), Config->ValidateSettings(Error));
-	Config = MeasuredConfig(); Config->Chassis.MaxRollDegrees = 11;
-	TestFalse(TEXT("Chassis visual amplitude is bounded"), Config->ValidateSettings(Error));
+	Config = MeasuredConfig(); Config->Chassis.MaxPitchDegrees = Config->Chassis.MaxRollDegrees = 30;
+	TestTrue(TEXT("Both chassis channels accept the inclusive 30 degree limit"), Config->ValidateSettings(Error));
+	Config->Chassis.MaxPitchDegrees = 30.01f;
+	TestFalse(TEXT("Pitch above 30 degrees is rejected"), Config->ValidateSettings(Error));
+	Config->Chassis.MaxPitchDegrees = 30; Config->Chassis.MaxRollDegrees = 30.01f;
+	TestFalse(TEXT("Roll above 30 degrees is rejected"), Config->ValidateSettings(Error));
+	Config->Chassis.MaxRollDegrees = -1;
+	TestFalse(TEXT("Negative chassis amplitude remains invalid"), Config->ValidateSettings(Error));
+#if WITH_EDITOR
+	for (const FName Name : { GET_MEMBER_NAME_CHECKED(FHALChassisPresentationConfig, MaxPitchDegrees), GET_MEMBER_NAME_CHECKED(FHALChassisPresentationConfig, MaxRollDegrees) })
+	{
+		const auto* Property = FindFProperty<FProperty>(FHALChassisPresentationConfig::StaticStruct(), Name);
+		if (TestNotNull(TEXT("Reflected chassis amplitude property"), Property))
+		{ TestEqual(TEXT("Editor range matches runtime 30 degree limit"), Property->GetMetaData(TEXT("ClampMax")), FString(TEXT("30"))); }
+	}
+#endif
 	Config = MeasuredConfig(); Config->bReadyForUse = true;
 	TestFalse(TEXT("Ready cannot substitute for actual mesh and AnimClass"), Config->Validate(Error));
 	Config->Mesh = NewObject<USkeletalMesh>();
@@ -294,6 +309,11 @@ bool FHALChassisSamplingTest::RunTest(const FString& Parameters)
 	}
 	TestEqual(TEXT("Strong sustained motion cannot exceed pitch cap"), State.PitchDegrees, 4.f);
 	TestEqual(TEXT("Strong sustained motion cannot exceed roll cap"), State.RollDegrees, 4.f);
+	Config.MaxPitchDegrees = Config.MaxRollDegrees = 30;
+	Sample.Velocity += FVector(100, 100, 0); Sample.Position += Sample.Velocity * .02f;
+	UpdateChassis(Config, Sample, .02f, State);
+	TestEqual(TEXT("Pitch output reaches the configured 30 degree cap"), State.PitchDegrees, 30.f);
+	TestEqual(TEXT("Roll output reaches the configured 30 degree cap"), State.RollDegrees, 30.f);
 	Sample.Position += FVector(200, 0, 0);
 	UpdateChassis(Config, Sample, .02f, State);
 	TestTrue(TEXT("Sub-teleport network correction clears old lean"), ChassisRotation(Config, State).IsNearlyZero());

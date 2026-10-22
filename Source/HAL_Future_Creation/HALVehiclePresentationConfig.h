@@ -20,8 +20,8 @@ struct HAL_FUTURE_CREATION_API FHALChassisPresentationConfig
 	UPROPERTY(EditAnywhere, Category = "Axes", meta = (ClampMin = "-1", ClampMax = "1")) float PitchSign = -1;
 	UPROPERTY(EditAnywhere, Category = "Axes") EHALBoneAxis RollAxis = EHALBoneAxis::X;
 	UPROPERTY(EditAnywhere, Category = "Axes", meta = (ClampMin = "-1", ClampMax = "1")) float RollSign = 1;
-	UPROPERTY(EditAnywhere, Category = "Lean", meta = (ClampMin = "0", ClampMax = "10", Units = "deg")) float MaxPitchDegrees = 4;
-	UPROPERTY(EditAnywhere, Category = "Lean", meta = (ClampMin = "0", ClampMax = "10", Units = "deg")) float MaxRollDegrees = 4;
+	UPROPERTY(EditAnywhere, Category = "Lean", meta = (ClampMin = "0", ClampMax = "30", Units = "deg")) float MaxPitchDegrees = 4;
+	UPROPERTY(EditAnywhere, Category = "Lean", meta = (ClampMin = "0", ClampMax = "30", Units = "deg")) float MaxRollDegrees = 4;
 	/** Magnitude of longitudinal acceleration (cm/s squared) that reaches MaxPitchDegrees. */
 	UPROPERTY(EditAnywhere, Category = "Lean", meta = (ClampMin = "1", ClampMax = "10000")) float FullPitchAcceleration = 1800;
 	/** Magnitude of lateral acceleration (cm/s squared) that reaches MaxRollDegrees. */

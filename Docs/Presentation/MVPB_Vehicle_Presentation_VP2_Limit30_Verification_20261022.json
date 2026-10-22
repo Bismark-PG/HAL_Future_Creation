@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-22T12:11:01.264377+09:00",
+  "git_base": "846474d656b11648becff51545e8e4216f949dd5",
+  "branch": "main",
+  "engine": "5.8.3-58210709+++UE5+Release-5.8",
+  "scope": "Raise per-channel chassis pitch/roll configuration ceilings from 10 to 30 degrees; editor ClampMax and runtime validation agree. Native defaults stay 4 degrees; existing DataAsset values preserved.",
+  "initial_worktree": "User ABP_Car01 and DA_Car01_Presentation asset modifications retained",
+  "builds": {
+    "Editor": {
+      "path": "Saved/VehiclePresentationVP2/Limit30_20261022/Editor.log",
+      "sha256": "79afa2380d2105afbb272c045b9768b10b7e35e9685b3bf05f276bc3e1b9a38b",
+      "bytes": 25923,
+      "result": "Succeeded",
+      "seconds": 38.72
+    },
+    "Game": {
+      "path": "Saved/VehiclePresentationVP2/Limit30_20261022/Game.log",
+      "sha256": "47e1d2fb8b762268c45e9b803a9c2fdd51f521bded35fd4c95637ece7fef24a1",
+      "bytes": 37065,
+      "result": "Succeeded",
+      "seconds": 36.64
+    }
+  },
+  "automation": {
+    "path": "Saved/VehiclePresentationVP2/Limit30_20261022/Presentation/index.json",
+    "sha256": "1b3d8a0da7c7be5d611c37cf2504dcf89c796514f9de872af8aa02c1d26c7c75",
+    "bytes": 3607,
+    "filter": "HAL.FutureCreation.Presentation",
+    "succeeded": 7,
+    "succeededWithWarnings": 0,
+    "failed": 0,
+    "notRun": 0,
+    "tests": [
+      {
+        "path": "HAL.FutureCreation.Presentation.ChassisAccelerationAndFrameRates",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "path": "HAL.FutureCreation.Presentation.ChassisSamplingAndGates",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "path": "HAL.FutureCreation.Presentation.ChassisSnapshotPreservesPhysics",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "path": "HAL.FutureCreation.Presentation.ConfigurationAndRigContract",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "path": "HAL.FutureCreation.Presentation.OptionalRigPreservesGameplay",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "path": "HAL.FutureCreation.Presentation.SnapshotAndResetLifecycle",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "path": "HAL.FutureCreation.Presentation.WheelMathAndFrameRates",
+        "state": "Success",
+        "entries": []
+      }
+    ]
+  },
+  "coverage": "Both channels accept inclusive 30, reject 30.01; negative amplitude rejected; reflection ClampMax equals 30 for both properties; scalar pitch/roll output reaches 30 under sustained acceleration. Existing seven presentation lifecycle/math/config/physics-isolation tests retained.",
+  "assets": {
+    "before_count": 364,
+    "after_count": 364,
+    "all_unchanged": true,
+    "aggregate_sha256": "897f47333bd148b0791d3e60387e489f5330d2f2a91f29bc6fa62ad6bf8d5ce3",
+    "aggregate_algorithm": "SHA256 of UTF8 concatenated sorted path + NUL + lowercase sha256 + newline",
+    "retained_user_modifications": [
+      {
+        "path": "Content/Blueprints/AnimBP/ABP_Car01.uasset",
+        "sha256": "da1da463c12d63868e8cfa27c0b692ba77d04680b8718a29b5a9e31533a3d84d",
+        "bytes": 193680
+      },
+      {
+        "path": "Content/Data/Car_Presentation/DA_Car01_Presentation.uasset",
+        "sha256": "da779ad26a5fa86d13fb5739c858000b28ce57d09d5d79564235e38d4e04d028",
+        "bytes": 4872
+      }
+    ]
+  },
+  "source_files": [
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationConfig.h",
+      "sha256": "72fe52ff57b3f438d33dfcbd14f83aa9f869b2328f59c2adeffaafe7e35ec5ec",
+      "bytes": 6128
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationConfig.cpp",
+      "sha256": "973d08022559e55903af7613dfb51186bc9c63c9049ba7e7629fc71d654934fe",
+      "bytes": 6981
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehiclePresentationTests.cpp",
+      "sha256": "449e9a2b1d7b1be2e327fb04db2e85416dc8a5f819f0382418f333bcf79a81f1",
+      "bytes": 23478
+    }
+  ],
+  "not_rerun": [
+    "Full HAL.FutureCreation suite (previous 60/60 remains historical)",
+    "Listen Server/client network smoke (no replication/protocol changes)",
+    "Rendered 30 degree posture, model clipping and team feel acceptance"
+  ],
+  "warning_boundary": "Existing MSVC14.51 preferred14.50 warning and engine C4996 warnings; automation reports zero test warnings/failures.",
+  "commit_push": "Not committed/pushed by agent"
+}
