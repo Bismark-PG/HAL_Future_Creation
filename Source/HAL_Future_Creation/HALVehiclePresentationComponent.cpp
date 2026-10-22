@@ -52,6 +52,8 @@ void UHALVehiclePresentationComponent::Configure(UHALVehiclePresentationConfig* 
 	{
 		ReferenceWheelCenters[uint8(Wheel.Wheel)] = FAnimationRuntime::GetComponentSpaceTransformRefPose(
 			Config->Mesh->GetRefSkeleton(), Config->Mesh->GetRefSkeleton().FindBoneIndex(Wheel.SpinBone)).GetLocation();
+		ReferenceSuspensions[uint8(Wheel.Wheel)] = FAnimationRuntime::GetComponentSpaceTransformRefPose(
+			Config->Mesh->GetRefSkeleton(), Config->Mesh->GetRefSkeleton().FindBoneIndex(Wheel.SuspensionBone));
 	}
 	bFallbackWasVisible = Fallback->IsVisible();
 	bFallbackWasHiddenInGame = Fallback->bHiddenInGame;
@@ -102,6 +104,8 @@ void UHALVehiclePresentationComponent::ResetPose()
 	Frame = FHALVehiclePresentationFrame();
 	ChassisState = FHALChassisPresentationState();
 	for (float& Angle : SpinDegrees) { Angle = 0; }
+	for (float& Offset : SuspensionOffsets) { Offset = 0; }
+	SuspensionDebugElapsed = 0;
 	bHasSample = false;
 	PreviousController.Reset();
 	PublishElapsed = 0;
@@ -209,6 +213,7 @@ void UHALVehiclePresentationComponent::TickComponent(float DeltaTime, ELevelTick
 		if (bHasSample) { SpinDegrees[Slot] = HALVehiclePresentation::AdvanceWheel(SpinDegrees[Slot], Speed, Wheel.RadiusCm, Wheel.SpinSign, DeltaTime); }
 		Pose.SpinRotation = HALVehiclePresentation::AxisRotation(Wheel.SpinAxis, SpinDegrees[Slot]);
 	}
+	UpdateSuspension(DeltaTime);
 	bHasSample = true;
 	Frame.bValid = true;
 }

@@ -35,6 +35,7 @@ private:
 	void ResetPose();
 	float ReadSteering(float DeltaTime, bool bDrivingLeanAllowed);
 	bool ReadDrivingLeanAllowed() const;
+	void UpdateSuspension(float DeltaTime);
 	UPROPERTY(Transient) TObjectPtr<UHALVehiclePresentationConfig> Config;
 	UPROPERTY(Transient) TObjectPtr<UPrimitiveComponent> Body;
 	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> Fallback;
@@ -46,6 +47,9 @@ private:
 	FHALVehiclePresentationFrame Frame;
 	FHALChassisPresentationState ChassisState;
 	FVector ReferenceWheelCenters[4] {};
+	FTransform ReferenceSuspensions[4];
+	float SuspensionOffsets[4] {};
+	float SuspensionDebugElapsed = 0;
 	float SpinDegrees[4] {};
 	FVector PreviousPosition = FVector::ZeroVector;
 	float PublishElapsed = 0;

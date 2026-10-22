@@ -4,6 +4,30 @@
 #include "Engine/SkeletalMesh.h"
 #include "Misc/DataValidation.h"
 
+bool FHALVisualSuspensionConfig::Validate(FString& Error) const
+{
+	if (!FMath::IsFinite(ResponseSeconds) || ResponseSeconds < 0 || ResponseSeconds > 2
+		|| !FMath::IsFinite(ProbeMarginCm) || ProbeMarginCm < .1f || ProbeMarginCm > 50
+		|| !FMath::IsFinite(MinimumSupportNormalDot) || MinimumSupportNormalDot < .25f || MinimumSupportNormalDot > 1
+		|| !FMath::IsFinite(MinimumVehicleUpZ) || MinimumVehicleUpZ < .25f || MinimumVehicleUpZ > 1)
+	{
+		Error = TEXT("Visual suspension requires finite response 0..2s, margin 0.1..50cm and support/up cosines 0.25..1.");
+		return false;
+	}
+	return true;
+}
+
+bool FHALWheelSuspensionTravel::Validate(FString& Error) const
+{
+	if (!FMath::IsFinite(MaxCompressionCm) || MaxCompressionCm < 0 || MaxCompressionCm > 100
+		|| !FMath::IsFinite(MaxExtensionCm) || MaxExtensionCm < 0 || MaxExtensionCm > 100)
+	{
+		Error = TEXT("Each wheel requires finite visual compression and extension within 0..100 world cm.");
+		return false;
+	}
+	return true;
+}
+
 bool FHALChassisPresentationConfig::Validate(FString& Error) const
 {
 	if (uint8(PitchAxis) > uint8(EHALBoneAxis::Z) || uint8(RollAxis) > uint8(EHALBoneAxis::Z) || PitchAxis == RollAxis
@@ -41,7 +65,7 @@ UHALVehiclePresentationConfig::UHALVehiclePresentationConfig()
 
 bool UHALVehiclePresentationConfig::ValidateSettings(FString& Error) const
 {
-	if (!Chassis.Validate(Error)) { return false; }
+	if (!Chassis.Validate(Error) || !Suspension.Validate(Error)) { return false; }
 	auto Fail = [&Error](const TCHAR* Message) { Error = Message; return false; };
 	const FVector Scale = RelativeTransform.GetScale3D();
 	if (RelativeTransform.ContainsNaN() || !RelativeTransform.GetRotation().IsNormalized()
@@ -59,6 +83,7 @@ bool UHALVehiclePresentationConfig::ValidateSettings(FString& Error) const
 	TSet<FName> Bones { RootBone, ChassisBone };
 	for (const auto& Wheel : Wheels)
 	{
+		if (!Wheel.Suspension.Validate(Error)) { return false; }
 		const uint8 Slot = uint8(Wheel.Wheel);
 		if (Slot >= 4 || Slots.Contains(Slot)) { return Fail(TEXT("Wheel slots must uniquely cover FL/FR/BL/BR.")); }
 		Slots.Add(Slot);
@@ -86,11 +111,11 @@ bool UHALVehiclePresentationConfig::ValidateRig(const FReferenceSkeleton& Skelet
 	{ Error = TEXT("Rig needs a root bone and Chassis directly below that root."); return false; }
 	for (const auto& Wheel : Wheels)
 	{
-		const int32 Suspension = Skeleton.FindBoneIndex(Wheel.SuspensionBone);
+		const int32 SuspensionIndex = Skeleton.FindBoneIndex(Wheel.SuspensionBone);
 		const int32 Steering = Skeleton.FindBoneIndex(Wheel.SteeringBone);
 		const int32 Spin = Skeleton.FindBoneIndex(Wheel.SpinBone);
-		if (Suspension == INDEX_NONE || Steering == INDEX_NONE || Spin == INDEX_NONE
-			|| Skeleton.GetParentIndex(Suspension) != Root || Skeleton.GetParentIndex(Steering) != Suspension
+		if (SuspensionIndex == INDEX_NONE || Steering == INDEX_NONE || Spin == INDEX_NONE
+			|| Skeleton.GetParentIndex(SuspensionIndex) != Root || Skeleton.GetParentIndex(Steering) != SuspensionIndex
 			|| Skeleton.GetParentIndex(Spin) != Steering)
 		{ Error = FString::Printf(TEXT("Wheel %d must be Root -> suspension -> steer -> spin; missing or incorrectly parented control bone."), uint8(Wheel.Wheel)); return false; }
 	}

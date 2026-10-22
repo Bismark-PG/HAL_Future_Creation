@@ -9,6 +9,34 @@ class USkeletalMesh;
 class UHALVehicleAnimInstance;
 struct FReferenceSkeleton;
 
+/** Query/animation settings only. Distances are world cm, not physical spring parameters. */
+USTRUCT(BlueprintType)
+struct HAL_FUTURE_CREATION_API FHALVisualSuspensionConfig
+{
+	GENERATED_BODY()
+	/** Add the four suspension AnimGraph nodes before enabling on a saved presentation DA. */
+	UPROPERTY(EditAnywhere, Category = "Suspension") bool bEnabled = false;
+	/** Exponential time constant. Zero follows measured travel immediately. */
+	UPROPERTY(EditAnywhere, Category = "Suspension", meta = (ClampMin = "0", ClampMax = "2", Units = "s")) float ResponseSeconds = .08f;
+	/** Extra clearance above maximum compression and below maximum droop. */
+	UPROPERTY(EditAnywhere, Category = "Probe", meta = (ClampMin = "0.1", ClampMax = "50", Units = "cm")) float ProbeMarginCm = 2;
+	/** Normal must face both world +Z and the probe's vehicle-up axis by at least this cosine. */
+	UPROPERTY(EditAnywhere, Category = "Probe", meta = (ClampMin = "0.25", ClampMax = "1")) float MinimumSupportNormalDot = .5f;
+	/** Beyond this tilt, fade to neutral without tracing. Also neutral during active self-righting. */
+	UPROPERTY(EditAnywhere, Category = "Probe", meta = (ClampMin = "0.25", ClampMax = "1")) float MinimumVehicleUpZ = .5f;
+	bool Validate(FString& Error) const;
+};
+
+USTRUCT(BlueprintType)
+struct HAL_FUTURE_CREATION_API FHALWheelSuspensionTravel
+{
+	GENERATED_BODY()
+	/** Cosmetic travel relative to the calibrated reference wheel center; not an auto-fit value. */
+	UPROPERTY(EditAnywhere, Category = "Suspension", meta = (ClampMin = "0", ClampMax = "100", Units = "cm")) float MaxCompressionCm = 10;
+	UPROPERTY(EditAnywhere, Category = "Suspension", meta = (ClampMin = "0", ClampMax = "100", Units = "cm")) float MaxExtensionCm = 15;
+	bool Validate(FString& Error) const;
+};
+
 /** Additional local chassis animation only. Never changes the physical vehicle pose. */
 USTRUCT(BlueprintType)
 struct HAL_FUTURE_CREATION_API FHALChassisPresentationConfig
@@ -63,6 +91,9 @@ struct HAL_FUTURE_CREATION_API FHALWheelPresentationConfig
 	EHALBoneAxis SpinAxis = EHALBoneAxis::Y;
 	UPROPERTY(EditAnywhere, Category = "Rolling", meta = (ClampMin = "-1", ClampMax = "1"))
 	float SpinSign = 1;
+	/** Independent travel per wheel. All distances include model/component scale. */
+	UPROPERTY(EditAnywhere, Category = "Suspension")
+	FHALWheelSuspensionTravel Suspension;
 };
 
 /** Optional, visual-only. Invalid configuration falls back without invalidating VehicleDefinition gameplay. */
@@ -87,6 +118,9 @@ public:
 	FName ChassisBone = TEXT("Chassis_jnt");
 	UPROPERTY(EditAnywhere, Category = "Chassis")
 	FHALChassisPresentationConfig Chassis;
+	/** Visual traces only; later physical wheel observations replace this source, not add another spring. */
+	UPROPERTY(EditAnywhere, Category = "Suspension")
+	FHALVisualSuspensionConfig Suspension;
 	/** Exactly FL/FR/BL/BR, in any order. Names do not rebind AnimBP Modify Bone nodes. */
 	UPROPERTY(EditAnywhere, Category = "Wheels")
 	TArray<FHALWheelPresentationConfig> Wheels;
