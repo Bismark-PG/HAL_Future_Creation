@@ -1,0 +1,3362 @@
+{
+  "date": "2026-10-22",
+  "base_commit": "8571fa4",
+  "engine": "5.8.2",
+  "unity": "6000.4.10f1",
+  "source": "D:\\Unity Shit\\Game_Jam_2026_07\\MAP_Making\\Assets\\ithappy\\Platformer_14_Sci-Fi",
+  "import": {
+    "maps": [
+      {
+        "path": "/Game/Imported/Platformer14SciFi/Maps/Prefab_Overview",
+        "mesh_actors": 139,
+        "spacing_cm": 16094.9375
+      }
+    ],
+    "mesh_checks": [
+      {
+        "mesh": "SM_0000_Artifact_01",
+        "bounds_error_cm": 6.396484337756192e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0001_Artifact_02",
+        "bounds_error_cm": 1.8676757846947112e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0002_Artifact_03",
+        "bounds_error_cm": 6.396483342996362e-09,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0003_Artifact_04",
+        "bounds_error_cm": 4.2480468920302883e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0004_Artifact_05",
+        "bounds_error_cm": 7.568359450260687e-08,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0005_Artifact_06",
+        "bounds_error_cm": 1.223144529660658e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0006_Artifact_07",
+        "bounds_error_cm": 7.995605457722377e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0007_Artifact_08",
+        "bounds_error_cm": 7.995605457722377e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0008_Artifact_orbit_01",
+        "bounds_error_cm": 1.8652343669600668e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0009_Artifact_orbit_02",
+        "bounds_error_cm": 2.3950195355837423e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0010_Artifact_orbit_03",
+        "bounds_error_cm": 3.974609370516191e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0011_Artifact_orbit_04",
+        "bounds_error_cm": 2.934570318302576e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0012_Artifact_orbit_05",
+        "bounds_error_cm": 1.1303710891752417e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0013_coin_001",
+        "bounds_error_cm": 4.7949214376785676e-08,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0014_cup_001",
+        "bounds_error_cm": 4.355468661287887e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0015_diamond_001",
+        "bounds_error_cm": 1.5014648369060524e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0016_heart_001",
+        "bounds_error_cm": 2.4072265603081178e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0017_key_001",
+        "bounds_error_cm": 2.82714843535814e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0018_ring_001",
+        "bounds_error_cm": 3.1323242239977844e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0019_star_002",
+        "bounds_error_cm": 3.2324218750545697e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0020_angle_001",
+        "bounds_error_cm": 8.984374971987563e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0021_arcdisaplay_001",
+        "bounds_error_cm": 4.150390623181011e-06,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0022_barrirer_001",
+        "bounds_error_cm": 2.5781250769796316e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0023_base_001",
+        "bounds_error_cm": 4.0625000110594556e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0024_baseboard_001",
+        "bounds_error_cm": 4.121093724052116e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0025_beam_001",
+        "bounds_error_cm": 5.468749986903276e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0026_beam_002",
+        "bounds_error_cm": 6.542968776557245e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0027_beam_003",
+        "bounds_error_cm": 5.468749986903276e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0028_beam_004",
+        "bounds_error_cm": 6.12323347e-16,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0029_beam_005",
+        "bounds_error_cm": 8.203124991723598e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0030_bear_001",
+        "bounds_error_cm": 3.0859374930969352e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0031_board_001",
+        "bounds_error_cm": 4.6874999952706276e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0032_boardsmall_001",
+        "bounds_error_cm": 7.128906247544364e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0033_brick_001",
+        "bounds_error_cm": 3.1689453123817657e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0034_cactus_001",
+        "bounds_error_cm": 2.3779297464443516e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0035_column_001",
+        "bounds_error_cm": 6.298828111539478e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0036_column_002",
+        "bounds_error_cm": 2.929687502728484e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0037_connector_001",
+        "bounds_error_cm": 3.281250002373781e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0038_connector_002",
+        "bounds_error_cm": 1.1621093705116436e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0039_cooler_001",
+        "bounds_error_cm": 1.0107421871907718e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0040_coolershell_001",
+        "bounds_error_cm": 5.37109372089617e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0041_cup_podium_001",
+        "bounds_error_cm": 3.681640521335794e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0042_cyllinder_001",
+        "bounds_error_cm": 7.421875011459633e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0043_cyllinder_002",
+        "bounds_error_cm": 4.5410156417347025e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0044_cyllinder_003",
+        "bounds_error_cm": 6.05468750336513e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0045_drone_001",
+        "bounds_error_cm": 1.4453125004365575e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0046_drone_1_001",
+        "bounds_error_cm": 7.861328157332537e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0047_drone_1_002",
+        "bounds_error_cm": 3.9160156006801117e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0048_drone_2_001",
+        "bounds_error_cm": 3.342285154417368e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0049_drone_2_002",
+        "bounds_error_cm": 2.287597652639306e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0050_drone_2_003",
+        "bounds_error_cm": 2.0434570302541033e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0051_drone_2_004",
+        "bounds_error_cm": 4.91943360714231e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0052_drone_2_005",
+        "bounds_error_cm": 4.91943360714231e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0053_drone_3_001",
+        "bounds_error_cm": 2.705078131270966e-06,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0054_drone_3_002",
+        "bounds_error_cm": 2.45117188057975e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0055_drone_3_003",
+        "bounds_error_cm": 2.45117188057975e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0056_droneholder_001",
+        "bounds_error_cm": 2.736816412607368e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0057_droneholder_002",
+        "bounds_error_cm": 3.8867187868163455e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0058_droneholder_003",
+        "bounds_error_cm": 8.154296864404387e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0059_engine_001",
+        "bounds_error_cm": 3.35937488671334e-06,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0060_flask_001",
+        "bounds_error_cm": 1.2597656223078957e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0061_flask_002",
+        "bounds_error_cm": 3.8183593176199793e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0062_flask_003",
+        "bounds_error_cm": 3.8183593176199793e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0063_flaskcap_001",
+        "bounds_error_cm": 3.7109375057298166e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0064_flaskshell_001",
+        "bounds_error_cm": 6.811523434180344e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0065_flower_001",
+        "bounds_error_cm": 3.0078124950705387e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0066_flowerpillar_001",
+        "bounds_error_cm": 2.265624971187208e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0067_halo_001",
+        "bounds_error_cm": 2.1191406290199666e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0068_halo_003",
+        "bounds_error_cm": 0.00016015624987630872,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0069_lazeholder_001",
+        "bounds_error_cm": 5.859375005456968e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0070_panel_001",
+        "bounds_error_cm": 1.1132812460346031e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0071_panel_002",
+        "bounds_error_cm": 4.0039062696450856e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0072_panel_003",
+        "bounds_error_cm": 3.5253907526566763e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0073_panel_004",
+        "bounds_error_cm": 4.921874960928108e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0074_panel_005",
+        "bounds_error_cm": 1.3134765652011993e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0075_panel_006",
+        "bounds_error_cm": 1.3940429681724709e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0076_panel_007",
+        "bounds_error_cm": 8.740234363813215e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0077_panel_008",
+        "bounds_error_cm": 4.4677734365450306e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0078_panel_009",
+        "bounds_error_cm": 4.208984307751962e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0079_panel_010",
+        "bounds_error_cm": 5.273437508890311e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0080_pillar_003",
+        "bounds_error_cm": 5.2246093673602445e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0081_pillar_004",
+        "bounds_error_cm": 3.749999905267032e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0082_pillar_005",
+        "bounds_error_cm": 2.6171874992542143e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0083_pipearc_001",
+        "bounds_error_cm": 4.296874999454303e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0084_pipebase_001",
+        "bounds_error_cm": 2.1582031308753358e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0085_pipecorner_001",
+        "bounds_error_cm": 3.618164058138973e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0086_pipeshell_001",
+        "bounds_error_cm": 4.70214843062422e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0087_pipeside_001",
+        "bounds_error_cm": 7.324218699977791e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0088_pipeside_002",
+        "bounds_error_cm": 7.324218699977791e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0089_pipeup_001",
+        "bounds_error_cm": 3.4765625969157554e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0090_pipeup_002",
+        "bounds_error_cm": 2.499999936844688e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0091_podium_001",
+        "bounds_error_cm": 4.785156306752469e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0092_Shere_001",
+        "bounds_error_cm": 3.710937494361133e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0093_tail_001",
+        "bounds_error_cm": 5.078125013824319e-07,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0094_terminal_001",
+        "bounds_error_cm": 4.726562679024937e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0095_terminal_002",
+        "bounds_error_cm": 4.003906241223376e-06,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0096_terminal_003",
+        "bounds_error_cm": 1.6015624964893505e-05,
+        "slots": 5
+      },
+      {
+        "mesh": "SM_0097_terminal_004",
+        "bounds_error_cm": 4.003906241223376e-06,
+        "slots": 6
+      },
+      {
+        "mesh": "SM_0098_terminal_hologram_001",
+        "bounds_error_cm": 1.1767578058652362e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0099_Asteroids_001",
+        "bounds_error_cm": 8.593749953433871e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0100_gate_001",
+        "bounds_error_cm": 3.515624985084287e-05,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0101_gate_space_001",
+        "bounds_error_cm": 4.218749836581992e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0102_obstacle_1_001",
+        "bounds_error_cm": 4.0625000110594556e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0103_obstacle_10_001",
+        "bounds_error_cm": 8.496093755638867e-06,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0104_obstacle_11_001",
+        "bounds_error_cm": 4.277343919056875e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0105_obstacle_11_002",
+        "bounds_error_cm": 6.982421894008439e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0106_obstacle_12_001",
+        "bounds_error_cm": 2.9150390616905497e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0107_obstacle_13_001",
+        "bounds_error_cm": 2.5610351599425485e-06,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0108_obstacle_14_001",
+        "bounds_error_cm": 4.726562679024937e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0109_obstacle_14_002",
+        "bounds_error_cm": 4.2968750335603545e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0110_obstacle_15_001",
+        "bounds_error_cm": 2.0214843743815436e-05,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0111_obstacle_15_002",
+        "bounds_error_cm": 1.582031245561666e-05,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0112_obstacle_17_001",
+        "bounds_error_cm": 4.277343919056875e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0113_obstacle_17_002",
+        "bounds_error_cm": 6.982421894008439e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0114_obstacle_2_001",
+        "bounds_error_cm": 2.5878905773879524e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0115_obstacle_2_002",
+        "bounds_error_cm": 9.619140598715603e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0116_obstacle_3_001",
+        "bounds_error_cm": 2.968749868159648e-07,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0117_obstacle_4_001",
+        "bounds_error_cm": 4.2675782196965883e-07,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0118_obstacle_5_001",
+        "bounds_error_cm": 1.3476562457981345e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0119_obstacle_5_002",
+        "bounds_error_cm": 4.980468702342478e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0120_obstacle_5_003",
+        "bounds_error_cm": 4.2187500071122486e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0121_obstacle_6_001",
+        "bounds_error_cm": 1.6381835905576736e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0122_obstacle_6_002",
+        "bounds_error_cm": 2.337646485273126e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0123_obstacle_7_001",
+        "bounds_error_cm": 5.000000101063051e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0124_obstacle_7_002",
+        "bounds_error_cm": 2.9687500045838533e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0125_obstacle_8_001",
+        "bounds_error_cm": 4.882809889750206e-08,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0126_obstacle_8_002",
+        "bounds_error_cm": 2.0092773382884843e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0127_obstacle_9_001",
+        "bounds_error_cm": 1.318359352353582e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0128_trampoline_1_001",
+        "bounds_error_cm": 1.1962890653194336e-05,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0129_platform_001",
+        "bounds_error_cm": 1.1718749988176569e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0130_platform_002",
+        "bounds_error_cm": 1.1718749988176569e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0131_platform_003",
+        "bounds_error_cm": 9.814453107992449e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0132_platform_004",
+        "bounds_error_cm": 2.8222656283105607e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0133_platform_005_005",
+        "bounds_error_cm": 2.7148437538926373e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0134_platform_005",
+        "bounds_error_cm": 8.447265599897946e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0135_platform_006",
+        "bounds_error_cm": 4.39453117451194e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0136_platform_007",
+        "bounds_error_cm": 2.6367187615505827e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0137_platform_008",
+        "bounds_error_cm": 9.570312499818101e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0138_platform_009",
+        "bounds_error_cm": 3.1250001484295353e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0139_PF_Artifact_01",
+        "bounds_error_cm": 6.396484337756192e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0140_PF_Artifact_02",
+        "bounds_error_cm": 1.8676757846947112e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0141_PF_Artifact_03",
+        "bounds_error_cm": 6.396483342996362e-09,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0142_PF_Artifact_04",
+        "bounds_error_cm": 4.2480468920302883e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0143_PF_Artifact_05",
+        "bounds_error_cm": 7.568359450260687e-08,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0144_PF_Artifact_06",
+        "bounds_error_cm": 1.223144529660658e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0145_PF_Artifact_07",
+        "bounds_error_cm": 7.995605457722377e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0146_PF_Artifact_08",
+        "bounds_error_cm": 7.995605457722377e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0147_PF_Artifact_orbit_01",
+        "bounds_error_cm": 1.8652343669600668e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0148_PF_Artifact_orbit_02",
+        "bounds_error_cm": 2.3950195355837423e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0149_PF_Artifact_orbit_03",
+        "bounds_error_cm": 3.974609370516191e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0150_PF_Artifact_orbit_04",
+        "bounds_error_cm": 2.934570318302576e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0151_PF_Artifact_orbit_05",
+        "bounds_error_cm": 1.1303710891752417e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0152_PF_coin_001",
+        "bounds_error_cm": 4.7949214376785676e-08,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0153_PF_cup_001",
+        "bounds_error_cm": 4.355468661287887e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0154_PF_diamond_001",
+        "bounds_error_cm": 1.5014648369060524e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0155_PF_heart_001",
+        "bounds_error_cm": 2.4072265603081178e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0156_PF_key_001",
+        "bounds_error_cm": 2.82714843535814e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0157_PF_ring_001",
+        "bounds_error_cm": 3.1323242239977844e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0158_PF_star_002",
+        "bounds_error_cm": 3.2324218750545697e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0159_PF_angle_001",
+        "bounds_error_cm": 8.984374971987563e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0160_PF_arcdisaplay_001",
+        "bounds_error_cm": 4.150390623181011e-06,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0161_PF_barrirer_001",
+        "bounds_error_cm": 2.5781250769796316e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0162_PF_base_001",
+        "bounds_error_cm": 4.0625000110594556e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0163_PF_baseboard_001",
+        "bounds_error_cm": 4.121093724052116e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0164_PF_beam_001",
+        "bounds_error_cm": 5.468749986903276e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0165_PF_beam_002",
+        "bounds_error_cm": 6.542968776557245e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0166_PF_beam_003",
+        "bounds_error_cm": 5.468749986903276e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0167_PF_beam_004",
+        "bounds_error_cm": 6.12323347e-16,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0168_PF_beam_005",
+        "bounds_error_cm": 8.203124991723598e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0169_PF_bear_001",
+        "bounds_error_cm": 3.0859374930969352e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0170_PF_board_001",
+        "bounds_error_cm": 4.6874999952706276e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0171_PF_boardsmall_001",
+        "bounds_error_cm": 7.128906247544364e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0172_PF_brick_001",
+        "bounds_error_cm": 3.1689453123817657e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0173_PF_cactus_001",
+        "bounds_error_cm": 2.3779297464443516e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0174_PF_Column_001",
+        "bounds_error_cm": 6.298828111539478e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0175_PF_Column_002",
+        "bounds_error_cm": 2.929687502728484e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0176_PF_connector_001",
+        "bounds_error_cm": 3.281250002373781e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0177_PF_connector_002",
+        "bounds_error_cm": 1.1621093705116436e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0178_PF_cooler_001",
+        "bounds_error_cm": 1.0107421871907718e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0179_PF_coolershell_001",
+        "bounds_error_cm": 5.37109372089617e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0180_PF_cup_podium_001",
+        "bounds_error_cm": 3.681640521335794e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0181_PF_cyllinder_001",
+        "bounds_error_cm": 7.421875011459633e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0182_PF_cyllinder_002",
+        "bounds_error_cm": 4.5410156417347025e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0183_PF_cyllinder_003",
+        "bounds_error_cm": 6.05468750336513e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0184_PF_drone_001",
+        "bounds_error_cm": 1.4453125004365575e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0185_PF_drone_1_001",
+        "bounds_error_cm": 7.861328157332537e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0186_PF_drone_1_002",
+        "bounds_error_cm": 3.9160156006801117e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0187_PF_drone_2_001",
+        "bounds_error_cm": 3.342285154417368e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0188_PF_drone_2_002",
+        "bounds_error_cm": 2.287597652639306e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0189_PF_drone_2_003",
+        "bounds_error_cm": 2.0434570302541033e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0190_PF_drone_2_004",
+        "bounds_error_cm": 4.91943360714231e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0191_PF_drone_2_005",
+        "bounds_error_cm": 4.91943360714231e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0192_PF_drone_3_001",
+        "bounds_error_cm": 2.705078131270966e-06,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0193_PF_drone_3_002",
+        "bounds_error_cm": 2.45117188057975e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0194_PF_drone_3_003",
+        "bounds_error_cm": 2.45117188057975e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0195_PF_droneholder_001",
+        "bounds_error_cm": 2.736816412607368e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0196_PF_droneholder_002",
+        "bounds_error_cm": 3.8867187868163455e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0197_PF_droneholder_003",
+        "bounds_error_cm": 8.154296864404387e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0198_PF_engine_001",
+        "bounds_error_cm": 3.35937488671334e-06,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0199_PF_flask_001",
+        "bounds_error_cm": 1.2597656223078957e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0200_PF_flask_002",
+        "bounds_error_cm": 3.8183593176199793e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0201_PF_flask_003",
+        "bounds_error_cm": 3.8183593176199793e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0202_PF_flaskcap_001",
+        "bounds_error_cm": 3.7109375057298166e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0203_PF_flaskshell_001",
+        "bounds_error_cm": 6.811523434180344e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0204_PF_flower_001",
+        "bounds_error_cm": 3.0078124950705387e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0205_PF_flowerpillar_001",
+        "bounds_error_cm": 2.265624971187208e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0206_PF_halo_001",
+        "bounds_error_cm": 2.1191406290199666e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0207_PF_halo_003",
+        "bounds_error_cm": 0.00016015624987630872,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0208_PF_lazeholder_001",
+        "bounds_error_cm": 5.859375005456968e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0209_PF_panel_001",
+        "bounds_error_cm": 1.1132812460346031e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0210_PF_panel_002",
+        "bounds_error_cm": 4.0039062696450856e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0211_PF_panel_003",
+        "bounds_error_cm": 3.5253907526566763e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0212_PF_panel_004",
+        "bounds_error_cm": 4.921874960928108e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0213_PF_panel_005",
+        "bounds_error_cm": 1.3134765652011993e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0214_PF_panel_006",
+        "bounds_error_cm": 1.3940429681724709e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0215_PF_panel_007",
+        "bounds_error_cm": 8.740234363813215e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0216_PF_panel_008",
+        "bounds_error_cm": 4.4677734365450306e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0217_PF_panel_009",
+        "bounds_error_cm": 4.208984307751962e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0218_PF_panel_010",
+        "bounds_error_cm": 5.273437508890311e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0219_PF_pillar_003",
+        "bounds_error_cm": 5.2246093673602445e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0220_PF_pillar_004",
+        "bounds_error_cm": 3.749999905267032e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0221_PF_pillar_005",
+        "bounds_error_cm": 2.6171874992542143e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0222_PF_pipearc_001",
+        "bounds_error_cm": 4.296874999454303e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0223_PF_pipebase_001",
+        "bounds_error_cm": 2.1582031308753358e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0224_PF_pipecorner_001",
+        "bounds_error_cm": 3.618164058138973e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0225_PF_pipeshell_001",
+        "bounds_error_cm": 4.70214843062422e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0226_PF_pipeside_001",
+        "bounds_error_cm": 7.324218699977791e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0227_PF_pipeside_002",
+        "bounds_error_cm": 7.324218699977791e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0228_PF_pipeup_001",
+        "bounds_error_cm": 3.4765625969157554e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0229_PF_pipeup_002",
+        "bounds_error_cm": 2.499999936844688e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0230_PF_podium_001",
+        "bounds_error_cm": 4.785156306752469e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0231_PF_Shere_001",
+        "bounds_error_cm": 3.710937494361133e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0232_PF_tail_001",
+        "bounds_error_cm": 5.078125013824319e-07,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0233_PF_terminal_001",
+        "bounds_error_cm": 4.726562679024937e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0234_PF_terminal_002",
+        "bounds_error_cm": 4.003906241223376e-06,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0235_PF_terminal_003",
+        "bounds_error_cm": 1.6015624964893505e-05,
+        "slots": 5
+      },
+      {
+        "mesh": "SM_0236_PF_terminal_004",
+        "bounds_error_cm": 4.003906241223376e-06,
+        "slots": 6
+      },
+      {
+        "mesh": "SM_0237_PF_terminal_hologram_001",
+        "bounds_error_cm": 1.1767578058652362e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0238_PF_Asteroids_001",
+        "bounds_error_cm": 8.593749953433871e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0239_PF_gate_001",
+        "bounds_error_cm": 3.515624985084287e-05,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0240_PF_gate_space_001",
+        "bounds_error_cm": 3.515624985084287e-05,
+        "slots": 5
+      },
+      {
+        "mesh": "SM_0241_PF_obstacle_1_001",
+        "bounds_error_cm": 4.0625000110594556e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0242_PF_obstacle_10_001",
+        "bounds_error_cm": 8.496093755638867e-06,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0243_PF_obstacle_11_001",
+        "bounds_error_cm": 2.478027340657718e-06,
+        "slots": 10
+      },
+      {
+        "mesh": "SM_0244_PF_obstacle_11_002",
+        "bounds_error_cm": 6.982421894008439e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0245_PF_obstacle_12_001",
+        "bounds_error_cm": 2.9150390616905497e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0246_PF_obstacle_13_001",
+        "bounds_error_cm": 2.5610351599425485e-06,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0247_PF_obstacle_14_001",
+        "bounds_error_cm": 4.726562679024937e-07,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0248_PF_obstacle_14_002",
+        "bounds_error_cm": 4.2968750335603545e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0249_PF_obstacle_15_001",
+        "bounds_error_cm": 2.0214843743815436e-05,
+        "slots": 8
+      },
+      {
+        "mesh": "SM_0250_PF_obstacle_15_002",
+        "bounds_error_cm": 1.582031245561666e-05,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0251_PF_obstacle_17_001",
+        "bounds_error_cm": 4.277343919056875e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0252_PF_obstacle_17_002",
+        "bounds_error_cm": 6.982421894008439e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0253_PF_obstacle_2_001",
+        "bounds_error_cm": 2.5878905773879524e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0254_PF_obstacle_2_002",
+        "bounds_error_cm": 9.619140598715603e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0255_PF_obstacle_3_001",
+        "bounds_error_cm": 2.968749868159648e-07,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0256_PF_obstacle_4_001",
+        "bounds_error_cm": 4.2675782196965883e-07,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0257_PF_obstacle_5_001",
+        "bounds_error_cm": 1.3476562457981345e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0258_PF_obstacle_5_002",
+        "bounds_error_cm": 4.980468702342478e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0259_PF_obstacle_5_003",
+        "bounds_error_cm": 4.2187500071122486e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0260_PF_obstacle_6_001",
+        "bounds_error_cm": 1.6381835905576736e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0261_PF_obstacle_6_002",
+        "bounds_error_cm": 2.337646485273126e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0262_PF_obstacle_7_001",
+        "bounds_error_cm": 5.000000101063051e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0263_PF_obstacle_7_002",
+        "bounds_error_cm": 2.9687500045838533e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0264_PF_obstacle_8_001",
+        "bounds_error_cm": 4.882809889750206e-08,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0265_PF_obstacle_8_002",
+        "bounds_error_cm": 2.0092773382884843e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0266_PF_obstacle_9_001",
+        "bounds_error_cm": 1.318359352353582e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0267_PF_trampoline_1_001",
+        "bounds_error_cm": 1.1962890653194336e-05,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0268_PF_platform_001",
+        "bounds_error_cm": 1.1718749988176569e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0269_PF_platform_002",
+        "bounds_error_cm": 1.1718749988176569e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0270_PF_platform_003",
+        "bounds_error_cm": 9.814453107992449e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0271_PF_platform_004",
+        "bounds_error_cm": 2.8222656283105607e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0272_PF_platform_005_005",
+        "bounds_error_cm": 2.7148437538926373e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0273_PF_platform_005",
+        "bounds_error_cm": 8.447265599897946e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0274_PF_platform_006",
+        "bounds_error_cm": 4.39453117451194e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0275_PF_platform_007",
+        "bounds_error_cm": 2.6367187615505827e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0276_PF_platform_008",
+        "bounds_error_cm": 9.570312499818101e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0277_PF_platform_009",
+        "bounds_error_cm": 3.1250001484295353e-06,
+        "slots": 1
+      }
+    ],
+    "skipped_components": [
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_01.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_01.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_01.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_01.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_02.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_02.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_02.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_02.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_03.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_03.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_03.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_03.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_04.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_04.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_04.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_04.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_05.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_05.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_05.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_05.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_06.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_06.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_06.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_06.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_07.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_07.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_07.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_07.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_08.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_08.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_08.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_08.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_orbit_01.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_orbit_02.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_orbit_03.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_orbit_04.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/Artifact_orbit_05.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/coin_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/coin_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/coin_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/coin_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/cup_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/diamond_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/diamond_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/diamond_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/diamond_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/heart_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/heart_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/heart_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/heart_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/key_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/key_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/key_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/key_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/ring_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/ring_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/ring_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/ring_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/star_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/star_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/star_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Collectibles/star_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/angle_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/arcdisaplay_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/barrirer_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/base_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/baseboard_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/beam_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/beam_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/beam_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/beam_004.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/beam_005.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/bear_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/bear_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/bear_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/bear_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/board_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/boardsmall_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/brick_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/cactus_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/Column_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/Column_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/connector_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/connector_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/cooler_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/coolershell_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/coolershell_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/coolershell_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/cup_podium_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/cyllinder_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/cyllinder_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/cyllinder_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/cyllinder_003.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/drone_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/drone_1_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/drone_1_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/drone_2_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/drone_2_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/drone_2_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/drone_2_004.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/drone_2_005.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/drone_3_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/drone_3_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/drone_3_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/droneholder_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/droneholder_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/droneholder_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/engine_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/flask_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/flask_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/flask_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/flask_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/flask_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/flask_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/flask_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/flask_003.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/flask_003.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/flaskcap_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/flaskshell_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/flower_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/flowerpillar_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/halo_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/halo_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/lazeholder_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/panel_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/panel_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/panel_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/panel_004.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/panel_005.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/panel_006.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/panel_007.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/panel_008.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/panel_009.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/panel_010.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/pillar_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/pillar_004.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/pillar_005.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/pipearc_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/pipebase_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/pipecorner_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/pipeshell_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/pipeside_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/pipeside_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/pipeup_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/pipeup_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/podium_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/Shere_001.prefab: SkinnedMesh baked to static pose",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/Shere_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/tail_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/terminal_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/terminal_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/terminal_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/terminal_004.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/terminal_hologram_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/terminal_hologram_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/terminal_hologram_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Decorations/terminal_hologram_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Environment/Asteroids_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Environment/gate_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Environment/gate_space_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Environment/gate_space_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Environment/gate_space_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_1_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_10_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_11_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_11_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_11_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_11_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_11_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_11_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_11_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_11_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_11_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_11_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_11_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_12_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_13_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_14_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_14_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_14_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_14_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_15_001.prefab: SkinnedMesh baked to static pose",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_15_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_15_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_15_002.prefab: SkinnedMesh baked to static pose",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_17_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_17_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_17_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_2_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_2_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_2_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_3_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_3_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_4_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_4_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_5_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_5_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_5_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_6_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_6_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_6_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_7_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_7_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_8_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_8_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_9_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/obstacle_9_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/trampoline_1_001.prefab: SkinnedMesh baked to static pose",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/trampoline_1_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Obstacles/trampoline_1_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Platforms/platform_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Platforms/platform_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Platforms/platform_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Platforms/platform_004.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Platforms/platform_005.005.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Platforms/platform_005.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Platforms/platform_006.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Platforms/platform_007.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Platforms/platform_008.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_14_Sci-Fi/Prefabs/Platforms/platform_009.prefab: unported component MeshCollider"
+    ],
+    "limitations": [
+      "Prefab appearances baked into static meshes; no Blueprint, animation, scripts, particles or source collision conversion.",
+      "Materials approximated; custom shader effects not reproduced. Complex collision is for static environment only."
+    ],
+    "prefabs": [
+      {
+        "source": "Collectibles/Artifact_01.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0139_PF_Artifact_01.SM_0139_PF_Artifact_01",
+        "slots": 1,
+        "position": [
+          0.0,
+          0.0,
+          70.07946014404297
+        ]
+      },
+      {
+        "source": "Collectibles/Artifact_02.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0140_PF_Artifact_02.SM_0140_PF_Artifact_02",
+        "slots": 1,
+        "position": [
+          16094.9375,
+          0.0,
+          58.842140197753906
+        ]
+      },
+      {
+        "source": "Collectibles/Artifact_03.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0141_PF_Artifact_03.SM_0141_PF_Artifact_03",
+        "slots": 1,
+        "position": [
+          32189.875,
+          0.0,
+          34.607845306396484
+        ]
+      },
+      {
+        "source": "Collectibles/Artifact_04.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0142_PF_Artifact_04.SM_0142_PF_Artifact_04",
+        "slots": 2,
+        "position": [
+          48284.8125,
+          0.0,
+          63.9584846496582
+        ]
+      },
+      {
+        "source": "Collectibles/Artifact_05.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0143_PF_Artifact_05.SM_0143_PF_Artifact_05",
+        "slots": 2,
+        "position": [
+          64379.75,
+          0.0,
+          51.44550323486328
+        ]
+      },
+      {
+        "source": "Collectibles/Artifact_06.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0144_PF_Artifact_06.SM_0144_PF_Artifact_06",
+        "slots": 2,
+        "position": [
+          80474.6875,
+          0.0,
+          50.123870849609375
+        ]
+      },
+      {
+        "source": "Collectibles/Artifact_07.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0145_PF_Artifact_07.SM_0145_PF_Artifact_07",
+        "slots": 3,
+        "position": [
+          96569.625,
+          0.0,
+          53.60783386230469
+        ]
+      },
+      {
+        "source": "Collectibles/Artifact_08.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0146_PF_Artifact_08.SM_0146_PF_Artifact_08",
+        "slots": 3,
+        "position": [
+          112664.5625,
+          0.0,
+          53.60783386230469
+        ]
+      },
+      {
+        "source": "Collectibles/Artifact_orbit_01.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0147_PF_Artifact_orbit_01.SM_0147_PF_Artifact_orbit_01",
+        "slots": 1,
+        "position": [
+          128759.5,
+          0.0,
+          112.68134307861328
+        ]
+      },
+      {
+        "source": "Collectibles/Artifact_orbit_02.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0148_PF_Artifact_orbit_02.SM_0148_PF_Artifact_orbit_02",
+        "slots": 1,
+        "position": [
+          144854.4375,
+          0.0,
+          1.2908989191055298
+        ]
+      },
+      {
+        "source": "Collectibles/Artifact_orbit_03.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0149_PF_Artifact_orbit_03.SM_0149_PF_Artifact_orbit_03",
+        "slots": 1,
+        "position": [
+          160949.375,
+          0.0,
+          99.12067413330078
+        ]
+      },
+      {
+        "source": "Collectibles/Artifact_orbit_04.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0150_PF_Artifact_orbit_04.SM_0150_PF_Artifact_orbit_04",
+        "slots": 1,
+        "position": [
+          177044.3125,
+          0.0,
+          85.64811706542969
+        ]
+      },
+      {
+        "source": "Collectibles/Artifact_orbit_05.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0151_PF_Artifact_orbit_05.SM_0151_PF_Artifact_orbit_05",
+        "slots": 1,
+        "position": [
+          0.0,
+          16094.9375,
+          13.729734420776367
+        ]
+      },
+      {
+        "source": "Collectibles/coin_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0152_PF_coin_001.SM_0152_PF_coin_001",
+        "slots": 1,
+        "position": [
+          16094.9375,
+          16094.9375,
+          70.09856414794922
+        ]
+      },
+      {
+        "source": "Collectibles/cup_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0153_PF_cup_001.SM_0153_PF_cup_001",
+        "slots": 2,
+        "position": [
+          32189.875,
+          16094.9375,
+          -9.1389741897583
+        ]
+      },
+      {
+        "source": "Collectibles/diamond_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0154_PF_diamond_001.SM_0154_PF_diamond_001",
+        "slots": 1,
+        "position": [
+          48284.8125,
+          16094.9375,
+          82.49872589111328
+        ]
+      },
+      {
+        "source": "Collectibles/heart_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0155_PF_heart_001.SM_0155_PF_heart_001",
+        "slots": 1,
+        "position": [
+          64379.75,
+          16094.9375,
+          80.23731994628906
+        ]
+      },
+      {
+        "source": "Collectibles/key_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0156_PF_key_001.SM_0156_PF_key_001",
+        "slots": 1,
+        "position": [
+          80474.6875,
+          16094.9375,
+          45.41579818725586
+        ]
+      },
+      {
+        "source": "Collectibles/ring_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0157_PF_ring_001.SM_0157_PF_ring_001",
+        "slots": 1,
+        "position": [
+          96569.625,
+          16094.9375,
+          69.22527313232422
+        ]
+      },
+      {
+        "source": "Collectibles/star_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Collectibles/SM_0158_PF_star_002.SM_0158_PF_star_002",
+        "slots": 1,
+        "position": [
+          112664.5625,
+          16094.9375,
+          76.38838195800781
+        ]
+      },
+      {
+        "source": "Decorations/angle_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0159_PF_angle_001.SM_0159_PF_angle_001",
+        "slots": 3,
+        "position": [
+          128759.5,
+          16094.9375,
+          -0.0003799191617872566
+        ]
+      },
+      {
+        "source": "Decorations/arcdisaplay_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0160_PF_arcdisaplay_001.SM_0160_PF_arcdisaplay_001",
+        "slots": 4,
+        "position": [
+          144854.4375,
+          16094.9375,
+          104.77659606933594
+        ]
+      },
+      {
+        "source": "Decorations/barrirer_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0161_PF_barrirer_001.SM_0161_PF_barrirer_001",
+        "slots": 1,
+        "position": [
+          160949.375,
+          16094.9375,
+          483.30517578125
+        ]
+      },
+      {
+        "source": "Decorations/base_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0162_PF_base_001.SM_0162_PF_base_001",
+        "slots": 1,
+        "position": [
+          177044.3125,
+          16094.9375,
+          110.62928771972656
+        ]
+      },
+      {
+        "source": "Decorations/baseboard_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0163_PF_baseboard_001.SM_0163_PF_baseboard_001",
+        "slots": 3,
+        "position": [
+          0.0,
+          32189.875,
+          0.0
+        ]
+      },
+      {
+        "source": "Decorations/beam_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0164_PF_beam_001.SM_0164_PF_beam_001",
+        "slots": 1,
+        "position": [
+          16094.9375,
+          32189.875,
+          212.41073608398438
+        ]
+      },
+      {
+        "source": "Decorations/beam_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0165_PF_beam_002.SM_0165_PF_beam_002",
+        "slots": 1,
+        "position": [
+          32189.875,
+          32189.875,
+          211.04710388183594
+        ]
+      },
+      {
+        "source": "Decorations/beam_003.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0166_PF_beam_003.SM_0166_PF_beam_003",
+        "slots": 1,
+        "position": [
+          48284.8125,
+          32189.875,
+          210.99481201171875
+        ]
+      },
+      {
+        "source": "Decorations/beam_004.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0167_PF_beam_004.SM_0167_PF_beam_004",
+        "slots": 1,
+        "position": [
+          64379.75,
+          32189.875,
+          100.0
+        ]
+      },
+      {
+        "source": "Decorations/beam_005.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0168_PF_beam_005.SM_0168_PF_beam_005",
+        "slots": 1,
+        "position": [
+          80474.6875,
+          32189.875,
+          218.45326232910156
+        ]
+      },
+      {
+        "source": "Decorations/bear_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0169_PF_bear_001.SM_0169_PF_bear_001",
+        "slots": 1,
+        "position": [
+          96569.625,
+          32189.875,
+          3.3458194732666016
+        ]
+      },
+      {
+        "source": "Decorations/board_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0170_PF_board_001.SM_0170_PF_board_001",
+        "slots": 2,
+        "position": [
+          112664.5625,
+          32189.875,
+          489.7626953125
+        ]
+      },
+      {
+        "source": "Decorations/boardsmall_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0171_PF_boardsmall_001.SM_0171_PF_boardsmall_001",
+        "slots": 1,
+        "position": [
+          128759.5,
+          32189.875,
+          467.86480712890625
+        ]
+      },
+      {
+        "source": "Decorations/brick_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0172_PF_brick_001.SM_0172_PF_brick_001",
+        "slots": 1,
+        "position": [
+          144854.4375,
+          32189.875,
+          64.57621765136719
+        ]
+      },
+      {
+        "source": "Decorations/cactus_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0173_PF_cactus_001.SM_0173_PF_cactus_001",
+        "slots": 1,
+        "position": [
+          160949.375,
+          32189.875,
+          2.384185791015625e-05
+        ]
+      },
+      {
+        "source": "Decorations/Column_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0174_PF_Column_001.SM_0174_PF_Column_001",
+        "slots": 3,
+        "position": [
+          177044.3125,
+          32189.875,
+          0.0
+        ]
+      },
+      {
+        "source": "Decorations/Column_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0175_PF_Column_002.SM_0175_PF_Column_002",
+        "slots": 2,
+        "position": [
+          0.0,
+          48284.8125,
+          0.0
+        ]
+      },
+      {
+        "source": "Decorations/connector_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0176_PF_connector_001.SM_0176_PF_connector_001",
+        "slots": 2,
+        "position": [
+          16094.9375,
+          48284.8125,
+          70.98379516601562
+        ]
+      },
+      {
+        "source": "Decorations/connector_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0177_PF_connector_002.SM_0177_PF_connector_002",
+        "slots": 2,
+        "position": [
+          32189.875,
+          48284.8125,
+          72.4739990234375
+        ]
+      },
+      {
+        "source": "Decorations/cooler_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0178_PF_cooler_001.SM_0178_PF_cooler_001",
+        "slots": 1,
+        "position": [
+          48284.8125,
+          48284.8125,
+          36.316646575927734
+        ]
+      },
+      {
+        "source": "Decorations/coolershell_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0179_PF_coolershell_001.SM_0179_PF_coolershell_001",
+        "slots": 3,
+        "position": [
+          64379.75,
+          48284.8125,
+          8.199286460876465
+        ]
+      },
+      {
+        "source": "Decorations/cup_podium_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0180_PF_cup_podium_001.SM_0180_PF_cup_podium_001",
+        "slots": 1,
+        "position": [
+          80474.6875,
+          48284.8125,
+          7.105427357601002e-15
+        ]
+      },
+      {
+        "source": "Decorations/cyllinder_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0181_PF_cyllinder_001.SM_0181_PF_cyllinder_001",
+        "slots": 2,
+        "position": [
+          96569.625,
+          48284.8125,
+          1121.1497802734375
+        ]
+      },
+      {
+        "source": "Decorations/cyllinder_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0182_PF_cyllinder_002.SM_0182_PF_cyllinder_002",
+        "slots": 3,
+        "position": [
+          112664.5625,
+          48284.8125,
+          0.0
+        ]
+      },
+      {
+        "source": "Decorations/cyllinder_003.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0183_PF_cyllinder_003.SM_0183_PF_cyllinder_003",
+        "slots": 3,
+        "position": [
+          128759.5,
+          48284.8125,
+          400.0762939453125
+        ]
+      },
+      {
+        "source": "Decorations/drone_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0184_PF_drone_001.SM_0184_PF_drone_001",
+        "slots": 3,
+        "position": [
+          144854.4375,
+          48284.8125,
+          9.535309791564941
+        ]
+      },
+      {
+        "source": "Decorations/drone_1_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0185_PF_drone_1_001.SM_0185_PF_drone_1_001",
+        "slots": 1,
+        "position": [
+          160949.375,
+          48284.8125,
+          90.60663604736328
+        ]
+      },
+      {
+        "source": "Decorations/drone_1_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0186_PF_drone_1_002.SM_0186_PF_drone_1_002",
+        "slots": 3,
+        "position": [
+          177044.3125,
+          48284.8125,
+          44.95258331298828
+        ]
+      },
+      {
+        "source": "Decorations/drone_2_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0187_PF_drone_2_001.SM_0187_PF_drone_2_001",
+        "slots": 3,
+        "position": [
+          0.0,
+          64379.75,
+          30.144702911376953
+        ]
+      },
+      {
+        "source": "Decorations/drone_2_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0188_PF_drone_2_002.SM_0188_PF_drone_2_002",
+        "slots": 1,
+        "position": [
+          16094.9375,
+          64379.75,
+          24.714731216430664
+        ]
+      },
+      {
+        "source": "Decorations/drone_2_003.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0189_PF_drone_2_003.SM_0189_PF_drone_2_003",
+        "slots": 1,
+        "position": [
+          32189.875,
+          64379.75,
+          24.714725494384766
+        ]
+      },
+      {
+        "source": "Decorations/drone_2_004.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0190_PF_drone_2_004.SM_0190_PF_drone_2_004",
+        "slots": 1,
+        "position": [
+          48284.8125,
+          64379.75,
+          17.71841049194336
+        ]
+      },
+      {
+        "source": "Decorations/drone_2_005.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0191_PF_drone_2_005.SM_0191_PF_drone_2_005",
+        "slots": 1,
+        "position": [
+          64379.75,
+          64379.75,
+          17.71841049194336
+        ]
+      },
+      {
+        "source": "Decorations/drone_3_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0192_PF_drone_3_001.SM_0192_PF_drone_3_001",
+        "slots": 4,
+        "position": [
+          80474.6875,
+          64379.75,
+          91.88577270507812
+        ]
+      },
+      {
+        "source": "Decorations/drone_3_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0193_PF_drone_3_002.SM_0193_PF_drone_3_002",
+        "slots": 3,
+        "position": [
+          96569.625,
+          64379.75,
+          20.205459594726562
+        ]
+      },
+      {
+        "source": "Decorations/drone_3_003.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0194_PF_drone_3_003.SM_0194_PF_drone_3_003",
+        "slots": 3,
+        "position": [
+          112664.5625,
+          64379.75,
+          20.205459594726562
+        ]
+      },
+      {
+        "source": "Decorations/droneholder_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0195_PF_droneholder_001.SM_0195_PF_droneholder_001",
+        "slots": 1,
+        "position": [
+          128759.5,
+          64379.75,
+          44.9923095703125
+        ]
+      },
+      {
+        "source": "Decorations/droneholder_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0196_PF_droneholder_002.SM_0196_PF_droneholder_002",
+        "slots": 1,
+        "position": [
+          144854.4375,
+          64379.75,
+          220.19772338867188
+        ]
+      },
+      {
+        "source": "Decorations/droneholder_003.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0197_PF_droneholder_003.SM_0197_PF_droneholder_003",
+        "slots": 1,
+        "position": [
+          160949.375,
+          64379.75,
+          220.19801330566406
+        ]
+      },
+      {
+        "source": "Decorations/engine_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0198_PF_engine_001.SM_0198_PF_engine_001",
+        "slots": 4,
+        "position": [
+          177044.3125,
+          64379.75,
+          1588.039306640625
+        ]
+      },
+      {
+        "source": "Decorations/flask_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0199_PF_flask_001.SM_0199_PF_flask_001",
+        "slots": 3,
+        "position": [
+          0.0,
+          80474.6875,
+          0.0
+        ]
+      },
+      {
+        "source": "Decorations/flask_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0200_PF_flask_002.SM_0200_PF_flask_002",
+        "slots": 3,
+        "position": [
+          16094.9375,
+          80474.6875,
+          0.0
+        ]
+      },
+      {
+        "source": "Decorations/flask_003.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0201_PF_flask_003.SM_0201_PF_flask_003",
+        "slots": 3,
+        "position": [
+          32189.875,
+          80474.6875,
+          0.0
+        ]
+      },
+      {
+        "source": "Decorations/flaskcap_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0202_PF_flaskcap_001.SM_0202_PF_flaskcap_001",
+        "slots": 2,
+        "position": [
+          48284.8125,
+          80474.6875,
+          97.9136962890625
+        ]
+      },
+      {
+        "source": "Decorations/flaskshell_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0203_PF_flaskshell_001.SM_0203_PF_flaskshell_001",
+        "slots": 1,
+        "position": [
+          64379.75,
+          80474.6875,
+          0.0
+        ]
+      },
+      {
+        "source": "Decorations/flower_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0204_PF_flower_001.SM_0204_PF_flower_001",
+        "slots": 3,
+        "position": [
+          80474.6875,
+          80474.6875,
+          534.9998168945312
+        ]
+      },
+      {
+        "source": "Decorations/flowerpillar_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0205_PF_flowerpillar_001.SM_0205_PF_flowerpillar_001",
+        "slots": 2,
+        "position": [
+          96569.625,
+          80474.6875,
+          1216.705322265625
+        ]
+      },
+      {
+        "source": "Decorations/halo_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0206_PF_halo_001.SM_0206_PF_halo_001",
+        "slots": 3,
+        "position": [
+          112664.5625,
+          80474.6875,
+          641.1107788085938
+        ]
+      },
+      {
+        "source": "Decorations/halo_003.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0207_PF_halo_003.SM_0207_PF_halo_003",
+        "slots": 3,
+        "position": [
+          128759.5,
+          80474.6875,
+          326.4260559082031
+        ]
+      },
+      {
+        "source": "Decorations/lazeholder_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0208_PF_lazeholder_001.SM_0208_PF_lazeholder_001",
+        "slots": 1,
+        "position": [
+          144854.4375,
+          80474.6875,
+          21.11670684814453
+        ]
+      },
+      {
+        "source": "Decorations/panel_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0209_PF_panel_001.SM_0209_PF_panel_001",
+        "slots": 2,
+        "position": [
+          160949.375,
+          80474.6875,
+          513.6918334960938
+        ]
+      },
+      {
+        "source": "Decorations/panel_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0210_PF_panel_002.SM_0210_PF_panel_002",
+        "slots": 2,
+        "position": [
+          177044.3125,
+          80474.6875,
+          503.1442565917969
+        ]
+      },
+      {
+        "source": "Decorations/panel_003.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0211_PF_panel_003.SM_0211_PF_panel_003",
+        "slots": 2,
+        "position": [
+          0.0,
+          96569.625,
+          473.1662292480469
+        ]
+      },
+      {
+        "source": "Decorations/panel_004.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0212_PF_panel_004.SM_0212_PF_panel_004",
+        "slots": 2,
+        "position": [
+          16094.9375,
+          96569.625,
+          468.81524658203125
+        ]
+      },
+      {
+        "source": "Decorations/panel_005.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0213_PF_panel_005.SM_0213_PF_panel_005",
+        "slots": 2,
+        "position": [
+          32189.875,
+          96569.625,
+          341.36859130859375
+        ]
+      },
+      {
+        "source": "Decorations/panel_006.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0214_PF_panel_006.SM_0214_PF_panel_006",
+        "slots": 2,
+        "position": [
+          48284.8125,
+          96569.625,
+          339.392578125
+        ]
+      },
+      {
+        "source": "Decorations/panel_007.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0215_PF_panel_007.SM_0215_PF_panel_007",
+        "slots": 2,
+        "position": [
+          64379.75,
+          96569.625,
+          292.8822021484375
+        ]
+      },
+      {
+        "source": "Decorations/panel_008.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0216_PF_panel_008.SM_0216_PF_panel_008",
+        "slots": 2,
+        "position": [
+          80474.6875,
+          96569.625,
+          209.300048828125
+        ]
+      },
+      {
+        "source": "Decorations/panel_009.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0217_PF_panel_009.SM_0217_PF_panel_009",
+        "slots": 2,
+        "position": [
+          96569.625,
+          96569.625,
+          177.35533142089844
+        ]
+      },
+      {
+        "source": "Decorations/panel_010.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0218_PF_panel_010.SM_0218_PF_panel_010",
+        "slots": 2,
+        "position": [
+          112664.5625,
+          96569.625,
+          199.64547729492188
+        ]
+      },
+      {
+        "source": "Decorations/pillar_003.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0219_PF_pillar_003.SM_0219_PF_pillar_003",
+        "slots": 1,
+        "position": [
+          128759.5,
+          96569.625,
+          -4.76837158203125e-05
+        ]
+      },
+      {
+        "source": "Decorations/pillar_004.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0220_PF_pillar_004.SM_0220_PF_pillar_004",
+        "slots": 2,
+        "position": [
+          144854.4375,
+          96569.625,
+          0.0
+        ]
+      },
+      {
+        "source": "Decorations/pillar_005.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0221_PF_pillar_005.SM_0221_PF_pillar_005",
+        "slots": 1,
+        "position": [
+          160949.375,
+          96569.625,
+          601.809326171875
+        ]
+      },
+      {
+        "source": "Decorations/pipearc_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0222_PF_pipearc_001.SM_0222_PF_pipearc_001",
+        "slots": 2,
+        "position": [
+          177044.3125,
+          96569.625,
+          110.65851593017578
+        ]
+      },
+      {
+        "source": "Decorations/pipebase_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0223_PF_pipebase_001.SM_0223_PF_pipebase_001",
+        "slots": 1,
+        "position": [
+          0.0,
+          112664.5625,
+          78.3200454711914
+        ]
+      },
+      {
+        "source": "Decorations/pipecorner_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0224_PF_pipecorner_001.SM_0224_PF_pipecorner_001",
+        "slots": 1,
+        "position": [
+          16094.9375,
+          112664.5625,
+          171.35702514648438
+        ]
+      },
+      {
+        "source": "Decorations/pipeshell_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0225_PF_pipeshell_001.SM_0225_PF_pipeshell_001",
+        "slots": 1,
+        "position": [
+          32189.875,
+          112664.5625,
+          110.65355682373047
+        ]
+      },
+      {
+        "source": "Decorations/pipeside_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0226_PF_pipeside_001.SM_0226_PF_pipeside_001",
+        "slots": 2,
+        "position": [
+          48284.8125,
+          112664.5625,
+          172.19900512695312
+        ]
+      },
+      {
+        "source": "Decorations/pipeside_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0227_PF_pipeside_002.SM_0227_PF_pipeside_002",
+        "slots": 2,
+        "position": [
+          64379.75,
+          112664.5625,
+          172.19900512695312
+        ]
+      },
+      {
+        "source": "Decorations/pipeup_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0228_PF_pipeup_001.SM_0228_PF_pipeup_001",
+        "slots": 2,
+        "position": [
+          80474.6875,
+          112664.5625,
+          78.3201904296875
+        ]
+      },
+      {
+        "source": "Decorations/pipeup_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0229_PF_pipeup_002.SM_0229_PF_pipeup_002",
+        "slots": 1,
+        "position": [
+          96569.625,
+          112664.5625,
+          437.1905212402344
+        ]
+      },
+      {
+        "source": "Decorations/podium_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0230_PF_podium_001.SM_0230_PF_podium_001",
+        "slots": 3,
+        "position": [
+          112664.5625,
+          112664.5625,
+          -1.5630722045898438
+        ]
+      },
+      {
+        "source": "Decorations/Shere_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0231_PF_Shere_001.SM_0231_PF_Shere_001",
+        "slots": 2,
+        "position": [
+          128759.5,
+          112664.5625,
+          1774.761962890625
+        ]
+      },
+      {
+        "source": "Decorations/tail_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0232_PF_tail_001.SM_0232_PF_tail_001",
+        "slots": 4,
+        "position": [
+          144854.4375,
+          112664.5625,
+          253.88140869140625
+        ]
+      },
+      {
+        "source": "Decorations/terminal_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0233_PF_terminal_001.SM_0233_PF_terminal_001",
+        "slots": 3,
+        "position": [
+          160949.375,
+          112664.5625,
+          -63.546783447265625
+        ]
+      },
+      {
+        "source": "Decorations/terminal_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0234_PF_terminal_002.SM_0234_PF_terminal_002",
+        "slots": 4,
+        "position": [
+          177044.3125,
+          112664.5625,
+          -63.546783447265625
+        ]
+      },
+      {
+        "source": "Decorations/terminal_003.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0235_PF_terminal_003.SM_0235_PF_terminal_003",
+        "slots": 5,
+        "position": [
+          0.0,
+          128759.5,
+          -63.546783447265625
+        ]
+      },
+      {
+        "source": "Decorations/terminal_004.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0236_PF_terminal_004.SM_0236_PF_terminal_004",
+        "slots": 6,
+        "position": [
+          16094.9375,
+          128759.5,
+          -63.546783447265625
+        ]
+      },
+      {
+        "source": "Decorations/terminal_hologram_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0237_PF_terminal_hologram_001.SM_0237_PF_terminal_hologram_001",
+        "slots": 1,
+        "position": [
+          32189.875,
+          128759.5,
+          91.65116882324219
+        ]
+      },
+      {
+        "source": "Environment/Asteroids_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Environment/SM_0238_PF_Asteroids_001.SM_0238_PF_Asteroids_001",
+        "slots": 1,
+        "position": [
+          48284.8125,
+          128759.5,
+          3520.210693359375
+        ]
+      },
+      {
+        "source": "Environment/gate_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Environment/SM_0239_PF_gate_001.SM_0239_PF_gate_001",
+        "slots": 4,
+        "position": [
+          64379.75,
+          128759.5,
+          4080.43896484375
+        ]
+      },
+      {
+        "source": "Environment/gate_space_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Environment/SM_0240_PF_gate_space_001.SM_0240_PF_gate_space_001",
+        "slots": 5,
+        "position": [
+          80474.6875,
+          128759.5,
+          4080.43896484375
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_1_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0241_PF_obstacle_1_001.SM_0241_PF_obstacle_1_001",
+        "slots": 2,
+        "position": [
+          96569.625,
+          128759.5,
+          365.4513244628906
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_10_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0242_PF_obstacle_10_001.SM_0242_PF_obstacle_10_001",
+        "slots": 4,
+        "position": [
+          112664.5625,
+          128759.5,
+          0.0
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_11_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0243_PF_obstacle_11_001.SM_0243_PF_obstacle_11_001",
+        "slots": 10,
+        "position": [
+          128759.5,
+          128759.5,
+          0.0
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_11_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0244_PF_obstacle_11_002.SM_0244_PF_obstacle_11_002",
+        "slots": 2,
+        "position": [
+          144854.4375,
+          128759.5,
+          21.354021072387695
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_12_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0245_PF_obstacle_12_001.SM_0245_PF_obstacle_12_001",
+        "slots": 3,
+        "position": [
+          160949.375,
+          128759.5,
+          0.0
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_13_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0246_PF_obstacle_13_001.SM_0246_PF_obstacle_13_001",
+        "slots": 4,
+        "position": [
+          177044.3125,
+          128759.5,
+          0.0
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_14_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0247_PF_obstacle_14_001.SM_0247_PF_obstacle_14_001",
+        "slots": 4,
+        "position": [
+          0.0,
+          144854.4375,
+          19.873552322387695
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_14_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0248_PF_obstacle_14_002.SM_0248_PF_obstacle_14_002",
+        "slots": 2,
+        "position": [
+          16094.9375,
+          144854.4375,
+          5.226623058319092
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_15_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0249_PF_obstacle_15_001.SM_0249_PF_obstacle_15_001",
+        "slots": 8,
+        "position": [
+          32189.875,
+          144854.4375,
+          3.2803683280944824
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_15_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0250_PF_obstacle_15_002.SM_0250_PF_obstacle_15_002",
+        "slots": 4,
+        "position": [
+          48284.8125,
+          144854.4375,
+          -54.962467193603516
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_17_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0251_PF_obstacle_17_001.SM_0251_PF_obstacle_17_001",
+        "slots": 2,
+        "position": [
+          64379.75,
+          144854.4375,
+          0.0
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_17_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0252_PF_obstacle_17_002.SM_0252_PF_obstacle_17_002",
+        "slots": 2,
+        "position": [
+          80474.6875,
+          144854.4375,
+          21.354021072387695
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_2_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0253_PF_obstacle_2_001.SM_0253_PF_obstacle_2_001",
+        "slots": 1,
+        "position": [
+          96569.625,
+          144854.4375,
+          100.00001525878906
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_2_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0254_PF_obstacle_2_002.SM_0254_PF_obstacle_2_002",
+        "slots": 1,
+        "position": [
+          112664.5625,
+          144854.4375,
+          30.00003433227539
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_3_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0255_PF_obstacle_3_001.SM_0255_PF_obstacle_3_001",
+        "slots": 4,
+        "position": [
+          128759.5,
+          144854.4375,
+          -1.1920928955078125e-05
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_4_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0256_PF_obstacle_4_001.SM_0256_PF_obstacle_4_001",
+        "slots": 4,
+        "position": [
+          144854.4375,
+          144854.4375,
+          4.76837158203125e-05
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_5_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0257_PF_obstacle_5_001.SM_0257_PF_obstacle_5_001",
+        "slots": 2,
+        "position": [
+          160949.375,
+          144854.4375,
+          85.10322570800781
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_5_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0258_PF_obstacle_5_002.SM_0258_PF_obstacle_5_002",
+        "slots": 3,
+        "position": [
+          177044.3125,
+          144854.4375,
+          82.51762390136719
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_5_003.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0259_PF_obstacle_5_003.SM_0259_PF_obstacle_5_003",
+        "slots": 1,
+        "position": [
+          0.0,
+          160949.375,
+          468.8408508300781
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_6_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0260_PF_obstacle_6_001.SM_0260_PF_obstacle_6_001",
+        "slots": 2,
+        "position": [
+          16094.9375,
+          160949.375,
+          1.1920928955078125e-05
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_6_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0261_PF_obstacle_6_002.SM_0261_PF_obstacle_6_002",
+        "slots": 1,
+        "position": [
+          32189.875,
+          160949.375,
+          16.06513023376465
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_7_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0262_PF_obstacle_7_001.SM_0262_PF_obstacle_7_001",
+        "slots": 1,
+        "position": [
+          48284.8125,
+          160949.375,
+          55.8105354309082
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_7_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0263_PF_obstacle_7_002.SM_0263_PF_obstacle_7_002",
+        "slots": 1,
+        "position": [
+          64379.75,
+          160949.375,
+          -2.384185791015625e-05
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_8_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0264_PF_obstacle_8_001.SM_0264_PF_obstacle_8_001",
+        "slots": 1,
+        "position": [
+          80474.6875,
+          160949.375,
+          0.00021228261175565422
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_8_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0265_PF_obstacle_8_002.SM_0265_PF_obstacle_8_002",
+        "slots": 2,
+        "position": [
+          96569.625,
+          160949.375,
+          96.70162200927734
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_9_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0266_PF_obstacle_9_001.SM_0266_PF_obstacle_9_001",
+        "slots": 1,
+        "position": [
+          112664.5625,
+          160949.375,
+          14.999994277954102
+        ]
+      },
+      {
+        "source": "Obstacles/trampoline_1_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Obstacles/SM_0267_PF_trampoline_1_001.SM_0267_PF_trampoline_1_001",
+        "slots": 4,
+        "position": [
+          128759.5,
+          160949.375,
+          -0.0002503395080566406
+        ]
+      },
+      {
+        "source": "Platforms/platform_001.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Platforms/SM_0268_PF_platform_001.SM_0268_PF_platform_001",
+        "slots": 1,
+        "position": [
+          144854.4375,
+          160949.375,
+          100.0
+        ]
+      },
+      {
+        "source": "Platforms/platform_002.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Platforms/SM_0269_PF_platform_002.SM_0269_PF_platform_002",
+        "slots": 1,
+        "position": [
+          160949.375,
+          160949.375,
+          100.0
+        ]
+      },
+      {
+        "source": "Platforms/platform_003.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Platforms/SM_0270_PF_platform_003.SM_0270_PF_platform_003",
+        "slots": 1,
+        "position": [
+          177044.3125,
+          160949.375,
+          100.0
+        ]
+      },
+      {
+        "source": "Platforms/platform_004.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Platforms/SM_0271_PF_platform_004.SM_0271_PF_platform_004",
+        "slots": 1,
+        "position": [
+          0.0,
+          177044.3125,
+          99.99998474121094
+        ]
+      },
+      {
+        "source": "Platforms/platform_005.005.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Platforms/SM_0272_PF_platform_005_005.SM_0272_PF_platform_005_005",
+        "slots": 1,
+        "position": [
+          16094.9375,
+          177044.3125,
+          99.99998474121094
+        ]
+      },
+      {
+        "source": "Platforms/platform_005.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Platforms/SM_0273_PF_platform_005.SM_0273_PF_platform_005",
+        "slots": 1,
+        "position": [
+          32189.875,
+          177044.3125,
+          99.99998474121094
+        ]
+      },
+      {
+        "source": "Platforms/platform_006.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Platforms/SM_0274_PF_platform_006.SM_0274_PF_platform_006",
+        "slots": 1,
+        "position": [
+          48284.8125,
+          177044.3125,
+          100.0
+        ]
+      },
+      {
+        "source": "Platforms/platform_007.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Platforms/SM_0275_PF_platform_007.SM_0275_PF_platform_007",
+        "slots": 1,
+        "position": [
+          64379.75,
+          177044.3125,
+          29.999998092651367
+        ]
+      },
+      {
+        "source": "Platforms/platform_008.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Platforms/SM_0276_PF_platform_008.SM_0276_PF_platform_008",
+        "slots": 1,
+        "position": [
+          80474.6875,
+          177044.3125,
+          99.99998474121094
+        ]
+      },
+      {
+        "source": "Platforms/platform_009.prefab",
+        "asset": "/Game/Imported/Platformer14SciFi/Prefabs/Platforms/SM_0277_PF_platform_009.SM_0277_PF_platform_009",
+        "slots": 1,
+        "position": [
+          96569.625,
+          177044.3125,
+          161.40463256835938
+        ]
+      }
+    ],
+    "status": "complete",
+    "meshes": 278,
+    "materials": 15,
+    "textures": 9
+  },
+  "reload_verification": {
+    "status": "passed",
+    "meshes_reloaded": 278,
+    "raw_materials_assigned": 139,
+    "prefabs_verified": 139,
+    "materials": 15,
+    "textures": 9
+  },
+  "existing_assets_unchanged": 364,
+  "source_files_unchanged": 612,
+  "new_asset_count": 303,
+  "new_assets": {
+    "Content\\Imported\\Platformer14SciFi\\Materials\\M_000_Asteroid.uasset": "b617b1c947125d9e28a9d840a4d2b14c39a0c28bd54af064e26d5a319958b456",
+    "Content\\Imported\\Platformer14SciFi\\Materials\\M_001_Color_1.uasset": "9241d99268a8612d14f584d4631ea9ee81af50642137d3dd0a001bdaf1a9bc73",
+    "Content\\Imported\\Platformer14SciFi\\Materials\\M_002_Color_2.uasset": "689fbb9a2ea10ff8c9b6b823e5d4c70bfb2b2cfc914e47d0ca47077d0ff88867",
+    "Content\\Imported\\Platformer14SciFi\\Materials\\M_003_Color_2_smooth.uasset": "073961bafb49399e7dd831e5b918a326124c20072a74bf3f94d85ea25f5c5aa8",
+    "Content\\Imported\\Platformer14SciFi\\Materials\\M_004_Dots.uasset": "64e211dbc1e80a3899a3afd2e6383d056446924f4d678e4bdab1d3254b36ad02",
+    "Content\\Imported\\Platformer14SciFi\\Materials\\M_005_Emission.uasset": "0c6ef8f1a017aeb2b1f059869d5c24dbe4aa4bb8b0c5d1d663d4b7e310fc2ff1",
+    "Content\\Imported\\Platformer14SciFi\\Materials\\M_006_Glass.uasset": "adf31c719f9f5c1e83a3b74bcbbe565a08c14bfb2ba0e891bcbf104173202cae",
+    "Content\\Imported\\Platformer14SciFi\\Materials\\M_007_Hexagon_fence.uasset": "ccd7c6f12ee4e1cc5582f371c396373cd24c18d16a1e909d1af55c3b0c50272f",
+    "Content\\Imported\\Platformer14SciFi\\Materials\\M_008_Hologram.uasset": "1f94f84261086bdda68ee64674992c70965b858056fbc24b3aedd699bb241609",
+    "Content\\Imported\\Platformer14SciFi\\Materials\\M_009_Metal.uasset": "79e5ea9bcb6abf25c29c14f56e801f8d04e9cb769ae9a0ed0e59a0decab3625e",
+    "Content\\Imported\\Platformer14SciFi\\Materials\\M_010_Space.uasset": "865c7dbe6f2e72b0d6bace464c0c174a27bb1e29a265d1251046f053855e406e",
+    "Content\\Imported\\Platformer14SciFi\\Materials\\M_011_Substanse.uasset": "953292519a4818d1ef5999191e52110c45b8909a6142c5f0c3ce52a905365ed5",
+    "Content\\Imported\\Platformer14SciFi\\Materials\\M_012_Trampoline.uasset": "6d2c31876deabe676c9c58ae6fd7b04647fda993d58f69796c941ca4c12efd26",
+    "Content\\Imported\\Platformer14SciFi\\Materials\\M_013_Trampoline_dots.uasset": "5a31c91495542caa9c03ef35e6fbf6f5d4365a2219d6eb142fed2af5b36abcb1",
+    "Content\\Imported\\Platformer14SciFi\\Materials\\M_014_Metal.uasset": "0cc97314eacdd05bcda03004add7835c1cdb77869cc934121f398fc862788a58",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0000_Artifact_01.uasset": "2fb976350fcf182bace968167457d53b8966e06cc5524ce5ae2b1f1b1874d02c",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0001_Artifact_02.uasset": "357582a0ad01c597e2ab2929c28e6f4204395f49f667fec55252c5e005ac6709",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0002_Artifact_03.uasset": "b370a7fb8ec16de71fb315cf25a16d08965db4558b628732b7e0482d40520ab9",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0003_Artifact_04.uasset": "b4a5243958f13e52a68de1a3e90c572e356fc5d7ff5659e3f953862155ac963a",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0004_Artifact_05.uasset": "7fbff21ffa4c46dde76eb92a07f65a75225515739353ecdc8b03ddd3613a8675",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0005_Artifact_06.uasset": "f1c5acf18e700056a308045c2523dfc5ed2e2d6e04b07ace2f594426a66ddd69",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0006_Artifact_07.uasset": "257af4377d1e29c00bf8ae9dc0142a4b8a50b3f8af121c783ed54ef2802ed793",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0007_Artifact_08.uasset": "e0deb055d07cdb17b0e1f2aa293546e4f60ae9d809877f3da1c7950b26695db1",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0008_Artifact_orbit_01.uasset": "b12bf002c484f573d978a8bd4d1cf3d8c662a4557a8013045639aa233dbd4cb3",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0009_Artifact_orbit_02.uasset": "945ec003a71fb7fc6635f6cd2c7f18e2e22d3415951e52494179819b5465915f",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0010_Artifact_orbit_03.uasset": "46381b19d7743d048ec3488d0b77ebf9d2beed7d972a3fdb00b0857f71d9cd51",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0011_Artifact_orbit_04.uasset": "09d1692ca3fae779926153eba870fa7b68bbca1a010ba3c3df51422cc6219f2e",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0012_Artifact_orbit_05.uasset": "78b1917083d17ba6e45753798abf7cb2039ebf532648b9bd3d0ee26d50e3f56e",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0013_coin_001.uasset": "f3e094d5e0b9fb24ecf79bc22029c764e2f8ee7f2b4efd7a67a4bcddd197b866",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0014_cup_001.uasset": "c1dcdf79ab76ac619512fd657e9f646bbc8d6c36585247bb70839816145ce2fa",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0015_diamond_001.uasset": "1572628099379c00f0c24fd4afb212d99614370aed885510dc4d7fcfe7976e90",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0016_heart_001.uasset": "4bf120a7a79ec40ec79f49825041dcd8546fe7dd3a3784e11fc92c4a90a6d414",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0017_key_001.uasset": "e053a58a7e189b46fb3f1d16667ee3dea4216b703bfec5460c3abbe422d0e5a2",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0018_ring_001.uasset": "c6a250461a1bbf5d4b6e9e8ac109ad13f277d3ceb66b36097521cae5f275f8f2",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0019_star_002.uasset": "792f7196e2181afb79441b74d033c7c8a1f4bd3cd4c4c84b37eaee171f52d831",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0020_angle_001.uasset": "deaa426073d369dd2e5cd5bf4e5d8e7e6df531373a107288fc8483e0bcbe2887",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0021_arcdisaplay_001.uasset": "59b85af76286826cdfd68a8b9c09595a6f02de39e5954d6045a43893bb6eb79a",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0022_barrirer_001.uasset": "9054273f67053d9bcdf0b24b14530f4aca88d241c1a7e4c4196f9f6cb69a84c0",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0023_base_001.uasset": "6e0f5e3582ddf240a1fec591f4c0297768fcf7e307c11e3681666c3334385ac2",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0024_baseboard_001.uasset": "6b986a5799c783e6e86698627918039f86067726827e1f795b045efce607bb1a",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0025_beam_001.uasset": "8abd3da2c4535a40d8a0ed9b0e7b03a28be1a9873cd3088634ab4462a0bcc29a",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0026_beam_002.uasset": "a65b281fa08182c8a405a8c72ab1fd7a17f95fe0bec331e5b397fbec10b0717c",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0027_beam_003.uasset": "0957e2dbfc37d68ee624deed6ff596b04c118e55a8ff05c51afa2d39d3a54242",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0028_beam_004.uasset": "7f9c3e8b6d333b6c15f4d9d94ffa7ce4044803bef8c646aa2b5922b18aacb209",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0029_beam_005.uasset": "352a13c46dcdc3ca798e65113be146efb6aba3d294e776b55a79ec71ee06302e",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0030_bear_001.uasset": "da69bbb40995ca892f94b78d7eaf87a1e5de0b3e4f21d8ba5155cdbcafb4828e",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0031_board_001.uasset": "e3db9a8ece4ea1bb54de41f74302ba7a0cd63c52147144a9978fe4b5be81c784",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0032_boardsmall_001.uasset": "edbb1908c3497d438c5a8b91fa22b3564c34856c2918f933f92894eb3fc82781",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0033_brick_001.uasset": "193bb7e070e4d9bb214d7d937b09e57b27eee65c9076e2b3544325954b8daba5",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0034_cactus_001.uasset": "fe0369691dd0a5757e4d423556cb2887bcfd6cc49b63a03ec1bb3af00fc23ffb",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0035_column_001.uasset": "60083915a256b5f8e44b5defd77315b722c98359108473024fcecfe2c3f9808e",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0036_column_002.uasset": "9b5574a966caaf80e1683a421bb832cfd51f1f9b5d686699253cc1f8664728f3",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0037_connector_001.uasset": "c6e9747c913ea9b56659c6002628e8d757fc6b4d1b633cac9f96430e75579d97",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0038_connector_002.uasset": "df406acee0e67d0a05eea05569df50c8a253888b8d7e9c7f59afd6f798398f68",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0039_cooler_001.uasset": "1d4b49b4926ddb2b01377ed925ad5e76a8cc63bf871d9701feddb4d5fb0c7314",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0040_coolershell_001.uasset": "533564a19a3bce0829ea1ec72b9497852c64b705ce12fcec9241e8fec347a5cf",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0041_cup_podium_001.uasset": "7eb50b02c7ff191b92ee7238f721f788eadb81deb81d801a5ceedd2ec13eb3d9",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0042_cyllinder_001.uasset": "61ca898e474577c2ec200f9e6e87f08ce26d8b27fe4d78cf8377e54222ccd5a5",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0043_cyllinder_002.uasset": "69e1aa61edeb351d4be045c7793d5dd4f433b6f114b7487442746ccfa18d9fdb",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0044_cyllinder_003.uasset": "e50faf722b2d78e7e21fe67c77ed0285f62251489ed0f8a298b73d6d6b69b858",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0045_drone_001.uasset": "6ab9eb7c401ba71b2b857db864feec714e790878edd50207d3e3adda69b887da",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0046_drone_1_001.uasset": "f382c77793542ca1ccaf32e7542ba2544c35ae3f65726b1a60e38b8313c91784",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0047_drone_1_002.uasset": "5f2db573816ee994613e99bc767aa5be68b129af9a592ea88b857a767cb74529",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0048_drone_2_001.uasset": "010abdff3c4b378e3fabf1764b90eccd222c9064ae0bfd4e19da9d7a6f8e85a6",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0049_drone_2_002.uasset": "bb76a8e12309d17ce6ec85223896714e76eea990f756e4681816d1b20f45511f",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0050_drone_2_003.uasset": "2e6e9e6fe489562d5409a6898f8cf8eaac6b53bcf270f69ac2379a61e3571d42",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0051_drone_2_004.uasset": "956bf980404f090dc341cb9a1c091589295cd8c47e30b929f0319904b5102e4e",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0052_drone_2_005.uasset": "86e0194b58aa99d0033c73c1cfbba62b178138f0554a39a69a3e109828df29fe",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0053_drone_3_001.uasset": "aae84bba286522ab98f95da7a9591c67e9fae525c38ddec8e105320307ae1475",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0054_drone_3_002.uasset": "140ecb14fe59fe66f91a9b3009b1e0d0d233cd150d5572aade22537253d22769",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0055_drone_3_003.uasset": "f17a5ebed3a31a5cfedfb1f078d4ea9af061242917f572459cc7db5835b8241b",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0056_droneholder_001.uasset": "4569654d4f51c9811ecea9f5c6bccb52037e7b347218cf8d24240d9b249ebc89",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0057_droneholder_002.uasset": "a54de358b04e8d17abb4339f2999f07efcf7327bfd7cffb90938cabddc1b8675",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0058_droneholder_003.uasset": "738c0cb72d407891acba945e206dd05d45049a53811e2cc40788f21a7e0e5ca9",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0059_engine_001.uasset": "ed324ce6ee66326a3f929635ffaee46ef047691c00e1f8c0223088e66d6fa6ec",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0060_flask_001.uasset": "1df60750afa9010b92086bc87ab6065668acaa7391bd13d66708fea85f232a65",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0061_flask_002.uasset": "a32b5a9a5b83ffdafb21aaf3d08e639c07d1bba5e4ab890152cdabbfc8bf957a",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0062_flask_003.uasset": "c6b35c36eb5d47a36a661666372284df58d180f7bb0c7749308586f61b754082",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0063_flaskcap_001.uasset": "f29a90d0707c6ac59412a9a60193328f1762bb5811f7d701c277f6ebda516e3b",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0064_flaskshell_001.uasset": "99ca5b0397c409917cdf5ff47890f8324982a449a305c5e5f52be06dbff7a09f",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0065_flower_001.uasset": "eff1d4091739115dff344f698135edc59a1d48cb8fa26cbc633cd848ce02bf5c",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0066_flowerpillar_001.uasset": "0234e30802eb478d537ed40990de019083528a201d2f5362cd282cfbf9860f45",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0067_halo_001.uasset": "a07209854e64a39a4000b48f0a0174fc17a6151841a52771ed14af9d99d67e89",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0068_halo_003.uasset": "147006683ba89a52e54fb5df15bc189c81c58178af347529b0a35a9569bd5d50",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0069_lazeholder_001.uasset": "c3e9560a5c19b644e86666c896f33a174116e1f9ecdd32a06919c871007c7d37",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0070_panel_001.uasset": "8219eb500784d7119ac67c49ea82e2ff473f1f39e4a0ecca530f04afaa360535",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0071_panel_002.uasset": "4cb1d8880541dd60f0326085b73e4945c9b134311d05123222073673fd414752",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0072_panel_003.uasset": "d022e7ff353fedd26d8ad47396c32ed803a215d648d5ae680dde754679eec0e4",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0073_panel_004.uasset": "cf96678293f4a02e84d1a38c9a047bfa302a30a83b695849785a260c68266f0b",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0074_panel_005.uasset": "ee3ba902299f81a1cfe278a772d1df322192480f041b294043f243fc14c36f9d",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0075_panel_006.uasset": "c4bb4c14ed4d6d02bdbdd60e25da6262548efc2ed78314f9ed5783493d5ff7df",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0076_panel_007.uasset": "74715bf72b7683b05c60c373b3e8afc47be4a06b7b3539211d7af2c4fbb560fa",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0077_panel_008.uasset": "6434b6ff0b33a8562f1a31b459f3d8d79723183f55afbfcf15853d92b5a970b8",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0078_panel_009.uasset": "3f1248d2b9ba3b478bcae9917686940935ceb5336db463d48262d2b28dd2bd28",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0079_panel_010.uasset": "f4003ddd599ba23a709a379912a78d83e72c8b1974a9fbc808b4d2f60518cbd2",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0080_pillar_003.uasset": "1a09c2c20a0436856fc5eb35152168e08e47d573cc3ca88028d06a882c2b0914",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0081_pillar_004.uasset": "347c45680263b04b9fe6794cb862cf74407adb6e1084bfccb56e401420b53c7f",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0082_pillar_005.uasset": "0d24b2d4cee1166a16d558fc7b61864f6f9d1830eb7d4e967723f7d5de1fe31c",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0083_pipearc_001.uasset": "171e943bccbba68dfd9f01ad91763252c55092cf2b2c5b0c52f57cc8cc93f77c",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0084_pipebase_001.uasset": "281522d83dcdb51cee202ba3d8997ccf8ec6216a15238d69537158d82b382821",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0085_pipecorner_001.uasset": "6a568b02e877996e5a3d60800b3c91ab5a3f99df003452a3419416bff9401028",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0086_pipeshell_001.uasset": "eaa53f885e80cb13955db7aec23f5cab02837719141ff1b65e8a6b806037f663",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0087_pipeside_001.uasset": "e2c03072191f3120875a94108217bea4024b011a187ab9a7240c95f520632772",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0088_pipeside_002.uasset": "9c73f0ec761e09006cc24f027e8063cb59745151e15d2d692adbe86a6bd58717",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0089_pipeup_001.uasset": "d5b76f591a854bdf4d4bd4042060d2300536012021e0fefdead5e7562facc669",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0090_pipeup_002.uasset": "b2904b016c7f24965c5251cd6599553cf1341c7cb9c50b19defc5194c5936d4e",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0091_podium_001.uasset": "5aa50b6d60f831d91849fad65c5cac0df7b359470f674a966a6efd8705e57a63",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0092_Shere_001.uasset": "8a0ed8ffeb4ba5f80a496bf2828d866de9d94c504fa912ba024ff971ace702d3",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0093_tail_001.uasset": "237a9b715a940a9b38b565d89af37ae37a3126e2bb574c5bcceb13a8eaaa294b",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0094_terminal_001.uasset": "60f3ee8c948111f69516e3d9d5d0e26a44ab780e7bd10d7160a9bd6765ca900c",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0095_terminal_002.uasset": "b4f863d56a00e92755186ee476b86f6a3e37400f13bf9dca2db333ce80aece33",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0096_terminal_003.uasset": "72243d6c9f2c6052fec5adda00d1fa504b2c27b65d51809294b6018baa24e0ae",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0097_terminal_004.uasset": "705414fb0b3bad9304078bb00d52027b48a22a04f3ff83534f98e6e00ef035bb",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0098_terminal_hologram_001.uasset": "599dc9910d79f07c3207ac27c17a31210e9f54efcc722b50f11dbbe436ca4214",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0099_Asteroids_001.uasset": "48ab388cd2512524041131bba9fab6859419722ea953ad271d84f45a3091d96f",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0100_gate_001.uasset": "65674725e34c9d0948bfba0b4889dbf22b8ad4e142502d6afbb337acdeb9b624",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0101_gate_space_001.uasset": "3dd717ece416669b8cfab60d9512f376c4bd8b55164945381312ecfaf8c5d11c",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0102_obstacle_1_001.uasset": "76bdc16e8e8536bb3ac4cc5a4b0674165cf02f642ba26f9e46ccbd71607c52e9",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0103_obstacle_10_001.uasset": "51ee2d1d91de7943b240ee460ee0811599b52475933020853f5573c16ea671d3",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0104_obstacle_11_001.uasset": "cfdfe1a2fdd8ee37c69541de5a9f4673ac9832148b5ea676ad705f1fa86c8c3c",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0105_obstacle_11_002.uasset": "4fe8bb2ddbf2d2d7019b6c778f0dec8867701f05baf115a9d254e4d5af897392",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0106_obstacle_12_001.uasset": "9d307f792b185d478ecfc248ea738f5e7b47d676faceb563898b998748db1d51",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0107_obstacle_13_001.uasset": "688feaa5fcd129d2af33ff230ee6489583dbe5f30b5d13884f00e54659776be9",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0108_obstacle_14_001.uasset": "2e0c7d5517671bb4d1c6daba9f09bb93944463f08e415e924b0eb3ebaeafcb6b",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0109_obstacle_14_002.uasset": "10577c75e5b111bae353a54879faad306e1d83c347a15e183ada0339dc6296cb",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0110_obstacle_15_001.uasset": "5cf254e78048e32da632e589e9e0e51027167cd64198d1727de68e628be83f5a",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0111_obstacle_15_002.uasset": "f43c6aed2b125aafb07e20cd9c17476231a04eb1f7bb9888e2bf064d623312c3",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0112_obstacle_17_001.uasset": "0468c9c7b73ac29a8d3642c43504d57e6406540e2fb85bbf50a902a96aac973f",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0113_obstacle_17_002.uasset": "39027859d1f3e0b6f06e6ea7caeb5f282fbd82d5bd0333463739ecf4f0431a82",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0114_obstacle_2_001.uasset": "2a49d2605e5ac7ba77ea53637d84388cf7e7057923a34ae38c3ae02180d8797f",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0115_obstacle_2_002.uasset": "43e8c2bd44f14bc90c8a415f31fdceadf5d9d4e11388068aa87857b2ae7b10d9",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0116_obstacle_3_001.uasset": "68b13ebf71f250648a5b08ed883e2ef926c1150f853dae03d34a59621b94f6c0",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0117_obstacle_4_001.uasset": "bc54b4a731b9a4f9ce4ee2450447ab242e7e8707748716f21b1fb9e917b95bc2",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0118_obstacle_5_001.uasset": "f85432aa7c4aa2ef7f076c96ea55122abbbf5451d19d6cdc07d5603ebb54a7bb",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0119_obstacle_5_002.uasset": "d0d909c8902f4ec52efe37bb5fcc7a98944f1efdab6198452da53ced2cfefe5b",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0120_obstacle_5_003.uasset": "8173bde3e248e9641fb827d91eccc2e59bfa81062919feab17a8a5c5507afc4c",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0121_obstacle_6_001.uasset": "a235e5d87173fb4ad689083f415844841849c85feeeba1fe0c614cac9a0c971d",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0122_obstacle_6_002.uasset": "60f09731149be46b9f7ce47679436520ea54ef72aa4bd3d89a054b4ffad75f14",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0123_obstacle_7_001.uasset": "69b2b30a70dfea27f315f8929d85322184709f384438e2f51be90931c803e3ae",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0124_obstacle_7_002.uasset": "f7d4f52117a53841f7640092513e5ace7299fc2f4d798212c88ee4f80e149bac",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0125_obstacle_8_001.uasset": "38badf849d86c8def226ef2eb6051e6216f333243e0a31e247171689206e1c97",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0126_obstacle_8_002.uasset": "501efe6d2405a6fa7298114d82dfdb8b39ffe6f77b30dd1bf4ede7e57c31f038",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0127_obstacle_9_001.uasset": "3ce2750f52902fd67dc39d4803d08bb4e3b2f0f384e75f7d2a15f645e027bc01",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0128_trampoline_1_001.uasset": "1c7569bc4e1d390e964e57d054766400177870daa6316d637449116d92267e64",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0129_platform_001.uasset": "3344f653cf267a5df04271f97c21e388d410fe869c3a7e23cbb77c4f9befabb1",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0130_platform_002.uasset": "ed57e0e749e2b6ed03bc5667c1a65898f9a799e561dd7969dd6ffda941e597d3",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0131_platform_003.uasset": "99bbf7016f053503d1994551a9663ccd6f0a5d241f08ed0d08465425c1fa0de1",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0132_platform_004.uasset": "f9b2c0a6851640bfff7470d9e863c05c09c3eb8f3292dfcf110a1313a9f530b1",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0133_platform_005_005.uasset": "242d7bcace3cb3bf99f817965b73cf7b74f9da9f34ad727d1d047f12608318cc",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0134_platform_005.uasset": "f63fe5e2fe3dc7b9cd418425360f8600335e0e124fbe0f30f9f95d9d3dd53390",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0135_platform_006.uasset": "103ab5ff73239395fd2c1fb7e290274f3edcece7296da31c50286ea9e5bacab2",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0136_platform_007.uasset": "c5c0dbcc5d5c1ec189444ab2a674aa6699eac884c22d8fb2a70b0bee5f1d8819",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0137_platform_008.uasset": "84561163c6d7c3893c994302e3d481965f6b08e3bd803db614ab5bf96424d006",
+    "Content\\Imported\\Platformer14SciFi\\Meshes\\SM_0138_platform_009.uasset": "e1b7b485ad9163cd86e6b54924740fd96c04cd7ae5fc8bd108d56b0df16945b8",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0139_PF_Artifact_01.uasset": "4709e99a0c1383d79f54a21333c8098e8bb3d9cba23725e7b38e92d8f9c36824",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0140_PF_Artifact_02.uasset": "0a886da4b63fc930de06cc86a21c88a76f4139b051d3d3de06d29fa75898a993",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0141_PF_Artifact_03.uasset": "84af57dd0f987ac7cd409b4c4c82f290b65054b90b05ad0c9b6020c95e23af38",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0142_PF_Artifact_04.uasset": "ab5ca167767d4ae561e60896573c92a378ffc5a0396b3226e938d7d4911b7ce0",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0143_PF_Artifact_05.uasset": "6c038768a1b1e34cec3b1aa4912f798a124726996f1fc0922a9f69c37d661188",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0144_PF_Artifact_06.uasset": "473f16f5bb57d6382c56e42afbb58f711d430adc3020c6db11c6294edcf301e0",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0145_PF_Artifact_07.uasset": "3925fa4938c734b0c0169a291a383ab2845081b505d575eb4668c53d989511e2",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0146_PF_Artifact_08.uasset": "e85b2749edffa33e1087bebb3bc79de913f40217b7602c6ca9c9d5bc1642e510",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0147_PF_Artifact_orbit_01.uasset": "61acedc1e673cf6456c16902527b22adcf23600ddf6ade11d50ef90201c6f2aa",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0148_PF_Artifact_orbit_02.uasset": "c539de62f73fd70a8585355747c7046a7091925be919541c8b003642fa19e797",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0149_PF_Artifact_orbit_03.uasset": "6d4897f7fc07c5853f471a0a82ed0ff0698c1adb0e45d470dd6057deffae773b",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0150_PF_Artifact_orbit_04.uasset": "71f2207ac11cc8bb18d826b4bcd74f2a2c4a0b0ee866d933a83cceb660514cf7",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0151_PF_Artifact_orbit_05.uasset": "30876ee4012fca11770c6df71ca5e462775c064e22b9d12b777865a7b2f7b5e4",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0152_PF_coin_001.uasset": "2bd72dd15153dec822378d30131996a8cd4fee1cb75e860827fd68bbd4beecb6",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0153_PF_cup_001.uasset": "11c9de5573690771a02e79440a533a2751d1720fb2d309f59d520fce413a1537",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0154_PF_diamond_001.uasset": "39e0433cd6cd39598a6f2902a7e3fd5ffc20f07c6bbe47f1fa0856337bdcbf76",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0155_PF_heart_001.uasset": "45a00044c1f6443e9195253b6ed55abe114be9648dd856f34a53a7e9b3141830",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0156_PF_key_001.uasset": "632ca3f22be19015e98ff7913e607716e5f5d6de6f55de4b80ed7a03025d9577",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0157_PF_ring_001.uasset": "522b56e41be26f0628c9a5400fc9e50c49b588e76a207d7e33a85ddcc6a3b263",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Collectibles\\SM_0158_PF_star_002.uasset": "2e540d2e6791980429221374a5b8afa2830558b2b9ddf8268d479b1c004cfb97",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0159_PF_angle_001.uasset": "2c2c686e0cd35e890271847e4b990a204d9fe83b22384b9213d176a859167f33",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0160_PF_arcdisaplay_001.uasset": "299f498c7bff65536334d6e0fbb4ee8e09e93ad3c47ea3e2dfb71b1357e19755",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0161_PF_barrirer_001.uasset": "32bcf81b23f9464e960d47c2161af986fa8afcc72bc84c9a477269dcbd494507",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0162_PF_base_001.uasset": "c7d14f9d7c8d684d99526c8084e17d64868dfea8385c65b46e326ddcf9482952",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0163_PF_baseboard_001.uasset": "b35e85edeaaab5ac4b43bcf99112a05d03ccf5cbb5e41e9209a2521251cffd85",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0164_PF_beam_001.uasset": "b3f6075feb91d2eead29907f40847406ac8c5367ea1670925b0ecad23e85e561",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0165_PF_beam_002.uasset": "085e57b47e3c6a6e58f84b13d723e25ce9fe8c7951086d3f36173dbcadb8bd9f",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0166_PF_beam_003.uasset": "802bf952fbcfeec5cc6ae6219a29843994e6dfe352d5978f720902b509dfae0d",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0167_PF_beam_004.uasset": "28021ec623b481debca4239e1a40fb634320e83b16015c7fb029ab86ea354cf1",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0168_PF_beam_005.uasset": "299035604210dfd0bb6f836363e05eb86e71e93952ac5580d7016810510df1e3",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0169_PF_bear_001.uasset": "19c9d3b5f4b04ad23b68e11ff4ef3b27c38d573c365bb6ff52e7499ee5de73cb",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0170_PF_board_001.uasset": "08ea9ffa3e4ea7d7f658d16056d164f0e5fe63b30748e6993a147339451d9b89",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0171_PF_boardsmall_001.uasset": "c21736437492cebd366396388eac4f332df1e6ead93584f4fee3bab1846dde73",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0172_PF_brick_001.uasset": "f0208ac77767325fbc0d029394f47a8dd7b2dd688bfbf41d8fe218b94d77176c",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0173_PF_cactus_001.uasset": "63aca0f57d3de8ed4d2a958b542a5f7aa4693e0c68b0616493468db83c1dfe68",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0174_PF_Column_001.uasset": "b41eb47bfaf7e1d25512f41eeaac5ff7777d3643769e65c0f0202b45dd8a2286",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0175_PF_Column_002.uasset": "10cd88b1d29f0da93cdd8f8f462e6f9f82308cd588268efc2c49ef1dd905619c",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0176_PF_connector_001.uasset": "4fa88d2e863048a20ba8e830ed82b67ec6863f8e7c6f2772d43d7852d968d621",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0177_PF_connector_002.uasset": "5cf0f9244d437de64405925a2b0f841b61de8952bb1b90ae8ac57f90133f539e",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0178_PF_cooler_001.uasset": "b72e73001de65bd01c2baac0bf6484a33a551aab5a7bd43bb288a6ee507e4071",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0179_PF_coolershell_001.uasset": "8a694e2434ea761bb7977e0949573acd279a00c6d35f370fad406130e5ff6ac3",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0180_PF_cup_podium_001.uasset": "1168235a01beb9eb332feb1e6a8345e73d10b9741f234ea872d92e87fe656599",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0181_PF_cyllinder_001.uasset": "885cd1b813edcf35858ce36340f252a321e095bea47a64ad7c12018c36115c07",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0182_PF_cyllinder_002.uasset": "56bee7d6a55cd35b53cfe90cc9a09f25de1611b9b65ad7ba78f1a5d7af38157a",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0183_PF_cyllinder_003.uasset": "04c6908600b584a2729e881d78a33eabf878384bb00878c823a69a1217e1b729",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0184_PF_drone_001.uasset": "3c2e48c30f25786edabca7bc3b712a81de56bb9201b587559f7d9e9953c07287",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0185_PF_drone_1_001.uasset": "ec0ef62f7e1cff680689ac71be07d67a6a2c32afb86d032a989f8d6dbf721b56",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0186_PF_drone_1_002.uasset": "b29c77e412757b38d548c4fae4f6cad17ea435e7e0d3234db510550bea18b0dd",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0187_PF_drone_2_001.uasset": "802c58e2f0b347e746d9f932459eaf49d7587e10a960394d4798217f2c9bbbc5",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0188_PF_drone_2_002.uasset": "a84b7ee8dc60c893cf7c329a9b4f612b5110d99d9f99d80bc049145d94d96e0b",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0189_PF_drone_2_003.uasset": "f147010ada2c01e97be411f2b5d65c29ae0882b819253a2618c1ff62beb7d5df",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0190_PF_drone_2_004.uasset": "374d27992433163de5fb564b1e009c58574036a97cf0347df176a0fefba8f2a9",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0191_PF_drone_2_005.uasset": "05d8dc20a2ebf900f35184d5f86c88d948a0c91e2fcdc53bec83999f6805b24e",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0192_PF_drone_3_001.uasset": "3bea08847d68c1b01a2c509ee8833a00c223d37ec507e11bf1159b5b128036d0",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0193_PF_drone_3_002.uasset": "557634e21d568fb18eff6d8bd336b0e5621d9b99c159cec6e5e9d145ed11775a",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0194_PF_drone_3_003.uasset": "4e6291255dc7c7e3beb26d5d1eb36748b089151513012cddc22d714b458b4502",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0195_PF_droneholder_001.uasset": "f0f643da036caa2b8d3bc530b4193ddacce9c5d66311064a2520e7d51161fbbb",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0196_PF_droneholder_002.uasset": "cf536770b1a3d8975e841d1114513d46920bfec61e6d0edfcf315dc9544913ff",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0197_PF_droneholder_003.uasset": "3f1e85a70d5e6e4c64e6ccb589280010d4992ad41d281b470a8721dd7e916a35",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0198_PF_engine_001.uasset": "0edfd2d03d517b8930992a3e9e0a2da8e9a1693048cd88a6c496adb937031231",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0199_PF_flask_001.uasset": "6396153c1ee3897e22c3afdd9907b45fc9083aef07bb7c0bfaf97ec2ed329540",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0200_PF_flask_002.uasset": "5f47c69bb54af90cea74f86f9ec25c94b217f1f07d7eb2185267df6cf2232b62",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0201_PF_flask_003.uasset": "2fe897d7c7a28f47cf43c054c6d4a0d1b48a1b1ff3dc2a6c05f5b5fa000fd6d2",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0202_PF_flaskcap_001.uasset": "2181066a6b4e3e5f634f5c5e83e7b842175556d54df854dc680956fd2a227ec9",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0203_PF_flaskshell_001.uasset": "9f0ef5719ce2cdcd1f0341bbb1321fec26cae6a3a072282a99a46cce3a8b8a04",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0204_PF_flower_001.uasset": "0bd690834a6b7acd6dee7bf05903149a53530f632d52f65cdecc8cfaf5d63945",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0205_PF_flowerpillar_001.uasset": "2a8f745889d74eaa01aedbab5b84c15a274d730d0981ef94df9e00de33666bb7",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0206_PF_halo_001.uasset": "485815b49789efc913a80958b28fc70dc2898816ef97968c728b1d97dda04206",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0207_PF_halo_003.uasset": "fdd20c16ea1d2447bc7d04182e9fde97670f7ebf8ba669b72df02173105b1cb8",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0208_PF_lazeholder_001.uasset": "7d75ca5ab2c1be42384d0bfd2c5bf157c55db11d1a4f4bb3fec4a9910c490a21",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0209_PF_panel_001.uasset": "33dac64e3c2ca3178bc6ed555014b38be2a70b066d6f4087d5b59d6bbeafedfc",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0210_PF_panel_002.uasset": "9abd9bdf16eaf1f9b2eff6fbc76d430dc37b6f135b985bc03e1fd0369b5f9313",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0211_PF_panel_003.uasset": "bc4e186a0379bdf3018afab56a545307e0b67651667e7ff4c956872990f040a6",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0212_PF_panel_004.uasset": "d4889922a2d7913877bc3241f8ef66280fc06c8028f3db5d95723a855386e438",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0213_PF_panel_005.uasset": "81b1f67eadbeb556c75edd478120db8c68e6b991eb276d77b28eb0e6334f84b8",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0214_PF_panel_006.uasset": "afc1f046bcc9fbc4fed34bbc27316e4b4b089469503bb8bbd9985b495b0be1a0",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0215_PF_panel_007.uasset": "7539edf702fcbd980ace785d6cebfec7d28546bef8ae4a42d3e83a45689f6bd1",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0216_PF_panel_008.uasset": "173491b463a8f354bf5fa41254328d9d513905d9bb0b5afe95fb96f1a051413b",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0217_PF_panel_009.uasset": "949b7e640ad11a59a95f49b31168c54c81cf917c7291d67c1b0c50bea5660442",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0218_PF_panel_010.uasset": "01e5ef420e7f5f771718ef6afb07f683cef117bae775e9af24f4a4c914b3def3",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0219_PF_pillar_003.uasset": "7908084fd555fc19ca25f5bca416b60cf4284482a7ddbb3c6e08720cff951a1c",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0220_PF_pillar_004.uasset": "f0e14dfe11dc6865fd4597ee3d2b2e71f83b797a41049b8eb3b3007eb8b0f31e",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0221_PF_pillar_005.uasset": "5a7f24809eacafbadc548a5769a807058da02cfcb16ba52cf245886bedcf3fa9",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0222_PF_pipearc_001.uasset": "80cde4e3648173123af9b536069c6f5dc1556d2a2355172a3f3e0252659e5950",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0223_PF_pipebase_001.uasset": "8c0260073a4f569c8b95c9f745587dab06aae552de5536b4737809b048298627",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0224_PF_pipecorner_001.uasset": "d5c33207493da3179e14f990ac302632622021f7c7c1adf82cdedff3baef0bd4",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0225_PF_pipeshell_001.uasset": "1e78e7d1bc4386d1c5766433c2cbdfb4ddbaf661c9bcc10908719a819da970d5",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0226_PF_pipeside_001.uasset": "c63402b4fbfbe389ac9dc86e67c45c230da9a0ccf71c04307d364d4d4c74ef0e",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0227_PF_pipeside_002.uasset": "976a6f2ee447aa4604c76db54e44983c2a953c98152ad04aa7d7bad2f50584c0",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0228_PF_pipeup_001.uasset": "3b5e98d85d8b173246616aa5bf801ffe87221ed445590817ba38701c0e13291f",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0229_PF_pipeup_002.uasset": "a9c1641e346840a327d51fb76723745d32a9f6b3997094b57e6c3874dfc1f17d",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0230_PF_podium_001.uasset": "ba9754e3d14121e080dc93a7fb53adbf54d089df3bcbd1e38dbbf415236f9484",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0231_PF_Shere_001.uasset": "a1c0e30ab7af9bbfd3acc5c57190d87acc19b6bb7677b0e4ad2bdc0505f5094b",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0232_PF_tail_001.uasset": "82f14500e56bbc7ebf7c63da0fadf19b6094e6e6e73fce90ad5d2757baab7c02",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0233_PF_terminal_001.uasset": "53e50b78eb7c3eede66c7fd9b168cccc0ab1219a75e746c9951ffb3513da4daf",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0234_PF_terminal_002.uasset": "60a958c7b708d8fe269c0c32848b00d0022f21891e619251e21da5c2ccfc31b0",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0235_PF_terminal_003.uasset": "138cb76bed8c1ec08cdfee3cb72091a91f8bb7dfc6ddd5870ada70e254f0a493",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0236_PF_terminal_004.uasset": "6577572b810efbd8d9a62770f2a366433cfa0c4923f1c68f48adb2096983fabc",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Decorations\\SM_0237_PF_terminal_hologram_001.uasset": "5afe40aa796cece369c49dfa697dfd45e1b062385ab3c6f96592b6e64b76fded",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Environment\\SM_0238_PF_Asteroids_001.uasset": "0ab1be1d12a29d67faf413565fe2350c5a0781c7d7c0763c30dfeb44889a6d2f",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Environment\\SM_0239_PF_gate_001.uasset": "588f150f2383970996b37baa7d427ddb1e08568c3aac785613a431f4245a297e",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Environment\\SM_0240_PF_gate_space_001.uasset": "910bf26a67718677d2aeba2580aa7fdfb2752d1782d6f4c670d413bcd86ef8f9",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0241_PF_obstacle_1_001.uasset": "7e79b9c6b2ee0f9d906ad2884157ce0f761e3c7a018c1513ebcc109f3559f04a",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0242_PF_obstacle_10_001.uasset": "b091b846032463b7a43a1693c3a3edb9b63c7b8b0a9b04925c2c7c9b461d4138",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0243_PF_obstacle_11_001.uasset": "46a0f3a50f6827b7d4bcc696ede5138a39a0f23aa4ca5b3509d58df231c0d060",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0244_PF_obstacle_11_002.uasset": "2ad768e38a855b4ae3803d78ac8dcc2305435bcb5663edd65d6ab393d807a46f",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0245_PF_obstacle_12_001.uasset": "1beb8b41faedae2d17585ca34efb18370ccbe25d6c10da3d8729a27146fb47f6",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0246_PF_obstacle_13_001.uasset": "4442e8bf0fdf454db6d9a94c618b0419159dcf8daf6c3f5de45d04390e1df9fa",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0247_PF_obstacle_14_001.uasset": "ea6cd32a064e19a215898d717ad192c0481589642f37cced5d209b9ff72019ee",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0248_PF_obstacle_14_002.uasset": "3d18924dacfd4b234ce877168293a24bef905529dc08743ce6b8b562206cd09a",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0249_PF_obstacle_15_001.uasset": "c5aea1b0aebc4142bd6a0935bdc6f9b09889c70c6303ec6b1d7aac58c266a996",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0250_PF_obstacle_15_002.uasset": "a71c67d9987c9ed9ecdd32cd94403ded4524614c64e1dcba8fb47014a315368c",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0251_PF_obstacle_17_001.uasset": "d2cb547907c6c2c6b36151a4c6b3fd2af336f2bb92718db6deccd71b7ac025bc",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0252_PF_obstacle_17_002.uasset": "b5370b6809ccdcfd0abd1635e92c78ef6f03514f1189ec35131221db1e749b43",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0253_PF_obstacle_2_001.uasset": "cd08e6154a1df131871fe6aa2339f5d4ee9d27fb27b5fcfd8eac12aab1843a1b",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0254_PF_obstacle_2_002.uasset": "61f05deb01dc71f208361ea7eaee22c873c8721a8053892f7cff6f180afcffab",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0255_PF_obstacle_3_001.uasset": "39e21fb4a96b891b3c2aa3191a18d04269c9de60d7ec27d0bcf404549eaf0089",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0256_PF_obstacle_4_001.uasset": "274d5fd4d800c4ebfe55fa98e78b36d1ce3dd02d55d2534403cfcb4b3f8e1e48",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0257_PF_obstacle_5_001.uasset": "1b855753e3d77bcb7a62361c3bf9fb3d1d6f4003499744dec48e4cfb385a4b38",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0258_PF_obstacle_5_002.uasset": "da9976f3d8fd8c3d3168b70f72b135c91b0460d6844f4093a9297f7cb18f616c",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0259_PF_obstacle_5_003.uasset": "525f95c0897971fcee25d1da05e5b7d6bb43999dbf746b337110e319eb7884ee",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0260_PF_obstacle_6_001.uasset": "cc1689467946f9b3d34ef3fb8297e22d7cd1f9efef48cce3c9592e53a50bd23e",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0261_PF_obstacle_6_002.uasset": "56d5d14c7ed757d0147c36873a96b0de150a65c34a4e9bdd6f6d1502a0f3dc9b",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0262_PF_obstacle_7_001.uasset": "6e90d7b1291d3f1a49366769ee8a3a904b600c0dd95c4e3f7570b61b9357da12",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0263_PF_obstacle_7_002.uasset": "03cf03c269bf904aff9a0ea435064d9007799d71ab0c382db81ad929f60d9c56",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0264_PF_obstacle_8_001.uasset": "5a51f1eeebbde2d406768252fa9fca2b601f5705884c52f0e1858009c0cb5877",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0265_PF_obstacle_8_002.uasset": "abdcd57b10902382bcc256f98df3bd03466f8eadbb63864d114016d55e85402d",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0266_PF_obstacle_9_001.uasset": "b4f6532a89fb1409985ac2223ca168f4d40233b7f7d7e17b7330b6f2b32d584d",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Obstacles\\SM_0267_PF_trampoline_1_001.uasset": "efa7dce90b7ef9d42cf94c93432b43d78752083850d771bfe0ca3461b94aab71",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Platforms\\SM_0268_PF_platform_001.uasset": "f8bec711237adf78f2448d82ba72c24c029009cc2d05e353a3a788d78af9e0b1",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Platforms\\SM_0269_PF_platform_002.uasset": "5af74e6b2c97f1219d9342295da18b081517de2995db01b52cfc6bf6648d456c",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Platforms\\SM_0270_PF_platform_003.uasset": "c160cfba5583596ccbc700906326ce65e83ead90044e4da645252961ee8db958",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Platforms\\SM_0271_PF_platform_004.uasset": "75a503797cd596c39abb02b64a16c9f3f4af81fe68b29cfe1fa817d4b50b88f0",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Platforms\\SM_0272_PF_platform_005_005.uasset": "d14b827205dac58a4de3b173df6aaa668c5ba353359b5fa732024996a5d97845",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Platforms\\SM_0273_PF_platform_005.uasset": "fb1b655d60c8828d944af1b18240ad24fb4f0233eb5cc20ad1af223e792356e8",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Platforms\\SM_0274_PF_platform_006.uasset": "b1e1d7713b3e59b4f3fb8d711770098ed9e2aedc08853fa64cb6edd2540d7202",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Platforms\\SM_0275_PF_platform_007.uasset": "8033740844fa9c5a9b93a64927e64631d18c4e7e4338a67b32ed50f8346fab4b",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Platforms\\SM_0276_PF_platform_008.uasset": "ad638ec908ccfe168a5f1e379967ac09570c781004b6f3f371c1bd5ad11bd2a4",
+    "Content\\Imported\\Platformer14SciFi\\Prefabs\\Platforms\\SM_0277_PF_platform_009.uasset": "7c622b8d960f0ce3f3077e84e893028a7955039e08c97c4b7419d4d2f56aa92f",
+    "Content\\Imported\\Platformer14SciFi\\Textures\\T_038e7203bac1ee34697771e38472c0fd.uasset": "04294f2dd61066495aa546afdbef86228f63a49e40849f584fedbf6d8206b859",
+    "Content\\Imported\\Platformer14SciFi\\Textures\\T_34007719ba6cbf04083f56fa84b810e8.uasset": "e702b8892313e726b56017edd4130dff0461fde689388c3e515654be322a39dc",
+    "Content\\Imported\\Platformer14SciFi\\Textures\\T_390588043266a274fa2749dd8e1706a9.uasset": "9791725a6426dc08ec59c1c8c7c21f335d2452590564e06de5ca0c043606a8e8",
+    "Content\\Imported\\Platformer14SciFi\\Textures\\T_509499ba82dd1634491c232bd4f42fdf.uasset": "23f734e9ec7c5c32dfca381a131dbde8d7344a3d72144b29f0ced986db8ec2e6",
+    "Content\\Imported\\Platformer14SciFi\\Textures\\T_60697879b143c324fbe27c892104a8d3.uasset": "6399fa5ea7a844bedfd2a444e2374aab0f1a579376aab9caacf6037abeee2a24",
+    "Content\\Imported\\Platformer14SciFi\\Textures\\T_c87fda49c3c3caf4285eeeee9fe86879.uasset": "1f136de1ce1d1de474efe7aca03a9caeb19e5fddb2225618bd63a3de4e9844f6",
+    "Content\\Imported\\Platformer14SciFi\\Textures\\T_d6ba189619cb47c4090640720fdd5763.uasset": "ab2c6786ee3c65745fc6d6901545fc6916639df307c75050ad0ab53b79aa7f7c",
+    "Content\\Imported\\Platformer14SciFi\\Textures\\T_e7b59faf59b521d408ad2193e0294c8b.uasset": "ca4d26ee4397eba666a0ae372c3c76ff775d268c6c06d22ca72acddb3a70bd25",
+    "Content\\Imported\\Platformer14SciFi\\Textures\\T_ed4eb24a1b185b643922b9b87037c723.uasset": "1131162da69b631f4fd0071530059485730a398af7413d8ec7d2672e84f51819",
+    "Content\\Imported\\Platformer14SciFi\\Maps\\Prefab_Overview.umap": "19d7917770c746b2c1824ac4d81a8bdb3325331b3954c74a9b66da3348cb21bb"
+  },
+  "preview": {
+    "status": "not_completed",
+    "attempts": 2,
+    "details": "Both dedicated renderer processes exited before producing a screenshot. First log ends during mesh display-cache generation; retry log ends during engine initialization. Cause not established; no visual acceptance claimed.",
+    "logs": [
+      "Saved/PlatformerSciFiMigration/unreal_preview.log",
+      "Saved/PlatformerSciFiMigration/unreal_preview_retry.log"
+    ]
+  },
+  "not_tested": [
+    "gameplay",
+    "driving collision",
+    "packaging",
+    "team visual acceptance"
+  ],
+  "first_verification_failure": "Raw mesh and assembled prefab vertex counts differ; corrected material lookup using source Mesh references, with three topology-count-matched single-prefab fallbacks. See Saved/PlatformerSciFiMigration/unreal_verify.log; final run in unreal_verify_final.log."
+}
