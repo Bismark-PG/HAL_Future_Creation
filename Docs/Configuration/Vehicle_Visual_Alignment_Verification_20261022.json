@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-22",
+  "timezone": "Asia/Tokyo",
+  "git_base": "fc9f2b962e6f5144a822cbf7d22b32114583ac42",
+  "branch": "main",
+  "engine": "5.8.2-56702186+++UE5+Release-5.8",
+  "initial_worktree": "Retained team-modified DA_Car01_Presentation and prior four handoff/documentation changes.",
+  "scope": "Editor-only reference wheel geometry alignment, shared DA guard, explicit undoable local Z change; no runtime gameplay or Blueprint changes.",
+  "entry": "Tools > HAL Tools section > HAL Vehicle Visual Alignment",
+  "implementation": [
+    "Uses selected VehicleDefinition.CollisionMesh / Physics.Scale / Presentation; no hardcoded model paths in production.",
+    "Reads referenced LOD0 triangle vertices and named default skin weights; configured spin bone names identify rigid tyre vertices. Configured RadiusCm and full-model bounds are not used as a wheel-bottom fallback.",
+    "Converts vertices to a common physical-root frame; computes an absolute Z with current XY/rotation/scale retained and a 0.5 world cm coplanarity guard.",
+    "Convex-only simple collision, BuildScale3D=1 and positive uniform model/root scale are required.",
+    "Read-only analysis lists shared definitions; incompatible collision configuration blocks Apply; compatible users require acknowledgement.",
+    "Apply performs fresh analysis, rejects stale previews, changes only Presentation.RelativeTransform translation Z, uses FScopedTransaction/Undo/Redo and marks dirty without saving.",
+    "Native Slate report plus XZ bounding-range comparison. No runtime calibration, Tick, Blueprint or new plugin."
+  ],
+  "builds": {
+    "Editor": {
+      "result": "Succeeded",
+      "production_and_tests": {
+        "path": "Saved/VehicleAlignment/20261022/Editor_IncludeLayoutAdjusted.log",
+        "sha256": "8784443d307d09ced7605bd7471bfdb41b00c1f82570a4a31375ecec36148a60",
+        "bytes": 13024
+      },
+      "final_ui_fixture": {
+        "path": "Saved/VehicleAlignment/20261022/Editor_UIFixtureAdjusted.log",
+        "sha256": "d362eaa8db0be986449af34e9b66824e69513e132d3393bd08c45967986296db",
+        "bytes": 8034
+      },
+      "additional_origin_assertions": {
+        "path": "Saved/VehicleAlignment/20261022/Editor_OriginRegression.log",
+        "sha256": "ae614de571a9c844e3b266664f7c4fc2642067488c28b3b4c65b37ad23563eb4",
+        "bytes": 8030
+      }
+    },
+    "Game": {
+      "result": "Succeeded",
+      "log": {
+        "path": "Saved/VehicleAlignment/20261022/Game_Final.log",
+        "sha256": "c09eefb0ef4906e2772391e6840cd35f4094ecc7310d1bdf47d9e044829ca540",
+        "bytes": 11176
+      },
+      "boundary": "Final production code; later change affected Editor UI test fixture only."
+    }
+  },
+  "automation": {
+    "filter": "HAL.Editor",
+    "final_report": {
+      "path": "Saved/VehicleAlignment/20261022/Automation_Final/index.json",
+      "sha256": "a646d5968c4548359f8f8be224524b7e67a26369d6f835459e51db2eae0355b0",
+      "bytes": 5037
+    },
+    "succeeded": 11,
+    "failed": 0,
+    "succeeded_with_warnings": 0,
+    "not_run": 0,
+    "tests": [
+      {
+        "fullTestPath": "HAL.Editor.CollisionGenerator.ConvexClosedGeometry",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "fullTestPath": "HAL.Editor.CollisionGenerator.ParameterValidation",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "fullTestPath": "HAL.Editor.CollisionGenerator.RecipePersistenceAndUniqueAssets",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "fullTestPath": "HAL.Editor.CollisionGenerator.SinglePhysicsBody",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "fullTestPath": "HAL.Editor.VehicleAlignment.ApplyUndoStaleAndSharing",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "fullTestPath": "HAL.Editor.VehicleAlignment.ReferenceGeometry",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "fullTestPath": "HAL.Editor.VehicleAlignment.RejectAmbiguousGeometry",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "fullTestPath": "HAL.Editor.VehicleAlignment.SavedVehicleReadOnly",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "fullTestPath": "HAL.EditorUI.CollisionGenerator.MeshThumbnail",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "fullTestPath": "HAL.EditorUI.CollisionGenerator.Panel",
+        "state": "Success",
+        "entries": []
+      },
+      {
+        "fullTestPath": "HAL.EditorUI.VehicleAlignment.Panel",
+        "state": "Success",
+        "entries": []
+      }
+    ],
+    "new_tests": 5,
+    "existing_collision_tool_tests": 6,
+    "additional_origin_regression": {
+      "report": {
+        "path": "Saved/VehicleAlignment/20261022/OriginRegression/index.json",
+        "sha256": "a3a89e6f2b9377db9dbea069f717285cab2a28358918327e500d01f7581f08f0",
+        "bytes": 1123
+      },
+      "succeeded": 1,
+      "failed": 0,
+      "boundary": "After the full eleven passed, only assertions in ReferenceGeometry were expanded to include a nonzero model origin and non-centered convex bounds; this affected test was rebuilt and rerun alone. Production and UI code unchanged; no claim of another full eleven rerun."
+    },
+    "coverage": [
+      "Source bone ID/name reorder, model yaw/scale and physical root scale, four independent tyre bounds.",
+      "Absolute target and repeat idempotence; noncoplanar/empty/blended geometry and unsupported scale rejection.",
+      "Actual team model analysis without changing authored transform or package dirty state.",
+      "Apply changes only visual Z in an unsaved test package; actual Editor Undo/Redo verified.",
+      "Stale preview edit rejection; compatible shared acknowledgement; incompatible sharing cannot be bypassed.",
+      "Actual menu, settled Content Browser selection and screenshot with a physically usable window area."
+    ]
+  },
+  "actual_saved_vehicle_analysis": {
+    "report": {
+      "path": "Saved/VehicleAlignment/20261022/TeamAssetAnalysis.txt",
+      "sha256": "3777851db891c17a4e0157c4d6c2bb611d4038d946b0ab0a91f2b75157597206",
+      "bytes": 697
+    },
+    "text": "Vehicle: /Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.DA_Vehicle_Player_TestBaseline_v1\nPresentation: DA_Car01_Presentation\n\nCurrent local Z: -134.500 cm\nSuggested local Z: -134.500 cm\nChange: +0.000 cm\nRoot scale: 1.000\nCollision bottom (root local): -134.500 cm\nWheel bottom spread: 0.0000 world cm (limit 0.5)\n\nFL  bottom -134.500 -> -134.500 cm   [435 source vertices]\nFR  bottom -134.500 -> -134.500 cm   [435 source vertices]\nBL  bottom -134.500 -> -134.500 cm   [435 source vertices]\nBR  bottom -134.500 -> -134.500 cm   [435 source vertices]\n\n\nNote: Collision is taller than the visual model. Upright alignment does not fit roof/side contacts; review collision dimensions separately.",
+    "boundary": "Read-only source/reference-pose analysis, not runtime or final rendered wheel/ground contact acceptance."
+  },
+  "ui": {
+    "screenshot": {
+      "path": "Docs/Configuration/VehicleVisualAlignment_Panel_20261022.png",
+      "sha256": "a6282669cdd29d863cfdecab06e421cb2dfbf057bb0b5516a5151c03a590baf6",
+      "bytes": 73582
+    },
+    "review": "Actual native panel inspected: report populated, blue collision range and aligned green wheel ranges visible; current and suggested Z both -134.5; Apply disabled as already aligned. No team Apply click or save performed."
+  },
+  "nonfinal_attempts": [
+    {
+      "stage": "Editor_Initial",
+      "result": "Compile failed",
+      "reason": "Existing runtime exported headers are in a flat module root, not Public/. Added a private Editor include path plus the runtime dependency; did not move or edit runtime headers.",
+      "log": "Saved/VehicleAlignment/20261022/Editor_Initial.log"
+    },
+    {
+      "stage": "Automation_Initial",
+      "succeeded": 10,
+      "failed": 1,
+      "report": "Saved/VehicleAlignment/20261022/Automation_Initial/index.json",
+      "screenshot": "Saved/VehicleAlignment/20261022/Panel_UI_Initial.png",
+      "reason": "Native data/transaction cases passed; UI snapshot was opened before deferred Content Browser selection settled and physical screenshot dimensions failed the usability assertion.",
+      "fix": "Wait for actual vehicle selection, assert it settled, resize the test window for DPI, then capture. Original usability assertion retained; all eleven tests rerun."
+    }
+  ],
+  "asset_protection": {
+    "before_count": 364,
+    "after_count": 364,
+    "all_sha256_unchanged": true,
+    "before": "Saved/VehicleAlignment/20261022/AssetsBefore.json",
+    "after": "Saved/VehicleAlignment/20261022/AssetsAfter.json",
+    "retained_team_da": {
+      "path": "Content/Data/Car_Presentation/DA_Car01_Presentation.uasset",
+      "sha256": "38c7b14051f6004b5031ae37b7b06dd8acd0c41ce9086417db7876f0ff2667f0",
+      "bytes": 4998
+    },
+    "test_writes": "Only unsaved /Game/__HALAlignmentProbe_* objects in memory, transactions and Saved reports; no team package saved."
+  },
+  "source_files": [
+    {
+      "path": "Source/HAL_Future_CreationEditor/HAL_Future_CreationEditor.Build.cs",
+      "sha256": "c0ee13e6c3ba6782fbb5131b726d635e35d6dc22146df4739a08d749beaae2f9",
+      "bytes": 726
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALFutureCreationEditorModule.cpp",
+      "sha256": "55a75984a273caab3f4e7a1d126c5dc8e2583e51a3fbffaa9d1f4e4f3c33189a",
+      "bytes": 2850
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALVehicleAlignment.h",
+      "sha256": "99f46cddc4286cf55c107a87eabfca029b5d45043da2ad5aacac68f686b1ac52",
+      "bytes": 1793
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALVehicleAlignment.cpp",
+      "sha256": "7aca07608799d1291e2f3b09de3933a034d98da325d63ee1dc601bfd4e7adcd5",
+      "bytes": 14479
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/SHALVehicleAlignment.h",
+      "sha256": "fbfe6181945519bc7124bf89ea0e973f9f4a07f958e2392dd40bcd9107b47b55",
+      "bytes": 90
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/SHALVehicleAlignment.cpp",
+      "sha256": "3131e61ba6863231dc2ad80b5a0210a1d87fb37d53c8502ed809df26bd12fc38",
+      "bytes": 8267
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleAlignmentTests.cpp",
+      "sha256": "07d91cba0296092739b4f3877ce3b67eccb09950c95c32b914376808dec067ab",
+      "bytes": 12555
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleAlignmentUITests.cpp",
+      "sha256": "d7c43d962d219634ac3003411d91e4827f82d410d6afbccbe01cff16ce6af64d",
+      "bytes": 4650
+    }
+  ],
+  "exclusions": [
+    "No runtime source, map, Blueprint, DA or configuration file edits by agent.",
+    "No automatic file save, Git commit or push.",
+    "No collision fitting/size change, wheel radius update, ball-control-point change, physics suspension or VP3 implementation.",
+    "Full 60-case gameplay suite, gameplay Listen Server, impaired networks, four PC acceptance and UE5.8.3 were not rerun.",
+    "Team manual Apply/save and new-vehicle rendered contact acceptance remain to be performed."
+  ],
+  "startup_warning_boundary": "Test entries have zero warnings/errors. Existing engine startup NVIDIA TSR/r.MotionVectorSimulation diagnostics remain separate from tool results."
+}

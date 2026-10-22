@@ -1,6 +1,7 @@
 #include "Modules/ModuleManager.h"
 
 #include "SHALVehicleCollisionGenerator.h"
+#include "SHALVehicleAlignment.h"
 #include "Framework/Docking/TabManager.h"
 #include "ToolMenus.h"
 #include "Widgets/Docking/SDockTab.h"
@@ -19,6 +20,12 @@ public:
 			}))
 			.SetDisplayName(LOCTEXT("Tab", "HAL Vehicle Collision Generator"))
 			.SetMenuType(ETabSpawnerMenuType::Hidden);
+		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("HALVehicleAlignment"),
+			FOnSpawnTab::CreateLambda([](const FSpawnTabArgs&) {
+				return SNew(SDockTab).TabRole(ETabRole::NomadTab) [ MakeHALVehicleAlignment() ];
+			}))
+			.SetDisplayName(LOCTEXT("AlignmentTab", "HAL Vehicle Visual Alignment"))
+			.SetMenuType(ETabSpawnerMenuType::Hidden);
 		bRegisteredUI = true;
 		UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FHALFutureCreationEditorModule::RegisterMenus));
 	}
@@ -28,6 +35,7 @@ public:
 		UToolMenus::UnRegisterStartupCallback(this);
 		if (UToolMenus::IsToolMenuUIEnabled()) { UToolMenus::UnregisterOwner(this); }
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("HALVehicleCollisionGenerator"));
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("HALVehicleAlignment"));
 	}
 private:
 	bool bRegisteredUI = false;
@@ -39,6 +47,10 @@ private:
 			TEXT("HALVehicleCollisionGenerator"), LOCTEXT("Entry", "HAL Vehicle Collision Generator"),
 			LOCTEXT("Hint", "Generate a flat convex collision mesh from vehicle dimensions and corner radii."), FSlateIcon(),
 			FUIAction(FExecuteAction::CreateLambda([] { FGlobalTabmanager::Get()->TryInvokeTab(FName(TEXT("HALVehicleCollisionGenerator"))); })));
+		Menu->FindOrAddSection(TEXT("HALTools")).AddMenuEntry(
+			TEXT("HALVehicleAlignment"), LOCTEXT("AlignmentEntry", "HAL Vehicle Visual Alignment"),
+			LOCTEXT("AlignmentHint", "Measure reference wheel geometry and preview an undoable visual height alignment."), FSlateIcon(),
+			FUIAction(FExecuteAction::CreateLambda([] { FGlobalTabmanager::Get()->TryInvokeTab(FName(TEXT("HALVehicleAlignment"))); })));
 	}
 };
 

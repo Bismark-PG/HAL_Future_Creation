@@ -1,0 +1,1495 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-22",
+  "timezone": "Asia/Tokyo",
+  "scope": "Read-only cross-device source/config/commit review and documentation update; no build, Unreal launch or asset editing.",
+  "git": {
+    "branch": "main",
+    "head": "fc9f2b962e6f5144a822cbf7d22b32114583ac42",
+    "remote_main_verified": "fc9f2b962e6f5144a822cbf7d22b32114583ac42",
+    "remote_check": "git ls-remote origin refs/heads/main succeeded; local HEAD already matches, so no fetch/pull/reset/merge was needed.",
+    "worktree_at_start": "clean",
+    "previous_chat_baseline": "fd41bbb1a1860c4189d58fa3f2f986ed9c22bc8b",
+    "commit_or_push_performed": false
+  },
+  "local_engine": {
+    "root": "D:/Program Files/Epic Games/UE_5.8",
+    "version": "5.8.2-56702186",
+    "project_association": "5.8",
+    "upstream_verification_engine": "5.8.3-58210709+++UE5+Release-5.8",
+    "note": "Local installation is 5.8.2; the incoming movement/recovery/VP2 records use 5.8.3. No patch migration or local compatibility validation was performed."
+  },
+  "features_received": [
+    "Shared vehicle contact material/rules; freeze per World; signature mismatch stops client physics.",
+    "Ordinary stationary Movable WorldStatic support suppresses only rule-added collision velocity; damage, effective impact tiers, drop and Chaos contact remain separate.",
+    "Pose-based driving gate plus server-authorized held self-righting; recovery memory/actions participate in network physics replay, GT ball/GAS side effects do not.",
+    "SelfRightAction configured in VehicleDefinition.LocalConfig, with independent Enhanced Input press/release route.",
+    "VP2 chassis pitch/roll from filtered world acceleration; model-only output, observer driving permission bit; per-channel limits 0..30 degrees, defaults unchanged at 4 degrees."
+  ],
+  "source_audit": {
+    "method": "Overlay the recorded source/config manifests in chronological order. Compare SHA256 of raw bytes, LF-normalized UTF8 and CRLF-normalized UTF8; no semantic rewriting or whitespace normalization.",
+    "count": 155,
+    "exact": 50,
+    "line_ending_only": 105,
+    "matched": 155,
+    "unexpected_differences": 0,
+    "files": [
+      {
+        "path": "Config/DefaultEditor.ini",
+        "bytes": 58482,
+        "expected_sha256": "25920e87560682479062a06afef5e0046d23789e72200634d852becbe1db407b",
+        "actual_sha256": "25920e87560682479062a06afef5e0046d23789e72200634d852becbe1db407b",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Verification_20261021.json"
+      },
+      {
+        "path": "Config/DefaultEngine.ini",
+        "bytes": 3289,
+        "expected_sha256": "c671501d82ab3bd959f92aed3b5a849b4a313efdd969212b680a0333d241f4e7",
+        "actual_sha256": "c671501d82ab3bd959f92aed3b5a849b4a313efdd969212b680a0333d241f4e7",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Verification_20261021.json"
+      },
+      {
+        "path": "Config/DefaultGame.ini",
+        "bytes": 4497,
+        "expected_sha256": "d5ddf980d26136e7b20542afd6b313bea0beedf222e361cf4808b80109cb29b1",
+        "actual_sha256": "d5ddf980d26136e7b20542afd6b313bea0beedf222e361cf4808b80109cb29b1",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Verification_20261021.json"
+      },
+      {
+        "path": "Config/DefaultInput.ini",
+        "bytes": 9026,
+        "expected_sha256": "fc9bf4eb5d2727bb6f80f24ffcb846698ddc717dae0dc9455524ebf472eeced0",
+        "actual_sha256": "fc9bf4eb5d2727bb6f80f24ffcb846698ddc717dae0dc9455524ebf472eeced0",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Verification_20261021.json"
+      },
+      {
+        "path": "HAL_Future_Creation.uproject",
+        "bytes": 575,
+        "expected_sha256": "07100b2e1554ef47889893c47407522d4d22ca27b60ee37db7c5f8c970ffcce5",
+        "actual_sha256": "07100b2e1554ef47889893c47407522d4d22ca27b60ee37db7c5f8c970ffcce5",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation.Target.cs",
+        "bytes": 440,
+        "expected_sha256": "58c105452a13e33ebc86b2a4d7094a237b32b488147df027fc3921e3b029a067",
+        "actual_sha256": "58c105452a13e33ebc86b2a4d7094a237b32b488147df027fc3921e3b029a067",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp",
+        "bytes": 38746,
+        "expected_sha256": "47ab34fec2f39e9d88dcfc940002d142a3e37b5b39bf3f68ee65268672b105a8",
+        "actual_sha256": "47ab34fec2f39e9d88dcfc940002d142a3e37b5b39bf3f68ee65268672b105a8",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h",
+        "bytes": 15592,
+        "expected_sha256": "bcfe4d2eda51e72d26f201efbdd5ca8b81eba10e4338cdf716812c3fd9ec6553",
+        "actual_sha256": "bcfe4d2eda51e72d26f201efbdd5ca8b81eba10e4338cdf716812c3fd9ec6553",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementEffects.cpp",
+        "bytes": 14026,
+        "expected_sha256": "6ca3dc6cc2539680211cd83441fa77fe7a9176d499bced475dfdb9d7b3625665",
+        "actual_sha256": "d583b32c69f14b8765dba18a993465813e63738131350abdacefdceb735da7a6",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/BallControlComponent.cpp",
+        "bytes": 15876,
+        "expected_sha256": "d5aa070eb196ce667b851e98dc35fb22649baf4719a3cbbdee614ba60ef12ed1",
+        "actual_sha256": "d5aa070eb196ce667b851e98dc35fb22649baf4719a3cbbdee614ba60ef12ed1",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/BallControlComponent.h",
+        "bytes": 5921,
+        "expected_sha256": "02e9840d6ec6439c8745af72043a7cce977f9b97abd076b46dae64592942fa7c",
+        "actual_sha256": "02e9840d6ec6439c8745af72043a7cce977f9b97abd076b46dae64592942fa7c",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/BasicBallActor.cpp",
+        "bytes": 19813,
+        "expected_sha256": "41877037be7bdb5e1802029b8c8dfd27240689ceaf9cdf4ae8943687bf854d27",
+        "actual_sha256": "41877037be7bdb5e1802029b8c8dfd27240689ceaf9cdf4ae8943687bf854d27",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/BasicBallActor.h",
+        "bytes": 7561,
+        "expected_sha256": "de8f89ac018a67204daa6c36ceba57e4ce68e0bd3e0d9454010617837d02f492",
+        "actual_sha256": "de8f89ac018a67204daa6c36ceba57e4ce68e0bd3e0d9454010617837d02f492",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/CombatResolver.cpp",
+        "bytes": 15592,
+        "expected_sha256": "080bc094abb81b2b015e456335732963df4b614688cf80b708879f2c6862aee8",
+        "actual_sha256": "080bc094abb81b2b015e456335732963df4b614688cf80b708879f2c6862aee8",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/CombatResolver.h",
+        "bytes": 1128,
+        "expected_sha256": "bb71327614a5e75902a76a6abcdd56b6a6148a50e61f90b31d2f6d1470908784",
+        "actual_sha256": "bb71327614a5e75902a76a6abcdd56b6a6148a50e61f90b31d2f6d1470908784",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HAL_Future_Creation.Build.cs",
+        "bytes": 836,
+        "expected_sha256": "1c2f0406bd9dc89437e6912d43e8f0f79e43f877de9540a5c46e5e8d51fce95a",
+        "actual_sha256": "9dc4e598f234aace9d92be6ccdc88b34b397e3d211e0219c020b53b086831110",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HAL_Future_Creation.cpp",
+        "bytes": 228,
+        "expected_sha256": "c30949e314ea2a4beb3c509be675c71ab5d1dc9ba965e701adc21935f72d7b05",
+        "actual_sha256": "c30949e314ea2a4beb3c509be675c71ab5d1dc9ba965e701adc21935f72d7b05",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HAL_Future_Creation.h",
+        "bytes": 98,
+        "expected_sha256": "4694b655856b269fc41b195971214f8e629857c7e5d6f34002a066cd4af3037c",
+        "actual_sha256": "4694b655856b269fc41b195971214f8e629857c7e5d6f34002a066cd4af3037c",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALAbilitySystemComponent.cpp",
+        "bytes": 10348,
+        "expected_sha256": "0b688125f9ef1b514c12e5fe42d16c10e4d8ed6f03537dec0f339210ac34aac2",
+        "actual_sha256": "0b688125f9ef1b514c12e5fe42d16c10e4d8ed6f03537dec0f339210ac34aac2",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALAbilitySystemComponent.h",
+        "bytes": 3187,
+        "expected_sha256": "23eb57194e889e1ac641466b06f34402d846b0ae60b5aa63bf5f0f641eef3673",
+        "actual_sha256": "23eb57194e889e1ac641466b06f34402d846b0ae60b5aa63bf5f0f641eef3673",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALAbilityTypes.cpp",
+        "bytes": 450,
+        "expected_sha256": "212d14f601ff94afb78460fbe2fd5b0e1855ab96e76338be09e681ea22e9474d",
+        "actual_sha256": "0c2c315ae5d9b1defad40d5c832cd4f01e64a677b4404984ae9a9512c1361eb2",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALAbilityTypes.h",
+        "bytes": 768,
+        "expected_sha256": "56c7eb8986ac716bc184679dc044facd59c538b5c45c73a1e791a2016630b7df",
+        "actual_sha256": "06a3934684d098ca680a713350119f981f30d3f131fa973b8e2fc2f1f1f27b3c",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALApplyDamageEffect.cpp",
+        "bytes": 558,
+        "expected_sha256": "6c00f13679d808c3d9fcaa565130e070c837a943a3b1971f61e54efa3f0bcc55",
+        "actual_sha256": "e394e61a895d90e3e652752c2e233f177667bd6b81bd1425c0afabfb7a6331ef",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALApplyDamageEffect.h",
+        "bytes": 346,
+        "expected_sha256": "46c233cdb5ad7dd4323653b6ec3c529e45bfd220f64d8379a23f409388baab67",
+        "actual_sha256": "6e9abaea88bf43b4f346b7bcd56db15e53f9e462a11ff3287a3284a322302f71",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALCombatAttributeSet.cpp",
+        "bytes": 2044,
+        "expected_sha256": "430da75bb72cd78f27d3810e6632b08953a23c3a7adaa8c5926beb9142ce3168",
+        "actual_sha256": "386a00f6c371152b38e1999ad0c2cffeac0f78f9464b59d10584285a5139c874",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALCombatAttributeSet.h",
+        "bytes": 2050,
+        "expected_sha256": "b9575c4e38a410558dfd24937314b9721265293c4ab78653674111e61f8fcd36",
+        "actual_sha256": "4bcbc870d23fb53a5e933c0061f82d9bebf01357b8ad5e0cad3c28d918611d3c",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALCombatEffectContext.cpp",
+        "bytes": 677,
+        "expected_sha256": "56cc94b0254213c5a71e29a02b2d1b876e915a42405311e5adb624a6255927cc",
+        "actual_sha256": "3500c787dc0801dccfc8dbb41998caae7c148d46653394f48b7ce4317fa8fc86",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALCombatEffectContext.h",
+        "bytes": 1141,
+        "expected_sha256": "ecc6b08af7e357bb6eca88bb5b9a6173d9980f876429c00969381673e91b6872",
+        "actual_sha256": "29cf632e00107b79af87db6e9f70e7e5de00235ab42c5f9948f1fd768e0cad3c",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALCombatTypes.cpp",
+        "bytes": 3225,
+        "expected_sha256": "fe715e3c2d70bdb7bfb637edc13f6c8899c545fb271e0cb845f410def315d3ea",
+        "actual_sha256": "b7512d3e457c0a595918e7f1fe185bd58800f00f7af5582abed589bb23bd4df9",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALCombatTypes.h",
+        "bytes": 5556,
+        "expected_sha256": "59e8ffe5fe2bd0f0209766857ea81aa89a509da672f52ac62ece5d75652f34fd",
+        "actual_sha256": "59e8ffe5fe2bd0f0209766857ea81aa89a509da672f52ac62ece5d75652f34fd",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALDebugHUDWidget.cpp",
+        "bytes": 8935,
+        "expected_sha256": "e7f195d38ba6eef9b1e6259974d781a0d8c56b6dc2af0a9cf93be4134d2fca2c",
+        "actual_sha256": "e7f195d38ba6eef9b1e6259974d781a0d8c56b6dc2af0a9cf93be4134d2fca2c",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALDebugHUDWidget.h",
+        "bytes": 800,
+        "expected_sha256": "c00f7039419f37ae8a70ed415ed34e1c83a68d4d6f3506ca44163fe98a403946",
+        "actual_sha256": "1bf0290c71ac9c9e0617e2b8f9059047c40b7821ad5fec8c1e168c577f682675",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALDebugSettings.cpp",
+        "bytes": 185,
+        "expected_sha256": "901336dd26b1058094dd252375a004f7a6eb7d6c9b4a2b93ea67d75e025c28cc",
+        "actual_sha256": "cfd7665b29e64f2203d0ad2779577d54f4c4923305509120b740325805aaad03",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALDebugSettings.h",
+        "bytes": 1258,
+        "expected_sha256": "0a7cfb4b45bf02431695ad1d218b82706cbd0838441bca54f25600998e13ccc8",
+        "actual_sha256": "0a7cfb4b45bf02431695ad1d218b82706cbd0838441bca54f25600998e13ccc8",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALGameplayTags.cpp",
+        "bytes": 2501,
+        "expected_sha256": "086c038cbc7573b5b113b75137365a2860fff98acaa13cedc625dd206ac91a62",
+        "actual_sha256": "086c038cbc7573b5b113b75137365a2860fff98acaa13cedc625dd206ac91a62",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALGameplayTags.h",
+        "bytes": 1311,
+        "expected_sha256": "0dc3858638d6e4ba59c139969ea2d3c711cbf31ea42694dca7cab83a799783a5",
+        "actual_sha256": "0dc3858638d6e4ba59c139969ea2d3c711cbf31ea42694dca7cab83a799783a5",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALHealthAttributeSet.cpp",
+        "bytes": 2359,
+        "expected_sha256": "81c2ac742741de19877ac36237d72cb1125aa093848a6ac6b2ea5b091434df0a",
+        "actual_sha256": "03b56be18f63f7d26c41463908c0c8e7c6ac019f05dd725432cc0af94206bd46",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALHealthAttributeSet.h",
+        "bytes": 1716,
+        "expected_sha256": "436ae984fef6b1dd6e53fd17823c998525ac19d7ae427d1831f94960d9b58f19",
+        "actual_sha256": "5427a77b8be3b918e12d47e8bc121a76594df751248e3f10c896d76b9fa13c1f",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALImpactAttributeSet.cpp",
+        "bytes": 1146,
+        "expected_sha256": "379f5a208e5700ac0a840c6efe71dd6f42064f96372f1dd2ad2abe78c944283c",
+        "actual_sha256": "598f64058975b7f0b25928be050cb368353ed310eca194b1dab0ee25453a5889",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALImpactAttributeSet.h",
+        "bytes": 1040,
+        "expected_sha256": "51e3cf5b1b92a54a9779c0a81ae5e5338f36ef1ff12b6a074fe93aff267f306e",
+        "actual_sha256": "08f7325e501dac505d24a01a293e809fcc574f05eee3bda11c7f2668a1156d10",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALImpactImmunityAbility.cpp",
+        "bytes": 5365,
+        "expected_sha256": "21dcb0892afeeedd6833b8116b31016a7d87c3a972a5dd330f127ac696ea9b16",
+        "actual_sha256": "dda3a12ef280f3b451327f00ab8fa8d399aae3a105792328ac0b3ee6393ce87c",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALImpactImmunityAbility.h",
+        "bytes": 1269,
+        "expected_sha256": "acfaac4f35bd1873756d998b49e236c3d3040a5e7495d07c052762ec461e1dc1",
+        "actual_sha256": "48cf87dc0e5a6034a378f365a598915f0f8cf18687c6cb9a0141048d2e01de92",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALImpactImmunityEffects.cpp",
+        "bytes": 2501,
+        "expected_sha256": "657e9467648ecb2b2f806779b0741f6e964494f0257bb409f4cc660941c549f9",
+        "actual_sha256": "533b24367777a85c14b9100d05d37215244cbda94f18e91068d08a745fe274b8",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALImpactImmunityEffects.h",
+        "bytes": 888,
+        "expected_sha256": "59ef6332d6da28dbef86202d672a844f0cdae22233394dc30460c3ffb08cb744",
+        "actual_sha256": "f6765dad0a299faaab1d822163cc1cdcac1c8456a76e9dc9f991fc84fc2d0efb",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALImpactReceiverComponent.cpp",
+        "bytes": 15305,
+        "expected_sha256": "31ee92a1991904cd92a4ab005aeb5a246ad687f488e287a8a2d9ce4bda8400a0",
+        "actual_sha256": "31ee92a1991904cd92a4ab005aeb5a246ad687f488e287a8a2d9ce4bda8400a0",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALImpactReceiverComponent.h",
+        "bytes": 2281,
+        "expected_sha256": "eeae66283cd112bb779112e1ec16cb633d767ce52b20989966938e12863bb412",
+        "actual_sha256": "eeae66283cd112bb779112e1ec16cb633d767ce52b20989966938e12863bb412",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALImpactSourceComponent.h",
+        "bytes": 881,
+        "expected_sha256": "de9bedfc70d88e1e6de09cf49f017d77bf5c2d6c8107a6093ba5a244ca74e2c3",
+        "actual_sha256": "31cb443124191e0903893f620ec92441ee9b2ac8f3dccece58093ba029ea29f6",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALImpactTypes.cpp",
+        "bytes": 3233,
+        "expected_sha256": "5ae78fa8fa8d3d0b4568f844e0c2e3b95a2e56fa8666012b10ac461adc75552e",
+        "actual_sha256": "8622fe67105782a3d3d7d6e447b99abe4f73e6ae4bf3ed795b15b4bdf622928f",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALImpactTypes.h",
+        "bytes": 4524,
+        "expected_sha256": "2920ab634d12e432dfab3690b3cc02a9592073588ce44e240db44cdeca3acd0e",
+        "actual_sha256": "a1a9ba313963bd50f5d779fda6832e22be011ac6b027de0f45e83b8409399bfa",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMatchGameMode.cpp",
+        "bytes": 6023,
+        "expected_sha256": "d98309c0180536e58885c33ac4a8615c459904889c851fe6ae80e373ee733f2f",
+        "actual_sha256": "f61d8efd0e7f45dd032f5223713342565278d83cae5589397f7b14cd9d417740",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMatchGameMode.h",
+        "bytes": 1552,
+        "expected_sha256": "1b4f392c654e5837e204dbc267d5258a87db54baeb147e56470a4bbe914e9e70",
+        "actual_sha256": "6610edb40aa6a2bd14c215b27f3bdfd60e3e4c441afd73ca5410c049a77d2efe",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMatchGameState.cpp",
+        "bytes": 622,
+        "expected_sha256": "be04601db72c12980b9e7a430d2af86246c9a977a30a251b4b13d482ec90aa69",
+        "actual_sha256": "5e1d7aa4ecd462b629fe75eb5987e99c0dbfe49f7850ce048a4a5e674903a10a",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMatchGameState.h",
+        "bytes": 1064,
+        "expected_sha256": "9a65227351c232e676c18f79388cddaaff665531d88477f7a3e728036572340d",
+        "actual_sha256": "6947edc040deef4c723e661ea6607bc47a71324baa399e77ea91228f8a1866eb",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMatchLobbyWidget.cpp",
+        "bytes": 2583,
+        "expected_sha256": "a537b2e3b537d0d815b99b744236d5734d1ef28f1dbbe0a7588dd8b7c7c550f0",
+        "actual_sha256": "a8a947de18e68210c83eeee674f25ed72b491341960ed479686dd59375cdf392",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMatchLobbyWidget.h",
+        "bytes": 949,
+        "expected_sha256": "b8b4f80dc160d8f0bb848c9ea91ee0f5e8777d68c6eed0faeb9874afed371359",
+        "actual_sha256": "06699c1509377ee8187a46561d4ba8f364a6736ea1c5f08ac54fa7ca40dd0f7d",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMovementAttributeSet.cpp",
+        "bytes": 1506,
+        "expected_sha256": "73942382469df6c36dc53ffbfbef99269b5d46390fa18a676c8b0383c80bbd54",
+        "actual_sha256": "14aa540d4d073facd48a4507c779e9ee768234a0dd23095fb19eea8ef27639cd",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMovementAttributeSet.h",
+        "bytes": 1539,
+        "expected_sha256": "79937aeb78940f85e277ecb92d3cc68f09f10a23ef179c9f15c90d7b1cca304a",
+        "actual_sha256": "5ecd68739d9b3b57d77579843ad842348b863835375b1305e289e46442beb8ec",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMovementBoostAbility.cpp",
+        "bytes": 5371,
+        "expected_sha256": "dfc0f54f13ce4c111860fe9c0de35d100339cf644851733b85583816aa9fb37a",
+        "actual_sha256": "47996ab33ed237702db9c5364ea955f2d54cf5d9e2112cf886894823e002f146",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMovementBoostAbility.h",
+        "bytes": 1183,
+        "expected_sha256": "d5b570c1731d22f0ced156317ee0a9634de450aa72dabb2288df4c70824c59fa",
+        "actual_sha256": "0772803252e4afef07b55aa257a5fb68f18acceeaaaf2a990edc73a2537d0f4a",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMovementBoostEffect.cpp",
+        "bytes": 2022,
+        "expected_sha256": "48a4c83d63a78a9ed50253220ceb81efc5e9314d6d2d0d4a90f12725429a9368",
+        "actual_sha256": "97b8fe0acf4d29f3d974c5fa92f4b712a0365d8c6fb923e3990ebed72b4ac8a2",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMovementBoostEffect.h",
+        "bytes": 525,
+        "expected_sha256": "69fbd41ef2a2b68214681eb1f46a1e980ae81fc40edfaa152ee37ec6e7a2e435",
+        "actual_sha256": "4ae4868d4ad5e38ce5986d3fee0705d3e82a663720fb5b56e310ce66f8729442",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMovementEffectBridge.cpp",
+        "bytes": 4252,
+        "expected_sha256": "16ed7ba300f55833c864c8b884da743f4b7db3321b78320d64eec8bfe2d6146a",
+        "actual_sha256": "701569d550ff204f4ce79161af640da7bd9bfa435ca0ff81f4781f530e7acd60",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMovementEffectBridge.h",
+        "bytes": 1419,
+        "expected_sha256": "b82e3c224950e8861335df7351764aae77c668f2101bdfc0260c72ed1c78a266",
+        "actual_sha256": "d4f5b2bc36578560e35ca500a0b1cec3d8e3493469167ada0df77a7fbdd96709",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMovementTypes.cpp",
+        "bytes": 6481,
+        "expected_sha256": "3c18bcf743b0b04991f9f862f40653f3b77cd9ced45245777d17832d75b9e57c",
+        "actual_sha256": "36203e699225a934a2aafa04822ca9a1896bf99e144fd21dfe6fde090e893647",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALMovementTypes.h",
+        "bytes": 2081,
+        "expected_sha256": "038885c2b18b6f4ad4ccb9f6c250ac10c77e9a5313045bb31c30fe6a34ceb554",
+        "actual_sha256": "3ff2e12f2417ab232bad8482fafbba085bd42aab39b1c261b68f41e7bf801410",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALNetworkGameInstance.cpp",
+        "bytes": 4454,
+        "expected_sha256": "9fab065f866a9e115d9d97b536d111b52047f0f092ebcea63cbc2110fdc0b5ac",
+        "actual_sha256": "bda57d356d107e70e31ef32b715917998869483f6e357d6662108ce40f4bea65",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALNetworkGameInstance.h",
+        "bytes": 2241,
+        "expected_sha256": "47ecc6439a49825532a3c9aad6eb4a610a812d865306eca76aec44f0789a53ed",
+        "actual_sha256": "fc3a0c0db91150b116d8dbbf112fba12ba2429dc08f2344c0c2a56362d26ab6f",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALNetworkMenuGameMode.cpp",
+        "bytes": 173,
+        "expected_sha256": "21f51175057a1dfc32e205a8ec9b5df724f8ed1143810a30df80bab0be7a2c99",
+        "actual_sha256": "3a0d9dc29d947497346f96f4d4f06df980929f61271251cea967b26dddb5ae45",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALNetworkMenuGameMode.h",
+        "bytes": 411,
+        "expected_sha256": "4c3574ea5232c3ee2e3563cac25e2d1e3b595ea4e8510bcc816693cb1b6813fc",
+        "actual_sha256": "b5863e1fdf7b28df16c16bbec1b5ed8abd4bfb4805415ad9bab8126668e279f4",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALNetworkMenuWidget.cpp",
+        "bytes": 706,
+        "expected_sha256": "d6c15c77e6633cf9713ec01349224b2d98243e27915ebdc4ab604aefe76ec6e0",
+        "actual_sha256": "a4d8ec9dd7d3f35e97eac08277cc983e42eb33a1453c721236d1741ef5e67cc1",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALNetworkMenuWidget.h",
+        "bytes": 650,
+        "expected_sha256": "594e8956a02a90a8c1aad4bb394cb64f972f0fb8c22ae8058eff5733dd01442c",
+        "actual_sha256": "48e7e54378ebe8d5217ba784ebbfabb0d6fe796f5ea93ed27004cbf33a56fb71",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALPlayerController.cpp",
+        "bytes": 12603,
+        "expected_sha256": "2f8b7c4708cce8ac396c938c01900bf3ba3d6bf5fdfea4546571e8b0dec8b236",
+        "actual_sha256": "2f8b7c4708cce8ac396c938c01900bf3ba3d6bf5fdfea4546571e8b0dec8b236",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALPlayerController.h",
+        "bytes": 2690,
+        "expected_sha256": "6e8b9ea005f8425fbfd28ab4d569004d99c64b0775fc86c27bbc28e541538200",
+        "actual_sha256": "6e8b9ea005f8425fbfd28ab4d569004d99c64b0775fc86c27bbc28e541538200",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALPlayerControllerMovementDebug.cpp",
+        "bytes": 5395,
+        "expected_sha256": "f0e79acd03271306d0842953fc9e6e87332fb4a14be0428f0b7cad3f6eed0b06",
+        "actual_sha256": "e9a5c933047de54d44195c4c3af33d220c892ea9a55128276356360273397b13",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALPlayerStart.h",
+        "bytes": 483,
+        "expected_sha256": "7b1010b0421966236a65073b1eb28d16e821acfa505c0a8544731c0a0ea9cf76",
+        "actual_sha256": "4fc03f6cb7ed93d42ff6fa6d4f9a6d035a8b0f7bb3810e17dd22c79247e66a77",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALPlayerState.cpp",
+        "bytes": 1593,
+        "expected_sha256": "7583d3264cc1d20815103cdeca31dbf6c704d876eaea8ec45dc88498868b9d37",
+        "actual_sha256": "7583d3264cc1d20815103cdeca31dbf6c704d876eaea8ec45dc88498868b9d37",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALPlayerState.h",
+        "bytes": 1597,
+        "expected_sha256": "e1640e38e9eb5a0ba7d84359b38b15e6bc914f84db0d8f6d853e91348bc96cc1",
+        "actual_sha256": "e1640e38e9eb5a0ba7d84359b38b15e6bc914f84db0d8f6d853e91348bc96cc1",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALVehicleAnimInstance.cpp",
+        "bytes": 854,
+        "expected_sha256": "60405ab8a329044aa54e8d1e331874610ee0ac3bcfc9b516fb2cc0b6bae41a3f",
+        "actual_sha256": "ca3d33622761bba55b80d69cf830c12669f2c1092ea51ce0e0249d563b47e0c7",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALVehicleAnimInstance.h",
+        "bytes": 768,
+        "expected_sha256": "bab43e3bd37302631778d56bcdfcd5ce9eaa2373b598e08730f453f22f9277f5",
+        "actual_sha256": "d9ce55999512dd329749320866a0876bb73aa29577a76e4e106dd357f2c6731e",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALVehiclePresentationComponent.cpp",
+        "bytes": 9131,
+        "expected_sha256": "6899e1a0c6923af25db694c3d9b1980d12ae4b45f03e793403ad285bb35874b0",
+        "actual_sha256": "17faed899c573d4cbef82472af7c0a6ddd544d03f17839b83d3a8c47820446e4",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALVehiclePresentationComponent.h",
+        "bytes": 2628,
+        "expected_sha256": "8fdfb44ad9677692a499a4d0464613f4a7e91f0e400e2a9e7db64e55c6b3bb6f",
+        "actual_sha256": "f225bcc558041323f031863bdec864cf22b76ab16e86a5dfe35787f1b371731e",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALVehiclePresentationConfig.cpp",
+        "bytes": 7101,
+        "expected_sha256": "973d08022559e55903af7613dfb51186bc9c63c9049ba7e7629fc71d654934fe",
+        "actual_sha256": "9bf6e7570d0860e4329d01c5a92c4d4d0baad48679df18a6841777b63b67c497",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Limit30_Verification_20261022.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALVehiclePresentationConfig.h",
+        "bytes": 6241,
+        "expected_sha256": "72fe52ff57b3f438d33dfcbd14f83aa9f869b2328f59c2adeffaafe7e35ec5ec",
+        "actual_sha256": "04c382998e4961790f210506fa2a802f12755c0fe9119e64b67b1a5f4be4db7f",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Limit30_Verification_20261022.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALVehiclePresentationTypes.cpp",
+        "bytes": 4322,
+        "expected_sha256": "8a880a7385bae9fb50ec957faa19d35be246b8ac57de32d5f2b76551fbf02a56",
+        "actual_sha256": "50af87c91c57f55abe1b21b28286694c56ae71e59b360394aa15b6b99dca30ed",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/HALVehiclePresentationTypes.h",
+        "bytes": 3920,
+        "expected_sha256": "917fe794ef3ab9193c12089cbee773b91d1b18bd67df221c56d2b0f86c8a22ec",
+        "actual_sha256": "8979c6f70d2d76ce5e81a47378e174c16a2ba5e2d810e0258587379b07eaab4e",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/PassiveTestVehicle.cpp",
+        "bytes": 4278,
+        "expected_sha256": "60f1578fcf8b481277279b0129ce3fed52c21d74404b9f3bb3dd27f4f8595b9b",
+        "actual_sha256": "60f1578fcf8b481277279b0129ce3fed52c21d74404b9f3bb3dd27f4f8595b9b",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/PassiveTestVehicle.h",
+        "bytes": 2597,
+        "expected_sha256": "4cede749607e5e48b01946a01ae54f6ff3cd663543951d088697969eea3bc4fd",
+        "actual_sha256": "4cede749607e5e48b01946a01ae54f6ff3cd663543951d088697969eea3bc4fd",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/SpringPunchGimmick.cpp",
+        "bytes": 15432,
+        "expected_sha256": "93e3cff091fea241888bc55150f5c75e4e25f6b9321130cf1fbaf8da1d63deaa",
+        "actual_sha256": "93e3cff091fea241888bc55150f5c75e4e25f6b9321130cf1fbaf8da1d63deaa",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/SpringPunchGimmick.h",
+        "bytes": 6556,
+        "expected_sha256": "8171a31cceb7a13c47432ed0421cec93111d60815531d7e219b525ffd89be60a",
+        "actual_sha256": "8171a31cceb7a13c47432ed0421cec93111d60815531d7e219b525ffd89be60a",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALAbilityNetworkSmokeTests.cpp",
+        "bytes": 6555,
+        "expected_sha256": "9e16a9f4491fda3d657f0cccf023da2eb6f5bb3167a2b3e41cc5fe4d80d88f9a",
+        "actual_sha256": "a3579a163b110bbab88408e17c3854615f2cb0b888a352f7afe167b4bf4dab57",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALAbilityTests.cpp",
+        "bytes": 15026,
+        "expected_sha256": "cb1098c259ee348f463379903237170c07b6f4a5ab5b34ddcda8e69eb6b5b280",
+        "actual_sha256": "d5689624bb43b57ae1cd5ffb500657ddf7764c586bf682ef5874c836a974a4d5",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALCombatTests.cpp",
+        "bytes": 22384,
+        "expected_sha256": "fa9942c9d02bf56269b2709b48cb81a66b970a9e98a18651078f18745c1f4247",
+        "actual_sha256": "fa9942c9d02bf56269b2709b48cb81a66b970a9e98a18651078f18745c1f4247",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALDebugBallTests.cpp",
+        "bytes": 5546,
+        "expected_sha256": "909793666d771b0050e52f8fe0afe3818d6bfdd0dd1a189be0ce1567ba93439c",
+        "actual_sha256": "baef455786730d578cd43fff1dc446c76d598ed5728bcb5be37245ced598e4de",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALHealthGASTests.cpp",
+        "bytes": 6986,
+        "expected_sha256": "1f22862e53b9d7d47bdc84f89967ff816c61ef3ac80bef159c7bef2776c65fcc",
+        "actual_sha256": "4a098b78567965cfd7e934750aedc0b833f6cb2637cc113d928729b6ceccc74d",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALImpactPhysicsThreadTests.cpp",
+        "bytes": 8394,
+        "expected_sha256": "75b59ca50ac67f6f81891e4949ebc0fdcfb84503c8567ddca39b2a4d5bca37fe",
+        "actual_sha256": "79573657469a9732739668a7ae568250927f22b6afb776cc7c44e2ec2ebe88b1",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALImpactTests.cpp",
+        "bytes": 42107,
+        "expected_sha256": "dfdce120162660741729f742de54967b9cf920a60e975f59986dc055c6ed4c45",
+        "actual_sha256": "dfdce120162660741729f742de54967b9cf920a60e975f59986dc055c6ed4c45",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALLegacyCombatTestRules.h",
+        "bytes": 598,
+        "expected_sha256": "beddfca91c8aa08449dd09342d13fbf7f9b3a8111a23b7702b389b373c731c30",
+        "actual_sha256": "afdc910f6198829be62cec66a51a7c97ccddc97a7d6c9df0040a2a7b2e80a272",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALMovementAbilityNetworkTests.cpp",
+        "bytes": 8874,
+        "expected_sha256": "9a2d7237252d8dce161aa1bced0885f69842e83d0a15e59dcb89ffbaa13ed4e5",
+        "actual_sha256": "6199de1a78ae64484f091b397f9622e82f6f101cb69b52296cbd01095c9d1595",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALMovementAbilityTests.cpp",
+        "bytes": 11221,
+        "expected_sha256": "ddca05d24c78c7089c0c31bf8acd3f3655e1b807f1fd08c8d6ec002e282fd70a",
+        "actual_sha256": "651e3a2759586b1bd558d4678dfccd193d2cb53b2ef098243735c2b803e3d29d",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALMovementAbilityTestSupport.h",
+        "bytes": 1923,
+        "expected_sha256": "66322766b753292b9dfdb3016e40dc44d45a4e518929f62300d11bfe99cf1794",
+        "actual_sha256": "d4602068043df6a709161b03d2f1b95ee60d13524ee12512596ca57e918a774a",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALMovementBoostNetworkTests.cpp",
+        "bytes": 9730,
+        "expected_sha256": "650176ed86f5ea9e2df1418c3c500471c1b262a0707e6978821725387bcd6299",
+        "actual_sha256": "8e5df9b36c2a217898b3b8ce2520cfe7d7d99a9f08b3b49a7221d78948069c80",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALMovementBoostTests.cpp",
+        "bytes": 11899,
+        "expected_sha256": "17508c559a41de88dc4552df3de55b1dbb62a57b625d6a3f5d4d1160c947cd87",
+        "actual_sha256": "f0b306ef4350a518e30fb4b8f2e2f38528eb8710659c5a2f0c7530138a192b7a",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALMovementHistoryContractTests.cpp",
+        "bytes": 5194,
+        "expected_sha256": "65162f4fbb79f34bb02ae4ea4da022f46a968406656080ae8bf0ffa5d7d6991e",
+        "actual_sha256": "31b6d36cba7ce6d121b491fc3a7e85fff3704b5472d3f77594a9a57a5607ec75",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALMovementNetworkTests.cpp",
+        "bytes": 7696,
+        "expected_sha256": "d9e6c657c0e82f53872b56b39e1026a4758ac5865f74c39c4fde095be5d769bb",
+        "actual_sha256": "4ec4cf549d90633e5a0e78714108b46c27c524fac9ebacbb927af1a00eef1af4",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALMovementSolverTests.cpp",
+        "bytes": 7443,
+        "expected_sha256": "0cb49127479bf208995bc83c89f743eb0725b34c9cd068313b3fe7a42d3db85a",
+        "actual_sha256": "45bfcd6b488c606bfb8e913527dc0d22fd06c905d62d187da3477529cde7353c",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALMovementTestEffect.cpp",
+        "bytes": 1088,
+        "expected_sha256": "0def5acfbf70b11f34d0a55edd1423290d692ff0d0dfe18260655edc7dd4239c",
+        "actual_sha256": "a10346488a0019cc60378470c11213cd71fed338c6350f521a319b857b3dd5c9",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALMovementTestEffect.h",
+        "bytes": 372,
+        "expected_sha256": "7c49dcb8179888a6117860a9af5e1ebbc58315fdf097a93c02643271a96845a0",
+        "actual_sha256": "a898abe8d886a66397196a2e2466d995cdc46777d964bf697cd132e7603b8d9d",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALMovementTests.cpp",
+        "bytes": 9811,
+        "expected_sha256": "a95a2c740dffa29da3fb42693720517d1a1011b832691dfc648107966c147646",
+        "actual_sha256": "c73f0b445b2629da8dbf7e8b5f867d7c5ed9cbdbc834afe1eed3216f6f2e57a1",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALSpringPunchNetworkTests.cpp",
+        "bytes": 6763,
+        "expected_sha256": "ae576d83002dc2de7a3d5ffb1d9a36302d52a387d5d07f902c88fb399a987e1f",
+        "actual_sha256": "ae576d83002dc2de7a3d5ffb1d9a36302d52a387d5d07f902c88fb399a987e1f",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALVehicleChassisNetworkTests.cpp",
+        "bytes": 8191,
+        "expected_sha256": "3b2533c81b548d97419081738d0a2ce5916f19e60a8ee10a41c29615c9fdd79e",
+        "actual_sha256": "2d8ae38385f2174724e04b4d3061cb175b09bbe95d4d7368de13b7009252c505",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALVehiclePresentationNetworkTests.cpp",
+        "bytes": 4912,
+        "expected_sha256": "f352c7ad16fd8c0475735192588ca0752cf951a36dd997c6af7cca911c56d8d7",
+        "actual_sha256": "79e2f48bd1b64bddf7a599cdf76961d479e7ed693add5e520a3c98ef75bee720",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALVehiclePresentationTests.cpp",
+        "bytes": 23860,
+        "expected_sha256": "449e9a2b1d7b1be2e327fb04db2e85416dc8a5f819f0382418f333bcf79a81f1",
+        "actual_sha256": "f351c6c5ad10a9f01b5c773474e7fdb76ab055f59ddffa1acfc6f3070215d594",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Limit30_Verification_20261022.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALVehiclePresentationTestSupport.h",
+        "bytes": 2987,
+        "expected_sha256": "9ae97176572dbfc8b026ad20b1938172fc5ed72c5416a9c89208cde7077e370a",
+        "actual_sha256": "d3efc8a5eefcb9a2dd1236abc9c92bd0fc80bbf1b5bc9e0f4d6e5a654f21ff0d",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALVehicleRecoveryNetworkTests.cpp",
+        "bytes": 5961,
+        "expected_sha256": "df34e5e0914cf104b94b8f2995d32aa8f8e42f70b09e80bc23d424e4fee5560c",
+        "actual_sha256": "f6fc2c767bf0c5114c9c37061bdb5de1906c8af8c06ddb7d10389dfc61bba655",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALVehicleRecoveryTests.cpp",
+        "bytes": 22458,
+        "expected_sha256": "1a07a49e031b3dc73f04353185c542528a636a281aa98c8d4fcefb4acc6c0ff6",
+        "actual_sha256": "15d29fa1653f15f3f475145ec281a1947abbb90a9443fc9e8f92ba11b226ace3",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALVehicleStabilityDiagnostics.cpp",
+        "bytes": 20278,
+        "expected_sha256": "724ffe56dd47e2b7d47b9301034c3c88355792d98bc738179ab1a001a1cf9563",
+        "actual_sha256": "2d691a0f59a9c5e5ffd31b54a5a6f8a00ec3d4be890fef0ab9d33fcf4c09ed34",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALVehicleStabilityNetworkTests.cpp",
+        "bytes": 5451,
+        "expected_sha256": "0a078edad91a3b580e6c6e544ae7c31655d4c5c2fe9deeed3d62d8688d16f060",
+        "actual_sha256": "078253e79e6f1c7e60a82fe151ddafd9b3fcdc649c298424babac2d1bd8fd72e",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALVehicleStabilityTestRules.h",
+        "bytes": 1433,
+        "expected_sha256": "9e5ddaa0f4034e03504a26214bc70ce2b24aa4ad1d686b4097f546357d99da08",
+        "actual_sha256": "68cca2f9c56bed370450be1fea3139382642888b9d2baf122333f8b27bbf98a8",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/VehicleConfigurationTests.cpp",
+        "bytes": 25466,
+        "expected_sha256": "ccb11bdef9564997ce840ccff8262ebdf7b1591e34cfbbd1f1b00b21eb37beb2",
+        "actual_sha256": "ccb11bdef9564997ce840ccff8262ebdf7b1591e34cfbbd1f1b00b21eb37beb2",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_SelfRight_InputDefinitionFix_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/VehicleNetPhysicsDataTests.cpp",
+        "bytes": 6210,
+        "expected_sha256": "5dd03bb10fb60460f3c66a3d54c3f9968d14bf28aa33db8900611b588e4868e0",
+        "actual_sha256": "d4f68c9df07f6be6f4ddda637d7f024d9f9b34452b1dca748d153d5ba3901a03",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/VehicleWallEscapeTests.cpp",
+        "bytes": 13399,
+        "expected_sha256": "9942e66b7473c144558303ac3b87e565c0055e89658d1d75850988cb1323e899",
+        "actual_sha256": "83fcfda65ecf382ffab2bac3378d17f324ef5e81debc4be3e6d2ac2d53dcca6d",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+        "bytes": 30527,
+        "expected_sha256": "e33e2fbfaa7ffb53ce32e0850b0e75013b3143771ce3a6363dd5fdb81a568e79",
+        "actual_sha256": "e33e2fbfaa7ffb53ce32e0850b0e75013b3143771ce3a6363dd5fdb81a568e79",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_SelfRight_InputDefinitionFix_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/TestVehiclePawn.h",
+        "bytes": 9503,
+        "expected_sha256": "9e0392ad058877608c7fee0a4fdd1dcdd5176d9100687728ee5c95d107470dfe",
+        "actual_sha256": "9e0392ad058877608c7fee0a4fdd1dcdd5176d9100687728ee5c95d107470dfe",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleConfigurationApplication.cpp",
+        "bytes": 4117,
+        "expected_sha256": "cb16659191ed3fe5dc65185c95f850bfe3d4586fca6415743b5c9175a6d68bdb",
+        "actual_sha256": "573b369bf99a7d855c2a98fa7107a3ebc65d7e8e525b586c5d47fb5a4ed07346",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleConfigurationApplication.h",
+        "bytes": 730,
+        "expected_sha256": "00f2863f596cac1af284a8e056fc79f6df80aba7a0f48645bc5c6a4ed0d0a9da",
+        "actual_sha256": "9646b9d7f03627e33d8751daa1899c4041607a42ec9f65dae65940fdba93aecf",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleConfigurationTypes.cpp",
+        "bytes": 13466,
+        "expected_sha256": "d61e6e6449824628f19c346d395fe94e68f43d7f17598af3f0e94fd56bc612b6",
+        "actual_sha256": "d61e6e6449824628f19c346d395fe94e68f43d7f17598af3f0e94fd56bc612b6",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleConfigurationTypes.h",
+        "bytes": 13270,
+        "expected_sha256": "acdf8e4c40690dc04041b83690588b3fb84c5cae1ddac51e1c756de9f2372ac6",
+        "actual_sha256": "acdf8e4c40690dc04041b83690588b3fb84c5cae1ddac51e1c756de9f2372ac6",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleDefinition.cpp",
+        "bytes": 8664,
+        "expected_sha256": "c625d08dc323b7b9408942e9c4d5ce72a5fb63da45816afb55c187213dc0e28f",
+        "actual_sha256": "c625d08dc323b7b9408942e9c4d5ce72a5fb63da45816afb55c187213dc0e28f",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_SelfRight_InputDefinitionFix_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleDefinition.h",
+        "bytes": 11704,
+        "expected_sha256": "f97592967b2e1638a8b70ea55c44e2074f5b95adc22621266078c069a0a58bb4",
+        "actual_sha256": "f97592967b2e1638a8b70ea55c44e2074f5b95adc22621266078c069a0a58bb4",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_SelfRight_InputDefinitionFix_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleHealthComponent.cpp",
+        "bytes": 4518,
+        "expected_sha256": "097e3c2e78794838d475b258d6b8e281c46975c50ea28c3dea60d87f03cf381d",
+        "actual_sha256": "097e3c2e78794838d475b258d6b8e281c46975c50ea28c3dea60d87f03cf381d",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleHealthComponent.h",
+        "bytes": 2211,
+        "expected_sha256": "9c34ceeb540246f4afb3f98cb78857aaaa3e8e71daafba80dceab856ac120e5d",
+        "actual_sha256": "9c34ceeb540246f4afb3f98cb78857aaaa3e8e71daafba80dceab856ac120e5d",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleHitContext.h",
+        "bytes": 1081,
+        "expected_sha256": "b7d35225dd0fe0e03b2deb9931e52facfe1f45dabe3cc23c9f1f4932a0e389a3",
+        "actual_sha256": "fc57720187226dd670e574510ff79a27542fd669baa069412e3f82c2a6b632ce",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleInputCmd.h",
+        "bytes": 2017,
+        "expected_sha256": "fdd806dac9bcaeb74219bae9a182646c521a2569e27c140671276614b8754703",
+        "actual_sha256": "fdd806dac9bcaeb74219bae9a182646c521a2569e27c140671276614b8754703",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleKnockbackSettings.cpp",
+        "bytes": 3200,
+        "expected_sha256": "884a4bb7a023fe764c52c3501acf672f811a89534cc14eac1a57c01f7f03572d",
+        "actual_sha256": "d4e5c42496d49ce86c9c236cd9d1dbb8a9268ec8b28f023e0ddd3a5c0906d92e",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleKnockbackSettings.h",
+        "bytes": 2761,
+        "expected_sha256": "dd1ea32fa3042a2e02e278f14a23d87af17223a70415385b67f7a75af025b5a2",
+        "actual_sha256": "59e8a4d72b90c12d1fba0f5b6d343ad632cb3d6c04108264d98ed5905f94b1a7",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleKnockbackTypes.h",
+        "bytes": 983,
+        "expected_sha256": "a1a349b3976deb697626156761bbe66c53f85c948c50171554e39f851115e82d",
+        "actual_sha256": "a1a349b3976deb697626156761bbe66c53f85c948c50171554e39f851115e82d",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleNetPhysicsData.cpp",
+        "bytes": 8911,
+        "expected_sha256": "fb88580cadd3361d1f7bf5e6526305b8c15962cbe12a95a2e3066b4c0a44a177",
+        "actual_sha256": "fb88580cadd3361d1f7bf5e6526305b8c15962cbe12a95a2e3066b4c0a44a177",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleNetPhysicsData.h",
+        "bytes": 9257,
+        "expected_sha256": "f832e5379f65d0aafb8f5dfb9be68bd0dad880bd9ebd321ef11800f039ca1b8b",
+        "actual_sha256": "f832e5379f65d0aafb8f5dfb9be68bd0dad880bd9ebd321ef11800f039ca1b8b",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleRecoveryComponent.cpp",
+        "bytes": 8939,
+        "expected_sha256": "1e33262b328a8975e33f779457ccbf109a5cb4dbe44cd2342fae6904a5588596",
+        "actual_sha256": "714a5e2061f2136b1cb6ac08031ef9318cae4d6323468d08f20a680f478d8c23",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleRecoveryComponent.h",
+        "bytes": 1593,
+        "expected_sha256": "4f498f1ab9fe375d2ff637b0e3b263ce6d45cd3ed88fb6646f818fe1f9e185c9",
+        "actual_sha256": "d318e0335cd8fd48eab3eae2774243978a098b1a57b6d8b2e70d8d539a2be7ba",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleRecoveryTypes.cpp",
+        "bytes": 5720,
+        "expected_sha256": "1145103510113110d38f2c65bebcd1fa583a0dea84232f49e4d6a72181bdfbbf",
+        "actual_sha256": "9ca8fea6f77416c3af42343f764721fcba3d8d4e7c53b224d332ffd1ff647872",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleRecoveryTypes.h",
+        "bytes": 5703,
+        "expected_sha256": "a7d5cd1b1ed735e300e342357f58964f96e1393d69b089a6b931551c4b4ed292",
+        "actual_sha256": "1fce275a90e563d0e06c33c8ce53011937a723e0ebc9ed942af5d0cea0b53099",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleStabilityRules.cpp",
+        "bytes": 6867,
+        "expected_sha256": "4ae42482277acf042fae54884f33a6f41fb8a8841948951d17d6f118c985b2cc",
+        "actual_sha256": "261e404a834129e186a5e3bf6fd31c2c819f5eb63268283da0168b2a327198ca",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleStabilityRules.h",
+        "bytes": 3278,
+        "expected_sha256": "ade5a230d716bcba1a70d8fe95ee8fa2e200eadcf2b53115f1902dbbb0145029",
+        "actual_sha256": "e1c8ccad13b38aa39db6fe45c3803456831d5113854e61a189fdb23275d81a05",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleWallEscapeMath.h",
+        "bytes": 2685,
+        "expected_sha256": "2489fd0e943881818d248fb31b84a4bb4e9424be97b11160c5fdf79dc80c3ac7",
+        "actual_sha256": "f3988e88083fbe57fbc78af9f5b9fea2c2ac0655df981c4a056b2a4cffa6fe59",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_CreationEditor.Target.cs",
+        "bytes": 509,
+        "expected_sha256": "a86dc25614f57b2dd2702c180993a048b10bb49a27fccc58ea60500dbee0e91a",
+        "actual_sha256": "a86dc25614f57b2dd2702c180993a048b10bb49a27fccc58ea60500dbee0e91a",
+        "exact": true,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_CreationEditor/HAL_Future_CreationEditor.Build.cs",
+        "bytes": 483,
+        "expected_sha256": "f8fb54cd296b81c3aed9946d30a1faf2d405eb511f7b2901ecc59d8fabf00bd1",
+        "actual_sha256": "b0bf9b587c0a69340e35df7ee4101c92e561ee8bf158c5ffd58edcb68f2d31d7",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_CreationEditor/Private/HALFutureCreationEditorModule.cpp",
+        "bytes": 1976,
+        "expected_sha256": "5c550e2b612729d1b96a117cf5c56c60e6518295ea9d1fe5f3cdd04c6d64a322",
+        "actual_sha256": "1539cc7209dc6a625864901b0f6f694939f0be26e3595caea45e36ff93b0deb8",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_CreationEditor/Private/HALVehicleCollisionGenerator.cpp",
+        "bytes": 10200,
+        "expected_sha256": "c68bf7871696fe4e657c65f0600a02fb8c132193a0da496dd45dca943da58118",
+        "actual_sha256": "f16a545624c1dc387e62283971934b5c21ebf228ae38f7292d4f752741bdc8c0",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_CreationEditor/Private/HALVehicleCollisionGenerator.h",
+        "bytes": 931,
+        "expected_sha256": "4c550be0e47c1ac24415257361c135122926db247b591573764df73d5514c78a",
+        "actual_sha256": "b22db6466792f6b869ce6e07bfcaf9d8bd67f3a164b49bc6edb63888e2b40501",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_CreationEditor/Private/SHALVehicleCollisionGenerator.cpp",
+        "bytes": 8015,
+        "expected_sha256": "c822cff8b032759b91a80c3f18ea2a8943ffe1aa71401f6ca75b25bd735e7b59",
+        "actual_sha256": "32091ab5e64182c0fdad77e571fde132c8763eebfe3ba3d5648db98fc1def5fb",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_CreationEditor/Private/SHALVehicleCollisionGenerator.h",
+        "bytes": 100,
+        "expected_sha256": "ff95a5d61620b9501246a7ebb7547a9a43d3c5a530c172d3c7ba223882a41c92",
+        "actual_sha256": "e27c4bba5c65ee65ca303e2003d6a773a70ca27f9708b9b83d1861a233741ca3",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALCollisionGeneratorUITests.cpp",
+        "bytes": 4603,
+        "expected_sha256": "855a31fb69039f0d9edb531c909e8d649629163e1244d0065ad4e329ac70d7c7",
+        "actual_sha256": "43bf70fad81032188f6f972e5fa2317b616fd85fe3c84d5e0f9053188c1c604d",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleCollisionGeneratorTests.cpp",
+        "bytes": 14508,
+        "expected_sha256": "3879f62dbefa2c8babfde528ddf349458a570c90c4811323ac14c36b7a00e0d7",
+        "actual_sha256": "e754b12990091357c5bb6a65e803792f95df1dcaefaeed384784ee2a22d190f6",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      },
+      {
+        "path": "Source/HAL_Future_CreationEditor/Public/HALVehicleCollisionGeneratorSettings.h",
+        "bytes": 2158,
+        "expected_sha256": "cab9d93d4db4ee8eb9f061c57ffdbde3e03237a5fabc323d7c318c59fa721dca",
+        "actual_sha256": "aa1493c4125f85730c9c9864235e2f323e4e4acd8631c83fe8666790a08e62ab",
+        "exact": false,
+        "matched_including_line_endings": true,
+        "reference": "Docs/Movement/MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json"
+      }
+    ]
+  },
+  "assets": {
+    "current_count": 364,
+    "selected_comparison": [
+      {
+        "path": "Content/Blueprints/AnimBP/ABP_Car01.uasset",
+        "expected_bytes": 193680,
+        "actual_bytes": 193680,
+        "expected_sha256": "da1da463c12d63868e8cfa27c0b692ba77d04680b8718a29b5a9e31533a3d84d",
+        "actual_sha256": "da1da463c12d63868e8cfa27c0b692ba77d04680b8718a29b5a9e31533a3d84d",
+        "matches_prior_snapshot": true
+      },
+      {
+        "path": "Content/Data/Car_Presentation/DA_Car01_Presentation.uasset",
+        "expected_bytes": 4872,
+        "actual_bytes": 4809,
+        "expected_sha256": "da779ad26a5fa86d13fb5739c858000b28ce57d09d5d79564235e38d4e04d028",
+        "actual_sha256": "5b1a01deb898153dd734953acf5884ce9f000db2b9db9b4a59da707263420060",
+        "matches_prior_snapshot": false
+      }
+    ],
+    "boundary": "ABP matches the Limit30 snapshot. Presentation DA differs and is committed in fc9f2b9; preserve the current team version. Final DA fields and AnimGraph were not exported/reloaded on this device."
+  },
+  "inherited_evidence": {
+    "scope": "Existing committed summaries from the other device, not rerun here.",
+    "vp2_ordinary": {
+      "succeeded": 60,
+      "failed": 0,
+      "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Verification_20261021.json"
+    },
+    "vp2_network": {
+      "host_passed": 1,
+      "client_passed": 1,
+      "renderer": "NullRHI",
+      "impairment_injected": false,
+      "measured_rtt": null
+    },
+    "limit30": {
+      "succeeded": 7,
+      "failed": 0,
+      "reference": "Docs/Presentation/MVPB_Vehicle_Presentation_VP2_Limit30_Verification_20261022.json"
+    },
+    "team_feedback": "Status/implementation docs record self-righting basic operation and visible VP2 pitch as manually confirmed. No new user test feedback or logs supplied in this turn."
+  },
+  "current_stage": "VP1 ended; self-righting basic manual acceptance recorded; VP2 code/native evidence and pitch manual initial pass recorded; tuning not frozen.",
+  "next_entry": "Discuss/specify VP3 visual wheel suspension: per-wheel queries and bone translation only. No implementation authorized by this sync request.",
+  "deferred": [
+    "VP2 side-roll/drift, clipping and full rendered role/FPS acceptance remain to be detailed.",
+    "VP3/VP4, four-point physical suspension and natural landing assist are not implemented.",
+    "10-F-4 integration/impairment/four wired PCs remains deferred to MVP-B closure.",
+    "SpringPunch combat and phase replication already exist; ongoing ownership remains with the other member."
+  ],
+  "local_validation_performed": [
+    "Git/remote head and clean starting worktree checked.",
+    "Root instructions, status, implementation/specs, module dependencies, relevant code/config and committed evidence read.",
+    "Source/config hashes and selected asset hashes checked."
+  ],
+  "local_validation_not_performed": [
+    "Editor/Game build.",
+    "Automation or live Listen Server tests.",
+    "Unreal asset loading, final DA export, AnimGraph inspection or rendered verification."
+  ]
+}
