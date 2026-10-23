@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-23",
+  "base_commit": "8609f4f6bb9100d2bdb60012fef1d00aee1ff0cb",
+  "engine": "5.8.2-56702186",
+  "unity": "6000.4.10f1",
+  "source": "D:/Unity Shit/Game_Jam_2026_07/MAP_Making/Assets/ithappy/Platformer_10_Neon",
+  "destination": "/Game/Imported/Platformer10Neon",
+  "output": {
+    "raw_meshes": 124,
+    "prefab_meshes": 124,
+    "materials": 10,
+    "textures": 8,
+    "maps": [
+      {
+        "path": "/Game/Imported/Platformer10Neon/Maps/Prefab_Overview",
+        "mesh_actors": 124,
+        "spacing_cm": 253017.1875
+      }
+    ],
+    "files": 267
+  },
+  "import": {
+    "status": "complete",
+    "errors": 0,
+    "warnings": 840,
+    "maximum_bounds_error_cm": 0.001562499994179234,
+    "log": "Saved/PlatformerNeonMigration/unreal_import.log"
+  },
+  "reload_verification": {
+    "status": "passed",
+    "meshes_reloaded": 248,
+    "raw_materials_assigned": 124,
+    "prefabs_verified": 124,
+    "materials": 10,
+    "textures": 8,
+    "emissive_materials": [
+      "Dots",
+      "Emission",
+      "Glass",
+      "Holorgram",
+      "Planet_rings",
+      "Plasma",
+      "Road"
+    ],
+    "translucent_materials": [
+      "Dots",
+      "Glass",
+      "Holorgram",
+      "Planet_rings",
+      "Plasma"
+    ]
+  },
+  "reload_log": "Saved/PlatformerNeonMigration/unreal_verify.log",
+  "preservation": {
+    "existing_files": 887,
+    "existing_changed": [],
+    "source_files": 546,
+    "source_changed": []
+  },
+  "limitations": [
+    "Prefab appearances baked into static meshes; no Blueprint, animation, scripts, particles or source collision conversion.",
+    "Materials approximated; custom shader effects not reproduced. Complex collision is for static environment only.",
+    "4 skinned renderers baked to static pose; 5 Animator, 65 MissingScript and 141 MeshCollider entries not ported.",
+    "7 emissive and 5 translucent material connections checked, not rendered equivalence.",
+    "Very large source prefab increases overview grid spacing; focus individual actors as needed.",
+    "No gameplay, rendering, performance or packaging acceptance."
+  ],
+  "git": "No commit or push."
+}
