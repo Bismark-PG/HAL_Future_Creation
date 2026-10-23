@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-22T18:02:01.8642583+09:00",
+  "git_base": "faf5d067b85140ddd108969f6b2c48a0ac63b8b9",
+  "engine": "5.8.3-58210709+++UE5+Release-5.8",
+  "initial_worktree": "clean",
+  "scope": "Remove base Blueprint dependency; generate native TestVehiclePawn Blueprint from Mesh and existing DA sources",
+  "inputs": [
+    "Skeletal Mesh SKM_<model>",
+    "Existing driving VehicleDefinition preset with shared Local/collision/material references",
+    "Shared vehicle NetworkPhysicsSettingsDataAsset"
+  ],
+  "output_pawn": "/Game/Blueprints/Vehicles/BP_VehiclePawn_<model>",
+  "native_parent": "ATestVehiclePawn",
+  "loads_or_inherits_existing_vehicle_blueprint": false,
+  "bindings": [
+    "Definition mode and newly generated VehicleDefinition",
+    "New Presentation DA and selected Skeletal Mesh / empty AnimBP",
+    "Existing shared network settings on native settings component",
+    "Resimulation physics replication mode"
+  ],
+  "readiness": "Both new DAs remain not ready until manual calibration; AnimGraph remains factory default",
+  "build": {
+    "target": "HAL_Future_CreationEditor Win64 Development",
+    "result": "Succeeded",
+    "log": "Saved/VehicleAssetGenerator/NativePawn_20261022/Editor_Final.log",
+    "sha256": "5F0A0F4C3CAA2B45872BB31F171901033AB68A66D120085670483308ABEC01A7",
+    "initial_failure": "Test code called non-const engine getter through const pointer; fixed, rebuilt successfully",
+    "initial_log": "Saved/VehicleAssetGenerator/NativePawn_20261022/Editor_Build.log"
+  },
+  "automation": {
+    "filter": "HAL.Editor.VehicleAssetGenerator",
+    "compiled": true,
+    "execution_verified": false,
+    "report_present": false,
+    "log_present": false,
+    "process_exit": 0,
+    "reason": "No Unreal log or automation report; cannot count any test as executed or passed",
+    "coverage": [
+      "native parent / Definition / shared Network DA",
+      "17 native player components",
+      "native CDO and shared asset protection",
+      "replication and Resimulation",
+      "empty AnimGraph",
+      "naming, input validation, conflict and cleanup"
+    ]
+  },
+  "assets": {
+    "before": 667,
+    "after": 667,
+    "changed_hashes": 0,
+    "all_equal": true,
+    "content_saved": false,
+    "before_manifest_sha256": "4740F70A9B1F2CC2AF255C091D68B5E7723A8EA5D6B86C0D8C45058CA28072F5",
+    "after_manifest_sha256": "4740F70A9B1F2CC2AF255C091D68B5E7723A8EA5D6B86C0D8C45058CA28072F5"
+  },
+  "not_verified": [
+    "Actual panel use and end-to-end generation",
+    "Save/restart asset serialization",
+    "Driving, ball control, GAS and Listen Server equivalence",
+    "New model AnimGraph and calibration"
+  ],
+  "source_manifest": [
+    {
+      "path": "Source/HAL_Future_CreationEditor/Public/VehicleAssetGenerator/HALVehicleAssetGenerator.h",
+      "sha256": "A9F8D207E529E6615F8A224B158EEA5A1A6F827D8E3ED726DE88001258028C1E"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Public/VehicleAssetGenerator/HALVehicleAssetGeneratorSettings.h",
+      "sha256": "5D8DBF76AD01D3FC4E1B29F716D2D3B078C9E59455A4170819398DF5C4BFFAA0"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/VehicleAssetGenerator/HALVehicleAssetGenerator.cpp",
+      "sha256": "034C4655CBEE04FADDF6C5EDE3FC6DAA65A8EE5E3BFCBCF384D9E9F5F591D1A9"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/VehicleAssetGenerator/SHALVehicleAssetGenerator.cpp",
+      "sha256": "7770D11C0172285D1465D05D16E5096A3A7BC171C243FA5892C1B18AB75A7D85"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleAssetGeneratorTests.cpp",
+      "sha256": "85D5798F7328B1FCA04541FC74D6980B524957661667F7D7FCA65439D384ED1F"
+    }
+  ],
+  "committed_or_pushed": false
+}

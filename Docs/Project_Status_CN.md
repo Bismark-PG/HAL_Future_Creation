@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-10-23资产生成工具按车型独立Definition修正。** 本机已拉取`main/ad3e4d4`，保留云端VP-3视觉悬挂及其历史验证；开工已有前轮工具的6份源码／说明修改和1份验证留档。本轮移除Shared Vehicle Defaults输入与全部参数复制来源，从C++初始值新建`DA_Vehicle_<车型>`，将其连接到新`BP_VehiclePawn_<车型>.Definition`；LocalConfig固定引用共享`DA_Local_TestBaseline_v1`，Presentation引用本车型新`DA_<车型>_Presentation`。Network Physics继续由面板选择共享DA并连接原生Settings组件；Pawn直接继承`ATestVehiclePawn`，引用位置沿用BP_RoundedVehiclePawn。最终只创建两个DA、一个玩家BP和一个默认空AnimGraph的ABP，输出目录保持。两份新DA仍待Ready，Collision Mesh／回退Visual.Mesh及车型参数需要配置。UE5.8.3 Editor Win64 Development构建成功，三项核心测试已编译；本轮Unreal启动没有日志／报告或标准输出，不能确认测试执行，实际生成／保存重启及真人待验证。667份资产和151份运行时源码／配置逐文件SHA-256全同，Build.cs／模块入口保持；未提交／Push。详见[工具现行流程](Configuration/Vehicle_Asset_Generator_CN_v0.1.md)及[本轮验证摘要](Configuration/Vehicle_Asset_Generator_IndependentDefinition_Verification_20261023.json)。下方VP-3的5.8.2验证属于另一设备历史，本轮未调整其实现或验收范围。
+
 **2026-10-22 VP-3视觉悬挂代码／原生验证完成，待团队AnimBP接线与画面。** 本次实际接收干净`main/faf5d067b85140ddd108969f6b2c48a0ac63b8b9`，此前资产生成工具／校准／炸弹及场地对象均已提交；本机实际UE5.8.2-56702186，旧顶部5.8.3是另一设备历史。沿用表现组件、DA及AnimInstance，新增参考轮心四路WorldStatic简单Trace、每轮世界cm压缩／伸长／平滑、法线／侧翻／自救门控及自动Bone Space平移。新通道默认关闭，未改物理根、驾驶／球／GAS／网络物理协议或保存资产。完整Editor／Game成功、普通**67/67**、实际NetTest双端**Host／Client各1/1**且均0测试警告／失败，667资产前后全同；客户端18次重模拟。双端使用临时配置及本地QueryOnly平台／关闭重力夹具，证明数据链路而非正常驾驶画面或地形复制；四车16条查询微测约19.555µs，不代表实际渲染性能。首轮C4458及65/67测试符号预期问题保留，修正后重编／完整回归通过。详见[VP-3实施／详细手工步骤](Presentation/MVPB_Vehicle_Presentation_VP3_Implementation_CN_v0.1.md)与[本轮证据](Presentation/MVPB_Vehicle_Presentation_VP3_Verification_20261022.json)。当前下一步为团队在原AnimBP增加四个Translation节点、启用车型DA并检查正常地图／双端画面；之后再讨论VP-4。物理悬挂／自然落地辅助与F4仍未施工，生成器旧人工待测项保持。本轮未提交／Push。下方各旧“当前／未施工／未提交”段保留各自时点，以本段和第2节为当前入口。
 
 **2026-10-22资产生成工具菜单恢复，当前接续基点`main/5f6c9ef`。** 用户已拉新冲突文件，本轮在最新`HALFutureCreationEditorModule.cpp`补回资产生成工具的窗口注册、Tools菜单和关闭注销，保留云端碰撞／视觉高度校准入口。最新Build.cs已含所需依赖及平铺头文件路径，本轮保持云端内容，没有增加模块。此前两份DA／空AnimBP／新车辆BP的生成源码保留，补齐创建、保存、手工AnimGraph配置、车型／高度校准、Ready及测试接入流程。UE5.8.3 Editor Target完整构建成功，新增测试源已编译；再次尝试Unreal自动化仍未产生日志／报告，不能标记运行通过，实际菜单和生成／保存后重启仍待团队验证。本轮667份资产数量及SHA-256前后全同，保留用户SKM_Car_01修改，没有保存Content资产；未提交／Push。见[工具说明与本次验证](Configuration/Vehicle_Asset_Generator_CN_v0.1.md#5-同步后菜单恢复验证)及[摘要](Configuration/Vehicle_Asset_Generator_Reconnect_Verification_20261022.json)。下方旧基点／测试数保留各次历史含义，不代替本次检查；VP-3与F4状态保持。
@@ -75,13 +77,13 @@
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
 | 开发阶段 | VP-1结束，自救基本功能真人验收完成；VP-2俯仰初测成功、参数后调。VP-3代码／原生验证完成，当前团队四轮悬挂节点及画面待验收；之后VP-4另行讨论。物理悬挂／自然有限辅助与F4仍待做 |
-| 当前本机分支／代码提交 | `main / faf5d06`，开工干净，已包含资产生成器、场地／校准／炸弹。VP-3本轮源码／测试／文档未提交／Push；没有改保存资产 |
-| 引擎基线 | 本机UE `5.8.2-56702186`，本轮完整Editor／Game成功、普通67/67、双端各1/1。5.8.3历史结果单列，不声称新功能已在5.8.3复测；联机前统一补丁／构建 |
-| 本机运行前置 | 本轮两Target已完整编译。重新打开Editor，按VP-3文档在当前AnimBP接四个Translation节点、保存并在表现DA启用Suspension；其他设备同步源码后关闭旧Editor／Live Coding并完整构建。旧转向／轮转／Chassis数值保持 |
+| 当前本机分支／代码提交 | `main / ad3e4d4`，已接收云端VP-3提交；开工保留前轮工具源码／说明／验证留档。本轮车型独立DA修正与状态更新未提交／Push |
+| 引擎基线 | 本机实际UE `5.8.3-58210709`，本轮工具Editor构建成功；核心测试已编译但无运行日志／报告，实际执行待验证。旧VP-3的5.8.2两Target／67项／双端各1项保留历史含义，不写成本轮复测；联机前统一补丁／构建 |
+| 本机运行前置 | 使用本轮完整Editor构建后重新启动工具。新车型填写Collision Mesh／回退Visual.Mesh、完成动画与参数校准后启用两份DA。VP-3原车型仍按其文档接四个Translation节点并启用Suspension；旧转向／轮转／Chassis数值保持 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
 | GAS 当前实现 | `HALMovementBoostAbility`，ServerOnly施加可配非周期GE后立即结束，无默认费用／冷却，独立于debug；5游戏秒、+0.5／+0.25、按目标一层刷新及Avatar作用域。团队已在原Primary替换为加速GA；原免疫GA／GE／冷却及调试入口保留 |
 | 当前 HP／冲击 | 10-C伤害／快照保留；10-D同帧Internal读写已有28项自动化证据，用户2026-10-16确认击飞效果恢复。保留现有档位、水平补足和DA，各档实际响应后续调整；本次反馈未列双向角色／扰动明细 |
-| 当前 Editor 接线 | 原ABP／表现DA、手调高度和资产生成器等已随faf5d06保存／提交；本轮667资产未变。VP-3四个悬挂节点及DA Enabled需团队手动配置；原加速Primary／Self Right／Chassis接线保持 |
+| 当前 Editor 接线 | 原有已保存资产保持；资产生成器当前只输入Mesh／共享Network DA，自动连接共享Local和车型独立Definition／Presentation，生成两个DA／一个BP／一个空ABP。生成／保存重启及真人待验收；VP-3原车型四个悬挂节点及DA Enabled仍需团队配置 |
 | 测试地图 | 单机回归 `/Game/Maps/Test`；联机玩法 `/Game/Maps/MVPB_NetTest`；完整菜单 Host／Join 从 `/Game/Maps/MVPB_NetEntry` 启动 |
 
 代码提交号是本次交接的比较基点，后续提交会变化。F1保存基线及F2历史证据保持；10月17日F3的原生GE／调试入口证据见原摘要。本轮运动GA补充不改保存配置、DA／地图或F2物理协议；329资产前后哈希全同，134份源码／配置及最终两Target／45项／正常GA双端证据见[本轮摘要](Combat/MVPB_Phase10F3Ability_Verification_20261019.json)。首次Live Coding阻塞、补Period防护前的通过记录独立保留；历史结果不冒充本次复测。

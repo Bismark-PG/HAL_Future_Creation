@@ -16,6 +16,7 @@
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
+#include "Physics/NetworkPhysicsSettingsComponent.h"
 #include "TestVehiclePawn.h"
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
@@ -87,7 +88,7 @@ UVehicleDefinition* HALVehicleAssets::ReadDefinition(const UBlueprint* Blueprint
 	return Property ? Cast<UVehicleDefinition>(Property->GetObjectPropertyValue_InContainer(Class->GetDefaultObject())) : nullptr;
 }
 
-bool HALVehicleAssets::Validate(USkeletalMesh* Mesh, UBlueprint* BasePawn, UVehicleDefinition* BaseDefinition, FOutputPaths& Out, FString& Error)
+bool HALVehicleAssets::Validate(USkeletalMesh* Mesh, UNetworkPhysicsSettingsDataAsset* SharedNetworkPhysics, FOutputPaths& Out, FString& Error)
 {
 	Out = {};
 	if (!CanGenerate(Error)) { return false; }
@@ -97,18 +98,14 @@ bool HALVehicleAssets::Validate(USkeletalMesh* Mesh, UBlueprint* BasePawn, UVehi
 		return false;
 	}
 	if (!Mesh->GetSkeleton()) { return Fail(Error, TEXT("The selected mesh has no Skeleton.")); }
-	if (!IsValid(BasePawn) || !BasePawn->GeneratedClass || BasePawn->BlueprintType != BPTYPE_Normal
-		|| !BasePawn->GeneratedClass->IsChildOf(ATestVehiclePawn::StaticClass())
-		|| (BasePawn->Status != BS_UpToDate && BasePawn->Status != BS_UpToDateWithWarnings))
+	auto* Local = LoadObject<UVehicleLocalConfig>(nullptr, SharedLocalConfigPath);
+	if (!IsValid(Local))
 	{
-		return Fail(Error, TEXT("Select a compiled vehicle Blueprint derived from TestVehiclePawn."));
-	}
-	if (!IsValid(BaseDefinition) || BaseDefinition->CollisionShape != EVehicleCollisionShape::ConvexMesh)
-	{
-		return Fail(Error, TEXT("Select a driving VehicleDefinition with ConvexMesh collision."));
+		return Fail(Error, FString(TEXT("The shared LocalConfig asset is missing: ")) + SharedLocalConfigPath);
 	}
 	FString ConfigError;
-	if (!BaseDefinition->Validate(ConfigError)) { return Fail(Error, TEXT("Base Vehicle Definition: ") + ConfigError); }
+	if (!Local->Validate(ConfigError)) { return Fail(Error, TEXT("Shared LocalConfig: ") + ConfigError); }
+	if (!IsValid(SharedNetworkPhysics)) { return Fail(Error, TEXT("Select the existing shared vehicle Network Physics DA.")); }
 	for (const FString& Package : Out.Packages())
 	{
 		if (IsOccupied(Package)) { return Fail(Error, TEXT("Output already exists; the complete generation is blocked: ") + Package); }
@@ -116,12 +113,12 @@ bool HALVehicleAssets::Validate(USkeletalMesh* Mesh, UBlueprint* BasePawn, UVehi
 	return true;
 }
 
-bool HALVehicleAssets::Create(USkeletalMesh* Mesh, UBlueprint* BasePawn, UVehicleDefinition* BaseDefinition, FGeneratedAssets& Out, FString& Error)
+bool HALVehicleAssets::Create(USkeletalMesh* Mesh, UNetworkPhysicsSettingsDataAsset* SharedNetworkPhysics, FGeneratedAssets& Out, FString& Error)
 {
 	check(IsInGameThread());
 	if (!Out.Assets.IsEmpty()) { return Fail(Error, TEXT("Keep or discard the previous generated set before creating another.")); }
 	FOutputPaths Paths;
-	if (!Validate(Mesh, BasePawn, BaseDefinition, Paths, Error)) { return false; }
+	if (!Validate(Mesh, SharedNetworkPhysics, Paths, Error)) { return false; }
 	Out.Paths = Paths;
 	const auto Abort = [&]() { DiscardUnsaved(Out); return false; };
 	const auto MakePackage = [](const FString& Name) { return CreatePackage(*Name); };
@@ -147,23 +144,27 @@ bool HALVehicleAssets::Create(USkeletalMesh* Mesh, UBlueprint* BasePawn, UVehicl
 	Presentation->AnimClass = Anim->GeneratedClass;
 	Presentation->bReadyForUse = false;
 
-	// Duplicate only this DA. External LocalConfig, collision, visual and material assets remain references.
-	auto* Definition = DuplicateObject<UVehicleDefinition>(BaseDefinition, MakePackage(Paths.VehicleDefinition), NameOf(Paths.VehicleDefinition));
-	if (!Definition) { Fail(Error, TEXT("Unable to copy the base VehicleDefinition.")); return Abort(); }
-	Definition->SetFlags(RF_Public | RF_Standalone | RF_Transactional);
-	Definition->ClearFlags(RF_Transient);
+	// Each model owns a fresh Definition with native defaults, not a copy of another vehicle's tuning.
+	auto* Definition = NewObject<UVehicleDefinition>(MakePackage(Paths.VehicleDefinition), NameOf(Paths.VehicleDefinition),
+		RF_Public | RF_Standalone | RF_Transactional);
 	Out.Assets.Emplace(Definition);
+	Definition->LocalConfig = LoadObject<UVehicleLocalConfig>(nullptr, SharedLocalConfigPath);
 	Definition->Presentation = Presentation;
 	Definition->bReadyForUse = false;
 
-	UBlueprint* Pawn = FKismetEditorUtilities::CreateBlueprint(BasePawn->GeneratedClass, MakePackage(Paths.VehicleBlueprint),
+	// Native constructor supplies the same complete player components/logic as BP_RoundedVehiclePawn.
+	// No existing vehicle Blueprint is loaded or inherited by this generator.
+	UBlueprint* Pawn = FKismetEditorUtilities::CreateBlueprint(ATestVehiclePawn::StaticClass(), MakePackage(Paths.VehicleBlueprint),
 		NameOf(Paths.VehicleBlueprint), BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
 	if (!Pawn) { Fail(Error, TEXT("Unable to create the vehicle Blueprint.")); return Abort(); }
 	Out.Assets.Emplace(Pawn);
 	UObject* Defaults = Pawn->GeneratedClass ? Pawn->GeneratedClass->GetDefaultObject() : nullptr;
 	auto* DefinitionProperty = FindFProperty<FObjectPropertyBase>(ATestVehiclePawn::StaticClass(), TEXT("Definition"));
 	auto* SourceProperty = FindFProperty<FEnumProperty>(ATestVehiclePawn::StaticClass(), TEXT("ConfigurationSource"));
-	if (!Defaults || !DefinitionProperty || !SourceProperty)
+	auto* NetworkProperty = FindFProperty<FObjectPropertyBase>(ATestVehiclePawn::StaticClass(), TEXT("NetworkPhysicsSettings"));
+	auto* Network = Defaults && NetworkProperty
+		? Cast<UNetworkPhysicsSettingsComponent>(NetworkProperty->GetObjectPropertyValue_InContainer(Defaults)) : nullptr;
+	if (!Defaults || !DefinitionProperty || !SourceProperty || !Network)
 	{
 		Fail(Error, TEXT("The vehicle configuration properties are unavailable."));
 		return Abort();
@@ -172,12 +173,20 @@ bool HALVehicleAssets::Create(USkeletalMesh* Mesh, UBlueprint* BasePawn, UVehicl
 	DefinitionProperty->SetObjectPropertyValue_InContainer(Defaults, Definition);
 	SourceProperty->GetUnderlyingProperty()->SetIntPropertyValue(SourceProperty->ContainerPtrToValuePtr<void>(Defaults),
 		int64(EVehicleConfigurationSource::Definition));
+	Network->Modify();
+	Network->SettingsDataAsset = SharedNetworkPhysics;
+	CastChecked<ATestVehiclePawn>(Defaults)->SetPhysicsReplicationMode(EPhysicsReplicationMode::Resimulation);
 	FBlueprintEditorUtils::MarkBlueprintAsModified(Pawn);
 	if (!Compile(Pawn, Error)) { return Abort(); }
 	const auto* VehicleDefaults = Cast<ATestVehiclePawn>(Pawn->GeneratedClass->GetDefaultObject());
-	if (ReadDefinition(Pawn) != Definition || !VehicleDefaults || VehicleDefaults->GetConfigurationSource() != EVehicleConfigurationSource::Definition)
+	const auto* CompiledNetwork = VehicleDefaults
+		? Cast<UNetworkPhysicsSettingsComponent>(NetworkProperty->GetObjectPropertyValue_InContainer(VehicleDefaults)) : nullptr;
+	if (ReadDefinition(Pawn) != Definition || !VehicleDefaults || VehicleDefaults->GetConfigurationSource() != EVehicleConfigurationSource::Definition
+		|| !Definition->LocalConfig || Definition->LocalConfig->GetPathName() != SharedLocalConfigPath || Definition->Presentation != Presentation
+		|| !CompiledNetwork || CompiledNetwork->SettingsDataAsset != SharedNetworkPhysics
+		|| Pawn->ParentClass != ATestVehiclePawn::StaticClass())
 	{
-		Fail(Error, TEXT("The generated vehicle Blueprint did not retain its Definition binding."));
+		Fail(Error, TEXT("The generated native player vehicle did not retain its Definition / shared network bindings."));
 		return Abort();
 	}
 	for (const auto& Asset : Out.Assets)

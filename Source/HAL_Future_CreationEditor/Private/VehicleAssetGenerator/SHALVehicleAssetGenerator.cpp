@@ -4,13 +4,12 @@
 #include "AssetRegistry/AssetData.h"
 #include "ContentBrowserModule.h"
 #include "Editor.h"
-#include "Engine/Blueprint.h"
 #include "Engine/SkeletalMesh.h"
 #include "IContentBrowserSingleton.h"
 #include "IDetailsView.h"
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
-#include "VehicleDefinition.h"
+#include "Physics/NetworkPhysicsSettingsComponent.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SScrollBox.h"
@@ -34,14 +33,7 @@ namespace
 			Args.bHideSelectionTip = true;
 			Details = FModuleManager::LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor")).CreateDetailView(Args);
 			Details->SetObject(Settings.Get());
-			Details->OnFinishedChangingProperties().AddLambda([this](const FPropertyChangedEvent& Event) {
-				if (Event.GetPropertyName() == GET_MEMBER_NAME_CHECKED(UHALVehicleAssetGeneratorSettings, BasePawn))
-				{
-					Settings->BaseDefinition = HALVehicleAssets::ReadDefinition(Settings->BasePawn);
-					Details->ForceRefresh();
-				}
-				Refresh();
-			});
+			Details->OnFinishedChangingProperties().AddLambda([this](const FPropertyChangedEvent&) { Refresh(); });
 			ChildSlot
 			[
 				SNew(SBorder).Padding(16)
@@ -51,12 +43,14 @@ namespace
 					[
 						SNew(SVerticalBox)
 						+ SVerticalBox::Slot().AutoHeight().Padding(0,0,0,12)
-						[ SNew(STextBlock).AutoWrapText(true).Text(LOCTEXT("Intro", "Choose SKM_<model> and a compiled base vehicle Blueprint. The new vehicle inherits its component and network defaults. Its Definition is auto-filled and can be replaced below.")) ]
+						[ SNew(STextBlock).AutoWrapText(true).Text(LOCTEXT("Intro", "Choose SKM_<model> and the existing shared vehicle network physics DA. Creates an independent Vehicle Definition, a Presentation, a player Pawn Blueprint and an empty AnimBP. Each model owns its vehicle parameters; input and camera use the shared LocalConfig.")) ]
 						+ SVerticalBox::Slot().AutoHeight() [ Details.ToSharedRef() ]
+						+ SVerticalBox::Slot().AutoHeight().Padding(0,8,0,0)
+						[ SNew(STextBlock).AutoWrapText(true).Text(FText::FromString(FString(TEXT("Shared LocalConfig: ")) + HALVehicleAssets::SharedLocalConfigPath)) ]
 						+ SVerticalBox::Slot().AutoHeight().Padding(0,12)
 						[ SNew(STextBlock).AutoWrapText(true).Text_Lambda([this] { return Output; }) ]
 						+ SVerticalBox::Slot().AutoHeight().Padding(0,0,0,12)
-						[ SNew(STextBlock).AutoWrapText(true).Text(LOCTEXT("Calibration", "Creates four assets. AnimGraph keeps only the engine defaults. Both DAs start with Ready For Use = false. Configure animation, wheel axes/radii, model alignment, collision size and ball control point before enabling the vehicle. Local and project-wide rules stay shared.")) ]
+						[ SNew(STextBlock).AutoWrapText(true).Text(LOCTEXT("Calibration", "Vehicle parameters start from C++ defaults. Collision Mesh and fallback Visual Mesh require configuration for this model. Both DAs start with Ready For Use = false. Complete the empty AnimGraph, wheel calibration, model alignment and vehicle configuration before enabling the vehicle.")) ]
 						+ SVerticalBox::Slot().AutoHeight().Padding(0,0,0,8)
 						[ SNew(STextBlock).AutoWrapText(true).Text_Lambda([this] { return Validation; }) ]
 						+ SVerticalBox::Slot().AutoHeight()
@@ -90,7 +84,7 @@ namespace
 		{
 			HALVehicleAssets::FOutputPaths Paths;
 			FString Error;
-			bValid = HALVehicleAssets::Validate(Settings->Mesh, Settings->BasePawn, Settings->BaseDefinition, Paths, Error);
+			bValid = HALVehicleAssets::Validate(Settings->Mesh, Settings->SharedNetworkPhysics, Paths, Error);
 			Validation = FText::FromString(bValid ? TEXT("Ready to create. Existing output names block the entire generation.") : Error);
 			if (!Settings->Mesh || !HALVehicleAssets::BuildOutputPaths(Settings->Mesh->GetName(), Paths, Error))
 			{
@@ -105,24 +99,21 @@ namespace
 			FModuleManager::LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser")).Get().GetSelectedAssets(Selected);
 			// Exactly one of each source type; never pick a source according to selection order.
 			USkeletalMesh* Mesh = nullptr;
-			UBlueprint* Blueprint = nullptr;
-			UVehicleDefinition* Definition = nullptr;
-			int32 MeshCount = 0, BlueprintCount = 0, DefinitionCount = 0;
+			UNetworkPhysicsSettingsDataAsset* Network = nullptr;
+			int32 MeshCount = 0, NetworkCount = 0;
 			for (const auto& Asset : Selected)
 			{
 				UObject* Object = Asset.GetAsset();
 				if (auto* MeshValue = Cast<USkeletalMesh>(Object)) { Mesh = MeshValue; ++MeshCount; }
-				else if (auto* BlueprintValue = Cast<UBlueprint>(Object)) { Blueprint = BlueprintValue; ++BlueprintCount; }
-				else if (auto* DefinitionValue = Cast<UVehicleDefinition>(Object)) { Definition = DefinitionValue; ++DefinitionCount; }
+				else if (auto* NetworkValue = Cast<UNetworkPhysicsSettingsDataAsset>(Object)) { Network = NetworkValue; ++NetworkCount; }
 			}
-			if (MeshCount > 1 || BlueprintCount > 1 || DefinitionCount > 1)
+			if (MeshCount > 1 || NetworkCount > 1)
 			{
-				Status = LOCTEXT("Ambiguous", "Select at most one mesh, one vehicle Blueprint and one VehicleDefinition.");
+				Status = LOCTEXT("Ambiguous", "Select at most one Skeletal Mesh and one shared vehicle network physics DA.");
 				return FReply::Handled();
 			}
 			if (Mesh) { Settings->Mesh = Mesh; }
-			if (Blueprint) { Settings->BasePawn = Blueprint; Settings->BaseDefinition = HALVehicleAssets::ReadDefinition(Blueprint); }
-			if (Definition) { Settings->BaseDefinition = Definition; }
+			if (Network) { Settings->SharedNetworkPhysics = Network; }
 			Details->ForceRefresh();
 			Refresh();
 			return FReply::Handled();
@@ -132,7 +123,7 @@ namespace
 			if (HasUnsavedSet()) { Status = LOCTEXT("Unsaved", "Save the previous generated set before creating another."); return FReply::Handled(); }
 			Generated = HALVehicleAssets::FGeneratedAssets();
 			FString Error;
-			if (HALVehicleAssets::Create(Settings->Mesh, Settings->BasePawn, Settings->BaseDefinition, Generated, Error))
+			if (HALVehicleAssets::Create(Settings->Mesh, Settings->SharedNetworkPhysics, Generated, Error))
 			{
 				Status = LOCTEXT("Created", "Created 4 unsaved assets and linked BP -> VehicleDefinition -> Presentation -> Mesh / AnimBP. Save Generated Assets writes only these four packages. AnimGraph and calibration remain pending.");
 				Locate();

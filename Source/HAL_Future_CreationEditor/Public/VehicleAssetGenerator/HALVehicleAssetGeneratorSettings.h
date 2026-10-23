@@ -5,8 +5,7 @@
 #include "HALVehicleAssetGeneratorSettings.generated.h"
 
 class USkeletalMesh;
-class UBlueprint;
-class UVehicleDefinition;
+class UNetworkPhysicsSettingsDataAsset;
 
 /** Transient editor panel state. No editor-only types are referenced by generated assets. */
 UCLASS()
@@ -17,10 +16,7 @@ public:
 	/** Asset name must be SKM_<model>. Skeleton is taken directly from this mesh. */
 	UPROPERTY(EditAnywhere, Category = "Source", meta = (DisplayName = "Skeletal Mesh"))
 	TObjectPtr<USkeletalMesh> Mesh;
-	/** A compiled TestVehiclePawn Blueprint. Its child inherits network physics and component defaults. */
-	UPROPERTY(EditAnywhere, Category = "Source", meta = (DisplayName = "Base Vehicle Blueprint"))
-	TObjectPtr<UBlueprint> BasePawn;
-	/** Copied into a new DA; all external asset references remain shared. Auto-filled on base Blueprint selection. */
-	UPROPERTY(EditAnywhere, Category = "Source", meta = (DisplayName = "Base Vehicle Definition"))
-	TObjectPtr<UVehicleDefinition> BaseDefinition;
+	/** Existing vehicle network physics DA. Assigned to the generated native vehicle's settings component. */
+	UPROPERTY(EditAnywhere, Category = "Shared Configuration", meta = (DisplayName = "Shared Vehicle Network Physics"))
+	TObjectPtr<UNetworkPhysicsSettingsDataAsset> SharedNetworkPhysics;
 };
