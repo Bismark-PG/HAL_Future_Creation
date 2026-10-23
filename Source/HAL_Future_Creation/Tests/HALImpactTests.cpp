@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
 
 #include "Misc/AutomationTest.h"
+#include "Curves/CurveFloat.h"
 #include "HALVehicleStabilityTestRules.h"
 #include "../HALImpactTypes.h"
 #include "../HALImpactAttributeSet.h"
@@ -439,6 +440,50 @@ bool FHALSpringPunchCombatTest::RunTest(const FString& Parameters)
 	Punch->OnRep_Phase();
 	TestTrue(TEXT("Rest phase restores authored origin"), Punch->PunchPivot->GetRelativeLocation().Equals(FVector(10, 0, 0), 0.1));
 	TestFalse(TEXT("Rest phase disables tick"), Punch->IsActorTickEnabled());
+	auto* Curve = NewObject<UCurveFloat>();
+	Curve->FloatCurve.AddKey(0.f, 0.f);
+	Curve->FloatCurve.AddKey(.5f, .9f);
+	Curve->FloatCurve.AddKey(1.f, 1.f);
+	Punch->ExtensionCurve = Curve;
+	Punch->EnterState(ESpringPunchState::Extending);
+	TestEqual(TEXT("Extension phase captures configured curve"), Punch->Phase.ExtensionCurve.Get(), Curve);
+	Punch->ExtensionCurve = nullptr;
+	Punch->Phase.StartedAt = F.World->GetTimeSeconds() - 1;
+	Punch->Phase.Duration = 2;
+	Punch->OnRep_Phase();
+	TestTrue(TEXT("Late curve phase evaluates 90 percent extension at half time"), Punch->PunchPivot->GetRelativeLocation().Equals(FVector(370, 0, 0), .1));
+	TestEqual(TEXT("Curve starts exactly retracted"), Punch->EvaluateExtensionProgress(0), 0.f);
+	TestEqual(TEXT("Curve ends exactly extended"), Punch->EvaluateExtensionProgress(1), 1.f);
+	Curve->FloatCurve.Reset();
+	Curve->FloatCurve.AddKey(0.f, 2.f);
+	Curve->FloatCurve.AddKey(1.f, 2.f);
+	TestEqual(TEXT("Curve overshoot stays inside authored reach"), Punch->EvaluateExtensionProgress(.5f), 1.f);
+	Curve->FloatCurve.Reset();
+	TestEqual(TEXT("Empty curve falls back to linear"), Punch->EvaluateExtensionProgress(.5f), .5f);
+	auto* ReturnCurve = NewObject<UCurveFloat>();
+	ReturnCurve->FloatCurve.AddKey(0.f, 0.f);
+	ReturnCurve->FloatCurve.AddKey(.5f, .25f);
+	ReturnCurve->FloatCurve.AddKey(1.f, 1.f);
+	Punch->RetractionCurve = ReturnCurve;
+	Punch->EnterState(ESpringPunchState::Retracting);
+	TestEqual(TEXT("Return phase captures its own curve"), Punch->Phase.RetractionCurve.Get(), ReturnCurve);
+	TestNull(TEXT("Return phase does not reuse extension curve"), Punch->Phase.ExtensionCurve.Get());
+	TestTrue(TEXT("Return curve starts fully extended"), Punch->PunchPivot->GetRelativeLocation().Equals(FVector(410, 0, 0), .1));
+	Punch->RetractionCurve = nullptr;
+	Punch->Phase.StartedAt = F.World->GetTimeSeconds() - 1;
+	Punch->Phase.Duration = 2;
+	Punch->OnRep_Phase();
+	TestTrue(TEXT("Late return snapshot reconstructs 25 percent recovery at half time"), Punch->PunchPivot->GetRelativeLocation().Equals(FVector(310, 0, 0), .1));
+	TestFalse(TEXT("Return curve never starts an attack"), Punch->PunchAction.IsActive());
+	Punch->Phase.StartedAt -= 20;
+	Punch->OnRep_Phase();
+	TestTrue(TEXT("Return curve ends at exact origin"), Punch->PunchPivot->GetRelativeLocation().Equals(FVector(10, 0, 0), .1));
+	Punch->EnterState(ESpringPunchState::Retracting);
+	Punch->Phase.StartedAt = F.World->GetTimeSeconds() - 1;
+	Punch->Phase.Duration = 2;
+	Punch->OnRep_Phase();
+	TestTrue(TEXT("Unassigned return curve preserves linear movement"), Punch->PunchPivot->GetRelativeLocation().Equals(FVector(210, 0, 0), .1));
+	Punch->EndPlay(EEndPlayReason::Destroyed);
 	return true;
 }
 

@@ -1,5 +1,26 @@
 # 弹簧拳：战斗与联机接入交接注意事项（v0.1）
 
+## 2026-10-23：独立收拳曲线
+
+用户追加要求收拳也可配置曲线。新增同一Movement分类下的`Retraction Curve`，与`Extension Curve`分开指定Curve Float；横轴仍为该阶段归一化时间0～1，纵轴为**收回完成比例**：0代表仍完全伸出，1代表完全回到原位，不能把纵轴误当成剩余伸出长度。总时间由Retract Duration控制。未指定/空曲线仍线性；范围/端点与非法值回退共用出拳策略。
+
+服务器进入Retracting时捕获并复制本次Retraction Curve引用，客户端按服务器时间计算同一回收进度，不复用出拳曲线。更换BP配置引用在下一阶段生效；修改资产本身仍应停止并重新Play且各PC保持同版资产。收拳仍不攻击，阶段结束严格回原点。
+
+团队手动建立第二个Curve Float（例如CF_SpringPunch_Retract），从(0,0)到(1,1)绘制单调曲线，保存后在BP_SpringPunch Class Defaults → Spring Punch → Movement → Retraction Curve引用，Compile/Save。代理不编辑Curve/BP资产。UE5.8.2 Editor/Game Win64 Development均Succeeded，弹簧拳专项1/1、0测试警告/失败；覆盖独立阶段引用、半程25%回收位置、精确原点、无攻击及未选曲线线性回退。新保存资产的画面/真实双端引用仍待团队，见[收拳曲线摘要](SpringPunch_RetractionCurve_Verification_20261023.json)。
+
+## 2026-10-23：可调出拳Curve Float
+
+新增`BP_SpringPunch → Class Defaults → Spring Punch → Movement → Extension Curve`，引用Unreal Curve Float资产。横轴为归一化时间0～1，纵轴为伸出进度0～1；曲线斜率决定速度，不是直接输入cm/s或动画序列。Extend Duration仍控制总时长，Punch Distance控制总距离。未指定/空曲线保持旧线性伸出；输出限制0～1，起止端点严格0/1，非有限结果回退线性。只改Extending，Retracting维持线性。
+
+团队手工配置：
+1. Content Browser右键 → Miscellaneous → Curve，选择CurveFloat，命名例如`CF_SpringPunch_Extend`。
+2. 双击曲线添加关键点。例如(时间,伸出比例)：(0,0)、(0.10,0.02)、(0.35,0.85)、(0.60,0.98)、(1,1)，先用Linear连接，再按手感调切线。此例前段蓄势、中段快速打出、尾段缓停；各点是建议，不是最终默认资产。推荐保持单调递增；下降段会实际回退拳位置。
+3. 保存Curve，在BP的Extension Curve引用它，Compile/Save后重新Play。示例中一半时间不等于一半距离，勿将纵轴误填速度。
+4. Curve随Extending阶段捕获资产引用并复制给客户端，双方按相同服务器进度求值；不要只在客户端视觉上改曲线。各PC需相同已保存资产；改曲线后停止并重开测试。
+5. 快速曲线仍保留前后位置Sweep、最终伸到底的补扫及每拳去重；不引入新的Tick或客户端结算。低帧率下非单调往返曲线可能在两次采样间遗漏折返轨迹，应优先用单调曲线；本轮没有增加子步扫描框架。
+
+本轮不自动创建/编辑Curve或蓝图资产，团队现有Imported素材改动保留。用户关闭Editor后，UE5.8.2 Editor/Game Win64 Development均Succeeded，弹簧拳专项1/1、0测试警告/失败，含阶段曲线引用、半程90%位置、端点/范围/空曲线回退及既有战斗回归。没有渲染观感、新保存Curve的真实双端引用或全套/扰动复测；详见[曲线验证摘要](SpringPunch_ExtensionCurve_Verification_20261023.json)。
+
 ## 2026-10-20：第二步阶段同步
 
 用户已授权继续本会话施工。机关默认复制，并在服务器PostInitializeComponents纠正旧蓝图保存的非复制标记；不编辑蓝图资产。每次阶段切换原子更新一个RepNotify结构，含阶段、服务器起始游戏时间、本阶段时长、伸出距离、收回原点与拳次编号，ForceNetUpdate；客户端以GameState服务器时间计算伸缩位置，只在伸缩阶段Tick。迟到资料直接恢复当前进度，已过期阶段夹到端点，新的休息阶段恢复原点并停Tick。不逐帧复制拳位置、不用可靠位置RPC、不在客户端检测/补算伤害；原BeginPlay循环与比赛阶段规则保持，未加入Waiting暂停。

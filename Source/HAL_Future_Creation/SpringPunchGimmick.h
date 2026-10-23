@@ -11,6 +11,7 @@ class USceneComponent;
 class UStaticMeshComponent;
 class UBoxComponent;
 class UArrowComponent;
+class UCurveFloat;
 // パンチギミックの動作段階。
 UENUM(BlueprintType)
 enum class ESpringPunchState : uint8
@@ -33,6 +34,9 @@ struct FSpringPunchPhase
 	UPROPERTY() float Distance = 0;
 	UPROPERTY() FVector RetractedLocation = FVector::ZeroVector;
 	UPROPERTY() uint32 PunchNumber = 0;
+	/** Asset reference is captured per phase so authority and observers evaluate the same curve. */
+	UPROPERTY() TObjectPtr<UCurveFloat> ExtensionCurve = nullptr;
+	UPROPERTY() TObjectPtr<UCurveFloat> RetractionCurve = nullptr;
 };
 
 UCLASS()
@@ -94,6 +98,16 @@ protected:
 		meta = (ClampMin = "0.0", Units = "cm"))
 	float PunchDistance = 400.0f;
 
+	/** Normalized time (0..1) to extension progress (0..1). Slope controls speed; null keeps linear motion.
+	 * Use an increasing curve from (0,0) to (1,1). Outputs are clamped and endpoints are exact. */
+	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Movement")
+	TObjectPtr<UCurveFloat> ExtensionCurve;
+
+	/** Normalized time to return progress: 0 = fully extended, 1 = back at the origin.
+	 * Null/empty keeps linear return. Outputs are clamped and endpoints are exact. */
+	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Movement")
+	TObjectPtr<UCurveFloat> RetractionCurve;
+
 	// 攻撃範囲とヒットした対象をデバッグ表示する。
 	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Debug")
 	bool bDebugPunchHits = false;
@@ -139,6 +153,7 @@ private:
 	FSpringPunchPhase Phase;
 	UFUNCTION() void OnRep_Phase();
 	double GetPhaseTime() const;
+	float EvaluateExtensionProgress(float Alpha) const;
 	FHALCombatAction PunchAction;
 	bool BeginPunchAttack();
 	FHALCombatHitResult ResolvePunchHit(const FHitResult& Hit);

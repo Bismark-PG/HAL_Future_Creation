@@ -16,6 +16,19 @@
 #include "VehicleKnockbackSettings.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
+#include "Curves/CurveFloat.h"
+
+namespace
+{
+	float EvaluatePunchCurve(const UCurveFloat* Curve, float Alpha)
+	{
+		if (Alpha <= 0) { return 0; }
+		if (Alpha >= 1) { return 1; }
+		if (!Curve || Curve->FloatCurve.GetNumKeys() == 0) { return Alpha; }
+		const float Progress = Curve->GetFloatValue(Alpha);
+		return FMath::IsFinite(Progress) ? FMath::Clamp(Progress, 0.f, 1.f) : Alpha;
+	}
+}
 
 ASpringPunchGimmick::ASpringPunchGimmick()
 {
@@ -197,6 +210,8 @@ void ASpringPunchGimmick::EnterState(ESpringPunchState NewState)
 	Phase.Duration = Duration;
 	Phase.Distance = FMath::Max(0.0f, PunchDistance);
 	Phase.RetractedLocation = RetractedRelativeLocation;
+	Phase.ExtensionCurve = NewState == ESpringPunchState::Extending ? ExtensionCurve.Get() : nullptr;
+	Phase.RetractionCurve = NewState == ESpringPunchState::Retracting ? RetractionCurve.Get() : nullptr;
 	UpdatePunchVisual();
 	ForceNetUpdate();
 
@@ -304,7 +319,7 @@ void ASpringPunchGimmick::UpdatePunchVisual()
 			FMath::Lerp(
 				RetractedRelativeLocation,
 				ExtendedRelativeLocation,
-				Alpha));
+				EvaluateExtensionProgress(Alpha)));
 		break;
 	}
 
@@ -321,7 +336,7 @@ void ASpringPunchGimmick::UpdatePunchVisual()
 			FMath::Lerp(
 				ExtendedRelativeLocation,
 				RetractedRelativeLocation,
-				Alpha));
+				EvaluatePunchCurve(Phase.RetractionCurve, Alpha)));
 		break;
 	}
 
@@ -330,6 +345,11 @@ void ASpringPunchGimmick::UpdatePunchVisual()
 		PunchPivot->SetRelativeLocation(RetractedRelativeLocation);
 		break;
 	}
+}
+
+float ASpringPunchGimmick::EvaluateExtensionProgress(float Alpha) const
+{
+	return EvaluatePunchCurve(Phase.ExtensionCurve, Alpha);
 }
 
 void ASpringPunchGimmick::ScanPunchHits()
