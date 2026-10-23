@@ -4,6 +4,17 @@
 #include "Engine/SkeletalMesh.h"
 #include "Misc/DataValidation.h"
 
+bool FHALLaunchReboundConfig::Validate(FString& Error) const
+{
+	if (!FMath::IsFinite(PitchDegrees) || FMath::Abs(PitchDegrees) > 30
+		|| !FMath::IsFinite(RiseSeconds) || RiseSeconds < .01f || RiseSeconds > .3f
+		|| !FMath::IsFinite(ReturnSeconds) || ReturnSeconds < .05f || ReturnSeconds > 2
+		|| !FMath::IsFinite(RejectionFadeSeconds) || RejectionFadeSeconds < .01f || RejectionFadeSeconds > .3f
+		|| !FMath::IsFinite(MaximumEventAgeSeconds) || MaximumEventAgeSeconds < .05f || MaximumEventAgeSeconds > 2)
+	{ Error = TEXT("Launch rebound needs finite pitch +/-30deg, rise 0.01..0.3s, return 0.05..2s, rejection 0.01..0.3s and event age 0.05..2s."); return false; }
+	return true;
+}
+
 bool FHALVisualSuspensionConfig::Validate(FString& Error) const
 {
 	if (!FMath::IsFinite(ResponseSeconds) || ResponseSeconds < 0 || ResponseSeconds > 2
@@ -34,6 +45,8 @@ bool FHALChassisPresentationConfig::Validate(FString& Error) const
 		|| !FMath::IsFinite(PitchSign) || FMath::Abs(PitchSign) != 1 || !FMath::IsFinite(RollSign) || FMath::Abs(RollSign) != 1
 		|| !FMath::IsFinite(MaxPitchDegrees) || MaxPitchDegrees < 0 || MaxPitchDegrees > 30
 		|| !FMath::IsFinite(MaxRollDegrees) || MaxRollDegrees < 0 || MaxRollDegrees > 30
+		|| !FMath::IsFinite(TotalPitchLimitDegrees) || TotalPitchLimitDegrees < 0 || TotalPitchLimitDegrees > 45
+		|| !FMath::IsFinite(TotalRollLimitDegrees) || TotalRollLimitDegrees < 0 || TotalRollLimitDegrees > 45
 		|| !FMath::IsFinite(FullPitchAcceleration) || FullPitchAcceleration < 1 || FullPitchAcceleration > 10000
 		|| !FMath::IsFinite(FullRollAcceleration) || FullRollAcceleration < 1 || FullRollAcceleration > 10000
 		|| !FMath::IsFinite(ResponseSeconds) || ResponseSeconds < .01f || ResponseSeconds > 2
@@ -65,7 +78,7 @@ UHALVehiclePresentationConfig::UHALVehiclePresentationConfig()
 
 bool UHALVehiclePresentationConfig::ValidateSettings(FString& Error) const
 {
-	if (!Chassis.Validate(Error) || !Suspension.Validate(Error)) { return false; }
+	if (!Chassis.Validate(Error) || !Suspension.Validate(Error) || !LaunchRebound.Validate(Error)) { return false; }
 	auto Fail = [&Error](const TCHAR* Message) { Error = Message; return false; };
 	const FVector Scale = RelativeTransform.GetScale3D();
 	if (RelativeTransform.ContainsNaN() || !RelativeTransform.GetRotation().IsNormalized()

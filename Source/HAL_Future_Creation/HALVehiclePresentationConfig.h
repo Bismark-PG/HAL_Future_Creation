@@ -9,6 +9,22 @@ class USkeletalMesh;
 class UHALVehicleAnimInstance;
 struct FReferenceSkeleton;
 
+/** Cosmetic shot envelope, independent of BallControl's physical recoil. */
+USTRUCT(BlueprintType)
+struct HAL_FUTURE_CREATION_API FHALLaunchReboundConfig
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, Category = "Launch Rebound") bool bEnabled = false;
+	/** Positive uses Chassis PitchAxis/PitchSign (normally nose up); negative reverses it. */
+	UPROPERTY(EditAnywhere, Category = "Launch Rebound", meta = (ClampMin = "-30", ClampMax = "30", Units = "deg")) float PitchDegrees = 8;
+	UPROPERTY(EditAnywhere, Category = "Envelope", meta = (ClampMin = "0.01", ClampMax = "0.3", Units = "s")) float RiseSeconds = .05f;
+	UPROPERTY(EditAnywhere, Category = "Envelope", meta = (ClampMin = "0.05", ClampMax = "2", Units = "s")) float ReturnSeconds = .25f;
+	UPROPERTY(EditAnywhere, Category = "Prediction", meta = (ClampMin = "0.01", ClampMax = "0.3", Units = "s")) float RejectionFadeSeconds = .08f;
+	/** Unknown accepted events older than this are discarded; never replayed on late join. */
+	UPROPERTY(EditAnywhere, Category = "Network", meta = (ClampMin = "0.05", ClampMax = "2", Units = "s")) float MaximumEventAgeSeconds = .5f;
+	bool Validate(FString& Error) const;
+};
+
 /** Query/animation settings only. Distances are world cm, not physical spring parameters. */
 USTRUCT(BlueprintType)
 struct HAL_FUTURE_CREATION_API FHALVisualSuspensionConfig
@@ -50,6 +66,9 @@ struct HAL_FUTURE_CREATION_API FHALChassisPresentationConfig
 	UPROPERTY(EditAnywhere, Category = "Axes", meta = (ClampMin = "-1", ClampMax = "1")) float RollSign = 1;
 	UPROPERTY(EditAnywhere, Category = "Lean", meta = (ClampMin = "0", ClampMax = "30", Units = "deg")) float MaxPitchDegrees = 4;
 	UPROPERTY(EditAnywhere, Category = "Lean", meta = (ClampMin = "0", ClampMax = "30", Units = "deg")) float MaxRollDegrees = 4;
+	/** Final additive model angles, shared by driving lean and discrete visual rebounds. */
+	UPROPERTY(EditAnywhere, Category = "Composition", meta = (ClampMin = "0", ClampMax = "45", Units = "deg")) float TotalPitchLimitDegrees = 30;
+	UPROPERTY(EditAnywhere, Category = "Composition", meta = (ClampMin = "0", ClampMax = "45", Units = "deg")) float TotalRollLimitDegrees = 30;
 	/** Magnitude of longitudinal acceleration (cm/s squared) that reaches MaxPitchDegrees. */
 	UPROPERTY(EditAnywhere, Category = "Lean", meta = (ClampMin = "1", ClampMax = "10000")) float FullPitchAcceleration = 1800;
 	/** Magnitude of lateral acceleration (cm/s squared) that reaches MaxRollDegrees. */
@@ -118,6 +137,8 @@ public:
 	FName ChassisBone = TEXT("Chassis_jnt");
 	UPROPERTY(EditAnywhere, Category = "Chassis")
 	FHALChassisPresentationConfig Chassis;
+	UPROPERTY(EditAnywhere, Category = "Launch Rebound")
+	FHALLaunchReboundConfig LaunchRebound;
 	/** Visual traces only; later physical wheel observations replace this source, not add another spring. */
 	UPROPERTY(EditAnywhere, Category = "Suspension")
 	FHALVisualSuspensionConfig Suspension;

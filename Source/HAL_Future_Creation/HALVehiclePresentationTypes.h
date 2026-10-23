@@ -12,6 +12,23 @@ enum class EHALBoneAxis : uint8 { X, Y, Z };
 struct FHALChassisPresentationConfig;
 struct FHALVisualSuspensionConfig;
 struct FHALWheelSuspensionTravel;
+struct FHALLaunchReboundConfig;
+
+/** Bounded shot identities only; no gameplay authority or physics replay state. */
+struct FHALLaunchVisualPulse
+{
+	uint32 Sequence = 0;
+	float Age = 0, RejectAge = -1, RejectStart = 0;
+	bool bPredicted = false, bConfirmed = false;
+};
+
+struct FHALLaunchVisualState
+{
+	// Eight overlapping shots already exceed normal one-ball firing; cap memory without an event bus.
+	TArray<FHALLaunchVisualPulse, TInlineAllocator<8>> Pulses;
+	uint32 LastSeenSequence = 0;
+	uint32 PredictedCount = 0, StartedCount = 0, ConfirmedCount = 0, RejectedCount = 0;
+};
 
 /** Read-only source boundary. Future physical suspension can publish equivalent cosmetic targets. */
 struct FHALWheelSupportSample
@@ -103,6 +120,9 @@ struct HAL_FUTURE_CREATION_API FHALVehiclePresentationFrame
 	float ChassisRollDegrees = 0;
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Vehicle Presentation")
 	bool bDrivingLeanActive = false;
+	/** Per-shot sum before final chassis composition limits; positive follows calibrated PitchSign. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Vehicle Presentation") float LaunchPitchDegrees = 0;
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Vehicle Presentation") float CombinedChassisPitchDegrees = 0;
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Vehicle Presentation")
 	bool bSuspensionActive = false;
 	/** Actual visual scene queries this update: zero when disabled/tilted/recovering, otherwise four. */
@@ -123,6 +143,13 @@ namespace HALVehiclePresentation
 	HAL_FUTURE_CREATION_API void UpdateChassis(const FHALChassisPresentationConfig& Config,
 		const FHALChassisMotionSample& Sample, float DeltaSeconds, FHALChassisPresentationState& State);
 	HAL_FUTURE_CREATION_API FRotator ChassisRotation(const FHALChassisPresentationConfig& Config, const FHALChassisPresentationState& State);
+	HAL_FUTURE_CREATION_API FRotator ComposeChassisRotation(const FHALChassisPresentationConfig& Config,
+		const FHALChassisPresentationState& Driving, const FHALLaunchReboundConfig& LaunchConfig, float LaunchPitch, float& OutCombinedPitch);
+	HAL_FUTURE_CREATION_API float LaunchEnvelope(const FHALLaunchReboundConfig& Config, float Age);
+	HAL_FUTURE_CREATION_API bool PredictLaunch(const FHALLaunchReboundConfig& Config, uint32 Sequence, FHALLaunchVisualState& State);
+	HAL_FUTURE_CREATION_API bool AcceptLaunch(const FHALLaunchReboundConfig& Config, uint32 Sequence, float Age, FHALLaunchVisualState& State);
+	HAL_FUTURE_CREATION_API bool RejectLaunch(const FHALLaunchReboundConfig& Config, uint32 Sequence, FHALLaunchVisualState& State);
+	HAL_FUTURE_CREATION_API float AdvanceLaunch(const FHALLaunchReboundConfig& Config, float DeltaSeconds, FHALLaunchVisualState& State);
 	/** Fixed reference geometry, never the animated wheel pose. No world or physics mutation. */
 	HAL_FUTURE_CREATION_API bool BuildSuspensionProbe(const FHALVisualSuspensionConfig& Config, const FHALWheelSuspensionTravel& Travel,
 		const FVector& Center, const FVector& VehicleUp, float RadiusCm, FVector& Start, FVector& End);

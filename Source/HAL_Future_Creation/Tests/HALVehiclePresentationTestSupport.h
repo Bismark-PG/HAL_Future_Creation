@@ -7,6 +7,9 @@
 #include "../VehicleDefinition.h"
 #include "../ArcadeVehicleMovementComponent.h"
 #include "../VehicleRecoveryComponent.h"
+#include "../BallControlComponent.h"
+#include "../BasicBallActor.h"
+#include "InputActionValue.h"
 #include "Misc/ScopeLock.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -107,5 +110,32 @@ struct FHALPresentationTestAccess
 		auto* Property = FindFProperty<FStructProperty>(Recovery->GetClass(), TEXT("Status"));
 		Property->ContainerPtrToValuePtr<FVehicleRecoveryStatus>(Recovery)->Phase = bExecuting ? EVehicleRecoveryPhase::Executing : EVehicleRecoveryPhase::Idle;
 	}
+	static UHALVehiclePresentationComponent* EnableLaunchProbe(ATestVehiclePawn* Pawn)
+	{
+		auto* Result = EnableProbe(Pawn);
+		Result->Config = DuplicateObject<UHALVehiclePresentationConfig>(Result->Config, Result);
+		Result->Config->LaunchRebound = FHALLaunchReboundConfig(); Result->Config->LaunchRebound.bEnabled = true;
+		Result->Config->Chassis = FHALChassisPresentationConfig();
+		Result->ResetPose();
+		return Result;
+	}
+	static const FHALLaunchVisualState& LaunchState(UHALVehiclePresentationComponent* Component) { return Component->LaunchState; }
+	static void StartLaunch(ATestVehiclePawn* Pawn) { Pawn->OnLaunchStarted(FInputActionValue(true)); }
+	static bool GiveBall(ATestVehiclePawn* Pawn, ABasicBallActor* Ball)
+	{
+		if (!Ball || !Ball->BeginControl(Pawn)) { return false; }
+		// Capture fixture only: actual request/launch/RPC/recoil paths below remain production code.
+		auto* Control = Pawn->FindComponentByClass<UBallControlComponent>();
+		FindFProperty<FObjectProperty>(Control->GetClass(), TEXT("HeldBall"))->SetObjectPropertyValue_InContainer(Control, Ball);
+		return true;
+	}
+	static FBallRepState SetStaleControlledView(ABasicBallActor* Ball, ATestVehiclePawn* Pawn)
+	{
+		auto* View = FindFProperty<FStructProperty>(Ball->GetClass(), TEXT("RepState"))->ContainerPtrToValuePtr<FBallRepState>(Ball);
+		const FBallRepState Previous = *View; View->State = EBasicBallState::Controlled; View->Holder = Pawn;
+		return Previous; // Client fixture: emulate a stale controlled snapshot, never an authority setter.
+	}
+	static void RestoreBallView(ABasicBallActor* Ball, const FBallRepState& View)
+	{ *FindFProperty<FStructProperty>(Ball->GetClass(), TEXT("RepState"))->ContainerPtrToValuePtr<FBallRepState>(Ball) = View; }
 };
 #endif

@@ -9,6 +9,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
+#include "Engine/World.h"
 #include "Net/UnrealNetwork.h"
 
 UHALVehiclePresentationComponent::UHALVehiclePresentationComponent()
@@ -103,6 +104,9 @@ void UHALVehiclePresentationComponent::ResetPose()
 {
 	Frame = FHALVehiclePresentationFrame();
 	ChassisState = FHALChassisPresentationState();
+	// Keep the shot watermark: a delayed confirmation must not restart a cleared/expired shot.
+	LaunchState.Pulses.Reset();
+	LaunchResetLocalTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0;
 	for (float& Angle : SpinDegrees) { Angle = 0; }
 	for (float& Offset : SuspensionOffsets) { Offset = 0; }
 	SuspensionDebugElapsed = 0;
@@ -195,7 +199,9 @@ void UHALVehiclePresentationComponent::TickComponent(float DeltaTime, ELevelTick
 	ChassisSample.Rotation = Body->GetComponentQuat();
 	ChassisSample.bDrivingAllowed = bDrivingLeanAllowed;
 	HALVehiclePresentation::UpdateChassis(Config->Chassis, ChassisSample, DeltaTime, ChassisState);
-	Frame.ChassisRotation = HALVehiclePresentation::ChassisRotation(Config->Chassis, ChassisState);
+	Frame.LaunchPitchDegrees = HALVehiclePresentation::AdvanceLaunch(Config->LaunchRebound, DeltaTime, LaunchState);
+	Frame.ChassisRotation = HALVehiclePresentation::ComposeChassisRotation(Config->Chassis, ChassisState,
+		Config->LaunchRebound, Frame.LaunchPitchDegrees, Frame.CombinedChassisPitchDegrees);
 	Frame.ChassisPitchDegrees = ChassisState.PitchDegrees;
 	Frame.ChassisRollDegrees = ChassisState.RollDegrees;
 	Frame.bDrivingLeanActive = Config->Chassis.bEnabled && bDrivingLeanAllowed;

@@ -27,6 +27,11 @@ public:
 	bool IsUsingSkeletalPresentation() const { return bConfigured; }
 	const USkeletalMeshComponent* GetPresentationMesh() const { return Mesh; }
 	float GetObserverSteering() const { return float(ObserverSteering) / 127.f; }
+	/** Owning-client input edge only; no force or authority request is performed here. */
+	void PredictLaunchRebound(uint32 Sequence);
+	/** Authority accepted shot, cosmetic multicast; owner also gets the existing reliable result. */
+	void PublishAcceptedLaunch(uint32 Sequence, float ServerTimeSeconds);
+	void ReceiveLaunchResult(uint32 Sequence, bool bAccepted, float ServerTimeSeconds);
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALPresentationTestAccess;
@@ -36,6 +41,9 @@ private:
 	float ReadSteering(float DeltaTime, bool bDrivingLeanAllowed);
 	bool ReadDrivingLeanAllowed() const;
 	void UpdateSuspension(float DeltaTime);
+	void ConsumeAcceptedLaunch(uint32 Sequence, float ServerTimeSeconds);
+	double GetLaunchServerTime() const;
+	UFUNCTION(NetMulticast, Unreliable) void MulticastAcceptedLaunch(uint32 Sequence, float ServerTimeSeconds);
 	UPROPERTY(Transient) TObjectPtr<UHALVehiclePresentationConfig> Config;
 	UPROPERTY(Transient) TObjectPtr<UPrimitiveComponent> Body;
 	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> Fallback;
@@ -46,6 +54,8 @@ private:
 	UPROPERTY(Replicated) bool bObserverDrivingLeanAllowed = false;
 	FHALVehiclePresentationFrame Frame;
 	FHALChassisPresentationState ChassisState;
+	FHALLaunchVisualState LaunchState;
+	double LaunchResetLocalTime = 0;
 	FVector ReferenceWheelCenters[4] {};
 	FTransform ReferenceSuspensions[4];
 	float SuspensionOffsets[4] {};

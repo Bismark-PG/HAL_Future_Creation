@@ -526,10 +526,12 @@ void ATestVehiclePawn::ProcessLaunchRequest(const FVehicleLaunchRequest& Request
 	{
 		ArcadeMovement->QueueRecoil(RecoilDeltaVelocity);
 	}
+	const float LaunchServerTime = GetWorld()->GetTimeSeconds();
+	if (bAccepted && VehiclePresentation) { VehiclePresentation->PublishAcceptedLaunch(Request.LaunchSequence, LaunchServerTime); }
 	if (!IsLocallyControlled())
 	{
 		ClientLaunchResult(Request.LaunchSequence, bAccepted,
-			bAccepted && IsValid(HeldBall) ? HeldBall->GetBallStateSequence() : 0);
+			bAccepted && IsValid(HeldBall) ? HeldBall->GetBallStateSequence() : 0, LaunchServerTime);
 	}
 #if !UE_BUILD_SHIPPING
 	if (CVarHALVehicleNetLog.GetValueOnGameThread() > 0)
@@ -546,10 +548,11 @@ void ATestVehiclePawn::ProcessLaunchRequest(const FVehicleLaunchRequest& Request
 }
 
 void ATestVehiclePawn::ClientLaunchResult_Implementation(
-	uint32 LaunchSequence, bool bAccepted, uint32 BallStateSequence)
+	uint32 LaunchSequence, bool bAccepted, uint32 BallStateSequence, float ServerTimeSeconds)
 {
 	if (!FVehicleNetInputData::IsNewerSequence(LaunchSequence, LastReceivedLaunchResultSequence)) { return; }
 	LastReceivedLaunchResultSequence = LaunchSequence;
+	if (VehiclePresentation) { VehiclePresentation->ReceiveLaunchResult(LaunchSequence, bAccepted, ServerTimeSeconds); }
 #if !UE_BUILD_SHIPPING
 	if (CVarHALVehicleNetLog.GetValueOnGameThread() > 0)
 	{
@@ -641,6 +644,8 @@ void ATestVehiclePawn::OnLaunchStarted(const FInputActionValue& Value)
 	}
 	Request.ExpectedBallStateSequence = IsValid(ObservedBall)
 		? ObservedBall->GetBallStateSequence() : 0;
+	if (!HasAuthority() && IsLocallyControlled() && IsValid(ObservedBall) && BallControl && VehiclePresentation)
+	{ VehiclePresentation->PredictLaunchRebound(Request.LaunchSequence); }
 	if (bNetworkPhysicsHistoryActive && NetworkPhysicsHistory && Request.ClientPhysicsFrame >= 0
 		&& NetworkPhysicsHistory->IsNetworkPhysicsTickOffsetAssigned())
 	{

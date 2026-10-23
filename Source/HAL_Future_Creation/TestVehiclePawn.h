@@ -184,7 +184,7 @@ private:
 	void ServerRequestLaunch(const FVehicleLaunchRequest& Request);
 
 	UFUNCTION(Client, Reliable)
-	void ClientLaunchResult(uint32 LaunchSequence, bool bAccepted, uint32 BallStateSequence);
+	void ClientLaunchResult(uint32 LaunchSequence, bool bAccepted, uint32 BallStateSequence, float ServerTimeSeconds);
 
 	void OnSteeringInput(const FInputActionValue& Value);
 	void OnSteeringCompleted(const FInputActionValue& Value);
