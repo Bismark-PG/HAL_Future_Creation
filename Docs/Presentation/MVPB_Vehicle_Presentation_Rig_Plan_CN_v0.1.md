@@ -437,7 +437,7 @@ AnimBP Event Graph 尽量为空，节点直接读取原生变量；避免为每�
 
 ### 11.2 VP-4建议施工顺序（2026-10-23）
 
-本节最初为讨论计划。2026-10-23用户已授权VP-4A，发射回弹代码及普通71/71／实际双端各1/1验证完成，详细参数、通知规则及Editor启用步骤见[VP-4A实施](MVPB_Vehicle_Presentation_VP4A_Implementation_CN_v0.1.md)；团队启用DA与实际画面仍待反馈。VP-4B／4C尚未施工，演出数值不视为冻结。继续采用现有表现组件、车型DA、快照和AnimInstance，不建立新的战斗、物理或通用事件框架。
+本节最初为讨论计划。2026-10-23用户已授权VP-4A，发射回弹代码及普通71/71／实际双端各1/1验证完成，详细参数、通知规则及Editor启用步骤见[VP-4A实施](MVPB_Vehicle_Presentation_VP4A_Implementation_CN_v0.1.md)；随后团队反馈暂时表现正常，基础画面初测通过，见其第7节。当前下一入口为[VP-4B有效冲击回弹方案](MVPB_Vehicle_Presentation_VP4B_Plan_CN_v0.1.md)，仅草案，4B／4C尚未施工，演出数值不视为冻结。继续采用现有表现组件、车型DA、快照和AnimInstance，不建立新的战斗、物理或通用事件框架。
 
 | 顺序 | 建议实现 | 单步检查重点 |
 |---|---|---|
