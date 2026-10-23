@@ -1,0 +1,2221 @@
+{
+  "date": "2026-10-23",
+  "base_commit": "ad3e4d435d1adbd50c2dfca7eefdbd31f0957158",
+  "engine": "5.8.2-56702186",
+  "source": "D:\\Unity Shit\\Game_Jam_2026_07\\MAP_Making\\Assets\\ithappy\\Platformer_11_Space",
+  "import": {
+    "maps": [
+      {
+        "path": "/Game/Imported/Platformer11Space/Maps/Prefab_Overview",
+        "mesh_actors": 100,
+        "spacing_cm": 15217.82763671875
+      }
+    ],
+    "mesh_checks": [
+      {
+        "mesh": "SM_0000_rocket_001",
+        "bounds_error_cm": 1.132812485593604e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0001_rocket_002",
+        "bounds_error_cm": 1.2353515614904609e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0002_satallite_001",
+        "bounds_error_cm": 2.4707031229809218e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0003_satallite_002",
+        "bounds_error_cm": 1.9238281197431206e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0004_ufo_001",
+        "bounds_error_cm": 1.972656252746674e-05,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0005_ufo_002",
+        "bounds_error_cm": 1.6308593785652192e-05,
+        "slots": 5
+      },
+      {
+        "mesh": "SM_0006_meteors_001",
+        "bounds_error_cm": 0.00034374999995634425,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0007_planet_001",
+        "bounds_error_cm": 4.257812406649464e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0008_planet_002",
+        "bounds_error_cm": 1.0546875728323357e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0009_planet_003",
+        "bounds_error_cm": 3.2812499739520717e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0010_planet_004",
+        "bounds_error_cm": 1.0546875728323357e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0011_planet_005",
+        "bounds_error_cm": 1.0546875728323357e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0012_planet_006",
+        "bounds_error_cm": 1.0546875728323357e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0013_planet_007",
+        "bounds_error_cm": 4.257812406649464e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0014_planet_008",
+        "bounds_error_cm": 3.2812499739520717e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0015_planet_009",
+        "bounds_error_cm": 3.2812499739520717e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0016_planet_010",
+        "bounds_error_cm": 4.257812406649464e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0017_planet_011",
+        "bounds_error_cm": 3.35937488671334e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0018_planet_rings_001",
+        "bounds_error_cm": 0.00017968750034924597,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0019_obstacle_1_001",
+        "bounds_error_cm": 1.0620117194548584e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0020_obstacle_1_002",
+        "bounds_error_cm": 1.1718749988176569e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0021_obstacle_10_001",
+        "bounds_error_cm": 4.1210938661606633e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0022_obstacle_11_001",
+        "bounds_error_cm": 1.4868164086578872e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0023_obstacle_11_002",
+        "bounds_error_cm": 4.4726562009600457e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0024_obstacle_12_001",
+        "bounds_error_cm": 1.4111328141552804e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0025_obstacle_12_002",
+        "bounds_error_cm": 6.347656267280399e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0026_obstacle_13_001",
+        "bounds_error_cm": 7.666015619633981e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0027_obstacle_13_002",
+        "bounds_error_cm": 9.033203127728484e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0028_obstacle_14_001",
+        "bounds_error_cm": 1.5185546899942892e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0029_obstacle_14_002",
+        "bounds_error_cm": 1.9140624999636202e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0030_obstacle_15_001",
+        "bounds_error_cm": 1.401367188691438e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0031_obstacle_15_002",
+        "bounds_error_cm": 1.401367188691438e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0032_obstacle_16_001",
+        "bounds_error_cm": 1.5087890631093615e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0033_obstacle_17_001",
+        "bounds_error_cm": 1.5087890631093615e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0034_obstacle_18_001",
+        "bounds_error_cm": 4.3750000600084604e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0035_obstacle_19_001",
+        "bounds_error_cm": 4.3750000600084604e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0036_obstacle_2_001",
+        "bounds_error_cm": 4.140625264881237e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0037_obstacle_3_001",
+        "bounds_error_cm": 1.318359394986146e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0038_obstacle_3_002",
+        "bounds_error_cm": 4.423828130484253e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0039_obstacle_4_001",
+        "bounds_error_cm": 4.541015528047865e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0040_obstacle_5_001",
+        "bounds_error_cm": 6.542968762346391e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0041_obstacle_5_002",
+        "bounds_error_cm": 2.0507812337200448e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0042_obstacle_6_001",
+        "bounds_error_cm": 2.6269531304023985e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0043_obstacle_7_001",
+        "bounds_error_cm": 2.6269531304023985e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0044_obstacle_8_001",
+        "bounds_error_cm": 6.542968762346391e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0045_obstacle_8_002",
+        "bounds_error_cm": 4.6874999952706276e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0046_obstacle_9_001",
+        "bounds_error_cm": 5.249023402598141e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0047_obstacle_9_002",
+        "bounds_error_cm": 6.835937483629095e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0048_trampoline_1_001",
+        "bounds_error_cm": 6.05468750336513e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0049_trampoline_1_002",
+        "bounds_error_cm": 4.04785147622988e-08,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0050_trampoline_2_001",
+        "bounds_error_cm": 6.05468750336513e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0051_trampoline_2_002",
+        "bounds_error_cm": 4.04785147622988e-08,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0052_tube_001",
+        "bounds_error_cm": 1.8798828094190867e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0053_land_001",
+        "bounds_error_cm": 2.353515628783498e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0054_land_002",
+        "bounds_error_cm": 2.382812499490683e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0055_land_003",
+        "bounds_error_cm": 2.6562500011095835e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0056_land_004",
+        "bounds_error_cm": 1.1914062497453415e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0057_land_005",
+        "bounds_error_cm": 1.240234377064553e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0058_land_006",
+        "bounds_error_cm": 7.568359364995558e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0059_apple_001",
+        "bounds_error_cm": 7.104492212306468e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0060_barrier_001",
+        "bounds_error_cm": 4.4433593870962795e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0061_barrier_002",
+        "bounds_error_cm": 3.6621094068323146e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0062_barrier_003",
+        "bounds_error_cm": 2.7587890372160473e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0063_berries_001",
+        "bounds_error_cm": 1.0083007779826403e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0064_bomb_001",
+        "bounds_error_cm": 2.3754882789717158e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0065_box_001",
+        "bounds_error_cm": 1.455078120216058e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0066_checkpoint_001",
+        "bounds_error_cm": 1.1035156262551027e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0067_coin_001",
+        "bounds_error_cm": 1.8603515172799234e-08,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0068_crown_001",
+        "bounds_error_cm": 3.247070310408162e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0069_cup_001",
+        "bounds_error_cm": 4.277343919056875e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0070_diamond_001",
+        "bounds_error_cm": 6.774902345796363e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0071_dynamite_001",
+        "bounds_error_cm": 4.980468730764187e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0072_dynamite_002",
+        "bounds_error_cm": 2.888183587401727e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0073_fence_001",
+        "bounds_error_cm": 1.074218687335815e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0074_fence_002",
+        "bounds_error_cm": 4.6142578469243745e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0075_fence_003",
+        "bounds_error_cm": 4.6386719532165444e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0076_fence_004",
+        "bounds_error_cm": 4.785156306752469e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0077_heart_001",
+        "bounds_error_cm": 1.7285156275193003e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0078_key_001",
+        "bounds_error_cm": 1.3623046868360689e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0079_key_002",
+        "bounds_error_cm": 3.659667967781388e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0080_plant_001",
+        "bounds_error_cm": 1.337890580543899e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0081_plant_002",
+        "bounds_error_cm": 1.7089843780127012e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0082_ring_001",
+        "bounds_error_cm": 8.166503917550472e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0083_star_001",
+        "bounds_error_cm": 1.8725585988477178e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0084_star_002",
+        "bounds_error_cm": 5.151367190592282e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0085_crystal_001",
+        "bounds_error_cm": 4.39453117451194e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0086_crystal_002",
+        "bounds_error_cm": 2.255859371302904e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0087_crystal_003",
+        "bounds_error_cm": 1.6003417968590838e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0088_crystal_004",
+        "bounds_error_cm": 6.59179676176791e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0089_crystal_005",
+        "bounds_error_cm": 6.68945313009317e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0090_ground_001",
+        "bounds_error_cm": 4.492187457572072e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0091_rock_001",
+        "bounds_error_cm": 4.150390623181011e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0092_rock_002",
+        "bounds_error_cm": 2.0117187546020432e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0093_rock_003",
+        "bounds_error_cm": 6.909179688818767e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0094_rock_004",
+        "bounds_error_cm": 2.3730468797111826e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0095_stone_001",
+        "bounds_error_cm": 3.0859374930969352e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0096_stone_002",
+        "bounds_error_cm": 3.720703119824975e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0097_stone_003",
+        "bounds_error_cm": 2.902832036966174e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0098_stone_004",
+        "bounds_error_cm": 9.76562489540811e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0099_stone_005",
+        "bounds_error_cm": 2.607421833999979e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0100_PF_rocket_001",
+        "bounds_error_cm": 1.132812485593604e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0101_PF_rocket_002",
+        "bounds_error_cm": 1.2353515614904609e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0102_PF_satallite_001",
+        "bounds_error_cm": 2.4707031229809218e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0103_PF_satallite_002",
+        "bounds_error_cm": 1.9238281197431206e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0104_PF_ufo_001",
+        "bounds_error_cm": 1.972656252746674e-05,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0105_PF_ufo_002",
+        "bounds_error_cm": 1.6308593785652192e-05,
+        "slots": 5
+      },
+      {
+        "mesh": "SM_0106_PF_meteors_001",
+        "bounds_error_cm": 0.00034374999995634425,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0107_PF_planet_001",
+        "bounds_error_cm": 4.257812406649464e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0108_PF_planet_002",
+        "bounds_error_cm": 0.00017968750034924597,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0109_PF_planet_003",
+        "bounds_error_cm": 3.2812499739520717e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0110_PF_planet_004",
+        "bounds_error_cm": 1.0546875728323357e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0111_PF_planet_005",
+        "bounds_error_cm": 1.0546875728323357e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0112_PF_planet_006",
+        "bounds_error_cm": 1.0546875728323357e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0113_PF_planet_007",
+        "bounds_error_cm": 4.257812406649464e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0114_PF_planet_008",
+        "bounds_error_cm": 3.2812499739520717e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0115_PF_planet_009",
+        "bounds_error_cm": 3.2812499739520717e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0116_PF_planet_010",
+        "bounds_error_cm": 4.257812406649464e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0117_PF_planet_011",
+        "bounds_error_cm": 3.35937488671334e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0118_PF_planet_rings_001",
+        "bounds_error_cm": 0.00017968750034924597,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0119_PF_obstacle_1_001",
+        "bounds_error_cm": 4.218749722895154e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0120_PF_obstacle_1_002",
+        "bounds_error_cm": 1.1718749988176569e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0121_PF_obstacle_10_001",
+        "bounds_error_cm": 4.1210938661606633e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0122_PF_obstacle_11_001",
+        "bounds_error_cm": 1.4868164086578872e-06,
+        "slots": 5
+      },
+      {
+        "mesh": "SM_0123_PF_obstacle_11_002",
+        "bounds_error_cm": 4.4726562009600457e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0124_PF_obstacle_12_001",
+        "bounds_error_cm": 1.3867187476535037e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0125_PF_obstacle_12_002",
+        "bounds_error_cm": 6.347656267280399e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0126_PF_obstacle_13_001",
+        "bounds_error_cm": 7.666015619633981e-06,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0127_PF_obstacle_13_002",
+        "bounds_error_cm": 9.033203127728484e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0128_PF_obstacle_14_001",
+        "bounds_error_cm": 1.9140624999636202e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0129_PF_obstacle_14_002",
+        "bounds_error_cm": 1.9140624999636202e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0130_PF_obstacle_15_001",
+        "bounds_error_cm": 1.401367188691438e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0131_PF_obstacle_15_002",
+        "bounds_error_cm": 1.401367188691438e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0132_PF_obstacle_16_001",
+        "bounds_error_cm": 1.5087890631093615e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0133_PF_obstacle_17_001",
+        "bounds_error_cm": 1.5087890631093615e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0134_PF_obstacle_18_001",
+        "bounds_error_cm": 4.3750000600084604e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0135_PF_obstacle_19_001",
+        "bounds_error_cm": 4.3750000600084604e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0136_PF_obstacle_2_001",
+        "bounds_error_cm": 4.140625264881237e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0137_PF_obstacle_3_001",
+        "bounds_error_cm": 2.871094011425157e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0138_PF_obstacle_3_002",
+        "bounds_error_cm": 4.423828130484253e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0139_PF_obstacle_4_001",
+        "bounds_error_cm": 4.541015528047865e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0140_PF_obstacle_5_001",
+        "bounds_error_cm": 2.9785156385742084e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0141_PF_obstacle_5_002",
+        "bounds_error_cm": 2.0507812337200448e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0142_PF_obstacle_6_001",
+        "bounds_error_cm": 2.6269531304023985e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0143_PF_obstacle_7_001",
+        "bounds_error_cm": 2.6269531304023985e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0144_PF_obstacle_8_001",
+        "bounds_error_cm": 4.6874999952706276e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0145_PF_obstacle_8_002",
+        "bounds_error_cm": 4.6874999952706276e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0146_PF_obstacle_9_001",
+        "bounds_error_cm": 6.835937483629095e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0147_PF_obstacle_9_002",
+        "bounds_error_cm": 6.835937483629095e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0148_PF_trampoline_1_001",
+        "bounds_error_cm": 6.05468750336513e-06,
+        "slots": 4
+      },
+      {
+        "mesh": "SM_0149_PF_trampoline_1_002",
+        "bounds_error_cm": 4.04785147622988e-08,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0150_PF_trampoline_2_001",
+        "bounds_error_cm": 6.05468750336513e-06,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0151_PF_trampoline_2_002",
+        "bounds_error_cm": 4.04785147622988e-08,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0152_PF_tube_001",
+        "bounds_error_cm": 1.8798828094190867e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0153_PF_land_001",
+        "bounds_error_cm": 2.353515628783498e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0154_PF_land_002",
+        "bounds_error_cm": 2.382812499490683e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0155_PF_land_003",
+        "bounds_error_cm": 2.6562500011095835e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0156_PF_land_004",
+        "bounds_error_cm": 1.1914062497453415e-05,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0157_PF_land_005",
+        "bounds_error_cm": 1.240234377064553e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0158_PF_land_006",
+        "bounds_error_cm": 7.568359364995558e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0159_PF_apple_001",
+        "bounds_error_cm": 7.104492212306468e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0160_PF_barrier_001",
+        "bounds_error_cm": 4.4433593870962795e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0161_PF_barrier_002",
+        "bounds_error_cm": 3.6621094068323146e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0162_PF_barrier_003",
+        "bounds_error_cm": 2.7587890372160473e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0163_PF_berries_001",
+        "bounds_error_cm": 1.0083007779826403e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0164_PF_bomb_001",
+        "bounds_error_cm": 2.3754882789717158e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0165_PF_box_001",
+        "bounds_error_cm": 1.455078120216058e-07,
+        "slots": 3
+      },
+      {
+        "mesh": "SM_0166_PF_checkpoint_001",
+        "bounds_error_cm": 1.1035156262551027e-05,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0167_PF_coin_001",
+        "bounds_error_cm": 1.8603515172799234e-08,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0168_PF_crown_001",
+        "bounds_error_cm": 3.247070310408162e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0169_PF_cup_001",
+        "bounds_error_cm": 4.277343919056875e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0170_PF_diamond_001",
+        "bounds_error_cm": 6.774902345796363e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0171_PF_dynamite_001",
+        "bounds_error_cm": 4.980468730764187e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0172_PF_dynamite_002",
+        "bounds_error_cm": 2.888183587401727e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0173_PF_fence_001",
+        "bounds_error_cm": 1.074218687335815e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0174_PF_fence_002",
+        "bounds_error_cm": 4.6142578469243745e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0175_PF_fence_003",
+        "bounds_error_cm": 4.6386719532165444e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0176_PF_fence_004",
+        "bounds_error_cm": 4.785156306752469e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0177_PF_heart_001",
+        "bounds_error_cm": 1.7285156275193003e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0178_PF_key_001",
+        "bounds_error_cm": 1.3623046868360689e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0179_PF_key_002",
+        "bounds_error_cm": 3.659667967781388e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0180_PF_plant_001",
+        "bounds_error_cm": 1.337890580543899e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0181_PF_plant_002",
+        "bounds_error_cm": 1.7089843780127012e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0182_PF_ring_001",
+        "bounds_error_cm": 8.166503917550472e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0183_PF_star_001",
+        "bounds_error_cm": 1.8725585988477178e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0184_PF_star_002",
+        "bounds_error_cm": 5.151367190592282e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0185_PF_crystal_001",
+        "bounds_error_cm": 4.39453117451194e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0186_PF_crystal_002",
+        "bounds_error_cm": 2.255859371302904e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0187_PF_crystal_003",
+        "bounds_error_cm": 1.6003417968590838e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0188_PF_crystal_004",
+        "bounds_error_cm": 6.59179676176791e-07,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0189_PF_crystal_005",
+        "bounds_error_cm": 6.68945313009317e-06,
+        "slots": 2
+      },
+      {
+        "mesh": "SM_0190_PF_ground_001",
+        "bounds_error_cm": 4.492187457572072e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0191_PF_rock_001",
+        "bounds_error_cm": 4.150390623181011e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0192_PF_rock_002",
+        "bounds_error_cm": 2.0117187546020432e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0193_PF_rock_003",
+        "bounds_error_cm": 6.909179688818767e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0194_PF_rock_004",
+        "bounds_error_cm": 2.3730468797111826e-05,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0195_PF_stone_001",
+        "bounds_error_cm": 3.0859374930969352e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0196_PF_stone_002",
+        "bounds_error_cm": 3.720703119824975e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0197_PF_stone_003",
+        "bounds_error_cm": 2.902832036966174e-06,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0198_PF_stone_004",
+        "bounds_error_cm": 9.76562489540811e-07,
+        "slots": 1
+      },
+      {
+        "mesh": "SM_0199_PF_stone_005",
+        "bounds_error_cm": 2.607421833999979e-07,
+        "slots": 1
+      }
+    ],
+    "skipped_components": [
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Aircraft/rocket_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Aircraft/rocket_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Aircraft/rocket_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Aircraft/rocket_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Aircraft/satallite_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Aircraft/satallite_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Aircraft/satallite_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Aircraft/satallite_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Aircraft/ufo_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Aircraft/ufo_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Aircraft/ufo_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Aircraft/ufo_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/meteors_001.prefab: SkinnedMesh baked to static pose",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/meteors_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/meteors_001.prefab: unported component Animator",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/planet_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/planet_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/planet_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/planet_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/planet_004.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/planet_005.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/planet_006.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/planet_007.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/planet_008.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/planet_009.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/planet_010.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/planet_011.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Environment/planet_rings_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_1_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_1_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_1_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_1_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_10_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_11_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_11_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_11_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_11_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_12_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_12_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_12_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_12_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_12_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_13_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_13_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_13_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_13_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_13_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_14_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_14_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_14_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_14_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_15_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_15_001.prefab: unported component Animator",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_16_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_17_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_18_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_19_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_2_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_2_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_3_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_3_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_3_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_3_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_4_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_4_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_5_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_5_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_5_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_5_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_6_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_6_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_7_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_7_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_8_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_8_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_8_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_8_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_9_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_9_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_9_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/obstacle_9_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/trampoline_1_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/trampoline_1_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/trampoline_1_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/trampoline_1_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/trampoline_2_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/trampoline_2_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/trampoline_2_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/trampoline_2_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/tube_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Obstacles/tube_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Platforms/land_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Platforms/land_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Platforms/land_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Platforms/land_004.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Platforms/land_005.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Platforms/land_006.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/apple_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/apple_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/apple_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/apple_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/barrier_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/barrier_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/barrier_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/berries_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/berries_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/berries_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/berries_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/bomb_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/bomb_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/bomb_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/bomb_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/box_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/checkpoint_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/coin_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/coin_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/coin_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/coin_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/crown_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/crown_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/crown_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/crown_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/cup_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/cup_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/cup_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/cup_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/diamond_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/diamond_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/diamond_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/diamond_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/dynamite_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/dynamite_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/fence_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/fence_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/fence_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/fence_004.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/heart_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/heart_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/heart_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/heart_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/key_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/key_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/key_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/key_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/key_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/key_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/key_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/key_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/plant_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/plant_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/ring_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/ring_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/ring_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/ring_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/star_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/star_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/star_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/star_001.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/star_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/star_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/star_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Props/star_002.prefab: unported component MissingScript",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Stones/crystal_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Stones/crystal_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Stones/crystal_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Stones/crystal_004.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Stones/crystal_005.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Stones/ground_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Stones/rock_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Stones/rock_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Stones/rock_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Stones/rock_004.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Stones/stone_001.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Stones/stone_002.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Stones/stone_003.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Stones/stone_004.prefab: unported component MeshCollider",
+      "Assets/ithappy/Platformer_11_Space/Prefabs/Stones/stone_005.prefab: unported component MeshCollider"
+    ],
+    "limitations": [
+      "Prefab appearances baked into static meshes; no Blueprint, animation, scripts, particles or source collision conversion.",
+      "Materials approximated; custom shader effects not reproduced. Complex collision is for static environment only."
+    ],
+    "prefabs": [
+      {
+        "source": "Aircraft/rocket_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Aircraft/SM_0100_PF_rocket_001.SM_0100_PF_rocket_001",
+        "slots": 3,
+        "position": [
+          0.0,
+          0.0,
+          220.09454345703125
+        ]
+      },
+      {
+        "source": "Aircraft/rocket_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Aircraft/SM_0101_PF_rocket_002.SM_0101_PF_rocket_002",
+        "slots": 3,
+        "position": [
+          15217.82763671875,
+          0.0,
+          154.08984375
+        ]
+      },
+      {
+        "source": "Aircraft/satallite_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Aircraft/SM_0102_PF_satallite_001.SM_0102_PF_satallite_001",
+        "slots": 3,
+        "position": [
+          30435.6552734375,
+          0.0,
+          102.03702545166016
+        ]
+      },
+      {
+        "source": "Aircraft/satallite_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Aircraft/SM_0103_PF_satallite_002.SM_0103_PF_satallite_002",
+        "slots": 2,
+        "position": [
+          45653.48291015625,
+          0.0,
+          2.384185791015625e-05
+        ]
+      },
+      {
+        "source": "Aircraft/ufo_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Aircraft/SM_0104_PF_ufo_001.SM_0104_PF_ufo_001",
+        "slots": 4,
+        "position": [
+          60871.310546875,
+          0.0,
+          106.42668151855469
+        ]
+      },
+      {
+        "source": "Aircraft/ufo_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Aircraft/SM_0105_PF_ufo_002.SM_0105_PF_ufo_002",
+        "slots": 5,
+        "position": [
+          76089.13818359375,
+          0.0,
+          618.95654296875
+        ]
+      },
+      {
+        "source": "Environment/meteors_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Environment/SM_0106_PF_meteors_001.SM_0106_PF_meteors_001",
+        "slots": 1,
+        "position": [
+          91306.9658203125,
+          0.0,
+          729.1029052734375
+        ]
+      },
+      {
+        "source": "Environment/planet_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Environment/SM_0107_PF_planet_001.SM_0107_PF_planet_001",
+        "slots": 1,
+        "position": [
+          106524.79345703125,
+          0.0,
+          1122.073486328125
+        ]
+      },
+      {
+        "source": "Environment/planet_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Environment/SM_0108_PF_planet_002.SM_0108_PF_planet_002",
+        "slots": 2,
+        "position": [
+          121742.62109375,
+          0.0,
+          1125.1893310546875
+        ]
+      },
+      {
+        "source": "Environment/planet_003.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Environment/SM_0109_PF_planet_003.SM_0109_PF_planet_003",
+        "slots": 1,
+        "position": [
+          136960.44873046875,
+          0.0,
+          1169.629150390625
+        ]
+      },
+      {
+        "source": "Environment/planet_004.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Environment/SM_0110_PF_planet_004.SM_0110_PF_planet_004",
+        "slots": 1,
+        "position": [
+          152178.2763671875,
+          0.0,
+          1125.1893310546875
+        ]
+      },
+      {
+        "source": "Environment/planet_005.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Environment/SM_0111_PF_planet_005.SM_0111_PF_planet_005",
+        "slots": 1,
+        "position": [
+          167396.10400390625,
+          0.0,
+          1125.1893310546875
+        ]
+      },
+      {
+        "source": "Environment/planet_006.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Environment/SM_0112_PF_planet_006.SM_0112_PF_planet_006",
+        "slots": 1,
+        "position": [
+          0.0,
+          15217.82763671875,
+          1125.1893310546875
+        ]
+      },
+      {
+        "source": "Environment/planet_007.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Environment/SM_0113_PF_planet_007.SM_0113_PF_planet_007",
+        "slots": 1,
+        "position": [
+          15217.82763671875,
+          15217.82763671875,
+          1122.073486328125
+        ]
+      },
+      {
+        "source": "Environment/planet_008.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Environment/SM_0114_PF_planet_008.SM_0114_PF_planet_008",
+        "slots": 1,
+        "position": [
+          30435.6552734375,
+          15217.82763671875,
+          1169.629150390625
+        ]
+      },
+      {
+        "source": "Environment/planet_009.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Environment/SM_0115_PF_planet_009.SM_0115_PF_planet_009",
+        "slots": 1,
+        "position": [
+          45653.48291015625,
+          15217.82763671875,
+          1169.629150390625
+        ]
+      },
+      {
+        "source": "Environment/planet_010.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Environment/SM_0116_PF_planet_010.SM_0116_PF_planet_010",
+        "slots": 1,
+        "position": [
+          60871.310546875,
+          15217.82763671875,
+          1122.073486328125
+        ]
+      },
+      {
+        "source": "Environment/planet_011.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Environment/SM_0117_PF_planet_011.SM_0117_PF_planet_011",
+        "slots": 1,
+        "position": [
+          76089.13818359375,
+          15217.82763671875,
+          1416.9296875
+        ]
+      },
+      {
+        "source": "Environment/planet_rings_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Environment/SM_0118_PF_planet_rings_001.SM_0118_PF_planet_rings_001",
+        "slots": 1,
+        "position": [
+          91306.9658203125,
+          15217.82763671875,
+          2.855514761278266e-13
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_1_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0119_PF_obstacle_1_001.SM_0119_PF_obstacle_1_001",
+        "slots": 3,
+        "position": [
+          106524.79345703125,
+          15217.82763671875,
+          360.624267578125
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_1_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0120_PF_obstacle_1_002.SM_0120_PF_obstacle_1_002",
+        "slots": 2,
+        "position": [
+          121742.62109375,
+          15217.82763671875,
+          28.212976455688477
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_10_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0121_PF_obstacle_10_001.SM_0121_PF_obstacle_10_001",
+        "slots": 2,
+        "position": [
+          136960.44873046875,
+          15217.82763671875,
+          2.4868995751603507e-14
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_11_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0122_PF_obstacle_11_001.SM_0122_PF_obstacle_11_001",
+        "slots": 5,
+        "position": [
+          152178.2763671875,
+          15217.82763671875,
+          17.251205444335938
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_11_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0123_PF_obstacle_11_002.SM_0123_PF_obstacle_11_002",
+        "slots": 3,
+        "position": [
+          167396.10400390625,
+          15217.82763671875,
+          17.251205444335938
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_12_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0124_PF_obstacle_12_001.SM_0124_PF_obstacle_12_001",
+        "slots": 3,
+        "position": [
+          0.0,
+          30435.6552734375,
+          491.7567138671875
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_12_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0125_PF_obstacle_12_002.SM_0125_PF_obstacle_12_002",
+        "slots": 2,
+        "position": [
+          15217.82763671875,
+          30435.6552734375,
+          106.7567367553711
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_13_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0126_PF_obstacle_13_001.SM_0126_PF_obstacle_13_001",
+        "slots": 4,
+        "position": [
+          30435.6552734375,
+          30435.6552734375,
+          0.0
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_13_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0127_PF_obstacle_13_002.SM_0127_PF_obstacle_13_002",
+        "slots": 2,
+        "position": [
+          45653.48291015625,
+          30435.6552734375,
+          317.8844909667969
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_14_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0128_PF_obstacle_14_001.SM_0128_PF_obstacle_14_001",
+        "slots": 3,
+        "position": [
+          60871.310546875,
+          30435.6552734375,
+          32.13581848144531
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_14_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0129_PF_obstacle_14_002.SM_0129_PF_obstacle_14_002",
+        "slots": 2,
+        "position": [
+          76089.13818359375,
+          30435.6552734375,
+          20.003145217895508
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_15_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0130_PF_obstacle_15_001.SM_0130_PF_obstacle_15_001",
+        "slots": 3,
+        "position": [
+          91306.9658203125,
+          30435.6552734375,
+          50.231903076171875
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_15_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0131_PF_obstacle_15_002.SM_0131_PF_obstacle_15_002",
+        "slots": 1,
+        "position": [
+          106524.79345703125,
+          30435.6552734375,
+          50.231903076171875
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_16_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0132_PF_obstacle_16_001.SM_0132_PF_obstacle_16_001",
+        "slots": 2,
+        "position": [
+          121742.62109375,
+          30435.6552734375,
+          33.65980529785156
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_17_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0133_PF_obstacle_17_001.SM_0133_PF_obstacle_17_001",
+        "slots": 2,
+        "position": [
+          136960.44873046875,
+          30435.6552734375,
+          33.65980529785156
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_18_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0134_PF_obstacle_18_001.SM_0134_PF_obstacle_18_001",
+        "slots": 2,
+        "position": [
+          152178.2763671875,
+          30435.6552734375,
+          29.24688148498535
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_19_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0135_PF_obstacle_19_001.SM_0135_PF_obstacle_19_001",
+        "slots": 2,
+        "position": [
+          167396.10400390625,
+          30435.6552734375,
+          29.24688148498535
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_2_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0136_PF_obstacle_2_001.SM_0136_PF_obstacle_2_001",
+        "slots": 3,
+        "position": [
+          0.0,
+          45653.48291015625,
+          0.0
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_3_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0137_PF_obstacle_3_001.SM_0137_PF_obstacle_3_001",
+        "slots": 3,
+        "position": [
+          15217.82763671875,
+          45653.48291015625,
+          406.8946228027344
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_3_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0138_PF_obstacle_3_002.SM_0138_PF_obstacle_3_002",
+        "slots": 2,
+        "position": [
+          30435.6552734375,
+          45653.48291015625,
+          477.1664733886719
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_4_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0139_PF_obstacle_4_001.SM_0139_PF_obstacle_4_001",
+        "slots": 2,
+        "position": [
+          45653.48291015625,
+          45653.48291015625,
+          0.0
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_5_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0140_PF_obstacle_5_001.SM_0140_PF_obstacle_5_001",
+        "slots": 2,
+        "position": [
+          60871.310546875,
+          45653.48291015625,
+          27.331680297851562
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_5_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0141_PF_obstacle_5_002.SM_0141_PF_obstacle_5_002",
+        "slots": 1,
+        "position": [
+          76089.13818359375,
+          45653.48291015625,
+          25.105751037597656
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_6_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0142_PF_obstacle_6_001.SM_0142_PF_obstacle_6_001",
+        "slots": 2,
+        "position": [
+          91306.9658203125,
+          45653.48291015625,
+          0.0
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_7_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0143_PF_obstacle_7_001.SM_0143_PF_obstacle_7_001",
+        "slots": 2,
+        "position": [
+          106524.79345703125,
+          45653.48291015625,
+          0.0
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_8_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0144_PF_obstacle_8_001.SM_0144_PF_obstacle_8_001",
+        "slots": 2,
+        "position": [
+          121742.62109375,
+          45653.48291015625,
+          27.331680297851562
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_8_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0145_PF_obstacle_8_002.SM_0145_PF_obstacle_8_002",
+        "slots": 1,
+        "position": [
+          136960.44873046875,
+          45653.48291015625,
+          16.063705444335938
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_9_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0146_PF_obstacle_9_001.SM_0146_PF_obstacle_9_001",
+        "slots": 3,
+        "position": [
+          152178.2763671875,
+          45653.48291015625,
+          394.2554931640625
+        ]
+      },
+      {
+        "source": "Obstacles/obstacle_9_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0147_PF_obstacle_9_002.SM_0147_PF_obstacle_9_002",
+        "slots": 2,
+        "position": [
+          167396.10400390625,
+          45653.48291015625,
+          25.579721450805664
+        ]
+      },
+      {
+        "source": "Obstacles/trampoline_1_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0148_PF_trampoline_1_001.SM_0148_PF_trampoline_1_001",
+        "slots": 4,
+        "position": [
+          0.0,
+          60871.310546875,
+          172.43592834472656
+        ]
+      },
+      {
+        "source": "Obstacles/trampoline_1_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0149_PF_trampoline_1_002.SM_0149_PF_trampoline_1_002",
+        "slots": 1,
+        "position": [
+          15217.82763671875,
+          60871.310546875,
+          -1.1920928955078125e-05
+        ]
+      },
+      {
+        "source": "Obstacles/trampoline_2_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0150_PF_trampoline_2_001.SM_0150_PF_trampoline_2_001",
+        "slots": 3,
+        "position": [
+          30435.6552734375,
+          60871.310546875,
+          17.119205474853516
+        ]
+      },
+      {
+        "source": "Obstacles/trampoline_2_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0151_PF_trampoline_2_002.SM_0151_PF_trampoline_2_002",
+        "slots": 1,
+        "position": [
+          45653.48291015625,
+          60871.310546875,
+          -1.1920928955078125e-05
+        ]
+      },
+      {
+        "source": "Obstacles/tube_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Obstacles/SM_0152_PF_tube_001.SM_0152_PF_tube_001",
+        "slots": 1,
+        "position": [
+          60871.310546875,
+          60871.310546875,
+          63.512611389160156
+        ]
+      },
+      {
+        "source": "Platforms/land_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Platforms/SM_0153_PF_land_001.SM_0153_PF_land_001",
+        "slots": 3,
+        "position": [
+          76089.13818359375,
+          60871.310546875,
+          687.6194458007812
+        ]
+      },
+      {
+        "source": "Platforms/land_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Platforms/SM_0154_PF_land_002.SM_0154_PF_land_002",
+        "slots": 3,
+        "position": [
+          91306.9658203125,
+          60871.310546875,
+          694.3734130859375
+        ]
+      },
+      {
+        "source": "Platforms/land_003.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Platforms/SM_0155_PF_land_003.SM_0155_PF_land_003",
+        "slots": 3,
+        "position": [
+          106524.79345703125,
+          60871.310546875,
+          930.0853881835938
+        ]
+      },
+      {
+        "source": "Platforms/land_004.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Platforms/SM_0156_PF_land_004.SM_0156_PF_land_004",
+        "slots": 3,
+        "position": [
+          121742.62109375,
+          60871.310546875,
+          824.8445434570312
+        ]
+      },
+      {
+        "source": "Platforms/land_005.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Platforms/SM_0157_PF_land_005.SM_0157_PF_land_005",
+        "slots": 1,
+        "position": [
+          136960.44873046875,
+          60871.310546875,
+          367.5203552246094
+        ]
+      },
+      {
+        "source": "Platforms/land_006.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Platforms/SM_0158_PF_land_006.SM_0158_PF_land_006",
+        "slots": 1,
+        "position": [
+          152178.2763671875,
+          60871.310546875,
+          380.35675048828125
+        ]
+      },
+      {
+        "source": "Props/apple_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0159_PF_apple_001.SM_0159_PF_apple_001",
+        "slots": 1,
+        "position": [
+          167396.10400390625,
+          60871.310546875,
+          38.722354888916016
+        ]
+      },
+      {
+        "source": "Props/barrier_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0160_PF_barrier_001.SM_0160_PF_barrier_001",
+        "slots": 2,
+        "position": [
+          0.0,
+          76089.13818359375,
+          0.0
+        ]
+      },
+      {
+        "source": "Props/barrier_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0161_PF_barrier_002.SM_0161_PF_barrier_002",
+        "slots": 2,
+        "position": [
+          15217.82763671875,
+          76089.13818359375,
+          1.1920928955078125e-05
+        ]
+      },
+      {
+        "source": "Props/barrier_003.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0162_PF_barrier_003.SM_0162_PF_barrier_003",
+        "slots": 1,
+        "position": [
+          30435.6552734375,
+          76089.13818359375,
+          0.0
+        ]
+      },
+      {
+        "source": "Props/berries_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0163_PF_berries_001.SM_0163_PF_berries_001",
+        "slots": 1,
+        "position": [
+          45653.48291015625,
+          76089.13818359375,
+          39.10002899169922
+        ]
+      },
+      {
+        "source": "Props/bomb_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0164_PF_bomb_001.SM_0164_PF_bomb_001",
+        "slots": 1,
+        "position": [
+          60871.310546875,
+          76089.13818359375,
+          33.91352462768555
+        ]
+      },
+      {
+        "source": "Props/box_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0165_PF_box_001.SM_0165_PF_box_001",
+        "slots": 3,
+        "position": [
+          76089.13818359375,
+          76089.13818359375,
+          0.30104517936706543
+        ]
+      },
+      {
+        "source": "Props/checkpoint_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0166_PF_checkpoint_001.SM_0166_PF_checkpoint_001",
+        "slots": 2,
+        "position": [
+          91306.9658203125,
+          76089.13818359375,
+          -4.76837158203125e-05
+        ]
+      },
+      {
+        "source": "Props/coin_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0167_PF_coin_001.SM_0167_PF_coin_001",
+        "slots": 1,
+        "position": [
+          106524.79345703125,
+          76089.13818359375,
+          46.73237609863281
+        ]
+      },
+      {
+        "source": "Props/crown_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0168_PF_crown_001.SM_0168_PF_crown_001",
+        "slots": 1,
+        "position": [
+          121742.62109375,
+          76089.13818359375,
+          18.279603958129883
+        ]
+      },
+      {
+        "source": "Props/cup_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0169_PF_cup_001.SM_0169_PF_cup_001",
+        "slots": 1,
+        "position": [
+          136960.44873046875,
+          76089.13818359375,
+          0.0
+        ]
+      },
+      {
+        "source": "Props/diamond_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0170_PF_diamond_001.SM_0170_PF_diamond_001",
+        "slots": 1,
+        "position": [
+          152178.2763671875,
+          76089.13818359375,
+          54.999149322509766
+        ]
+      },
+      {
+        "source": "Props/dynamite_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0171_PF_dynamite_001.SM_0171_PF_dynamite_001",
+        "slots": 1,
+        "position": [
+          167396.10400390625,
+          76089.13818359375,
+          -3.1100014439289225e-06
+        ]
+      },
+      {
+        "source": "Props/dynamite_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0172_PF_dynamite_002.SM_0172_PF_dynamite_002",
+        "slots": 1,
+        "position": [
+          0.0,
+          91306.9658203125,
+          0.29517099261283875
+        ]
+      },
+      {
+        "source": "Props/fence_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0173_PF_fence_001.SM_0173_PF_fence_001",
+        "slots": 1,
+        "position": [
+          15217.82763671875,
+          91306.9658203125,
+          6.192287401063368e-06
+        ]
+      },
+      {
+        "source": "Props/fence_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0174_PF_fence_002.SM_0174_PF_fence_002",
+        "slots": 2,
+        "position": [
+          30435.6552734375,
+          91306.9658203125,
+          46.14167022705078
+        ]
+      },
+      {
+        "source": "Props/fence_003.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0175_PF_fence_003.SM_0175_PF_fence_003",
+        "slots": 2,
+        "position": [
+          45653.48291015625,
+          91306.9658203125,
+          46.14167022705078
+        ]
+      },
+      {
+        "source": "Props/fence_004.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0176_PF_fence_004.SM_0176_PF_fence_004",
+        "slots": 2,
+        "position": [
+          60871.310546875,
+          91306.9658203125,
+          46.14167022705078
+        ]
+      },
+      {
+        "source": "Props/heart_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0177_PF_heart_001.SM_0177_PF_heart_001",
+        "slots": 1,
+        "position": [
+          76089.13818359375,
+          91306.9658203125,
+          53.49155044555664
+        ]
+      },
+      {
+        "source": "Props/key_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0178_PF_key_001.SM_0178_PF_key_001",
+        "slots": 1,
+        "position": [
+          91306.9658203125,
+          91306.9658203125,
+          30.277198791503906
+        ]
+      },
+      {
+        "source": "Props/key_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0179_PF_key_002.SM_0179_PF_key_002",
+        "slots": 1,
+        "position": [
+          106524.79345703125,
+          91306.9658203125,
+          38.80767059326172
+        ]
+      },
+      {
+        "source": "Props/plant_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0180_PF_plant_001.SM_0180_PF_plant_001",
+        "slots": 1,
+        "position": [
+          121742.62109375,
+          91306.9658203125,
+          8.343274116516113
+        ]
+      },
+      {
+        "source": "Props/plant_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0181_PF_plant_002.SM_0181_PF_plant_002",
+        "slots": 1,
+        "position": [
+          136960.44873046875,
+          91306.9658203125,
+          11.486079216003418
+        ]
+      },
+      {
+        "source": "Props/ring_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0182_PF_ring_001.SM_0182_PF_ring_001",
+        "slots": 1,
+        "position": [
+          152178.2763671875,
+          91306.9658203125,
+          46.15018081665039
+        ]
+      },
+      {
+        "source": "Props/star_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0183_PF_star_001.SM_0183_PF_star_001",
+        "slots": 1,
+        "position": [
+          167396.10400390625,
+          91306.9658203125,
+          54.6239013671875
+        ]
+      },
+      {
+        "source": "Props/star_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Props/SM_0184_PF_star_002.SM_0184_PF_star_002",
+        "slots": 1,
+        "position": [
+          0.0,
+          106524.79345703125,
+          50.92559051513672
+        ]
+      },
+      {
+        "source": "Stones/crystal_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Stones/SM_0185_PF_crystal_001.SM_0185_PF_crystal_001",
+        "slots": 1,
+        "position": [
+          15217.82763671875,
+          106524.79345703125,
+          2.384185791015625e-05
+        ]
+      },
+      {
+        "source": "Stones/crystal_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Stones/SM_0186_PF_crystal_002.SM_0186_PF_crystal_002",
+        "slots": 1,
+        "position": [
+          30435.6552734375,
+          106524.79345703125,
+          70.8132553100586
+        ]
+      },
+      {
+        "source": "Stones/crystal_003.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Stones/SM_0187_PF_crystal_003.SM_0187_PF_crystal_003",
+        "slots": 1,
+        "position": [
+          45653.48291015625,
+          106524.79345703125,
+          38.849578857421875
+        ]
+      },
+      {
+        "source": "Stones/crystal_004.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Stones/SM_0188_PF_crystal_004.SM_0188_PF_crystal_004",
+        "slots": 2,
+        "position": [
+          60871.310546875,
+          106524.79345703125,
+          5.947069894318702e-06
+        ]
+      },
+      {
+        "source": "Stones/crystal_005.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Stones/SM_0189_PF_crystal_005.SM_0189_PF_crystal_005",
+        "slots": 2,
+        "position": [
+          76089.13818359375,
+          106524.79345703125,
+          28.760540008544922
+        ]
+      },
+      {
+        "source": "Stones/ground_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Stones/SM_0190_PF_ground_001.SM_0190_PF_ground_001",
+        "slots": 1,
+        "position": [
+          91306.9658203125,
+          106524.79345703125,
+          -4.249046469340101e-06
+        ]
+      },
+      {
+        "source": "Stones/rock_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Stones/SM_0191_PF_rock_001.SM_0191_PF_rock_001",
+        "slots": 1,
+        "position": [
+          106524.79345703125,
+          106524.79345703125,
+          0.18263459205627441
+        ]
+      },
+      {
+        "source": "Stones/rock_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Stones/SM_0192_PF_rock_002.SM_0192_PF_rock_002",
+        "slots": 1,
+        "position": [
+          121742.62109375,
+          106524.79345703125,
+          0.0
+        ]
+      },
+      {
+        "source": "Stones/rock_003.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Stones/SM_0193_PF_rock_003.SM_0193_PF_rock_003",
+        "slots": 1,
+        "position": [
+          136960.44873046875,
+          106524.79345703125,
+          0.619959831237793
+        ]
+      },
+      {
+        "source": "Stones/rock_004.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Stones/SM_0194_PF_rock_004.SM_0194_PF_rock_004",
+        "slots": 1,
+        "position": [
+          152178.2763671875,
+          106524.79345703125,
+          -5.364418029785156e-05
+        ]
+      },
+      {
+        "source": "Stones/stone_001.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Stones/SM_0195_PF_stone_001.SM_0195_PF_stone_001",
+        "slots": 1,
+        "position": [
+          167396.10400390625,
+          106524.79345703125,
+          91.6265869140625
+        ]
+      },
+      {
+        "source": "Stones/stone_002.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Stones/SM_0196_PF_stone_002.SM_0196_PF_stone_002",
+        "slots": 1,
+        "position": [
+          0.0,
+          121742.62109375,
+          129.40284729003906
+        ]
+      },
+      {
+        "source": "Stones/stone_003.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Stones/SM_0197_PF_stone_003.SM_0197_PF_stone_003",
+        "slots": 1,
+        "position": [
+          15217.82763671875,
+          121742.62109375,
+          78.35291290283203
+        ]
+      },
+      {
+        "source": "Stones/stone_004.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Stones/SM_0198_PF_stone_004.SM_0198_PF_stone_004",
+        "slots": 1,
+        "position": [
+          30435.6552734375,
+          121742.62109375,
+          192.4739990234375
+        ]
+      },
+      {
+        "source": "Stones/stone_005.prefab",
+        "asset": "/Game/Imported/Platformer11Space/Prefabs/Stones/SM_0199_PF_stone_005.SM_0199_PF_stone_005",
+        "slots": 1,
+        "position": [
+          45653.48291015625,
+          121742.62109375,
+          192.47398376464844
+        ]
+      }
+    ],
+    "status": "complete",
+    "meshes": 200,
+    "materials": 12,
+    "textures": 5
+  },
+  "verification": {
+    "status": "passed",
+    "meshes_reloaded": 200,
+    "raw_materials_assigned": 100,
+    "prefabs_verified": 100,
+    "materials": 12,
+    "textures": 5
+  },
+  "existing_assets_unchanged": 667,
+  "source_files_unchanged": 446,
+  "max_bounds_error_cm": 0.00034374999995634425,
+  "visual_review": "not performed; NullRHI validation only",
+  "import_warnings": "577 warnings including expected missing destination assets before creation, smoothing groups and degenerate tangent bases",
+  "verification_warnings": 0,
+  "gameplay_tests": "not run; no runtime code changes"
+}
