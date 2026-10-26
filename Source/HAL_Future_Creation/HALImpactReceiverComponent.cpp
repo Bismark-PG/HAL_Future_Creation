@@ -200,7 +200,9 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 	if (!bStabilityValid || !GetOwner()->HasAuthority() || Config.Version != EHALImpactVersion::TieredV1 || !ASC
 		|| !ASC->IsImpactInitialized() || ASC->GetAvatarActor() != GetOwner() || !Attributes) { return; }
 	Result.ImpactOutcome = EHALImpactOutcome::InvalidMeasurement;
-	if (Request.Impact.Mode == EHALImpactMode::LegacyMeasurement || !HALImpact::IsValidTier(Request.Impact.Tier)) { return; }
+	if ((Request.Impact.Mode != EHALImpactMode::ExplicitTier && Request.Impact.Mode != EHALImpactMode::PhysicalContact)
+		|| !HALImpact::IsValidTier(Request.Impact.Tier) || !HALImpact::IsValidPushPreset(Request.Impact.PushPreset)
+		|| (Request.Impact.Mode == EHALImpactMode::PhysicalContact && Request.Impact.PushPreset != EHALImpactPushPreset::Standard)) { return; }
 	const auto& Hit = Request.Hit;
 	if (Hit.ImpactNormal.ContainsNaN() || Hit.NormalImpulse.ContainsNaN()) { return; }
 	SuppressContact(Hit.SourcePhysicsBody);
@@ -208,6 +210,7 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 	Summary.EventId = Request.AttackId;
 	Summary.PulseSequence = Request.PulseSequence;
 	Summary.SourceTier = Request.Impact.Tier;
+	Summary.PushPreset = Request.Impact.PushPreset;
 	Summary.bImmune = ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_ImpactImmune);
 	Summary.EffectiveTier = HALImpact::Reduce(Summary.SourceTier, FMath::FloorToInt(Attributes->GetTierReduction()), Summary.bImmune);
 	UArcadeVehicleMovementComponent* Movement = GetOwner()->FindComponentByClass<UArcadeVehicleMovementComponent>();
@@ -242,15 +245,22 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 		if (Direction.IsNearlyZero()) { return; }
 		Result.KnockbackTier = HALImpact::ToLegacy(Summary.EffectiveTier);
 		const auto& Tier = Table.GetTierDefinition(Result.KnockbackTier);
+		FHALImpactPushRules PushRules;
+		Result.ImpactOutcome = EHALImpactOutcome::RulesUnavailable;
+		if (!GetDefault<UVehicleKnockbackSettings>()->GetImpactPushRules(PushRules)) { return; }
+		const float Multiplier = bPhysical ? 1.f : PushRules.GetMultiplier(Summary.PushPreset);
+		const float Desired = Tier.HorizontalDeltaSpeed * Multiplier;
+		if (!FMath::IsFinite(Desired) || Desired < 0) { return; }
+		Summary.DesiredHorizontalDeltaSpeed = Desired;
 		const float Natural = FMath::Max(0.0, FVector::DotProduct(Hit.NormalImpulse, Direction)) / Mass;
-		float Supplement = FMath::Max(0.0f, Tier.HorizontalDeltaSpeed - Natural);
+		float Supplement = FMath::Max(0.0f, Desired - Natural);
 		if (bPhysical)
 		{
 			const FVector OtherVelocity = IsValid(Hit.SourcePhysicsBody) && Hit.SourcePhysicsBody->IsSimulatingPhysics()
 				? Hit.SourcePhysicsBody->GetPhysicsLinearVelocityAtPoint(Hit.ImpactPoint) : FVector::ZeroVector;
 			const float RelativeAfter = FVector::DotProduct(Body->GetPhysicsLinearVelocityAtPoint(Hit.ImpactPoint) - OtherVelocity, Direction);
 			const float Ratio = Hit.SourceMass > SMALL_NUMBER ? Mass / Hit.SourceMass : 0;
-			Supplement = HALImpact::PhysicalSupplement(Tier.HorizontalDeltaSpeed, Natural, RelativeAfter, Ratio, Rules.MaximumRuleRestitution);
+			Supplement = HALImpact::PhysicalSupplement(Desired, Natural, RelativeAfter, Ratio, Rules.MaximumRuleRestitution);
 			const auto* OtherBody = Hit.SourcePhysicsBody;
 			const auto* Other = Hit.SourceActor;
 			Result.NaturalNormalDeltaSpeed = Natural;

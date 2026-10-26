@@ -11,6 +11,25 @@ enum class EHALImpactTier : uint8 { None = 0, Light = 1, Medium = 2, Heavy = 3 }
 UENUM(BlueprintType)
 enum class EHALImpactVersion : uint8 { Legacy = 0, TieredV1 = 1 };
 
+/** Horizontal response only. Zero keeps every existing saved source on the original path. */
+UENUM(BlueprintType)
+enum class EHALImpactPushPreset : uint8 { Standard = 0, Short = 1, Long = 2, ExtraLong = 3 };
+
+/** Shared authored-attack multipliers; Standard is always exactly 1, not a tunable migration. */
+USTRUCT(BlueprintType)
+struct HAL_FUTURE_CREATION_API FHALImpactPushRules
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, Category = "Horizontal Push", meta = (ClampMin = "0", ClampMax = "1"))
+	float ShortMultiplier = .5f;
+	UPROPERTY(EditAnywhere, Category = "Horizontal Push", meta = (ClampMin = "1", ClampMax = "3"))
+	float LongMultiplier = 1.5f;
+	UPROPERTY(EditAnywhere, Category = "Horizontal Push", meta = (ClampMin = "1", ClampMax = "3"))
+	float ExtraLongMultiplier = 2;
+	bool Validate(FString& Error) const;
+	float GetMultiplier(EHALImpactPushPreset Preset) const;
+};
+
 USTRUCT(BlueprintType)
 struct HAL_FUTURE_CREATION_API FHALVehicleImpactConfig
 {
@@ -37,6 +56,9 @@ struct HAL_FUTURE_CREATION_API FHALAuthoredImpactConfig
 	EHALImpactVersion Version = EHALImpactVersion::Legacy;
 	UPROPERTY(EditAnywhere, Category = "Impact")
 	EHALImpactTier Tier = EHALImpactTier::Medium;
+	/** Captured with the attack. Does not change tier, upward launch, flips or damage. */
+	UPROPERTY(EditAnywhere, Category = "Impact")
+	EHALImpactPushPreset PushPreset = EHALImpactPushPreset::Standard;
 	bool Validate(FString& Error) const;
 };
 
@@ -74,6 +96,7 @@ struct FHALImpactProposal
 {
 	EHALImpactMode Mode = EHALImpactMode::LegacyMeasurement;
 	EHALImpactTier Tier = EHALImpactTier::None;
+	EHALImpactPushPreset PushPreset = EHALImpactPushPreset::Standard;
 };
 
 USTRUCT(BlueprintType)
@@ -89,6 +112,11 @@ struct HAL_FUTURE_CREATION_API FHALImpactSummary
 	UPROPERTY(BlueprintReadOnly, Category = "Impact")
 	EHALImpactTier EffectiveTier = EHALImpactTier::None;
 	UPROPERTY(BlueprintReadOnly, Category = "Impact")
+	EHALImpactPushPreset PushPreset = EHALImpactPushPreset::Standard;
+	/** Target horizontal velocity change, before subtracting natural response; not actual distance. */
+	UPROPERTY(BlueprintReadOnly, Category = "Impact")
+	float DesiredHorizontalDeltaSpeed = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "Impact")
 	bool bImmune = false;
 	UPROPERTY(BlueprintReadOnly, Category = "Impact")
 	bool bBallDropped = false;
@@ -100,6 +128,7 @@ struct HAL_FUTURE_CREATION_API FHALImpactSummary
 namespace HALImpact
 {
 	HAL_FUTURE_CREATION_API bool IsValidTier(EHALImpactTier Tier);
+	HAL_FUTURE_CREATION_API bool IsValidPushPreset(EHALImpactPushPreset Preset);
 	HAL_FUTURE_CREATION_API EHALImpactTier Reduce(EHALImpactTier Source, int32 Reduction, bool bImmune);
 	HAL_FUTURE_CREATION_API EVehicleKnockbackTier ToLegacy(EHALImpactTier Tier);
 	/** Supplemental normal delta, bounded by an energy-losing relative bounce policy. */

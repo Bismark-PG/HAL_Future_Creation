@@ -266,12 +266,15 @@ class HAL_FUTURE_CREATION_API UCombatRulesDefinition : public UDataAsset
 public:
 	UPROPERTY(EditAnywhere, Category = "Status")
 	bool bReadyForUse = false;
-	/** Existing ball impacts only. Other sources are added when their rules are implemented. */
+	/** Shared response table reused by authored attacks and calibrated physical contacts. */
 	UPROPERTY(EditAnywhere, Category = "Ball Impacts")
 	FVehicleKnockbackConfig BallImpacts;
 	/** Enable TieredV1 only after migrating vehicle and ball Impact sections. */
 	UPROPERTY(EditAnywhere, Category = "Collision Impacts")
 	FHALCollisionImpactRules CollisionImpacts;
+	/** Authored attacks only. Existing content defaults to Standard (fixed x1). */
+	UPROPERTY(EditAnywhere, Category = "Impact Push Presets")
+	FHALImpactPushRules ImpactPushPresets;
 	bool Validate(FString& Error) const;
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;

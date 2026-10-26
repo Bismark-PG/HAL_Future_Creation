@@ -438,6 +438,7 @@ bool ASpringPunchGimmick::BeginPunchAttack()
 	if (GetNetMode() == NM_Client || !HasAuthority() || CurrentState != ESpringPunchState::Extending
 		|| !FMath::IsFinite(BaseDamage) || BaseDamage < 0 || BaseDamage > 10000
 		|| uint8(ImpactTier) > uint8(EHALImpactTier::Heavy)
+		|| !HALImpact::IsValidPushPreset(ImpactPushPreset)
 		|| !GetDefault<UVehicleKnockbackSettings>()->GetCollisionImpactRules(Rules)
 		|| Rules.Version != EHALImpactVersion::TieredV1)
 	{
@@ -451,6 +452,7 @@ bool ASpringPunchGimmick::BeginPunchAttack()
 	Source.FixedDamage = BaseDamage;
 	Source.Impact.Version = EHALImpactVersion::TieredV1;
 	Source.Impact.Tier = ImpactTier;
+	Source.Impact.PushPreset = ImpactPushPreset;
 	return PunchAction.Begin(*this, Source);
 }
 
@@ -469,6 +471,7 @@ FHALCombatHitResult ASpringPunchGimmick::ResolvePunchHit(const FHitResult& Hit)
 	Request.bApplyImpact = true;
 	Request.Impact.Mode = EHALImpactMode::ExplicitTier;
 	Request.Impact.Tier = PunchAction.GetSnapshot().Impact.Tier;
+	Request.Impact.PushPreset = PunchAction.GetSnapshot().Impact.PushPreset;
 	Request.Hit.SourceActor = this;
 	Request.Hit.TargetActor = Hit.GetActor();
 	Request.Hit.TargetPhysicsBody = Hit.GetActor()

@@ -24,6 +24,8 @@ struct HAL_FUTURE_CREATION_API FHALBombConfig
 	UPROPERTY(EditAnywhere, Category="Bomb")
 	EHALImpactTier ImpactTier = EHALImpactTier::Heavy;
 	UPROPERTY(EditAnywhere, Category="Bomb")
+	EHALImpactPushPreset ImpactPushPreset = EHALImpactPushPreset::Standard;
+	UPROPERTY(EditAnywhere, Category="Bomb")
 	bool bCanHitInstigator = true;
 	/** One instantaneous spherical pulse; no falloff or wall occlusion in the first version. */
 	bool IsValid() const;

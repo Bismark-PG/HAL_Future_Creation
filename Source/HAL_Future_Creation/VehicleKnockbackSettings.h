@@ -7,7 +7,7 @@
 #include "VehicleDefinition.h"
 #include "VehicleKnockbackSettings.generated.h"
 
-/** Project-wide impact thresholds and tier outcomes shared by every standard ball. */
+/** Shared tier responses, contact calibration and authored horizontal push presets. */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Vehicle Knockback"))
 class HAL_FUTURE_CREATION_API UVehicleKnockbackSettings : public UDeveloperSettings
 {
@@ -19,6 +19,7 @@ public:
 	bool InitializeRules();
 	bool GetRuntimeRules(FVehicleKnockbackConfig& OutRules) const;
 	bool GetCollisionImpactRules(FHALCollisionImpactRules& OutRules) const;
+	bool GetImpactPushRules(FHALImpactPushRules& OutRules) const;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& Event) override;
 	virtual bool CanEditChange(const FProperty* Property) const override;
@@ -61,6 +62,7 @@ private:
 	TObjectPtr<UCombatRulesDefinition> CachedDefinition;
 	FVehicleKnockbackConfig CachedRules;
 	FHALCollisionImpactRules CachedCollisionRules;
+	FHALImpactPushRules CachedPushRules;
 	bool bRulesInitialized = false;
 	bool bRulesValid = false;
 };

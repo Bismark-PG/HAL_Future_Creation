@@ -19,7 +19,8 @@ bool FHALBombConfig::IsValid() const
 {
 	return FMath::IsFinite(FuseSeconds) && FuseSeconds >= 0.1f && FuseSeconds <= 60
 		&& FMath::IsFinite(ExplosionRadius) && ExplosionRadius >= 1 && ExplosionRadius <= 5000
-		&& FMath::IsFinite(Damage) && Damage >= 0 && Damage <= 10000 && HALImpact::IsValidTier(ImpactTier);
+		&& FMath::IsFinite(Damage) && Damage >= 0 && Damage <= 10000 && HALImpact::IsValidTier(ImpactTier)
+		&& HALImpact::IsValidPushPreset(ImpactPushPreset);
 }
 
 float AHALBombActor::GetBodyRadius() const { return Body->GetScaledSphereRadius(); }
@@ -182,6 +183,7 @@ void AHALBombExplosion::Initialize(const FHALBombConfig& InConfig, const FHALAtt
 	Source.DamageMode = EHALDamageMode::SourceFixedDamage;
 	Source.Impact.Version = EHALImpactVersion::TieredV1;
 	Source.Impact.Tier = Config.ImpactTier;
+	Source.Impact.PushPreset = Config.ImpactPushPreset;
 	bInitialized = Action.Begin(*this, Source);
 }
 
@@ -223,6 +225,7 @@ FHALCombatHitResult AHALBombExplosion::ResolveTarget(AActor* Target)
 	Request.bApplyImpact = true;
 	Request.Impact.Mode = EHALImpactMode::ExplicitTier;
 	Request.Impact.Tier = Action.GetSnapshot().Impact.Tier;
+	Request.Impact.PushPreset = Action.GetSnapshot().Impact.PushPreset;
 	Request.Hit.SourceActor = this;
 	Request.Hit.TargetActor = Target;
 	Request.Hit.TargetPhysicsBody = Body;

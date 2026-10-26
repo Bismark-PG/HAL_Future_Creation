@@ -11,8 +11,8 @@ namespace
 {
 	TAutoConsoleVariable<int32> CVarImpactVisualLog(TEXT("hal.VehicleImpactVisualLog"), 0,
 		TEXT("0=off, 1=authority accepted impact visual events/consumption; no physics or damage changes."));
-	bool Newer(uint32 Value, uint32 Previous) { return Value && int32(Value - Previous) > 0; }
-	float SmoothUnit(float Value) { const float T = FMath::Clamp(Value, 0.f, 1.f); return T * T * (3 - 2 * T); }
+	bool IsNewerImpactSequence(uint32 Value, uint32 Previous) { return Value && int32(Value - Previous) > 0; }
+	float SmoothImpactUnit(float Value) { const float T = FMath::Clamp(Value, 0.f, 1.f); return T * T * (3 - 2 * T); }
 }
 
 bool HALVehiclePresentation::IsImpactReboundEligible(const FHALCombatHitResult& Result)
@@ -36,7 +36,7 @@ bool HALVehiclePresentation::ImpactLocalDirection(const FVector& WorldDirection,
 float HALVehiclePresentation::ImpactEnvelope(const FHALImpactReboundTier& Tier, float Age)
 {
 	if (!FMath::IsFinite(Age) || Age < 0 || Tier.RiseSeconds <= 0 || Tier.ReturnSeconds <= 0) { return 0; }
-	return Age < Tier.RiseSeconds ? SmoothUnit(Age / Tier.RiseSeconds) : 1 - SmoothUnit((Age - Tier.RiseSeconds) / Tier.ReturnSeconds);
+	return Age < Tier.RiseSeconds ? SmoothImpactUnit(Age / Tier.RiseSeconds) : 1 - SmoothImpactUnit((Age - Tier.RiseSeconds) / Tier.ReturnSeconds);
 }
 
 bool HALVehiclePresentation::AcceptImpact(const FHALImpactReboundConfig& Config, const FHALImpactVisualEvent& Event,
@@ -44,7 +44,7 @@ bool HALVehiclePresentation::AcceptImpact(const FHALImpactReboundConfig& Config,
 {
 	const auto* Tier = Config.GetTier(Event.Tier);
 	const FVector Direction(Event.LocalDirection);
-	if (!Config.bEnabled || !Tier || !Newer(Event.Sequence, State.LastSeenSequence) || !FMath::IsFinite(Age) || Age < 0
+	if (!Config.bEnabled || !Tier || !IsNewerImpactSequence(Event.Sequence, State.LastSeenSequence) || !FMath::IsFinite(Age) || Age < 0
 		|| Direction.ContainsNaN() || !Direction.IsNormalized() || FVector2D(Direction.X, Direction.Y).SizeSquared() < UE_KINDA_SMALL_NUMBER) { return false; }
 	// Retire identities even when their packet is late or the current pose cannot display them.
 	State.LastSeenSequence = Event.Sequence;
@@ -81,7 +81,7 @@ FHALImpactVisualOutput HALVehiclePresentation::AdvanceImpact(const FHALImpactReb
 		Pulse.Age += Delta;
 		float Value = ImpactEnvelope(*Tier, Pulse.Age);
 		if (Pulse.FadeAge >= 0)
-		{ Pulse.FadeAge += Delta; Value = Pulse.FadeStart * (1 - SmoothUnit(Pulse.FadeAge / Config.PoseFadeSeconds)); }
+		{ Pulse.FadeAge += Delta; Value = Pulse.FadeStart * (1 - SmoothImpactUnit(Pulse.FadeAge / Config.PoseFadeSeconds)); }
 		if (Pulse.FadeAge >= 0 ? Pulse.FadeAge >= Config.PoseFadeSeconds : Pulse.Age >= Tier->RiseSeconds + Tier->ReturnSeconds)
 		{ State.Pulses.RemoveAt(Index); continue; }
 		Out.Degrees.X += Value * Pulse.Direction.X * Tier->PitchDegrees * Config.PitchSign;

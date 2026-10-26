@@ -1,5 +1,9 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-10-26水平推送预设代码／构建／原生验证完成，待团队配置与真人距离初测。** 用户确认三档不变、Heavy＋近推／远推及旧球／弹簧拳兼容并授权；开工为干净`main/bff8753040a50b5e11811453a8692024b9ebb878`，此前VP-4B已提交。公共Combat DA增加Short／Standard／Long／ExtraLong倍率，默认0.5／固定1／1.5／2；球／拳／爆炸在原动作快照捕获预设，统一结算先降档再缩放水平目标再扣除自然响应，普通接触保持原稳定性路径，向上／翻转／伤害／脱球及骨骼幅度仍按既有规则。团队关闭Editor后已完成完整链接，最终Editor／Game与强制Unity构建成功，普通**77/77**、真实NetTest **Host／Client各1/1**，均0测试警告／失败。Host近推／远推实际X速度450／1350cm/s，两端均Heavy、HP100不变；Client观察窗口315.074／1350cm/s、36次重模拟。60 FPS上限／主机出站注入80ms不代表实测RTT或F4；NullRHI空中夹具不代表实际模型／驾驶距离验收。
+
+1154份保存资产SHA-256全同，Config／uproject／Build.cs保持，专用UE进程已退出；完整代码构建后未再修改源码。首轮Game的既有VP-4B Unity私有函数重名已修复；前两轮双端夹具每帧写阻尼干扰PT状态导致0/1超时，改为准备时一次性设置并隔离测试前地图扣血后，通过原断言；没有改生产物理Handler。首次失败和最终证据均保留，详见[规则／配置／验证](Combat/MVPB_Impact_Push_Presets_CN_v0.1.md)和[摘要](Combat/MVPB_Impact_Push_Presets_Verification_20261026.json)。原MSVC／C4996及引擎启动警告保留；0测试警告仅指报告。本轮未提交／Push。下一步团队手动配置Heavy＋Short／Long并作距离／画面初测，旧Standard不需重填；VP-4B画面反馈、VP-4C及F4仍按后续入口，以下旧“等待关闭／未链接／75项／未提交”保留各步时点。
+
 **2026-10-26 VP-4B有效冲击回弹代码／原生验证完成，当前待团队启用DA与画面初测。** 用户接受方案并明确授权施工；基点`main/5c84320c71977f86a97139e45a64063dac3be2d9`，保留开工前进度同步文档和接续JSON。统一ImpactReceiver在最终结果收尾发布有效档位与目标局部方向，复用现有表现组件／DA／Frame／AnimInstance及Chassis Rotation节点，新增默认关闭的Impact Rebound。免疫／None／普通支撑不播放，0伤害或自然追加补足为0的有效冲击仍可播放；不改变伤害、物理冲量、脱球或技能规则。服务器结果驱动、不做受击预测，序号／年龄去重、8条有限包络、严重倾斜／自救永久淡出及既有生命周期清理已实现。
 
 本机UE5.8.3-58210709，Editor／Game Win64 Development构建成功，本轮普通**75/75**、真实NetTest双端**Host／Client各1/1**，均0测试警告／失败。双端60 FPS上限、主机出站注入80 ms延迟，两端各自本车／观察车均恰好2次回弹并归零；客户端31次物理重模拟无额外回弹。1154份uasset／umap逐份SHA-256全同，Config／uproject／模块依赖保持，专用进程已退出。NullRHI／临时配置／空中隔离夹具只证明数据链路，未做实际画面、最新模型几何或完整正常驾驶组合验收；80 ms注入也不是实测RTT或F4。原MSVC／弃用及引擎启动警告保留，“0测试警告”指报告计数。详见[配置与本轮结果](Presentation/MVPB_Vehicle_Presentation_VP4B_Implementation_CN_v0.1.md)和[验证摘要](Presentation/MVPB_Vehicle_Presentation_VP4B_Verification_20261026.json)。**本轮未提交／Push**。
@@ -88,10 +92,10 @@
 
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
-| 开发阶段 | VP-1／自救、VP-2／VP-3／VP-4A既有基本反馈保持；VP-4B代码／两Target／75项及真实双端通过，当前待启用DA与画面初测。随后4C组合收尾；物理悬挂／自然辅助与F4未施工 |
-| 当前本机分支／代码提交 | `main / 5c84320`；2026-10-26快进接收15个提交后授权VP-4B，开工前两份接续改动保留。当前有本步源码／测试／文档修改，未提交／Push，未改保存资产 |
-| 引擎基线 | 本机UE `5.8.3-58210709`；本轮Editor／Game成功、普通75/75及NetTest双端各1/1。VP-3的67项／VP-4A的71项仍为UE5.8.2历史结果，不回填为完整画面／模型／四机验收 |
-| 本机运行前置 | 当前源码已完整重编Editor与Game Target；本机可启动新版Editor并手动启用Impact Rebound。其他设备先同步本步源码／文档并统一补丁／完整构建，之后使用相同配置；最新模型实际画面尚无本轮复测 |
+| 开发阶段 | VP-4B待实际画面反馈；水平推送预设代码／完整构建／77项及真实双端通过，待团队配置与真人距离／手感初测。随后4C组合收尾；物理悬挂／自然辅助与F4未施工 |
+| 当前本机分支／代码提交 | `main / bff8753`；此前VP-4B已提交，水平推送预设开工干净。当前本步源码／测试／文档未提交／Push，未改保存资产 |
+| 引擎基线 | 本机UE `5.8.3-58210709`；本步完整Editor／Game成功，最终77/77及双端各1/1；旧75项为VP-4B历史结果，四机／真人全矩阵未由此完成 |
+| 本机运行前置 | 本机新Editor DLL已链接，可重启Editor配置新预设；双方使用同一代码／补丁／保存配置。其他设备同步本步源码／文档后完整编译，不以LiveCoding处理新反射字段 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
 | GAS 当前实现 | `HALMovementBoostAbility`，ServerOnly施加可配非周期GE后立即结束，无默认费用／冷却，独立于debug；5游戏秒、+0.5／+0.25、按目标一层刷新及Avatar作用域。团队已在原Primary替换为加速GA；原免疫GA／GE／冷却及调试入口保留 |
 | 当前 HP／冲击 | 10-C伤害／快照保留；10-D同帧Internal读写已有28项自动化证据，用户2026-10-16确认击飞效果恢复。保留现有档位、水平补足和DA，各档实际响应后续调整；本次反馈未列双向角色／扰动明细 |
@@ -128,6 +132,7 @@
 | VP-3视觉悬挂 | 原两Target／普通67/67／双端各1/1保持；2026-10-23团队确认配置完成且画面初测无问题，ABP／DA已提交，见[反馈](Presentation/MVPB_Vehicle_Presentation_VP3_Implementation_CN_v0.1.md#7-团队接线与画面初测反馈2026-10-23) | 不要求重复接线；未据一般反馈补写逐场景／角色／FPS／扰动及四机通过，也无本次新编译／运行。物理悬挂未实现 |
 | VP-4A发射视觉回弹 | `3d42dd8`实现及团队调参已提交，10月23日基础画面初测通过，见[反馈](Presentation/MVPB_Vehicle_Presentation_VP4A_Implementation_CN_v0.1.md#7-团队画面初测与下一步2026-10-23)；本轮75项包含其原生回归 | 本轮未重做4A真人逐角色／FPS／拒绝／扰动或四机矩阵；旧885／887资产及5.8.2结果保留原时点，当前1154资产／模型修复不回填旧验收 |
 | VP-4B有效冲击回弹 | 方案已接受并授权；最终结果入口、档位／方向、支撑过滤、解析包络、去重通知／生命周期及合成完成，UE5.8.3两Target、75/75及真实双端各1/1，见[实现／配置](Presentation/MVPB_Vehicle_Presentation_VP4B_Implementation_CN_v0.1.md)与[证据](Presentation/MVPB_Vehicle_Presentation_VP4B_Verification_20261026.json) | 代码／原生验证完成；保存DA默认未启用，模型画面／真人手感待团队；本轮双端为NullRHI临时配置／空中隔离夹具，80ms主机出站注入，不等同实测RTT或F4。4C未施工 |
+| 水平推送预设扩展 | 三档＋Short／Standard／Long／ExtraLong，公共DA与球／拳／爆炸快照完成；完整两Target／强制Unity、77/77及真实双端各1/1通过，见[配置与证据](Combat/MVPB_Impact_Push_Presets_CN_v0.1.md) | 旧Standard固定×1，1154资产全同；前两轮夹具超时及修正留档，最终无测试警告／失败。实际模型／真人距离、驾驶组合和F4未验收 |
 | Car_01后续模型修复 | 最新`5c84320`已接收SKM_Car_01修复；当前模型文件哈希见[接续摘要](Presentation/MVPB_Project_Handoff_Review_20261026.json) | 本轮仅核对提交／文件，未重新导出骨骼／几何或运行画面，不以10月23日反馈代替修复后的新验收 |
 | Editor静态轮底校准 | 自动测量／预览、显式应用、事务撤销及共享／过期保护完成；本机两Target／11项工具回归通过，见[操作说明](Configuration/Vehicle_Visual_Alignment_Tool_CN_v0.1.md) | 只处理参考姿态与正立基准，无运行时校准或碰撞拟合；团队实际Apply／保存、新车型及各姿态画面仍待反馈，不替代VP-3／完整玩法矩阵 |
 | Car_01素材检查 | 2e4176d新增20份素材全部可加载；17骨骼直接父级符合约定，5823源顶点均单骨骼权重1，四轮绑定各自spin；未见缺失依赖，351资产未改，见[检查](Presentation/MVPB_Car01_AssetInspection_CN_v0.1.md)／[原始数据](Presentation/MVPB_Car01_AssetInspection_20261020.json) | 仅NullRHI只读几何／资产数据检查；无真实AnimGraph姿态／材质渲染／性能／玩法双端验证。1个LOD／12个材质section留待实际四车测量，PA保留但不作为当前车辆物理根 |
@@ -187,7 +192,7 @@
 
 **排期调整：用户决定将剩余10-F-4完整测试统一放到MVP-B收尾，当前不再以F4-A作为下一施工入口。** 用户随后已授权车辆表现代码侧准备与接口，VP-0代码核对／VP-1底座及原生验证完成，完整矩阵与门槛仍见[F4方案](Combat/MVPB_Phase10F4_Integration_Plan_CN_v0.1.md)，后置不等于最终验收通过。
 
-当前下一步为**VP-4B启用DA与基本画面初测**，按[实现文档第4／5节](Presentation/MVPB_Vehicle_Presentation_VP4B_Implementation_CN_v0.1.md#4-团队配置步骤)在原车型表现DA勾选Impact Rebound→Enabled，不增加AnimBP节点；检查前后／左右／斜向、Light／Medium／Heavy、免疫／降档、普通支撑及双端互看，严重倾斜／自救后不复播旧回弹。服务器有效结果驱动和本轮构建／原生数据链路已完成，不重复询问施工授权；真实后坐与模型回弹继续分开调参。获得反馈后进入VP-4C的A／B组合和生命周期收尾；四点物理悬挂／自然辅助与F4另行安排。
+当前下一步为**团队配置与真人初测**：按[推送配置](Combat/MVPB_Impact_Push_Presets_CN_v0.1.md#3-unreal-editor配置步骤)在原球DA或弹簧拳Class Defaults选择Heavy＋Short／Long，公共Combat DA集中调倍率；Standard保持原行为。先同车型平地静止、无输入／障碍，记录沿受力方向的水平距离，再检查驾驶中、刹车／手刹、腾空／墙角和双端互换；不承诺实战固定米数。VP-4B仍按[第4／5节](Presentation/MVPB_Vehicle_Presentation_VP4B_Implementation_CN_v0.1.md#4-团队配置步骤)检查启用DA后的实际画面，AnimBP不增加节点。获得反馈后进入VP-4C组合和生命周期收尾；四点物理悬挂／自然辅助与F4另行安排。
 
 **VP-2／VP-3基础表现链路保持**：俯仰初测和VP-3接线／画面初测通过，不推定全部画面组合验收。VP-4只增加装饰性车身回弹和必要表现通知，复用现有组件／DA；不会追加第二次后坐力或修改规则击飞。物理悬挂／自然有限落地辅助仍分开且尚未施工。
 

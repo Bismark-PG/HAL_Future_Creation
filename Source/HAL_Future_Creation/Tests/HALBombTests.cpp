@@ -100,6 +100,7 @@ bool FHALBombCombatTest::RunTest(const FString&)
 	TestTrue(TEXT("Configured explosion accepted"),First.bHitAccepted);
 	TestEqual(TEXT("Damage uses shared GAS HP"),Health->GetCurrentHP(),75.f);
 	TestEqual(TEXT("Authored heavy tier reaches receiver"),First.ImpactSummary.SourceTier,EHALImpactTier::Heavy);
+	TestEqual(TEXT("Existing bomb remains Standard"),First.ImpactSummary.PushPreset,EHALImpactPushPreset::Standard);
 	TestEqual(TEXT("Duplicate target rejected"),Explosion->ResolveTarget(Target).RejectReason,EHALHitRejectReason::Duplicate);
 	ASC->AddLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune);
 	const auto Immune = F.Explosion()->ResolveTarget(Target);
@@ -119,6 +120,12 @@ bool FHALBombCombatTest::RunTest(const FString&)
 	FHALAttackSourceSnapshot Attribution; Attribution.InstigatorActor=Far;
 	Far->SetActorLocation(FVector(100,0,100));
 	TestEqual(TEXT("Authored self exclusion"),F.Explosion(Config,Attribution)->ResolveTarget(Far).RejectReason,EHALHitRejectReason::ExcludedInstigator);
+	Config.bCanHitInstigator=true; Config.ImpactPushPreset=EHALImpactPushPreset::Long;
+	const auto Long = F.Explosion(Config)->ResolveTarget(Far);
+	FVehicleKnockbackConfig Table; GetDefault<UVehicleKnockbackSettings>()->GetRuntimeRules(Table);
+	FHALImpactPushRules Push; GetDefault<UVehicleKnockbackSettings>()->GetImpactPushRules(Push);
+	TestEqual(TEXT("Explosion captures optional Long preset"),Long.ImpactSummary.PushPreset,EHALImpactPushPreset::Long);
+	TestEqual(TEXT("Explosion uses shared Long multiplier"),Long.ImpactSummary.DesiredHorizontalDeltaSpeed,Table.HeavyTier.HorizontalDeltaSpeed*Push.LongMultiplier);
 	return true;
 }
 

@@ -58,6 +58,9 @@ protected:
 	/** Rule response uses the shared tier table, resistance and immunity. */
 	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Combat")
 	EHALImpactTier ImpactTier = EHALImpactTier::Medium;
+	/** Optional horizontal response. Standard keeps the existing saved punch behavior. */
+	UPROPERTY(EditDefaultsOnly, Category = "Spring Punch|Combat")
+	EHALImpactPushPreset ImpactPushPreset = EHALImpactPushPreset::Standard;
 
 	// ゲーム開始時、またはスポーン後にプレイを開始するときに呼び出される。
 	virtual void BeginPlay() override;

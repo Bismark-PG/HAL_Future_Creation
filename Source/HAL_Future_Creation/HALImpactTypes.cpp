@@ -2,6 +2,32 @@
 
 bool HALImpact::IsValidTier(EHALImpactTier Tier) { return uint8(Tier) <= uint8(EHALImpactTier::Heavy); }
 
+bool HALImpact::IsValidPushPreset(EHALImpactPushPreset Preset) { return uint8(Preset) <= uint8(EHALImpactPushPreset::ExtraLong); }
+
+float FHALImpactPushRules::GetMultiplier(EHALImpactPushPreset Preset) const
+{
+	switch (Preset)
+	{
+	case EHALImpactPushPreset::Standard: return 1;
+	case EHALImpactPushPreset::Short: return ShortMultiplier;
+	case EHALImpactPushPreset::Long: return LongMultiplier;
+	case EHALImpactPushPreset::ExtraLong: return ExtraLongMultiplier;
+	default: return -1; // Invalid content must never silently become Standard.
+	}
+}
+
+bool FHALImpactPushRules::Validate(FString& Error) const
+{
+	if (!FMath::IsFinite(ShortMultiplier) || ShortMultiplier < 0 || ShortMultiplier > 1
+		|| !FMath::IsFinite(LongMultiplier) || LongMultiplier < 1 || LongMultiplier > 3
+		|| !FMath::IsFinite(ExtraLongMultiplier) || ExtraLongMultiplier < LongMultiplier || ExtraLongMultiplier > 3)
+	{
+		Error = TEXT("Horizontal push multipliers require Short in 0..1 and 1 <= Long <= ExtraLong <= 3; all finite. Standard is fixed at 1.");
+		return false;
+	}
+	return true;
+}
+
 EHALImpactTier HALImpact::Reduce(EHALImpactTier Source, int32 Reduction, bool bImmune)
 {
 	return !IsValidTier(Source) || bImmune ? EHALImpactTier::None
@@ -27,9 +53,10 @@ bool FHALVehicleImpactConfig::Validate(FString& Error) const
 
 bool FHALAuthoredImpactConfig::Validate(FString& Error) const
 {
-	if (uint8(Version) > 1 || !HALImpact::IsValidTier(Tier))
+	if (uint8(Version) > 1 || !HALImpact::IsValidTier(Tier) || !HALImpact::IsValidPushPreset(PushPreset)
+		|| (Version == EHALImpactVersion::Legacy && PushPreset != EHALImpactPushPreset::Standard))
 	{
-		Error = TEXT("Authored impact needs a known migration version and tier.");
+		Error = TEXT("Authored impact needs a known version/tier/push preset; non-Standard push requires TieredV1.");
 		return false;
 	}
 	return true;

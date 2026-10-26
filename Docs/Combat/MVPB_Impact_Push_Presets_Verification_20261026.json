@@ -1,0 +1,442 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "timezone": "Asia/Tokyo",
+  "branch": "main",
+  "git_base": "bff8753040a50b5e11811453a8692024b9ebb878",
+  "engine": "5.8.3-58210709+++UE5+Release-5.8",
+  "initial_worktree": "Clean",
+  "authorization": "User accepted tier + horizontal response preset, backward compatibility for existing ball/punch content, and explicitly authorized implementation.",
+  "state": {
+    "code": "Complete",
+    "game_build": "Succeeded",
+    "editor_full_link": "Succeeded",
+    "runtime_automation": "Passed",
+    "team_asset_configuration_and_rendered_gameplay": "Pending",
+    "VP4C_started": false,
+    "F4": "Deferred",
+    "committed_or_pushed": false
+  },
+  "rules": {
+    "Standard": 1,
+    "Short_default": 0.5,
+    "Long_default": 1.5,
+    "ExtraLong_default": 2,
+    "order": "Immunity/reduction -> effective tier -> multiply horizontal target -> subtract natural response -> nonnegative supplement",
+    "ordinary_contact": "Standard only; existing restitution/support/contact episode unchanged",
+    "unmodified_responses": "Damage, tier/drop threshold, upward speed, flips and VP4B amplitude remain independent of preset",
+    "sources": "Ball launch, punch start, bomb explosion initialization capture preset in existing attack snapshot",
+    "network": "Resolved FVehicleImpactAction reused without protocol change; diagnostic summary adds preset and desired horizontal target"
+  },
+  "builds": {
+    "Game_Initial": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Game_Initial.log",
+        "bytes": 45901,
+        "sha256": "C523269A0406FFFA5F0741FF1B44FA8BD192CE0E7832CD37417921C624469F04"
+      },
+      "result": "Failed (OtherCompilationError)",
+      "compiler_errors": [
+        "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\HALVehicleLaunchPresentation.cpp(12,7): error C2084: 函数“bool `anonymous-namespace'::Newer(uint32,uint32)”已有主体",
+        "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\HALVehicleLaunchPresentation.cpp(13,8): error C2084: 函数“float `anonymous-namespace'::SmoothUnit(float)”已有主体",
+        "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\HALVehicleLaunchPresentation.cpp(30,19): error C2568: '-': 无法解析函数重载",
+        "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\HALVehicleLaunchPresentation.cpp(35,26): error C4551: 缺少参数列表的函数调用",
+        "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\HALVehicleLaunchPresentation.cpp(47,6): error C4551: 缺少参数列表的函数调用",
+        "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\HALVehicleLaunchPresentation.cpp(76,47): error C2568: '-': 无法解析函数重载"
+      ],
+      "compiler_warning_codes": [
+        "C4996"
+      ],
+      "seconds": "105.24",
+      "linked_editor_DLL": false
+    },
+    "Game_Final": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Game_Final.log",
+        "bytes": 18174,
+        "sha256": "C16F32E6A3F5965E902AE888F0B550D8FE577F1D673CD3EF2ACE859A22FDEFFF"
+      },
+      "result": "Succeeded",
+      "compiler_errors": [],
+      "compiler_warning_codes": [
+        "C4996"
+      ],
+      "seconds": "32.45",
+      "linked_editor_DLL": false
+    },
+    "Game_Unity": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Game_Unity.log",
+        "bytes": 35079,
+        "sha256": "84D3C710BB9945DB0210FE202CD29A92040993173A9930F898540ED839B3E582"
+      },
+      "result": "Succeeded",
+      "compiler_errors": [],
+      "compiler_warning_codes": [
+        "C4996"
+      ],
+      "seconds": "37.77",
+      "linked_editor_DLL": false
+    },
+    "Editor_CompileOnly": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Editor_CompileOnly.log",
+        "bytes": 49768,
+        "sha256": "35827B2DC88DA452D176D483EF3783A3CB9BDFAAD0F90464AD8415260DBF7511"
+      },
+      "result": "Succeeded",
+      "compiler_errors": [],
+      "compiler_warning_codes": [
+        "C4996"
+      ],
+      "seconds": "103.47",
+      "linked_editor_DLL": false
+    },
+    "Editor_Final": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Editor_Final.log",
+        "bytes": 11789,
+        "sha256": "91C780E385913D3C1E8BA72180383D939DBF38595EA6ACBC1432F9D9691EDA14"
+      },
+      "result": "Succeeded",
+      "compiler_errors": [],
+      "compiler_warning_codes": [],
+      "seconds": "2.98",
+      "linked_editor_DLL": true
+    },
+    "Editor_NetworkProbe": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Editor_NetworkProbe.log",
+        "bytes": 9182,
+        "sha256": "42DF61A20CEAE0C252741F1874F79BE2187F1B09F396624EAF9DFF6C6DAEC317"
+      },
+      "result": "Succeeded",
+      "compiler_errors": [],
+      "compiler_warning_codes": [
+        "C4996"
+      ],
+      "seconds": "6.33",
+      "linked_editor_DLL": true
+    },
+    "Game_NetworkProbe": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Game_NetworkProbe.log",
+        "bytes": 14151,
+        "sha256": "99561E3A6D9C8BDB919F30E3B6C5C93FC9665BF34E2DFC54AE4B6821709C09A5"
+      },
+      "result": "Succeeded",
+      "compiler_errors": [],
+      "compiler_warning_codes": [
+        "C4996"
+      ],
+      "seconds": "20.95",
+      "linked_editor_DLL": false
+    },
+    "Editor_OneTimeSetup": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Editor_OneTimeSetup.log",
+        "bytes": 9181,
+        "sha256": "FC7ED178D0C67EFBB41649FD294333B426ED221794D762BE23288A565BA59485"
+      },
+      "result": "Succeeded",
+      "compiler_errors": [],
+      "compiler_warning_codes": [
+        "C4996"
+      ],
+      "seconds": "6.13",
+      "linked_editor_DLL": true
+    },
+    "Game_FinalFixture": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Game_FinalFixture.log",
+        "bytes": 14115,
+        "sha256": "E01B05407A49BB37AEF91543D9C302BE017BC738DE8E5EB414163685D0226097"
+      },
+      "result": "Succeeded",
+      "compiler_errors": [],
+      "compiler_warning_codes": [
+        "C4996"
+      ],
+      "seconds": "23.56",
+      "linked_editor_DLL": false
+    }
+  },
+  "runtime_reports": {
+    "Automation_AfterFixtureFix": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Automation_AfterFixtureFix/index.json",
+        "bytes": 34999,
+        "sha256": "51806E6689BED0755744B0DFCD30640207D92B995D9D5AC7585AD3FEB6C604AA"
+      },
+      "log": {
+        "path": "Saved/ImpactPushPresets/20261026/Automation_AfterFixtureFix.log",
+        "bytes": 371256,
+        "sha256": "E7269B94E86EE7B60C00418EEC791192B8DFF197BEAD1F2D73BE7158BB9D33FC"
+      },
+      "counts": {
+        "succeeded": 77,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0
+      },
+      "duration_seconds": 17.97119140625
+    },
+    "Network_Final_Host": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Network_Final_Host/index.json",
+        "bytes": 1100,
+        "sha256": "7D78C8E7798818257F9E03AD07B564C318F94255D4E80080F7BA317673090A28"
+      },
+      "log": {
+        "path": "Saved/ImpactPushPresets/20261026/Network_Final_Host.log",
+        "bytes": 194497,
+        "sha256": "881647B6F07AE8CADED338B7BFE688C5177A193E303D14E91D4769A6B21EBD9E"
+      },
+      "counts": {
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0
+      },
+      "duration_seconds": 4.908093452453613,
+      "summary_lines": [
+        "]LogTemp: Display: HAL ImpactPush smoke: Host=1 Complete=1 ShortTarget=450.000 LongTarget=1350.000 ShortPeak=450.000 LongPeak=1350.000 BothHeavy=1 HP=100/100 Resimulations=0"
+      ],
+      "requested_exit_zero": true
+    },
+    "Network_Final_Client": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Network_Final_Client/index.json",
+        "bytes": 1100,
+        "sha256": "FA563776370EAC71AE5D3EA3A92B331259D19FB23A0A61F14DE98123919A195E"
+      },
+      "log": {
+        "path": "Saved/ImpactPushPresets/20261026/Network_Final_Client.log",
+        "bytes": 190411,
+        "sha256": "3D14B7FF113B2EA48A136D546D3A0623AA34BCFEB90F705DC13FAA774638BDFE"
+      },
+      "counts": {
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0
+      },
+      "duration_seconds": 4.794889450073242,
+      "summary_lines": [
+        "]LogTemp: Display: HAL ImpactPush smoke: Host=0 Complete=1 ShortTarget=450.000 LongTarget=1350.000 ShortPeak=315.074 LongPeak=1350.000 BothHeavy=1 HP=100/100 Resimulations=36"
+      ],
+      "requested_exit_zero": true
+    }
+  },
+  "prior_run_reports": {
+    "Automation_Final": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Automation_Final/index.json",
+        "bytes": 35003,
+        "sha256": "6601F6274B53F95A8BBE873882E45B95541317AF8C06AC8DA3019521711EECE8"
+      },
+      "log": {
+        "path": "Saved/ImpactPushPresets/20261026/Automation_Final.log",
+        "bytes": 371185,
+        "sha256": "FF116DCB2071833FFFF9C5B6315696276868AE37F4933402399C859C57FE5352"
+      },
+      "counts": {
+        "succeeded": 77,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0
+      }
+    },
+    "Network_Host": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Network_Host/index.json",
+        "bytes": 2208,
+        "sha256": "038878B65BE78CC1F8590BB3BFCF97CE0580D0B150D766377D9B4CF548821AD6"
+      },
+      "log": {
+        "path": "Saved/ImpactPushPresets/20261026/Network_Host.log",
+        "bytes": 195120,
+        "sha256": "95DD090CAA99AB4496F50367A9D5C6BD50F7987DDC9ED12E49A46D3F2D8EAB58"
+      },
+      "counts": {
+        "succeeded": 0,
+        "succeededWithWarnings": 0,
+        "failed": 1,
+        "notRun": 0
+      }
+    },
+    "Network_Client": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Network_Client/index.json",
+        "bytes": 2208,
+        "sha256": "E0B5CE3693A606AEB62D0CF75476EFB6649948EB37B4CACB692CCC06216FCFB5"
+      },
+      "log": {
+        "path": "Saved/ImpactPushPresets/20261026/Network_Client.log",
+        "bytes": 191372,
+        "sha256": "766C9A7CF17E1F3BC768452AF62402EC2454DADF1064FA604574107A02B03894"
+      },
+      "counts": {
+        "succeeded": 0,
+        "succeededWithWarnings": 0,
+        "failed": 1,
+        "notRun": 0
+      }
+    },
+    "Network_Probe_Host": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Network_Probe_Host/index.json",
+        "bytes": 26197,
+        "sha256": "B880D729EFA4848E80441C5EE4888D35F2D5FD5AE97710513ACF451628A6C635"
+      },
+      "log": {
+        "path": "Saved/ImpactPushPresets/20261026/Network_Probe_Host.log",
+        "bytes": 223762,
+        "sha256": "8A128C6A2EF5603FC134601DD521970A667490106960BAA88C7AC7BDD1E40A78"
+      },
+      "counts": {
+        "succeeded": 0,
+        "succeededWithWarnings": 0,
+        "failed": 1,
+        "notRun": 0
+      }
+    },
+    "Network_Probe_Client": {
+      "artifact": {
+        "path": "Saved/ImpactPushPresets/20261026/Network_Probe_Client/index.json",
+        "bytes": 26108,
+        "sha256": "E0C0F5C23EE15796D4D7319E8947F4D4F4BF9B78DE6095A59C10654A4A2D0142"
+      },
+      "log": {
+        "path": "Saved/ImpactPushPresets/20261026/Network_Probe_Client.log",
+        "bytes": 219380,
+        "sha256": "EB645834D812E1E502E671BAEB3ACB955F336AD4C2F0870947B66E63EE5A8F40"
+      },
+      "counts": {
+        "succeeded": 0,
+        "succeededWithWarnings": 0,
+        "failed": 1,
+        "notRun": 0
+      }
+    }
+  },
+  "assets": {
+    "before_count": 1154,
+    "after_count": 1154,
+    "added": [],
+    "missing": [],
+    "changed": []
+  },
+  "baseline_manifest": {
+    "path": "Saved/ImpactPushPresets/20261026/Baseline.json",
+    "bytes": 238991,
+    "sha256": "2C92A6DB37C09B36F4201F9FD1C4551A2F924C42462AEBA01E61FDEFC3D788F8"
+  },
+  "network_conditions": {
+    "port": 7834,
+    "fps_cap": 60,
+    "host_outgoing_packet_lag_ms": 80,
+    "measured_rtt_ms": null,
+    "loss_jitter_injected": false,
+    "fixture": "Actual NetTest saved player BP and ListenServer/client. Two separated upright high-altitude bodies, gravity/damping configured once; authority resets pre-test map damage to 100 HP. Real resolver queues Heavy Short and Heavy Long actions, then source destroyed.",
+    "measurements": "Host X speeds 450/1350 cm/s. Client observed maxima before readiness 315.074/1350 cm/s, observer still interpolating; not final steady-state maxima or measured travel distances. Client resimulations 36.",
+    "coverage": "Replicated final presets/tiers/targets, actual local/observer velocities and unchanged HP; no client hit calculation. NullRHI, not rendered gameplay or F4."
+  },
+  "protected_config_project_build_changes": [],
+  "changed_source_artifacts": [
+    {
+      "path": "Source/HAL_Future_Creation/BasicBallActor.cpp",
+      "bytes": 19890,
+      "sha256": "3A5AA198B5BA53F693062F774E7C8816C19E685039F0C00CDE56EB6E63396AB9"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALBombActor.cpp",
+      "bytes": 9816,
+      "sha256": "898BD789BFD3B836947075DCA7395191239FF803DF7B9A661612B02FD23F27F2"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALBombActor.h",
+      "bytes": 4320,
+      "sha256": "978C0257751871D2DEA0F99FA644C837D9B4AE5B0DE0457A55534BE2DE593B61"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactReceiverComponent.cpp",
+      "bytes": 16523,
+      "sha256": "804C363E95AB78B957F4CF10C16084871851D06CF3F6C2C9CE032B132530525C"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactTypes.cpp",
+      "bytes": 4562,
+      "sha256": "3AB90C79EBEEF1ADA9981158B9A8A28EA6276164BF666A741A8BB28324830B58"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactTypes.h",
+      "bytes": 6198,
+      "sha256": "83628DB01A6907285202A3EA0014030FFE222BE724C143897C06F4916CF455C1"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleImpactPresentation.cpp",
+      "bytes": 8869,
+      "sha256": "A4A4ED6DD41E12BA3B0BF2EADA6566CE06C6295767545EE1AED7343FADDD6B7A"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/SpringPunchGimmick.cpp",
+      "bytes": 16418,
+      "sha256": "2FF3EBCAED221E27A066DD0DB8AAF5F524C697472D8CBEA0FC9679CF453D5ED5"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/SpringPunchGimmick.h",
+      "bytes": 7682,
+      "sha256": "6B6C9754A5BE5DEDB9C2513EAAD9FDE55A752DEAB5D543CA70238AE9EF06E47C"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALBombTests.cpp",
+      "bytes": 9845,
+      "sha256": "60A02B11194A4A2F77A7C3080C5AA25E89D093D91C8C10FB9FE06467A18C150E"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALImpactPushNetworkTests.cpp",
+      "bytes": 9774,
+      "sha256": "ADE37FAC19C0FA57ED3DB98CA42BBB1CF5EE3E8D26DA404657BC253AC00D9891"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALImpactTests.cpp",
+      "bytes": 55933,
+      "sha256": "51AF72551CACDF36D43A715E492CCCB1F9C04B983BD42D3CDE03E06063FA4B4B"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleDefinition.cpp",
+      "bytes": 8701,
+      "sha256": "51EF12E30D50C38F403B684EF57EDF0569E0DBBA98C2CC5DCBB020AB7E29063F"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleDefinition.h",
+      "bytes": 11884,
+      "sha256": "94D26FF3C76BBC41F737E6233BD08F60B7414C376F148A604D4FF7A269D3A52D"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleKnockbackSettings.cpp",
+      "bytes": 3763,
+      "sha256": "EBE9CA190763160983B429B808609F3C26EB1B20ACE69EE6E9C5740F97D3D571"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleKnockbackSettings.h",
+      "bytes": 2866,
+      "sha256": "7364A985043067D24B7E560BCCEB6461DF4736BA6486591E42147DD8A7A3A5DC"
+    }
+  ],
+  "final_source_mtimes_not_newer_than_verified_editor_and_game_builds": true,
+  "dedicated_UE_processes_remaining_after_final_checks": false,
+  "build_repair": "Initial Game build exposed committed VP4B launch/impact anonymous Newer/SmoothUnit collisions in Unity; impact helper names made unique without behavior changes; forced non-adaptive Unity verification recorded separately.",
+  "network_fixture_repair": "First two network pairs timed out (0/1 on each role); second diagnostics confirmed correct replicated tiers/presets/targets but zero V. Every-frame GT damping writes in the fixture were marking Chaos dynamic miscellaneous state dirty. Moving property setup to preparation only passed unchanged velocity assertions; production physical handler unchanged. Pre-start arena SpringPunch damage also reset in isolated fixture. Failed reports/logs retained.",
+  "limitations": [
+    "Multiplier changes velocity response, not guaranteed travel distance; existing motion/collisions/driver input remain.",
+    "No asset/Blueprint/map modifications; Standard fixed x1 and missing saved fields use defaults.",
+    "No new test result is implied by historical VP4B 75-test/network records.",
+    "80ms configured outgoing delay is not measured RTT; no jitter/loss/four-PC test. Human near/far distance calibration and actual model view pending.",
+    "Existing MSVC preferred-version/C4996 warnings remain; test warning counts are reported separately."
+  ]
+}

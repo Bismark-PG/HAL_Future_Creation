@@ -506,6 +506,7 @@ void ABasicBallActor::OnPhysicsRootHit(
 	{
 		Request.Impact.Mode = EHALImpactMode::ExplicitTier;
 		Request.Impact.Tier = LaunchAction.GetSnapshot().Impact.Tier;
+		Request.Impact.PushPreset = LaunchAction.GetSnapshot().Impact.PushPreset;
 	}
 	Request.KnockbackStrengthMultiplier = KnockbackStrengthMultiplier;
 	const FHALCombatHitResult Resolution = FCombatResolver::ResolveCombatHit(LaunchAction, Request);

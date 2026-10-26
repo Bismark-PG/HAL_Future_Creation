@@ -114,6 +114,113 @@ namespace
 	}
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALImpactPushConfigTest, "HAL.FutureCreation.Impact.PushPresets.DefaultsAndValidation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALImpactPushConfigTest::RunTest(const FString&)
+{
+	FHALImpactPushRules Rules;
+	FString Error;
+	TestTrue(TEXT("New shared fields are valid without resaving old assets"), Rules.Validate(Error));
+	TestEqual(TEXT("Old source default stays Standard"), FHALAuthoredImpactConfig().PushPreset, EHALImpactPushPreset::Standard);
+	TestEqual(TEXT("Old request default stays Standard"), FHALImpactProposal().PushPreset, EHALImpactPushPreset::Standard);
+	TestEqual(TEXT("Standard is exactly original x1"), Rules.GetMultiplier(EHALImpactPushPreset::Standard), 1.f);
+	Rules.ShortMultiplier = 0;
+	Rules.LongMultiplier = 3;
+	Rules.ExtraLongMultiplier = 3;
+	TestTrue(TEXT("Zero horizontal short and bounded long endpoints allowed"), Rules.Validate(Error));
+	Rules.ExtraLongMultiplier = 2;
+	TestFalse(TEXT("Presets cannot invert Long and ExtraLong"), Rules.Validate(Error));
+	Rules = FHALImpactPushRules(); Rules.ShortMultiplier = std::numeric_limits<float>::quiet_NaN();
+	TestFalse(TEXT("NaN rejected"), Rules.Validate(Error));
+	Rules = FHALImpactPushRules(); Rules.LongMultiplier = std::numeric_limits<float>::infinity();
+	TestFalse(TEXT("Infinity rejected"), Rules.Validate(Error));
+	Rules = FHALImpactPushRules(); Rules.ShortMultiplier = -1;
+	TestFalse(TEXT("Negative response rejected"), Rules.Validate(Error));
+	Rules = FHALImpactPushRules(); Rules.ExtraLongMultiplier = 3.01f;
+	TestFalse(TEXT("Unbounded response rejected"), Rules.Validate(Error));
+	FHALAuthoredImpactConfig Config;
+	Config.PushPreset = EHALImpactPushPreset::Long;
+	TestFalse(TEXT("Legacy must not silently ignore an authored preset"), Config.Validate(Error));
+	Config.Version = EHALImpactVersion::TieredV1;
+	TestTrue(TEXT("Tiered source accepts Long"), Config.Validate(Error));
+	Config.PushPreset = EHALImpactPushPreset(255);
+	TestFalse(TEXT("Unknown enum rejected"), Config.Validate(Error));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALImpactPushResponseTest, "HAL.FutureCreation.Impact.PushPresets.CombinationsResistanceAndNaturalResponse",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALImpactPushResponseTest::RunTest(const FString&)
+{
+	FImpactWorld F;
+	F.Rules->ImpactPushPresets.ShortMultiplier = .4f;
+	F.Rules->ImpactPushPresets.LongMultiplier = 1.6f;
+	F.Rules->ImpactPushPresets.ExtraLongMultiplier = 2.2f;
+	F.Reload();
+	FHALImpactPushRules PushRules;
+	TestTrue(TEXT("Shared DA presets reach the cached runtime rules"), F.Settings->GetImpactPushRules(PushRules));
+	TestEqual(TEXT("Shared DA custom value retained"), PushRules.LongMultiplier, 1.6f);
+	FVehicleKnockbackConfig Table;
+	F.Settings->GetRuntimeRules(Table);
+	auto* Source = F.World->SpawnActor<AActor>();
+	const auto Send = [&](APassiveTestVehicle* Target, EHALImpactTier Tier, EHALImpactPushPreset Preset,
+		float Natural = 0.f, EHALImpactMode Mode = EHALImpactMode::ExplicitTier)
+	{
+		FHALCombatAction Action; Begin(Action, Source);
+		auto Hit = Request(Action, Target, Tier);
+		Hit.Impact.PushPreset = Preset; Hit.Impact.Mode = Mode;
+		Hit.Hit.NormalImpulse = FVector::ForwardVector * Natural * Body(Target)->GetMass();
+		return FCombatResolver::ResolveCombatHit(Action, Hit);
+	};
+	for (const auto Tier : {EHALImpactTier::Light, EHALImpactTier::Medium, EHALImpactTier::Heavy})
+	{
+		const auto& Base = Table.GetTierDefinition(HALImpact::ToLegacy(Tier));
+		for (const auto Preset : {EHALImpactPushPreset::Standard, EHALImpactPushPreset::Short, EHALImpactPushPreset::Long, EHALImpactPushPreset::ExtraLong})
+		{
+			auto* Target = F.Target();
+			const float Mass = Body(Target)->GetMass();
+			const auto Result = Send(Target, Tier, Preset);
+			const float Desired = Base.HorizontalDeltaSpeed * PushRules.GetMultiplier(Preset);
+			TestTrue(TEXT("All tier/preset combinations accepted"), Result.bHitAccepted && Result.bImpactApplied);
+			TestEqual(TEXT("Preset never changes effective tier"), Result.ImpactSummary.EffectiveTier, Tier);
+			TestEqual(TEXT("Preset remains visible in the final summary"), Result.ImpactSummary.PushPreset, Preset);
+			TestEqual(TEXT("Resolved target is scaled after tier selection"), Result.ImpactSummary.DesiredHorizontalDeltaSpeed, Desired);
+			TestTrue(TEXT("Only horizontal impulse scaled"), Result.RuleDeltaVelocity.Equals(FVector(Desired,0,0), .01));
+			TestEqual(TEXT("Upward launch still comes from the same tier"), Result.RuleMinimumUpwardSpeed, Base.TargetVerticalSpeed);
+			TestEqual(TEXT("Damage unchanged"), Result.ActualHPRemoved, 25.f);
+			TestEqual(TEXT("Mass unchanged"), Body(Target)->GetMass(), Mass);
+		}
+	}
+	auto* ReducedTarget = F.Target();
+	ASC(ReducedTarget)->SetNumericAttributeBase(UHALImpactAttributeSet::GetTierReductionAttribute(), 1);
+	const auto Reduced = Send(ReducedTarget, EHALImpactTier::Heavy, EHALImpactPushPreset::Long, 100);
+	const float ReducedDesired = Table.MediumTier.HorizontalDeltaSpeed * PushRules.LongMultiplier;
+	TestEqual(TEXT("Heavy Long reduced to Medium Long"), Reduced.ImpactSummary.EffectiveTier, EHALImpactTier::Medium);
+	TestTrue(TEXT("Scale target before subtracting natural response"), Reduced.RuleDeltaVelocity.Equals(FVector(FMath::Max(0.f, ReducedDesired-100),0,0), .01));
+	const auto Natural = Send(F.Target(), EHALImpactTier::Heavy, EHALImpactPushPreset::Short, 10000);
+	TestTrue(TEXT("Short never cancels a larger existing natural response"), Natural.bImpactApplied && Natural.RuleDeltaVelocity.IsNearlyZero());
+	auto* ImmuneTarget = F.Target(); ASC(ImmuneTarget)->AddLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune);
+	const auto Immune = Send(ImmuneTarget, EHALImpactTier::Heavy, EHALImpactPushPreset::ExtraLong);
+	TestTrue(TEXT("ExtraLong cannot bypass immunity"), !Immune.bImpactApplied && Immune.ImpactSummary.EffectiveTier == EHALImpactTier::None && Immune.RuleDeltaVelocity.IsNearlyZero());
+	TestEqual(TEXT("Immune impact still takes damage"), Immune.ActualHPRemoved, 25.f);
+	auto* DamageImmuneTarget = F.Target(); ASC(DamageImmuneTarget)->AddLooseGameplayTag(HALGameplayTags::State_Combat_DamageImmune);
+	const auto DamageImmune = Send(DamageImmuneTarget, EHALImpactTier::Heavy, EHALImpactPushPreset::Long);
+	TestTrue(TEXT("Damage immunity preserves Long impact"), DamageImmune.bImpactApplied && DamageImmune.ActualHPRemoved == 0);
+	const auto None = Send(F.Target(), EHALImpactTier::None, EHALImpactPushPreset::Long);
+	TestTrue(TEXT("None never gains a response"), !None.bImpactApplied && None.RuleDeltaVelocity.IsNearlyZero());
+	const auto Invalid = Send(F.Target(), EHALImpactTier::Heavy, EHALImpactPushPreset(255));
+	TestTrue(TEXT("Invalid preset blocks only impact, independently of damage"), !Invalid.bImpactApplied && Invalid.ActualHPRemoved == 25);
+	const auto Contact = Send(F.Target(), EHALImpactTier::Heavy, EHALImpactPushPreset::Long, 100, EHALImpactMode::PhysicalContact);
+	TestTrue(TEXT("Authored presets cannot enter ordinary collision response"), !Contact.bImpactApplied && Contact.ImpactOutcome == EHALImpactOutcome::InvalidMeasurement);
+	const auto Ordinary = Send(F.Target(), EHALImpactTier::Heavy, EHALImpactPushPreset::Standard, 100, EHALImpactMode::PhysicalContact);
+	TestEqual(TEXT("Custom presets never scale ordinary contact targets"), Ordinary.ImpactSummary.DesiredHorizontalDeltaSpeed, Table.HeavyTier.HorizontalDeltaSpeed);
+	F.Rules->ImpactPushPresets.ShortMultiplier = 0; F.Reload();
+	const auto ZeroHorizontal = Send(F.Target(), EHALImpactTier::Heavy, EHALImpactPushPreset::Short);
+	TestTrue(TEXT("Zero horizontal remains a Heavy vertical/flip action"), ZeroHorizontal.bImpactApplied && ZeroHorizontal.RuleDeltaVelocity.IsNearlyZero()
+		&& ZeroHorizontal.ImpactSummary.EffectiveTier == EHALImpactTier::Heavy && ZeroHorizontal.RuleMinimumUpwardSpeed == Table.HeavyTier.TargetVerticalSpeed);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALImpactTierTest, "HAL.FutureCreation.Impact.TiersCalibrationAndEnergyBudget",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FHALImpactTierTest::RunTest(const FString& Parameters)
@@ -308,6 +415,23 @@ bool FHALImpactBallPipelineTest::RunTest(const FString& Parameters)
 	Receiver->HandleContact(Body(Target), Ball, Ball->GetPhysicsRoot(), FVector(200000, 0, 0), Hit);
 	TestEqual(TEXT("Free-state vehicle callback merges into the attack contact"), Receiver->GetLastImpact().EventId, Accepted);
 	TestEqual(TEXT("One damage application"), ASC(Target)->GetSet<UHALHealthAttributeSet>()->GetCurrentHP(), 75.0f);
+	TestEqual(TEXT("Existing ball config stays Standard"), Receiver->GetLastImpact().PushPreset, EHALImpactPushPreset::Standard);
+	FVehicleKnockbackConfig Table; F.Settings->GetRuntimeRules(Table);
+	TestEqual(TEXT("Existing ball response unchanged"), Receiver->GetLastImpact().DesiredHorizontalDeltaSpeed, Table.HeavyTier.HorizontalDeltaSpeed);
+	// A second real launched ball captures its preset, just as it already captures its tier.
+	auto* FarBall = F.World->SpawnActor<ABasicBallActor>();
+	FarBall->RuntimeImpactConfig.Version = EHALImpactVersion::TieredV1;
+	FarBall->RuntimeImpactConfig.Tier = EHALImpactTier::Heavy;
+	FarBall->RuntimeImpactConfig.PushPreset = EHALImpactPushPreset::Long;
+	FarBall->DispatchBeginPlay();
+	TestTrue(TEXT("Far ball acquired"), FarBall->BeginControl(Launcher));
+	TestTrue(TEXT("Far ball launched"), FarBall->LaunchFromControl(Launcher, Launcher, FVector(1000,0,0)));
+	FarBall->RuntimeImpactConfig.PushPreset = EHALImpactPushPreset::Short;
+	auto* FarTarget = F.Target();
+	FarBall->OnPhysicsRootHit(FarBall->GetPhysicsRoot(), FarTarget, Body(FarTarget), FVector::ZeroVector, Hit);
+	const auto FarSummary = FarTarget->FindComponentByClass<UHALImpactReceiverComponent>()->GetLastImpact();
+	TestEqual(TEXT("Ball hit uses captured Long despite later content changes"), FarSummary.PushPreset, EHALImpactPushPreset::Long);
+	TestEqual(TEXT("Ball hit scales actual Heavy horizontal target"), FarSummary.DesiredHorizontalDeltaSpeed, Table.HeavyTier.HorizontalDeltaSpeed * F.Rules->ImpactPushPresets.LongMultiplier);
 
 	auto* Pawn = F.World->SpawnActor<ATestVehiclePawn>();
 	CastChecked<UStaticMeshComponent>(Pawn->GetRootComponent())->SetStaticMesh(
@@ -354,6 +478,14 @@ bool FHALImpactBallPipelineTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Effective Medium drops exactly once"), Drop.ImpactSummary.bBallDropped && Control->GetHeldBall() == nullptr);
 	TestEqual(TEXT("Dropped ball returns Free"), Held->GetBallState(), EBasicBallState::Free);
 	TestFalse(TEXT("Drop preserves existing reacquire lock"), Held->CanBeControlledBy(Pawn));
+	auto* HeldAgain = F.World->SpawnActor<ABasicBallActor>();
+	TestTrue(TEXT("New ball can be held for Short response check"), HeldAgain->BeginControl(Pawn));
+	Control->HeldBall = HeldAgain;
+	FHALCombatAction ShortAction; Begin(ShortAction, Hazard, 0);
+	auto ShortHit = Request(ShortAction, Pawn, EHALImpactTier::Heavy, false);
+	ShortHit.Impact.PushPreset = EHALImpactPushPreset::Short;
+	const auto ShortDrop = FCombatResolver::ResolveCombatHit(ShortAction, ShortHit);
+	TestTrue(TEXT("Short push still drops by effective Medium tier"), ShortDrop.ImpactSummary.EffectiveTier == EHALImpactTier::Medium && ShortDrop.ImpactSummary.bBallDropped && Control->GetHeldBall() == nullptr);
 	return true;
 }
 
@@ -377,6 +509,7 @@ bool FHALSpringPunchCombatTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Fixed damage and authored impact accepted"), First.bHitAccepted && First.bImpactApplied);
 	TestEqual(TEXT("Default damage"), First.ActualHPRemoved, 25.0f);
 	TestEqual(TEXT("Default tier"), First.ImpactSummary.EffectiveTier, EHALImpactTier::Medium);
+	TestEqual(TEXT("Saved/default punch stays Standard"), First.ImpactSummary.PushPreset, EHALImpactPushPreset::Standard);
 	TestEqual(TEXT("Same punch repeated callback rejected"), Punch->ResolvePunchHit(Hit(A)).RejectReason, EHALHitRejectReason::Duplicate);
 	TestTrue(TEXT("Same punch accepts second target"), Punch->ResolvePunchHit(Hit(B)).bHitAccepted);
 	Punch->EnterState(ESpringPunchState::Retracting);
@@ -421,6 +554,15 @@ bool FHALSpringPunchCombatTest::RunTest(const FString& Parameters)
 	Punch->PreviousHitBoxWorldLocation = FVector::ZeroVector;
 	Punch->ScanPunchHits();
 	TestEqual(TEXT("Repeated sweep cannot double damage"), ASC(B)->GetSet<UHALHealthAttributeSet>()->GetCurrentHP(), Before - 25);
+	Punch->BaseDamage = 0;
+	Punch->ImpactTier = EHALImpactTier::Heavy;
+	Punch->ImpactPushPreset = EHALImpactPushPreset::Long;
+	Punch->EnterState(ESpringPunchState::Extending);
+	Punch->ImpactPushPreset = EHALImpactPushPreset::Short;
+	const auto FarPunch = Punch->ResolvePunchHit(Hit(F.Target()));
+	FVehicleKnockbackConfig Table; F.Settings->GetRuntimeRules(Table);
+	TestEqual(TEXT("Punch captures preset at action start"), FarPunch.ImpactSummary.PushPreset, EHALImpactPushPreset::Long);
+	TestEqual(TEXT("Heavy far punch scales horizontal target only"), FarPunch.ImpactSummary.DesiredHorizontalDeltaSpeed, Table.HeavyTier.HorizontalDeltaSpeed * F.Rules->ImpactPushPresets.LongMultiplier);
 	Punch->EndPlay(EEndPlayReason::Destroyed);
 	TestFalse(TEXT("EndPlay closes action"), Punch->PunchAction.IsActive());
 	Punch->BaseDamage = -1;

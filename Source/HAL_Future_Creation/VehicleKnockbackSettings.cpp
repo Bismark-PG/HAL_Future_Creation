@@ -34,6 +34,7 @@ bool UVehicleKnockbackSettings::InitializeRules()
 	}
 	CachedRules = CachedDefinition->BallImpacts;
 	CachedCollisionRules = CachedDefinition->CollisionImpacts;
+	CachedPushRules = CachedDefinition->ImpactPushPresets;
 	bRulesValid = true;
 	return true;
 }
@@ -67,6 +68,19 @@ bool UVehicleKnockbackSettings::GetCollisionImpactRules(FHALCollisionImpactRules
 	}
 	if (ConfigurationSource != EVehicleConfigurationSource::Legacy) { return false; }
 	OutRules = FHALCollisionImpactRules();
+	return true;
+}
+
+bool UVehicleKnockbackSettings::GetImpactPushRules(FHALImpactPushRules& OutRules) const
+{
+	if (ConfigurationSource == EVehicleConfigurationSource::Definition)
+	{
+		if (!bRulesInitialized || !bRulesValid) { return false; }
+		OutRules = CachedPushRules;
+		return true;
+	}
+	if (ConfigurationSource != EVehicleConfigurationSource::Legacy) { return false; }
+	OutRules = FHALImpactPushRules();
 	return true;
 }
 

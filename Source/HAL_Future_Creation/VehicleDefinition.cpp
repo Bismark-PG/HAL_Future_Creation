@@ -162,7 +162,7 @@ const FVehicleKnockbackTierDefinition& FVehicleKnockbackConfig::GetTierDefinitio
 
 bool UCombatRulesDefinition::Validate(FString& Error) const
 {
-	return bReadyForUse ? (BallImpacts.Validate(Error) && CollisionImpacts.Validate(Error)) : Fail(Error, TEXT("CombatRules is not marked ReadyForUse after baseline comparison."));
+	return bReadyForUse ? (BallImpacts.Validate(Error) && CollisionImpacts.Validate(Error) && ImpactPushPresets.Validate(Error)) : Fail(Error, TEXT("CombatRules is not marked ReadyForUse after baseline comparison."));
 }
 
 #if WITH_EDITOR
