@@ -120,6 +120,19 @@ struct FHALPresentationTestAccess
 		return Result;
 	}
 	static const FHALLaunchVisualState& LaunchState(UHALVehiclePresentationComponent* Component) { return Component->LaunchState; }
+	static UHALVehiclePresentationComponent* EnableImpactProbe(ATestVehiclePawn* Pawn)
+	{
+		auto* Result = EnableProbe(Pawn);
+		Result->Config = DuplicateObject<UHALVehiclePresentationConfig>(Result->Config, Result);
+		Result->Config->ImpactRebound = FHALImpactReboundConfig(); Result->Config->ImpactRebound.bEnabled = true;
+		Result->Config->Chassis = FHALChassisPresentationConfig();
+		Result->Config->LaunchRebound = FHALLaunchReboundConfig();
+		Result->ImpactState.StartedCount = 0; // Fixture starts after isolated poses; retain duplicate watermark.
+		Result->ResetPose();
+		return Result;
+	}
+	static const FHALImpactVisualState& ImpactState(UHALVehiclePresentationComponent* Component) { return Component->ImpactState; }
+	static void ReceiveImpact(UHALVehiclePresentationComponent* Component, const FHALImpactVisualEvent& Event) { Component->ConsumeImpactRebound(Event); }
 	static void StartLaunch(ATestVehiclePawn* Pawn) { Pawn->OnLaunchStarted(FInputActionValue(true)); }
 	static bool GiveBall(ATestVehiclePawn* Pawn, ABasicBallActor* Ball)
 	{

@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-10-26",
+  "timezone": "Asia/Tokyo",
+  "scope": "Progress and cross-device sync review only; no compile, Unreal runtime, tests, DA field export or rendered model inspection",
+  "git": {
+    "branch": "main",
+    "before": "fc9f2b962e6f5144a822cbf7d22b32114583ac42",
+    "after": "5c84320c71977f86a97139e45a64063dac3be2d9",
+    "remote_main_observed_via_ls_remote": "5c84320c71977f86a97139e45a64063dac3be2d9",
+    "received_commit_count": 15,
+    "method": "git fetch origin main, then git merge --ff-only origin/main after clean worktree and no Editor/game/LiveCoding processes were observed",
+    "worktree_after_fast_forward": "clean; only this ignored recorder existed before documentation updates"
+  },
+  "engine_installed": {
+    "MajorVersion": 5,
+    "MinorVersion": 8,
+    "PatchVersion": 3,
+    "Changelist": 58210709,
+    "CompatibleChangelist": 55116800,
+    "IsLicenseeVersion": 0,
+    "IsPromotedBuild": 1,
+    "BranchName": "++UE5+Release-5.8"
+  },
+  "asset_count": 1154,
+  "stage": {
+    "VP1": "Completed with existing team feedback",
+    "VP2": "Native implementation and pitch visual initial test completed; parameters remain tunable",
+    "VP3": "Native implementation, saved ABP/DA and team basic visual initial test completed",
+    "VP4A": "Launch visual rebound implementation, DA tuning and team basic visual initial test completed",
+    "VP4B": "Effective impact rebound draft exists; not implemented or authorized",
+    "VP4C": "Not implemented; future combination and network cleanup validation",
+    "F4": "Full impairment and four-PC integration deferred to MVP-B final"
+  },
+  "historical_evidence": [
+    {
+      "path": "Docs/Presentation/MVPB_Vehicle_Presentation_VP3_Verification_20261022.json",
+      "engine": "5.8.2",
+      "ordinary_passed": 67,
+      "network_host_passed": 1,
+      "network_client_passed": 1
+    },
+    {
+      "path": "Docs/Presentation/MVPB_Vehicle_Presentation_VP4A_Verification_20261023.json",
+      "engine": "5.8.2",
+      "ordinary_passed": 71,
+      "network_host_passed": 1,
+      "network_client_passed": 1
+    }
+  ],
+  "team_feedback_sources": [
+    "Docs/Presentation/MVPB_Vehicle_Presentation_VP3_Implementation_CN_v0.1.md#7",
+    "Docs/Presentation/MVPB_Vehicle_Presentation_VP4A_Implementation_CN_v0.1.md#7"
+  ],
+  "files": [
+    {
+      "path": "Content/Blueprints/AnimBP/ABP_Car01.uasset",
+      "sha256": "4d990b3258b1105f6c7ceb6f7cdb0cf9f7fecdf162550056e9b71069b8a0138c",
+      "bytes": 269159
+    },
+    {
+      "path": "Content/Data/Car_Presentation/DA_Car01_Presentation.uasset",
+      "sha256": "9024766628fc1f571c53d00f410b254774e4f1c21734df53b97da7503ab30df2",
+      "bytes": 5908
+    },
+    {
+      "path": "Content/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.uasset",
+      "sha256": "47cebe2d804d08e5824d257816336c990e69270b83f8954f83e1f2930adb4285",
+      "bytes": 5038
+    },
+    {
+      "path": "Content/Assets/Cars/SKM_Car_01.uasset",
+      "sha256": "4a02a4e5e6295e41a42fe5ef3a9fb8a2f54254579f46e7ea2a7ec6efd3715a0a",
+      "bytes": 2354650
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleVisualSuspension.cpp",
+      "sha256": "e280bece2c315b49f4e8272aa76db447ed7f5e534c8142391889e0d8f25dc610",
+      "bytes": 8073
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleLaunchPresentation.cpp",
+      "sha256": "67df47a6b3da1afdb10a9c954ce8bb5f5853d98cbefe4baebac8ac843f6f36cd",
+      "bytes": 7824
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationConfig.h",
+      "sha256": "598d4063540a0d7388313f3d3f25ceaaba2233a3e876dc328d209813af2d4da6",
+      "bytes": 10068
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationComponent.cpp",
+      "sha256": "c5c163da919a8219fc4e83cc0ee45c8bc8fe9db9bc5ad62db396456ee2062aa6",
+      "bytes": 9887
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+      "sha256": "e082211f4c490fd241b163c53614cf858a60bd6c83b39d87b4dd23e0ce13af1b",
+      "bytes": 31066
+    }
+  ],
+  "limitations": [
+    "Saved presentation settings and player Definition hashes match the VP-4B draft snapshot; current numeric values were not exported",
+    "Latest5c84320 changes SKM_Car_01; no new post-model-fix geometry/pose/rendering validation performed",
+    "Historical5.8.2 reports are not new validation on this5.8.3 device",
+    "Old binaries were not rebuilt after fast-forward; complete Editor build before running newly received code/RPC schema",
+    "No new VP-4B feature implementation, asset editing, commit or push"
+  ]
+}

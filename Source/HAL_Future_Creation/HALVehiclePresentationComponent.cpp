@@ -106,6 +106,7 @@ void UHALVehiclePresentationComponent::ResetPose()
 	ChassisState = FHALChassisPresentationState();
 	// Keep the shot watermark: a delayed confirmation must not restart a cleared/expired shot.
 	LaunchState.Pulses.Reset();
+	ImpactState.Pulses.Reset(); // Preserve target-instance sequence watermark across pose/config resets.
 	LaunchResetLocalTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0;
 	for (float& Angle : SpinDegrees) { Angle = 0; }
 	for (float& Offset : SuspensionOffsets) { Offset = 0; }
@@ -200,8 +201,11 @@ void UHALVehiclePresentationComponent::TickComponent(float DeltaTime, ELevelTick
 	ChassisSample.bDrivingAllowed = bDrivingLeanAllowed;
 	HALVehiclePresentation::UpdateChassis(Config->Chassis, ChassisSample, DeltaTime, ChassisState);
 	Frame.LaunchPitchDegrees = HALVehiclePresentation::AdvanceLaunch(Config->LaunchRebound, DeltaTime, LaunchState);
-	Frame.ChassisRotation = HALVehiclePresentation::ComposeChassisRotation(Config->Chassis, ChassisState,
-		Config->LaunchRebound, Frame.LaunchPitchDegrees, Frame.CombinedChassisPitchDegrees);
+	const auto Impact = UpdateImpactRebound(DeltaTime);
+	Frame.ImpactPitchDegrees = float(Impact.Degrees.X);
+	Frame.ImpactRollDegrees = float(Impact.Degrees.Y);
+	Frame.ChassisRotation = HALVehiclePresentation::ComposeImpactRotation(Config->Chassis, ChassisState,
+		Config->LaunchRebound, Frame.LaunchPitchDegrees, Impact, Frame.CombinedChassisPitchDegrees, Frame.CombinedChassisRollDegrees);
 	Frame.ChassisPitchDegrees = ChassisState.PitchDegrees;
 	Frame.ChassisRollDegrees = ChassisState.RollDegrees;
 	Frame.bDrivingLeanActive = Config->Chassis.bEnabled && bDrivingLeanAllowed;

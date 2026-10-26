@@ -4,6 +4,45 @@
 #include "Engine/SkeletalMesh.h"
 #include "Misc/DataValidation.h"
 
+FHALImpactReboundConfig::FHALImpactReboundConfig()
+{
+	Medium.PitchDegrees = Medium.RollDegrees = 6; Medium.ReturnSeconds = .25f;
+	Heavy.PitchDegrees = Heavy.RollDegrees = 10; Heavy.ReturnSeconds = .32f;
+}
+
+const FHALImpactReboundTier* FHALImpactReboundConfig::GetTier(EHALImpactTier Tier) const
+{
+	switch (Tier)
+	{
+	case EHALImpactTier::Light: return &Light;
+	case EHALImpactTier::Medium: return &Medium;
+	case EHALImpactTier::Heavy: return &Heavy;
+	default: return nullptr;
+	}
+}
+
+bool FHALImpactReboundTier::Validate(FString& Error) const
+{
+	if (!FMath::IsFinite(PitchDegrees) || PitchDegrees < 0 || PitchDegrees > 30
+		|| !FMath::IsFinite(RollDegrees) || RollDegrees < 0 || RollDegrees > 30
+		|| !FMath::IsFinite(RiseSeconds) || RiseSeconds < .01f || RiseSeconds > .3f
+		|| !FMath::IsFinite(ReturnSeconds) || ReturnSeconds < .05f || ReturnSeconds > 2)
+	{ Error = TEXT("Impact rebound tiers require finite amplitudes 0..30deg and positive bounded rise/return times."); return false; }
+	return true;
+}
+
+bool FHALImpactReboundConfig::Validate(FString& Error) const
+{
+	if (!Light.Validate(Error) || !Medium.Validate(Error) || !Heavy.Validate(Error)) { return false; }
+	if (!FMath::IsFinite(PitchSign) || FMath::Abs(PitchSign) != 1 || !FMath::IsFinite(RollSign) || FMath::Abs(RollSign) != 1
+		|| !FMath::IsFinite(MinimumHorizontalDirection) || MinimumHorizontalDirection < .01f || MinimumHorizontalDirection > 1
+		|| !FMath::IsFinite(MinimumVehicleUpZ) || MinimumVehicleUpZ < .25f || MinimumVehicleUpZ > 1
+		|| !FMath::IsFinite(PoseFadeSeconds) || PoseFadeSeconds < .01f || PoseFadeSeconds > .5f
+		|| !FMath::IsFinite(MaximumEventAgeSeconds) || MaximumEventAgeSeconds < .05f || MaximumEventAgeSeconds > 2)
+	{ Error = TEXT("Impact rebound requires +/-1 signs and finite bounded direction, pose and age settings."); return false; }
+	return true;
+}
+
 bool FHALLaunchReboundConfig::Validate(FString& Error) const
 {
 	if (!FMath::IsFinite(PitchDegrees) || FMath::Abs(PitchDegrees) > 30
@@ -78,7 +117,7 @@ UHALVehiclePresentationConfig::UHALVehiclePresentationConfig()
 
 bool UHALVehiclePresentationConfig::ValidateSettings(FString& Error) const
 {
-	if (!Chassis.Validate(Error) || !Suspension.Validate(Error) || !LaunchRebound.Validate(Error)) { return false; }
+	if (!Chassis.Validate(Error) || !Suspension.Validate(Error) || !LaunchRebound.Validate(Error) || !ImpactRebound.Validate(Error)) { return false; }
 	auto Fail = [&Error](const TCHAR* Message) { Error = Message; return false; };
 	const FVector Scale = RelativeTransform.GetScale3D();
 	if (RelativeTransform.ContainsNaN() || !RelativeTransform.GetRotation().IsNormalized()

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HALImpactTypes.h"
+#include "Engine/NetSerialization.h"
 #include "HALVehiclePresentationTypes.generated.h"
 
 UENUM(BlueprintType)
@@ -8,6 +10,40 @@ enum class EHALVehicleWheel : uint8 { FL, FR, BL, BR };
 
 UENUM(BlueprintType)
 enum class EHALBoneAxis : uint8 { X, Y, Z };
+
+struct FHALImpactReboundConfig;
+struct FHALImpactReboundTier;
+struct FHALCombatHitResult;
+
+/** Authority result, already reduced for resistance. Direction is captured in target-local space. */
+USTRUCT()
+struct FHALImpactVisualEvent
+{
+	GENERATED_BODY()
+	UPROPERTY() uint32 Sequence = 0;
+	UPROPERTY() float ServerTimeSeconds = 0;
+	UPROPERTY() EHALImpactTier Tier = EHALImpactTier::None;
+	UPROPERTY() FVector_NetQuantizeNormal LocalDirection = FVector::ZeroVector;
+};
+
+struct FHALImpactVisualPulse
+{
+	EHALImpactTier Tier = EHALImpactTier::None;
+	FVector2D Direction = FVector2D::ZeroVector;
+	float Age = 0, FadeAge = -1, FadeStart = 0;
+};
+
+struct FHALImpactVisualState
+{
+	TArray<FHALImpactVisualPulse> Pulses;
+	uint32 LastSeenSequence = 0, StartedCount = 0;
+};
+
+struct FHALImpactVisualOutput
+{
+	FVector2D Degrees = FVector2D::ZeroVector;
+	FVector2D Weights = FVector2D::ZeroVector;
+};
 
 struct FHALChassisPresentationConfig;
 struct FHALVisualSuspensionConfig;
@@ -123,6 +159,9 @@ struct HAL_FUTURE_CREATION_API FHALVehiclePresentationFrame
 	/** Per-shot sum before final chassis composition limits; positive follows calibrated PitchSign. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Vehicle Presentation") float LaunchPitchDegrees = 0;
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Vehicle Presentation") float CombinedChassisPitchDegrees = 0;
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Vehicle Presentation") float CombinedChassisRollDegrees = 0;
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Vehicle Presentation") float ImpactPitchDegrees = 0;
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Vehicle Presentation") float ImpactRollDegrees = 0;
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Vehicle Presentation")
 	bool bSuspensionActive = false;
 	/** Actual visual scene queries this update: zero when disabled/tilted/recovering, otherwise four. */
@@ -136,6 +175,17 @@ struct HAL_FUTURE_CREATION_API FHALVehiclePresentationFrame
 
 namespace HALVehiclePresentation
 {
+	HAL_FUTURE_CREATION_API bool IsImpactReboundEligible(const FHALCombatHitResult& Result);
+	HAL_FUTURE_CREATION_API bool ImpactLocalDirection(const FVector& WorldDirection, const FQuat& TargetRotation,
+		float MinimumHorizontal, FVector& OutLocal);
+	HAL_FUTURE_CREATION_API float ImpactEnvelope(const FHALImpactReboundTier& Tier, float Age);
+	HAL_FUTURE_CREATION_API bool AcceptImpact(const FHALImpactReboundConfig& Config, const FHALImpactVisualEvent& Event,
+		float Age, bool bPoseAllowed, FHALImpactVisualState& State);
+	HAL_FUTURE_CREATION_API void FadeImpact(const FHALImpactReboundConfig& Config, FHALImpactVisualState& State);
+	HAL_FUTURE_CREATION_API FHALImpactVisualOutput AdvanceImpact(const FHALImpactReboundConfig& Config, float DeltaSeconds, FHALImpactVisualState& State);
+	HAL_FUTURE_CREATION_API FRotator ComposeImpactRotation(const FHALChassisPresentationConfig& Chassis,
+		const FHALChassisPresentationState& Driving, const FHALLaunchReboundConfig& LaunchConfig, float LaunchPitch,
+		const FHALImpactVisualOutput& Impact, float& OutPitch, float& OutRoll);
 	HAL_FUTURE_CREATION_API FRotator AxisRotation(EHALBoneAxis Axis, float Degrees);
 	HAL_FUTURE_CREATION_API float AdvanceWheel(float Angle, float SpeedCmPerSecond, float RadiusCm, float Sign, float DeltaSeconds);
 	HAL_FUTURE_CREATION_API float SmoothSteering(float Current, float Target, float ResponseSeconds, float DeltaSeconds);

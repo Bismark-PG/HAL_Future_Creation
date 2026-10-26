@@ -9,6 +9,40 @@ class USkeletalMesh;
 class UHALVehicleAnimInstance;
 struct FReferenceSkeleton;
 
+/** Per-effective-tier cosmetic envelope, independent of gameplay impact strength. */
+USTRUCT(BlueprintType)
+struct HAL_FUTURE_CREATION_API FHALImpactReboundTier
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, Category = "Amplitude", meta = (ClampMin = "0", ClampMax = "30", Units = "deg")) float PitchDegrees = 3;
+	UPROPERTY(EditAnywhere, Category = "Amplitude", meta = (ClampMin = "0", ClampMax = "30", Units = "deg")) float RollDegrees = 3;
+	UPROPERTY(EditAnywhere, Category = "Envelope", meta = (ClampMin = "0.01", ClampMax = "0.3", Units = "s")) float RiseSeconds = .04f;
+	UPROPERTY(EditAnywhere, Category = "Envelope", meta = (ClampMin = "0.05", ClampMax = "2", Units = "s")) float ReturnSeconds = .18f;
+	bool Validate(FString& Error) const;
+};
+
+USTRUCT(BlueprintType)
+struct HAL_FUTURE_CREATION_API FHALImpactReboundConfig
+{
+	GENERATED_BODY()
+	FHALImpactReboundConfig();
+	UPROPERTY(EditAnywhere, Category = "Impact Rebound") bool bEnabled = false;
+	UPROPERTY(EditAnywhere, Category = "Tiers") FHALImpactReboundTier Light;
+	UPROPERTY(EditAnywhere, Category = "Tiers") FHALImpactReboundTier Medium;
+	UPROPERTY(EditAnywhere, Category = "Tiers") FHALImpactReboundTier Heavy;
+	/** Additional artistic direction relative to the already calibrated Chassis axes/signs. */
+	UPROPERTY(EditAnywhere, Category = "Direction", meta = (ClampMin = "-1", ClampMax = "1")) float PitchSign = 1;
+	UPROPERTY(EditAnywhere, Category = "Direction", meta = (ClampMin = "-1", ClampMax = "1")) float RollSign = 1;
+	/** Reject almost vertical world impulses rather than inventing a horizontal direction. */
+	UPROPERTY(EditAnywhere, Category = "Direction", meta = (ClampMin = "0.01", ClampMax = "1")) float MinimumHorizontalDirection = .1f;
+	/** Normal airborne hits remain visible; severe tilt and recovery fade existing envelopes permanently. */
+	UPROPERTY(EditAnywhere, Category = "Pose", meta = (ClampMin = "0.25", ClampMax = "1")) float MinimumVehicleUpZ = .5f;
+	UPROPERTY(EditAnywhere, Category = "Pose", meta = (ClampMin = "0.01", ClampMax = "0.5", Units = "s")) float PoseFadeSeconds = .08f;
+	UPROPERTY(EditAnywhere, Category = "Network", meta = (ClampMin = "0.05", ClampMax = "2", Units = "s")) float MaximumEventAgeSeconds = .5f;
+	const FHALImpactReboundTier* GetTier(EHALImpactTier Tier) const;
+	bool Validate(FString& Error) const;
+};
+
 /** Cosmetic shot envelope, independent of BallControl's physical recoil. */
 USTRUCT(BlueprintType)
 struct HAL_FUTURE_CREATION_API FHALLaunchReboundConfig
@@ -139,6 +173,8 @@ public:
 	FHALChassisPresentationConfig Chassis;
 	UPROPERTY(EditAnywhere, Category = "Launch Rebound")
 	FHALLaunchReboundConfig LaunchRebound;
+	UPROPERTY(EditAnywhere, Category = "Impact Rebound")
+	FHALImpactReboundConfig ImpactRebound;
 	/** Visual traces only; later physical wheel observations replace this source, not add another spring. */
 	UPROPERTY(EditAnywhere, Category = "Suspension")
 	FHALVisualSuspensionConfig Suspension;

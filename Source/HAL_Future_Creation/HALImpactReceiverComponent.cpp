@@ -1,5 +1,6 @@
 #include "HALImpactReceiverComponent.h"
 #include "VehicleRecoveryComponent.h"
+#include "HALVehiclePresentationComponent.h"
 
 #include "HALImpactAttributeSet.h"
 #include "HALImpactSourceComponent.h"
@@ -216,6 +217,7 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 	Result.ImpactSummary = Summary;
 	GetOwner()->ForceNetUpdate();
 	Result.ImpactOutcome = EHALImpactOutcome::Suppressed;
+	FVector AcceptedDirection = FVector::ZeroVector;
 	if (Summary.EffectiveTier != EHALImpactTier::None)
 	{
 		UPrimitiveComponent* Body = Hit.TargetPhysicsBody;
@@ -292,6 +294,7 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 		Result.RuleMinimumUpwardSpeed = PhysicsAction.bMinimumUpwardSpeed ? PhysicsAction.MinimumUpwardSpeed : 0;
 		Result.bImpactApplied = true;
 		Result.ImpactOutcome = EHALImpactOutcome::Applied;
+		AcceptedDirection = Direction;
 		if (auto* Recovery = GetOwner()->FindComponentByClass<UVehicleRecoveryComponent>())
 		{ Recovery->NotifyExternalImpact(Request,Summary.EffectiveTier); }
 		if (Config.bDropOnImpact && uint8(Summary.EffectiveTier) >= uint8(Config.MinimumDropTier))
@@ -304,4 +307,8 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 	}
 	LastImpact = Summary;
 	Result.ImpactSummary = Summary;
+	// LastImpact is only a diagnostic snapshot. Publish after all physics/result checks and drop handling,
+	// including zero additional impulse when natural Chaos response already met the authored target.
+	if (auto* Presentation = GetOwner()->FindComponentByClass<UHALVehiclePresentationComponent>())
+	{ Presentation->PublishAcceptedImpact(Result, AcceptedDirection); }
 }

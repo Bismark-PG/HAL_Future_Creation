@@ -32,6 +32,8 @@ public:
 	/** Authority accepted shot, cosmetic multicast; owner also gets the existing reliable result. */
 	void PublishAcceptedLaunch(uint32 Sequence, float ServerTimeSeconds);
 	void ReceiveLaunchResult(uint32 Sequence, bool bAccepted, float ServerTimeSeconds);
+	/** Called once at the completed authority TieredV1 result boundary; no gameplay mutation. */
+	void PublishAcceptedImpact(const FHALCombatHitResult& Result, const FVector& WorldDirection);
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALPresentationTestAccess;
@@ -44,6 +46,10 @@ private:
 	void ConsumeAcceptedLaunch(uint32 Sequence, float ServerTimeSeconds);
 	double GetLaunchServerTime() const;
 	UFUNCTION(NetMulticast, Unreliable) void MulticastAcceptedLaunch(uint32 Sequence, float ServerTimeSeconds);
+	UFUNCTION(NetMulticast, Unreliable) void MulticastImpactRebound(FHALImpactVisualEvent Event);
+	void ConsumeImpactRebound(const FHALImpactVisualEvent& Event);
+	bool IsImpactPoseAllowed() const;
+	FHALImpactVisualOutput UpdateImpactRebound(float DeltaTime);
 	UPROPERTY(Transient) TObjectPtr<UHALVehiclePresentationConfig> Config;
 	UPROPERTY(Transient) TObjectPtr<UPrimitiveComponent> Body;
 	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> Fallback;
@@ -55,6 +61,8 @@ private:
 	FHALVehiclePresentationFrame Frame;
 	FHALChassisPresentationState ChassisState;
 	FHALLaunchVisualState LaunchState;
+	FHALImpactVisualState ImpactState;
+	uint32 NextImpactVisualSequence = 0;
 	double LaunchResetLocalTime = 0;
 	FVector ReferenceWheelCenters[4] {};
 	FTransform ReferenceSuspensions[4];

@@ -1,0 +1,368 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "timezone": "Asia/Tokyo",
+  "branch": "main",
+  "git_base": "5c84320c71977f86a97139e45a64063dac3be2d9",
+  "engine": "5.8.3-58210709+++UE5+Release-5.8",
+  "authorization": "User accepted the documented VP-4B proposal and explicitly authorized implementation.",
+  "initial_worktree": [
+    "Docs/Project_Status_CN.md (modified progress sync retained)",
+    "Docs/Presentation/MVPB_Project_Handoff_Review_20261026.json (untracked progress audit retained)"
+  ],
+  "state": {
+    "specification": "Accepted",
+    "code": "Complete",
+    "editor_build": "Succeeded",
+    "game_build": "Succeeded",
+    "automated_checks": "Passed",
+    "team_saved_DA_enablement_and_rendered_acceptance": "Pending",
+    "VP4C_started": false,
+    "F4_final_acceptance": "Deferred",
+    "committed_or_pushed": false
+  },
+  "implementation": [
+    "Authority final TieredV1 receiver result publishes effective tier and captured target-local direction; support supplement, immunity and None excluded; natural zero supplement accepted.",
+    "Existing presentation DA/component/frame/AnimInstance/ChassisRotation reused. Opt-in impact channel, per-tier rise/return envelope, capped eight events, bounded pitch/roll composition with peak priority.",
+    "No client hit prediction. Unreliable multicast carries target sequence, game timestamp and local direction. Duplicate/out-of-order/expired/old binding events ignored; sequence watermark preserved through resets.",
+    "Airborne impact allowed; severe tilt/recovery fades permanently and consumes blocked identities. Reuses lifecycle cleanup.",
+    "No new physics impulse, damage, ball drop, ability, input, Tick, module or plugin. Existing contact episode and CombatAction suppression retained."
+  ],
+  "builds": {
+    "Editor_Initial": {
+      "artifact": {
+        "path": "Saved/VehiclePresentationVP4B/20261026/Editor_Initial.log",
+        "bytes": 58493,
+        "sha256": "F660F0362B9D3CCFABC97832841212D9D0437F6CC2F0C9C40A43C8847A33800A"
+      },
+      "result": "Succeeded",
+      "seconds": 196.61,
+      "compiler_warning_codes": [
+        "C4996"
+      ],
+      "preferred_toolchain_warning": true
+    },
+    "Editor_Final": {
+      "artifact": {
+        "path": "Saved/VehiclePresentationVP4B/20261026/Editor_Final.log",
+        "bytes": 30429,
+        "sha256": "BAC2105DABF447EEBC0660B82EAB19AD4DB0E0173547332A386381834DC959BF"
+      },
+      "result": "Succeeded",
+      "seconds": 40.04,
+      "compiler_warning_codes": [
+        "C4996"
+      ],
+      "preferred_toolchain_warning": true
+    },
+    "Game_Final": {
+      "artifact": {
+        "path": "Saved/VehiclePresentationVP4B/20261026/Game_Final.log",
+        "bytes": 40403,
+        "sha256": "32562801675AA41CB71E00BE085E6ED657824634BF9A0298159C64C2B3EC1BAA"
+      },
+      "result": "Succeeded",
+      "seconds": 111.34,
+      "compiler_warning_codes": [
+        "C4996"
+      ],
+      "preferred_toolchain_warning": true
+    }
+  },
+  "automation": {
+    "Automation_Initial": {
+      "report": {
+        "path": "Saved/VehiclePresentationVP4B/20261026/Automation_Initial/index.json",
+        "bytes": 34151,
+        "sha256": "25CEF23C1D58E7246FE7D57DE1D3862468E83D826FFA262DE879FBA253CDFC2B"
+      },
+      "log": {
+        "path": "Saved/VehiclePresentationVP4B/20261026/Automation_Initial.log",
+        "bytes": 370615,
+        "sha256": "FDF2987834327191504322F4C22AD28E6FEAD19986E861403655887205E8DD1F"
+      },
+      "counts": {
+        "succeeded": 75,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0
+      },
+      "duration_seconds": 18.09014129638672,
+      "impact_tests": [
+        {
+          "name": "HAL.FutureCreation.Bomb.DamageImpactImmunityAndDedup",
+          "state": "Success",
+          "warnings": 0,
+          "errors": 0
+        },
+        {
+          "name": "HAL.FutureCreation.Combat.DamageImpactIndependence",
+          "state": "Success",
+          "warnings": 0,
+          "errors": 0
+        },
+        {
+          "name": "HAL.FutureCreation.Impact.AllSourcesAndContactEpisodes",
+          "state": "Success",
+          "warnings": 0,
+          "errors": 0
+        },
+        {
+          "name": "HAL.FutureCreation.Impact.AuthorityPhysicsReplayContract",
+          "state": "Success",
+          "warnings": 0,
+          "errors": 0
+        },
+        {
+          "name": "HAL.FutureCreation.Impact.BallSnapshotDropAndCallbackMerge",
+          "state": "Success",
+          "warnings": 0,
+          "errors": 0
+        },
+        {
+          "name": "HAL.FutureCreation.Impact.GASResistanceAndIndependentDamage",
+          "state": "Success",
+          "warnings": 0,
+          "errors": 0
+        },
+        {
+          "name": "HAL.FutureCreation.Impact.SolverThreadExecutionAndReplay",
+          "state": "Success",
+          "warnings": 0,
+          "errors": 0
+        },
+        {
+          "name": "HAL.FutureCreation.Impact.TiersCalibrationAndEnergyBudget",
+          "state": "Success",
+          "warnings": 0,
+          "errors": 0
+        },
+        {
+          "name": "HAL.FutureCreation.Presentation.Impact.AuthorityResultAndPhysicsBoundary",
+          "state": "Success",
+          "warnings": 0,
+          "errors": 0
+        },
+        {
+          "name": "HAL.FutureCreation.Presentation.Impact.IdentityPoseAndConfiguration",
+          "state": "Success",
+          "warnings": 0,
+          "errors": 0
+        },
+        {
+          "name": "HAL.FutureCreation.Presentation.Impact.SupportNaturalZeroAndContactEpisodes",
+          "state": "Success",
+          "warnings": 0,
+          "errors": 0
+        },
+        {
+          "name": "HAL.FutureCreation.Presentation.Impact.TiersDirectionsAndFrameRates",
+          "state": "Success",
+          "warnings": 0,
+          "errors": 0
+        },
+        {
+          "name": "HAL.FutureCreation.Recovery.BallSkillImpactAndLifecycle",
+          "state": "Success",
+          "warnings": 0,
+          "errors": 0
+        }
+      ]
+    },
+    "Network60_Host": {
+      "report": {
+        "path": "Saved/VehiclePresentationVP4B/20261026/Network60_Host/index.json",
+        "bytes": 1116,
+        "sha256": "A935AA8BA67BA4AAA2A861677A65EF3C807E877F597263152B1400DF4CF507B9"
+      },
+      "log": {
+        "path": "Saved/VehiclePresentationVP4B/20261026/Network60_Host.log",
+        "bytes": 194479,
+        "sha256": "9EA09A43B8260DAAAF58C868AE1BA1E4449D2236B28B34A73BC4460DEF711A03"
+      },
+      "counts": {
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0
+      },
+      "duration_seconds": 6.611077785491943,
+      "impact_tests": [
+        {
+          "name": "HAL.NetworkSmoke.VehicleImpactPresentation",
+          "state": "Success",
+          "warnings": 0,
+          "errors": 0
+        }
+      ]
+    },
+    "Network60_Client": {
+      "report": {
+        "path": "Saved/VehiclePresentationVP4B/20261026/Network60_Client/index.json",
+        "bytes": 1116,
+        "sha256": "A6CC4B94195229AECE339F9867F86E0848CF5C8BEFF6B53A6016F701D2DCA656"
+      },
+      "log": {
+        "path": "Saved/VehiclePresentationVP4B/20261026/Network60_Client.log",
+        "bytes": 190506,
+        "sha256": "E8E885E8B3D2F729819EBF5F685E75B92C405779244810BB1052AABA230475CB"
+      },
+      "counts": {
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0
+      },
+      "duration_seconds": 5.755898475646973,
+      "impact_tests": [
+        {
+          "name": "HAL.NetworkSmoke.VehicleImpactPresentation",
+          "state": "Success",
+          "warnings": 0,
+          "errors": 0
+        }
+      ]
+    }
+  },
+  "network": {
+    "port": 7826,
+    "fps_cap": 60,
+    "processes": "Two real UnrealEditor-Cmd -game processes, ListenServer and owning client; NullRHI.",
+    "host_outgoing_injected_packet_lag_ms": 80,
+    "measured_rtt_ms": null,
+    "packet_loss_and_jitter_injected": false,
+    "fixture": "Saved NetTest map and player Blueprint; transient DA copies enabled after separated upright airborne alignment; gravity disabled; real CombatResolver and receiver calls with natural contact response already sufficient, no extra rule impulse.",
+    "scope": "Cosmetic delivery, local/observer output, effective-tier reduction, immunity suppression, exact event counts, final neutral state. Not normal driving/rendered gameplay or F4.",
+    "roles": {
+      "Host": {
+        "Host": 1,
+        "Complete": 1,
+        "LocalStarts": 2,
+        "RemoteStarts": 2,
+        "LocalPeak": 2.99,
+        "RemotePeak": 9.989,
+        "LocalSequence": 2,
+        "RemoteSequence": 2,
+        "Resimulations": 0,
+        "TransientConfig": 1,
+        "ZeroSupplement": 1,
+        "NoClientPrediction": 1,
+        "publish_log_rows": 4,
+        "consume_log_rows": 4,
+        "requested_exit_code_zero": true
+      },
+      "Client": {
+        "Host": 0,
+        "Complete": 1,
+        "LocalStarts": 2,
+        "RemoteStarts": 2,
+        "LocalPeak": 9.993,
+        "RemotePeak": 2.993,
+        "LocalSequence": 2,
+        "RemoteSequence": 2,
+        "Resimulations": 31,
+        "TransientConfig": 1,
+        "ZeroSupplement": 1,
+        "NoClientPrediction": 1,
+        "publish_log_rows": 0,
+        "consume_log_rows": 4,
+        "requested_exit_code_zero": true
+      }
+    },
+    "host_packet_lag_confirmed_in_log": true
+  },
+  "assets": {
+    "before_count": 1154,
+    "after_count": 1154,
+    "added": [],
+    "missing": [],
+    "changed": [],
+    "before_manifest": {
+      "path": "Saved/VehiclePresentationVP4B/20261026/Assets_Before.json",
+      "bytes": 209042,
+      "sha256": "7D6D4D11FBA2D59BD2CAA16911A0E52638947166828FB5DBF94EB532B015C305"
+    },
+    "after_manifest": {
+      "path": "Saved/VehiclePresentationVP4B/20261026/Assets_After.json",
+      "bytes": 209042,
+      "sha256": "A0A67A7356B657ED0C540E4FA034AECB4155702F4184BE4A13BD884497527C51"
+    },
+    "presentation_assets": {
+      "Content/Assets/Cars/SKM_Car_01.uasset": "4A02A4E5E6295E41A42FE5EF3A9FB8A2F54254579F46E7EA2A7EC6EFD3715A0A",
+      "Content/Blueprints/AnimBP/ABP_Car01.uasset": "4D990B3258B1105F6C7CEB6F7CDB0CF9F7FECDF162550056E9B71069B8A0138C",
+      "Content/Data/Car_Presentation/DA_Car01_Presentation.uasset": "9024766628FC1F571C53D00F410B254774E4F1C21734DF53B97DA7503AB30DF2",
+      "Content/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.uasset": "47CEBE2D804D08E5824D257816336C990E69270B83F8954F83E1F2930ADB4285"
+    }
+  },
+  "unchanged_config_project_and_build_dependencies": [
+    "Config",
+    "HAL_Future_Creation.uproject",
+    "Source/HAL_Future_Creation/HAL_Future_Creation.Build.cs",
+    "Source/HAL_Future_CreationEditor/HAL_Future_CreationEditor.Build.cs"
+  ],
+  "changed_source_artifacts": [
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactReceiverComponent.cpp",
+      "bytes": 15809,
+      "sha256": "4B80EC1FCE68B75432075500E495AFE6AB79C81FFC3113376A92D6FBE3EF7D41"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleImpactPresentation.cpp",
+      "bytes": 8813,
+      "sha256": "46C9EC72492C055815A1D28121905605247A8E914F045701EF3AEC975CD78D4A"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationComponent.cpp",
+      "bytes": 10193,
+      "sha256": "01205BCB9D660E7513D7C7E37C0DF87BAE418C2CAB106624F8B6B75D1F7959F6"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationComponent.h",
+      "bytes": 3990,
+      "sha256": "961B3D410E78ED9F2DCB33086BB88E2B1FCDB4AB822FDD3A8365333B46CCDEC3"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationConfig.cpp",
+      "bytes": 11073,
+      "sha256": "8D100034DA6BE58E2493B7D70E9659A0EC6C09461FE3AED6E554AAB31A34D2A2"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationConfig.h",
+      "bytes": 12521,
+      "sha256": "0FF973DA678E61C3D87B3077A95C2DA7D7233A3D4FF1AA3505C203DD804C9E9C"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationTypes.h",
+      "bytes": 10468,
+      "sha256": "8A7DB2E4BAF60513407BFFF85185C6FC65B19630D592D2CCD43CD52414F7BFBF"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleImpactPresentationNetworkTests.cpp",
+      "bytes": 9399,
+      "sha256": "EACB4193857F665BFEA7EC88D7CB30177A63AF98114378FDF37D93A2BB782458"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleImpactPresentationTests.cpp",
+      "bytes": 17016,
+      "sha256": "60D833DF996674BDA6652420299BE23B7DCCAD5255AB9DCD347E99B3E7488A00"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehiclePresentationTestSupport.h",
+      "bytes": 8062,
+      "sha256": "1CF045DE44D6CF3AE51C68FF3C17B33254180EC320528B614ACB4EA33D5936BD"
+    }
+  ],
+  "source_modified_after_final_game_build": [],
+  "dedicated_UE_processes_remaining_after_test": false,
+  "limitations": [
+    "NullRHI data validation is not a rendered model/AnimGraph or human handling test; latest model geometry not reaccepted.",
+    "Existing saved DA remains unchanged and new impact channel defaults off; team must enable and save manually.",
+    "Host outgoing PktLag=80 is configured simulation, not measured RTT or the F4 loss/jitter/four-PC matrix.",
+    "30/60/120 envelope checks are native deterministic calculations, not actual screen FPS acceptance.",
+    "Unreliable cosmetic delivery may omit a pulse; no historical replay for late join.",
+    "Existing preferred MSVC toolchain/deprecation warnings and engine startup widget/trace warnings remain; reported zero warnings means automation test warning counts."
+  ]
+}
