@@ -211,6 +211,8 @@ void UArcadeVehicleMovementComponent::AsyncPhysicsTickComponent(float DeltaTime,
 void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInputData& StepInput, float DeltaTime)
 {
 	InputCommand = StepInput.Cmd;
+	// Use this physics frame's authority state, including during resimulation. Never read GAS here.
+	if (CurrentMovement.bControlsBlocked) { InputCommand.Reset(); }
 
 	if (!UpdatedPrimitive || !UpdatedPrimitive->IsSimulatingPhysics() || DeltaTime <= 0.0f)
 	{
@@ -257,7 +259,7 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 			PoseStableSeconds = FMath::Min(RecoveryRules.DriveStableSeconds, PoseStableSeconds+DeltaTime);
 			bPoseDriveAllowed = PoseStableSeconds+KINDA_SMALL_NUMBER >= RecoveryRules.DriveStableSeconds;
 		}
-		if (RecoveryPhysics.bActive)
+		if (RecoveryPhysics.bActive && !CurrentMovement.bControlsBlocked)
 		{
 			// A finite Internal-step guard also stops assistance if the GT is temporarily stalled.
 			const float Remaining = FMath::Max(0.f,RecoveryRules.MaximumExecutionSeconds-RecoveryPhysics.ElapsedSeconds);
@@ -301,7 +303,7 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		PublishedStability.PoseStableSeconds = PoseStableSeconds;
 	}
 
-	if (!bGrounded || !bPoseDriveAllowed || ForwardDirection.IsNearlyZero() || RightDirection.IsNearlyZero())
+	if (!bGrounded || !bPoseDriveAllowed || CurrentMovement.bControlsBlocked || ForwardDirection.IsNearlyZero() || RightDirection.IsNearlyZero())
 	{
 		ResetWallEscape();
 		return;

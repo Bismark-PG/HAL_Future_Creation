@@ -17,6 +17,12 @@ class HAL_FUTURE_CREATION_API UHALAbilitySystemComponent : public UAbilitySystem
 
 public:
 	UHALAbilitySystemComponent();
+	/** Authority-only. Positive finite game seconds; shorter repeats never shorten stun.
+	 * True includes an accepted repeat covered by the existing duration. No client RPC. */
+	bool ApplyStun(float DurationSeconds, AActor* SourceActor);
+	bool IsStunned() const;
+	/** Shared query for vehicle actions and future item-use execution. */
+	static bool IsActorStunned(const AActor* Actor);
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -45,6 +51,8 @@ public:
 	FHALHealthInitialized OnHealthInitialized;
 
 private:
+	void StunTagChanged(FGameplayTag Tag, int32 Count);
+	FDelegateHandle StunTagHandle;
 	void RemoveAvatarEffects();
 	void LogAbilityFailed(const UGameplayAbility* Ability, const FGameplayTagContainer& Reasons);
 	void LogEffectAdded(UAbilitySystemComponent* Target, const FGameplayEffectSpec& Spec, FActiveGameplayEffectHandle Handle);

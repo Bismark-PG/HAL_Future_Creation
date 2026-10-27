@@ -624,6 +624,7 @@ void ATestVehiclePawn::OnHandbrakeCompleted(const FInputActionValue& Value)
 
 void ATestVehiclePawn::OnLaunchStarted(const FInputActionValue& Value)
 {
+	if (UHALAbilitySystemComponent::IsActorStunned(this)) { return; }
 	if (VehicleRecovery && VehicleRecovery->IsExecuting()) { return; }
 	CurrentInputCommand.bLaunch = true;
 	PushInputCommand();

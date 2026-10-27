@@ -1,4 +1,7 @@
 #include "HALAbilitySystemComponent.h"
+#include "HALStunEffect.h"
+#include "AbilitySystemGlobals.h"
+#include "BallControlComponent.h"
 #include "VehicleRecoveryComponent.h"
 
 #include "HAL/IConsoleManager.h"
@@ -20,6 +23,8 @@ UHALAbilitySystemComponent::UHALAbilitySystemComponent()
 void UHALAbilitySystemComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	StunTagHandle = RegisterGameplayTagEvent(HALGameplayTags::State_Stun, EGameplayTagEventType::NewOrRemoved)
+		.AddUObject(this, &ThisClass::StunTagChanged);
 	AbilityFailedCallbacks.AddUObject(this, &ThisClass::LogAbilityFailed);
 	OnActiveGameplayEffectAddedDelegateToSelf.AddUObject(this, &ThisClass::LogEffectAdded);
 	OnAnyGameplayEffectRemovedDelegate().AddUObject(this, &ThisClass::LogEffectRemoved);
@@ -27,6 +32,7 @@ void UHALAbilitySystemComponent::BeginPlay()
 
 void UHALAbilitySystemComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	RegisterGameplayTagEvent(HALGameplayTags::State_Stun, EGameplayTagEventType::NewOrRemoved).Remove(StunTagHandle);
 	if (GetOwner() && GetOwner()->HasAuthority())
 	{
 		CancelAllAbilities();
@@ -96,7 +102,7 @@ bool UHALAbilitySystemComponent::HasAbilityForInput(FGameplayTag InputTag) const
 
 bool UHALAbilitySystemComponent::TryActivateAbilityInput(FGameplayTag InputTag)
 {
-	if (!InputTag.IsValid() || !GetAvatarActor()) { return false; }
+	if (!InputTag.IsValid() || !GetAvatarActor() || IsStunned()) { return false; }
 	if (const auto* Recovery = GetAvatarActor()->FindComponentByClass<UVehicleRecoveryComponent>(); Recovery && Recovery->IsExecuting()) { return false; }
 	TArray<FGameplayAbilitySpecHandle> Handles;
 	{
@@ -119,7 +125,52 @@ bool UHALAbilitySystemComponent::TryActivateAbilityInput(FGameplayTag InputTag)
 bool UHALAbilitySystemComponent::AreAbilityTagsBlocked(const FGameplayTagContainer& Tags) const
 {
 	const auto* Recovery = GetAvatarActor() ? GetAvatarActor()->FindComponentByClass<UVehicleRecoveryComponent>() : nullptr;
-	return (Recovery && Recovery->IsExecuting()) || Super::AreAbilityTagsBlocked(Tags);
+	return IsStunned() || (Recovery && Recovery->IsExecuting()) || Super::AreAbilityTagsBlocked(Tags);
+}
+
+bool UHALAbilitySystemComponent::IsStunned() const
+{
+	return HasMatchingGameplayTag(HALGameplayTags::State_Stun);
+}
+
+bool UHALAbilitySystemComponent::IsActorStunned(const AActor* Actor)
+{
+	const auto* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Actor);
+	return ASC && ASC->HasMatchingGameplayTag(HALGameplayTags::State_Stun);
+}
+
+bool UHALAbilitySystemComponent::ApplyStun(float DurationSeconds, AActor* SourceActor)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !IsValid(GetAvatarActor())
+		|| !FMath::IsFinite(DurationSeconds) || DurationSeconds <= 0.f) { return false; }
+	const auto Previous = GetActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(
+		FGameplayTagContainer(HALGameplayTags::Effect_Stun)));
+	if (IsStunned())
+	{
+		const float Remaining = GetEffectTimeRemaining(HALGameplayTags::State_Stun);
+		if (Remaining < 0.f || Remaining >= DurationSeconds) { return true; }
+	}
+	auto Context = MakeEffectContext();
+	Context.AddInstigator(IsValid(SourceActor) ? SourceActor : GetAvatarActor(), SourceActor);
+	const auto Spec = MakeOutgoingSpec(UHALStunEffect::StaticClass(), 1.f, Context);
+	if (!Spec.IsValid()) { return false; }
+	Spec.Data->SetDuration(DurationSeconds, true);
+	const auto Applied = ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+	if (!Applied.IsValid()) { return false; }
+	// Add before removing so refresh never emits a false end/start or another drop.
+	for (const auto Handle : Previous) { if (Handle != Applied) { RemoveActiveGameplayEffect(Handle); } }
+	if (HALAbilities::ShouldLog())
+	{
+		UE_LOG(LogHALAbility, Log, TEXT("Stun applied: Avatar=%s Source=%s Duration=%.3fs"),
+			*GetNameSafe(GetAvatarActor()), *GetNameSafe(SourceActor), DurationSeconds);
+	}
+	return true;
+}
+
+void UHALAbilitySystemComponent::StunTagChanged(FGameplayTag Tag, int32 Count)
+{
+	if (Count <= 0 || !GetOwner() || !GetOwner()->HasAuthority() || !GetAvatarActor()) { return; }
+	if (auto* Balls = GetAvatarActor()->FindComponentByClass<UBallControlComponent>()) { Balls->ReleaseForStun(); }
 }
 
 float UHALAbilitySystemComponent::GetEffectTimeRemaining(FGameplayTag GrantedTag) const

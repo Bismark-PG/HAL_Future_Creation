@@ -8,17 +8,17 @@ bool FHALMovementSnapshot::IsValidValues() const
 }
 bool FHALMovementSnapshot::IsUnset() const
 {
-	return !Epoch.IsValid() && Revision == 0 && EffectiveServerFrame == INDEX_NONE && AccelerationScale == 1 && SpeedScale == 1;
+	return !Epoch.IsValid() && Revision == 0 && EffectiveServerFrame == INDEX_NONE && AccelerationScale == 1 && SpeedScale == 1 && !bControlsBlocked;
 }
 bool FHALMovementSnapshot::Equals(const FHALMovementSnapshot& Other) const
 {
 	return Epoch == Other.Epoch && Revision == Other.Revision && EffectiveServerFrame == Other.EffectiveServerFrame
 		&& FMath::IsNearlyEqual(AccelerationScale, Other.AccelerationScale, 1.e-4f)
-		&& FMath::IsNearlyEqual(SpeedScale, Other.SpeedScale, 1.e-4f);
+		&& FMath::IsNearlyEqual(SpeedScale, Other.SpeedScale, 1.e-4f) && bControlsBlocked == Other.bControlsBlocked;
 }
 void FHALMovementSnapshot::Serialize(FArchive& Ar)
 {
-	Ar << Epoch << Revision << EffectiveServerFrame << AccelerationScale << SpeedScale;
+	Ar << Epoch << Revision << EffectiveServerFrame << AccelerationScale << SpeedScale << bControlsBlocked;
 }
 bool FHALMovementSnapshot::CalculateScales(float AccelerationDelta, float SpeedDelta, float& Acceleration, float& Speed)
 {
@@ -29,7 +29,7 @@ bool FHALMovementSnapshot::CalculateScales(float AccelerationDelta, float SpeedD
 }
 bool FHALMovementTimeline::Validate() const
 {
-	if (FormatVersion != 1 || Changes.Num() >= MaximumEntries) { return false; }
+	if (FormatVersion != 2 || Changes.Num() >= MaximumEntries) { return false; }
 	if (IsEmpty()) { return EndFrame == INDEX_NONE && !Epoch.IsValid() && Anchor.IsUnset() && Changes.IsEmpty(); }
 	if (StartFrame < 0 || EndFrame < StartFrame || EndFrame - StartFrame >= MaximumEntries
 		|| !Anchor.IsValid() || Epoch != Anchor.Epoch || Anchor.EffectiveServerFrame > StartFrame) { return false; }
@@ -140,7 +140,7 @@ bool FHALMovementTimeline::Serialize(FArchive& Ar)
 {
 	if (Ar.IsSaving() && !Validate()) { Ar.SetError(); return false; }
 	Ar << FormatVersion;
-	if (FormatVersion != 1) { Ar.SetError(); return false; }
+	if (FormatVersion != 2) { Ar.SetError(); return false; }
 	uint8 Present = IsEmpty() ? 0 : 1;
 	Ar << Present;
 	if (Ar.IsLoading() && Present == 0) { *this = {}; return !Ar.IsError(); }

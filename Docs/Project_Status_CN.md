@@ -1,5 +1,19 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-10-27 Stun debug指令完成。** 保留本轮此前未提交的共用Stun与文档，新增主机控制台 `HALStun <PlayerId> <游戏秒数>`，由当前局PlayerId选择自己／其他玩家，复用原`ASC.ApplyStun`，不新增客户端任意目标RPC。仅Development等非Shipping实现有效；校验本地主机、`hal.StunDebug`（默认1）、正有限时长、Playing、唯一且配置／HP就绪的存活受控Avatar。`HALGASStatus`新增`Stunned`与`StunRemaining`，结果日志／屏幕反馈已接入。用户保存关闭Editor／Live Coding后，本机UE5.8.2完整Editor／Game均成功，普通**81/81**、实际双端**Host／Client各1/1**，报告均0警告／失败。真实控制台字符串施加主机／Client两车、Client控制台拒绝、自然到期及原时长延长通过；Client完成点40次实际重模拟、2次桥接回滚请求。主机出站注入80ms、60FPS上限不等于实测RTT／F4或真人文字画面验收。
+
+1157份保存资产前后SHA-256逐份全同，Config／uproject／Build.cs未改，专用Host4980／Client44668已自行退出；没有Stun Zone、清除指令或新蓝图。用法见[Stun Debug指令](Configuration/Stun_Debug_Command_CN.md)，本轮证据见[验证记录](Combat/MVPB_Stun_DebugCommand_Verification_20261027.json)。下一步团队重开Editor／双端游戏，Playing后先`HALGASStatus`查ID，再在主机输入如`HALStun 257 3`；实际ID按该局输出。仍待用户指定机关接入与真人验证；修改未提交／Push。
+
+2026-10-27日文资料准备：[Stun再利用与参数日文指南](Configuration/Stun_Reuse_And_Parameters_JA.md)已按中文版整理，保留接口、重复施加规则、Editor字段尚未创建与非GAS道具接入边界。目前没有连接中的文档会话，Google文档目标链接待用户提供，尚未更新远端文档。本次仅文档／Git白名单修改，无代码／资产变更或新编译／测试。
+
+2026-10-27文档补充：[Stun複用與參數調整指南](Configuration/Stun_Reuse_And_Parameters_CN.md)已新增，包含来源C++接入、Class Defaults／Data Asset时长位置、重复施加示例、状态／剩余时间查询、非GAS道具门控及合法解除示例。示例不代表已创建机关或调参字段；本次仅文档／Git白名单更新，无新增玩法代码、资产修改或编译／测试，以下原验证结果保持原时点。
+
+**2026-10-27共用 Stun 状态代码／构建／原生验证完成，未制作 Stun Zone。** 用户授权制作可复用限时 Stun，明确机关另行规划。起始干净 `main/914cc53fd56a550bd06228edee04b1a9b2a393ad`，本机实际 UE **5.8.2-56702186**，下方 5.8.3／77 项为另一设备历史。新增原生 Stun GE、服务器共用 `ASC.ApplyStun(秒数, 来源)`、较晚结束时间规则、Stun 标签事件瞬间落球及发射／捕球／技能／自救限制；Bridge 将禁止操控位送入既有可靠动作和物理时间线，格式升至2，保留惯性／外部碰撞，不在PT访问GAS。
+
+本轮完整 **Editor／Game Win64 Development构建成功，普通80/80、实际Listen Server双端Host／Client各1/1，测试报告均0警告／0失败**。普通回归包括新增3项Stun测试及真实Solver历史Stun重放。双端60 FPS上限、主机出站注入80ms；客户端完成点实际35次重模拟、1次桥接回滚请求，双方Stun物理Revision2→到期3，短施加／延长不新增边界。注入值不是实测RTT，不代表F4／真人画面。首轮Editor被打开的DLL阻止链接，用户保存关闭后完成；Game首轮测试少PlayerState头文件已修复。双端首轮客户端未Ready最终超时；修正测试两端重力一致、非零输入预热／等待客户端Ready和完成握手后，原严格断言通过，未为测试放宽生产物理规则，失败记录保留。
+
+**1157份uasset／umap前后SHA-256逐份全同**，Config／uproject／Build.cs未改；四个专用联机进程已自行退出。现有加速／免疫继续计时，球掉落不新增冲量。当前没有库存／道具使用框架，本轮提供统一查询和GAS激活阻挡，未来非GAS道具须接服务器查询；未创建机关Actor、蓝图、地图、DA、UI／特效或玩家施加Stun的调试RPC。下一入口为用户指定的机关C++接入与团队真人验证；VP-4C／F4后置保持。见[Stun说明](Combat/MVPB_Stun_State_CN_v0.1.md)与[本轮验证](Combat/MVPB_Stun_Verification_20261027.json)。当前修改未提交／Push；下方旧“当前／未施工”按各步时点阅读，以本段及当前任务为准。
+
 **2026-10-26水平推送预设代码／构建／原生验证完成，待团队配置与真人距离初测。** 用户确认三档不变、Heavy＋近推／远推及旧球／弹簧拳兼容并授权；开工为干净`main/bff8753040a50b5e11811453a8692024b9ebb878`，此前VP-4B已提交。公共Combat DA增加Short／Standard／Long／ExtraLong倍率，默认0.5／固定1／1.5／2；球／拳／爆炸在原动作快照捕获预设，统一结算先降档再缩放水平目标再扣除自然响应，普通接触保持原稳定性路径，向上／翻转／伤害／脱球及骨骼幅度仍按既有规则。团队关闭Editor后已完成完整链接，最终Editor／Game与强制Unity构建成功，普通**77/77**、真实NetTest **Host／Client各1/1**，均0测试警告／失败。Host近推／远推实际X速度450／1350cm/s，两端均Heavy、HP100不变；Client观察窗口315.074／1350cm/s、36次重模拟。60 FPS上限／主机出站注入80ms不代表实测RTT或F4；NullRHI空中夹具不代表实际模型／驾驶距离验收。
 
 1154份保存资产SHA-256全同，Config／uproject／Build.cs保持，专用UE进程已退出；完整代码构建后未再修改源码。首轮Game的既有VP-4B Unity私有函数重名已修复；前两轮双端夹具每帧写阻尼干扰PT状态导致0/1超时，改为准备时一次性设置并隔离测试前地图扣血后，通过原断言；没有改生产物理Handler。首次失败和最终证据均保留，详见[规则／配置／验证](Combat/MVPB_Impact_Push_Presets_CN_v0.1.md)和[摘要](Combat/MVPB_Impact_Push_Presets_Verification_20261026.json)。原MSVC／C4996及引擎启动警告保留；0测试警告仅指报告。本轮未提交／Push。下一步团队手动配置Heavy＋Short／Long并作距离／画面初测，旧Standard不需重填；VP-4B画面反馈、VP-4C及F4仍按后续入口，以下旧“等待关闭／未链接／75项／未提交”保留各步时点。
@@ -74,7 +88,7 @@
 
 2026-10-20本机接续分析：实际为干净`main/a11228a`，团队Car_01接线资产已提交。用户说明已discard旧炸弹；本次检索Source／Config／Docs未发现HALBombActor、HALUseBomb、HALBombTest或PrepareStandaloneCombatTarget，旧炸弹验证不适用于当前源码。相较f4b17d2已纳入10-D物理线程修复、10-E免疫技能、10-F运动桥接及加速GA／GE、补球调试与VP-1表现底座。此设备`D:/Unreal Shit/UE_5.8`实际是5.8.2-56702186，与下文另一设备5.8.3历史环境不同；49项及双端结果均为既有记录，本轮仅核对Git、源码、配置与验证摘要，没有新编译、Unreal运行、资产字段导出或新验收。只补本接续说明，未恢复炸弹、修改玩法或资产；F4后置与表现待测事项保持。
 
-最后更新：**2026-10-26（Asia/Tokyo）**。本文件维护最新进度、已确认决策和后续入口；详细规则、资产数值和验证证据由链接文档提供。10-F-1～3及加速GA、团队接线和基础双端实测均完成，相关资产和复核已提交`c825d8d`。**用户已决定将10-F-4完整集成／扰动／四机测试后置至MVP-B收尾，当前暂不施工F4-A；后续开发按用户指定事项推进。** 最终验收未完成，后续各项开发仍保留相关编译／自动化及必要双端基本检查。
+最后更新：**2026-10-27（Asia/Tokyo）**。本文件维护最新进度、已确认决策和后续入口；详细规则、资产数值和验证证据由链接文档提供。10-F-1～3及加速GA、团队接线和基础双端实测均完成，相关资产和复核已提交`c825d8d`。**用户已决定将10-F-4完整集成／扰动／四机测试后置至MVP-B收尾，当前暂不施工F4-A；后续开发按用户指定事项推进。** 最终验收未完成，后续各项开发仍保留相关编译／自动化及必要双端基本检查。
 
 当前**VP-2俯仰真人初测通过，参数精调后置**；下一开发可进入VP-3视觉悬挂方案／接口准备，尚未施工。各30°可配范围保留，侧倾／漂移、双端及完整画面回归继续跟踪，不据本次反馈写成全部验收。支撑过滤正向反馈、车轮正常及自救功能真人验收保持，自救表现以后优化。具体见[实施与团队反馈](Presentation/MVPB_Vehicle_Presentation_VP2_Implementation_CN_v0.1.md)。VP-4与自然有限落地辅助尚未实现。
 
@@ -92,12 +106,12 @@
 
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
-| 开发阶段 | VP-4B待实际画面反馈；水平推送预设代码／完整构建／77项及真实双端通过，待团队配置与真人距离／手感初测。随后4C组合收尾；物理悬挂／自然辅助与F4未施工 |
-| 当前本机分支／代码提交 | `main / bff8753`；此前VP-4B已提交，水平推送预设开工干净。当前本步源码／测试／文档未提交／Push，未改保存资产 |
-| 引擎基线 | 本机UE `5.8.3-58210709`；本步完整Editor／Game成功，最终77/77及双端各1/1；旧75项为VP-4B历史结果，四机／真人全矩阵未由此完成 |
-| 本机运行前置 | 本机新Editor DLL已链接，可重启Editor配置新预设；双方使用同一代码／补丁／保存配置。其他设备同步本步源码／文档后完整编译，不以LiveCoding处理新反射字段 |
+| 开发阶段 | 共用Stun及主机HALStun指令完成；完整构建／81项及真实双端通过；下一入口为指令真人验证与用户指定机关接入。VP-4B／推送预设真人欠项、VP-4C及F4保留 |
+| 当前本机分支／代码提交 | `main / 914cc53`，本轮开工干净；Stun源码／测试／文档未提交／Push，保存资产不变 |
+| 引擎基线 | 本机UE `5.8.2-56702186`；Stun debug完整Editor／Game成功，81/81及双端各1/1；旧80项／5.8.3／77项保持各步历史，不冒充本次验证 |
+| 本机运行前置 | 本机Stun Editor DLL已完整链接；双方须同一代码／补丁／配置并完整重编，运动时间线格式已升2，不与旧程序混连，不以LiveCoding处理新反射字段 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
-| GAS 当前实现 | `HALMovementBoostAbility`，ServerOnly施加可配非周期GE后立即结束，无默认费用／冷却，独立于debug；5游戏秒、+0.5／+0.25、按目标一层刷新及Avatar作用域。团队已在原Primary替换为加速GA；原免疫GA／GE／冷却及调试入口保留 |
+| GAS 当前实现 | 加速／免疫与原Primary接线保留；新增原生`HALStunEffect`和服务器`ASC.ApplyStun`，来源传时长、较晚结束时间、Avatar清理；没有新增Stun GA、玩家施加RPC或道具库存框架 |
 | 当前 HP／冲击 | 10-C伤害／快照保留；10-D同帧Internal读写已有28项自动化证据，用户2026-10-16确认击飞效果恢复。保留现有档位、水平补足和DA，各档实际响应后续调整；本次反馈未列双向角色／扰动明细 |
 | 当前 Editor 接线 | VP-3／4A保存接线保持；本步新增Impact Rebound配置／诊断字段，默认关闭，团队手动在现有车型表现DA启用并保存。原ChassisRotation骨骼节点复用，不增加节点或GA；1154保存资产全同 |
 | 测试地图 | `/Game/Maps/MVPB_NetTest`用于单Host及联机玩法；从`/Game/Maps/MVPB_NetEntry`进入Host→Start。团队已提交测试MinimumPlayersToStart=1并反馈可用；直接Standalone仍受Listen Server开始限制，Playing后拒绝Join保持。旧`/Game/Maps/Test`按专项目的使用 |

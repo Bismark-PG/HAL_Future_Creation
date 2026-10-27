@@ -2,6 +2,8 @@
 
 namespace HALGameplayTags
 {
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Stun, "State.Stun", "Blocks controls, abilities, ball acquisition and launch; does not freeze physics.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Stun, "Effect.Vehicle.Stun", "Shared timed Avatar-scoped stun.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_Bomb, "Combat.Source.Bomb", "Bomb explosion: configured damage and authored impact tier.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_SpringPunch, "Combat.Source.SpringPunch", "Environment-owned spring punch; fixed damage and authored impact tier.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Input_Ability_Primary, "Input.Ability.Primary", "Local primary skill edge; never replayed by Network Physics.");

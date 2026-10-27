@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BasicBallActor.h"
+#include "HALAbilitySystemComponent.h"
 #include "UObject/UnrealType.h"
 #include "VehicleDefinition.h"
 #include "VehicleConfigurationApplication.h"
@@ -95,6 +96,7 @@ void ABasicBallActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 bool ABasicBallActor::CanBeControlledBy(const AActor* CandidateVehicle) const
 {
+	if (UHALAbilitySystemComponent::IsActorStunned(CandidateVehicle)) { return false; }
 	if (!HasAuthority() || !bConfigurationValid || !VehicleConfiguration::IsReadyForGameplay(CandidateVehicle)
 		|| RepState.State != EBasicBallState::Free)
 	{
@@ -160,6 +162,7 @@ bool ABasicBallActor::LaunchFromControl(
 	AActor* NewLauncher,
 	const FVector& InitialVelocity)
 {
+	if (UHALAbilitySystemComponent::IsActorStunned(ExpectedHolder)) { return false; }
 	if (!HasAuthority()
 		|| RepState.State != EBasicBallState::Controlled
 		|| RepState.Holder != ExpectedHolder

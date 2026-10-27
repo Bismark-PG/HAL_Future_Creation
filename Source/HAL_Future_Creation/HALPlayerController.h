@@ -43,6 +43,9 @@ public:
 	/** Development host console only. Changes test resistance without creating content assets. */
 	UFUNCTION(Exec)
 	void HALImpactDebug(int32 PlayerId, int32 Reduction, bool bImmune);
+	/** Development host console only: HALStun PlayerId DurationSeconds. Uses shared Stun rules. */
+	UFUNCTION(Exec)
+	void HALStun(int32 PlayerId, float DurationSeconds);
 	/** Development only: request one authored Free ball in front of this controller's current vehicle. */
 	UFUNCTION(Exec)
 	void HALSpawnBall();

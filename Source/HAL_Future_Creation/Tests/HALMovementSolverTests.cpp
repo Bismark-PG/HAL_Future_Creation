@@ -111,6 +111,25 @@ bool FHALMovementSolverTest::RunTest(const FString& Parameters)
 	const auto Replayed = Run(TEXT("Old boosted frame after expiry"), [=](){ Drive(false,0,Boosted.LocalFrame); },45);
 	TestTrue(TEXT("Production replay uses old revision"), Replayed.bReplay && Replayed.Value.Revision == 2);
 	Publish(4,0,1); Run(TEXT("Zero drive preserves external velocity"), [=](){ Drive(false,100); },100);
+	// Production input gating on the actual physics worker, including replay after expiry.
+	auto Stun = Boosted.Value; Stun.Revision = 5; Stun.EffectiveServerFrame = INDEX_NONE; Stun.bControlsBlocked = true;
+	TestTrue(TEXT("Publish control block"), Movement->QueueMovementParameters(Stun));
+	auto StunStep = [Movement,Body,Solver](int32 ReplayFrame = INDEX_NONE)
+	{
+		auto Handle = Body->GetBodyInstance()->GetBodyInstanceAsyncPhysicsTickHandle();
+		Handle->SetV(FVector(100,0,0)); Handle->SetW(FVector(0,0,.5));
+		Movement->PrepareMovementFrame(Solver, ReplayFrame == INDEX_NONE ? Solver->GetCurrentFrame() : ReplayFrame, ReplayFrame != INDEX_NONE);
+		FVehicleNetInputData Input; Input.Cmd.Throttle = 1; Input.Cmd.Brake = 1; Input.Cmd.Steering = 1;
+		Input.Cmd.bHandbrake = Input.Cmd.bSelfRight = Input.Cmd.bLaunch = true;
+		Movement->SimulateVehicleStep(Input,1.f/60);
+	};
+	const auto Blocked = Run(TEXT("Stun preserves external velocity"), [=](){ StunStep(); },100);
+	TestTrue(TEXT("Stun reached physics state"), Blocked.Value.bControlsBlocked);
+	TestTrue(TEXT("Driving inputs cleared"), Movement->InputCommand.Throttle == 0 && Movement->InputCommand.Brake == 0
+		&& Movement->InputCommand.Steering == 0 && !Movement->InputCommand.bHandbrake && !Movement->InputCommand.bSelfRight && !Movement->InputCommand.bLaunch);
+	Publish(6,1,1); Run(TEXT("Stun release restores driving"), [=](){ Drive(false,0); },30);
+	const auto OldStun = Run(TEXT("Past stun replays after release"), [=](){ StunStep(Blocked.LocalFrame); },100);
+	TestTrue(TEXT("Replay uses historical control block"), OldStun.bReplay && OldStun.Value.bControlsBlocked);
 	Epoch = FGuid::NewGuid(); Movement->ConfigureMovementEffects(Epoch,nullptr,true,7); Publish(1,1,1);
 	Run(TEXT("New Avatar uses new epoch"), [=](){ Drive(false,0); },30);
 	Run(TEXT("Unknown replay adds no drive"), [=](){ Drive(false,0,0); },0);

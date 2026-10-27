@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "HALMovementTypes.h"
+#include "GameplayTagContainer.h"
 #include "HALMovementEffectBridge.generated.h"
 
 class UHALAbilitySystemComponent;
@@ -23,13 +24,14 @@ public:
 private:
 	void ConfigurePhysics();
 	void AttributeChanged(const FOnAttributeChangeData& Data);
+	void StunChanged(FGameplayTag Tag, int32 Count);
 	void Flush(UWorld* World, ELevelTick TickType, float DeltaSeconds);
 	UFUNCTION() void OnRep_Epoch();
 	UPROPERTY(ReplicatedUsing=OnRep_Epoch) FGuid Epoch;
 	UPROPERTY(Transient) TObjectPtr<UHALAbilitySystemComponent> ASC;
 	UPROPERTY(Transient) TObjectPtr<UArcadeVehicleMovementComponent> Movement;
 	UPROPERTY(Transient) TObjectPtr<UNetworkPhysicsComponent> History;
-	FDelegateHandle AccelerationHandle, SpeedHandle, WorldHandle;
+	FDelegateHandle AccelerationHandle, SpeedHandle, StunHandle, WorldHandle;
 	FHALMovementSnapshot LastPublished;
 	int32 BoundPlayerId = INDEX_NONE;
 	bool bDirty = false;

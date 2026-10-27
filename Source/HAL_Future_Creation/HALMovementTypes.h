@@ -13,6 +13,7 @@ struct HAL_FUTURE_CREATION_API FHALMovementSnapshot
 	UPROPERTY() int32 EffectiveServerFrame = INDEX_NONE;
 	UPROPERTY() float AccelerationScale = 1;
 	UPROPERTY() float SpeedScale = 1;
+	UPROPERTY() bool bControlsBlocked = false;
 	bool IsValidValues() const;
 	bool IsValid() const { return IsValidValues() && EffectiveServerFrame >= 0; }
 	bool IsUnset() const;
@@ -27,7 +28,7 @@ struct HAL_FUTURE_CREATION_API FHALMovementTimeline
 {
 	GENERATED_BODY()
 	static constexpr int32 MaximumEntries = 256;
-	UPROPERTY() uint8 FormatVersion = 1;
+	UPROPERTY() uint8 FormatVersion = 2;
 	UPROPERTY() FGuid Epoch;
 	UPROPERTY() int32 StartFrame = INDEX_NONE;
 	UPROPERTY() int32 EndFrame = INDEX_NONE;

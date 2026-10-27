@@ -3,6 +3,10 @@
 
 # Markdown documents
 *.md
+!Docs/Combat/MVPB_Stun_State_CN_v0.1.md
+!Docs/Configuration/Stun_Reuse_And_Parameters_CN.md
+!Docs/Configuration/Stun_Reuse_And_Parameters_JA.md
+!Docs/Configuration/Stun_Debug_Command_CN.md
 !MVP_A_Vehicle_Ball_Rules_CN.md
 !MVP_A_Tiered_Knockback_Design_CN.md
 !MVP_A_Rounded_Vehicle_Setup_CN.md

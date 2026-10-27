@@ -48,6 +48,8 @@ public:
 	bool ReleaseFromImpact(const FVector& Direction);
 	/** Authority execution start: Free + existing reacquire lock, no release impulse or attack payload. */
 	void ReleaseForRecovery();
+	/** Authority state transition: drop without attack, recoil or additional impulse. */
+	void ReleaseForStun();
 
 	UFUNCTION(BlueprintPure, Category = "Ball Control|State")
 	ABasicBallActor* GetHeldBall() const { return HeldBall; }
@@ -112,6 +114,7 @@ protected:
 
 private:
 #if WITH_DEV_AUTOMATION_TESTS
+	friend struct FHALStunTestAccess;
 	friend class FHALImpactBallPipelineTest;
 	friend class FConfigurationPlayerBallTest;
 	friend struct FHALRecoveryTestAccess;

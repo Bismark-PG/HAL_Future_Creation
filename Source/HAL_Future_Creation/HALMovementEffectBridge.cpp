@@ -1,6 +1,7 @@
 #include "HALMovementEffectBridge.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALMovementAttributeSet.h"
+#include "HALGameplayTags.h"
 #include "ArcadeVehicleMovementComponent.h"
 #include "Engine/World.h"
 #include "Net/UnrealNetwork.h"
@@ -35,6 +36,8 @@ void UHALMovementEffectBridge::Bind(UHALAbilitySystemComponent* InASC, int32 Pla
 		AccelerationHandle = ASC->GetGameplayAttributeValueChangeDelegate(UHALMovementAttributeSet::GetAccelerationMultiplierDeltaAttribute()).AddUObject(this, &ThisClass::AttributeChanged);
 		SpeedHandle = ASC->GetGameplayAttributeValueChangeDelegate(UHALMovementAttributeSet::GetSpeedLimitMultiplierDeltaAttribute()).AddUObject(this, &ThisClass::AttributeChanged);
 		bDirty = true;
+		StunHandle = ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Stun, EGameplayTagEventType::NewOrRemoved)
+			.AddUObject(this, &ThisClass::StunChanged);
 		GetOwner()->ForceNetUpdate();
 	}
 	WorldHandle = FWorldDelegates::OnWorldPostActorTick.AddUObject(this, &ThisClass::Flush);
@@ -44,11 +47,12 @@ void UHALMovementEffectBridge::Unbind()
 {
 	if (ASC)
 	{
+		ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Stun, EGameplayTagEventType::NewOrRemoved).Remove(StunHandle);
 		ASC->GetGameplayAttributeValueChangeDelegate(UHALMovementAttributeSet::GetAccelerationMultiplierDeltaAttribute()).Remove(AccelerationHandle);
 		ASC->GetGameplayAttributeValueChangeDelegate(UHALMovementAttributeSet::GetSpeedLimitMultiplierDeltaAttribute()).Remove(SpeedHandle);
 	}
 	FWorldDelegates::OnWorldPostActorTick.Remove(WorldHandle);
-	WorldHandle.Reset(); AccelerationHandle.Reset(); SpeedHandle.Reset();
+	WorldHandle.Reset(); AccelerationHandle.Reset(); SpeedHandle.Reset(); StunHandle.Reset();
 	ASC = nullptr;
 	bDirty = false;
 	LastPublished = {};
@@ -57,6 +61,7 @@ void UHALMovementEffectBridge::Unbind()
 }
 void UHALMovementEffectBridge::EndPlay(const EEndPlayReason::Type Reason) { Unbind(); Super::EndPlay(Reason); }
 void UHALMovementEffectBridge::AttributeChanged(const FOnAttributeChangeData& Data) { bDirty = true; }
+void UHALMovementEffectBridge::StunChanged(FGameplayTag Tag, int32 Count) { bDirty = true; }
 void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float DeltaSeconds)
 {
 	if (World != GetWorld() || !ASC || ASC->GetAvatarActor() != GetOwner() || !Movement) { return; }
@@ -66,9 +71,11 @@ void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float D
 	const auto* Values = ASC->GetSet<UHALMovementAttributeSet>();
 	FHALMovementSnapshot Snapshot;
 	Snapshot.Epoch = Epoch;
+	Snapshot.bControlsBlocked = ASC->IsStunned();
 	if (!Values || !FHALMovementSnapshot::CalculateScales(Values->GetAccelerationMultiplierDelta(), Values->GetSpeedLimitMultiplierDelta(), Snapshot.AccelerationScale, Snapshot.SpeedScale)) { return; }
 	bDirty = false;
-	if (LastPublished.IsValidValues() && LastPublished.AccelerationScale == Snapshot.AccelerationScale && LastPublished.SpeedScale == Snapshot.SpeedScale) { return; }
+	if (LastPublished.IsValidValues() && LastPublished.AccelerationScale == Snapshot.AccelerationScale
+		&& LastPublished.SpeedScale == Snapshot.SpeedScale && LastPublished.bControlsBlocked == Snapshot.bControlsBlocked) { return; }
 	if (LastPublished.Revision == MAX_uint32)
 	{
 		Epoch = FGuid::NewGuid(); Snapshot.Epoch = Epoch; LastPublished = {};

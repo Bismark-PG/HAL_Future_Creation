@@ -23,6 +23,7 @@ public:
 	void ResumeForOwner();
 	void NotifyExternalImpact(const FHALCombatHitRequest& Request, EHALImpactTier EffectiveTier);
 private:
+	friend struct FHALStunTestAccess;
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALRecoveryTestAccess;
 #endif

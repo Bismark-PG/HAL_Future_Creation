@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BallControlComponent.h"
+#include "HALAbilitySystemComponent.h"
 #include "VehicleRecoveryComponent.h"
 #include "VehicleKnockbackSettings.h"
 #include "VehicleConfigurationTypes.h"
@@ -104,6 +105,7 @@ bool UBallControlComponent::LaunchHeldBall(FVector& OutRecoilDeltaVelocity)
 {
 	OutRecoilDeltaVelocity = FVector::ZeroVector;
 	AActor* Owner = GetOwner();
+	if (UHALAbilitySystemComponent::IsActorStunned(Owner)) { return false; }
 	if (const auto* Recovery = Owner ? Owner->FindComponentByClass<UVehicleRecoveryComponent>() : nullptr;
 		Recovery && Recovery->IsExecuting()) { return false; }
 	if (!Owner
@@ -186,8 +188,14 @@ void UBallControlComponent::ReleaseForRecovery()
 	if (GetOwner()->HasAuthority()) { ReleaseHeldBall(FVector::ZeroVector,false); }
 }
 
+void UBallControlComponent::ReleaseForStun()
+{
+	if (GetOwner()->HasAuthority()) { ReleaseHeldBall(FVector::ZeroVector, false); }
+}
+
 void UBallControlComponent::EvaluateBallControl()
 {
+	if (UHALAbilitySystemComponent::IsActorStunned(GetOwner())) { return; }
 	if (!GetOwner()->HasAuthority())
 	{
 		return;

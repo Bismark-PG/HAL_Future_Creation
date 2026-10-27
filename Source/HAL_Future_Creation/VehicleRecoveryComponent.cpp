@@ -1,4 +1,5 @@
 #include "VehicleRecoveryComponent.h"
+#include "HALAbilitySystemComponent.h"
 #include "ArcadeVehicleMovementComponent.h"
 #include "VehicleStabilityRules.h"
 #include "BallControlComponent.h"
@@ -57,6 +58,7 @@ void UVehicleRecoveryComponent::LogTransition(EVehicleRecoveryPhase Before) cons
 
 bool UVehicleRecoveryComponent::Start(const FVehicleStabilityObservation& Sample)
 {
+	if (UHALAbilitySystemComponent::IsActorStunned(GetOwner())) { return false; }
 	auto* Movement = GetOwner()->FindComponentByClass<UArcadeVehicleMovementComponent>();
 	FVehicleRecoveryPhysicsState Command;
 	Command.Sequence = ++NextSequence;
@@ -120,6 +122,7 @@ void UVehicleRecoveryComponent::UpdateRecovery()
 	const auto* Match = GetWorld()->GetGameState<AHALMatchGameState>();
 	const auto* Health = GetOwner()->FindComponentByClass<UVehicleHealthComponent>();
 	const bool bPermitted = !bOwnerExiting && Pawn && Pawn->GetController() && Pawn->GetController()->GetPawn() == Pawn
+		&& !UHALAbilitySystemComponent::IsActorStunned(GetOwner())
 		&& (!Match || Match->GetMatchPhase() == EHALMatchPhase::Playing)
 		&& Health && Health->IsHealthReady() && Health->GetCurrentHP() > 0 && Sample.bValid && Now-LastPhysicsTime <= .25;
 	Status.bDrivingAllowed = Sample.bDrivingAllowed; Status.bNearGround = Sample.bNearGround;

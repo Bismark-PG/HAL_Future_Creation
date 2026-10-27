@@ -91,8 +91,8 @@ void UArcadeVehicleMovementComponent::ApplyMovementAction(const FVehicleMovement
 	if (bMovementAuthority.Load()) { MovementAuthorityTimeline.Append(Value, MovementWindowFrames); }
 	if (CVarHALMovementEffectLog.GetValueOnAnyThread())
 	{
-		UE_LOG(LogTemp, Log, TEXT("Movement action: Player=%d Epoch=%s Revision=%u Frame=%d Accel=%.4f Speed=%.4f"),
-			MovementPlayerId.Load(), *Value.Epoch.ToString(), Value.Revision, Frame, Value.AccelerationScale, Value.SpeedScale);
+		UE_LOG(LogTemp, Log, TEXT("Movement action: Player=%d Epoch=%s Revision=%u Frame=%d Accel=%.4f Speed=%.4f ControlsBlocked=%d"),
+			MovementPlayerId.Load(), *Value.Epoch.ToString(), Value.Revision, Frame, Value.AccelerationScale, Value.SpeedScale, Value.bControlsBlocked);
 	}
 }
 bool UArcadeVehicleMovementComponent::RequestMovementRewind(Chaos::FPBDRigidsSolver* Solver, int32 LocalFrame, int32 RequestedLocalFrame, bool bRequireCheckpoint)
@@ -267,8 +267,8 @@ void UArcadeVehicleMovementComponent::PrepareMovementFrame(Chaos::FPBDRigidsSolv
 	}
 	if (CVarHALMovementEffectLog.GetValueOnAnyThread() && (bReplay || (LocalFrame >= 0 && LocalFrame % 60 == 0)))
 	{
-		UE_LOG(LogTemp, Log, TEXT("Movement frame: Player=%d Epoch=%s Revision=%u ServerFrame=%d LocalFrame=%d Accel=%.4f Speed=%.4f Ready=%d Replay=%d Recovery=%d Window=%d Rewinds=%d Authority=%d"),
+		UE_LOG(LogTemp, Log, TEXT("Movement frame: Player=%d Epoch=%s Revision=%u ServerFrame=%d LocalFrame=%d Accel=%.4f Speed=%.4f Ready=%d Replay=%d Recovery=%d Window=%d Rewinds=%d Authority=%d ControlsBlocked=%d"),
 			MovementPlayerId.Load(), *Selected.Epoch.ToString(), Selected.Revision, ServerFrame, LocalFrame,
-			Selected.AccelerationScale, Selected.SpeedScale, Status.bReady, bReplay, bMovementRecovery, MovementWindowFrames, MovementRewindRequests, bKnown);
+			Selected.AccelerationScale, Selected.SpeedScale, Status.bReady, bReplay, bMovementRecovery, MovementWindowFrames, MovementRewindRequests, bKnown, Selected.bControlsBlocked);
 	}
 }
