@@ -143,7 +143,7 @@ private:
 	FGuid MovementEpochExternal;
 	bool bMovementResetPending = false;
 	bool bStandaloneMovementPending = false;
-	FHALMovementSnapshot PendingStandaloneMovement;
+	FVehicleMovementParameterAction PendingStandaloneMovement;
 	FHALMovementStatus PublishedMovementStatus; // Protected by PendingPhysicsDataLock.
 	TAtomic<bool> bMovementAuthority{false};
 	TAtomic<bool> bMovementTickOffsetReady{false};
@@ -153,11 +153,13 @@ private:
 	FHALMovementTimeline MovementAuthorityTimeline;
 	TArray<FHALMovementSnapshot> MovementActions;
 	FHALMovementSnapshot CurrentMovement;
+	FVector CurrentMovementScales = FVector::OneVector;
 	struct FUsedMovementFrame
 	{
 		int32 LocalFrame = INDEX_NONE;
 		FGuid Epoch;
 		FHALMovementSnapshot Value;
+		FVector ConsumedScales = FVector::OneVector;
 		bool bMapped = false;
 	};
 	TArray<FUsedMovementFrame> UsedMovementFrames;

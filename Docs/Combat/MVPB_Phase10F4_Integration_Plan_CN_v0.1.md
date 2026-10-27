@@ -4,6 +4,8 @@
 
 **最新排期：用户随后决定将10-F剩余的F4集成回归统一后置到MVP-B收尾。当前暂不实施F4-A诊断／夹具，也不执行B／C／D矩阵；下列方案、门槛与待测项全部保留，末尾统一验收时使用。** F1～F3代码与已有基础验证继续作为开发基线，不能将后置记为F4／阶段10最终验收通过。
 
+**2026-10-27补充：用户明确将VP复杂情况也放到MVP-B末尾集中验收。** [VP-4C组合与生命周期清单](../Presentation/MVPB_Vehicle_Presentation_VP4C_Plan_CN_v0.1.md)与本方案在收尾时合并去重，覆盖驾驶／发射／受击／悬挂叠加、消息确认／拒绝／迟到、重配／Pawn／退出／恢复及实际画面。所需审计、补测试和缺陷修复按实际缺口执行，不单独在当前开工；现有VP基础表现获用户正向反馈，但复杂矩阵和四机仍未验收。
+
 依据：[阶段10状态](../Project_Status_CN.md)、[10-F总计划](MVPB_Phase10F_Movement_Effects_Plan_CN_v0.1.md)、[F1契约](MVPB_Phase10F1_Spec_CN_v0.1.md)、[F2实现](MVPB_Phase10F2_Implementation_CN_v0.1.md)、[加速GA实施／团队反馈](MVPB_Phase10F3_Movement_Ability_CN_v0.1.md)、[F3手动日志](MVPB_Phase10F3Ability_ManualLogReview_20261019.json)。网络与四机门槛沿用[Listen Server v0.2第17节](../MVP_B_Listen_Server_Plan_CN_v0.2.md#17-测试方法与验收指标)和[阶段9四机流程](../Networking/MVPB_Listen_Phase9_Implementation_CN_v0.1.md#四机验收顺序和记录)。
 
 ## 1. 本步回答的问题

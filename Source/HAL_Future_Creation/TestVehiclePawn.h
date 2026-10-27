@@ -27,6 +27,7 @@ class UStaticMeshComponent;
 class UVehicleHealthComponent;
 class UHALImpactReceiverComponent;
 class UHALMovementEffectBridge;
+class UHALMovementAreaReceiver;
 class UHALVehiclePresentationComponent;
 class UVehicleRecoveryComponent;
 class USkeletalMeshComponent;
@@ -125,6 +126,9 @@ protected:
 	TObjectPtr<UHALImpactReceiverComponent> ImpactReceiver;
 	UPROPERTY(VisibleAnywhere, Category = "Vehicle|Components")
 	TObjectPtr<UHALMovementEffectBridge> MovementEffectBridge;
+
+	UPROPERTY(VisibleAnywhere, Category="Vehicle|Components")
+	TObjectPtr<UHALMovementAreaReceiver> MovementAreaReceiver;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
 	TObjectPtr<USpringArmComponent> CameraBoom;

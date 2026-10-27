@@ -11,6 +11,12 @@ UHALMovementEffectBridge::UHALMovementEffectBridge()
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
 }
+void UHALMovementEffectBridge::SetAreaRecoverySeconds(const FVector& Seconds)
+{
+	// Several sources/families can leave in one GT frame. A later unchanged
+	// channel must not erase the recovery requested by an earlier exit.
+	for (int32 Index = 0; Index < 3; ++Index) { AreaRecoverySeconds[Index] = FMath::Max(AreaRecoverySeconds[Index], Seconds[Index]); }
+}
 void UHALMovementEffectBridge::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -33,8 +39,14 @@ void UHALMovementEffectBridge::Bind(UHALAbilitySystemComponent* InASC, int32 Pla
 	if (GetOwner()->HasAuthority())
 	{
 		Epoch = FGuid::NewGuid();
-		AccelerationHandle = ASC->GetGameplayAttributeValueChangeDelegate(UHALMovementAttributeSet::GetAccelerationMultiplierDeltaAttribute()).AddUObject(this, &ThisClass::AttributeChanged);
-		SpeedHandle = ASC->GetGameplayAttributeValueChangeDelegate(UHALMovementAttributeSet::GetSpeedLimitMultiplierDeltaAttribute()).AddUObject(this, &ThisClass::AttributeChanged);
+		const FGameplayAttribute Attributes[] = {
+			UHALMovementAttributeSet::GetAccelerationMultiplierDeltaAttribute(), UHALMovementAttributeSet::GetSpeedLimitMultiplierDeltaAttribute(),
+			UHALMovementAttributeSet::GetLateralGripMultiplierDeltaAttribute(), UHALMovementAttributeSet::GetAreaAccelerationDeltaAttribute(),
+			UHALMovementAttributeSet::GetAreaSpeedDeltaAttribute(), UHALMovementAttributeSet::GetAreaGripDeltaAttribute() };
+		for (const auto& Attribute : Attributes)
+		{
+			AttributeHandles.Emplace(Attribute, ASC->GetGameplayAttributeValueChangeDelegate(Attribute).AddUObject(this, &ThisClass::AttributeChanged));
+		}
 		bDirty = true;
 		StunHandle = ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Stun, EGameplayTagEventType::NewOrRemoved)
 			.AddUObject(this, &ThisClass::StunChanged);
@@ -48,14 +60,14 @@ void UHALMovementEffectBridge::Unbind()
 	if (ASC)
 	{
 		ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Stun, EGameplayTagEventType::NewOrRemoved).Remove(StunHandle);
-		ASC->GetGameplayAttributeValueChangeDelegate(UHALMovementAttributeSet::GetAccelerationMultiplierDeltaAttribute()).Remove(AccelerationHandle);
-		ASC->GetGameplayAttributeValueChangeDelegate(UHALMovementAttributeSet::GetSpeedLimitMultiplierDeltaAttribute()).Remove(SpeedHandle);
+		for (const auto& Pair : AttributeHandles) { ASC->GetGameplayAttributeValueChangeDelegate(Pair.Key).Remove(Pair.Value); }
 	}
 	FWorldDelegates::OnWorldPostActorTick.Remove(WorldHandle);
-	WorldHandle.Reset(); AccelerationHandle.Reset(); SpeedHandle.Reset(); StunHandle.Reset();
+	WorldHandle.Reset(); AttributeHandles.Reset(); StunHandle.Reset();
 	ASC = nullptr;
 	bDirty = false;
 	LastPublished = {};
+	AreaRecoverySeconds = FVector::ZeroVector;
 	if (GetOwner()->HasAuthority() && Epoch.IsValid()) { Epoch.Invalidate(); GetOwner()->ForceNetUpdate(); }
 	if (Movement) { Movement->ConfigureMovementEffects({}, History, GetOwner()->HasAuthority(), BoundPlayerId); }
 }
@@ -72,16 +84,33 @@ void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float D
 	FHALMovementSnapshot Snapshot;
 	Snapshot.Epoch = Epoch;
 	Snapshot.bControlsBlocked = ASC->IsStunned();
-	if (!Values || !FHALMovementSnapshot::CalculateScales(Values->GetAccelerationMultiplierDelta(), Values->GetSpeedLimitMultiplierDelta(), Snapshot.AccelerationScale, Snapshot.SpeedScale)) { return; }
+	if (!Values) { return; }
+	Snapshot.bHasAreaState = true;
+	Snapshot.AreaAcceleration.OrdinaryDelta = Values->GetAccelerationMultiplierDelta();
+	Snapshot.AreaSpeed.OrdinaryDelta = Values->GetSpeedLimitMultiplierDelta();
+	Snapshot.AreaGrip.OrdinaryDelta = Values->GetLateralGripMultiplierDelta();
+	Snapshot.AreaAcceleration.Target = 1 + Values->GetAreaAccelerationDelta();
+	Snapshot.AreaSpeed.Target = 1 + Values->GetAreaSpeedDelta();
+	Snapshot.AreaGrip.Target = 1 + Values->GetAreaGripDelta();
+	Snapshot.AreaAcceleration.RecoverySeconds = AreaRecoverySeconds.X;
+	Snapshot.AreaSpeed.RecoverySeconds = AreaRecoverySeconds.Y;
+	Snapshot.AreaGrip.RecoverySeconds = AreaRecoverySeconds.Z;
+	Snapshot.AccelerationScale = Snapshot.AreaAcceleration.EffectiveValue(MAX_int32);
+	Snapshot.SpeedScale = Snapshot.AreaSpeed.EffectiveValue(MAX_int32);
+	Snapshot.GripScale = Snapshot.AreaGrip.EffectiveValue(MAX_int32);
+	const auto SameTarget = [](const FHALMovementAreaChannel& A, const FHALMovementAreaChannel& B)
+	{ return A.OrdinaryDelta == B.OrdinaryDelta && A.Target == B.Target; };
 	bDirty = false;
-	if (LastPublished.IsValidValues() && LastPublished.AccelerationScale == Snapshot.AccelerationScale
-		&& LastPublished.SpeedScale == Snapshot.SpeedScale && LastPublished.bControlsBlocked == Snapshot.bControlsBlocked) { return; }
+	if (LastPublished.IsValidValues() && LastPublished.bControlsBlocked == Snapshot.bControlsBlocked
+		&& SameTarget(LastPublished.AreaAcceleration, Snapshot.AreaAcceleration)
+		&& SameTarget(LastPublished.AreaSpeed, Snapshot.AreaSpeed) && SameTarget(LastPublished.AreaGrip, Snapshot.AreaGrip))
+	{ AreaRecoverySeconds = FVector::ZeroVector; return; }
 	if (LastPublished.Revision == MAX_uint32)
 	{
 		Epoch = FGuid::NewGuid(); Snapshot.Epoch = Epoch; LastPublished = {};
 		ConfigurePhysics(); GetOwner()->ForceNetUpdate();
 	}
 	Snapshot.Revision = LastPublished.Revision + 1;
-	if (Movement->QueueMovementParameters(Snapshot)) { LastPublished = Snapshot; }
+	if (Movement->QueueMovementParameters(Snapshot)) { LastPublished = Snapshot; AreaRecoverySeconds = FVector::ZeroVector; }
 	else { bDirty = true; }
 }

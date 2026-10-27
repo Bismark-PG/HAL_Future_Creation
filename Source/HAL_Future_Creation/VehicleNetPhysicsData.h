@@ -141,10 +141,14 @@ struct HAL_FUTURE_CREATION_API FVehicleMovementParameterAction : public FNetwork
 {
 	GENERATED_BODY()
 	UPROPERTY() FHALMovementSnapshot Value;
+	/** Authority's last consumed definition. It fixes the recovery origin even if a client missed that action. */
+	UPROPERTY() FHALMovementSnapshot Previous;
+	UPROPERTY() float FixedDeltaSeconds = 0;
 	virtual const EActionAuthorStyle GetAuthorStyle() const override { return EActionAuthorStyle::Authority; }
 	virtual bool IsNearlyEqual(const FNetworkPhysicsActionPayload& Other) const override
 	{
-		return Value.Equals(static_cast<const FVehicleMovementParameterAction&>(Other).Value);
+		const auto& Parameters = static_cast<const FVehicleMovementParameterAction&>(Other);
+		return Value.Equals(Parameters.Value) && Previous.Equals(Parameters.Previous) && FixedDeltaSeconds == Parameters.FixedDeltaSeconds;
 	}
 };
 
@@ -195,6 +199,8 @@ struct HAL_FUTURE_CREATION_API FVehicleNetStateData
 	UPROPERTY()
 	FVector PendingRecoilDeltaVelocity = FVector::ZeroVector;
 	UPROPERTY() FHALMovementSnapshot MovementSnapshot;
+	/** Actual values used during F-1 in state S(F), in addition to the immutable curve definition. */
+	UPROPERTY() FVector MovementConsumedScales = FVector::OneVector;
 	UPROPERTY() FHALMovementTimeline MovementTimeline;
 	UPROPERTY() bool bPoseDriveAllowed = false;
 	UPROPERTY() float PoseStableSeconds = 0;

@@ -439,7 +439,9 @@ AnimBP Event Graph 尽量为空，节点直接读取原生变量；避免为每�
 
 ### 11.2 VP-4建议施工顺序（2026-10-23）
 
-本节最初为讨论计划。2026-10-23 VP-4A代码及原生验证完成，随后团队基础画面初测通过，见[VP-4A实施第7节](MVPB_Vehicle_Presentation_VP4A_Implementation_CN_v0.1.md#7-团队画面初测与下一步2026-10-23)。2026-10-26用户接受[VP-4B方案](MVPB_Vehicle_Presentation_VP4B_Plan_CN_v0.1.md)并授权施工，4B代码、两Target、普通75/75及真实双端各1/1完成，当前待团队启用DA与画面，见[VP-4B实施](MVPB_Vehicle_Presentation_VP4B_Implementation_CN_v0.1.md)。随后才进入4C组合收尾，尚未施工；演出数值不冻结。继续采用现有表现组件、车型DA、快照和AnimInstance，不建立新的战斗、物理或通用事件框架。
+**2026-10-27最新调整：VP现有功能可阶段性收尾。** 用户反馈目前表现无大问题，并要求复杂情况在MVP-B末尾集中测试；VP-4C保留为届时与F4合并的组合／生命周期清单，当前不再单独执行C-1／C-2／C-3或新增功能。下文方案讨论按原时点保留，最新排期见[4C第8节](MVPB_Vehicle_Presentation_VP4C_Plan_CN_v0.1.md#8-vp阶段性收尾与集中验收2026-10-27)。复杂验收不标为通过，可选新表现及物理悬挂仍独立。
+
+本节最初为讨论计划。2026-10-23 VP-4A代码及原生验证完成，随后团队基础画面初测通过，见[VP-4A实施第7节](MVPB_Vehicle_Presentation_VP4A_Implementation_CN_v0.1.md#7-团队画面初测与下一步2026-10-23)。2026-10-26用户接受[VP-4B方案](MVPB_Vehicle_Presentation_VP4B_Plan_CN_v0.1.md)并授权施工，4B代码、两Target、普通75/75及真实双端各1/1完成，人工画面待记录，见[VP-4B实施](MVPB_Vehicle_Presentation_VP4B_Implementation_CN_v0.1.md)。2026-10-27用户要求先确定[VP-4C组合与生命周期方案](MVPB_Vehicle_Presentation_VP4C_Plan_CN_v0.1.md)，现为方案阶段，代码／新验证未开始；4B人工待办可随C的画面清单补齐，不推定通过。演出数值不冻结；继续采用现有表现组件、车型DA、快照和AnimInstance，不建立新的战斗、物理或通用事件框架。
 
 | 顺序 | 建议实现 | 单步检查重点 |
 |---|---|---|

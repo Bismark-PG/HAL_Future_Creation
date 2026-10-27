@@ -9,6 +9,7 @@
 #include "VehicleKnockbackSettings.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALMovementEffectBridge.h"
+#include "HALMovementAreaReceiver.h"
 #include "HALVehiclePresentationComponent.h"
 #include "HALPlayerState.h"
 #include "HALGameplayTags.h"
@@ -96,6 +97,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	NetworkPhysicsHistory = CreateDefaultSubobject<UNetworkPhysicsComponent>(TEXT("VehicleNetworkPhysicsHistory"));
 	NetworkPhysicsHistory->SetAutoActivate(false);
 	MovementEffectBridge = CreateDefaultSubobject<UHALMovementEffectBridge>(TEXT("MovementEffectBridge"));
+	MovementAreaReceiver = CreateDefaultSubobject<UHALMovementAreaReceiver>(TEXT("MovementAreaReceiver"));
 
 	BallControlPoint = CreateDefaultSubobject<USceneComponent>(TEXT("BallControlPoint"));
 	BallControlPoint->SetupAttachment(CollisionRoot);
@@ -153,6 +155,9 @@ void ATestVehiclePawn::BeginPlay()
 	}
 
 	Super::BeginPlay();
+	// Existing saved Blueprints may override the component's constructor default.
+	// Enable queries on the real body at runtime; never change its collision profile or simulation.
+	if (HasAuthority() && bConfigurationValid) { CollisionRoot->SetGenerateOverlapEvents(true); }
 	InitializeAbilitySystem();
 	if (bNetworkPhysicsHistoryActive && ArcadeMovement)
 	{
@@ -253,6 +258,7 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 	ASC->InitAbilityActorInfo(State, this);
 	Health->BindToAbilitySystem(ASC);
 	MovementEffectBridge->Bind(ASC, State->GetPlayerId());
+	MovementAreaReceiver->Bind(ASC);
 	if (HasAuthority() && bConfigurationValid)
 	{
 		ASC->InitializeCombat(RuntimeCombatConfig);
@@ -263,6 +269,7 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 
 void ATestVehiclePawn::UninitializeAbilitySystem()
 {
+	MovementAreaReceiver->Unbind();
 	MovementEffectBridge->Unbind();
 	UHALAbilitySystemComponent* ASC = Health->GetBoundAbilitySystem();
 	Health->UnbindFromAbilitySystem();
