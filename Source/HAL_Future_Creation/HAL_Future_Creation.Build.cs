@@ -10,7 +10,7 @@ public class HAL_Future_Creation : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "DeveloperSettings", "PhysicsCore", "UMG", "GameplayAbilities", "GameplayTags", "GameplayTasks" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "Chaos", "Networking", "Slate", "SlateCore" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Chaos", "Networking", "Slate", "SlateCore", "Niagara" });
 		
 		// Uncomment if you are using online features
 		// PrivateDependencyModuleNames.Add("OnlineSubsystem");

@@ -289,6 +289,8 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		PublishedPresentationInput.PhysicsFrame = StepInput.PhysicsFrame;
 		PublishedPresentationInput.bGrounded = bGrounded;
 		PublishedPresentationInput.bValid = true;
+		PublishedPresentationInput.TireSkidInputs = bPoseDriveAllowed && bMovementDriveAllowed && !CurrentMovement.bControlsBlocked
+			? HALVehiclePresentation::TireSkidInputs(InputCommand.Brake, InputCommand.Throttle, InputCommand.bHandbrake) : 0;
 		PublishedStability.PhysicsFrame = StepInput.PhysicsFrame;
 		PublishedStability.bValid = true;
 		PublishedStability.bNearGround = bGrounded;

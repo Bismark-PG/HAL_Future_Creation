@@ -9,8 +9,15 @@ class UHALVehiclePresentationConfig;
 class UPrimitiveComponent;
 class UStaticMeshComponent;
 class USkeletalMeshComponent;
+class UNiagaraComponent;
 
-/** Visual-only wheel/chassis animation. Observers receive steering and a driving-lean permission bit. */
+struct FHALFadingTireSkid
+{
+	TWeakObjectPtr<UNiagaraComponent> Component;
+	double Deadline = 0;
+};
+
+/** Cosmetic wheel/chassis/trails. Observers receive accepted steering, drive permission and skid demand. */
 UCLASS(ClassGroup = (Vehicle))
 class HAL_FUTURE_CREATION_API UHALVehiclePresentationComponent : public UActorComponent
 {
@@ -27,6 +34,7 @@ public:
 	bool IsUsingSkeletalPresentation() const { return bConfigured; }
 	const USkeletalMeshComponent* GetPresentationMesh() const { return Mesh; }
 	float GetObserverSteering() const { return float(ObserverSteering) / 127.f; }
+	uint8 GetObserverTireSkidInputs() const { return ObserverTireSkidInputs; }
 	/** Owning-client input edge only; no force or authority request is performed here. */
 	void PredictLaunchRebound(uint32 Sequence);
 	/** Authority accepted shot, cosmetic multicast; owner also gets the existing reliable result. */
@@ -43,6 +51,10 @@ private:
 	float ReadSteering(float DeltaTime, bool bDrivingLeanAllowed);
 	bool ReadDrivingLeanAllowed() const;
 	void UpdateSuspension(float DeltaTime);
+	uint8 ReadTireSkidInputs() const;
+	void UpdateTireSkids(const FVector& Velocity, bool bDrivingAllowed);
+	void StopTireSkid(int32 Slot, bool bImmediate);
+	void ClearTireSkids();
 	void ConsumeAcceptedLaunch(uint32 Sequence, float ServerTimeSeconds);
 	double GetLaunchServerTime() const;
 	UFUNCTION(NetMulticast, Unreliable) void MulticastAcceptedLaunch(uint32 Sequence, float ServerTimeSeconds);
@@ -58,6 +70,13 @@ private:
 	UPROPERTY(Replicated) int8 ObserverSteering = 0;
 	/** Cosmetic only. Remote clients do not run the movement component's support probe. */
 	UPROPERTY(Replicated) bool bObserverDrivingLeanAllowed = false;
+	UPROPERTY(Replicated) uint8 ObserverTireSkidInputs = 0;
+	UPROPERTY(Transient) TObjectPtr<UNiagaraComponent> TireSkidComponents[4];
+	TArray<FHALFadingTireSkid> FadingTireSkids;
+	FHALWheelSupportSample WheelSupports[4];
+	FVector LastTireSkidPoints[4] {};
+	int32 NextRibbonID = 0;
+	bool bTireSkidReady = false;
 	FHALVehiclePresentationFrame Frame;
 	FHALChassisPresentationState ChassisState;
 	FHALLaunchVisualState LaunchState;
