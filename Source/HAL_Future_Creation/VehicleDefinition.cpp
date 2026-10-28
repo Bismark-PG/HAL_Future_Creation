@@ -78,6 +78,13 @@ bool UVehicleLocalConfig::Validate(FString& Error) const
 	{
 		return Fail(Error, TEXT("Optional SelfRightAction must use Digital (bool) and be distinct from driving, launch and PrimarySkill actions."));
 	}
+	for (const UInputAction* Action : { CameraMouseAction.Get(), CameraStickAction.Get() })
+	{
+		if (Action && (Action->ValueType != EInputActionValueType::Axis2D || Action == SteeringAction || Action == ThrottleAction
+			|| Action == BrakeAction || Action == HandbrakeAction || Action == LaunchAction || Action == PrimarySkillAction || Action == SelfRightAction))
+		{ return Fail(Error,TEXT("Camera actions must be independent Axis2D input actions.")); }
+	}
+	if (CameraMouseAction && CameraMouseAction == CameraStickAction) { return Fail(Error,TEXT("Mouse and gamepad camera actions must be distinct.")); }
 	return Camera.Validate(Error);
 }
 

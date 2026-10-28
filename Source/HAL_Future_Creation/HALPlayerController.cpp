@@ -13,6 +13,8 @@
 #include "HALMatchGameState.h"
 #include "HALNetworkGameInstance.h"
 #include "HALDebugHUDWidget.h"
+#include "HALCameraDebugWidget.h"
+#include "HALDynamicCameraComponent.h"
 #include "HALDebugSettings.h"
 #include "BasicBallActor.h"
 #include "TestVehiclePawn.h"
@@ -43,12 +45,20 @@ void AHALPlayerController::BeginPlay()
 			DebugHUD->SetPositionInViewport(FVector2D(12.0f, 12.0f));
 			DebugHUD->AddToPlayerScreen(100);
 		}
+		CameraDebugHUD = CreateWidget<UHALCameraDebugWidget>(this,UHALCameraDebugWidget::StaticClass());
+		if (CameraDebugHUD)
+		{
+			CameraDebugHUD->SetAnchorsInViewport(FAnchors(0,0,1,1));
+			CameraDebugHUD->SetVisibility(ESlateVisibility::HitTestInvisible);
+			CameraDebugHUD->AddToPlayerScreen(105);
+		}
 #endif
 	}
 }
 
 void AHALPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (CameraDebugHUD) { CameraDebugHUD->RemoveFromParent(); CameraDebugHUD = nullptr; }
 #if !UE_BUILD_SHIPPING
 	for (const auto& Entry : DebugImpactImmuneTargets)
 	{
@@ -65,6 +75,23 @@ void AHALPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		DebugHUD = nullptr;
 	}
 	Super::EndPlay(EndPlayReason);
+}
+
+void AHALPlayerController::HALCameraReset()
+{
+	if (IsLocalController() && GetPawn())
+	{ if (auto* Camera = GetPawn()->FindComponentByClass<UHALDynamicCameraComponent>()) { Camera->ResetCamera(); } }
+}
+void AHALPlayerController::HALCameraStatus()
+{
+	if (!IsLocalController() || !GetPawn()) { return; }
+	if (const auto* Camera = GetPawn()->FindComponentByClass<UHALDynamicCameraComponent>())
+	{
+		const auto& F = Camera->GetDebugFrame();
+		UE_LOG(LogTemp,Display,TEXT("HAL Camera: Pawn=%s Valid=%d Dynamic=%d FOV=%.2f Distance=%.2f GoalDistance=%.2f OwnScreen=%.4f/%.4f Manual=%.4f/%.4f PrimaryCandidates=%d Hard=%d"),
+			*GetNameSafe(GetPawn()),F.bValid,F.bDynamic,F.View.FOV,F.Distance,F.DesiredDistance,F.OwnScreen.X,F.OwnScreen.Y,
+			F.ManualOffset.X,F.ManualOffset.Y,F.MainBallCandidates,F.bHardLimited);
+	}
 }
 
 void AHALPlayerController::RequestStartMatch()

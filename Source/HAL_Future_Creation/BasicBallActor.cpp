@@ -90,6 +90,7 @@ ABasicBallActor::ABasicBallActor()
 void ABasicBallActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ABasicBallActor, bPrimaryCameraTarget);
 
 	DOREPLIFETIME(ABasicBallActor, RepState);
 }
@@ -298,6 +299,11 @@ void ABasicBallActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	LaunchAction.Close();
 	StopLowSpeedMonitor();
 	Super::EndPlay(EndPlayReason);
+}
+
+void ABasicBallActor::SetPrimaryCameraTarget(bool bPrimary)
+{
+	if (HasAuthority() && bPrimaryCameraTarget != bPrimary) { bPrimaryCameraTarget = bPrimary; ForceNetUpdate(); }
 }
 
 void ABasicBallActor::BeginPlay()

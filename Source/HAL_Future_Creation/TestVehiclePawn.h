@@ -31,6 +31,7 @@ class UHALMovementAreaReceiver;
 class UHALVehiclePresentationComponent;
 class UVehicleRecoveryComponent;
 class USkeletalMeshComponent;
+class UHALDynamicCameraComponent;
 struct FInputActionValue;
 
 /** Minimal player vehicle used to validate MVP-A ground handling. */
@@ -61,6 +62,7 @@ public:
 	virtual void UnPossessed() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	virtual void CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult) override;
 
 	UFUNCTION(BlueprintPure, Category = "Vehicle|Input")
 	FVehicleInputCmd GetCurrentInputCommand() const { return CurrentInputCommand; }
@@ -135,6 +137,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
 	TObjectPtr<UCameraComponent> TopDownCamera;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vehicle|Components") TObjectPtr<UHALDynamicCameraComponent> DynamicCamera;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Input")
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
@@ -156,6 +159,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Input")
 	TObjectPtr<UInputAction> PrimarySkillAction;
 	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Input") TObjectPtr<UInputAction> SelfRightAction;
+	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Input") TObjectPtr<UInputAction> CameraMouseAction;
+	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Input") TObjectPtr<UInputAction> CameraStickAction;
 
 	/** Unreliable client input snapshots per second until Network Physics history is wired in phase 4. */
 	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Network", meta = (ClampMin = "1.0", ClampMax = "60.0", Units = "Hz"))
@@ -204,6 +209,9 @@ private:
 	void OnPrimarySkillCompleted(const FInputActionValue& Value);
 	void OnSelfRightStarted(const FInputActionValue& Value);
 	void OnSelfRightCompleted(const FInputActionValue& Value);
+	void OnCameraMouse(const FInputActionValue& Value);
+	void OnCameraStick(const FInputActionValue& Value);
+	void OnCameraStickCompleted(const FInputActionValue& Value);
 
 	UFUNCTION()
 	void OnCollisionRootHit(

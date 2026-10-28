@@ -96,6 +96,9 @@ public:
 	uint32 GetBallStateSequence() const { return RepState.StateSequence; }
 
 	USphereComponent* GetPhysicsRoot() const { return PhysicsRoot; }
+	bool IsPrimaryCameraTarget() const { return bPrimaryCameraTarget; }
+	/** Authority metadata only, never set from a client camera request. */
+	void SetPrimaryCameraTarget(bool bPrimary);
 
 	bool CanBeControlledBy(const AActor* CandidateVehicle) const;
 	bool BeginControl(AActor* NewHolder);
@@ -106,6 +109,8 @@ public:
 	bool HandleVehicleExit(const AActor* LeavingVehicle);
 
 protected:
+	/** Mark exactly one placed ordinary ball. Debug-spawned balls remain unmarked. */
+	UPROPERTY(EditInstanceOnly, Replicated, Category="Ball|Camera") bool bPrimaryCameraTarget = false;
 	UPROPERTY(EditAnywhere, Category = "Ball|Configuration")
 	EVehicleConfigurationSource ConfigurationSource = EVehicleConfigurationSource::Legacy;
 

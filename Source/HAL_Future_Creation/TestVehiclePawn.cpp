@@ -11,6 +11,7 @@
 #include "HALMovementEffectBridge.h"
 #include "HALMovementAreaReceiver.h"
 #include "HALVehiclePresentationComponent.h"
+#include "HALDynamicCameraComponent.h"
 #include "HALPlayerState.h"
 #include "HALGameplayTags.h"
 
@@ -125,6 +126,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	TopDownCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("TopDownCamera"));
 	TopDownCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	TopDownCamera->bUsePawnControlRotation = false;
+	DynamicCamera = CreateDefaultSubobject<UHALDynamicCameraComponent>(TEXT("DynamicCamera"));
 }
 
 void ATestVehiclePawn::BeginPlay()
@@ -169,6 +171,7 @@ void ATestVehiclePawn::BeginPlay()
 void ATestVehiclePawn::PawnClientRestart()
 {
 	Super::PawnClientRestart();
+	DynamicCamera->ResetCamera();
 	InitializeAbilitySystem();
 
 	if (ArcadeMovement) { ArcadeMovement->SetHistoryInputBlocked(false); }
@@ -199,6 +202,7 @@ void ATestVehiclePawn::PossessedBy(AController* NewController)
 
 void ATestVehiclePawn::UnPossessed()
 {
+	DynamicCamera->ResetCamera();
 	if (VehicleRecovery) { VehicleRecovery->CancelForOwnerExit(); }
 	UninitializeAbilitySystem();
 	if (ArcadeMovement) { ArcadeMovement->SetHistoryInputBlocked(true); }
@@ -325,6 +329,13 @@ void ATestVehiclePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		EnhancedInput->BindAction(SelfRightAction,ETriggerEvent::Completed,this,&ThisClass::OnSelfRightCompleted);
 		EnhancedInput->BindAction(SelfRightAction,ETriggerEvent::Canceled,this,&ThisClass::OnSelfRightCompleted);
 	}
+	if (CameraMouseAction) { EnhancedInput->BindAction(CameraMouseAction,ETriggerEvent::Triggered,this,&ThisClass::OnCameraMouse); }
+	if (CameraStickAction)
+	{
+		EnhancedInput->BindAction(CameraStickAction,ETriggerEvent::Triggered,this,&ThisClass::OnCameraStick);
+		EnhancedInput->BindAction(CameraStickAction,ETriggerEvent::Completed,this,&ThisClass::OnCameraStickCompleted);
+		EnhancedInput->BindAction(CameraStickAction,ETriggerEvent::Canceled,this,&ThisClass::OnCameraStickCompleted);
+	}
 
 	if (!DefaultMappingContext || !SteeringAction || !ThrottleAction || !BrakeAction || !HandbrakeAction || !LaunchAction)
 	{
@@ -360,6 +371,7 @@ void ATestVehiclePawn::AddDefaultInputContext()
 
 bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
 {
+	DynamicCamera->Configure(nullptr);
 	VehiclePresentation->Configure(nullptr, CollisionRoot, VisualMesh, SkeletalVisual, bPreview);
 	if (ConfigurationSource == EVehicleConfigurationSource::Legacy) { return true; }
 	FString Error;
@@ -381,8 +393,9 @@ bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
 	ForwardArrow->ArrowLength = Definition->ForwardArrowLength;
 	ForwardArrow->SetVisibility(Definition->bForwardArrowVisible);
 	ForwardArrow->SetHiddenInGame(Definition->bForwardArrowHiddenInGame);
-	const UVehicleLocalConfig* Local = Definition->LocalConfig;
+	UVehicleLocalConfig* Local = Definition->LocalConfig;
 	VehicleConfiguration::ApplyCamera(*CameraBoom, *TopDownCamera, Local->Camera);
+	if (!bPreview) { DynamicCamera->Configure(Local); }
 	if (!bPreview)
 	{
 		verify(ArcadeMovement->ApplyConfiguration(Definition->Movement));
@@ -398,6 +411,8 @@ bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
 		LaunchAction = Local->LaunchAction;
 		PrimarySkillAction = Local->PrimarySkillAction;
 		SelfRightAction = Local->SelfRightAction;
+		CameraMouseAction = Local->CameraMouseAction;
+		CameraStickAction = Local->CameraStickAction;
 		UE_LOG(LogTemp, Log, TEXT("%s: using VehicleDefinition %s."), *GetName(), *GetNameSafe(Definition));
 	}
 	return true;
@@ -421,6 +436,14 @@ void ATestVehiclePawn::RemoveDefaultInputContext()
 		}
 	}
 }
+
+void ATestVehiclePawn::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
+{
+	if (!DynamicCamera->CalculateView(DeltaTime,OutResult)) { Super::CalcCamera(DeltaTime,OutResult); }
+}
+void ATestVehiclePawn::OnCameraMouse(const FInputActionValue& Value) { DynamicCamera->AddMouseDelta(Value.Get<FVector2D>()); }
+void ATestVehiclePawn::OnCameraStick(const FInputActionValue& Value) { DynamicCamera->SetStickInput(Value.Get<FVector2D>()); }
+void ATestVehiclePawn::OnCameraStickCompleted(const FInputActionValue& Value) { DynamicCamera->SetStickInput(FVector2D::ZeroVector); }
 
 void ATestVehiclePawn::PushInputCommand()
 {
