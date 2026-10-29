@@ -129,8 +129,9 @@ void FVehiclePhysicsHistoryState::InterpolateData(const FNetworkPhysicsData& Min
 	FHALMovementSnapshot Value;
 	State.MovementTimeline = Min.State.MovementTimeline;
 	State.MovementTimeline.Merge(Max.State.MovementTimeline, FHALMovementTimeline::MaximumEntries - 2);
-	if (State.MovementTimeline.Query(ServerTarget - 1, Value)) { State.MovementSnapshot = Value; }
-	else { State.MovementSnapshot = {}; }
+	if (State.MovementTimeline.Query(ServerTarget - 1, Value))
+	{ State.MovementSnapshot = Value; State.MovementConsumedScales = Value.EvaluateScales(ServerTarget - 1); }
+	else { State.MovementSnapshot = {}; State.MovementConsumedScales = FVector::OneVector; }
 }
 
 bool FVehiclePhysicsHistoryState::CompareData(const FNetworkPhysicsData& PredictedData)
@@ -143,6 +144,7 @@ bool FVehiclePhysicsHistoryState::CompareData(const FNetworkPhysicsData& Predict
 	// Chaos compares and rewinds the rigid body using the Settings Data Asset thresholds.
 	// This comparison covers movement memory which Chaos does not know about.
 	if (!State.MovementSnapshot.Equals(Predicted.State.MovementSnapshot)) { return false; }
+	if (!State.MovementConsumedScales.Equals(Predicted.State.MovementConsumedScales,1.e-4)) { return false; }
 	const auto& A = State.MovementTimeline;
 	const auto& B = Predicted.State.MovementTimeline;
 	if (!A.IsEmpty() && !B.IsEmpty() && A.Epoch == B.Epoch)
@@ -174,6 +176,11 @@ bool FVehiclePhysicsHistoryState::NetSerialize(FArchive& Ar, UPackageMap* Map, b
 	State.BounceBack.Serialize(Ar);
 	if (!FMath::IsFinite(State.PoseStableSeconds) || State.PoseStableSeconds < 0 || State.PoseStableSeconds > 1.1f) { Ar.SetError(); }
 	State.MovementSnapshot.Serialize(Ar);
+	Ar << State.MovementConsumedScales;
+	for (int32 Index=0;Index<3;++Index)
+	{
+		if (!FMath::IsFinite(State.MovementConsumedScales[Index]) || State.MovementConsumedScales[Index]<0 || State.MovementConsumedScales[Index]>3) { Ar.SetError(); }
+	}
 	if ((!State.MovementSnapshot.IsUnset() && !State.MovementSnapshot.IsValid()) || !State.MovementTimeline.Serialize(Ar))
 	{
 		Ar.SetError(); bOutSuccess = false; return false;

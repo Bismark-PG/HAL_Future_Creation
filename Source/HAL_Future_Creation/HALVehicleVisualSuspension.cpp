@@ -70,7 +70,8 @@ void UHALVehiclePresentationComponent::UpdateSuspension(float DeltaTime)
 	Frame.bSuspensionActive = false;
 	Frame.SuspensionTraceCount = 0;
 	Frame.SuspensionQueryMicroseconds = 0;
-	if (!Config->Suspension.bEnabled || !Mesh || !GetWorld())
+	for (auto& Support : WheelSupports) { Support = {}; }
+	if ((!Config->Suspension.bEnabled && !bTireSkidReady) || !Mesh || !GetWorld())
 	{
 		for (auto& Wheel : Config->Wheels)
 		{
@@ -88,7 +89,7 @@ void UHALVehiclePresentationComponent::UpdateSuspension(float DeltaTime)
 	const FVector Scale = MeshWorld.GetScale3D();
 	const bool bCanProbe = Up.Z >= Config->Suspension.MinimumVehicleUpZ && !(Recovery && Recovery->IsExecuting())
 		&& !MeshWorld.ContainsNaN() && Scale.GetMin() > 0 && FMath::IsNearlyEqual(Scale.X, Scale.Y) && FMath::IsNearlyEqual(Scale.X, Scale.Z);
-	Frame.bSuspensionActive = bCanProbe;
+	Frame.bSuspensionActive = bCanProbe && Config->Suspension.bEnabled;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(HALVisualSuspension), false, GetOwner());
 	if (const auto* BallControl = GetOwner()->FindComponentByClass<UBallControlComponent>())
 	{ if (const auto* Ball = BallControl->GetHeldBall()) { Params.AddIgnoredActor(Ball); } }
@@ -120,7 +121,9 @@ void UHALVehiclePresentationComponent::UpdateSuspension(float DeltaTime)
 				Support.Normal = Hit.ImpactNormal;
 			}
 			Target = HALVehiclePresentation::SuspensionTarget(Config->Suspension, Wheel.Suspension, Center, Up, Wheel.RadiusCm, Support);
+			if (Target.bSupported) { WheelSupports[Slot] = Support; }
 		}
+		if (!Config->Suspension.bEnabled) { Target = {}; }
 		SuspensionOffsets[Slot] = bHasSample ? HALVehiclePresentation::SmoothSteering(SuspensionOffsets[Slot], Target.OffsetCm,
 			Config->Suspension.ResponseSeconds, DeltaTime) : Target.OffsetCm;
 		Pose.SuspensionOffsetCm = SuspensionOffsets[Slot];

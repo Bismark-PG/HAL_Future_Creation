@@ -303,6 +303,8 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		PublishedPresentationInput.PhysicsFrame = StepInput.PhysicsFrame;
 		PublishedPresentationInput.bGrounded = bGrounded;
 		PublishedPresentationInput.bValid = true;
+		PublishedPresentationInput.TireSkidInputs = bPoseDriveAllowed && bMovementDriveAllowed && !CurrentMovement.bControlsBlocked
+			? HALVehiclePresentation::TireSkidInputs(InputCommand.Brake, InputCommand.Throttle, InputCommand.bHandbrake) : 0;
 		PublishedStability.PhysicsFrame = StepInput.PhysicsFrame;
 		PublishedStability.bValid = true;
 		PublishedStability.bNearGround = bGrounded;
@@ -444,6 +446,7 @@ void UArcadeVehicleMovementComponent::BuildHistoryState(FVehicleNetStateData& Ou
 	OutState.WallEscapeBlend = WallEscapeBlend;
 	OutState.WallEscapeNormals = WallEscapeNormals;
 	OutState.MovementSnapshot = CurrentMovement;
+	OutState.MovementConsumedScales = CurrentMovementScales;
 	OutState.MovementTimeline = MovementAuthorityTimeline;
 	OutState.bPoseDriveAllowed = bPoseDriveAllowed;
 	OutState.PoseStableSeconds = PoseStableSeconds;
@@ -457,7 +460,8 @@ void UArcadeVehicleMovementComponent::ApplyHistoryState(const FVehicleNetStateDa
 	FBodyInstance* Body = UpdatedPrimitive ? UpdatedPrimitive->GetBodyInstance() : nullptr;
 	auto* Solver = Body ? Body->GetPhysicsActor()->GetSolver<Chaos::FPhysicsSolver>() : nullptr;
 	ImportMovementTimeline(InState.MovementTimeline, Solver, Solver ? Solver->GetCurrentFrame() : INDEX_NONE, false);
-	if (InState.MovementSnapshot.IsValid() && InState.MovementSnapshot.Epoch == MovementEpoch) { CurrentMovement = InState.MovementSnapshot; }
+	if (InState.MovementSnapshot.IsValid() && InState.MovementSnapshot.Epoch == MovementEpoch)
+	{ CurrentMovement = InState.MovementSnapshot; CurrentMovementScales = InState.MovementConsumedScales; }
 	// Chaos owns the rigid-body rewind. The custom history restores only movement memory.
 	bWallEscapeActive = InState.bWallEscapeActive;
 	WallEscapeBlend = FMath::Clamp(InState.WallEscapeBlend, 0.0f, 1.0f);
@@ -820,10 +824,10 @@ void UArcadeVehicleMovementComponent::ApplyLongitudinalForces(
 	// Brake wins when both face buttons are held, producing deterministic input.
 	const bool bBrakeHeld = InputCommand.Brake > KINDA_SMALL_NUMBER;
 	const bool bThrottleHeld = InputCommand.Throttle > KINDA_SMALL_NUMBER && !bBrakeHeld;
-	const float EffectiveForwardAcceleration = ForwardAcceleration * CurrentMovement.AccelerationScale;
-	const float EffectiveReverseAcceleration = ReverseAcceleration * CurrentMovement.AccelerationScale;
-	const float EffectiveMaxForwardSpeed = MaxForwardSpeed * CurrentMovement.SpeedScale;
-	const float EffectiveMaxReverseSpeed = MaxReverseSpeed * CurrentMovement.SpeedScale;
+	const float EffectiveForwardAcceleration = ForwardAcceleration * CurrentMovementScales.X;
+	const float EffectiveReverseAcceleration = ReverseAcceleration * CurrentMovementScales.X;
+	const float EffectiveMaxForwardSpeed = MaxForwardSpeed * CurrentMovementScales.Y;
+	const float EffectiveMaxReverseSpeed = MaxReverseSpeed * CurrentMovementScales.Y;
 
 	float RequestedAcceleration = 0.0f;
 	if (bBrakeHeld)
@@ -877,11 +881,12 @@ void UArcadeVehicleMovementComponent::ApplyLateralGrip(
 	const FVector& RightDirection,
 	float CurrentLateralSpeed)
 {
-	const float GripRate = InputCommand.bHandbrake ? HandbrakeGripRate : LateralGripRate;
+	const float GripRate = (InputCommand.bHandbrake ? HandbrakeGripRate : LateralGripRate) * CurrentMovementScales.Z;
+	const float GripLimit = MaxLateralGripAcceleration * CurrentMovementScales.Z;
 	const float GripAcceleration = FMath::Clamp(
 		-CurrentLateralSpeed * GripRate,
-		-MaxLateralGripAcceleration,
-		MaxLateralGripAcceleration);
+		-GripLimit,
+		GripLimit);
 
 	FPhysicsInterface::AddForce_AssumesLocked(Body.GetPhysicsActor(),
 		RightDirection * GripAcceleration, false, true, true);

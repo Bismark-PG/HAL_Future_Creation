@@ -5,6 +5,7 @@
 #include "PhysicsEngine/BodyInstance.h"
 #include "PhysicsProxy/SingleParticlePhysicsProxy.h"
 #include "Components/PrimitiveComponent.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 static TAutoConsoleVariable<int32> CVarHALMovementEffectLog(TEXT("hal.MovementEffectLog"), 0,
 	TEXT("Movement Epoch/revision, actual physics frame, values, replay and recovery. 0=off,1=on."));
@@ -30,20 +31,29 @@ bool UArcadeVehicleMovementComponent::QueueMovementParameters(const FHALMovement
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority() || !Value.IsValidValues()) { return false; }
 	UNetworkPhysicsComponent* History;
+	FVehicleMovementParameterAction Action;
+	Action.Value = Value;
+	Action.FixedDeltaSeconds = GetDefault<UPhysicsSettings>()->AsyncFixedTimeStepSize;
 	{
 		FScopeLock Lock(&PendingPhysicsDataLock);
 		if (Value.Epoch != MovementEpochExternal) { return false; }
+		if (Value.bHasAreaState && Value.Revision > 1)
+		{
+			const auto& Previous = PublishedMovementStatus.Definition;
+			// Coalesce GT changes until the previous command has an actual authority frame.
+			// Never manufacture an origin from a stale render-frame value.
+			if (!Previous.IsValid() || Previous.Epoch != Value.Epoch || Previous.Revision != Value.Revision - 1) { return false; }
+			Action.Previous = Previous;
+		}
 		History = MovementHistory;
 		if (!bUseNetworkPhysicsHistory.Load())
 		{
-			PendingStandaloneMovement = Value;
+			PendingStandaloneMovement = Action;
 			bStandaloneMovementPending = true;
 			return true;
 		}
 	}
 	if (!History) { return false; }
-	FVehicleMovementParameterAction Action;
-	Action.Value = Value;
 	History->EnqueueImmediateAction_External(Action, uint32(0), true);
 	return true;
 }
@@ -57,6 +67,7 @@ void UArcadeVehicleMovementComponent::ApplyPendingMovementConfiguration()
 	MovementActions.Reset(); UsedMovementFrames.Reset(); ProcessedMovementStates.Reset();
 	CurrentMovement = {};
 	BounceBackPhysics = {}; PendingBounceBack = {}; PublishedBounceBack = {}; bPendingBounceBack=false;
+	CurrentMovementScales = FVector::OneVector;
 	MovementRewindRequests = 0; MovementLastRewind = INDEX_NONE;
 	LatestMovementAuthorityFrame = INDEX_NONE;
 	bMovementRecovery = false; bMovementDriveAllowed = true;
@@ -66,13 +77,17 @@ void UArcadeVehicleMovementComponent::ApplyMovementAction(const FVehicleMovement
 {
 	ApplyPendingMovementConfiguration();
 	if (!Action.Value.IsValidValues() || Action.Value.Epoch != MovementEpoch || !UpdatedPrimitive) { return; }
+	if (Action.Value.bHasAreaState && (!FMath::IsFinite(Action.FixedDeltaSeconds) || Action.FixedDeltaSeconds <= 0
+		|| Action.FixedDeltaSeconds > 1 || (Action.Value.Revision > 1 && (!Action.Previous.IsValid()
+			|| Action.Previous.Epoch != Action.Value.Epoch || Action.Previous.Revision != Action.Value.Revision - 1)))) { return; }
 	FBodyInstance* Body = UpdatedPrimitive->GetBodyInstance();
 	auto* Solver = Body ? Body->GetPhysicsActor()->GetSolver<Chaos::FPhysicsSolver>() : nullptr;
 	if (!Solver) { return; }
 	const int32 Frame = Solver->GetCurrentFrame() + UE::NetworkPhysicsUtils::GetNetworkPhysicsTickOffset_Internal(Solver);
 	if (Action.ServerFrame != INDEX_NONE && Action.ServerFrame != Frame) { return; }
+	if (Action.Value.bHasAreaState && Action.Previous.IsValid() && Action.Previous.EffectiveServerFrame > Frame) { return; }
 	FHALMovementSnapshot Value = Action.Value;
-	Value.EffectiveServerFrame = Frame;
+	Value.Stamp(&Action.Previous, Frame, Action.FixedDeltaSeconds);
 	for (const auto& Existing : MovementActions)
 	{
 		if (Existing.Revision == Value.Revision)
@@ -92,8 +107,9 @@ void UArcadeVehicleMovementComponent::ApplyMovementAction(const FVehicleMovement
 	if (bMovementAuthority.Load()) { MovementAuthorityTimeline.Append(Value, MovementWindowFrames); }
 	if (CVarHALMovementEffectLog.GetValueOnAnyThread())
 	{
-		UE_LOG(LogTemp, Log, TEXT("Movement action: Player=%d Epoch=%s Revision=%u Frame=%d Accel=%.4f Speed=%.4f ControlsBlocked=%d"),
-			MovementPlayerId.Load(), *Value.Epoch.ToString(), Value.Revision, Frame, Value.AccelerationScale, Value.SpeedScale, Value.bControlsBlocked);
+		UE_LOG(LogTemp, Log, TEXT("Movement action: Player=%d Epoch=%s Revision=%u Frame=%d TargetAccel=%.4f TargetSpeed=%.4f TargetGrip=%.4f RecoveryFrames=%d/%d/%d ControlsBlocked=%d"),
+			MovementPlayerId.Load(), *Value.Epoch.ToString(), Value.Revision, Frame, Value.AccelerationScale, Value.SpeedScale, Value.GripScale,
+			Value.AreaAcceleration.DurationFrames, Value.AreaSpeed.DurationFrames, Value.AreaGrip.DurationFrames, Value.bControlsBlocked);
 	}
 }
 bool UArcadeVehicleMovementComponent::RequestMovementRewind(Chaos::FPBDRigidsSolver* Solver, int32 LocalFrame, int32 RequestedLocalFrame, bool bRequireCheckpoint)
@@ -137,7 +153,8 @@ void UArcadeVehicleMovementComponent::ImportMovementTimeline(const FHALMovementT
 	{
 		FHALMovementSnapshot Authority;
 		if (Used.bMapped && Used.Epoch == MovementEpoch && Used.LocalFrame < LocalFrame
-			&& Timeline.Query(Used.LocalFrame + Offset, Authority) && !Authority.Equals(Used.Value))
+			&& Timeline.Query(Used.LocalFrame + Offset, Authority)
+			&& (!Authority.Equals(Used.Value) || !Authority.EvaluateScales(Used.LocalFrame + Offset).Equals(Used.ConsumedScales,1.e-4)))
 		{
 			FirstDifference = FMath::Min(FirstDifference, Used.LocalFrame);
 		}
@@ -198,7 +215,7 @@ void UArcadeVehicleMovementComponent::PrepareMovementFrame(Chaos::FPBDRigidsSolv
 				{
 					UE_LOG(LogTemp, Error, TEXT("Movement bridge disabled: history size %d exceeds supported 254 frames."), Frames);
 				}
-				bMovementRecovery = true; CurrentMovement = {}; bMovementDriveAllowed = !bReplay;
+				bMovementRecovery = true; CurrentMovement = {}; CurrentMovementScales = FVector::OneVector; bMovementDriveAllowed = !bReplay;
 				FScopeLock Lock(&PendingPhysicsDataLock);
 				PublishedMovementStatus = {};
 				PublishedMovementStatus.bRecovery = true;
@@ -210,15 +227,15 @@ void UArcadeVehicleMovementComponent::PrepareMovementFrame(Chaos::FPBDRigidsSolv
 	}
 	if (!bReplay)
 	{
-		FHALMovementSnapshot Standalone;
+		FVehicleMovementParameterAction Standalone;
 		{
 			FScopeLock Lock(&PendingPhysicsDataLock);
 			if (bStandaloneMovementPending) { Standalone = PendingStandaloneMovement; bStandaloneMovementPending = false; }
 		}
-		if (Standalone.IsValidValues() && Standalone.Epoch == MovementEpoch)
+		if (Standalone.Value.IsValidValues() && Standalone.Value.Epoch == MovementEpoch)
 		{
-			Standalone.EffectiveServerFrame = ServerFrame;
-			MovementAuthorityTimeline.Append(Standalone, MovementWindowFrames);
+			Standalone.Value.Stamp(&Standalone.Previous, ServerFrame, Standalone.FixedDeltaSeconds);
+			MovementAuthorityTimeline.Append(Standalone.Value, MovementWindowFrames);
 		}
 	}
 	if (bMovementAuthority.Load() && !bReplay) { MovementAuthorityTimeline.ExtendTo(ServerFrame, MovementWindowFrames); }
@@ -251,25 +268,32 @@ void UArcadeVehicleMovementComponent::PrepareMovementFrame(Chaos::FPBDRigidsSolv
 		else { bMovementDriveAllowed = false; bMovementRecovery = true; }
 	}
 	CurrentMovement = Selected;
+	CurrentMovementScales = Selected.EvaluateScales(ServerFrame);
 	if (LocalFrame >= 0)
 	{
 		if (UsedMovementFrames.Num() != MovementWindowFrames) { UsedMovementFrames.SetNum(MovementWindowFrames); }
 		auto& Used = UsedMovementFrames[LocalFrame % MovementWindowFrames];
 		Used.LocalFrame = LocalFrame; Used.Epoch = MovementEpoch; Used.Value = Selected; Used.bMapped = bMovementTickOffsetReady.Load();
+		Used.ConsumedScales = CurrentMovementScales;
 	}
 	FHALMovementStatus Status;
-	Status.Value = Selected; Status.LocalFrame = LocalFrame; Status.ServerFrame = ServerFrame;
+	Status.Definition = Selected; Status.Value = Selected;
+	Status.Value.AccelerationScale = CurrentMovementScales.X; Status.Value.SpeedScale = CurrentMovementScales.Y; Status.Value.GripScale = CurrentMovementScales.Z;
+	Status.LocalFrame = LocalFrame; Status.ServerFrame = ServerFrame;
 	Status.HistoryFrames = MovementWindowFrames; Status.RewindRequests = MovementRewindRequests; Status.LastRewindFrame = MovementLastRewind;
 	Status.bReady = Selected.IsValid() && bMovementTickOffsetReady.Load() && !bMovementRecovery;
 	Status.bAuthoritative = bKnown; Status.bReplay = bReplay; Status.bRecovery = bMovementRecovery;
+	const auto Recovering = [ServerFrame](const FHALMovementAreaChannel& Channel)
+	{ return Channel.DurationFrames > 0 && int64(ServerFrame) < int64(Channel.StartFrame) + Channel.DurationFrames; };
+	Status.bAreaRecovering = Selected.bHasAreaState && (Recovering(Selected.AreaAcceleration) || Recovering(Selected.AreaSpeed) || Recovering(Selected.AreaGrip));
 	{
 		FScopeLock Lock(&PendingPhysicsDataLock);
 		PublishedMovementStatus = Status;
 	}
 	if (CVarHALMovementEffectLog.GetValueOnAnyThread() && (bReplay || (LocalFrame >= 0 && LocalFrame % 60 == 0)))
 	{
-		UE_LOG(LogTemp, Log, TEXT("Movement frame: Player=%d Epoch=%s Revision=%u ServerFrame=%d LocalFrame=%d Accel=%.4f Speed=%.4f Ready=%d Replay=%d Recovery=%d Window=%d Rewinds=%d Authority=%d ControlsBlocked=%d"),
+		UE_LOG(LogTemp, Log, TEXT("Movement frame: Player=%d Epoch=%s Revision=%u ServerFrame=%d LocalFrame=%d Accel=%.4f Speed=%.4f Grip=%.4f Ready=%d Replay=%d Recovery=%d Window=%d Rewinds=%d Authority=%d ControlsBlocked=%d"),
 			MovementPlayerId.Load(), *Selected.Epoch.ToString(), Selected.Revision, ServerFrame, LocalFrame,
-			Selected.AccelerationScale, Selected.SpeedScale, Status.bReady, bReplay, bMovementRecovery, MovementWindowFrames, MovementRewindRequests, bKnown, Selected.bControlsBlocked);
+			CurrentMovementScales.X, CurrentMovementScales.Y, CurrentMovementScales.Z, Status.bReady, bReplay, bMovementRecovery, MovementWindowFrames, MovementRewindRequests, bKnown, Selected.bControlsBlocked);
 	}
 }

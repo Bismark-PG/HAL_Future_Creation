@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "AttributeSet.h"
 #include "HALMovementTypes.h"
 #include "GameplayTagContainer.h"
 #include "HALMovementEffectBridge.generated.h"
@@ -19,6 +20,8 @@ public:
 	UHALMovementEffectBridge();
 	void Bind(UHALAbilitySystemComponent* InASC, int32 PlayerId);
 	void Unbind();
+	/** GT-only. Preserve all changed-channel recovery requests until one paired snapshot is queued. */
+	void SetAreaRecoverySeconds(const FVector& Seconds);
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 private:
@@ -31,7 +34,9 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UHALAbilitySystemComponent> ASC;
 	UPROPERTY(Transient) TObjectPtr<UArcadeVehicleMovementComponent> Movement;
 	UPROPERTY(Transient) TObjectPtr<UNetworkPhysicsComponent> History;
-	FDelegateHandle AccelerationHandle, SpeedHandle, StunHandle, WorldHandle;
+	TArray<TPair<FGameplayAttribute, FDelegateHandle>> AttributeHandles;
+	FDelegateHandle StunHandle, WorldHandle;
+	FVector AreaRecoverySeconds = FVector::ZeroVector;
 	FHALMovementSnapshot LastPublished;
 	int32 BoundPlayerId = INDEX_NONE;
 	bool bDirty = false;

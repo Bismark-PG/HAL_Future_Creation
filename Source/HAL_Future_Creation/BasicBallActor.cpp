@@ -90,6 +90,7 @@ ABasicBallActor::ABasicBallActor()
 void ABasicBallActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ABasicBallActor, bPrimaryCameraTarget);
 
 	DOREPLIFETIME(ABasicBallActor, RepState);
 }
@@ -298,6 +299,11 @@ void ABasicBallActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	LaunchAction.Close();
 	StopLowSpeedMonitor();
 	Super::EndPlay(EndPlayReason);
+}
+
+void ABasicBallActor::SetPrimaryCameraTarget(bool bPrimary)
+{
+	if (HasAuthority() && bPrimaryCameraTarget != bPrimary) { bPrimaryCameraTarget = bPrimary; ForceNetUpdate(); }
 }
 
 void ABasicBallActor::BeginPlay()
@@ -574,7 +580,9 @@ bool ABasicBallActor::CanEditChange(const FProperty* Property) const
 	if (ConfigurationSource == EVehicleConfigurationSource::Definition && Property
 		&& Property->GetOwnerClass() == StaticClass() && Property->HasAnyPropertyFlags(CPF_Edit)
 		&& Property->GetFName() != GET_MEMBER_NAME_CHECKED(ABasicBallActor, ConfigurationSource)
-		&& Property->GetFName() != GET_MEMBER_NAME_CHECKED(ABasicBallActor, Definition)) { return false; }
+		&& Property->GetFName() != GET_MEMBER_NAME_CHECKED(ABasicBallActor, Definition)
+		// Per-level identity is not a legacy tuning value owned by BallDefinition.
+		&& Property->GetFName() != GET_MEMBER_NAME_CHECKED(ABasicBallActor, bPrimaryCameraTarget)) { return false; }
 	return Super::CanEditChange(Property);
 }
 #endif

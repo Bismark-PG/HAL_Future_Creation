@@ -1,0 +1,1668 @@
+{
+  "schema_version": 1,
+  "completed_at_utc": "2026-10-27T07:45:20.1042161Z",
+  "git_branch": "main",
+  "git_head": "914cc53fd56a550bd06228edee04b1a9b2a393ad",
+  "engine_version": "5.8.2-56702186+++UE5+Release-5.8",
+  "scope": "Server-authoritative slow/slippery areas, per-parameter minimum, GAS selected contributions, grip, deterministic recovery and consumed-value history. No asset edits.",
+  "status": {
+    "specification": "complete",
+    "code": "complete",
+    "editor_build": "Succeeded",
+    "game_build": "Succeeded",
+    "native_regression": "81/81",
+    "network_smoke": "Host 1/1, Client 1/1",
+    "team_map_setup_and_visual_driving": "pending",
+    "git_commit_and_push": "not performed"
+  },
+  "verification": {
+    "ordinary": {
+      "path": "Saved/MovementAreas/20261027/Automation_Verified/index.json",
+      "sha256": "2e5cfb4e3b827c8f6decbd7480d9c205dcf8acaf12db46174812495a380193cb",
+      "succeeded": 81,
+      "succeeded_with_warnings": 0,
+      "failed": 0,
+      "not_run": 0
+    },
+    "host": {
+      "path": "Saved/MovementAreas/20261027/NetHost_Verified/index.json",
+      "sha256": "179b048718c5eeeedbba1e776b9d87260ec855cba371cf9f5c4dfc39e964d921",
+      "succeeded": 1,
+      "succeeded_with_warnings": 0,
+      "failed": 0,
+      "not_run": 0
+    },
+    "client": {
+      "path": "Saved/MovementAreas/20261027/NetClient_Verified/index.json",
+      "sha256": "3b626b13242d8ddf542a95a04a1af7d8fda975083d59f9cfada1a75d13b0a20f",
+      "succeeded": 1,
+      "succeeded_with_warnings": 0,
+      "failed": 0,
+      "not_run": 0
+    },
+    "native_test_results": [
+      {
+        "name": "HAL.FutureCreation.Ability.ActivationDamageAndCooldown",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Ability.AvatarAndOwnerCleanup",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Ability.DiscreteInputDoesNotReplay",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Ability.RefreshDispelAndIndependentStacks",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Ball.ControlledProxyPresentation",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Ball.VehicleExitCleanup",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Bomb.DamageImpactImmunityAndDedup",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Bomb.ExplicitCountdownAndRealTimer",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Bomb.GroundArmingAndDestruction",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Combat.BallMigrationAndConsumption",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Combat.ConfigurationAndContext",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Combat.DamageImpactIndependence",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Combat.PulsesTargetsAndDedup",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Combat.PureDamageAndActualRemoval",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Combat.SnapshotAndSourceLifetime",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Configuration.CombatRulesSource",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Configuration.InitializationAndIsolation",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Configuration.NoFallback",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Configuration.PlayerAndBallInitialization",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Configuration.Validation",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Debug.BallSpawnAuthoredConfigurationAndBlocking",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.GAS.Health.BoundsAndIsolation",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.GAS.Health.PlayerStateAvatarLifecycle",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Impact.PushPresets.CombinationsResistanceAndNaturalResponse",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Impact.PushPresets.DefaultsAndValidation",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Impact.AllSourcesAndContactEpisodes",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Impact.AuthorityPhysicsReplayContract",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Impact.BallSnapshotDropAndCallbackMerge",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Impact.GASResistanceAndIndependentDamage",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Impact.SolverThreadExecutionAndReplay",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Impact.TiersCalibrationAndEnergyBudget",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Movement.BoostCrossSourceRefreshAndSelectiveDispel",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Movement.BoostDebugGuardsAndAvatarCleanup",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Movement.BoostFiveGameSecondExpiry",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Movement.GASContributionsAndBinding",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Movement.SerializationAndDiscreteInterpolation",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Movement.SolverForcesAndHistoricalReplay",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Movement.TimelineBoundariesAndPackets",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.MovementAbility.ActivationRefreshAndNaturalExpiry",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.MovementAbility.AvatarAndOtherCooldownIsolation",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.MovementAbility.InvalidEffectAndAvatarGuards",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.MovementAreas.PerParameterStrongestAndOrder",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.MovementAreas.RealRootOverlapEnableAndDestroy",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.MovementAreas.RecoveryReentryAndWireHistory",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.MovementAreas.SourceLifecycleAndIndependentBuffs",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.MovementContract.AuthorityActionsAndReplay",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.MovementContract.AuthorityHistoryAndRecovery",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.Impact.AuthorityResultAndPhysicsBoundary",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.Impact.IdentityPoseAndConfiguration",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.Impact.SupportNaturalZeroAndContactEpisodes",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.Impact.TiersDirectionsAndFrameRates",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.Launch.AuthorityPathAndPhysicsBoundary",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.Launch.ConfigurationCompatibility",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.Launch.EnvelopeAndConfirmation",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.Launch.RejectionBoundsAndComposition",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.Suspension.ConfigurationCompatibility",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.Suspension.GeometryAndFilters",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.Suspension.SavedRigAndFourVehicleQueries",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.Suspension.SceneQueriesAndPhysicsBoundary",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.ChassisAccelerationAndFrameRates",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.ChassisSamplingAndGates",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.ChassisSnapshotPreservesPhysics",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.ConfigurationAndRigContract",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.OptionalRigPreservesGameplay",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.SnapshotAndResetLifecycle",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Presentation.WheelMathAndFrameRates",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Recovery.BallSkillImpactAndLifecycle",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Recovery.HistoryAndBoundedResponse",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Recovery.PoseAndPermissionClock",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Recovery.RealSolverPoseAndRighting",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.SpringPunch.CombatLifecycle",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Stability.SavedMapFloors",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Stability.SupportVersusAttacks",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Stability.ValidationAndWorldSnapshot",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Vehicle.PhysicsInput.HistorySerialization",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Vehicle.PhysicsInput.Validation",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Vehicle.WallEscape.Blend",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Vehicle.WallEscape.ComponentContact",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Vehicle.WallEscape.Eligibility",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Vehicle.WallEscape.ThrottleProjection",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.Vehicle.WallEscape.YawControl",
+        "state": "Success"
+      }
+    ],
+    "network": {
+      "map": "/Game/Maps/MVPB_NetTest",
+      "port": 7834,
+      "fps_cap": 60,
+      "rhi": "NullRHI",
+      "outgoing_host_lag_ms": 80,
+      "measured_rtt_ms": null,
+      "packet_loss_percent": 0,
+      "jitter_ms": 0,
+      "client_resimulation_runs": 50,
+      "client_movement_rewind_requests": 6,
+      "final_revision": 7,
+      "final_scales": [
+        1,
+        1,
+        1
+      ],
+      "full_exit_recovery_frames": [
+        24,
+        24,
+        24
+      ],
+      "smoke_lines": [
+        "[2026.10.27-07.40.32:864][599]LogTemp: Display: HAL Area smoke: Role=Host Complete=1 WeakMid=1 ExitMid=1 Revision=7",
+        "[2026.10.27-07.40.32:820][337]LogTemp: Display: HAL Area smoke: Role=Client Complete=1 WeakMid=1 ExitMid=1 Revision=7 Resims=50 Rewinds=6"
+      ]
+    },
+    "runtime_error_ensure_assertion_fatal_matches": 0,
+    "evidence_files": [
+      {
+        "path": "Saved/MovementAreas/20261027/BuildEditor_Final.log",
+        "sha256": "c68d537059f35240d486bab3feb662740821c1265a60d285642d1b88fd33d772"
+      },
+      {
+        "path": "Saved/MovementAreas/20261027/BuildEditor_OverlapResolved.log",
+        "sha256": "b9fee43fb8c1b9d043d125e7f4c4eae8f944945c275ff11bd7ee277673053ba0"
+      },
+      {
+        "path": "Saved/MovementAreas/20261027/BuildGame_Verified.log",
+        "sha256": "ed36bb356d8021f88636580f944743bae59808c7f6ae2ce05dda22478c4d6dcb"
+      },
+      {
+        "path": "Saved/MovementAreas/20261027/Automation_Verified.log",
+        "sha256": "3113d03dde682329c7368188feb9c57c424e60bc387486eac058244efd5738ec"
+      },
+      {
+        "path": "Saved/MovementAreas/20261027/NetHost_Verified.log",
+        "sha256": "1065fb18e1dacd7d630bf48b64ac2e72f41891aff3265a7581e5ec63b46bf90f"
+      },
+      {
+        "path": "Saved/MovementAreas/20261027/NetClient_Verified.log",
+        "sha256": "46d06cb2000249e2b63a6636130f1e53cc63ebfcebd64d8612b64bc34bf52ef6"
+      },
+      {
+        "path": "Saved/MovementAreas/20261027/NetProcesses_Verified.json",
+        "sha256": "0fe9ec44328a7863828f5dd9d00e1dad41041df35f6d2ce480fbf0dd8937509b"
+      },
+      {
+        "path": "Saved/MovementAreas/20261027/RunNetwork.ps1",
+        "sha256": "536d123e96bf9855428e2b6f929177c3bee1646a47db0d124e61e35658037402"
+      }
+    ]
+  },
+  "preservation": {
+    "before_asset_count": 1157,
+    "after_asset_count": 1157,
+    "asset_differences": 0,
+    "asset_manifest_algorithm": "SHA256 of sorted path|lowercase_sha256 lines, LF terminated, UTF-8",
+    "before_asset_manifest_digest": "10f549f7a641c969574ee23bdf72678b2039aff6aaec3154781e4458c9516184",
+    "after_asset_manifest_digest": "10f549f7a641c969574ee23bdf72678b2039aff6aaec3154781e4458c9516184",
+    "selected_assets": [
+      {
+        "path": "Content/Blueprints/Vehicles/BP_RoundedVehiclePawn.uasset",
+        "sha256": "323172d89fbca1f33af0f8b9877948406ae7aeed43d2bf30370e50935c418a9f"
+      },
+      {
+        "path": "Content/Data/Car_Presentation/DA_Car01_Presentation.uasset",
+        "sha256": "9024766628fc1f571c53d00f410b254774e4f1c21734df53b97da7503ab30df2"
+      },
+      {
+        "path": "Content/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.uasset",
+        "sha256": "47cebe2d804d08e5824d257816336c990e69270b83f8954f83e1f2930adb4285"
+      },
+      {
+        "path": "Content/Data/Network/DA_NetworkPhysics_MVPB.uasset",
+        "sha256": "48e78eca68f7249d20153d67821d912fb077e0509d1400719f1c86f0866f4f17"
+      },
+      {
+        "path": "Content/Maps/MVPB_NetTest.umap",
+        "sha256": "83be2e70496edeca97946a1d7fa264f3e197ec8d1cb0f97bd9cf69a7baae37d2"
+      }
+    ],
+    "config_uproject_module_target_changes": 0,
+    "before_source_config_count": 182,
+    "after_source_config_count": 192
+  },
+  "source_config_hashes": [
+    {
+      "path": "Config/DefaultEditor.ini",
+      "sha256": "25920e87560682479062a06afef5e0046d23789e72200634d852becbe1db407b",
+      "before_sha256": "25920e87560682479062a06afef5e0046d23789e72200634d852becbe1db407b",
+      "change": "unchanged"
+    },
+    {
+      "path": "Config/DefaultEngine.ini",
+      "sha256": "c671501d82ab3bd959f92aed3b5a849b4a313efdd969212b680a0333d241f4e7",
+      "before_sha256": "c671501d82ab3bd959f92aed3b5a849b4a313efdd969212b680a0333d241f4e7",
+      "change": "unchanged"
+    },
+    {
+      "path": "Config/DefaultGame.ini",
+      "sha256": "d5ddf980d26136e7b20542afd6b313bea0beedf222e361cf4808b80109cb29b1",
+      "before_sha256": "d5ddf980d26136e7b20542afd6b313bea0beedf222e361cf4808b80109cb29b1",
+      "change": "unchanged"
+    },
+    {
+      "path": "Config/DefaultInput.ini",
+      "sha256": "fc9bf4eb5d2727bb6f80f24ffcb846698ddc717dae0dc9455524ebf472eeced0",
+      "before_sha256": "fc9bf4eb5d2727bb6f80f24ffcb846698ddc717dae0dc9455524ebf472eeced0",
+      "change": "unchanged"
+    },
+    {
+      "path": "HAL_Future_Creation.uproject",
+      "sha256": "07100b2e1554ef47889893c47407522d4d22ca27b60ee37db7c5f8c970ffcce5",
+      "before_sha256": "07100b2e1554ef47889893c47407522d4d22ca27b60ee37db7c5f8c970ffcce5",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation.Target.cs",
+      "sha256": "58c105452a13e33ebc86b2a4d7094a237b32b488147df027fc3921e3b029a067",
+      "before_sha256": "58c105452a13e33ebc86b2a4d7094a237b32b488147df027fc3921e3b029a067",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp",
+      "sha256": "a6bdd6f822acd7bca907205f2ee1e25e8e96a43baff589ac304713cc39fc85e5",
+      "before_sha256": "47ab34fec2f39e9d88dcfc940002d142a3e37b5b39bf3f68ee65268672b105a8",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h",
+      "sha256": "b3f71bb510e24072238ed4004916b26760a7e89af0e7961771f620a2a8303448",
+      "before_sha256": "bcfe4d2eda51e72d26f201efbdd5ca8b81eba10e4338cdf716812c3fd9ec6553",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementEffects.cpp",
+      "sha256": "3016a918f57f0250cfcf0bcfccbd31b92fc59d1d41e0c7bc575891a92e0039a9",
+      "before_sha256": "d583b32c69f14b8765dba18a993465813e63738131350abdacefdceb735da7a6",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BallControlComponent.cpp",
+      "sha256": "d5aa070eb196ce667b851e98dc35fb22649baf4719a3cbbdee614ba60ef12ed1",
+      "before_sha256": "d5aa070eb196ce667b851e98dc35fb22649baf4719a3cbbdee614ba60ef12ed1",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BallControlComponent.h",
+      "sha256": "02e9840d6ec6439c8745af72043a7cce977f9b97abd076b46dae64592942fa7c",
+      "before_sha256": "02e9840d6ec6439c8745af72043a7cce977f9b97abd076b46dae64592942fa7c",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BasicBallActor.cpp",
+      "sha256": "3a5aa198b5ba53f693062f774e7c8816c19e685039f0c00cde56eb6e63396ab9",
+      "before_sha256": "3a5aa198b5ba53f693062f774e7c8816c19e685039f0c00cde56eb6e63396ab9",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BasicBallActor.h",
+      "sha256": "de8f89ac018a67204daa6c36ceba57e4ce68e0bd3e0d9454010617837d02f492",
+      "before_sha256": "de8f89ac018a67204daa6c36ceba57e4ce68e0bd3e0d9454010617837d02f492",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/CombatResolver.cpp",
+      "sha256": "080bc094abb81b2b015e456335732963df4b614688cf80b708879f2c6862aee8",
+      "before_sha256": "080bc094abb81b2b015e456335732963df4b614688cf80b708879f2c6862aee8",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/CombatResolver.h",
+      "sha256": "bb71327614a5e75902a76a6abcdd56b6a6148a50e61f90b31d2f6d1470908784",
+      "before_sha256": "bb71327614a5e75902a76a6abcdd56b6a6148a50e61f90b31d2f6d1470908784",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HAL_Future_Creation.Build.cs",
+      "sha256": "9dc4e598f234aace9d92be6ccdc88b34b397e3d211e0219c020b53b086831110",
+      "before_sha256": "9dc4e598f234aace9d92be6ccdc88b34b397e3d211e0219c020b53b086831110",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HAL_Future_Creation.cpp",
+      "sha256": "c30949e314ea2a4beb3c509be675c71ab5d1dc9ba965e701adc21935f72d7b05",
+      "before_sha256": "c30949e314ea2a4beb3c509be675c71ab5d1dc9ba965e701adc21935f72d7b05",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HAL_Future_Creation.h",
+      "sha256": "4694b655856b269fc41b195971214f8e629857c7e5d6f34002a066cd4af3037c",
+      "before_sha256": "4694b655856b269fc41b195971214f8e629857c7e5d6f34002a066cd4af3037c",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALAbilitySystemComponent.cpp",
+      "sha256": "0b688125f9ef1b514c12e5fe42d16c10e4d8ed6f03537dec0f339210ac34aac2",
+      "before_sha256": "0b688125f9ef1b514c12e5fe42d16c10e4d8ed6f03537dec0f339210ac34aac2",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALAbilitySystemComponent.h",
+      "sha256": "23eb57194e889e1ac641466b06f34402d846b0ae60b5aa63bf5f0f641eef3673",
+      "before_sha256": "23eb57194e889e1ac641466b06f34402d846b0ae60b5aa63bf5f0f641eef3673",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALAbilityTypes.cpp",
+      "sha256": "0c2c315ae5d9b1defad40d5c832cd4f01e64a677b4404984ae9a9512c1361eb2",
+      "before_sha256": "0c2c315ae5d9b1defad40d5c832cd4f01e64a677b4404984ae9a9512c1361eb2",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALAbilityTypes.h",
+      "sha256": "06a3934684d098ca680a713350119f981f30d3f131fa973b8e2fc2f1f1f27b3c",
+      "before_sha256": "06a3934684d098ca680a713350119f981f30d3f131fa973b8e2fc2f1f1f27b3c",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALApplyDamageEffect.cpp",
+      "sha256": "e394e61a895d90e3e652752c2e233f177667bd6b81bd1425c0afabfb7a6331ef",
+      "before_sha256": "e394e61a895d90e3e652752c2e233f177667bd6b81bd1425c0afabfb7a6331ef",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALApplyDamageEffect.h",
+      "sha256": "6e9abaea88bf43b4f346b7bcd56db15e53f9e462a11ff3287a3284a322302f71",
+      "before_sha256": "6e9abaea88bf43b4f346b7bcd56db15e53f9e462a11ff3287a3284a322302f71",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALBombActor.cpp",
+      "sha256": "898bd789bfd3b836947075dca7395191239ff803df7b9a661612b02fd23f27f2",
+      "before_sha256": "898bd789bfd3b836947075dca7395191239ff803df7b9a661612b02fd23f27f2",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALBombActor.h",
+      "sha256": "978c0257751871d2dea0f99fa644c837d9b4ae5b0de0457a55534be2de593b61",
+      "before_sha256": "978c0257751871d2dea0f99fa644c837d9b4ae5b0de0457a55534be2de593b61",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALCombatAttributeSet.cpp",
+      "sha256": "386a00f6c371152b38e1999ad0c2cffeac0f78f9464b59d10584285a5139c874",
+      "before_sha256": "386a00f6c371152b38e1999ad0c2cffeac0f78f9464b59d10584285a5139c874",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALCombatAttributeSet.h",
+      "sha256": "4bcbc870d23fb53a5e933c0061f82d9bebf01357b8ad5e0cad3c28d918611d3c",
+      "before_sha256": "4bcbc870d23fb53a5e933c0061f82d9bebf01357b8ad5e0cad3c28d918611d3c",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALCombatEffectContext.cpp",
+      "sha256": "3500c787dc0801dccfc8dbb41998caae7c148d46653394f48b7ce4317fa8fc86",
+      "before_sha256": "3500c787dc0801dccfc8dbb41998caae7c148d46653394f48b7ce4317fa8fc86",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALCombatEffectContext.h",
+      "sha256": "29cf632e00107b79af87db6e9f70e7e5de00235ab42c5f9948f1fd768e0cad3c",
+      "before_sha256": "29cf632e00107b79af87db6e9f70e7e5de00235ab42c5f9948f1fd768e0cad3c",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALCombatTypes.cpp",
+      "sha256": "b7512d3e457c0a595918e7f1fe185bd58800f00f7af5582abed589bb23bd4df9",
+      "before_sha256": "b7512d3e457c0a595918e7f1fe185bd58800f00f7af5582abed589bb23bd4df9",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALCombatTypes.h",
+      "sha256": "59e8ffe5fe2bd0f0209766857ea81aa89a509da672f52ac62ece5d75652f34fd",
+      "before_sha256": "59e8ffe5fe2bd0f0209766857ea81aa89a509da672f52ac62ece5d75652f34fd",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDebugHUDWidget.cpp",
+      "sha256": "cfc56685098267df9b2c51e664ef9ac00e55deac6c9dd2b84f40ee636d83641d",
+      "before_sha256": "e7f195d38ba6eef9b1e6259974d781a0d8c56b6dc2af0a9cf93be4134d2fca2c",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDebugHUDWidget.h",
+      "sha256": "1bf0290c71ac9c9e0617e2b8f9059047c40b7821ad5fec8c1e168c577f682675",
+      "before_sha256": "1bf0290c71ac9c9e0617e2b8f9059047c40b7821ad5fec8c1e168c577f682675",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDebugSettings.cpp",
+      "sha256": "f040076bb927b59f63aeb83aa7ae4b20a0f7641afed5c9d0a3db7685f3cbd8eb",
+      "before_sha256": "f040076bb927b59f63aeb83aa7ae4b20a0f7641afed5c9d0a3db7685f3cbd8eb",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDebugSettings.h",
+      "sha256": "d6ba64cb59ea0c335e9ceaad1b85641dad2986ef46e3567504f063382588e17a",
+      "before_sha256": "d6ba64cb59ea0c335e9ceaad1b85641dad2986ef46e3567504f063382588e17a",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameplayTags.cpp",
+      "sha256": "24c051bc3c0ea9fdb35896072ca5b637e0dc2742f5c64359a50390ed5012ab7c",
+      "before_sha256": "ecb61eeba81a6952368fd8e46d92ef41ec7326d39173c550d916e0bb2fa8439c",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameplayTags.h",
+      "sha256": "ec34b7756c0a71de2ca6b4ca9a208420e86d1d96c76041c90f47d422425456c0",
+      "before_sha256": "d037ce4c43c2ea4e325c7a849829d1321c7bb42f9b60b8b4202e45533a89dbd6",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHealthAttributeSet.cpp",
+      "sha256": "03b56be18f63f7d26c41463908c0c8e7c6ac019f05dd725432cc0af94206bd46",
+      "before_sha256": "03b56be18f63f7d26c41463908c0c8e7c6ac019f05dd725432cc0af94206bd46",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHealthAttributeSet.h",
+      "sha256": "5427a77b8be3b918e12d47e8bc121a76594df751248e3f10c896d76b9fa13c1f",
+      "before_sha256": "5427a77b8be3b918e12d47e8bc121a76594df751248e3f10c896d76b9fa13c1f",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactAttributeSet.cpp",
+      "sha256": "598f64058975b7f0b25928be050cb368353ed310eca194b1dab0ee25453a5889",
+      "before_sha256": "598f64058975b7f0b25928be050cb368353ed310eca194b1dab0ee25453a5889",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactAttributeSet.h",
+      "sha256": "08f7325e501dac505d24a01a293e809fcc574f05eee3bda11c7f2668a1156d10",
+      "before_sha256": "08f7325e501dac505d24a01a293e809fcc574f05eee3bda11c7f2668a1156d10",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactImmunityAbility.cpp",
+      "sha256": "dda3a12ef280f3b451327f00ab8fa8d399aae3a105792328ac0b3ee6393ce87c",
+      "before_sha256": "dda3a12ef280f3b451327f00ab8fa8d399aae3a105792328ac0b3ee6393ce87c",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactImmunityAbility.h",
+      "sha256": "48cf87dc0e5a6034a378f365a598915f0f8cf18687c6cb9a0141048d2e01de92",
+      "before_sha256": "48cf87dc0e5a6034a378f365a598915f0f8cf18687c6cb9a0141048d2e01de92",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactImmunityEffects.cpp",
+      "sha256": "533b24367777a85c14b9100d05d37215244cbda94f18e91068d08a745fe274b8",
+      "before_sha256": "533b24367777a85c14b9100d05d37215244cbda94f18e91068d08a745fe274b8",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactImmunityEffects.h",
+      "sha256": "f6765dad0a299faaab1d822163cc1cdcac1c8456a76e9dc9f991fc84fc2d0efb",
+      "before_sha256": "f6765dad0a299faaab1d822163cc1cdcac1c8456a76e9dc9f991fc84fc2d0efb",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactReceiverComponent.cpp",
+      "sha256": "804c363e95ab78b957f4cf10c16084871851d06cf3f6c2c9ce032b132530525c",
+      "before_sha256": "804c363e95ab78b957f4cf10c16084871851d06cf3f6c2c9ce032b132530525c",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactReceiverComponent.h",
+      "sha256": "eeae66283cd112bb779112e1ec16cb633d767ce52b20989966938e12863bb412",
+      "before_sha256": "eeae66283cd112bb779112e1ec16cb633d767ce52b20989966938e12863bb412",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactSourceComponent.h",
+      "sha256": "31cb443124191e0903893f620ec92441ee9b2ac8f3dccece58093ba029ea29f6",
+      "before_sha256": "31cb443124191e0903893f620ec92441ee9b2ac8f3dccece58093ba029ea29f6",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactTypes.cpp",
+      "sha256": "3ab90c79ebeef1ada9981158b9a8a28ea6276164bf666a741a8bb28324830b58",
+      "before_sha256": "3ab90c79ebeef1ada9981158b9a8a28ea6276164bf666a741a8bb28324830b58",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactTypes.h",
+      "sha256": "83628db01a6907285202a3ea0014030ffe222be724c143897c06f4916cf455c1",
+      "before_sha256": "83628db01a6907285202a3ea0014030ffe222be724c143897c06f4916cf455c1",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMatchGameMode.cpp",
+      "sha256": "f61d8efd0e7f45dd032f5223713342565278d83cae5589397f7b14cd9d417740",
+      "before_sha256": "f61d8efd0e7f45dd032f5223713342565278d83cae5589397f7b14cd9d417740",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMatchGameMode.h",
+      "sha256": "6610edb40aa6a2bd14c215b27f3bdfd60e3e4c441afd73ca5410c049a77d2efe",
+      "before_sha256": "6610edb40aa6a2bd14c215b27f3bdfd60e3e4c441afd73ca5410c049a77d2efe",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMatchGameState.cpp",
+      "sha256": "5e1d7aa4ecd462b629fe75eb5987e99c0dbfe49f7850ce048a4a5e674903a10a",
+      "before_sha256": "5e1d7aa4ecd462b629fe75eb5987e99c0dbfe49f7850ce048a4a5e674903a10a",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMatchGameState.h",
+      "sha256": "6947edc040deef4c723e661ea6607bc47a71324baa399e77ea91228f8a1866eb",
+      "before_sha256": "6947edc040deef4c723e661ea6607bc47a71324baa399e77ea91228f8a1866eb",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMatchLobbyWidget.cpp",
+      "sha256": "a8a947de18e68210c83eeee674f25ed72b491341960ed479686dd59375cdf392",
+      "before_sha256": "a8a947de18e68210c83eeee674f25ed72b491341960ed479686dd59375cdf392",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMatchLobbyWidget.h",
+      "sha256": "06699c1509377ee8187a46561d4ba8f364a6736ea1c5f08ac54fa7ca40dd0f7d",
+      "before_sha256": "06699c1509377ee8187a46561d4ba8f364a6736ea1c5f08ac54fa7ca40dd0f7d",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementArea.cpp",
+      "sha256": "2e8f8d821d4ca118e811b9f4b32fb08cff8de7cd1e08eafe19e4bc5a8ce9c2f4",
+      "before_sha256": null,
+      "change": "added"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementArea.h",
+      "sha256": "54175ed82ff2ea76a81ed1080daf118ce915f4e794e7831f9b58a6d67c088898",
+      "before_sha256": null,
+      "change": "added"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementAreaEffects.cpp",
+      "sha256": "99db4f49b662f5bdd5d589dc50be7765fd534443316905c6f022ca713f43d7f9",
+      "before_sha256": null,
+      "change": "added"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementAreaEffects.h",
+      "sha256": "fb124a97d0a373b0752fd3e7c542ae74a37512009944eca3a9aa04797bf56d1f",
+      "before_sha256": null,
+      "change": "added"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementAreaReceiver.cpp",
+      "sha256": "07a05407d1eeb0fa6803d692d340477655f167726b35be8c8abb8ec56fdf0363",
+      "before_sha256": null,
+      "change": "added"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementAreaReceiver.h",
+      "sha256": "5214406f4e09548af8d9decc8b753c3999eace05cd1c7ff32cdba53265f1bd9e",
+      "before_sha256": null,
+      "change": "added"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementAreaTypes.cpp",
+      "sha256": "b03733c5d1fe4cc86dc71e575ae8473f5b56667d6ad2b339a234d6b14e8f8dc6",
+      "before_sha256": null,
+      "change": "added"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementAreaTypes.h",
+      "sha256": "e4c19026c9704eb6688c437f181b4baea9d86c5f251b17c4fc2105bbb304a377",
+      "before_sha256": null,
+      "change": "added"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementAttributeSet.cpp",
+      "sha256": "7fc38e6f948b642f63879eea0562b5192f8d364892919209627805c9ca48d524",
+      "before_sha256": "14aa540d4d073facd48a4507c779e9ee768234a0dd23095fb19eea8ef27639cd",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementAttributeSet.h",
+      "sha256": "3d1273469668972398c619f50f24db602950105d2e66efcec372bc0e0ed08268",
+      "before_sha256": "5ecd68739d9b3b57d77579843ad842348b863835375b1305e289e46442beb8ec",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementBoostAbility.cpp",
+      "sha256": "47996ab33ed237702db9c5364ea955f2d54cf5d9e2112cf886894823e002f146",
+      "before_sha256": "47996ab33ed237702db9c5364ea955f2d54cf5d9e2112cf886894823e002f146",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementBoostAbility.h",
+      "sha256": "0772803252e4afef07b55aa257a5fb68f18acceeaaaf2a990edc73a2537d0f4a",
+      "before_sha256": "0772803252e4afef07b55aa257a5fb68f18acceeaaaf2a990edc73a2537d0f4a",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementBoostEffect.cpp",
+      "sha256": "97b8fe0acf4d29f3d974c5fa92f4b712a0365d8c6fb923e3990ebed72b4ac8a2",
+      "before_sha256": "97b8fe0acf4d29f3d974c5fa92f4b712a0365d8c6fb923e3990ebed72b4ac8a2",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementBoostEffect.h",
+      "sha256": "4ae4868d4ad5e38ce5986d3fee0705d3e82a663720fb5b56e310ce66f8729442",
+      "before_sha256": "4ae4868d4ad5e38ce5986d3fee0705d3e82a663720fb5b56e310ce66f8729442",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementEffectBridge.cpp",
+      "sha256": "fe162175dcede8163ec8963ce783a22da5b63b5dd7bfd488f83fffc4825d7619",
+      "before_sha256": "701569d550ff204f4ce79161af640da7bd9bfa435ca0ff81f4781f530e7acd60",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementEffectBridge.h",
+      "sha256": "4474a29e2f394c718d30ff5bcf4a6c22a511250b0b77a5b485b0edfc8f786e57",
+      "before_sha256": "d4f5b2bc36578560e35ca500a0b1cec3d8e3493469167ada0df77a7fbdd96709",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementTypes.cpp",
+      "sha256": "d62a41102d194433531f3ac0706923fd72318d370e36a8b4f089f27c2c7321eb",
+      "before_sha256": "36203e699225a934a2aafa04822ca9a1896bf99e144fd21dfe6fde090e893647",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementTypes.h",
+      "sha256": "6af034753ec0401d8c41d552ef57b671195e46b7de7f28a82865a910d12cf2a8",
+      "before_sha256": "3ff2e12f2417ab232bad8482fafbba085bd42aab39b1c261b68f41e7bf801410",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALNetworkGameInstance.cpp",
+      "sha256": "bda57d356d107e70e31ef32b715917998869483f6e357d6662108ce40f4bea65",
+      "before_sha256": "bda57d356d107e70e31ef32b715917998869483f6e357d6662108ce40f4bea65",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALNetworkGameInstance.h",
+      "sha256": "fc3a0c0db91150b116d8dbbf112fba12ba2429dc08f2344c0c2a56362d26ab6f",
+      "before_sha256": "fc3a0c0db91150b116d8dbbf112fba12ba2429dc08f2344c0c2a56362d26ab6f",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALNetworkMenuGameMode.cpp",
+      "sha256": "3a0d9dc29d947497346f96f4d4f06df980929f61271251cea967b26dddb5ae45",
+      "before_sha256": "3a0d9dc29d947497346f96f4d4f06df980929f61271251cea967b26dddb5ae45",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALNetworkMenuGameMode.h",
+      "sha256": "b5863e1fdf7b28df16c16bbec1b5ed8abd4bfb4805415ad9bab8126668e279f4",
+      "before_sha256": "b5863e1fdf7b28df16c16bbec1b5ed8abd4bfb4805415ad9bab8126668e279f4",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALNetworkMenuWidget.cpp",
+      "sha256": "a4d8ec9dd7d3f35e97eac08277cc983e42eb33a1453c721236d1741ef5e67cc1",
+      "before_sha256": "a4d8ec9dd7d3f35e97eac08277cc983e42eb33a1453c721236d1741ef5e67cc1",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALNetworkMenuWidget.h",
+      "sha256": "48e7e54378ebe8d5217ba784ebbfabb0d6fe796f5ea93ed27004cbf33a56fb71",
+      "before_sha256": "48e7e54378ebe8d5217ba784ebbfabb0d6fe796f5ea93ed27004cbf33a56fb71",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerController.cpp",
+      "sha256": "a0bb7c6fe49c1107243e61d0a135e1fd38a6fbd45dc3c5b4ffc89267b31d1f3e",
+      "before_sha256": "dd4a96e18ab9653d23a42a2d23b596aa333e22505833f9a0196840285533d1c5",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerController.h",
+      "sha256": "c9026583aaf881b0c6071ebeac82ae93149751d015483e3036df5babba00e4ef",
+      "before_sha256": "c9026583aaf881b0c6071ebeac82ae93149751d015483e3036df5babba00e4ef",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerControllerBombDebug.cpp",
+      "sha256": "79933de8f97c82c5eb12c8eb9f9ef7c77f06da398d27e6316271894bebcae66c",
+      "before_sha256": "79933de8f97c82c5eb12c8eb9f9ef7c77f06da398d27e6316271894bebcae66c",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerControllerMovementDebug.cpp",
+      "sha256": "e9a5c933047de54d44195c4c3af33d220c892ea9a55128276356360273397b13",
+      "before_sha256": "e9a5c933047de54d44195c4c3af33d220c892ea9a55128276356360273397b13",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerStart.h",
+      "sha256": "4fc03f6cb7ed93d42ff6fa6d4f9a6d035a8b0f7bb3810e17dd22c79247e66a77",
+      "before_sha256": "4fc03f6cb7ed93d42ff6fa6d4f9a6d035a8b0f7bb3810e17dd22c79247e66a77",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerState.cpp",
+      "sha256": "7583d3264cc1d20815103cdeca31dbf6c704d876eaea8ec45dc88498868b9d37",
+      "before_sha256": "7583d3264cc1d20815103cdeca31dbf6c704d876eaea8ec45dc88498868b9d37",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerState.h",
+      "sha256": "e1640e38e9eb5a0ba7d84359b38b15e6bc914f84db0d8f6d853e91348bc96cc1",
+      "before_sha256": "e1640e38e9eb5a0ba7d84359b38b15e6bc914f84db0d8f6d853e91348bc96cc1",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleAnimInstance.cpp",
+      "sha256": "ca3d33622761bba55b80d69cf830c12669f2c1092ea51ce0e0249d563b47e0c7",
+      "before_sha256": "ca3d33622761bba55b80d69cf830c12669f2c1092ea51ce0e0249d563b47e0c7",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleAnimInstance.h",
+      "sha256": "d9ce55999512dd329749320866a0876bb73aa29577a76e4e106dd357f2c6731e",
+      "before_sha256": "d9ce55999512dd329749320866a0876bb73aa29577a76e4e106dd357f2c6731e",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleImpactPresentation.cpp",
+      "sha256": "06a4b2263192e6ca428cecdfe175e6d34dc1fe88d288346868d4faa38025a140",
+      "before_sha256": "06a4b2263192e6ca428cecdfe175e6d34dc1fe88d288346868d4faa38025a140",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleLaunchPresentation.cpp",
+      "sha256": "1f1ebf57c320a4be6d3d2756f38c63692cbeb645492f927f0f94bc3a156ee25c",
+      "before_sha256": "1f1ebf57c320a4be6d3d2756f38c63692cbeb645492f927f0f94bc3a156ee25c",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationComponent.cpp",
+      "sha256": "01205bcb9d660e7513d7c7e37c0df87bae418c2cab106624f8b6b75d1f7959f6",
+      "before_sha256": "01205bcb9d660e7513d7c7e37c0df87bae418c2cab106624f8b6b75d1f7959f6",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationComponent.h",
+      "sha256": "961b3d410e78ed9f2dcb33086bb88e2b1fcdb4ab822fdd3a8365333b46ccdec3",
+      "before_sha256": "961b3d410e78ed9f2dcb33086bb88e2b1fcdb4ab822fdd3a8365333b46ccdec3",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationConfig.cpp",
+      "sha256": "8d100034da6be58e2493b7d70e9659a0ec6c09461fe3aed6e554aab31a34d2a2",
+      "before_sha256": "8d100034da6be58e2493b7d70e9659a0ec6c09461fe3aed6e554aab31a34d2a2",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationConfig.h",
+      "sha256": "0ff973da678e61c3d87b3077a95c2da7d7233a3d4ff1aa3505c203dd804c9e9c",
+      "before_sha256": "0ff973da678e61c3d87b3077a95c2da7d7233a3d4ff1aa3505c203dd804c9e9c",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationTypes.cpp",
+      "sha256": "50af87c91c57f55abe1b21b28286694c56ae71e59b360394aa15b6b99dca30ed",
+      "before_sha256": "50af87c91c57f55abe1b21b28286694c56ae71e59b360394aa15b6b99dca30ed",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationTypes.h",
+      "sha256": "8a7db2e4baf60513407bfff85185c6fc65b19630d592d2ccd43cd52414f7bfbf",
+      "before_sha256": "8a7db2e4baf60513407bfff85185c6fc65b19630d592d2ccd43cd52414f7bfbf",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleVisualSuspension.cpp",
+      "sha256": "ddad3fd25025f37fe7c285c7dc094c8c9298c90820a549e3a2a2467ed49be813",
+      "before_sha256": "ddad3fd25025f37fe7c285c7dc094c8c9298c90820a549e3a2a2467ed49be813",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/PassiveTestVehicle.cpp",
+      "sha256": "60f1578fcf8b481277279b0129ce3fed52c21d74404b9f3bb3dd27f4f8595b9b",
+      "before_sha256": "60f1578fcf8b481277279b0129ce3fed52c21d74404b9f3bb3dd27f4f8595b9b",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/PassiveTestVehicle.h",
+      "sha256": "4cede749607e5e48b01946a01ae54f6ff3cd663543951d088697969eea3bc4fd",
+      "before_sha256": "4cede749607e5e48b01946a01ae54f6ff3cd663543951d088697969eea3bc4fd",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/SpringPunchGimmick.cpp",
+      "sha256": "2ff3ebcaed221e27a066dd0db8aaf5f524c697472d8cbea0fc9679cf453d5ed5",
+      "before_sha256": "2ff3ebcaed221e27a066dd0db8aaf5f524c697472d8cbea0fc9679cf453d5ed5",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/SpringPunchGimmick.h",
+      "sha256": "6b6c9754a5be5dedb9c2513eaad9fde55a752deab5d543ca70238ae9ef06e47c",
+      "before_sha256": "6b6c9754a5be5dedb9c2513eaad9fde55a752deab5d543ca70238ae9ef06e47c",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALAbilityNetworkSmokeTests.cpp",
+      "sha256": "a3579a163b110bbab88408e17c3854615f2cb0b888a352f7afe167b4bf4dab57",
+      "before_sha256": "a3579a163b110bbab88408e17c3854615f2cb0b888a352f7afe167b4bf4dab57",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALAbilityTests.cpp",
+      "sha256": "d5689624bb43b57ae1cd5ffb500657ddf7764c586bf682ef5874c836a974a4d5",
+      "before_sha256": "d5689624bb43b57ae1cd5ffb500657ddf7764c586bf682ef5874c836a974a4d5",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALBombNetworkTests.cpp",
+      "sha256": "4fcc6d6372f1c6e428924d8ea1e61df7482404e94dde473bb7023255ffac7fae",
+      "before_sha256": "4fcc6d6372f1c6e428924d8ea1e61df7482404e94dde473bb7023255ffac7fae",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALBombTests.cpp",
+      "sha256": "60a02b11194a4a2f77a7c3080c5aa25e89d093d91c8c10fb9fe06467a18c150e",
+      "before_sha256": "60a02b11194a4a2f77a7c3080c5aa25e89d093d91c8c10fb9fe06467a18c150e",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALCombatTests.cpp",
+      "sha256": "fa9942c9d02bf56269b2709b48cb81a66b970a9e98a18651078f18745c1f4247",
+      "before_sha256": "fa9942c9d02bf56269b2709b48cb81a66b970a9e98a18651078f18745c1f4247",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALDebugBallTests.cpp",
+      "sha256": "baef455786730d578cd43fff1dc446c76d598ed5728bcb5be37245ced598e4de",
+      "before_sha256": "baef455786730d578cd43fff1dc446c76d598ed5728bcb5be37245ced598e4de",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALHealthGASTests.cpp",
+      "sha256": "4a098b78567965cfd7e934750aedc0b833f6cb2637cc113d928729b6ceccc74d",
+      "before_sha256": "4a098b78567965cfd7e934750aedc0b833f6cb2637cc113d928729b6ceccc74d",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALImpactPhysicsThreadTests.cpp",
+      "sha256": "79573657469a9732739668a7ae568250927f22b6afb776cc7c44e2ec2ebe88b1",
+      "before_sha256": "79573657469a9732739668a7ae568250927f22b6afb776cc7c44e2ec2ebe88b1",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALImpactPushNetworkTests.cpp",
+      "sha256": "6b4d6ce4405f5668edc46219f2fdf64fe2fca435efa03f7b976d190cc03421c4",
+      "before_sha256": "6b4d6ce4405f5668edc46219f2fdf64fe2fca435efa03f7b976d190cc03421c4",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALImpactTests.cpp",
+      "sha256": "51af72551cacdf36d43a715e492cccb1f9c04b983bd42d3cde03e06063fa4b4b",
+      "before_sha256": "51af72551cacdf36d43a715e492cccb1f9c04b983bd42d3cde03e06063fa4b4b",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALLegacyCombatTestRules.h",
+      "sha256": "afdc910f6198829be62cec66a51a7c97ccddc97a7d6c9df0040a2a7b2e80a272",
+      "before_sha256": "afdc910f6198829be62cec66a51a7c97ccddc97a7d6c9df0040a2a7b2e80a272",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementAbilityNetworkTests.cpp",
+      "sha256": "6199de1a78ae64484f091b397f9622e82f6f101cb69b52296cbd01095c9d1595",
+      "before_sha256": "6199de1a78ae64484f091b397f9622e82f6f101cb69b52296cbd01095c9d1595",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementAbilityTests.cpp",
+      "sha256": "651e3a2759586b1bd558d4678dfccd193d2cb53b2ef098243735c2b803e3d29d",
+      "before_sha256": "651e3a2759586b1bd558d4678dfccd193d2cb53b2ef098243735c2b803e3d29d",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementAbilityTestSupport.h",
+      "sha256": "d4602068043df6a709161b03d2f1b95ee60d13524ee12512596ca57e918a774a",
+      "before_sha256": "d4602068043df6a709161b03d2f1b95ee60d13524ee12512596ca57e918a774a",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementAreaNetworkTests.cpp",
+      "sha256": "8c6e309d53c34ebd73decb9690945ebe68200fd274d3fc10ebb00837e99c5d6d",
+      "before_sha256": null,
+      "change": "added"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementAreaTests.cpp",
+      "sha256": "6745647e161b3b6354217e7506609a2f4215341cd58ebc4e3c3825717b886c91",
+      "before_sha256": null,
+      "change": "added"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementBoostNetworkTests.cpp",
+      "sha256": "8e5df9b36c2a217898b3b8ce2520cfe7d7d99a9f08b3b49a7221d78948069c80",
+      "before_sha256": "8e5df9b36c2a217898b3b8ce2520cfe7d7d99a9f08b3b49a7221d78948069c80",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementBoostTests.cpp",
+      "sha256": "f0b306ef4350a518e30fb4b8f2e2f38528eb8710659c5a2f0c7530138a192b7a",
+      "before_sha256": "f0b306ef4350a518e30fb4b8f2e2f38528eb8710659c5a2f0c7530138a192b7a",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementHistoryContractTests.cpp",
+      "sha256": "31b6d36cba7ce6d121b491fc3a7e85fff3704b5472d3f77594a9a57a5607ec75",
+      "before_sha256": "31b6d36cba7ce6d121b491fc3a7e85fff3704b5472d3f77594a9a57a5607ec75",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementNetworkTests.cpp",
+      "sha256": "4ec4cf549d90633e5a0e78714108b46c27c524fac9ebacbb927af1a00eef1af4",
+      "before_sha256": "4ec4cf549d90633e5a0e78714108b46c27c524fac9ebacbb927af1a00eef1af4",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementSolverTests.cpp",
+      "sha256": "117ba36ef5823d602533a44fc7648f141b6de5caa498fef7a6372ec18fab290d",
+      "before_sha256": "45bfcd6b488c606bfb8e913527dc0d22fd06c905d62d187da3477529cde7353c",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementTestEffect.cpp",
+      "sha256": "a10346488a0019cc60378470c11213cd71fed338c6350f521a319b857b3dd5c9",
+      "before_sha256": "a10346488a0019cc60378470c11213cd71fed338c6350f521a319b857b3dd5c9",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementTestEffect.h",
+      "sha256": "a898abe8d886a66397196a2e2466d995cdc46777d964bf697cd132e7603b8d9d",
+      "before_sha256": "a898abe8d886a66397196a2e2466d995cdc46777d964bf697cd132e7603b8d9d",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementTests.cpp",
+      "sha256": "c73f0b445b2629da8dbf7e8b5f867d7c5ed9cbdbc834afe1eed3216f6f2e57a1",
+      "before_sha256": "c73f0b445b2629da8dbf7e8b5f867d7c5ed9cbdbc834afe1eed3216f6f2e57a1",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALSpringPunchNetworkTests.cpp",
+      "sha256": "ae576d83002dc2de7a3d5ffb1d9a36302d52a387d5d07f902c88fb399a987e1f",
+      "before_sha256": "ae576d83002dc2de7a3d5ffb1d9a36302d52a387d5d07f902c88fb399a987e1f",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleChassisNetworkTests.cpp",
+      "sha256": "2d8ae38385f2174724e04b4d3061cb175b09bbe95d4d7368de13b7009252c505",
+      "before_sha256": "2d8ae38385f2174724e04b4d3061cb175b09bbe95d4d7368de13b7009252c505",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleImpactPresentationNetworkTests.cpp",
+      "sha256": "ea70cb9bf378ff5b06a88d6d227d2f288011238992519f0a2285575a7941f732",
+      "before_sha256": "ea70cb9bf378ff5b06a88d6d227d2f288011238992519f0a2285575a7941f732",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleImpactPresentationTests.cpp",
+      "sha256": "9d3a67de324f99af7d6a11ced5b022f1441c8a3ded1e1c7f7fe054f7c9d2a81b",
+      "before_sha256": "9d3a67de324f99af7d6a11ced5b022f1441c8a3ded1e1c7f7fe054f7c9d2a81b",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleLaunchPresentationNetworkTests.cpp",
+      "sha256": "6cd5acfe2d9d40018f92a4b947d07673f37d08d8efad3f1accf2830b40e2aa9c",
+      "before_sha256": "6cd5acfe2d9d40018f92a4b947d07673f37d08d8efad3f1accf2830b40e2aa9c",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleLaunchPresentationTests.cpp",
+      "sha256": "1d0080183ffa8f89e19aaa580177fbafe703619ff8618837427cf3f322f04abd",
+      "before_sha256": "1d0080183ffa8f89e19aaa580177fbafe703619ff8618837427cf3f322f04abd",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehiclePresentationNetworkTests.cpp",
+      "sha256": "79e2f48bd1b64bddf7a599cdf76961d479e7ed693add5e520a3c98ef75bee720",
+      "before_sha256": "79e2f48bd1b64bddf7a599cdf76961d479e7ed693add5e520a3c98ef75bee720",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehiclePresentationTests.cpp",
+      "sha256": "f351c6c5ad10a9f01b5c773474e7fdb76ab055f59ddffa1acfc6f3070215d594",
+      "before_sha256": "f351c6c5ad10a9f01b5c773474e7fdb76ab055f59ddffa1acfc6f3070215d594",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehiclePresentationTestSupport.h",
+      "sha256": "1cf045de44d6cf3ae51c68ff3c17b33254180ec320528b614acb4ea33d5936bd",
+      "before_sha256": "1cf045de44d6cf3ae51c68ff3c17b33254180ec320528b614acb4ea33d5936bd",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleRecoveryNetworkTests.cpp",
+      "sha256": "f6fc2c767bf0c5114c9c37061bdb5de1906c8af8c06ddb7d10389dfc61bba655",
+      "before_sha256": "f6fc2c767bf0c5114c9c37061bdb5de1906c8af8c06ddb7d10389dfc61bba655",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleRecoveryTests.cpp",
+      "sha256": "15d29fa1653f15f3f475145ec281a1947abbb90a9443fc9e8f92ba11b226ace3",
+      "before_sha256": "15d29fa1653f15f3f475145ec281a1947abbb90a9443fc9e8f92ba11b226ace3",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleStabilityDiagnostics.cpp",
+      "sha256": "2d691a0f59a9c5e5ffd31b54a5a6f8a00ec3d4be890fef0ab9d33fcf4c09ed34",
+      "before_sha256": "2d691a0f59a9c5e5ffd31b54a5a6f8a00ec3d4be890fef0ab9d33fcf4c09ed34",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleStabilityNetworkTests.cpp",
+      "sha256": "078253e79e6f1c7e60a82fe151ddafd9b3fcdc649c298424babac2d1bd8fd72e",
+      "before_sha256": "078253e79e6f1c7e60a82fe151ddafd9b3fcdc649c298424babac2d1bd8fd72e",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleStabilityTestRules.h",
+      "sha256": "68cca2f9c56bed370450be1fea3139382642888b9d2baf122333f8b27bbf98a8",
+      "before_sha256": "68cca2f9c56bed370450be1fea3139382642888b9d2baf122333f8b27bbf98a8",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleSuspensionNetworkTests.cpp",
+      "sha256": "5e5f7e20a29392ea605bffd12220535d28d8d4eee51c73711319bec5374c8341",
+      "before_sha256": "5e5f7e20a29392ea605bffd12220535d28d8d4eee51c73711319bec5374c8341",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleSuspensionTests.cpp",
+      "sha256": "5962fc0e3cb300d5cab09143808316ffb4c802eb9e3e69f2ff68fc74cf2c073d",
+      "before_sha256": "5962fc0e3cb300d5cab09143808316ffb4c802eb9e3e69f2ff68fc74cf2c073d",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/VehicleConfigurationTests.cpp",
+      "sha256": "ccb11bdef9564997ce840ccff8262ebdf7b1591e34cfbbd1f1b00b21eb37beb2",
+      "before_sha256": "ccb11bdef9564997ce840ccff8262ebdf7b1591e34cfbbd1f1b00b21eb37beb2",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/VehicleNetPhysicsDataTests.cpp",
+      "sha256": "d4f68c9df07f6be6f4ddda637d7f024d9f9b34452b1dca748d153d5ba3901a03",
+      "before_sha256": "d4f68c9df07f6be6f4ddda637d7f024d9f9b34452b1dca748d153d5ba3901a03",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/VehicleWallEscapeTests.cpp",
+      "sha256": "83fcfda65ecf382ffab2bac3378d17f324ef5e81debc4be3e6d2ac2d53dcca6d",
+      "before_sha256": "83fcfda65ecf382ffab2bac3378d17f324ef5e81debc4be3e6d2ac2d53dcca6d",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+      "sha256": "e3bfe15460d78ec2cff55abd4275f3f1adb93e0a7c060e0dc374782447ba880c",
+      "before_sha256": "e082211f4c490fd241b163c53614cf858a60bd6c83b39d87b4dd23e0ce13af1b",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.h",
+      "sha256": "dc9dd643c9b698244ca083f88faf5b8a374668738296e5191782e722d1b6d4bf",
+      "before_sha256": "5cc1a1ddbae5bd76f7b8cfceded8e06662c2b34ad340325292a492a2f879485c",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleConfigurationApplication.cpp",
+      "sha256": "573b369bf99a7d855c2a98fa7107a3ebc65d7e8e525b586c5d47fb5a4ed07346",
+      "before_sha256": "573b369bf99a7d855c2a98fa7107a3ebc65d7e8e525b586c5d47fb5a4ed07346",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleConfigurationApplication.h",
+      "sha256": "9646b9d7f03627e33d8751daa1899c4041607a42ec9f65dae65940fdba93aecf",
+      "before_sha256": "9646b9d7f03627e33d8751daa1899c4041607a42ec9f65dae65940fdba93aecf",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleConfigurationTypes.cpp",
+      "sha256": "d61e6e6449824628f19c346d395fe94e68f43d7f17598af3f0e94fd56bc612b6",
+      "before_sha256": "d61e6e6449824628f19c346d395fe94e68f43d7f17598af3f0e94fd56bc612b6",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleConfigurationTypes.h",
+      "sha256": "acdf8e4c40690dc04041b83690588b3fb84c5cae1ddac51e1c756de9f2372ac6",
+      "before_sha256": "acdf8e4c40690dc04041b83690588b3fb84c5cae1ddac51e1c756de9f2372ac6",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleDefinition.cpp",
+      "sha256": "51ef12e30d50c38f403b684ef57edf0569e0dbba98c2cc5dcbb020ab7e29063f",
+      "before_sha256": "51ef12e30d50c38f403b684ef57edf0569e0dbba98c2cc5dcbb020ab7e29063f",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleDefinition.h",
+      "sha256": "94d26ff3c76bbc41f737e6233bd08f60b7414c376f148a604d4ff7a269d3a52d",
+      "before_sha256": "94d26ff3c76bbc41f737e6233bd08f60b7414c376f148a604d4ff7a269d3a52d",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleHealthComponent.cpp",
+      "sha256": "097e3c2e78794838d475b258d6b8e281c46975c50ea28c3dea60d87f03cf381d",
+      "before_sha256": "097e3c2e78794838d475b258d6b8e281c46975c50ea28c3dea60d87f03cf381d",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleHealthComponent.h",
+      "sha256": "9c34ceeb540246f4afb3f98cb78857aaaa3e8e71daafba80dceab856ac120e5d",
+      "before_sha256": "9c34ceeb540246f4afb3f98cb78857aaaa3e8e71daafba80dceab856ac120e5d",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleHitContext.h",
+      "sha256": "fc57720187226dd670e574510ff79a27542fd669baa069412e3f82c2a6b632ce",
+      "before_sha256": "fc57720187226dd670e574510ff79a27542fd669baa069412e3f82c2a6b632ce",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleInputCmd.h",
+      "sha256": "fdd806dac9bcaeb74219bae9a182646c521a2569e27c140671276614b8754703",
+      "before_sha256": "fdd806dac9bcaeb74219bae9a182646c521a2569e27c140671276614b8754703",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleKnockbackSettings.cpp",
+      "sha256": "ebe9ca190763160983b429b808609f3c26eb1b20ace69ee6e9c5740f97d3d571",
+      "before_sha256": "ebe9ca190763160983b429b808609f3c26eb1b20ace69ee6e9c5740f97d3d571",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleKnockbackSettings.h",
+      "sha256": "7364a985043067d24b7e560bcceb6461df4736ba6486591e42147dd8a7a3a5dc",
+      "before_sha256": "7364a985043067d24b7e560bcceb6461df4736ba6486591e42147dd8a7a3a5dc",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleKnockbackTypes.h",
+      "sha256": "a1a349b3976deb697626156761bbe66c53f85c948c50171554e39f851115e82d",
+      "before_sha256": "a1a349b3976deb697626156761bbe66c53f85c948c50171554e39f851115e82d",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleNetPhysicsData.cpp",
+      "sha256": "773d6bd505d29c14a12319704033c27e5c2004683549efdc0de84a8f02e46b77",
+      "before_sha256": "fb88580cadd3361d1f7bf5e6526305b8c15962cbe12a95a2e3066b4c0a44a177",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleNetPhysicsData.h",
+      "sha256": "22eb55be2c7c38ea1e955aaef72a356d669c5a7a5fab731f138654b8b8d3f9e6",
+      "before_sha256": "f832e5379f65d0aafb8f5dfb9be68bd0dad880bd9ebd321ef11800f039ca1b8b",
+      "change": "modified"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleRecoveryComponent.cpp",
+      "sha256": "714a5e2061f2136b1cb6ac08031ef9318cae4d6323468d08f20a680f478d8c23",
+      "before_sha256": "714a5e2061f2136b1cb6ac08031ef9318cae4d6323468d08f20a680f478d8c23",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleRecoveryComponent.h",
+      "sha256": "d318e0335cd8fd48eab3eae2774243978a098b1a57b6d8b2e70d8d539a2be7ba",
+      "before_sha256": "d318e0335cd8fd48eab3eae2774243978a098b1a57b6d8b2e70d8d539a2be7ba",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleRecoveryTypes.cpp",
+      "sha256": "9ca8fea6f77416c3af42343f764721fcba3d8d4e7c53b224d332ffd1ff647872",
+      "before_sha256": "9ca8fea6f77416c3af42343f764721fcba3d8d4e7c53b224d332ffd1ff647872",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleRecoveryTypes.h",
+      "sha256": "1fce275a90e563d0e06c33c8ce53011937a723e0ebc9ed942af5d0cea0b53099",
+      "before_sha256": "1fce275a90e563d0e06c33c8ce53011937a723e0ebc9ed942af5d0cea0b53099",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleStabilityRules.cpp",
+      "sha256": "261e404a834129e186a5e3bf6fd31c2c819f5eb63268283da0168b2a327198ca",
+      "before_sha256": "261e404a834129e186a5e3bf6fd31c2c819f5eb63268283da0168b2a327198ca",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleStabilityRules.h",
+      "sha256": "e1c8ccad13b38aa39db6fe45c3803456831d5113854e61a189fdb23275d81a05",
+      "before_sha256": "e1c8ccad13b38aa39db6fe45c3803456831d5113854e61a189fdb23275d81a05",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleWallEscapeMath.h",
+      "sha256": "f3988e88083fbe57fbc78af9f5b9fea2c2ac0655df981c4a056b2a4cffa6fe59",
+      "before_sha256": "f3988e88083fbe57fbc78af9f5b9fea2c2ac0655df981c4a056b2a4cffa6fe59",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor.Target.cs",
+      "sha256": "a86dc25614f57b2dd2702c180993a048b10bb49a27fccc58ea60500dbee0e91a",
+      "before_sha256": "a86dc25614f57b2dd2702c180993a048b10bb49a27fccc58ea60500dbee0e91a",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/HAL_Future_CreationEditor.Build.cs",
+      "sha256": "c0ee13e6c3ba6782fbb5131b726d635e35d6dc22146df4739a08d749beaae2f9",
+      "before_sha256": "c0ee13e6c3ba6782fbb5131b726d635e35d6dc22146df4739a08d749beaae2f9",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALFutureCreationEditorModule.cpp",
+      "sha256": "1dbfd9b7e1680c110186b6fdfab6005005c7d30290e345318e899d5ff02ea993",
+      "before_sha256": "1dbfd9b7e1680c110186b6fdfab6005005c7d30290e345318e899d5ff02ea993",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALVehicleAlignment.cpp",
+      "sha256": "7aca07608799d1291e2f3b09de3933a034d98da325d63ee1dc601bfd4e7adcd5",
+      "before_sha256": "7aca07608799d1291e2f3b09de3933a034d98da325d63ee1dc601bfd4e7adcd5",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALVehicleAlignment.h",
+      "sha256": "99f46cddc4286cf55c107a87eabfca029b5d45043da2ad5aacac68f686b1ac52",
+      "before_sha256": "99f46cddc4286cf55c107a87eabfca029b5d45043da2ad5aacac68f686b1ac52",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALVehicleCollisionGenerator.cpp",
+      "sha256": "f16a545624c1dc387e62283971934b5c21ebf228ae38f7292d4f752741bdc8c0",
+      "before_sha256": "f16a545624c1dc387e62283971934b5c21ebf228ae38f7292d4f752741bdc8c0",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALVehicleCollisionGenerator.h",
+      "sha256": "b22db6466792f6b869ce6e07bfcaf9d8bd67f3a164b49bc6edb63888e2b40501",
+      "before_sha256": "b22db6466792f6b869ce6e07bfcaf9d8bd67f3a164b49bc6edb63888e2b40501",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/SHALVehicleAlignment.cpp",
+      "sha256": "3131e61ba6863231dc2ad80b5a0210a1d87fb37d53c8502ed809df26bd12fc38",
+      "before_sha256": "3131e61ba6863231dc2ad80b5a0210a1d87fb37d53c8502ed809df26bd12fc38",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/SHALVehicleAlignment.h",
+      "sha256": "fbfe6181945519bc7124bf89ea0e973f9f4a07f958e2392dd40bcd9107b47b55",
+      "before_sha256": "fbfe6181945519bc7124bf89ea0e973f9f4a07f958e2392dd40bcd9107b47b55",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/SHALVehicleCollisionGenerator.cpp",
+      "sha256": "32091ab5e64182c0fdad77e571fde132c8763eebfe3ba3d5648db98fc1def5fb",
+      "before_sha256": "32091ab5e64182c0fdad77e571fde132c8763eebfe3ba3d5648db98fc1def5fb",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/SHALVehicleCollisionGenerator.h",
+      "sha256": "e27c4bba5c65ee65ca303e2003d6a773a70ca27f9708b9b83d1861a233741ca3",
+      "before_sha256": "e27c4bba5c65ee65ca303e2003d6a773a70ca27f9708b9b83d1861a233741ca3",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALCollisionGeneratorUITests.cpp",
+      "sha256": "43bf70fad81032188f6f972e5fa2317b616fd85fe3c84d5e0f9053188c1c604d",
+      "before_sha256": "43bf70fad81032188f6f972e5fa2317b616fd85fe3c84d5e0f9053188c1c604d",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleAlignmentTests.cpp",
+      "sha256": "07d91cba0296092739b4f3877ce3b67eccb09950c95c32b914376808dec067ab",
+      "before_sha256": "07d91cba0296092739b4f3877ce3b67eccb09950c95c32b914376808dec067ab",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleAlignmentUITests.cpp",
+      "sha256": "d7c43d962d219634ac3003411d91e4827f82d410d6afbccbe01cff16ce6af64d",
+      "before_sha256": "d7c43d962d219634ac3003411d91e4827f82d410d6afbccbe01cff16ce6af64d",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleAssetGeneratorTests.cpp",
+      "sha256": "bd19ce1e8545739fb2631786513bdbcabb988ce440fa3bd978f9ce76fcf98133",
+      "before_sha256": "bd19ce1e8545739fb2631786513bdbcabb988ce440fa3bd978f9ce76fcf98133",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleAssetGeneratorUITests.cpp",
+      "sha256": "254121123eafbb71c470cf9be553b369d6cc781566a53886db567d4a0b2c7967",
+      "before_sha256": "254121123eafbb71c470cf9be553b369d6cc781566a53886db567d4a0b2c7967",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleCollisionGeneratorTests.cpp",
+      "sha256": "e754b12990091357c5bb6a65e803792f95df1dcaefaeed384784ee2a22d190f6",
+      "before_sha256": "e754b12990091357c5bb6a65e803792f95df1dcaefaeed384784ee2a22d190f6",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/VehicleAssetGenerator/HALVehicleAssetGenerator.cpp",
+      "sha256": "4a751940de4589e59726ea9cb4764df81e5598f3aec909f1b7584b2c3697d9f1",
+      "before_sha256": "4a751940de4589e59726ea9cb4764df81e5598f3aec909f1b7584b2c3697d9f1",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/VehicleAssetGenerator/SHALVehicleAssetGenerator.cpp",
+      "sha256": "83f71ff6b518fc93533bb2186ba588453aac2df8fb7ecc97bed1e573798c2733",
+      "before_sha256": "83f71ff6b518fc93533bb2186ba588453aac2df8fb7ecc97bed1e573798c2733",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Public/HALVehicleCollisionGeneratorSettings.h",
+      "sha256": "aa1493c4125f85730c9c9864235e2f323e4e4acd8631c83fe8666790a08e62ab",
+      "before_sha256": "aa1493c4125f85730c9c9864235e2f323e4e4acd8631c83fe8666790a08e62ab",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Public/VehicleAssetGenerator/HALVehicleAssetGenerator.h",
+      "sha256": "cefa00c6feb354874abbc760f9d7bdf4b5617539e82fa9d2848ad4251904c070",
+      "before_sha256": "cefa00c6feb354874abbc760f9d7bdf4b5617539e82fa9d2848ad4251904c070",
+      "change": "unchanged"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Public/VehicleAssetGenerator/HALVehicleAssetGeneratorSettings.h",
+      "sha256": "c75885c6f46006277943bfad474e0d808422fd25f30519ecb79c52f32cbeab2e",
+      "before_sha256": "c75885c6f46006277943bfad474e0d808422fd25f30519ecb79c52f32cbeab2e",
+      "change": "unchanged"
+    }
+  ],
+  "earlier_attempts": [
+    {
+      "report": "Automation_Initial",
+      "result": "78/81",
+      "reason": "Incomplete isolated Actor lifecycle initialization and overly tight float-to-double comparison tolerance."
+    },
+    {
+      "reports": [
+        "Automation_Second",
+        "Automation_Final",
+        "Automation_Acceptance",
+        "Automation_OverlapProbe",
+        "Automation_OverlapProbe3",
+        "Automation_OverlapProbe4"
+      ],
+      "result": "Overlap exit fixture failed",
+      "reason": "UE requires both World BeginPlay and InitializeActorsForPlay for dynamic Actor delegate dispatch. Complete initialization plus EndPlay resolved it."
+    },
+    {
+      "log": "BuildEditor_OverlapProbe2.log",
+      "result": "diagnostic compilation failed",
+      "reason": "Incorrect use of Sparse Delegate IsAlreadyBound macro with a function-name string; removed from final test."
+    },
+    {
+      "reports": [
+        "NetHost_Initial",
+        "NetClient_Initial"
+      ],
+      "result": "1/1 each, insufficient as final acceptance",
+      "reason": "Log review found loss of acceleration/speed recovery on same-frame multi-family exit. Fixed pending recovery coalescing, added three-channel assertions, rebuilt and reran."
+    },
+    {
+      "reports": [
+        "NetHost_Acceptance",
+        "NetClient_Acceptance"
+      ],
+      "result": "1/1 each",
+      "reason": "Strengthened assertions passed before final diagnostic log and isolated-world fixture updates; final evidence uses Verified reports."
+    }
+  ],
+  "limitations": [
+    "No team Blueprint/GE/map assets were edited, generated or saved. Team must create two light area Blueprints and place them manually using the implementation guide.",
+    "NullRHI/native fixtures do not prove rendered HUD or real driving feel. The isolated overlap fixture uses a kinematic real root query body; separate solver and network tests prove forces/replay.",
+    "80ms host outgoing simulation is not measured RTT. No 1% loss/20ms jitter, four physical wired PCs or full F4/VP complex acceptance this round.",
+    "UE5.8.3 was not rerun here; both peers must compile matching code and use the same engine patch. Movement wire format is version 2.",
+    "No tire FX integration, damage/impact zones, general gimmick scheduler, elimination or full match framework was added.",
+    "Startup platform validation reports absent non-Windows SDKs; Win64 validation passed. Zero test warnings refers to final report counts, not a claim that every engine startup line is warning-free.",
+    "Existing uncommitted documentation was preserved. This implementation and documentation have not been committed or pushed."
+  ]
+}

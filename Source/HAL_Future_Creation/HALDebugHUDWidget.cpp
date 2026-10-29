@@ -134,6 +134,8 @@ void UHALDebugHUDWidget::RefreshStatus()
 			Text += FString::Printf(TEXT("Movement boost: %s %.1fs (-1=remote unknown)\n"),
 				ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Boost) ? TEXT("ACTIVE") : TEXT("off"),
 				ASC->GetEffectTimeRemaining(HALGameplayTags::State_Movement_Boost));
+			Text += FString::Printf(TEXT("Areas: Slow=%d Slippery=%d\n"),
+				ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_SlowArea), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_SlipperyArea));
 		}
 		if (Combat && ASC->IsCombatInitialized())
 		{
@@ -166,8 +168,9 @@ void UHALDebugHUDWidget::RefreshStatus()
 		if (Movement)
 		{
 			const auto Parameters = Movement->GetMovementEffectStatus();
-			Text += FString::Printf(TEXT("Movement: Accel=%.2f Speed=%.2f Ready=%d Recover=%d Rev=%u\n"),
-				Parameters.Value.AccelerationScale, Parameters.Value.SpeedScale, Parameters.bReady, Parameters.bRecovery, Parameters.Value.Revision);
+			Text += FString::Printf(TEXT("Movement: Accel=%.2f Speed=%.2f Grip=%.2f Ready=%d Recover=%d AreaFade=%d Rev=%u\n"),
+				Parameters.Value.AccelerationScale, Parameters.Value.SpeedScale, Parameters.Value.GripScale,
+				Parameters.bReady, Parameters.bRecovery, Parameters.bAreaRecovering, Parameters.Value.Revision);
 		}
 		Text += FString::Printf(TEXT("Speed XY=%.0f cm/s (%.1f km/h)\nForward=%.0f cm/s  Vertical=%.0f cm/s\n"
 			"Input: Throttle=%.2f Brake=%.2f Steer=%.2f\nHandbrake=%d  Launch=%d\nPhysics frame=%d  Resim runs=%d\n"),

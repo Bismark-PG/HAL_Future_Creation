@@ -77,7 +77,7 @@ bool FHALMovementSolverTest::RunTest(const FString& Parameters)
 	FGuid Epoch = FGuid::NewGuid(); Movement->ConfigureMovementEffects(Epoch, nullptr, true, 7);
 	int32 Id = 0; bool bWorker = false;
 	const uint32 GT = FPlatformTLS::GetCurrentThreadId();
-	auto Run = [&](const TCHAR* Label, TFunction<void()> Work, double ExpectedX)
+	auto Run = [&](const TCHAR* Label, TFunction<void()> Work, double ExpectedX, double ExpectedY = 0)
 	{
 		auto* Input = Probe->GetProducerInputData_External(); Input->Work = MoveTemp(Work); Input->Movement = Movement; Input->Body = Body; Input->Id = ++Id;
 		Step(); FHALMovementStatus Status;
@@ -88,12 +88,14 @@ bool FHALMovementSolverTest::RunTest(const FString& Parameters)
 			bFound = true; Status = Output->Status; bWorker |= Output->Thread != GT;
 			TestTrue(FString(Label)+TEXT(" physics context"), Output->bPhysicsContext);
 			TestTrue(FString(Label)+TEXT(" measured integrated velocity"), FMath::IsNearlyEqual(Output->Velocity.X, ExpectedX, 0.02));
+			TestTrue(FString(Label)+TEXT(" measured lateral velocity"), FMath::IsNearlyEqual(Output->Velocity.Y, ExpectedY, 0.02));
 		}
 		TestTrue(FString(Label)+TEXT(" callback returned"), bFound); return Status;
 	};
-	auto Publish = [&](uint32 Revision, float Accel, float Speed)
+	auto Publish = [&](uint32 Revision, float Accel, float Speed, float Grip = 1)
 	{
 		FHALMovementSnapshot Value; Value.Epoch = Epoch; Value.Revision = Revision; Value.AccelerationScale = Accel; Value.SpeedScale = Speed;
+		Value.GripScale = Grip;
 		TestTrue(TEXT("Authority publication accepted"), Movement->QueueMovementParameters(Value));
 	};
 	auto Drive = [Movement,Body,Solver](bool bReverse, float Initial, int32 ReplayFrame = INDEX_NONE)
@@ -130,6 +132,20 @@ bool FHALMovementSolverTest::RunTest(const FString& Parameters)
 	Publish(6,1,1); Run(TEXT("Stun release restores driving"), [=](){ Drive(false,0); },30);
 	const auto OldStun = Run(TEXT("Past stun replays after release"), [=](){ StunStep(Blocked.LocalFrame); },100);
 	TestTrue(TEXT("Replay uses historical control block"), OldStun.bReplay && OldStun.Value.bControlsBlocked);
+	auto Lateral = [Movement,Body,Solver](float Initial, bool bHandbrake, int32 ReplayFrame = INDEX_NONE)
+	{
+		auto Handle = Body->GetBodyInstance()->GetBodyInstanceAsyncPhysicsTickHandle(); Handle->SetV(FVector(0,Initial,0));
+		Movement->PrepareMovementFrame(Solver,ReplayFrame == INDEX_NONE ? Solver->GetCurrentFrame() : ReplayFrame,ReplayFrame != INDEX_NONE);
+		Movement->InputCommand.Reset(); Movement->InputCommand.bHandbrake = bHandbrake;
+		Movement->ApplyLateralGrip(*Body->GetBodyInstance(),FVector::RightVector,Initial);
+	};
+	Publish(7,1,1); Run(TEXT("Normal lateral force"),[=](){ Lateral(100,false); },0,100-100*Config.Grip.LateralGripRate/60);
+	Publish(8,1,1,.2f); const auto Sliding = Run(TEXT("Slippery force"),[=](){ Lateral(100,false); },0,100-100*Config.Grip.LateralGripRate*.2/60);
+	Run(TEXT("Slippery acceleration cap"),[=](){ Lateral(10000,false); },0,10000-Config.Grip.MaxLateralGripAcceleration*.2/60);
+	Run(TEXT("Handbrake uses same grip channel"),[=](){ Lateral(100,true); },0,100-100*Config.Grip.HandbrakeGripRate*.2/60);
+	Publish(9,1,1,0); Run(TEXT("Zero grip preserves lateral inertia"),[=](){ Lateral(100,false); },0,100);
+	const auto GripReplay = Run(TEXT("Historical grip after removal"),[=](){ Lateral(100,false,Sliding.LocalFrame); },0,100-100*Config.Grip.LateralGripRate*.2/60);
+	TestTrue(TEXT("Real physics replay uses historical grip"),GripReplay.bReplay && FMath::IsNearlyEqual(GripReplay.Value.GripScale,.2f));
 	Epoch = FGuid::NewGuid(); Movement->ConfigureMovementEffects(Epoch,nullptr,true,7); Publish(1,1,1);
 	Run(TEXT("New Avatar uses new epoch"), [=](){ Drive(false,0); },30);
 	Run(TEXT("Unknown replay adds no drive"), [=](){ Drive(false,0,0); },0);

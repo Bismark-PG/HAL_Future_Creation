@@ -1,0 +1,120 @@
+{
+  "date": "2026-10-29",
+  "timezone": "Asia/Tokyo",
+  "task": "Merge local electric wall Bounce Back with latest remote main; user explicitly selected remote map",
+  "engine": "5.8.2-56702186",
+  "localParent": "dc3372e3cbf16bfbdc556b6ea57fcb543061c8d9",
+  "remoteParent": "98b1a8d63b2ac87dbe72e743a55ca56163a08c24",
+  "remoteCommitsIntegrated": 10,
+  "conflicts": {
+    "Content/Maps/MVPB_NetTest.umap": "Use origin/main exactly, per explicit user instruction. Remote Git blob 7e1fd0683a559715e9dfce21ee6274599718597b. Local electric wall Blueprint retained; no manual map composition.",
+    "Source/HAL_Future_Creation/ArcadeVehicleMovementEffects.cpp": "Retain BounceBackPhysics/pending/public reset AND CurrentMovementScales reset.",
+    "Source/HAL_Future_Creation/TestVehiclePawn.cpp": "Construct both ShockedPresentation and MovementAreaReceiver; bind/unbind both alongside shared ASC lifecycle.",
+    "Docs/Project_Status_CN.md": "Retain both histories; remote presentation/area entries and local electric wall entries. Add new merged summary."
+  },
+  "semanticReview": [
+    "Automatic movement merge retains Bounce Back state capture/restore/serialize/compare alongside remote area consumed scales and curve timeline.",
+    "Stun control gates retained; remote dynamic camera and tire skid remain separate local presentation/input logic.",
+    "No Blueprint graph edits or custom binary asset merge; map selected from remote via git checkout --theirs."
+  ],
+  "builds": {
+    "Editor": "Succeeded",
+    "Game": "Succeeded",
+    "warnings": "Existing remote camera test C4305 narrowing warnings were present; zero TEST warnings does not mean zero compiler warnings."
+  },
+  "reports": {
+    "Automation": {
+      "succeeded": 101,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "sha256": "9745544D1725D1B682EEB49A09FFA640EB5830AAB772DC76D11D9E2768E202A6"
+    },
+    "ElectricWall_Host": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "sha256": "57B419B62639706D6A64F18B72377EBD50788C93EC6F10C66DE18A883F0ED2E9"
+    },
+    "ElectricWall_Client": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "sha256": "81E443D344D8595DF440B3D6BF2DF7C2FB5B1956ACF9D92AA4F648B738839593"
+    },
+    "MovementAreas_Host": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "sha256": "68592664EC16FD031F3AB5383BC19DB35B1192D922CCDE7A29A12C7E7E403E59"
+    },
+    "MovementAreas_Client": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "sha256": "EB4DE2B9C16FBA18E1F22DE0ED9131E8DDF54D8F7505144AC2F8E235F54E27BC"
+    }
+  },
+  "network": {
+    "ElectricWall": {
+      "port": 7826,
+      "hostObservedWestPeakCmPerSecond": 626.412,
+      "clientObservedWestPeakCmPerSecond": 198.605,
+      "clientResimulations": 38,
+      "clientBridgeRewinds": 3,
+      "acceptedContacts": 2,
+      "HP": 100,
+      "stunAndShockedExpire": true,
+      "noNewAuthorityImpact": true,
+      "hostOutgoingInjectedLagMs": 80
+    },
+    "MovementAreas": {
+      "port": 7827,
+      "bothWeakMidAndExitMid": true,
+      "finalRevision": 7,
+      "clientResimulations": 54,
+      "clientBridgeRewinds": 7
+    },
+    "processIds": [
+      31692,
+      38024,
+      17344,
+      36004
+    ],
+    "allExited": true
+  },
+  "assets": {
+    "countBefore": 1173,
+    "countAfter": 1173,
+    "allHashesIdenticalAfterRemoteMapSelection": true,
+    "agentSavedAssets": false
+  },
+  "artifactRoot": "Saved/MergeElectricWall_20261029",
+  "artifactSha256": {
+    "Editor.log": "312084E56D41AE6242E08D46B92CDC7A473EE0AC68B068EE1E93E785318803C3",
+    "Game.log": "068766C24F70D8673F217AB5FB03B0EF427BC2601115B3194B88C588564640CE",
+    "Automation.log": "AF2D0725FC0F3E3DC1850BD88CBDF3C5E7C29283DC80806A09DDABF0ED0DAC27",
+    "ElectricWall_Host.log": "D868D7198261EF89E223CE365612A4D3D7DBCC25FAAA87F40D7A3E80BDA6F832",
+    "ElectricWall_Client.log": "DC6A40207DE88F5558F36DB2FB82367A2CA2CD7D7A87476D89084699198BD231",
+    "MovementAreas_Host.log": "16799E55A088EA3E8B5F55498E443F65B51FB3A7BD3ED83A80DF99488AB03CF3",
+    "MovementAreas_Client.log": "F7FB34F300209208E9D11F4180FBC0E716C6824A011F13E1696D6B9454340204",
+    "Assets_Before.json": "9879D33D7E0268D4C4264A6BB87B4C870006265AA40414DBFFD04197B4802444",
+    "Assets_After.json": "9879D33D7E0268D4C4264A6BB87B4C870006265AA40414DBFFD04197B4802444"
+  },
+  "mergedSourceSha256": {
+    "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp": "2095C97E90581AFC566AD44DD575554563C1E6D00BBEC289BB41FBFAEF0CBDCF",
+    "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h": "FE1F060508A371362DC50CCADEF1E65A6AB082F864901C6AD78191D86006F2E3",
+    "Source/HAL_Future_Creation/ArcadeVehicleMovementEffects.cpp": "D835EE30434AC0FA49BC12D46A03468D44D5C636E30D2D77D4D0AC27D0B87BB0",
+    "Source/HAL_Future_Creation/TestVehiclePawn.cpp": "E1B2AA7D966418DC7DEC71D244702B512C853925D195ECA4302AEDB4C854D1EB",
+    "Source/HAL_Future_Creation/TestVehiclePawn.h": "5BEAF1A3A1D55105EB2466A5641AA30B1E46AA2FA8265EDFF2432450391DABE1",
+    "Source/HAL_Future_Creation/VehicleNetPhysicsData.cpp": "BFB976D8247FECC6DCFF7CEA3BE32AB46D89B9B553621A005A3A4F82B24107D0",
+    "Source/HAL_Future_Creation/VehicleNetPhysicsData.h": "478055F0C4B31B8CFACBEB9F2B146F871639C083A77335F18067730746E8F0E0",
+    "Source/HAL_Future_Creation/HALGameplayTags.cpp": "703F3AB8F7EE34A4CDFF6A8E5670F86F3E9D382BF672996979BBEAAC6C59222D",
+    "Source/HAL_Future_Creation/HALGameplayTags.h": "BB78F69BCED83A33CF7D870EB8A799B0C5E42A8619860C1A8AA002A22846050A"
+  },
+  "limits": [
+    "No new rendered/manual camera, driving, level placement or full four-player acceptance. Native headless network fixtures verify electric wall and area rules separately.",
+    "Remote map replaces local map scene changes. BP_ElectricWallGimmick asset remains available for manual placement.",
+    "Network frame/history payload requires matching rebuilt code on both peers.",
+    "Local merge commit authorized as completion of pull; no push performed."
+  ]
+}

@@ -18,6 +18,12 @@ namespace HALGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_ImpactImmunity, "Effect.Vehicle.ImpactImmunity", "Identifies the native timed immunity effect, separate from other immunity sources.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Movement_Boost, "Effect.Vehicle.MovementBoost", "Identifies the first movement boost family; debug removal preserves other movement GEs.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Movement_Boost, "State.Movement.Boost", "Movement boost is active; actual scales are consumed from per-physics-frame history.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Movement_SlowArea, "State.Movement.SlowArea", "A selected slowing-area GE is active; recovery after exit is stored in physics history.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Movement_SlipperyArea, "State.Movement.SlipperyArea", "A selected slippery-area GE is active; does not change chassis mass or collision.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Movement_Area, "Effect.Vehicle.MovementArea", "Avatar-scoped, selected regional contribution; separate from ordinary movement buffs.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Data_Movement_AreaAcceleration, "Data.Movement.AreaAcceleration", "Reserved selected regional acceleration delta.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Data_Movement_AreaSpeed, "Data.Movement.AreaSpeed", "Reserved selected regional speed-limit delta.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Data_Movement_AreaGrip, "Data.Movement.AreaGrip", "Reserved selected regional lateral-grip delta.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Combat_ImpactImmune, "State.Combat.ImpactImmune", "Blocks rule impact/drop from every source, not natural Chaos contacts or damage.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_Collision, "Combat.Source.Collision", "Server-adapted natural contact episode; never deals ordinary collision damage.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Combat_DamageImmune, "State.Combat.DamageImmune", "Blocks only the damage branch, never impact or hit acceptance.");
