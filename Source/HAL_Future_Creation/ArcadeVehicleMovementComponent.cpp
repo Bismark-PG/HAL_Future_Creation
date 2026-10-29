@@ -263,6 +263,12 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	}
 	FVector GroundNormal = FVector::UpVector;
 	bGrounded = UpdateGroundContact(BodyTransform.GetLocation(), GroundNormal);
+	// Recovery permission has its own support fallback. Never turn these samples into
+	// wheel contact or ordinary driving support, and never extend their vertical reach.
+	FVector RecoveryGroundNormal = GroundNormal;
+	bool bRecoveryGrounded = bGrounded;
+	if (RecoveryRules.bEnabled && !RecoveryRules.GroundIsValid(bGrounded,GroundNormal))
+	{ bRecoveryGrounded = UpdateRecoverySupport(BodyTransform.GetLocation(),RecoveryGroundNormal); }
 	if (RecoveryRules.bEnabled)
 	{
 		const bool bPoseValid = RecoveryRules.GroundIsValid(bGrounded,GroundNormal)
@@ -307,12 +313,12 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 			? HALVehiclePresentation::TireSkidInputs(InputCommand.Brake, InputCommand.Throttle, InputCommand.bHandbrake) : 0;
 		PublishedStability.PhysicsFrame = StepInput.PhysicsFrame;
 		PublishedStability.bValid = true;
-		PublishedStability.bNearGround = bGrounded;
+		PublishedStability.bNearGround = bRecoveryGrounded;
 		PublishedStability.bDrivingAllowed = bPoseDriveAllowed;
 		PublishedStability.bRecoveryHeld = InputCommand.bSelfRight;
 		PublishedStability.Up = GroundProbeRotation.GetUpVector();
 		PublishedStability.Forward = GroundProbeRotation.GetForwardVector();
-		PublishedStability.GroundNormal = GroundNormal;
+		PublishedStability.GroundNormal = RecoveryGroundNormal;
 		PublishedStability.Speed = PhysicsHandle->V().Size();
 		PublishedStability.AngularSpeed = PhysicsHandle->W().Size();
 		PublishedStability.Recovery = RecoveryPhysics;
@@ -814,6 +820,33 @@ bool UArcadeVehicleMovementComponent::UpdateGroundContact(const FVector& BodyLoc
 		OutGroundNormal = FVector::UpVector;
 	}
 	return true;
+}
+
+bool UArcadeVehicleMovementComponent::UpdateRecoverySupport(const FVector& BodyLocation, FVector& OutGroundNormal) const
+{
+	const UWorld* World = GetWorld();
+	if (!World || !UpdatedPrimitive) { return false; }
+	const FVector Center = BodyLocation + GroundProbeRotation.RotateVector(LocalBodyCenter);
+	const float ExtentZ = FMath::Abs(GroundProbeRotation.GetAxisX().Z)*LocalBodyExtent.X
+		+ FMath::Abs(GroundProbeRotation.GetAxisY().Z)*LocalBodyExtent.Y
+		+ FMath::Abs(GroundProbeRotation.GetAxisZ().Z)*LocalBodyExtent.Z;
+	const FCollisionQueryParams Params(SCENE_QUERY_STAT(VehicleRecoverySupport),false,GetOwner());
+	// Sample inside the projected proxy, in a fixed order. A center ray can hit a wall
+	// before the floor or miss a narrow supporting ledge when the car rests on its side.
+	for (const FVector& LocalOffset : {FVector(LocalBodyExtent.X*.5,0,0),FVector(0,LocalBodyExtent.Y*.5,0),FVector(0,0,LocalBodyExtent.Z*.5)})
+	{
+		FVector Offset = GroundProbeRotation.RotateVector(LocalOffset); Offset.Z = 0;
+		if (Offset.IsNearlyZero()) { continue; }
+		for (const float Sign : {1.f,-1.f})
+		{
+			const FVector Start = Center + Offset*Sign;
+			FHitResult Hit;
+			if (World->LineTraceSingleByChannel(Hit,Start,Start-FVector::UpVector*(ExtentZ+RecoveryRules.SupportDistance),GroundTraceChannel,Params)
+				&& !Hit.bStartPenetrating && RecoveryRules.GroundIsValid(true,Hit.ImpactNormal.GetSafeNormal()))
+			{ OutGroundNormal = Hit.ImpactNormal.GetSafeNormal(); return true; }
+		}
+	}
+	return false;
 }
 
 void UArcadeVehicleMovementComponent::ApplyLongitudinalForces(

@@ -7,6 +7,8 @@
 #include "../HALPlayerController.h"
 #include "../TestVehiclePawn.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Engine/NetDriver.h"
@@ -19,7 +21,7 @@ namespace
 	{
 		FAutomationTestBase* Test;
 		double Deadline=FPlatformTime::Seconds()+90, Complete=-1;
-		bool bPrepared=false, bSignalled=false, bSawOwnHold=false, bSawOwnExecution=false, bSawOtherExecution=false;
+		bool bPrepared=false, bFloorPrepared=false, bSignalled=false, bSawOwnHold=false, bSawOwnExecution=false, bSawOtherExecution=false;
 	public:
 		explicit FRecoveryLiveTest(FAutomationTestBase* InTest):Test(InTest){}
 		virtual bool Update() override
@@ -42,6 +44,18 @@ namespace
 			if (!Own->FindComponentByClass<UHALImpactReceiverComponent>()->HasMatchingStabilityRules()
 				|| !Other->FindComponentByClass<UHALImpactReceiverComponent>()->HasMatchingStabilityRules()) { return false; }
 			if (Match->GetMatchPhase()!=EHALMatchPhase::Playing) { if (Host) { PC->HALStartMatch(); } return false; }
+			if (!bFloorPrepared)
+			{
+				// Identical local fixture geometry on both peers, before readiness is signalled.
+				// Isolate the physical test from team edits to the saved map's floor/obstacles.
+				auto* FloorActor=World->SpawnActor<AActor>();
+				auto* Floor=NewObject<UStaticMeshComponent>(FloorActor);
+				FloorActor->AddInstanceComponent(Floor); FloorActor->SetRootComponent(Floor);
+				Floor->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube")));
+				Floor->SetCollisionProfileName(TEXT("BlockAll"));
+				Floor->SetWorldLocation(FVector(0,0,9950)); Floor->SetWorldScale3D(FVector(80,80,1));
+				Floor->RegisterComponent(); bFloorPrepared=true;
+			}
 			if (!bSignalled) { if (!Host) { Own->SetSelfRightHeld(true); } bSignalled=true; }
 			if (!bPrepared)
 			{
@@ -60,7 +74,8 @@ namespace
 					{
 						auto* Body=CastChecked<UPrimitiveComponent>(Pawn->GetRootComponent());
 						// Opt-in test setup only. Production recovery never teleports or clears velocities.
-						Body->SetWorldLocationAndRotation(FVector(Index++ ? 1000:-1000,-2500,150),FRotator(0,0,180),false,nullptr,ETeleportType::TeleportPhysics);
+						const bool bClientCar=Index++!=0;
+						Body->SetWorldLocationAndRotation(FVector(bClientCar ? 1000:-1000,0,10200),FRotator(0,0,bClientCar ? -90:90),false,nullptr,ETeleportType::TeleportPhysics);
 						Body->SetPhysicsLinearVelocity(FVector::ZeroVector); Body->SetPhysicsAngularVelocityInRadians(FVector::ZeroVector);
 						Pawn->ForceNetUpdate();
 					}

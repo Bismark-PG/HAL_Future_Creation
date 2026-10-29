@@ -1,5 +1,13 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-10-29自救角速单位澄清。** 团队截图末行Maximum Recovery Angular Speed显示229.183121deg/s，对应之前只读内部4rad/s；较快建议内部6rad/s应在当前deg/s输入框填写约343.774677，不填裸数字6。前步口头说明未注明显示单位，已补[配置表与输入方法](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#92-团队editor调参步骤)。截图Minimum Recovery Tilt与Drive Exit Tilt均为65°，该角度关系现已正确；是否已保存并恢复实际驾驶仍待团队确认，不以截图冒充运行验收。本轮仅改说明，无C++／资产修改、构建或新测试，原诊断JSON和验证结果保持各自时点。
+
+**2026-10-29调参后Host无法操作已定位为保存配置无效，待团队改值复测。** 最新实际游戏日志先报Invalid Recovery／Vehicle blocked，随后已进入Playing；只读当前共享DA发现Minimum Recovery Tilt=60°小于Drive Exit Tilt=65°，导致共享规则初始化主动阻止车辆。团队按[自救9.4节](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#94-调参后host无法操作保存配置诊断2026-10-29)将Minimum Recovery Tilt改为65°并保存、新开局；Maximum Recovery Angular Speed仍为4，如使用较快组合另改6，与启动阻塞原因独立。无需新编译或改输入。保留本地Stability／Local两份DA和前步源码／文档，代理本轮无资产或C++修改；只读诊断1/1，不将其记为无效DA通过校验、恢复驾驶或真人自救验收。新证据见[配置诊断](Movement/MVPB_Vehicle_Recovery_ConfigDiagnosis_20261029.json)，原104项与双端结果保持原时点。
+
+**2026-10-29侧翻自救修正已完成代码、构建与自动化，待团队调参／真人复测。** 实际基点`main/ac9ffe1`，上次集成、本地Visual功能及团队车型／地图更新已提交到达，开工工作区干净。用户确认有时无进度、有时执行后翻不起，并要求加快实际翻正。已允许Minimum Recovery Tilt等于Drive Exit Tilt以关闭65°～70°空档，补充仅自救使用、保持原距离／坡度的代理范围支撑后备射线，以及服务器复制HUD／日志Block原因；普通驾驶／轮胎接地和PD本体保持。当前保存资格等待实际为2秒、长按1.5秒，未按旧原生1秒回填；更快响应由团队按[自救说明第9节](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#9-侧面着地自救与较快翻正响应2026-10-29)手动调整共享DA，未覆盖保存调参。
+
+本机UE5.8.2 **Editor／Game成功，最终普通104/104，真实左右侧自救Host／Client各1/1**，最终3份报告均0测试警告／失败／未运行。受控Solver原响应侧翻／倒扣约1.017／1.417秒，建议组合约0.583／0.817秒；双端临时地板夹具两车Succeeded、序号2、客户端49次重模拟，80ms为主机出站注入，非实测RTT。早期两个测试旧网格引用失败和旧地图坐标导致双端NoGround超时均保留，分别修正测试资源读取和隔离地板后严格重验；不放宽生产规则。1172份保存资产前后逐份哈希全同、219份最终构建输入未变，专用进程已退出，原C4305等编译警告保留。见[本轮验证](Movement/MVPB_Vehicle_SideRecovery_Verification_20261029.json)。失败原局具体原因仍需Block／Outcome日志，不把边界修正写成全部根因已证实；65°和较快组合尚未写入保存DA，真人实际地图／墙角／手感未验收。本轮改动未提交／Push，F4／四机安排保持。
+
 **2026-10-29本机拉取与集成验证完成。** 用户要求处理Project_Status和TestVehiclePawn的拉取覆盖提示。10份本地改动先逐文件备份并stash，从98b1a8d快进至远端ac14e60；TestVehiclePawn自动合并，已核对同时保留shocked组件组装／ASC绑定清理与静态Visual可选初始化。状态文档3段实际冲突均合并保留两边记录，当前入口以本段及第2／6节为准。远端新增电墙BP与NetTest地图更新正常接收，没有二进制冲突；本地静态回退可选源码／测试／工具提示／留档全部保留，历史验证JSON未改写。
 
 本机UE5.8.2-56702186重新完整构建**Editor／Game成功，普通回归103/103、车型生成器3/3、电墙和车辆表现两组真实双进程Host／Client均各1/1**，6份报告均0测试警告／失败／未运行。编译既有C4305／C4996及启动警告保持，不代表编译零警告。电墙每车接触一次、无新Impact结算、HP100、Stun／shocked结束；表现双端为现有保存车辆的数据链路回归。1173份资产与拉取后基线逐份SHA-256全同，219份构建输入在验证后未变；4个专用游戏进程均已退出。NullRHI数据检查不代表真人画面、保存Mesh=None迁移、F4扰动或四台有线PC验收；电墙80ms为主机出站注入，非实测RTT。详见[本次集成验证](Combat/MVPB_ElectricWall_OptionalVisual_Merge_Verification_20261029.json)。本次未创建提交／Push，集成后的本地改动仍未提交；逐文件备份、新stash及原两份stash全部保留。
@@ -182,9 +190,9 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
-| 开发阶段 | 电墙／独立Bounce Back／shocked与静态回退可选已合并并完成本机构建／自动化／基础双端验证；动态相机仍在团队配置，原F4／四机安排保持 |
-| 当前本机分支／代码提交 | `main / ac14e60`；已快进接收远端3个提交并恢复本地6份源码及留档，集成改动未提交／Push |
-| 引擎基线 | 本机UE `5.8.2-56702186`；本次集成Editor／Game成功、103普通／3工具通过，电墙与表现两组双端均各1项；合并前101／96项等历史独立保留 |
+| 开发阶段 | 电墙／静态Visual等前步已提交；侧翻自救边界与反馈修正完成构建、104普通及基础双端，较快响应等待团队保存DA／真人复测；动态相机／F4／四机原安排保持 |
+| 当前本机分支／代码提交 | `main / ac9ffe1`；已含上次集成、车型资源重命名及团队地图更新，本轮自救修正与留档未提交／Push |
+| 引擎基线 | 本机UE `5.8.2-56702186`；本轮Editor／Game成功、104普通、自救左右侧双端均各1项通过；前步103／3工具及其他双端保持独立历史 |
 | 本机运行前置 | 新Editor DLL已完整链接，可重开配置主球；其他设备同步源码／资产、统一补丁并完整重编，不能用旧DLL或LiveCoding状态代替。本轮未自动重开Editor |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
 | GAS 当前实现 | 原加速／免疫与Primary接线保留；共用Stun为原生GE及服务器ASC.ApplyStun（较晚结束时间、Avatar清理），主机HALStun调试指令保留；区域GE与Stun共用运动桥接，无新玩家施加RPC或库存框架 |
@@ -231,7 +239,7 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 | Car_01后续模型修复 | 最新`5c84320`已接收SKM_Car_01修复；当前模型文件哈希见[接续摘要](Presentation/MVPB_Project_Handoff_Review_20261026.json) | 本轮仅核对提交／文件，未重新导出骨骼／几何或运行画面，不以10月23日反馈代替修复后的新验收 |
 | Editor静态轮底校准 | 自动测量／预览、显式应用、事务撤销及共享／过期保护完成；本机两Target／11项工具回归通过，见[操作说明](Configuration/Vehicle_Visual_Alignment_Tool_CN_v0.1.md) | 只处理参考姿态与正立基准，无运行时校准或碰撞拟合；团队实际Apply／保存、新车型及各姿态画面仍待反馈，不替代VP-3／完整玩法矩阵 |
 | Car_01素材检查 | 2e4176d新增20份素材全部可加载；17骨骼直接父级符合约定，5823源顶点均单骨骼权重1，四轮绑定各自spin；未见缺失依赖，351资产未改，见[检查](Presentation/MVPB_Car01_AssetInspection_CN_v0.1.md)／[原始数据](Presentation/MVPB_Car01_AssetInspection_20261020.json) | 仅NullRHI只读几何／资产数据检查；无真实AnimGraph姿态／材质渲染／性能／玩法双端验证。1个LOD／12个材质section留待实际四车测量，PA保留但不作为当前车辆物理根 |
-| 车辆反弹／姿态门控／长按自救 | 共享规则启用，支撑修正获正向反馈；自救代码／输入链路及原生验证保持，用户现确认真人验收完成、功能可工作；见[最新反馈](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#8-团队真人验收与vp-2接续2026-10-21) | 自救表现以后优化；未追加完整攻击组合／网络扰动／四机结论。有限自然落地辅助未实现 |
+| 车辆反弹／姿态门控／长按自救 | 原10月21日基本功能真人反馈保留；10月29日侧翻边界／Block反馈完成，本机两Target、104普通及自救双端通过，详见[当前调参与验证](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#9-侧面着地自救与较快翻正响应2026-10-29) | 65°及较快响应需团队保存DA并复测实际地图；未将原局唯一原因、夹缝脱困、完整攻击组合／扰动／四机记为通过，有限自然落地辅助未实现 |
 
 本次 10-B 构建证据：UE 5.8.2 的 Editor/Game Development Target 均成功，`HAL.FutureCreation` 自动化 16/16 通过，报告原位于 `Saved/Automation/MVPB_Phase10B_Final/index.json`；隐藏双进程 Join succeeded，客户端收到两辆车的 GAS HP=100／MaxHP=100。历史阶段 9 的 14/14 结果保留在对应记录中。本次没有真人驾驶／命中及延迟测试。`Saved/` 不随 Git 交接，新电脑不存在这些报告不代表测试失败，也不能声称已重跑；共享摘要见 10-B Verification JSON。
 
@@ -282,6 +290,8 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 7. `ApplyAction_Internal`线程缺陷已修复，用户本轮确认击飞效果恢复并接受当前档位响应暂用。仍保留水平补足，不再把恢复旧完整追加作为当前待办；后续力度按配置调参另记。原第8节为历史诊断，最新结论见[10-D第10节](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md#10-团队击飞回归与10-e接续2026-10-16)。
 
 ## 6. 下一环节和待确定项
+
+2026-10-29自救最新入口：重开已完整重编Editor，按[自救第9.2节](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#92-团队editor调参步骤)将共享DA的Minimum Recovery Tilt按需设为实际Drive Exit Tilt（当前65°），试60／12／80／6的Response组合；保留当前资格等待2秒、长按1.5秒与执行／冷却。手动保存／Validate后新开双端，左右侧／斜靠／倒扣／墙角复测，查看Block及Outcome；没有自动覆盖保存资产，也不改变下述相机和MVP-B收尾排期。
 
 2026-10-29本次拉取补充：远端电墙与本地静态回退可选已集成并重新构建、回归及双端检查，Git无未解决冲突。重开已重编的Editor继续下述手工配置；电墙参数／shocked表现按[电墙说明](Combat/MVPB_Electric_Wall_CN_v0.1.md)核对。所有联机设备应同步同一源码／资产并完整重编，不能混用拉取前DLL。当前本地集成改动及新验证留档尚未提交，跨设备使用前须纳入正常Git提交；本次没有新增真人验收或扩大阶段范围。
 

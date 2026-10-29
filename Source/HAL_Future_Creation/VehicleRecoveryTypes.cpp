@@ -5,19 +5,19 @@ bool FVehicleRecoveryConfig::Validate(FString& Error) const
 	const auto In = [](float V, float A, float B) { return FMath::IsFinite(V) && V >= A && V <= B; };
 	if (!In(MaximumGroundSlope,0,80) || !In(DriveEnterTilt,1,85) || !In(DriveExitTilt,1,89)
 		|| DriveEnterTilt >= DriveExitTilt || !In(DriveStableSeconds,0,1) || !In(SupportDistance,0,100)
-		|| !In(MinimumRecoveryTilt,1,180) || MinimumRecoveryTilt <= DriveExitTilt || !In(FlippedSeconds,0,10)
+		|| !In(MinimumRecoveryTilt,1,180) || MinimumRecoveryTilt < DriveExitTilt || !In(FlippedSeconds,0,10)
 		|| !In(MaximumLinearSpeed,1,1000) || !In(MaximumAngularSpeed,1,360) || !In(HoldSeconds,.1f,10)
 		|| !In(MaximumExecutionSeconds,.1f,5) || !In(CooldownSeconds,0,30)
 		|| (MinimumInterruptTier != EHALImpactTier::Medium && MinimumInterruptTier != EHALImpactTier::Heavy)
 		|| !In(SuccessTilt,1,40) || SuccessTilt >= DriveEnterTilt || !In(AngularPositionGain,1,100)
 		|| !In(AngularDampingGain,0,30) || !In(MaximumAngularAcceleration,1,100) || !In(MaximumRecoveryAngularSpeed,.1f,10))
-	{ Error = TEXT("Invalid Recovery: finite ranges, SuccessTilt < DriveEnterTilt < DriveExitTilt < MinimumRecoveryTilt, and Medium/Heavy interrupt required"); return false; }
+	{ Error = TEXT("Invalid Recovery: finite ranges, SuccessTilt < DriveEnterTilt < DriveExitTilt <= MinimumRecoveryTilt, and Medium/Heavy interrupt required"); return false; }
 	return true;
 }
 
 FString FVehicleRecoveryConfig::SignatureKey() const
 {
-	FString Key = FString::Printf(TEXT(":RecoveryV1:%d:%d"), bEnabled, int32(MinimumInterruptTier));
+	FString Key = FString::Printf(TEXT(":RecoveryV2:%d:%d"), bEnabled, int32(MinimumInterruptTier));
 	for (float V : {MaximumGroundSlope, DriveEnterTilt, DriveExitTilt, DriveStableSeconds, SupportDistance,
 		MinimumRecoveryTilt, FlippedSeconds, MaximumLinearSpeed, MaximumAngularSpeed, HoldSeconds, MaximumExecutionSeconds,
 		CooldownSeconds, SuccessTilt, AngularPositionGain, AngularDampingGain, MaximumAngularAcceleration, MaximumRecoveryAngularSpeed})
@@ -39,10 +39,19 @@ bool FVehicleRecoveryConfig::CanDrive(bool bPreviouslyAllowed, const FVector& Up
 
 bool FVehicleRecoveryConfig::IsEligible(bool bNear, const FVector& Up, const FVector& Normal, float Speed, float AngularRadians) const
 {
-	return bEnabled && GroundIsValid(bNear, Normal) && !Up.ContainsNaN() && Up.IsNormalized()
-		&& FVector::DotProduct(Up, Normal) <= FMath::Cos(FMath::DegreesToRadians(MinimumRecoveryTilt))
-		&& FMath::IsFinite(Speed) && Speed >= 0 && Speed <= MaximumLinearSpeed
-		&& FMath::IsFinite(AngularRadians) && AngularRadians >= 0 && AngularRadians <= FMath::DegreesToRadians(MaximumAngularSpeed);
+	return EligibilityBlockReason(bNear,Up,Normal,Speed,AngularRadians).IsNone();
+}
+
+FName FVehicleRecoveryConfig::EligibilityBlockReason(bool bNear, const FVector& Up, const FVector& Normal, float Speed, float AngularRadians) const
+{
+	if (!bEnabled) { return TEXT("Disabled"); }
+	if (!bNear) { return TEXT("NoGround"); }
+	if (!GroundIsValid(bNear,Normal)) { return TEXT("SteepGround"); }
+	if (Up.ContainsNaN() || !Up.IsNormalized()) { return TEXT("InvalidPose"); }
+	if (FVector::DotProduct(Up,Normal) > FMath::Cos(FMath::DegreesToRadians(MinimumRecoveryTilt))) { return TEXT("Tilt"); }
+	if (!FMath::IsFinite(Speed) || Speed < 0 || Speed > MaximumLinearSpeed) { return TEXT("LinearSpeed"); }
+	if (!FMath::IsFinite(AngularRadians) || AngularRadians < 0 || AngularRadians > FMath::DegreesToRadians(MaximumAngularSpeed)) { return TEXT("AngularSpeed"); }
+	return NAME_None;
 }
 
 bool FVehicleRecoveryPhysicsState::IsValid() const

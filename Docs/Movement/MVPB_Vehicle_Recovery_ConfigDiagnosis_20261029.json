@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-29T17:05:13+09:00",
+  "head": "ac9ffe1f2cd0dc09bf3855ef49ffa1127f57e7e0",
+  "engine": "5.8.2-56702186",
+  "scope": "只读定位团队调参后Host无法驾驶；不修改资产或C++。",
+  "evidenceDirectory": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\VehicleRecoveryConfigCheck\\20261029_170257",
+  "userLog": {
+    "path": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\VehicleRecoveryConfigCheck\\20261029_170257\\UserGame.log",
+    "sha256": "EF1A2D37456268C2FC91B10F6549A591D1DDF4AF1766D456D523F04ED9B8D909",
+    "initializationError": "Invalid VehicleStabilityRules ... Invalid Recovery ... Vehicle blocked; no fallback",
+    "initializationErrorOriginalLine": 1615,
+    "phase": "Playing with 1 players",
+    "phaseOriginalLine": 1674
+  },
+  "savedRecovery": {
+    "driveEnterTilt": 50,
+    "driveExitTilt": 65,
+    "minimumRecoveryTilt": 60,
+    "flippedSeconds": 2,
+    "holdSeconds": 1.5,
+    "maximumExecutionSeconds": 2,
+    "cooldownSeconds": 3,
+    "angularPositionGain": 60,
+    "angularDampingGain": 12,
+    "maximumAngularAcceleration": 80,
+    "maximumRecoveryAngularSpeed": 4,
+    "signatureKey": ":RecoveryV2:1:2:45:50:65:0.100000001:30:60:2:150:60:1.5:2:3:15:60:12:80:4"
+  },
+  "cause": "MinimumRecoveryTilt 60 < DriveExitTilt 65违反现有原生校验，World共享规则初始化失败并阻止车辆；进入Playing不会自动解除该阻塞。",
+  "manualCorrection": {
+    "asset": "/Game/Data/MVP_B/DA_Vehicle_Stability_Test_v1",
+    "required": "Recovery / Eligibility / Minimum Recovery Tilt: 60 -> 65，保存后停止旧局并重新Host。",
+    "optional": "Recovery / Response / Maximum Recovery Angular Speed: 4 -> 6，使用前步较快响应建议；与初始化错误独立。",
+    "keepDriveExitTilt": 65,
+    "recompileRequired": false,
+    "appliedByAgent": false
+  },
+  "diagnostic": {
+    "test": "HAL.FutureCreation.Recovery.SideSupportAndThresholdBoundary",
+    "succeeded": 1,
+    "failed": 0,
+    "succeededWithWarnings": 0,
+    "notRun": 0,
+    "reportPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\VehicleRecoveryConfigCheck\\20261029_170257\\ReadOnly\\index.json",
+    "reportSha256": "BDF8FEF6DA013EF22DF11F33F9B2B23A3E083018C8FB0F51BA71D3A4B13AAF9C",
+    "logPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\VehicleRecoveryConfigCheck\\20261029_170257\\ReadOnly.log",
+    "logSha256": "D76F03436ABD144CD2E635163E7E7A380FA95513C124E348540CDA57392E0F3F",
+    "meaning": "现有原生边界测试及只读资产加载成功，不代表当前无效DA通过Validate或实际驾驶恢复。"
+  },
+  "preservedTeamAssets": [
+    {
+      "path": "Content/Data/MVP_B/DA_Vehicle_Stability_Test_v1.uasset",
+      "sha256": "02835628D2B24191DCF5DFA119C78BA16084ADFC3B4CE8C6404BF3FD794C4D6B"
+    },
+    {
+      "path": "Content/Data/MVP_B/DA_Local_TestBaseline_v1.uasset",
+      "sha256": "18DE835DF34FBF02CFE2FD6925097B2D089C4A8F82DAB21B9F4F0750A9D4AD88"
+    }
+  ],
+  "assetHashesUnchanged": true,
+  "cppModifiedThisTurn": false,
+  "newBuild": false,
+  "newListenServerTest": false,
+  "teamFixAndDrivingConfirmationPending": true,
+  "commitCreated": false,
+  "pushed": false
+}

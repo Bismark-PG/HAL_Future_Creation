@@ -46,13 +46,17 @@ void UVehicleRecoveryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 	DOREPLIFETIME(UVehicleRecoveryComponent,Status);
 }
 
-void UVehicleRecoveryComponent::LogTransition(EVehicleRecoveryPhase Before) const
+void UVehicleRecoveryComponent::LogTransition(EVehicleRecoveryPhase Before, FName PreviousBlockReason) const
 {
-	if (Before != Status.Phase && CVarHALRecoveryLog.GetValueOnGameThread() > 0)
+	if ((Before != Status.Phase || PreviousBlockReason != Status.BlockReason) && CVarHALRecoveryLog.GetValueOnGameThread() > 0)
 	{
-		UE_LOG(LogTemp,Log,TEXT("Vehicle recovery: Pawn=%s Phase=%d->%d Sequence=%lld Hold=%.3f Cooldown=%.3f Outcome=%s Frame=%d"),
+		const auto* Movement = GetOwner()->FindComponentByClass<UArcadeVehicleMovementComponent>();
+		const auto Sample = Movement ? Movement->GetStabilityObservation() : FVehicleStabilityObservation();
+		const double Tilt = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(FVector::DotProduct(Sample.Up,Sample.GroundNormal),-1.,1.)));
+		UE_LOG(LogTemp,Log,TEXT("Vehicle recovery: Pawn=%s Phase=%d->%d Sequence=%lld Hold=%.3f Cooldown=%.3f Outcome=%s Block=%s Ground=%d Tilt=%.2f Speed=%.2f AngularDeg=%.2f Held=%d Frame=%d"),
 			*GetNameSafe(GetOwner()),int32(Before),int32(Status.Phase),Status.Sequence,Status.HoldProgress,
-			Status.CooldownRemaining,*Status.LastOutcome.ToString(),ObservedPhysicsFrame);
+			Status.CooldownRemaining,*Status.LastOutcome.ToString(),*Status.BlockReason.ToString(),Sample.bNearGround,Tilt,
+			Sample.Speed,FMath::RadiansToDegrees(Sample.AngularSpeed),Sample.bRecoveryHeld,ObservedPhysicsFrame);
 	}
 }
 
@@ -71,6 +75,7 @@ bool UVehicleRecoveryComponent::Start(const FVehicleStabilityObservation& Sample
 	// This is the accepted authority execution boundary, not the held-input boundary.
 	Status.Sequence = Command.Sequence; Status.Phase = EVehicleRecoveryPhase::Executing;
 	Status.LastOutcome = TEXT("Started"); Status.HoldProgress = 0; Clock.Hold = 0;
+	Status.BlockReason = NAME_None;
 	if (auto* Balls = GetOwner()->FindComponentByClass<UBallControlComponent>()) { Balls->ReleaseForRecovery(); }
 	GetOwner()->ForceNetUpdate();
 	return true;
@@ -91,6 +96,7 @@ void UVehicleRecoveryComponent::Finish(FName Outcome)
 	}
 	else { Clock.Flipped = Clock.Hold = 0; Status.Phase = EVehicleRecoveryPhase::Idle; }
 	Status.HoldProgress = 0; Status.LastOutcome = Outcome;
+	Status.BlockReason = Clock.Cooldown > 0 ? FName(TEXT("Cooldown")) : NAME_None;
 	GetOwner()->ForceNetUpdate(); LogTransition(Before);
 }
 
@@ -112,6 +118,8 @@ void UVehicleRecoveryComponent::ResumeForOwner()
 
 void UVehicleRecoveryComponent::UpdateRecovery()
 {
+	const auto Before = Status.Phase;
+	const FName PreviousBlockReason = Status.BlockReason;
 	const double Now = GetWorld()->GetTimeSeconds();
 	const float Delta = FMath::Max(0.f,float(Now-LastUpdateTime)); LastUpdateTime = Now;
 	auto* Movement = GetOwner()->FindComponentByClass<UArcadeVehicleMovementComponent>();
@@ -130,7 +138,9 @@ void UVehicleRecoveryComponent::UpdateRecovery()
 	{
 		if (IsExecuting()) { Finish(TEXT("InvalidOwnerOrPhysics")); }
 		else { Clock.Advance(Rules,false,false,Delta); Status.HoldProgress = 0;
-			Status.CooldownRemaining = Clock.Cooldown; Status.Phase = Clock.Cooldown > 0 ? EVehicleRecoveryPhase::Cooldown : EVehicleRecoveryPhase::Idle; }
+			Status.CooldownRemaining = Clock.Cooldown; Status.Phase = Clock.Cooldown > 0 ? EVehicleRecoveryPhase::Cooldown : EVehicleRecoveryPhase::Idle;
+			Status.BlockReason = UHALAbilitySystemComponent::IsActorStunned(GetOwner()) ? FName(TEXT("Stunned")) : FName(TEXT("OwnerOrPhysics"));
+			LogTransition(Before,PreviousBlockReason); }
 		return;
 	}
 	if (IsExecuting())
@@ -145,8 +155,8 @@ void UVehicleRecoveryComponent::UpdateRecovery()
 		if (!Sample.Recovery.bActive) { Finish(TEXT("Timeout")); }
 		return;
 	}
-	const auto Before = Status.Phase;
-	const bool bEligible = Rules.IsEligible(Sample.bNearGround,Sample.Up,Sample.GroundNormal,Sample.Speed,Sample.AngularSpeed);
+	Status.BlockReason = Rules.EligibilityBlockReason(Sample.bNearGround,Sample.Up,Sample.GroundNormal,Sample.Speed,Sample.AngularSpeed);
+	const bool bEligible = Status.BlockReason.IsNone();
 	// A long GT stall cannot award unattended hold progress from one old observation.
 	const bool bStart = Clock.Advance(Rules,bEligible && Delta <= .1f,Sample.bRecoveryHeld && Delta <= .1f,Delta);
 	Status.CooldownRemaining = Clock.Cooldown;
@@ -154,8 +164,12 @@ void UVehicleRecoveryComponent::UpdateRecovery()
 	Status.Phase = Clock.Cooldown > 0 ? EVehicleRecoveryPhase::Cooldown
 		: Clock.Hold > 0 ? EVehicleRecoveryPhase::Holding
 		: bEligible && Clock.Flipped+KINDA_SMALL_NUMBER >= Rules.FlippedSeconds ? EVehicleRecoveryPhase::Eligible : EVehicleRecoveryPhase::Idle;
+	if (Clock.Cooldown > 0) { Status.BlockReason = TEXT("Cooldown"); }
+	else if (bEligible && Delta > .1f) { Status.BlockReason = TEXT("FrameGap"); }
+	else if (bEligible && Clock.Flipped+KINDA_SMALL_NUMBER < Rules.FlippedSeconds) { Status.BlockReason = TEXT("Stabilizing"); }
+	else if (bEligible && !Sample.bRecoveryHeld) { Status.BlockReason = TEXT("NotHeld"); }
 	if (bStart && !Start(Sample)) { Clock.Hold = 0; Status.HoldProgress = 0; Status.LastOutcome = TEXT("ActionRejected"); }
-	LogTransition(Before);
+	LogTransition(Before,PreviousBlockReason);
 }
 
 void UVehicleRecoveryComponent::NotifyExternalImpact(const FHALCombatHitRequest& Request, EHALImpactTier EffectiveTier)

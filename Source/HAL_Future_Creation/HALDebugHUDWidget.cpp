@@ -156,9 +156,9 @@ void UHALDebugHUDWidget::RefreshStatus()
 		if (const auto* Recovery = Vehicle->FindComponentByClass<UVehicleRecoveryComponent>())
 		{
 			const auto State = Recovery->GetStatus();
-			Text += FString::Printf(TEXT("Pose: Drive=%d Ground=%d  Self-right=%s\nHold=%.0f%% CD=%.1fs Outcome=%s\n"),
+			Text += FString::Printf(TEXT("Pose: Drive=%d Ground=%d  Self-right=%s\nHold=%.0f%% CD=%.1fs Outcome=%s Block=%s\n"),
 				State.bDrivingAllowed,State.bNearGround,*UEnum::GetValueAsString(State.Phase),
-				State.HoldProgress*100,State.CooldownRemaining,*State.LastOutcome.ToString());
+				State.HoldProgress*100,State.CooldownRemaining,*State.LastOutcome.ToString(),*State.BlockReason.ToString());
 		}
 		const UPrimitiveComponent* Body = Cast<UPrimitiveComponent>(Vehicle->GetRootComponent());
 		const FVector Velocity = Body ? Body->GetPhysicsLinearVelocity() : FVector::ZeroVector;

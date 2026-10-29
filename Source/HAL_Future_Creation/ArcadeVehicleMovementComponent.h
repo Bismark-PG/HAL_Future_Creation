@@ -104,6 +104,7 @@ private:
 	bool RequestMovementRewind(Chaos::FPBDRigidsSolver* Solver, int32 LocalFrame, int32 RequestedLocalFrame, bool bRequireCheckpoint = false);
 	void SimulateVehicleStep(const FVehicleNetInputData& StepInput, float DeltaTime);
 	bool UpdateGroundContact(const FVector& BodyLocation, FVector& OutGroundNormal) const;
+	bool UpdateRecoverySupport(const FVector& BodyLocation, FVector& OutGroundNormal) const;
 	FVehicleRecoveryConfig RecoveryRules;
 	FVector LocalBodyCenter = FVector::ZeroVector, LocalBodyExtent = FVector::ZeroVector;
 	FQuat GroundProbeRotation = FQuat::Identity; // Physics-owned, from the Internal body.

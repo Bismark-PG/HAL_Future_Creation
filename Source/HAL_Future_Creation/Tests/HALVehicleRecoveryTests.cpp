@@ -54,7 +54,59 @@ struct FHALRecoveryTestAccess
 		Movement->SimulateVehicleStep(Input,Delta);
 	}
 	static FVehicleRecoveryPhysicsState Physics(UArcadeVehicleMovementComponent* Movement) { return Movement->RecoveryPhysics; }
+	static void SetRules(UArcadeVehicleMovementComponent* Movement, const FVehicleRecoveryConfig& Rules) { Movement->RecoveryRules = Rules; }
+	static bool Support(UArcadeVehicleMovementComponent* Movement, const FTransform& Pose, FVector& Normal, bool bFallback)
+	{
+		Movement->GroundProbeRotation = Pose.GetRotation();
+		return bFallback ? Movement->UpdateRecoverySupport(Pose.GetLocation(),Normal) : Movement->UpdateGroundContact(Pose.GetLocation(),Normal);
+	}
 };
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALRecoverySideSupportTest,"HAL.FutureCreation.Recovery.SideSupportAndThresholdBoundary",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALRecoverySideSupportTest::RunTest(const FString& Parameters)
+{
+	FVehicleRecoveryConfig Rules; FString Error;
+	Rules.MinimumRecoveryTilt = Rules.DriveExitTilt;
+	TestTrue(TEXT("Recovery can meet the drive-exit threshold without a dead band"),Rules.Validate(Error));
+	const FVector Lean = FQuat(FVector::ForwardVector,FMath::DegreesToRadians(68.f)).GetUpVector();
+	TestFalse(TEXT("68 degree car cannot drive"),Rules.CanDrive(true,Lean,FVector::UpVector));
+	TestTrue(TEXT("65 degree recovery setting accepts stable 68 degree lean"),Rules.IsEligible(true,Lean,FVector::UpVector,0,0));
+	Rules.MinimumRecoveryTilt = 70;
+	TestEqual(TEXT("Existing 70 degree tuning is honored with explicit feedback"),Rules.EligibilityBlockReason(true,Lean,FVector::UpVector,0,0),FName(TEXT("Tilt")));
+	TestEqual(TEXT("Air remains rejected"),Rules.EligibilityBlockReason(false,FVector::RightVector,FVector::UpVector,0,0),FName(TEXT("NoGround")));
+	TestEqual(TEXT("Fast translation remains rejected"),Rules.EligibilityBlockReason(true,FVector::RightVector,FVector::UpVector,151,0),FName(TEXT("LinearSpeed")));
+	TestEqual(TEXT("Fast tumbling remains rejected"),Rules.EligibilityBlockReason(true,FVector::RightVector,FVector::UpVector,0,2),FName(TEXT("AngularSpeed")));
+	const auto Options=UWorld::InitializationValues().AllowAudioPlayback(false).RequiresHitProxies(false).CreatePhysicsScene(true)
+		.CreateNavigation(false).CreateAISystem(false).CreateFXSystem(false).ShouldSimulatePhysics(false).EnableTraceCollision(true).SetTransactional(false);
+	auto* World=UWorld::CreateWorld(EWorldType::Game,false,NAME_None,nullptr,true,ERHIFeatureLevel::Num,&Options);
+	GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(World);
+	const auto Box=[World](const FVector& Extent,const FTransform& Pose)
+	{
+		auto* Actor=World->SpawnActor<AActor>(); auto* Body=NewObject<UBoxComponent>(Actor);
+		Actor->AddInstanceComponent(Body); Actor->SetRootComponent(Body); Body->SetBoxExtent(Extent);
+		Body->SetCollisionProfileName(TEXT("BlockAll")); Body->SetWorldTransform(Pose); Body->RegisterComponent(); return Body;
+	};
+	// A narrow ledge supports the front half of a side-resting proxy; its center ray is off the ledge.
+	auto* Floor=Box(FVector(20,200,10),FTransform(FVector(60,0,-10)));
+	const FTransform Pose(FQuat(FVector::ForwardVector,PI/2),FVector(0,0,80));
+	auto* Body=Box(FVector(120,80,30),Pose);
+	auto* Movement=NewObject<UArcadeVehicleMovementComponent>(Body->GetOwner()); Body->GetOwner()->AddInstanceComponent(Movement);
+	Movement->SetUpdatedPrimitive(Body); Movement->RegisterComponent(); FHALRecoveryTestAccess::Prepare(Movement,Body);
+	FVector Normal;
+	TestFalse(TEXT("Center driving probe misses the ledge"),FHALRecoveryTestAccess::Support(Movement,Pose,Normal,false));
+	TestTrue(TEXT("Projected recovery probe detects real nearby ledge support"),FHALRecoveryTestAccess::Support(Movement,Pose,Normal,true));
+	TestTrue(TEXT("Recovery target is a valid floor normal"),Rules.GroundIsValid(true,Normal));
+	FTransform Air=Pose; Air.AddToTranslation(FVector(0,0,150));
+	TestFalse(TEXT("Fallback does not extend vertical reach for an airborne car"),FHALRecoveryTestAccess::Support(Movement,Air,Normal,true));
+	Floor->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Box(FVector(10,200,200),FTransform(FVector(60,0,100)));
+	TestFalse(TEXT("Wall-only contact never supplies recovery floor"),FHALRecoveryTestAccess::Support(Movement,Pose,Normal,true));
+	World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
+	if (const auto* Saved=LoadObject<UVehicleStabilityRules>(nullptr,TEXT("/Game/Data/MVP_B/DA_Vehicle_Stability_Test_v1.DA_Vehicle_Stability_Test_v1")))
+	{ AddInfo(FString::Printf(TEXT("Saved Recovery (read-only): %s %s"),*Saved->GetPathName(),*Saved->Recovery.SignatureKey())); }
+	return true;
+}
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALRecoveryPolicyTest,"HAL.FutureCreation.Recovery.PoseAndPermissionClock",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -251,7 +303,8 @@ bool FHALRecoverySolverTest::RunTest(const FString& Parameters)
 	auto* Def=LoadObject<UVehicleDefinition>(nullptr,TEXT("/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.DA_Vehicle_Player_TestBaseline_v1"));
 	if (!TestNotNull(TEXT("Saved collision definition"),Def) || !TestNotNull(TEXT("Saved convex"),Def->CollisionMesh.Get())) { return false; }
 	TArray<FString> Trace{TEXT("case,step,x,y,z,up_dot,vx,vy,vz,drive,active,elapsed,worker")};
-	for (int32 Case=0; Case<5; ++Case)
+	float DefaultSideSeconds=0, DefaultRoofSeconds=0;
+	for (int32 Case=0; Case<8; ++Case)
 	{
 		const auto Options=UWorld::InitializationValues().AllowAudioPlayback(false).RequiresHitProxies(false).CreatePhysicsScene(true)
 			.CreateNavigation(false).CreateAISystem(false).CreateFXSystem(false).ShouldSimulatePhysics(true).EnableTraceCollision(true).SetTransactional(false);
@@ -265,7 +318,7 @@ bool FHALRecoverySolverTest::RunTest(const FString& Parameters)
 			Body->SetWorldTransform(Pose); Body->SetWorldScale3D(Scale); Body->SetSimulatePhysics(Dynamic); Body->RegisterComponent(); return Body;
 		};
 		MakeBody(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube")),FTransform(FVector(0,0,-50)),FVector(80,80,1),false);
-		const float Tilt=Case==0 ? 0 : Case==1 || Case==3 ? 90 : Case==2 ? -90 : 180;
+		const float Tilt=Case==0 ? 0 : Case==1 || Case==3 || Case==5 ? 90 : Case==2 || Case==6 ? -90 : 180;
 		const FQuat Rotation(FVector::ForwardVector,FMath::DegreesToRadians(Tilt));
 		double MinimumZ=0;
 		for (const auto& Convex : Def->CollisionMesh->GetBodySetup()->AggGeom.ConvexElems)
@@ -277,10 +330,16 @@ bool FHALRecoverySolverTest::RunTest(const FString& Parameters)
 		Mat->Restitution=0; Mat->bOverrideRestitutionCombineMode=true; Mat->RestitutionCombineMode=EFrictionCombineMode::Min; Body->SetPhysMaterialOverride(Mat);
 		auto* Movement=NewObject<UArcadeVehicleMovementComponent>(Body->GetOwner()); Body->GetOwner()->AddInstanceComponent(Movement);
 		Movement->SetUpdatedPrimitive(Body); Movement->RegisterComponent(); FHALRecoveryTestAccess::Prepare(Movement,Body);
+		if (Case>=5)
+		{
+			FVehicleRecoveryConfig Fast; Fast.AngularPositionGain=60; Fast.AngularDampingGain=12;
+			Fast.MaximumAngularAcceleration=80; Fast.MaximumRecoveryAngularSpeed=6;
+			FHALRecoveryTestAccess::SetRules(Movement,Fast);
+		}
 		auto* Solver=World->GetPhysicsScene()->GetSolver(); Solver->SetThreadingMode_External(Chaos::EThreadingModeTemp::TaskGraph);
 		Solver->AdvanceAndDispatch_External(1.f/60); Solver->WaitOnPendingTasks_External();
 		auto* Probe=Solver->CreateAndRegisterSimCallbackObject_External<FProbe>();
-		FOutput Last; float BestUp=-1; int32 Outputs=0; bool InvalidDrive=false;
+		FOutput Last; float BestUp=-1, FirstSettledSeconds=0; int32 Outputs=0; bool InvalidDrive=false;
 		for (int32 Step=1; Step<=180; ++Step)
 		{
 			auto* In=Probe->GetProducerInputData_External(); In->Movement=Movement; In->Body=Body; In->Step=Step;
@@ -293,6 +352,8 @@ bool FHALRecoverySolverTest::RunTest(const FString& Parameters)
 				const float Up=Out->Rotation.GetUpVector().Z;
 				if (O.Up.Z < .3 && O.bDrivingAllowed) { InvalidDrive=true; }
 				if (Step<=120) { BestUp=FMath::Max(BestUp,Up); }
+				if (Case>=3 && FirstSettledSeconds==0 && Up>=FMath::Cos(FMath::DegreesToRadians(15.f)) && O.AngularSpeed<=FMath::DegreesToRadians(60.f))
+				{ FirstSettledSeconds=Step/60.f; }
 				if (Step==31 && Case>=3) { TestTrue(TEXT("Duplicate start cannot reset execution timer"),O.Recovery.ElapsedSeconds>.5f); }
 				Trace.Add(FString::Printf(TEXT("%d,%d,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%d,%d,%.6f,%d"),Case,Step,
 					Out->Position.X,Out->Position.Y,Out->Position.Z,Up,Out->Velocity.X,Out->Velocity.Y,Out->Velocity.Z,
@@ -306,8 +367,12 @@ bool FHALRecoverySolverTest::RunTest(const FString& Parameters)
 		{
 			TestTrue(TEXT("Side/roof reaches upright region within bounded execution"),BestUp>.96f);
 			TestFalse(TEXT("Execution cannot continue beyond two seconds"),Last.Observation.Recovery.bActive);
+			TestTrue(TEXT("Recovery reaches low-angle and low-spin success region"),FirstSettledSeconds>0);
 		}
-		AddInfo(FString::Printf(TEXT("Recovery Solver Case=%d BestUpIn2s=%.6f FinalUp=%.6f FinalSpeed=%.3f Elapsed=%.3f"),Case,BestUp,Last.Rotation.GetUpVector().Z,Last.Velocity.Size(),Last.Observation.Recovery.ElapsedSeconds));
+		if (Case==3) { DefaultSideSeconds=FirstSettledSeconds; }
+		if (Case==4) { DefaultRoofSeconds=FirstSettledSeconds; }
+		if (Case>=5) { TestTrue(TEXT("Suggested DA response settles faster than original gains"),FirstSettledSeconds < (Case==7 ? DefaultRoofSeconds : DefaultSideSeconds)); }
+		AddInfo(FString::Printf(TEXT("Recovery Solver Case=%d BestUpIn2s=%.6f FinalUp=%.6f FinalSpeed=%.3f Elapsed=%.3f SettledSeconds=%.3f"),Case,BestUp,Last.Rotation.GetUpVector().Z,Last.Velocity.Size(),Last.Observation.Recovery.ElapsedSeconds,FirstSettledSeconds));
 		Solver->UnregisterAndFreeSimCallbackObject_External(Probe); Solver->AdvanceAndDispatch_External(1.f/60); Solver->WaitOnPendingTasks_External();
 		World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
 	}
