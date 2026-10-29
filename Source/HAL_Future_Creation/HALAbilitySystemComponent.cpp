@@ -1,5 +1,6 @@
 #include "HALAbilitySystemComponent.h"
 #include "HALStunEffect.h"
+#include "HALShockedEffect.h"
 #include "AbilitySystemGlobals.h"
 #include "BallControlComponent.h"
 #include "VehicleRecoveryComponent.h"
@@ -169,8 +170,23 @@ bool UHALAbilitySystemComponent::ApplyStun(float DurationSeconds, AActor* Source
 
 void UHALAbilitySystemComponent::StunTagChanged(FGameplayTag Tag, int32 Count)
 {
-	if (Count <= 0 || !GetOwner() || !GetOwner()->HasAuthority() || !GetAvatarActor()) { return; }
+	if (!GetOwner() || !GetOwner()->HasAuthority()) { return; }
+	if (Count <= 0)
+	{
+		RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(FGameplayTagContainer(HALGameplayTags::Effect_Visual_Shocked)));
+		return;
+	}
+	if (!GetAvatarActor()) { return; }
 	if (auto* Balls = GetAvatarActor()->FindComponentByClass<UBallControlComponent>()) { Balls->ReleaseForStun(); }
+}
+
+bool UHALAbilitySystemComponent::MarkShockedForCurrentStun(AActor* SourceActor)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !IsValid(GetAvatarActor()) || !IsStunned()) { return false; }
+	if (HasMatchingGameplayTag(HALGameplayTags::State_Visual_Shocked)) { return true; }
+	auto Context = MakeEffectContext(); Context.AddSourceObject(SourceActor);
+	const auto Spec = MakeOutgoingSpec(UHALShockedEffect::StaticClass(),1.f,Context);
+	return Spec.IsValid() && ApplyGameplayEffectSpecToSelf(*Spec.Data.Get()).IsValid();
 }
 
 float UHALAbilitySystemComponent::GetEffectTimeRemaining(FGameplayTag GrantedTag) const

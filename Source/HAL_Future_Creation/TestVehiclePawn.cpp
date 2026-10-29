@@ -8,6 +8,7 @@
 #include "VehicleConfigurationApplication.h"
 #include "VehicleKnockbackSettings.h"
 #include "HALAbilitySystemComponent.h"
+#include "HALShockedPresentationComponent.h"
 #include "HALMovementEffectBridge.h"
 #include "HALVehiclePresentationComponent.h"
 #include "HALPlayerState.h"
@@ -96,6 +97,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	NetworkPhysicsHistory = CreateDefaultSubobject<UNetworkPhysicsComponent>(TEXT("VehicleNetworkPhysicsHistory"));
 	NetworkPhysicsHistory->SetAutoActivate(false);
 	MovementEffectBridge = CreateDefaultSubobject<UHALMovementEffectBridge>(TEXT("MovementEffectBridge"));
+	ShockedPresentation = CreateDefaultSubobject<UHALShockedPresentationComponent>(TEXT("ShockedPresentation"));
 
 	BallControlPoint = CreateDefaultSubobject<USceneComponent>(TEXT("BallControlPoint"));
 	BallControlPoint->SetupAttachment(CollisionRoot);
@@ -252,6 +254,7 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 	}
 	ASC->InitAbilityActorInfo(State, this);
 	Health->BindToAbilitySystem(ASC);
+	ShockedPresentation->Bind(ASC);
 	MovementEffectBridge->Bind(ASC, State->GetPlayerId());
 	if (HasAuthority() && bConfigurationValid)
 	{
@@ -263,6 +266,7 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 
 void ATestVehiclePawn::UninitializeAbilitySystem()
 {
+	ShockedPresentation->Unbind();
 	MovementEffectBridge->Unbind();
 	UHALAbilitySystemComponent* ASC = Health->GetBoundAbilitySystem();
 	Health->UnbindFromAbilitySystem();

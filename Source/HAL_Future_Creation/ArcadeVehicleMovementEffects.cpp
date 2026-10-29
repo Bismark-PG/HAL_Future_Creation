@@ -56,6 +56,7 @@ void UArcadeVehicleMovementComponent::ApplyPendingMovementConfiguration()
 	MovementAuthorityTimeline = {};
 	MovementActions.Reset(); UsedMovementFrames.Reset(); ProcessedMovementStates.Reset();
 	CurrentMovement = {};
+	BounceBackPhysics = {}; PendingBounceBack = {}; PublishedBounceBack = {}; bPendingBounceBack=false;
 	MovementRewindRequests = 0; MovementLastRewind = INDEX_NONE;
 	LatestMovementAuthorityFrame = INDEX_NONE;
 	bMovementRecovery = false; bMovementDriveAllowed = true;

@@ -245,8 +245,22 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	{
 		FScopeLock Lock(&PendingPhysicsDataLock);
 		if (bPendingRecovery) { RecoveryPhysics = PendingRecovery; bPendingRecovery = false; }
+		if (bPendingBounceBack) { BounceBackPhysics=PendingBounceBack; bPendingBounceBack=false; }
 	}
 
+	// Replace horizontal motion on the Internal body at its center. No angular impulse,
+	// no teleport, no GAS access. Chaos still resolves contacts and gravity normally.
+	const bool bBouncing = BounceBackPhysics.bActive;
+	if (bBouncing)
+	{
+		const FVector V=PhysicsHandle->V();
+		FVector Target=FVector::ZeroVector;
+		if (BounceBackPhysics.Elapsed < BounceBackPhysics.Duration)
+		{ Target=BounceBackPhysics.StepVelocity(DeltaTime); }
+		else { BounceBackPhysics.bActive=false; }
+		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(),FVector(Target.X-V.X,Target.Y-V.Y,0),true);
+		InputCommand.Reset();
+	}
 	FVector GroundNormal = FVector::UpVector;
 	bGrounded = UpdateGroundContact(BodyTransform.GetLocation(), GroundNormal);
 	if (RecoveryRules.bEnabled)
@@ -259,7 +273,7 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 			PoseStableSeconds = FMath::Min(RecoveryRules.DriveStableSeconds, PoseStableSeconds+DeltaTime);
 			bPoseDriveAllowed = PoseStableSeconds+KINDA_SMALL_NUMBER >= RecoveryRules.DriveStableSeconds;
 		}
-		if (RecoveryPhysics.bActive && !CurrentMovement.bControlsBlocked)
+		if (RecoveryPhysics.bActive && !CurrentMovement.bControlsBlocked && !bBouncing)
 		{
 			// A finite Internal-step guard also stops assistance if the GT is temporarily stalled.
 			const float Remaining = FMath::Max(0.f,RecoveryRules.MaximumExecutionSeconds-RecoveryPhysics.ElapsedSeconds);
@@ -300,10 +314,11 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		PublishedStability.Speed = PhysicsHandle->V().Size();
 		PublishedStability.AngularSpeed = PhysicsHandle->W().Size();
 		PublishedStability.Recovery = RecoveryPhysics;
+		PublishedBounceBack = BounceBackPhysics;
 		PublishedStability.PoseStableSeconds = PoseStableSeconds;
 	}
 
-	if (!bGrounded || !bPoseDriveAllowed || CurrentMovement.bControlsBlocked || ForwardDirection.IsNearlyZero() || RightDirection.IsNearlyZero())
+	if (bBouncing || !bGrounded || !bPoseDriveAllowed || CurrentMovement.bControlsBlocked || ForwardDirection.IsNearlyZero() || RightDirection.IsNearlyZero())
 	{
 		ResetWallEscape();
 		return;
@@ -433,6 +448,7 @@ void UArcadeVehicleMovementComponent::BuildHistoryState(FVehicleNetStateData& Ou
 	OutState.bPoseDriveAllowed = bPoseDriveAllowed;
 	OutState.PoseStableSeconds = PoseStableSeconds;
 	OutState.Recovery = RecoveryPhysics;
+	OutState.BounceBack = BounceBackPhysics;
 }
 
 void UArcadeVehicleMovementComponent::ApplyHistoryState(const FVehicleNetStateData& InState)
@@ -447,6 +463,7 @@ void UArcadeVehicleMovementComponent::ApplyHistoryState(const FVehicleNetStateDa
 	WallEscapeBlend = FMath::Clamp(InState.WallEscapeBlend, 0.0f, 1.0f);
 	WallEscapeNormals = InState.WallEscapeNormals;
 	if (InState.Recovery.IsValid()) { RecoveryPhysics = InState.Recovery; }
+	if (InState.BounceBack.IsValid()) { BounceBackPhysics = InState.BounceBack; }
 	bPoseDriveAllowed = InState.bPoseDriveAllowed;
 	PoseStableSeconds = FMath::Clamp(InState.PoseStableSeconds,0.f,RecoveryRules.DriveStableSeconds);
 }
@@ -470,6 +487,13 @@ void UArcadeVehicleMovementComponent::QueueRecoil(const FVector& DeltaVelocity)
 void UArcadeVehicleMovementComponent::ApplyAction_Internal(
 	const TInstancedStruct<FNetworkPhysicsActionPayload>& ActionInstance)
 {
+	if (const auto* Bounce = ActionInstance.GetPtr<FVehicleBounceBackAction>())
+	{
+		if (bShouldRunPhysics.Load() && Bounce->Value.IsValid() && Bounce->Value.bActive
+			&& FVehicleNetInputData::IsNewerSequence(Bounce->Value.Sequence,BounceBackPhysics.Sequence))
+		{ BounceBackPhysics = Bounce->Value; }
+		return;
+	}
 	if (const auto* Recovery = ActionInstance.GetPtr<FVehicleRecoveryAction>())
 	{
 		if (bShouldRunPhysics.Load() && RecoveryRules.bEnabled && Recovery->Value.IsValid()
@@ -526,6 +550,29 @@ void UArcadeVehicleMovementComponent::ApplyAction_Internal(
 	}
 }
 
+bool UArcadeVehicleMovementComponent::QueueBounceBack(const FVector& Direction, float Distance, float Duration)
+{
+	if (!GetOwner()->HasAuthority() || !UpdatedPrimitive || !UpdatedPrimitive->IsSimulatingPhysics()) { return false; }
+	FVehicleBounceBackAction Action;
+	Action.Value.Direction=Direction; Action.Value.Distance=Distance; Action.Value.Duration=Duration;
+	Action.Value.Sequence=++NextBounceBackSequence;
+	if (!Action.Value.Sequence) { Action.Value.Sequence=++NextBounceBackSequence; }
+	Action.Value.bActive=true;
+	if (!Action.Value.IsValid()) { return false; }
+	if (bUseNetworkPhysicsHistory.Load())
+	{
+		auto* History=GetOwner()->FindComponentByClass<UNetworkPhysicsComponent>();
+		if (!History) { return false; }
+		History->EnqueueImmediateAction_External(Action,uint32(0),true);
+	}
+	else
+	{
+		FScopeLock Lock(&PendingPhysicsDataLock);
+		PendingBounceBack=Action.Value; bPendingBounceBack=true;
+	}
+	return true;
+}
+
 bool UArcadeVehicleMovementComponent::QueueImpact(FVehicleImpactAction& Action)
 {
 	if (!GetOwner()->HasAuthority() || !Action.IsValid() || !UpdatedPrimitive || !UpdatedPrimitive->IsSimulatingPhysics()) { return false; }
@@ -569,6 +616,7 @@ bool UArcadeVehicleMovementComponent::CaptureNetState(FVehicleNetStateData& OutS
 		FScopeLock Lock(&PendingPhysicsDataLock);
 		OutState.PendingRecoilDeltaVelocity = PendingRecoilDeltaVelocity;
 		OutState.Recovery = PublishedStability.Recovery;
+		OutState.BounceBack = PublishedBounceBack;
 		OutState.bPoseDriveAllowed = PublishedStability.bDrivingAllowed;
 		OutState.PoseStableSeconds = PublishedStability.PoseStableSeconds;
 	}
@@ -580,7 +628,7 @@ bool UArcadeVehicleMovementComponent::RestoreNetState(const FVehicleNetStateData
 	if (!UpdatedPrimitive || !UpdatedPrimitive->IsSimulatingPhysics()
 		|| State.Position.ContainsNaN() || State.Rotation.ContainsNaN() || !State.Rotation.IsNormalized()
 		|| State.LinearVelocity.ContainsNaN() || State.AngularVelocityRadians.ContainsNaN()
-		|| State.PendingRecoilDeltaVelocity.ContainsNaN() || !State.Recovery.IsValid()
+		|| State.PendingRecoilDeltaVelocity.ContainsNaN() || !State.Recovery.IsValid() || !State.BounceBack.IsValid()
 		|| !FMath::IsFinite(State.PoseStableSeconds) || State.PoseStableSeconds < 0 || State.PoseStableSeconds > 1
 		|| !FMath::IsFinite(State.WallEscapeBlend) || State.WallEscapeBlend < 0.0f
 		|| State.WallEscapeBlend > 1.0f || State.WallEscapeNormals.Num() > 2)
@@ -598,6 +646,7 @@ bool UArcadeVehicleMovementComponent::RestoreNetState(const FVehicleNetStateData
 	WallEscapeBlend = State.WallEscapeBlend;
 	WallEscapeNormals = State.WallEscapeNormals;
 	RecoveryPhysics = State.Recovery;
+	BounceBackPhysics = State.BounceBack;
 	bPoseDriveAllowed = State.bPoseDriveAllowed;
 	PoseStableSeconds = State.PoseStableSeconds;
 	{

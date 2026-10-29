@@ -20,6 +20,8 @@ public:
 	/** Authority-only. Positive finite game seconds; shorter repeats never shorten stun.
 	 * True includes an accepted repeat covered by the existing duration. No client RPC. */
 	bool ApplyStun(float DurationSeconds, AActor* SourceActor);
+	/** Authority presentation marker; requires an active Stun, follows all subsequent extensions. */
+	bool MarkShockedForCurrentStun(AActor* SourceActor);
 	bool IsStunned() const;
 	/** Shared query for vehicle actions and future item-use execution. */
 	static bool IsActorStunned(const AActor* Actor);

@@ -3,6 +3,7 @@
 
 # Markdown documents
 *.md
+!Docs/Combat/MVPB_Electric_Wall_CN_v0.1.md
 !Docs/Combat/MVPB_Stun_State_CN_v0.1.md
 !Docs/Configuration/Stun_Reuse_And_Parameters_CN.md
 !Docs/Configuration/Stun_Reuse_And_Parameters_JA.md

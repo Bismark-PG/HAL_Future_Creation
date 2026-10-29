@@ -20,12 +20,12 @@ class FVehicleRewindCallback;
 namespace Chaos { class FPBDRigidsSolver; }
 
 /**
- * Applies arcade driving forces to a Chaos-simulated primitive.
- *
- * This first MVP-A pass intentionally covers flat-ground driving, grip,
- * steering, and handbrake drifting only. Suspension and landing assistance
- * remain separate future systems.
- */
+	* Applies arcade driving forces to a Chaos-simulated primitive.
+	*
+	* This first MVP-A pass intentionally covers flat-ground driving, grip,
+	* steering, and handbrake drifting only. Suspension and landing assistance
+	* remain separate future systems.
+	*/
 UCLASS(ClassGroup = (Vehicle), meta = (BlueprintSpawnableComponent))
 class HAL_FUTURE_CREATION_API UArcadeVehicleMovementComponent : public UActorComponent, public INetworkPhysicsActionHandler_Internal
 {
@@ -62,6 +62,7 @@ public:
 	void ResetInputCommand();
 	void QueueRecoil(const FVector& DeltaVelocity);
 	bool QueueImpact(FVehicleImpactAction& Action);
+	bool QueueBounceBack(const FVector& Direction, float Distance, float Duration);
 	int32 GetLastPhysicsFrame() const { return LastPhysicsFrame.Load(); }
 	/** Number of local resimulation runs observed by this physics component; diagnostic only. */
 	int32 GetResimulationRunCount() const { return ResimulationRunCount.Load(); }
@@ -108,6 +109,10 @@ private:
 	FQuat GroundProbeRotation = FQuat::Identity; // Physics-owned, from the Internal body.
 	bool bPoseDriveAllowed = false;
 	float PoseStableSeconds = 0;
+	FVehicleBounceBackState BounceBackPhysics, PendingBounceBack;
+	FVehicleBounceBackState PublishedBounceBack; // Protected by PendingPhysicsDataLock.
+	bool bPendingBounceBack = false;
+	uint32 NextBounceBackSequence = 0;
 	FVehicleRecoveryPhysicsState RecoveryPhysics;
 	FVehicleRecoveryPhysicsState PendingRecovery;
 	bool bPendingRecovery = false;

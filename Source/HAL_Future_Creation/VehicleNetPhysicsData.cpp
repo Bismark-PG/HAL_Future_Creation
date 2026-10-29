@@ -122,6 +122,7 @@ void FVehiclePhysicsHistoryState::InterpolateData(const FNetworkPhysicsData& Min
 	State.AngularVelocityRadians = FMath::Lerp(Min.State.AngularVelocityRadians, Max.State.AngularVelocityRadians, Alpha);
 	State.PhysicsFrame = LocalFrame;
 	State.Recovery = LocalFrame < Max.LocalFrame ? Min.State.Recovery : Max.State.Recovery;
+	State.BounceBack = LocalFrame < Max.LocalFrame ? Min.State.BounceBack : Max.State.BounceBack;
 	// Movement parameters are discrete. Retain the timeline covering this frame;
 	// never Lerp a multiplier or select a revision by nearest endpoint.
 	const int32 ServerTarget = ServerFrame;
@@ -137,7 +138,8 @@ bool FVehiclePhysicsHistoryState::CompareData(const FNetworkPhysicsData& Predict
 	const auto& Predicted = static_cast<const FVehiclePhysicsHistoryState&>(PredictedData);
 	if (State.bPoseDriveAllowed != Predicted.State.bPoseDriveAllowed
 		|| !FMath::IsNearlyEqual(State.PoseStableSeconds,Predicted.State.PoseStableSeconds,.025f)
-		|| !State.Recovery.Equals(Predicted.State.Recovery)) { return false; }
+		|| !State.Recovery.Equals(Predicted.State.Recovery)
+		|| !State.BounceBack.Equals(Predicted.State.BounceBack)) { return false; }
 	// Chaos compares and rewinds the rigid body using the Settings Data Asset thresholds.
 	// This comparison covers movement memory which Chaos does not know about.
 	if (!State.MovementSnapshot.Equals(Predicted.State.MovementSnapshot)) { return false; }
@@ -169,6 +171,7 @@ bool FVehiclePhysicsHistoryState::NetSerialize(FArchive& Ar, UPackageMap* Map, b
 	Ar << State.Position << State.Rotation << State.LinearVelocity << State.AngularVelocityRadians;
 	Ar << State.bPoseDriveAllowed << State.PoseStableSeconds;
 	State.Recovery.Serialize(Ar);
+	State.BounceBack.Serialize(Ar);
 	if (!FMath::IsFinite(State.PoseStableSeconds) || State.PoseStableSeconds < 0 || State.PoseStableSeconds > 1.1f) { Ar.SetError(); }
 	State.MovementSnapshot.Serialize(Ar);
 	if ((!State.MovementSnapshot.IsUnset() && !State.MovementSnapshot.IsValid()) || !State.MovementTimeline.Serialize(Ar))

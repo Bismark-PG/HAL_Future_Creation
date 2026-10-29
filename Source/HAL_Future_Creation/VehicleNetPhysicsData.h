@@ -7,6 +7,7 @@
 #include "VehicleInputCmd.h"
 #include "HALMovementTypes.h"
 #include "VehicleRecoveryTypes.h"
+#include "VehicleBounceBackTypes.h"
 #include "VehicleNetPhysicsData.generated.h"
 
 /** One continuous input sample for a Chaos physics frame. Launch remains a separate edge event. */
@@ -135,6 +136,17 @@ struct HAL_FUTURE_CREATION_API FVehicleImpactAction : public FNetworkPhysicsActi
 	}
 };
 
+/** Independent of Impact tiers, resistance and immunity. Authority physics action. */
+USTRUCT()
+struct HAL_FUTURE_CREATION_API FVehicleBounceBackAction : public FNetworkPhysicsActionPayload
+{
+	GENERATED_BODY()
+	UPROPERTY() FVehicleBounceBackState Value;
+	virtual const EActionAuthorStyle GetAuthorStyle() const override { return EActionAuthorStyle::Authority; }
+	virtual bool IsNearlyEqual(const FNetworkPhysicsActionPayload& Other) const override
+	{ return Value.Equals(static_cast<const FVehicleBounceBackAction&>(Other).Value); }
+};
+
 /** An absolute parameter change. Server authoring only; replay never consults GAS. */
 USTRUCT()
 struct HAL_FUTURE_CREATION_API FVehicleMovementParameterAction : public FNetworkPhysicsActionPayload
@@ -199,6 +211,7 @@ struct HAL_FUTURE_CREATION_API FVehicleNetStateData
 	UPROPERTY() bool bPoseDriveAllowed = false;
 	UPROPERTY() float PoseStableSeconds = 0;
 	UPROPERTY() FVehicleRecoveryPhysicsState Recovery;
+	UPROPERTY() FVehicleBounceBackState BounceBack;
 };
 
 /** UE 5.8 Network Physics frame history. Continuous controls only; launch keeps its idempotent RPC. */

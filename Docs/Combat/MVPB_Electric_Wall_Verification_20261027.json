@@ -1,0 +1,791 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-27",
+  "timezone": "Asia/Tokyo",
+  "branch": "main",
+  "git_base": "0b28303d1bb02a51fd101901bbb52831baa27353",
+  "initial_worktree": "Clean",
+  "engine": "5.8.2-56702186",
+  "authorization": "User authorized implementing the paired pillars and electric wall after confirming vehicle push, shared Stun, and shocked presentation hook; ball enhancement explicitly deferred.",
+  "state": {
+    "code": "Complete",
+    "Editor": "Succeeded",
+    "Game": "Succeeded",
+    "ordinary_automation": "86/86",
+    "paired_network": "Host 1/1, Client 1/1",
+    "team_editor_configuration_and_rendered_gameplay": "Pending",
+    "committed_or_pushed": false
+  },
+  "implementation": {
+    "actor": "AHALElectricWallGimmick",
+    "geometry": "Two solid capsules along local X; query-only electric field between inner pillar edges; origin at ground center",
+    "authority": "Server timer scans three PhysicsBody overlap shapes and actual vehicle-shape sweep between samples; no Tick, client hit RPC or ASC on source",
+    "dedupe": "Per target for entire pair; leave/re-enter cannot bypass retrigger interval",
+    "impact": "Existing CombatResolver/ImpactReceiver ExplicitTier Light+Short default; natural pillar collision profile FixedTier None prevents an extra rule response",
+    "damage": "None",
+    "stun": "Existing ASC.ApplyStun; independent of impact immunity",
+    "shocked": "Infinite Avatar-scoped visual-only GE grants State.Visual.Shocked, removed by authority Stun end; all subsequent Stun extensions retained; no extra movement/ability restriction",
+    "presentation": "Native Pawn UHALShockedPresentationComponent, IsShocked and OnShockedChanged; GAS replicated tag drives owner/observers; Bind reads current state, Unbind clears",
+    "ball": "No ball enhancement or additional damage; ordinary solid-pillar physics remains"
+  },
+  "defaults": {
+    "PillarSpacing_cm": 1000,
+    "PillarRadius_cm": 60,
+    "Height_cm": 300,
+    "WallHalfThickness_cm": 25,
+    "ContactMargin_cm": 10,
+    "ScanInterval_game_seconds": 0.05,
+    "RetriggerInterval_game_seconds": 1.5,
+    "StunSeconds": 1,
+    "ImpactTier": "Light",
+    "PushPreset": "Short"
+  },
+  "builds": {
+    "Editor_Initial": {
+      "artifact": {
+        "path": "Saved/ElectricWall/20261027/Editor_Initial.log",
+        "bytes": 3513,
+        "sha256": "0EF3EA761EBA3D3A343A7CF6803E64DA11EC8B9F81505ED518B0BBC7EABD5618"
+      },
+      "result": [
+        "Result: Succeeded"
+      ]
+    },
+    "Editor_Tests": {
+      "artifact": {
+        "path": "Saved/ElectricWall/20261027/Editor_Tests.log",
+        "bytes": 2530,
+        "sha256": "F03B740B21004A193737BE6E90A826068EA2EFF48765B05E4691E511DE3E523B"
+      },
+      "result": [
+        "Result: Succeeded"
+      ]
+    },
+    "Game": {
+      "artifact": {
+        "path": "Saved/ElectricWall/20261027/Game.log",
+        "bytes": 2705,
+        "sha256": "E33031623026A12DB9E227600FD0408DDB638213DDA6603500E4C2CBB0AB8D99"
+      },
+      "result": [
+        "Result: Succeeded"
+      ]
+    }
+  },
+  "reports": {
+    "Automation_Initial": {
+      "report": {
+        "path": "Saved/ElectricWall/20261027/Automation_Initial/index.json",
+        "bytes": 38599,
+        "sha256": "C5866AB6DE978D22FF4F2DDB873E3BD0569637831022927DA357FCFE1E7F6A68"
+      },
+      "log": {
+        "path": "Saved/ElectricWall/20261027/Automation_Initial.log",
+        "bytes": 383820,
+        "sha256": "35FD81E52E2DF57CC5B9611694DF93606D6C258B6237032DC93767CFDE949E2F"
+      },
+      "succeeded": 86,
+      "succeeded_with_warnings": 0,
+      "failed": 0,
+      "not_run": 0,
+      "tests": [
+        {
+          "path": "HAL.FutureCreation.Ability.ActivationDamageAndCooldown",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Ability.AvatarAndOwnerCleanup",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Ability.DiscreteInputDoesNotReplay",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Ability.RefreshDispelAndIndependentStacks",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Ball.ControlledProxyPresentation",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Ball.VehicleExitCleanup",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Bomb.DamageImpactImmunityAndDedup",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Bomb.ExplicitCountdownAndRealTimer",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Bomb.GroundArmingAndDestruction",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Combat.BallMigrationAndConsumption",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Combat.ConfigurationAndContext",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Combat.DamageImpactIndependence",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Combat.PulsesTargetsAndDedup",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Combat.PureDamageAndActualRemoval",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Combat.SnapshotAndSourceLifetime",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Configuration.CombatRulesSource",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Configuration.InitializationAndIsolation",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Configuration.NoFallback",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Configuration.PlayerAndBallInitialization",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Configuration.Validation",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Debug.BallSpawnAuthoredConfigurationAndBlocking",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.ElectricWall.ConfigurationAndDirections",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.ElectricWall.ContactDedupeAndIndependentStun",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.ElectricWall.OverlapAndFastCrossing",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.ElectricWall.RetriggerAfterGameTimeInterval",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.ElectricWall.ShockedFollowsExtendedStun",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.GAS.Health.BoundsAndIsolation",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.GAS.Health.PlayerStateAvatarLifecycle",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Impact.PushPresets.CombinationsResistanceAndNaturalResponse",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Impact.PushPresets.DefaultsAndValidation",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Impact.AllSourcesAndContactEpisodes",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Impact.AuthorityPhysicsReplayContract",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Impact.BallSnapshotDropAndCallbackMerge",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Impact.GASResistanceAndIndependentDamage",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Impact.SolverThreadExecutionAndReplay",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Impact.TiersCalibrationAndEnergyBudget",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Movement.BoostCrossSourceRefreshAndSelectiveDispel",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Movement.BoostDebugGuardsAndAvatarCleanup",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Movement.BoostFiveGameSecondExpiry",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Movement.GASContributionsAndBinding",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Movement.SerializationAndDiscreteInterpolation",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Movement.SolverForcesAndHistoricalReplay",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Movement.TimelineBoundariesAndPackets",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.MovementAbility.ActivationRefreshAndNaturalExpiry",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.MovementAbility.AvatarAndOtherCooldownIsolation",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.MovementAbility.InvalidEffectAndAvatarGuards",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.MovementContract.AuthorityActionsAndReplay",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.MovementContract.AuthorityHistoryAndRecovery",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.Impact.AuthorityResultAndPhysicsBoundary",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.Impact.IdentityPoseAndConfiguration",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.Impact.SupportNaturalZeroAndContactEpisodes",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.Impact.TiersDirectionsAndFrameRates",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.Launch.AuthorityPathAndPhysicsBoundary",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.Launch.ConfigurationCompatibility",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.Launch.EnvelopeAndConfirmation",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.Launch.RejectionBoundsAndComposition",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.Suspension.ConfigurationCompatibility",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.Suspension.GeometryAndFilters",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.Suspension.SavedRigAndFourVehicleQueries",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.Suspension.SceneQueriesAndPhysicsBoundary",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.ChassisAccelerationAndFrameRates",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.ChassisSamplingAndGates",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.ChassisSnapshotPreservesPhysics",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.ConfigurationAndRigContract",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.OptionalRigPreservesGameplay",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.SnapshotAndResetLifecycle",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Presentation.WheelMathAndFrameRates",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Recovery.BallSkillImpactAndLifecycle",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Recovery.HistoryAndBoundedResponse",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Recovery.PoseAndPermissionClock",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Recovery.RealSolverPoseAndRighting",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.SpringPunch.CombatLifecycle",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Stability.SavedMapFloors",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Stability.SupportVersusAttacks",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Stability.ValidationAndWorldSnapshot",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Stun.DebugConsoleTargetAndValidation",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Stun.DiscretePhysicsHistory",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Stun.NaturalGameTimeExpiry",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Stun.PermissionsDropAndLifecycle",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Vehicle.PhysicsInput.HistorySerialization",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Vehicle.PhysicsInput.Validation",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Vehicle.WallEscape.Blend",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Vehicle.WallEscape.ComponentContact",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Vehicle.WallEscape.Eligibility",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Vehicle.WallEscape.ThrottleProjection",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "path": "HAL.FutureCreation.Vehicle.WallEscape.YawControl",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        }
+      ]
+    },
+    "Network_Initial_Host": {
+      "report": {
+        "path": "Saved/ElectricWall/20261027/Network_Initial_Host/index.json",
+        "bytes": 1074,
+        "sha256": "E3493AAE4C509917D1722DA7DD4F4FD1DB9327F407175A255C79A795C2544412"
+      },
+      "log": {
+        "path": "Saved/ElectricWall/20261027/Network_Initial_Host.log",
+        "bytes": 196772,
+        "sha256": "70D8E1ED4976489402754C83AF0C535D10E4CDB5B41CAE617B102AE1E1DED717"
+      },
+      "succeeded": 1,
+      "succeeded_with_warnings": 0,
+      "failed": 0,
+      "not_run": 0,
+      "tests": [
+        {
+          "path": "HAL.NetworkSmoke.ElectricWall",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        }
+      ]
+    },
+    "Network_Initial_Client": {
+      "report": {
+        "path": "Saved/ElectricWall/20261027/Network_Initial_Client/index.json",
+        "bytes": 1074,
+        "sha256": "CC08E569D6FF9837B41305AD4E96ED7CAC4E1CB7BF3D38275244C15B1CAAFE18"
+      },
+      "log": {
+        "path": "Saved/ElectricWall/20261027/Network_Initial_Client.log",
+        "bytes": 245784,
+        "sha256": "613AFA848BEB4C91F03B65628628F9F2BF781B9C110CDF762464D6A3F69C6076"
+      },
+      "succeeded": 1,
+      "succeeded_with_warnings": 0,
+      "failed": 0,
+      "not_run": 0,
+      "tests": [
+        {
+          "path": "HAL.NetworkSmoke.ElectricWall",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0
+        }
+      ]
+    }
+  },
+  "network": {
+    "port": 7821,
+    "host_outgoing_lag_ms": 80,
+    "fps_cap": 60,
+    "measured_RTT": "Not measured",
+    "test_config_overrides": "Runtime-only: spacing2400cm, height600cm, retrigger10s, default1sStun; actors isolated atZ10000, both processes disable fixture gravity/damping once; restore fixture HP100; no saved config edits",
+    "accepted_contacts": 2,
+    "host_peak_Y_cm_s": 125,
+    "client_peak_Y_cm_s": 125,
+    "client_resimulations_at_completion": 37,
+    "client_bridge_rewinds_at_completion": 3,
+    "both_roles_final": "HP100, Stun0, Shocked0, movement Ready, Light+Short",
+    "logs": [
+      "[2026.10.27-07.58.26:988][715]LogTemp: Display: HAL ElectricWall smoke: Host=1 Entered=1 Lag=80ms",
+      "[2026.10.27-07.58.27:037][718]LogTemp: Electric wall: Source=HALElectricWallGimmick_0 Target=BP_RoundedVehiclePawn_C_0 Surface=ElectricField Contact=1 Tier=1 Push=1 Direction=V(Y=1.00) Stun=1.000 Shocked=1",
+      "[2026.10.27-07.58.27:037][718]LogTemp: Electric wall: Source=HALElectricWallGimmick_0 Target=BP_RoundedVehiclePawn_C_1 Surface=ElectricField Contact=2 Tier=1 Push=1 Direction=V(Y=1.00) Stun=1.000 Shocked=1",
+      "[2026.10.27-07.58.28:188][787]LogTemp: Display: HAL ElectricWall smoke: Host=1 Complete=1 Contacts=2 PeakY=125.000 HP=100 Stun=0 Shocked=0 Resimulations=0 Rewinds=0",
+      "[2026.10.27-07.58.28:169][433]LogTemp: Display: HAL ElectricWall smoke: Host=0 Complete=1 Contacts=2 PeakY=125.000 HP=100 Stun=0 Shocked=0 Resimulations=37 Rewinds=3"
+    ],
+    "runner": {
+      "path": "Saved/ElectricWall/20261027/RunNetwork.ps1",
+      "bytes": 1917,
+      "sha256": "13BCD926D0F863F4C81746ECA5E5D338C86307B8B4C00A479DCB2BE13BB5B6AB"
+    },
+    "processes": {
+      "HostId": 37488,
+      "ClientId": 16904,
+      "HostArgs": "\"D:/Unreal Shit/HAL_Future_Creation/HAL_Future_Creation.uproject\" /Game/Maps/MVPB_NetTest?listen -port=7821 -game -unattended -nop4 -nosplash -NullRHI -nosound -NoLoadingScreen -ExecCmds=\"t.MaxFPS 60,hal.MovementEffectLog 1,hal.ElectricWallLog 1,hal.ImpactPhysicsLog 1,hal.AbilityLog 1,Automation RunTests HAL.NetworkSmoke.ElectricWall\" -TestExit=\"Automation Test Queue Empty\" -ReportExportPath=\"D:/Unreal Shit/HAL_Future_Creation/Saved/ElectricWall/20261027/Network_Initial_Host\" -abslog=\"D:/Unreal Shit/HAL_Future_Creation/Saved/ElectricWall/20261027/Network_Initial_Host.log\"",
+      "ClientArgs": "\"D:/Unreal Shit/HAL_Future_Creation/HAL_Future_Creation.uproject\" 127.0.0.1:7821 -game -unattended -nop4 -nosplash -NullRHI -nosound -NoLoadingScreen -ExecCmds=\"t.MaxFPS 60,hal.MovementEffectLog 1,hal.ElectricWallLog 1,hal.ImpactPhysicsLog 1,hal.AbilityLog 1,Automation RunTests HAL.NetworkSmoke.ElectricWall\" -TestExit=\"Automation Test Queue Empty\" -ReportExportPath=\"D:/Unreal Shit/HAL_Future_Creation/Saved/ElectricWall/20261027/Network_Initial_Client\" -abslog=\"D:/Unreal Shit/HAL_Future_Creation/Saved/ElectricWall/20261027/Network_Initial_Client.log\"",
+      "StartedUtc": "2026-10-27T07:58:14.8861238Z"
+    },
+    "test_processes_exited": true
+  },
+  "assets": {
+    "before_count": 1157,
+    "after_count": 1157,
+    "per_file_sha256_differences": 0,
+    "before": {
+      "path": "Saved/ElectricWall/20261027/Assets_Before.json",
+      "bytes": 256039,
+      "sha256": "A0F03FBD68BBF89B33E0C3C0822FD361F2C6880E1AF4E1CF82676BE084D9B58B"
+    },
+    "after": {
+      "path": "Saved/ElectricWall/20261027/Assets_After.json",
+      "bytes": 256039,
+      "sha256": "A0F03FBD68BBF89B33E0C3C0822FD361F2C6880E1AF4E1CF82676BE084D9B58B"
+    },
+    "saved_Config_uproject_Build_cs": "Unmodified",
+    "blueprint_map_or_DA_edits": "None"
+  },
+  "changed_source_manifest": [
+    {
+      "path": "Source/HAL_Future_Creation/HALAbilitySystemComponent.cpp",
+      "bytes": 13577,
+      "sha256": "3B6CC6635B28AFFB09295439726CF8ECE5D0E56218541A72C9E0AA8789839286"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALAbilitySystemComponent.h",
+      "bytes": 3819,
+      "sha256": "41F81731872219920A8E0A620654D46F108A88C06845518962A3EAF4D593624D"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALElectricWallGimmick.cpp",
+      "bytes": 13177,
+      "sha256": "8B85E97FA918593385AF305F732D462F21CCF49AC82C2F0FFEE7F7915DC45B08"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALElectricWallGimmick.h",
+      "bytes": 4527,
+      "sha256": "6C0D21C57CF408C33F8BD417976C32BD27DF3801E7BE572664B0357B8B7084D8"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameplayTags.cpp",
+      "bytes": 3347,
+      "sha256": "EECD535C902A229379CEB62049E5F40830E897374E41F88CE573720227329FA6"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameplayTags.h",
+      "bytes": 1777,
+      "sha256": "4F7EA88D7A6FDEF5227EB0E7B2F4E1389ED738409066A8BD55C50B76D0C9F09F"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALShockedEffect.cpp",
+      "bytes": 859,
+      "sha256": "1110EFE973FD842B1D5E17C3A2E921F6F6C4B36AD786C80FDBED528CA310F791"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALShockedEffect.h",
+      "bytes": 324,
+      "sha256": "89DF8F1357C5FD20DC0D146C1E2F6480DC34FE835A5A6D6EFB7017CAF17960DE"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALShockedPresentationComponent.cpp",
+      "bytes": 1426,
+      "sha256": "446E52C5E5F7EBDBA90CBB2127C367E8EF8D80A1B2999E2FD46FA7EDA0147B8C"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALShockedPresentationComponent.h",
+      "bytes": 1076,
+      "sha256": "53A63E9634988B2CA2D3A77CAF55BF4AB1694A8538A489B31647E3FA094B2A88"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALElectricWallNetworkTests.cpp",
+      "bytes": 7441,
+      "sha256": "1213DDDEFD6672AB3FA475D6246EA6D66F4F4BC166D87FB56F54B137DCB28744"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALElectricWallTests.cpp",
+      "bytes": 11775,
+      "sha256": "7A78331F2E9BADAAFAC60EB9F3871A6558E8FCE8A64DBC39200EBDF08D5885F0"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+      "bytes": 31358,
+      "sha256": "33A19040EA9DD25D40EA2A0007F79895CD5DA1A23AC26DAEE5C31F41EBDE1A47"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.h",
+      "bytes": 9716,
+      "sha256": "D8E22692F7924C0A713C03D05D4E4A4CB63E4E654C837B3B6725DAD885DE9186"
+    }
+  ],
+  "limitations": [
+    "No assigned pillar/electric field visual assets or actual shocked Niagara/material/animation; team Editor steps required.",
+    "No rendered/manual low/high-speed, corner, airborne, sustained real-driving combination acceptance; native geometry/sweep and paired aerial fixture only.",
+    "Query-only field adds a small push, not a guaranteed impenetrable barrier or reversal at every approach speed.",
+    "Actual late join/relevancy re-entry and four-PC/full latency-loss F4 matrix not executed; native late-bind snapshot behavior tested.",
+    "Runtime configuration/geometry hot edits unsupported; Configure only before BeginPlay.",
+    "Actor shape meshes require team fitting; Actor Scale1 recommended for initial acceptance.",
+    "No ball effect, extra damage, new Stun immunity, dynamic spawning gameplay or final art."
+  ],
+  "failures_during_executed_builds_or_reports": []
+}

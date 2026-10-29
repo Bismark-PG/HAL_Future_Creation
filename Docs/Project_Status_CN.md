@@ -1,5 +1,24 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-10-29电墙改为独立Bounce Back。** 用户确认高速取消原水平速度、按实际进入方向反弹，可调距离、每次进入一次、保留Z速度、不新增旋转、不受Impact免疫影响。机关闭合接触锁，回弹完成且取得完全离开样本后才重置，避免高速完整穿墙后的回程自行再触发。默认100cm／0.3秒线性减速；Stun／shocked保持。移除该机关的Impact档位／推送预设／周期重触发与CombatResolver结算，新增独立Authority网络物理动作及可回溯状态。原ContactImpactProfile仅保留None抑制柱子普通碰撞附加Impact，不负责回弹；自然Chaos碰撞仍存在。
+
+本轮UE5.8.2 Editor／Game完整构建成功，普通**88/88**、最终真实双端**Host／Client各1/1**，报告均0测试警告／失败。真实Solver验证6000cm/s来速被替换、Z及W保持、无阻挡100cm回弹与停止、恢复重播；联机夹具以4000cm/s向东进入并开启Impact免疫，实际向西回弹、每车一次、无新Authority Impact事件、HP100及Stun／shocked到期通过。80ms为主机出站注入，非实测RTT；Client完成点35次重模拟／2次桥接回滚。首轮普通离开夹具缺少完全清空样本、首轮联机误将历史Impact记录当新事件的失败均保留，修正夹具后通过。尚未真人验证柱角、坡面、空中／连续车碰及视觉手感；距离是无阻挡目标，实际碰撞／阻尼可缩短。详见[当前说明](Combat/MVPB_Electric_Wall_CN_v0.1.md#7-bounce-back-調整與手測2026-10-29)及[本轮验证](Combat/MVPB_Electric_Wall_BounceBack_Verification_20261029.json)。
+
+下一入口：团队重开Editor，手动Compile／Save现有BP_ElectricWallGimmick，在Class Defaults → Electric Wall → Config调Bounce Back Distance／Seconds与独立Stun Seconds，再做正式地图双端手感。代理未编辑地图／Blueprint保存资产，1158份保存资产前后SHA-256逐份相同，保留团队已存在的MVPB_NetTest和BP_ElectricWallGimmick改动。用户已授权将当前源码、文件及这两份团队资产一起建立版本提交；此前验证结果沿用本轮记录，本次提交操作不新增运行验收。
+
+
+**2026-10-27电墙击退方向修正完成。** 用户要求“往东撞墙，往西击退”；将柱子／墙统一改为优先按进入前水平位移反推，没有位移才用水平速度，完全静止才退回几何方向。连续重叠保持首次进入方向，避免后续脉冲把已向外移动的车拉回墙；离开再进入会重新采样，冷却内的新进入也更新来向。档位／Short力度、Stun与shocked保持。保留团队新增`BP_ElectricWallGimmick`及`MVPB_NetTest`改动，1158份保存资产前后SHA-256逐份相同。
+
+本轮UE5.8.2完整Editor／Game成功，普通**87/87**、最终双端**Host／Client各1/1**，报告均0测试警告／失败。新增东西南北／斜向、已反弹速度、连续重叠／离开再进入回归；真实双端夹具将墙旋转90°、向东进入，两端实际向西速度峰值125cm/s，HP100及Stun／shocked到期保持；Client完成点39次重模拟、2次桥接回滚。首轮联机夹具误选团队放入地图的另一组电墙而超时，修正只选择测试自身原生空中夹具后，原严格断言通过；初次失败保留。不是所有速度下的强制反向，幅度仍遵循共用衝击表；实际驾驶手感需团队复测。四个专用进程均已退出，Config／uproject／Build.cs未改，未提交／Push。详见[方向修正证据](Combat/MVPB_Electric_Wall_DirectionFix_Verification_20261027.json)与[当前规则](Combat/MVPB_Electric_Wall_CN_v0.1.md)。
+
+**2026-10-27成对电柱／电墙第一阶段完成代码、构建与原生验证。** 用户明确授权制作车辆接触后小幅击退、Stun与shocked表现接口，球穿墙强化后置。接收干净 `main/0b28303d1bb02a51fd101901bbb52831baa27353`，先前Stun／debug与资料已随提交到达，不再把下方旧“未提交”当作本次基线。本机实际UE5.8.2-56702186。新增`AHALElectricWallGimmick`管理两根实体Capsule柱与Query Only电墙，服务器定时重叠＋实际车体Sweep补查高速穿越，三表面共用每车重触发间隔；默认Light＋Short、Stun1游戏秒、间隔1.5秒、扫描0.05秒。既有Combat／Impact动作与Stun入口复用，不接触HP或球载荷。
+
+shocked新增Avatar作用域纯表现GE／`State.Visual.Shocked`与车辆原生`HALShockedPresentationComponent`：`IsShocked`／`OnShockedChanged`供团队接表现。电击标记后跟随当前Stun最终结束／驱散，后续其他来源延长也保留；普通Stun不自动带shocked，换Avatar清理，晚绑定先读当前标签。不增加逐帧Ability／物理Tick，不修改蓝图Event Graph或添加实际电流资产。
+
+本轮**Editor／Game完整构建成功，普通86/86、真实Listen Server双端Host／Client各1/1，报告均0测试警告／失败**。5项新普通测试覆盖配置／方向、三表面去重、免疫与Stun独立、完整快速穿越、间隔后再触发、shocked随延长／驱散／Avatar清理与来源销毁。双端实际由机关注入两次接触，两端HP100不变、Light＋Short水平Y峰值125cm/s、Stun／shocked均结束；Client完成点37次实际重模拟、3次桥接回滚请求。测试为空中隔离原生夹具、60FPS上限、主机出站80ms注入，不代表实测RTT、最终位移／画面或F4验收。
+
+1157份uasset／umap前后逐份SHA-256一致，Config／uproject／Build.cs未改；两专用联机进程已自行退出。**下一步团队按[Editor建立／调参／shocked接线步骤](Combat/MVPB_Electric_Wall_CN_v0.1.md)手动创建轻量子类、指定模型材质并放进测试地图，再做真人双端低／高速与连续接触验证。** 原生Actor没有指定美术，电墙为触发区域，小幅推送不保证高速车完全停止。球强化、实际电流特效、动态生成、VP-4C与F4仍后置。详见[本轮验证](Combat/MVPB_Electric_Wall_Verification_20261027.json)。本轮修改未提交／Push。
+
 **2026-10-27 Stun debug指令完成。** 保留本轮此前未提交的共用Stun与文档，新增主机控制台 `HALStun <PlayerId> <游戏秒数>`，由当前局PlayerId选择自己／其他玩家，复用原`ASC.ApplyStun`，不新增客户端任意目标RPC。仅Development等非Shipping实现有效；校验本地主机、`hal.StunDebug`（默认1）、正有限时长、Playing、唯一且配置／HP就绪的存活受控Avatar。`HALGASStatus`新增`Stunned`与`StunRemaining`，结果日志／屏幕反馈已接入。用户保存关闭Editor／Live Coding后，本机UE5.8.2完整Editor／Game均成功，普通**81/81**、实际双端**Host／Client各1/1**，报告均0警告／失败。真实控制台字符串施加主机／Client两车、Client控制台拒绝、自然到期及原时长延长通过；Client完成点40次实际重模拟、2次桥接回滚请求。主机出站注入80ms、60FPS上限不等于实测RTT／F4或真人文字画面验收。
 
 1157份保存资产前后SHA-256逐份全同，Config／uproject／Build.cs未改，专用Host4980／Client44668已自行退出；没有Stun Zone、清除指令或新蓝图。用法见[Stun Debug指令](Configuration/Stun_Debug_Command_CN.md)，本轮证据见[验证记录](Combat/MVPB_Stun_DebugCommand_Verification_20261027.json)。下一步团队重开Editor／双端游戏，Playing后先`HALGASStatus`查ID，再在主机输入如`HALStun 257 3`；实际ID按该局输出。仍待用户指定机关接入与真人验证；修改未提交／Push。
@@ -106,12 +125,12 @@
 
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
-| 开发阶段 | 共用Stun及主机HALStun指令完成；完整构建／81项及真实双端通过；下一入口为指令真人验证与用户指定机关接入。VP-4B／推送预设真人欠项、VP-4C及F4保留 |
-| 当前本机分支／代码提交 | `main / 914cc53`，本轮开工干净；Stun源码／测试／文档未提交／Push，保存资产不变 |
-| 引擎基线 | 本机UE `5.8.2-56702186`；Stun debug完整Editor／Game成功，81/81及双端各1/1；旧80项／5.8.3／77项保持各步历史，不冒充本次验证 |
-| 本机运行前置 | 本机Stun Editor DLL已完整链接；双方须同一代码／补丁／配置并完整重编，运动时间线格式已升2，不与旧程序混连，不以LiveCoding处理新反射字段 |
+| 开发阶段 | 电墙已按用户反馈改为反进入方向击退；完整构建／87项及最终双端通过。团队已新增机关注入地图，待修正后真人方向／力度与shocked画面验证。球强化／VP-4C／F4后置保持 |
+| 当前本机分支／代码提交 | `main / 0b28303`，本轮开工干净；此前Stun／debug已提交。本步电墙／shocked源码与文档未提交／Push，保存资产不变 |
+| 引擎基线 | 本机UE `5.8.2-56702186`；方向修正完整Editor／Game成功，87/87及最终双端各1/1；旧86／81／80项及5.8.3历史不代替本次验证 |
+| 本机运行前置 | 新Editor DLL已完整链接，可重开Editor创建电墙轻量子类。所有端须同代码／补丁／保存配置完整重编；不以LiveCoding处理新反射类与原生子组件 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
-| GAS 当前实现 | 加速／免疫与原Primary接线保留；新增原生`HALStunEffect`和服务器`ASC.ApplyStun`，来源传时长、较晚结束时间、Avatar清理；没有新增Stun GA、玩家施加RPC或道具库存框架 |
+| GAS 当前实现 | 加速／免疫／原Primary与共用Stun保持；新增`MarkShockedForCurrentStun`及纯表现Avatar GE，电击后跟随Stun结束移除；机关注入复用现有Stun／Impact，不建立来源ASC或道具框架 |
 | 当前 HP／冲击 | 10-C伤害／快照保留；10-D同帧Internal读写已有28项自动化证据，用户2026-10-16确认击飞效果恢复。保留现有档位、水平补足和DA，各档实际响应后续调整；本次反馈未列双向角色／扰动明细 |
 | 当前 Editor 接线 | VP-3／4A保存接线保持；本步新增Impact Rebound配置／诊断字段，默认关闭，团队手动在现有车型表现DA启用并保存。原ChassisRotation骨骼节点复用，不增加节点或GA；1154保存资产全同 |
 | 测试地图 | `/Game/Maps/MVPB_NetTest`用于单Host及联机玩法；从`/Game/Maps/MVPB_NetEntry`进入Host→Start。团队已提交测试MinimumPlayersToStart=1并反馈可用；直接Standalone仍受Listen Server开始限制，Playing后拒绝Join保持。旧`/Game/Maps/Test`按专项目的使用 |

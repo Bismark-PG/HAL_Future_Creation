@@ -12,6 +12,7 @@
 #include "TestVehiclePawn.generated.h"
 
 class UArcadeVehicleMovementComponent;
+class UHALShockedPresentationComponent;
 class UArrowComponent;
 class UBallControlComponent;
 class UCameraComponent;
@@ -92,6 +93,8 @@ protected:
 	TObjectPtr<USkeletalMeshComponent> SkeletalVisual;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
 	TObjectPtr<UHALVehiclePresentationComponent> VehiclePresentation;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vehicle|Components")
+	TObjectPtr<UHALShockedPresentationComponent> ShockedPresentation;
 
 	/** Visible MVP marker for the physical forward / future launch direction. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
