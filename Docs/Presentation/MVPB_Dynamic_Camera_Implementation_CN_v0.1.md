@@ -133,3 +133,21 @@ Debug 显示蓝色软框、橙色硬框、有效目标及权重、Goal／Auto／
 最终普通报告：`Saved/DynamicCamera/20261028/Final/Regression/index.json`；双端报告：同目录的`Network_Host/index.json`、`Network_Client/index.json`。截图在`Saved/DynamicCamera/Camera_Host.png`、`Camera_Client.png`。这些原始运行产物不提交；必要结果、旧镜头值、原始Local配置导出和哈希在共享JSON中留档。最终复验后没有继续改C++，专用进程均已退出，未自动打开普通Editor。
 
 **仍待团队操作第2～4节并执行第7节真人初测。** 自动化输入样本不等于真实鼠标／手柄捕获、Alt+Tab／菜单或驾驶手感验收；临时Profile数值热读不替代Editor中修改DA的人工流程。双端基本验证不替代完整扰动、四台有线PC或长时间高速驾驶／机关／斜坡画面。保存资产尚未启用新相机，直接进入原地图仍会使用旧镜头。
+
+## 9. 主球勾选置灰：原因与修复（2026-10-29）
+
+团队在World Outliner选中`BP_BasicBall`关卡实例，`Ball → Camera → Primary Camera Target`仍不能勾选。这个选择位置正确，问题在C++：`ABasicBallActor::CanEditChange`为防止Data Asset迁移后继续编辑旧参数，在Definition模式锁定了球类的可编辑字段，遗漏了后来新增的实例主球身份标记。
+
+修复仅将`bPrimaryCameraTarget`加入该保护的例外，与`ConfigurationSource`／`Definition`一起允许编辑。字段继续为`EditInstanceOnly`和服务器复制：不能在球蓝图Class Defaults上给全部球默认勾选，也不会让调试生成的球自动变成主球。旧伤害／物理等迁移参数仍由原Data Asset管理；不需要切回Legacy或重建球蓝图。
+
+修复版完整编译Editor Target后，团队执行：
+
+1. 重开项目并进入实际使用的`MVPB_NetTest`，保持停止PIE／Simulate。
+2. 从**World Outliner**选择场景中的`BP_BasicBall`实例，Details顶部选`BP_BasicBall (Self)`，不要进入该蓝图的Class Defaults。
+3. 搜索`Primary Camera Target`，展开`Ball → Camera`并勾选。只标记这一颗主球，其他实例不勾选。
+4. **保存地图**。主球身份属于关卡实例，不是球Definition／Camera DA中的配置。
+5. 开始测试，执行`hal.CameraDebug 1`或`HALCameraStatus`；在有效Camera Profile生效时，确认面板`Primary candidates 1`／日志`PrimaryCandidates=1`。0表示该端还没有有效标记球，多个标记时全部球都会被忽略。若显示legacy fallback，先完成第2节Camera DA引用／Ready配置。
+
+本修复不修改运行时取景／物理／网络协议或资产。原第8节的UE5.8.3、93项与真实视口双端结果保留历史含义；本设备实际UE5.8.2-56702186，新修复构建／回归及资产保护另见[本次记录](MVPB_Dynamic_Camera_Primary_Edit_Verification_20261029.json)。真人勾选与保存、鼠标／手柄及驾驶／双端画面仍由团队确认。
+
+本次实际完成Editor Target构建（166.95秒）及`HAL.FutureCreation` **94/94**，相机6项，报告0警告／失败／未运行；新增主球编辑回归通过。1172份资产相对用户保存关闭后的基线逐份SHA-256一致，原Local／IMC修改和新Camera DA／IA保留。生产改动仅编辑器保护，未另构建Game或重跑双端；没有把原生属性检查写成实际点击／保存地图已验收。本次C++／测试／文档未提交／Push。

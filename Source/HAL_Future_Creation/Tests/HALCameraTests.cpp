@@ -10,6 +10,7 @@
 #include "InputAction.h"
 #include "Math/InverseRotationMatrix.h"
 #include "SceneView.h"
+#include "UObject/UnrealType.h"
 
 namespace
 {
@@ -85,6 +86,36 @@ bool FHALCameraConfigTest::RunTest(const FString&)
 	TestTrue(TEXT("Smooth middle falloff"),FMath::IsNearlyEqual(Rule.Evaluate((Rule.FullWeightDistance+Rule.ZeroWeightDistance)*.5),Rule.Weight*.5));
 	return true;
 }
+
+#if WITH_EDITOR
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALCameraPrimaryEditTest,"HAL.FutureCreation.Camera.PlacedPrimaryBallEditability",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALCameraPrimaryEditTest::RunTest(const FString&)
+{
+	FCameraWorld F;
+	auto* Ball = F.Ball(FVector::ZeroVector); auto* Other = F.Ball(FVector(800,0,0));
+	if (!TestNotNull(TEXT("Transient placed ball"),Ball) || !TestNotNull(TEXT("Other unmarked ball"),Other)) { return false; }
+	auto* Primary = FindFProperty<FBoolProperty>(Ball->GetClass(),TEXT("bPrimaryCameraTarget"));
+	auto* Source = FindFProperty<FEnumProperty>(Ball->GetClass(),TEXT("ConfigurationSource"));
+	auto* Definition = FindFProperty<FObjectProperty>(Ball->GetClass(),TEXT("Definition"));
+	auto* LegacyDamage = FindFProperty<FFloatProperty>(Ball->GetClass(),TEXT("VehicleHitDamage"));
+	if (!TestNotNull(TEXT("Primary property"),Primary) || !TestNotNull(TEXT("Source property"),Source)
+		|| !TestNotNull(TEXT("Definition property"),Definition) || !TestNotNull(TEXT("Legacy tuning property"),LegacyDamage)) { return false; }
+	Source->GetUnderlyingProperty()->SetIntPropertyValue(Source->ContainerPtrToValuePtr<void>(Ball),uint64(EVehicleConfigurationSource::Definition));
+	TestTrue(TEXT("Data Asset mode allows the placed primary marker"),Ball->CanEditChange(Primary));
+	TestTrue(TEXT("Definition reference stays editable"),Ball->CanEditChange(Definition));
+	TestFalse(TEXT("Legacy damage stays locked in Data Asset mode"),Ball->CanEditChange(LegacyDamage));
+	TestTrue(TEXT("Marker remains editable, replicated and disabled on class defaults"),Primary->HasAllPropertyFlags(CPF_Edit | CPF_Net | CPF_DisableEditOnTemplate));
+	TestFalse(TEXT("Marker is not read-only or disabled on instances"),Primary->HasAnyPropertyFlags(CPF_EditConst | CPF_DisableEditOnInstance));
+	Primary->SetPropertyValue_InContainer(Ball,true);
+	TestTrue(TEXT("Editing one placed marker is readable by camera targeting"),Ball->IsPrimaryCameraTarget());
+	TestFalse(TEXT("Other balls are not implicitly marked"),Other->IsPrimaryCameraTarget());
+	TestFalse(TEXT("Default and debug-spawned balls remain unmarked"),GetDefault<ABasicBallActor>()->IsPrimaryCameraTarget());
+	Source->GetUnderlyingProperty()->SetIntPropertyValue(Source->ContainerPtrToValuePtr<void>(Ball),uint64(EVehicleConfigurationSource::Legacy));
+	TestTrue(TEXT("Legacy mode still permits its original tuning"),Ball->CanEditChange(LegacyDamage));
+	return true;
+}
+#endif
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALCameraProjectionTest,"HAL.FutureCreation.Camera.EngineProjectionParity",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
