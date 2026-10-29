@@ -42,7 +42,7 @@
 | 自然碰撞选档／来源上限／连续接触 | Combat → CollisionImpacts | Light／Medium／HeavyThreshold、Environment／FreeBallTierCap、ContactRearmSeconds、MaximumRuleRestitution；玩家车型自身CollisionTierCap在车辆Impact中 |
 | 相机距离、角度、跟随延迟 | Local → Camera | TargetArmLength、BoomTransform.Rotation.Pitch、CameraLagSpeed / bEnableCameraLag |
 | 输入映射、按键 | Local → Input 引用；打开所引用的 IMC | Local指定IMC与转向／油门／刹车／手刹／发射Action，另有可选PrimarySkillAction及独立SelfRightAction；具体键位在IMC中修改，Definition模式下不改BP旧Input字段 |
-| 模型、材质与位置 | 车辆或球 → Visual | Mesh、Materials、RelativeTransform；外观尺寸与物理碰撞尺寸分别配置 |
+| 静态外观、材质与位置 | 车辆或球 → Visual | 车辆为静态回退外观，球／被动测试车仍作为主要外观；骨骼车型正常显示时该静态组件隐藏，详见第5节 |
 
 距离通常为 **cm**，速度 **cm/s**，时间 **s**，质量 **kg**；角度、角速度及高级物理字段以各字段单位提示为准。调参前保留已有值，每次优先改一组参数以方便比较。
 
@@ -69,3 +69,37 @@ Definition 模式下，本文迁移参数统一在 DA 调节；蓝图旧原生�
 缺失引用、Ready 未勾选或参数非法时，会阻止相关实例正常参与玩法并在 Output Log 报错，不回退默认值。先检查引用、Ready、Validate 结果与关卡实例覆盖。
 
 调参后记录 **DA 名称、字段、修改前后值、测试场景与结果**。提交配置时同步相关 DA、手动改过的蓝图/地图及项目设置；基础配置与本局 HP、球权、速度等运行状态分开保存。
+
+## 5. 骨骼车型仍需填写 Visual 吗？（2026-10-29源码核对）
+
+核对基点`main/98b1a8d`。`DA_Vehicle_Player_TestBaseline_v1.Visual`仍会应用到Pawn的静态`VisualMesh`，作为骨骼表现不可用时的回退。正常可用的`Presentation`由车型表现DA提供Skeletal Mesh／AnimBP／模型变换，表现组件会隐藏静态Visual；结束／重配时恢复原可见性。Visual的材质、变换和显隐不是骨骼模型的配置入口。
+
+本节最初检查发现Definition无条件要求静态Visual，用户随后同意调整，现已写入按可用表现路径校验的实现：**驾驶车辆有有效且Ready的骨骼Presentation时，可以将Visual.Mesh留空；骨骼配置不可用时，必须有有效静态Visual。** 两条都不可用时明确拒绝初始化，错误同时说明静态与骨骼原因。只填写Presentation引用或勾Ready不能代替Mesh、Skeleton／AnimClass、骨骼层级、四轮半径等完整校验。被动Box测试车与球仍需要各自的静态Visual，不因填了一个它们不会消费的骨骼配置而放行。
+
+有效静态回退仍完整应用其材质、变换及显隐。无效／缺失静态回退但骨骼路径有效时，Pawn只在运行／预览组件上清除旧静态网格、重置该无用组件变换并隐藏，不将无效参数送入组件，不修改保存的DA，也不改变碰撞体或骨骼模型变换。Ready、物理、战斗、Local等其他门槛保持。
+
+| 检查的入口 | 当前依赖 |
+|---|---|
+| Validate Assets／车辆运行初始化 | 驾驶车要求有效骨骼或有效静态之一；被动Box／球保持静态要求 |
+| 正常骨骼显示／轮转／倾斜／视觉悬挂 | 使用Presentation DA；有效时隐藏静态Visual |
+| 实际Chaos碰撞 | 使用独立的CollisionMesh／Physics；VisualMesh始终NoCollision、不模拟 |
+| 视觉高度校准工具 | 使用CollisionMesh凸包与Presentation骨骼几何，不以Visual.Mesh作高度或轮位基准 |
+| 碰撞生成工具 | 使用生成形状参数及输出校验，不要求Visual.Mesh |
+| 车型资产生成工具 | 可先创建／保存空静态Visual、Ready=false的资产；正式启用须有可用表现路径，骨骼有效时不必补占位Static Mesh |
+| BuildAndLaunch编译入口 | 没有读取Visual.Mesh或按其名称验收；不能将编译等待归因于这个字段 |
+
+不要求Visual.Mesh必须等于`SM_CarCollisionProxy`，任意适当且有效的Static Mesh均可；Materials可为空，Overlay Material可为None。更换这个字段不等于更换碰撞体。另有旧健康／配置测试直接把`/Game/Meshes/SM_CarCollisionProxy`作为碰撞夹具加载，因此调整DA字段与删除该资源文件是两件事；本次未做资产引用导出，不能据此宣称删除资源安全。
+
+本次构建／回归与手工步骤见下节。上一次“仅检查、未改代码”保留在项目状态的历史记录；本节规则以当前实现为准，不把旧静态强制依赖继续作为验收门槛。
+
+## 6. 静态回退可选：团队配置与验证（2026-10-29）
+
+1. 同步修改后的C++，完整编译Editor Target，再打开项目。
+2. 打开实际车型Vehicle Definition，沿`Visual → Presentation`进入车型表现DA。完成Ready、Mesh／Skeleton、匹配AnimBP、四轮骨骼／实际半径及模型对齐，先对该表现DA执行Validate Assets。
+3. 回到Vehicle Definition，若不需要静态备用外观，将`Visual → Visual → Mesh`清空为None；其余未使用的静态字段不用重新填写。**保留独立的Collision Mesh和Physics配置**。需要备用外观时可继续保留原有效静态Visual。
+4. 保持已核对的车辆Ready、Local、Movement／Combat等配置，保存并Validate Assets。骨骼有效的驾驶车应可通过；没有有效骨骼时不能同时删掉静态路径。不要用切Legacy来绕过检查。
+5. 重新启动测试，确认实际车模与动画、驾驶／碰撞、控球／发射正常。两端使用同一代码与保存资产；车型生成器不再要求为骨骼车型额外填占位Static Mesh。
+
+本轮不由代理清空任何保存DA或编辑BP／地图。校验和组件处理仅在既有配置应用／初始化时生效，不新增局内配置热重载；骨骼运行中人为停用且未配置回退，不承诺自动生成替代模型。
+
+本机UE5.8.2 Editor／Game完整构建成功，普通**96/96**、车型生成器**3/3**，真实NetTest表现回归Host／Client各**1/1**，均0测试警告／失败；1172保存资产与用户关闭后的基线逐份哈希一致。无静态路径与失败门槛由原生临时配置／真实保存骨骼初始化验证；双端使用现有保存车辆，不代表已保存None配置的真人画面验收。详细日志／报告与210份源码／配置哈希见[验证摘要](MVPB_Optional_Static_Visual_Verification_20261029.json)。原94项保持前步历史；本轮未提交／Push，等待团队按上述步骤实配／初测。

@@ -193,9 +193,10 @@ public:
 	/** Explicitly migrated tier/drop/collision configuration. Physical body tuning is unchanged. */
 	UPROPERTY(EditAnywhere, Category = "Impact")
 	FHALVehicleImpactConfig Impact;
+	/** Static appearance/fallback. Optional for driving vehicles with a valid ready skeletal Presentation. */
 	UPROPERTY(EditAnywhere, Category = "Visual")
 	FVehicleVisualConfig Visual;
-	/** Optional visual-only rig. Invalid/unready rig falls back to Visual, without disabling gameplay. */
+	/** Visual-only rig. An invalid/unready rig requires a valid static Visual fallback. */
 	UPROPERTY(EditAnywhere, Category = "Visual")
 	TObjectPtr<UHALVehiclePresentationConfig> Presentation;
 	UPROPERTY(EditAnywhere, Category = "Local")
@@ -214,6 +215,8 @@ public:
 	bool bForwardArrowHiddenInGame = false;
 	/** Box definitions are passive fixtures; movement/local configuration is not consumed. */
 	bool Validate(FString& Error) const;
+	/** At least one supported visual path must be valid; passive Box fixtures require static Visual. */
+	bool ValidateVisual(FString& Error) const;
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 #endif

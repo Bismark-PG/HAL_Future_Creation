@@ -8,6 +8,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/Skeleton.h"
 #include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "GameFramework/PlayerController.h"
@@ -46,7 +47,7 @@ namespace
 		UWorld* World;
 		ATestVehiclePawn* Pawn;
 		bool bNoRigFixtureCreated = false;
-		FPresentationWorld(bool bWithoutRig = false)
+		FPresentationWorld(bool bWithoutRig = false, bool bWithoutStatic = false, bool bInvalidStaticTransform = false)
 		{
 			const auto Options = UWorld::InitializationValues().AllowAudioPlayback(false).RequiresHitProxies(false)
 				.CreatePhysicsScene(true).CreateNavigation(false).CreateAISystem(false).CreateFXSystem(false)
@@ -55,7 +56,8 @@ namespace
 			GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(World);
 			auto* Class = LoadClass<ATestVehiclePawn>(nullptr, TEXT("/Game/Blueprints/Vehicles/BP_RoundedVehiclePawn.BP_RoundedVehiclePawn_C"));
 			Pawn = Class ? World->SpawnActor<ATestVehiclePawn>(Class, FVector(0,0,1000), FRotator::ZeroRotator) : nullptr;
-			if (bWithoutRig) { bNoRigFixtureCreated = FHALPresentationTestAccess::SelectNoRigFixture(Pawn); }
+			if (bWithoutRig || bWithoutStatic)
+			{ bNoRigFixtureCreated = FHALPresentationTestAccess::SelectVisualFixture(Pawn, bWithoutRig, bWithoutStatic, bInvalidStaticTransform); }
 			if (Pawn) { Pawn->PreInitializeComponents(); Pawn->InitializeComponents(); Pawn->PostInitializeComponents(); }
 		}
 		~FPresentationWorld() { World->DestroyWorld(false); GEngine->DestroyWorldContext(World); }
@@ -143,6 +145,79 @@ bool FHALPresentationConfigTest::RunTest(const FString& Parameters)
 	Config->Mesh->SetRefSkeleton(Rig);
 	Config->AnimClass = UHALVehicleAnimInstance::StaticClass();
 	TestTrue(TEXT("Transient native fixture validates the full data contract without saving assets"), Config->Validate(Error));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALVehicleVisualValidationTest, "HAL.FutureCreation.Presentation.VisualPathValidation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALVehicleVisualValidationTest::RunTest(const FString& Parameters)
+{
+	auto* Definition = NewObject<UVehicleDefinition>(); FString Error;
+	TestFalse(TEXT("Neither visual path is rejected"),Definition->ValidateVisual(Error));
+	TestTrue(TEXT("Both failed paths are diagnosed"),Error.Contains(TEXT("Static:")) && Error.Contains(TEXT("Skeletal:")));
+	auto* Rig = MeasuredConfig(); Rig->bReadyForUse = true;
+	Rig->Mesh = NewObject<USkeletalMesh>(); Rig->Mesh->SetSkeleton(NewObject<USkeleton>());
+	Rig->Mesh->SetRefSkeleton(MakeRig(*Rig)); Rig->AnimClass = UHALVehicleAnimInstance::StaticClass();
+	TestTrue(TEXT("Independent calibrated rig fixture is valid"),Rig->Validate(Error));
+	Definition->Presentation = Rig;
+	TestTrue(TEXT("Driving skeletal-only visual path is valid"),Definition->ValidateVisual(Error));
+	Definition->Visual.RelativeTransform.SetScale3D(FVector::ZeroVector);
+	TestTrue(TEXT("Unused invalid static settings cannot block valid skeletal presentation"),Definition->ValidateVisual(Error));
+	Definition->Visual.Mesh = LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube"));
+	TestTrue(TEXT("A present but invalid unused static mesh transform is also optional"),Definition->ValidateVisual(Error));
+	Rig->bReadyForUse = false;
+	TestFalse(TEXT("Unready rig is not a replacement for missing static fallback"),Definition->ValidateVisual(Error));
+	Definition->Visual = {}; Definition->Visual.Mesh = LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube"));
+	TestTrue(TEXT("Valid static fallback preserves unready optional rig behavior"),Definition->ValidateVisual(Error));
+	Definition->Visual.RelativeTransform.SetScale3D(FVector::ZeroVector);
+	TestFalse(TEXT("Invalid static transform fails when rig is unusable"),Definition->ValidateVisual(Error));
+	Definition->Visual = {}; Rig->bReadyForUse = true;
+	Rig->Wheels[0].RadiusCm = 0;
+	TestFalse(TEXT("Ready alone cannot bypass incomplete skeletal calibration"),Definition->ValidateVisual(Error));
+	Rig->Wheels[0].RadiusCm = 30;
+	Definition->CollisionShape = EVehicleCollisionShape::Box;
+	TestFalse(TEXT("Passive Box cannot consume a skeletal-only path"),Definition->ValidateVisual(Error));
+	Definition->Visual.Mesh = LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube"));
+	TestTrue(TEXT("Passive Box retains its static path"),Definition->ValidateVisual(Error));
+	auto* Ball = NewObject<UBallDefinition>(); Ball->bReadyForUse = true;
+	TestFalse(TEXT("Ball still requires its own static visual"),Ball->Validate(Error));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALVehicleSkeletalOnlyTest, "HAL.FutureCreation.Presentation.SkeletalOnlyInitializationAndFailure",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALVehicleSkeletalOnlyTest::RunTest(const FString& Parameters)
+{
+	for (const bool bInvalidStaticTransform : {false,true})
+	{
+		FPresentationWorld F(false,true,bInvalidStaticTransform);
+		if (!TestNotNull(TEXT("Skeletal-only player fixture"),F.Pawn)) { return false; }
+		TestTrue(TEXT("Fixture duplicates rather than edits saved Definition"),F.bNoRigFixtureCreated);
+		auto* Component = F.Pawn->FindComponentByClass<UHALVehiclePresentationComponent>();
+		auto* Body = FHALPresentationTestAccess::Body(F.Pawn);
+		TestTrue(TEXT("Skeletal-only vehicle initializes gameplay"),F.Pawn->IsConfigurationValid());
+		TestTrue(TEXT("Real saved skeletal rig activates"),Component->IsUsingSkeletalPresentation());
+		auto* Skeletal = F.Pawn->FindComponentByClass<USkeletalMeshComponent>();
+		TestTrue(TEXT("Skeletal visual is visible and nonphysical"),Skeletal->IsVisible() && !Skeletal->bHiddenInGame
+			&& !Skeletal->IsSimulatingPhysics() && Skeletal->GetCollisionEnabled()==ECollisionEnabled::NoCollision);
+		UStaticMeshComponent* Static = nullptr;
+		for (auto* Candidate : TInlineComponentArray<UStaticMeshComponent*>(F.Pawn))
+		{ if (Candidate->GetFName()==TEXT("VisualMesh")) { Static=Candidate; break; } }
+		if (!TestNotNull(TEXT("Static fallback component"),Static)) { return false; }
+		TestNull(TEXT("Old Blueprint/preview mesh is cleared"),Static->GetStaticMesh());
+		TestTrue(TEXT("Unused static component is safely hidden with a valid transform"),!Static->IsVisible() && Static->bHiddenInGame
+			&& Static->GetRelativeTransform().Equals(FTransform::Identity) && Static->GetCollisionEnabled()==ECollisionEnabled::NoCollision);
+		TestTrue(TEXT("Collision root remains active"),Body->IsSimulatingPhysics() && Body->GetCollisionEnabled()==ECollisionEnabled::QueryAndPhysics);
+	}
+	{
+		AddExpectedError(TEXT("invalid VehicleDefinition"),EAutomationExpectedErrorFlags::Contains,1);
+		FPresentationWorld F(true,true);
+		if (!TestNotNull(TEXT("No visual player fixture"),F.Pawn)) { return false; }
+		TestFalse(TEXT("No usable visual path fails actual initialization"),F.Pawn->IsConfigurationValid());
+		auto* Body=FHALPresentationTestAccess::Body(F.Pawn);
+		TestTrue(TEXT("Invalid definition still disables physical gameplay"),!Body->IsSimulatingPhysics()
+			&& Body->GetCollisionEnabled()==ECollisionEnabled::NoCollision);
+	}
 	return true;
 }
 

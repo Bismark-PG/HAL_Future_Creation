@@ -388,7 +388,17 @@ bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
 	}
 	CollisionRoot->SetStaticMesh(Definition->CollisionMesh);
 	VehicleConfiguration::ApplyBody(*CollisionRoot, Definition->Physics);
-	VehicleConfiguration::ApplyVisual(*VisualMesh, Definition->Visual);
+	FVehicleVisualConfig StaticVisual = Definition->Visual;
+	FString StaticError;
+	if (!StaticVisual.Validate(StaticError))
+	{
+		// Definition validation already guarantees a usable skeletal path. Never
+		// apply an unused invalid static transform or retain an old preview mesh.
+		StaticVisual = {};
+		StaticVisual.bVisible = false;
+		StaticVisual.bHiddenInGame = true;
+	}
+	VehicleConfiguration::ApplyVisual(*VisualMesh, StaticVisual);
 	VehiclePresentation->Configure(Definition->Presentation, CollisionRoot, VisualMesh, SkeletalVisual, bPreview);
 	BallControlPoint->SetRelativeTransform(Definition->BallControlPoint);
 	ForwardArrow->SetRelativeTransform(Definition->ForwardArrowTransform);

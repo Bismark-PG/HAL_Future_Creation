@@ -1,4 +1,5 @@
 #include "VehicleDefinition.h"
+#include "HALVehiclePresentationConfig.h"
 
 #include "Engine/StaticMesh.h"
 #include "PhysicsEngine/BodySetup.h"
@@ -88,10 +89,28 @@ bool UVehicleLocalConfig::Validate(FString& Error) const
 	return Camera.Validate(Error);
 }
 
+bool UVehicleDefinition::ValidateVisual(FString& Error) const
+{
+	FString StaticError;
+	if (Visual.Validate(StaticError)) { return true; }
+	// Only the driving Pawn supports skeletal presentation. Passive Box fixtures
+	// still consume their static Visual, even if a Presentation was assigned.
+	if (CollisionShape != EVehicleCollisionShape::ConvexMesh)
+	{
+		Error = TEXT("Box vehicle requires a valid static Visual: ") + StaticError;
+		return false;
+	}
+	FString SkeletalError = TEXT("No valid Presentation is assigned.");
+	if (IsValid(Presentation) && Presentation->Validate(SkeletalError)) { return true; }
+	Error = FString::Printf(TEXT("Vehicle requires a valid static Visual or a ready skeletal Presentation. Static: %s Skeletal: %s"),
+		*StaticError, *SkeletalError);
+	return false;
+}
+
 bool UVehicleDefinition::Validate(FString& Error) const
 {
 	if (!bReadyForUse) { return Fail(Error, TEXT("VehicleDefinition is not marked ReadyForUse after baseline comparison.")); }
-	if (!Physics.Validate(Error) || !Visual.Validate(Error) || !Health.Validate(Error) || !Combat.Validate(Error) || !Impact.Validate(Error)) { return false; }
+	if (!Physics.Validate(Error) || !ValidateVisual(Error) || !Health.Validate(Error) || !Combat.Validate(Error) || !Impact.Validate(Error)) { return false; }
 	if (CollisionShape == EVehicleCollisionShape::Box)
 	{
 		return PositiveVector(BoxExtent) || Fail(Error, TEXT("BoxExtent must be finite and positive."));

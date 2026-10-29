@@ -50,7 +50,7 @@ namespace
 						+ SVerticalBox::Slot().AutoHeight().Padding(0,12)
 						[ SNew(STextBlock).AutoWrapText(true).Text_Lambda([this] { return Output; }) ]
 						+ SVerticalBox::Slot().AutoHeight().Padding(0,0,0,12)
-						[ SNew(STextBlock).AutoWrapText(true).Text(LOCTEXT("Calibration", "Vehicle parameters start from C++ defaults. Collision Mesh and fallback Visual Mesh require configuration for this model. Both DAs start with Ready For Use = false. Complete the empty AnimGraph, wheel calibration, model alignment and vehicle configuration before enabling the vehicle.")) ]
+						[ SNew(STextBlock).AutoWrapText(true).Text(LOCTEXT("Calibration", "Vehicle parameters start from C++ defaults. Configure this model's Collision Mesh and a valid visual path: a ready skeletal Presentation or a static Visual Mesh. Static fallback is optional when the skeletal Presentation is valid. Both DAs start with Ready For Use = false. Complete the empty AnimGraph, wheel calibration, model alignment and vehicle configuration before enabling the vehicle.")) ]
 						+ SVerticalBox::Slot().AutoHeight().Padding(0,0,0,8)
 						[ SNew(STextBlock).AutoWrapText(true).Text_Lambda([this] { return Validation; }) ]
 						+ SVerticalBox::Slot().AutoHeight()

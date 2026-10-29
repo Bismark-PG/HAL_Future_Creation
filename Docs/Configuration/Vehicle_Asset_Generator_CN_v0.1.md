@@ -42,7 +42,7 @@ PIE 或 Simulate 期间禁止创建与保存。关闭工具面板不会自动保
 | 选择输入 | Mesh 选择新车型，Shared Vehicle Network Physics选择现有车辆网络DA；共享Local自动连接 |
 | 创建并保存 | 核对输出路径，Create Asset Set → Save Generated Assets；结果应为4/4，Locate Generated Assets可再次定位 |
 | 配置动画 | 新 ABP 的父类和 Skeleton 已设置；团队手动配置轮转／转向及需要的 Chassis 节点，生成器保持 AnimGraph 默认内容 |
-| 校准车型 | 新表现 DA 的四轮骨骼、轴向、方向、实际半径及模型变换由团队配置；新车辆 DA 的Collision Mesh与Visual.Mesh需要填写，物理、驾驶、控球点等初值需要校准 |
+| 校准车型 | 新表现 DA 的四轮骨骼、轴向、方向、实际半径及模型变换由团队配置；新车辆 DA 的Collision Mesh必须配置，骨骼Presentation有效时Visual.Mesh为可选静态回退，物理、驾驶、控球点等初值需要校准 |
 | 高度校准 | 完成表现数据后，Content Browser选中新 VehicleDefinition，使用现有 HAL Vehicle Visual Alignment；具体限制与保存流程见[校准工具说明](Vehicle_Visual_Alignment_Tool_CN_v0.1.md) |
 | 启用配置 | 校准完成后，两份新 DA 分别设置 Ready For Use，保存并执行 Validate Assets；输入和摄像机仍使用原 LocalConfig |
 | 接入测试 | 新 BP 的 Definition 已绑定。团队在测试关卡或 GameMode 中手动选用新 BP，重新 Play，检查驾驶、动画、持球与发射；主机和客户端需要同一套已保存资产 |
@@ -64,13 +64,13 @@ PIE 或 Simulate 期间禁止创建与保存。关闭工具面板不会自动保
 
 Network Physics 保持原引用方式并配置 Resimulation。Combat 与 Stability 继续由项目设置提供；Local／Network／Combat／Stability 均不新建或复制。工具不修改 GameMode、PlayerState、地图或输入映射。
 
-驾驶、控球、战斗、物理和 Marker 使用 `UVehicleDefinition` 的 C++ 初始值，各车型独立持有配置。碰撞 Static Mesh、回退 Visual.Mesh 和车型材质没有从 Car01 复制，也不根据 Skeletal Mesh 推断玩法碰撞；Collision Mesh 和 Visual.Mesh 初始未指定，需要填写并通过运行时校验。两份车型 DA 的后续参数编辑互不影响，共享 Local／Network 的调整则继续影响引用它们的车型。
+驾驶、控球、战斗、物理和 Marker 使用 `UVehicleDefinition` 的 C++ 初始值，各车型独立持有配置。碰撞 Static Mesh、回退 Visual.Mesh 和车型材质没有从 Car01 复制，也不根据 Skeletal Mesh 推断玩法碰撞；Collision Mesh初始未指定，仍须配置。2026-10-29起驾驶车按可用表现路径校验：有完整有效且Ready的骨骼Presentation时，Visual.Mesh可以保留None；否则必须配置有效静态Visual。生成器继续保持空静态引用，不自动创建占位网格。两份车型 DA 的后续参数编辑互不影响，共享 Local／Network 的调整则继续影响引用它们的车型。
 
 新Pawn与 `BP_RoundedVehiclePawn` 共享同一个原生父类。物理根、Static/Skeletal外观、移动、姿态与自救、网络物理Settings／History、运动效果桥接、控球点／约束／控球、Health／ImpactReceiver、方向标记及相机共17个组件由原生构造函数创建，组件连接及输入／GAS Avatar／控球／发射逻辑沿用原生实现。新Pawn没有对 `BP_RoundedVehiclePawn` 资产的继承或引用；选择的模型经新Definition／Presentation接入。ASC仍由PlayerState持有，GameMode的PlayerState／Controller配置继续使用项目现有设置。
 
 新表现 DA 不继承 Car01 的轮轴、半径、模型缩放和俯仰调参。其 Root／Chassis 和四轮名称来自当前 C++ 默认约定，半径初值为0。缺少控制骨骼不会阻止创建配置草稿，但会阻止表现配置通过运行时校验。
 
-两份新 DA 均保持 Ready For Use=false。团队在 AnimBP 完成所需骨骼接线，填写 Collision Mesh／回退 Visual.Mesh，校准四轮轴向、方向、实际半径、模型对齐、物理与控球点后，再启用 Ready 并执行资产校验及单机／双端基本测试。车辆 DA 未 Ready 或缺少必填模型时会拒绝参与玩法，此状态不能作为可直接驾驶的交付。当前工具只负责四份资产的创建与连接。
+两份新 DA 均保持 Ready For Use=false。团队在 AnimBP 完成所需骨骼接线，填写Collision Mesh，校准四轮轴向、方向、实际半径、模型对齐、物理与控球点后，再启用Ready并执行资产校验及单机／双端基本测试；需要静态回退时另填Visual.Mesh。车辆DA未Ready或两条表现路径都不可用时会拒绝参与玩法，此状态不能作为可直接驾驶的交付。具体路径规则与手工步骤见[DA说明第5～6节](MVPB_DataAsset_QuickGuide_CN_v1.0.md#5-骨骼车型仍需填写-visual-吗2026-10-29源码核对)。当前工具只负责四份资产的创建与连接。
 
 ## 4. 首次实现验证记录
 

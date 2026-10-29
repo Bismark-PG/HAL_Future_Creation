@@ -18,15 +18,19 @@
 /** Headless data-path probe only: no imported rig or Blueprint/CDO/asset mutation. */
 struct FHALPresentationTestAccess
 {
-	/** Isolate the fallback fixture from whichever rig the team has saved on its player. */
-	static bool SelectNoRigFixture(ATestVehiclePawn* Pawn)
+	/** Isolate visual-path fixtures from the team's saved optional static fallback. */
+	static bool SelectVisualFixture(ATestVehiclePawn* Pawn, bool bWithoutRig, bool bWithoutStatic, bool bInvalidStaticTransform = false)
 	{
 		if (!Pawn || !Pawn->Definition) { return false; }
 		auto* Fixture = DuplicateObject<UVehicleDefinition>(Pawn->Definition, Pawn);
-		Fixture->Presentation = nullptr;
+		if (bWithoutRig) { Fixture->Presentation = nullptr; }
+		Fixture->Visual = {};
+		if (!bWithoutStatic) { Fixture->Visual.Mesh = Fixture->CollisionMesh; }
+		if (bInvalidStaticTransform) { Fixture->Visual.RelativeTransform.SetScale3D(FVector::ZeroVector); }
 		Pawn->Definition = Fixture;
 		return true;
 	}
+	static bool SelectNoRigFixture(ATestVehiclePawn* Pawn) { return SelectVisualFixture(Pawn, true, false); }
 	static UHALVehiclePresentationComponent* EnableProbe(ATestVehiclePawn* Pawn)
 	{
 		auto* Result = Pawn->VehiclePresentation.Get();
