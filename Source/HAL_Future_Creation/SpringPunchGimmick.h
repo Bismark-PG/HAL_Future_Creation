@@ -23,6 +23,37 @@ enum class ESpringPunchState : uint8
 	Cooldown     // 次の攻撃まで待つ。
 };
 
+/** Announced during windup, so observers need no packet at the motion boundaries. */
+USTRUCT()
+struct FSpringPunchMotion
+{
+	GENERATED_BODY()
+	UPROPERTY() bool bValid = false;
+	UPROPERTY() double StartsAt = 0;
+	UPROPERTY() float ExtendSeconds = 0.25f;
+	UPROPERTY() float RetractSeconds = 0.7f;
+	UPROPERTY() TObjectPtr<UCurveFloat> ExtensionCurve = nullptr;
+	UPROPERTY() TObjectPtr<UCurveFloat> RetractionCurve = nullptr;
+	float EvaluateOffset(double ServerTime, float Distance) const;
+};
+
+/** Persistent periodic presentation clock. Phase packets are not animation events. */
+USTRUCT()
+struct FSpringPunchCycle
+{
+	GENERATED_BODY()
+	UPROPERTY() bool bValid = false;
+	UPROPERTY() FSpringPunchMotion Motion;
+	UPROPERTY() float WindupSeconds = .8f;
+	UPROPERTY() float CooldownSeconds = 2.f;
+	UPROPERTY() float Distance = 400.f;
+	UPROPERTY() FVector Origin = FVector::ZeroVector;
+	UPROPERTY() uint32 FirstPunchNumber = 1;
+	double Period() const;
+	float EvaluateOffset(double ServerTime) const;
+	ESpringPunchState EvaluateState(double ServerTime) const;
+};
+
 /** One coherent server phase, sufficient for late join and relevancy re-entry. */
 USTRUCT()
 struct FSpringPunchPhase
@@ -34,6 +65,7 @@ struct FSpringPunchPhase
 	UPROPERTY() float Distance = 0;
 	UPROPERTY() FVector RetractedLocation = FVector::ZeroVector;
 	UPROPERTY() uint32 PunchNumber = 0;
+	UPROPERTY() FSpringPunchMotion Motion;
 	/** Asset reference is captured per phase so authority and observers evaluate the same curve. */
 	UPROPERTY() TObjectPtr<UCurveFloat> ExtensionCurve = nullptr;
 	UPROPERTY() TObjectPtr<UCurveFloat> RetractionCurve = nullptr;
@@ -154,6 +186,10 @@ private:
 	friend class FHALSpringPunchCombatTest;
 	UPROPERTY(ReplicatedUsing = OnRep_Phase)
 	FSpringPunchPhase Phase;
+	UPROPERTY(ReplicatedUsing = OnRep_Cycle)
+	FSpringPunchCycle Cycle;
+	UFUNCTION() void OnRep_Cycle();
+	void ConfigureCycle(double FirstExtensionTime);
 	UFUNCTION() void OnRep_Phase();
 	double GetPhaseTime() const;
 	float EvaluateExtensionProgress(float Alpha) const;

@@ -1,0 +1,86 @@
+{
+  "date": "2026-10-29",
+  "timezone": "Asia/Tokyo",
+  "engine": "5.8.2-56702186",
+  "base_commit": "ac14e60 plus prior uncommitted spring-punch fix",
+  "scope": "Persistent periodic cycle replicated from initial idle; both authority timer boundaries and observer presentation share an absolute time anchor. No per-punch packet required after initial cycle delivery. Config changes re-anchor at next windup.",
+  "builds": {
+    "Editor": "Succeeded",
+    "Game": "Succeeded",
+    "warnings": "Existing camera tests C4305; test-warning counts are separate."
+  },
+  "reports": {
+    "Unit": {
+      "succeeded": 2,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "sha256": "77c9c28d2dbc7ffd402c90a1b891e5b41f766996369577c429e0cc1577fda59a"
+    },
+    "Regression": {
+      "succeeded": 102,
+      "succeededWithWarnings": 0,
+      "failed": 2,
+      "notRun": 0,
+      "sha256": "ff5906c9baacd00e7654fae5930b093c5dbc1cc2083ee0832866267e9b2129ff"
+    },
+    "Host": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "sha256": "036858c47cfd6f1faf869f06bfd10628d59d1317dc3137d195e91fef898dcd95"
+    },
+    "Client": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "sha256": "fc39882d654fcace1842e4794632eb6ab8125db32f5dc8691b9f0ec3a9a8da48"
+    },
+    "CombatHost": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "sha256": "786eed24daa39e7344b7deea564a57b54d43bb9e7afbacaa28d2551ac6a7d4e2"
+    },
+    "CombatClient": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "sha256": "ac000f4a7a7d80a386a61c40114c9b3db150452fad79d0964bc0e38662cfa075"
+    }
+  },
+  "network_conditions": {
+    "cap_fps": 60,
+    "rendering": "NullRHI",
+    "each_role_outgoing_lag_ms": 80,
+    "each_role_lag_variance_ms": 60,
+    "each_role_packet_loss_percent": 15,
+    "measured_RTT": null
+  },
+  "network_coverage": [
+    "Native actor and saved Blueprint with both saved CurveFloat references",
+    ".25s extension/.7s return/.4s windup/.35s cooldown; at least 3 observed moving cycles per actor per role",
+    "Client temporarily clears Phase and invokes RepNotify while retaining Cycle, checks ticking and actual pivot; no client combat action",
+    "Separate exact single-punch test under same impairment: HP75 on both targets, Medium impact and each stage observed; client missing-boundary checks pass"
+  ],
+  "ordinary_regression_failures": [
+    "HAL.FutureCreation.Configuration.PlayerAndBallInitialization",
+    "HAL.FutureCreation.GAS.Health.PlayerStateAvatarLifecycle"
+  ],
+  "failure_context": "Both failures still reference old SM_CarCollisionProxy asset path, renamed by existing 129bebe. No unrelated test/asset edits.",
+  "asset_check": {
+    "count": 1172,
+    "changed": []
+  },
+  "limits": [
+    "NullRHI data/pivot verification, no new human rendered acceptance",
+    "Client must first receive the cycle; initial snapshot delays or changed configuration still require delivery",
+    "No claim of exact phase alignment during server stalls or clock correction; this addresses missing per-punch network updates",
+    "No arbitrary full-disconnect/late-join/relevancy/long-duration/four-player matrix"
+  ],
+  "git": "Uncommitted; no push."
+}

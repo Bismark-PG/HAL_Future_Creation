@@ -625,6 +625,26 @@ bool FHALSpringPunchCombatTest::RunTest(const FString& Parameters)
 	Punch->Phase.Duration = 2;
 	Punch->OnRep_Phase();
 	TestTrue(TEXT("Unassigned return curve preserves linear movement"), Punch->PunchPivot->GetRelativeLocation().Equals(FVector(210, 0, 0), .1));
+	Punch->ExtensionCurve = Curve;
+	Punch->RetractionCurve = ReturnCurve;
+	Punch->ExtendDuration = .25f;
+	Punch->RetractDuration = .7f;
+	Punch->EnterState(ESpringPunchState::Windup);
+	TestTrue(TEXT("Windup announces complete motion"), Punch->Phase.Motion.bValid);
+	const double AnnouncedStart = Punch->Phase.Motion.StartsAt;
+	Punch->ExtensionCurve = nullptr;
+	Punch->RetractionCurve = nullptr;
+	Punch->ExtendDuration = 2;
+	Punch->RetractDuration = 3;
+	Punch->EnterState(ESpringPunchState::Extending);
+	TestEqual(TEXT("Authority keeps announced start"), Punch->Phase.StartedAt, AnnouncedStart);
+	TestEqual(TEXT("Authority keeps announced extend duration"), Punch->Phase.Duration, .25f);
+	TestEqual(TEXT("Authority keeps announced extend curve"), Punch->Phase.ExtensionCurve.Get(), Curve);
+	Punch->EnterState(ESpringPunchState::Retracting);
+	TestEqual(TEXT("Authority keeps announced return duration"), Punch->Phase.Duration, .7f);
+	TestEqual(TEXT("Authority keeps announced return curve"), Punch->Phase.RetractionCurve.Get(), ReturnCurve);
+	Punch->EnterState(ESpringPunchState::Cooldown);
+	TestFalse(TEXT("Cooldown invalidates old schedule"), Punch->Phase.Motion.bValid);
 	Punch->EndPlay(EEndPlayReason::Destroyed);
 	return true;
 }

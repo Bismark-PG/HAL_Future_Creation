@@ -1,0 +1,100 @@
+{
+  "date": "2026-10-29",
+  "timezone": "Asia/Tokyo",
+  "base_commit": "ac14e60",
+  "engine": "5.8.2-56702186",
+  "scope": "Windup announces complete spring punch extension/retraction schedule; server retains collision/combat authority.",
+  "builds": {
+    "Editor": "Succeeded (final fixture version)",
+    "Game": "Succeeded (final fixture version)"
+  },
+  "reports": {
+    "Unit": {
+      "succeeded": 2,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "sha256": "32ecc320dda2573660c75a59243b5821074e34a70a76a1157b8251b3e9e3078d"
+    },
+    "Regression": {
+      "succeeded": 102,
+      "succeededWithWarnings": 0,
+      "failed": 2,
+      "notRun": 0,
+      "sha256": "5820ccd7877c172f4b1365e59bdca1e62b35176b46c5963db3306ca2b61fed86"
+    },
+    "Host": {
+      "succeeded": 0,
+      "succeededWithWarnings": 0,
+      "failed": 1,
+      "notRun": 0,
+      "sha256": "6cf8f02415221b90977cea97b31880c8b375b233e8a6d75180d722e21dacf8b3"
+    },
+    "Client": {
+      "succeeded": 0,
+      "succeededWithWarnings": 0,
+      "failed": 1,
+      "notRun": 0,
+      "sha256": "060cdf8d208ff7d55ce2626aae7c64cd82defc325dc81bccdceca5526784b25e"
+    },
+    "Host2": {
+      "succeeded": 0,
+      "succeededWithWarnings": 0,
+      "failed": 1,
+      "notRun": 0,
+      "sha256": "e048566fbaaad51e51278676c2d76ff7ca4bfc51968a7b88bbed30679a42bae2"
+    },
+    "Client2": {
+      "succeeded": 0,
+      "succeededWithWarnings": 0,
+      "failed": 1,
+      "notRun": 0,
+      "sha256": "152ea53c3ad7cf796f8b763b1fe58abd0bcc72a76bdb3595b1e2f0f31c3c8ccb"
+    },
+    "Host3": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "sha256": "c5e33f9d2e83f3554fcf729a9b123a5dfe1a2fb0e39a08b3f447d11cd2ae1c03"
+    },
+    "Client3": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "sha256": "a56881fcb13568d60e2f55f9561643f2fe8e3ea798cba572194f37f312dbf1de"
+    }
+  },
+  "network": {
+    "map": "/Game/Maps/MVPB_NetTest",
+    "cap_fps": 60,
+    "rendering": "NullRHI",
+    "outgoing_injected_lag_ms_each_role": 80,
+    "measured_RTT": null,
+    "actors": "Native and saved Blueprint, two saved authored CurveFloat assets, .25s extension/.7s retraction",
+    "client_checks": "Preannounced curves and movement with temporarily missing boundary notification for both extension/retraction. No client combat action. Both vehicles HP75 and Medium impact."
+  },
+  "regression_failures": {
+    "HAL.FutureCreation.Configuration.PlayerAndBallInitialization": "Old /Game/Meshes/SM_CarCollisionProxy path missing",
+    "HAL.FutureCreation.GAS.Health.PlayerStateAvatarLifecycle": "Same missing saved collision mesh; asset renamed in existing 129bebe commit. Unrelated tests not edited."
+  },
+  "iterations": [
+    "Initial Editor link blocked by user Editor; completed after close.",
+    "First dual process counted an existing map punch: 3 instead of 2.",
+    "Second fixture name filter failed on client because dynamic replicated actors do not preserve server names.",
+    "Final fixture identifies test punches by replicated vehicle owner; both roles pass.",
+    "Editor reopened during fixture link; user saved/closed again, final link succeeded."
+  ],
+  "asset_check": {
+    "count": 1172,
+    "changed_since_before_tests": []
+  },
+  "limits": [
+    "No rendered/human feel verification",
+    "If windup snapshot itself arrives after motion starts, client reconstructs current progress; cannot show past time.",
+    "Same code and curve assets required on both roles.",
+    "Full packet loss/relevancy/late join/four-player matrix not executed."
+  ],
+  "git": "Uncommitted; no push."
+}
