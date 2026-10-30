@@ -1,5 +1,9 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-10-30 Car_02输入不响应已定位为车型Impact未迁移。** 当前实际`main/781da01`已包含上轮预览及统一构建提交，保留团队`BP_MVPB_ListenGameMode`未提交修改。16:12:53和16:13:54两次Car_02日志均已读取本车型Definition及其Local Config，随后明确报`TieredV1 rules require migrated VehicleDefinition.Impact`；Car_01在16:14:29使用既有玩家DA并开始正常物理步进。Car_02保存包未覆盖Impact，沿用Legacy原生初值；共享规则要求TieredV1，初始化将车辆配置标无效、关闭物理并跳过输入绑定，故共享Local引用正确仍不能驾驶。
+
+当前下一步为团队在`DA_Vehicle_Car_02 → Impact → Version`手动设置TieredV1、保存并重新Play验证，无需重新编译。生成器仍沿用原生Legacy初值，前轮Legacy临时夹具没有覆盖此保存车型门槛；本轮为只读诊断，尚未修改生成器、Blueprint或DA，没有新构建／自动化／修正后驾驶结论。详见[诊断与手工修正](Configuration/Vehicle_Input_Preview_CN_v0.1.md#2026-10-30-car_02输入不响应诊断)及[证据](Configuration/Car02_Input_ConfigDiagnosis_20261030.json)。以下各段的分支和未提交状态保留各自历史时点，以本段为当前入口。
+
 **2026-10-30统一构建入口与生成蓝图引用预览收尾核对完成。** 当前仍为`main/945e616`，保留现有未提交改动及用户删除`Build_Editor.cmd`的状态。现有Editor模块已注册只读Input预览，已有Car_02和之后生成的车型直接读取`Definition.LocalConfig`中的来源及十项输入引用；运行初始化仍从同一共享Local读取。统一入口补回旧脚本的`-NoHotReload`并显式带`-NoLiveCoding`，普通构建及`-Rebuild`均覆盖Editor模块，无需另一个重构脚本。没有复制输入默认值或修改保存的Blueprint／DA／地图。
 
 本轮主工程UE5.8.3-58210709经统一入口完成29项编译／链接／元数据任务，UBA启用时在收尾阶段未退出，三个专用构建会话已结束；随后以相同完整构建参数加`-NoUBA`调用引擎Build.bat，确认主工程Target最新并返回`Result: Succeeded`、退出码0。临时TMP／TEMP及UBA_ROOT仅作用于验证进程，未改保存构建配置或引擎文件。新增禁用热重载断言后的脚本隔离检查重新**13/13通过**；218份主Source与已成功构建的隔离快照相同，1172份保存资产逐份SHA-256全同。既有相机C4305及UBA缓存提示保留。UE启动重试仍无日志／报告，**六项UE专项仅确认已编译，实际Input界面及保存车型驾驶尚未验收**。

@@ -56,3 +56,13 @@
 主工程218份Source与先前成功构建的隔离快照逐文件相同；1172份保存资产相对原基线逐份SHA-256全同。再次直接启动隔离UnrealEditor-Cmd仍未产生日志或报告，不能记录六项UE测试执行或通过；实际Details显示、当前保存车型校验和真人驾驶仍待验收。当前新版主工程DLL已经生成，下一入口为重新打开Editor检查Car_02的Class Defaults → Vehicle → Input，再运行本页列出的两组自动化。两份新DA的Ready与车型配置要求继续适用。
 
 编译、脚本夹具、资产完整性与未完成检查见[结构化证据](Vehicle_Input_Preview_Verification_20261030.json)中的`completion_verification`。
+
+### 2026-10-30 Car_02输入不响应诊断
+
+当前`main/781da01`已包含预览与统一构建代码。团队16:12:53及16:13:54两次Car_02运行均先记录`using VehicleDefinition DA_Vehicle_Car_02`，随后报`TieredV1 rules require migrated VehicleDefinition.Impact. No default fallback.`；同轮16:14:29的Car_01读取`DA_Vehicle_Player_TestBaseline_v1`后正常开始物理步进。
+
+Car_02和Car_01的保存Definition都引用共享`DA_Local_TestBaseline_v1`。Car_02保存包未提供Impact覆盖，沿用原生`FHALVehicleImpactConfig.Version=Legacy`；Car_01保存包包含TieredV1。结合当前源码和实际运行拒绝日志，阻塞点为车型Impact版本与共享TieredV1规则不匹配。`ApplyDefinition(false)`已先读取输入，随后`CheckConfiguredRules()`失败使`bConfigurationValid=false`，关闭车辆物理并跳过输入Action绑定和Mapping Context添加。Input预览读取不受该玩法门槛影响，因此显示正确仍可能无法驾驶。
+
+团队手动修正位置为`DA_Vehicle_Car_02 → Impact → Version`，从Legacy设为TieredV1并保存，重新Play后检查原错误消失与基本驾驶。该项只涉及DA配置，无需重新编译。生成器当前新建Definition沿用Legacy原生初值，没有自动处理当前项目的这一迁移；此前新增的运行初始化测试使用临时Legacy夹具，不能覆盖本次保存车型的共享TieredV1门槛。
+
+本轮仅检查已有日志、源码及保存包引用／名称，没有修改Blueprint、DA或C++，也没有新编译／运行测试。保留团队GameMode未提交修改；修正后实际驾驶尚未验证。详见[本次诊断证据](Car02_Input_ConfigDiagnosis_20261030.json)。

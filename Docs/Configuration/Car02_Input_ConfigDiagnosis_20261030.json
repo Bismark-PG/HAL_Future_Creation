@@ -1,0 +1,76 @@
+{
+  "recorded_at": "2026-10-30T16:21:59.7820350+09:00",
+  "timezone": "Asia/Tokyo",
+  "git_head": "781da015630e8267e36fc2f66bd8dbcf5b477729",
+  "engine": "5.8.3-58210709",
+  "scope": "Read-only diagnosis of Car_02 input failure after shared Local Config binding",
+  "initial_user_change": "Content/Blueprints/Gamemode/BP_MVPB_ListenGameMode.uasset",
+  "logs": [
+    {
+      "path": "Saved/Logs/HAL_Future_Creation-backup-2026.10.30-07.13.19.log",
+      "car02_attempt": "2026-10-30T16:12:53+09:00",
+      "error": "TieredV1 rules require migrated VehicleDefinition.Impact. No default fallback."
+    },
+    {
+      "path": "Saved/Logs/HAL_Future_Creation-backup-2026.10.30-07.14.05.log",
+      "car02_attempt": "2026-10-30T16:13:54+09:00",
+      "definition_line": 1582,
+      "error_line": 1584,
+      "ball_disabled_line": 1590
+    },
+    {
+      "path": "Saved/Logs/HAL_Future_Creation.log",
+      "car01_attempt": "2026-10-30T16:14:29+09:00",
+      "definition": "DA_Vehicle_Player_TestBaseline_v1",
+      "physics_step": "2026-10-30T16:14:31+09:00"
+    }
+  ],
+  "finding": {
+    "local_config": "/Game/Data/MVP_B/DA_Local_TestBaseline_v1",
+    "car02_definition": "/Game/Data/MVP_B/DA_Vehicle_Car_02",
+    "car02_impact_version": "Legacy, inferred from native default plus missing serialized Impact override and confirmed non-TieredV1 runtime rejection",
+    "car01_impact_version": "TieredV1 name present in saved package; no matching runtime rejection in the successful comparison run",
+    "shared_rules": "TieredV1 required",
+    "pipeline": "ApplyDefinition(false) reads Local Config, then CheckConfiguredRules fails; bConfigurationValid=false disables simulation and skips SetupPlayerInputComponent/AddDefaultInputContext."
+  },
+  "generator_cause": "Create uses NewObject<UVehicleDefinition> with native Impact.Version=Legacy and does not migrate the new model to TieredV1.",
+  "inspection_method": "Existing runtime logs, current C++ guards and saved package name/reference strings; no Unreal property export, no Blueprint edits.",
+  "manual_correction": {
+    "asset": "DA_Vehicle_Car_02",
+    "field": "Impact.Version",
+    "before": "Legacy",
+    "after": "TieredV1",
+    "recompile_required": false,
+    "action": "Team edits and saves the DA in Editor, then restarts Play and checks the initialization error and driving.",
+    "applied_by_agent": false
+  },
+  "protected_assets": [
+    {
+      "Path": "Content/Blueprints/Vehicles/BP_VehiclePawn_Car_02.uasset",
+      "SHA256": "763D73F99BD3F2B22E55E61F7C123610D2EAC9726DCF78D5C31D7FE7E1FA333B"
+    },
+    {
+      "Path": "Content/Blueprints/Vehicles/BP_RoundedVehiclePawn.uasset",
+      "SHA256": "D6C767001EB1A5C09A62134130C4234A638F637429E2CB1FE036EF483FAF4A7F"
+    },
+    {
+      "Path": "Content/Data/MVP_B/DA_Vehicle_Car_02.uasset",
+      "SHA256": "1226D287E2D074CBBADF33E7873C341A9EA59C9B9EF42124B12A500F4B180D71"
+    },
+    {
+      "Path": "Content/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.uasset",
+      "SHA256": "76EAF03ED1503D92DCBF3039074BA826695FCD913FB8E9DF72021B6DECC4E625"
+    },
+    {
+      "Path": "Content/Data/MVP_B/DA_Local_TestBaseline_v1.uasset",
+      "SHA256": "18DE835DF34FBF02CFE2FD6925097B2D089C4A8F82DAB21B9F4F0750A9D4AD88"
+    },
+    {
+      "Path": "Content/Blueprints/Gamemode/BP_MVPB_ListenGameMode.uasset",
+      "SHA256": "73F15732B72AB8416F5B9B3BA9E899DB1BCE3B1A9B06D4B2B867935945261EF2"
+    }
+  ],
+  "cpp_changed": false,
+  "new_build_or_automation_run": false,
+  "post_correction_gameplay_tested": false
+}
