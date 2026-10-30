@@ -1,5 +1,30 @@
 # 编译、重新构建并启动 Editor 工具
 
+## 2026-10-30：重新整合后的当前入口
+
+同日车辆蓝图引用显示补充：Input预览的Editor C++现已加入当前源码，由本入口构建的现有Editor模块注册；旧Build_Editor.cmd已由用户删除，无需恢复。运行`BuildAndLaunch.cmd`即可按需编译这些新源文件；`-Rebuild`仍可用于官方完整重新构建。已有Car_02与新生成车型使用同一套只读读取，详见[车辆输入引用显示](Vehicle_Input_Preview_CN_v0.1.md)。主工程新版DLL已完成编译／链接；UBA启用时收尾阻塞，最终以`-NoUBA`原生构建核对返回Succeeded／0。脚本隔离检查重新13/13通过，六项UE自动化及蓝图界面验收仍待完成；详细证据见引用显示说明的主工程收尾核对，不将隔离夹具或编译成功记作界面验收。
+
+当前统一使用根目录 **BuildAndLaunch.cmd**。此前在干净的`main/945e616`重新核对，实际文件仍为旧的整份解决方案MSBuild流程，已恢复独立整合版并重新验证。旧`Build_Editor.cmd`现已删除；根目录统一入口不引用它或Tools目录。`Tools/BuildEditor.ps1`现在仅转发到统一入口的`-NoLaunch`模式。
+
+完整构建参数现明确包含`-NoHotReload -NoLiveCoding`，保留旧入口禁用Hot Reload的行为；默认编译和`-Rebuild`都生成正常Editor模块。生成器和Input预览同属该模块，普通运行本入口即可编译新增源码并在下次Editor启动时注册，无需单独的编辑器重构脚本。
+
+| 操作 | 统一入口 |
+|---|---|
+| 编译成功后打开Editor | `BuildAndLaunch.cmd` |
+| 只编译 | `BuildAndLaunch.cmd -NoLaunch` |
+| 只检查工程／引擎／目标／进程占用 | `BuildAndLaunch.cmd -CheckOnly` |
+| 官方重新构建 | `BuildAndLaunch.cmd -Rebuild -NoLaunch` |
+| 结果窗口等待按键 | 添加`-Pause` |
+| 指定引擎或Editor Target | 添加`-EngineRoot`或`-EditorTarget` |
+
+整合内容包括引擎注册／Launcher／默认路径定位、实际版本与CL显示、Source目标定位、Editor／游戏／Live Coding占用检查、逐次日志／Result.json、真实构建退出码保留、失败不启动，以及成功后自动打开Editor和0～30秒启动早退观察。保留缺少同名解决方案时的生成能力；实际编译直接调用目标引擎Build.bat构建项目Editor Target。`-MSBuildPath`只作兼容提示，不再编译整份解决方案。
+
+每次实际生成／编译的日志位于`Saved/BuildTool/BuildAndLaunch_日期时间_短ID`，包含Console.log、Result.json和由Unreal写入的构建／启动日志。CheckOnly与前置失败不建立构建日志目录。`-NoPopup`仅输出控制台错误；`-Pause`为可选交互行为，默认不阻塞终端。显式选择与EngineAssociation不同主次版本时显示警告，由UnrealBuildTool检查兼容性。
+
+本机实际UE5.8.3-58210709。本次Windows PowerShell5.1语法检查、**13/13独立假引擎／进程检查**及真实路径CheckOnly通过。测试覆盖单文件便携、生成／编译及其失败码、已有解决方案、空目标、三类占用、Rebuild和启动成功／早退。启动进程为模拟句柄，宿主进程在工具沙箱中不可完整枚举，不能把CheckOnly返回0当作宿主Editor已退出。**本轮未执行真实Unreal编译、Editor启动或玩法／界面验收。** 可复测入口为`Tools/Tests/TestBuildAndLaunch.ps1`，本轮证据见[重新整合验证](Build_And_Launch_Reintegration_Verification_20261030.json)。
+
+以下2026-10-20／28内容保留各自历史含义。当前入口及命令以上节为准，历史构建通过不代替本次真实构建验证。
+
 ## 2026-10-28：BuildAndLaunch.cmd修复与用法
 
 推荐入口为工程根目录 **BuildAndLaunch.cmd**，可以单独复制到其他同名C++ Editor Target工程的`.uproject`旁；不依赖Tools目录、Visual Studio界面、已有`.sln`或`.slnx`。保留原有Build_Editor.cmd作为只编译的旧入口，两者行为不同。

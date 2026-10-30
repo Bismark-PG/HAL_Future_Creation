@@ -2,6 +2,9 @@
 
 #include "SHALVehicleCollisionGenerator.h"
 #include "SHALVehicleAlignment.h"
+#include "HALVehicleInputDetails.h"
+#include "PropertyEditorModule.h"
+#include "TestVehiclePawn.h"
 #include "VehicleAssetGenerator/HALVehicleAssetGenerator.h"
 #include "Framework/Docking/TabManager.h"
 #include "ToolMenus.h"
@@ -15,6 +18,10 @@ public:
 	virtual void StartupModule() override
 	{
 		if (IsRunningCommandlet() || IsRunningGame()) { return; }
+		auto& PropertyEditor = FModuleManager::LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
+		PropertyEditor.RegisterCustomClassLayout(ATestVehiclePawn::StaticClass()->GetFName(),
+			FOnGetDetailCustomizationInstance::CreateStatic(&FHALVehicleInputDetails::MakeInstance));
+		PropertyEditor.NotifyCustomizationModuleChanged();
 		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("HALVehicleCollisionGenerator"),
 			FOnSpawnTab::CreateLambda([](const FSpawnTabArgs&) {
 				return SNew(SDockTab).TabRole(ETabRole::NomadTab) [ MakeHALVehicleCollisionGenerator() ];
@@ -39,6 +46,11 @@ public:
 	virtual void ShutdownModule() override
 	{
 		if (!bRegisteredUI) { return; }
+		if (auto* PropertyEditor = FModuleManager::GetModulePtr<FPropertyEditorModule>(TEXT("PropertyEditor")))
+		{
+			PropertyEditor->UnregisterCustomClassLayout(ATestVehiclePawn::StaticClass()->GetFName());
+			PropertyEditor->NotifyCustomizationModuleChanged();
+		}
 		UToolMenus::UnRegisterStartupCallback(this);
 		if (UToolMenus::IsToolMenuUIEnabled()) { UToolMenus::UnregisterOwner(this); }
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("HALVehicleCollisionGenerator"));

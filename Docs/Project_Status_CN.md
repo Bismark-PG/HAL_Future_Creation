@@ -1,5 +1,19 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-10-30统一构建入口与生成蓝图引用预览收尾核对完成。** 当前仍为`main/945e616`，保留现有未提交改动及用户删除`Build_Editor.cmd`的状态。现有Editor模块已注册只读Input预览，已有Car_02和之后生成的车型直接读取`Definition.LocalConfig`中的来源及十项输入引用；运行初始化仍从同一共享Local读取。统一入口补回旧脚本的`-NoHotReload`并显式带`-NoLiveCoding`，普通构建及`-Rebuild`均覆盖Editor模块，无需另一个重构脚本。没有复制输入默认值或修改保存的Blueprint／DA／地图。
+
+本轮主工程UE5.8.3-58210709经统一入口完成29项编译／链接／元数据任务，UBA启用时在收尾阶段未退出，三个专用构建会话已结束；随后以相同完整构建参数加`-NoUBA`调用引擎Build.bat，确认主工程Target最新并返回`Result: Succeeded`、退出码0。临时TMP／TEMP及UBA_ROOT仅作用于验证进程，未改保存构建配置或引擎文件。新增禁用热重载断言后的脚本隔离检查重新**13/13通过**；218份主Source与已成功构建的隔离快照相同，1172份保存资产逐份SHA-256全同。既有相机C4305及UBA缓存提示保留。UE启动重试仍无日志／报告，**六项UE专项仅确认已编译，实际Input界面及保存车型驾驶尚未验收**。
+
+当前下一步为重开Editor，在已有或新生成BP的Class Defaults → Vehicle → Input核对共享来源及引用，并在Session Frontend运行`HAL.Editor.VehicleInputPreview`和`HAL.Editor.VehicleAssetGenerator`。新车型碰撞、表现／AnimBP与两份DA的Ready校验保持原流程，预览正确不能替代车型玩法验收。详见[引用显示与本轮验证](Configuration/Vehicle_Input_Preview_CN_v0.1.md#2026-10-30主工程收尾核对)及[结构化证据](Configuration/Vehicle_Input_Preview_Verification_20261030.json)。本轮未提交／Push，其他开发与团队验收欠项保持。
+
+以下同日早先记录保留各次验证时点，当前主工程构建结果以上段为准。
+
+**2026-10-30生成蓝图输入引用显示代码补齐，隔离Editor构建通过。** 仍基于`main/945e616`，保留已整合的BuildAndLaunch、说明／测试改动及用户删除Build_Editor.cmd的状态。此前当前源码缺少车辆Details定制，本轮在原Editor模块加入只读Input预览及注册：从实际Definition.LocalConfig直接显示来源和十项输入，不向Pawn复制默认值；已有Car_02及生成器之后创建的车型均适用，Legacy／游戏世界保持原行为。生成器原有四份资产引用链不变，补充预览来源断言与临时有效配置下的生成蓝图运行初始化测试；没有保存或修改原始蓝图／DA／地图。
+
+本机实际UE5.8.3-58210709在工程内独立快照完整构建Editor Target成功，最终新增测试源已显式触发编译并完成链接；218份主Source与最终快照哈希相同，1172份原保存资产前后逐份哈希全同。原C4305及UBA结果存储提示保持。**六项相关UE测试只完成编译，Cmd／普通Editor离屏启动均无日志／报告，不能确认执行或标记通过；实际Input界面、保存车型玩法校验及真人驾驶尚未本轮验收。** 此结果不替代主工程在关闭Editor后由统一入口生成并加载新版DLL。详见[读取位置、生成／运行链与接续步骤](Configuration/Vehicle_Input_Preview_CN_v0.1.md)及[证据](Configuration/Vehicle_Input_Preview_Verification_20261030.json)。两份新生成DA的Ready和车型配置门槛保持；当前下一步为保存退出Editor后运行BuildAndLaunch，打开已有或新生成BP检查Input并运行两组专项。本轮未提交／Push，自救调参／F4／四机欠项保持。
+
+**2026-10-30构建脚本重新整合完成。** 当前实际基点`main/945e616a9d03ba776f1def0b69a52a36b1af700c`，开工工作区干净；本机实际UE5.8.3-58210709，下方5.8.2为先前设备验证。根目录BuildAndLaunch.cmd实际仍为旧MSBuild流程，已重新整合为独立单文件入口：直接Build.bat构建Editor Target，包含引擎／目标／占用检查、真实退出码、日志／Result.json、NoLaunch／CheckOnly／Rebuild／Pause及成功后启动／早退检查。旧Build_Editor.cmd保持原样供用户删除，Tools/BuildEditor.ps1仅转发NoLaunch，统一入口不依赖二者。Windows PowerShell5.1语法、**13/13新一轮独立模拟**、本机路径CheckOnly通过；没有执行本轮真实Unreal编译、启动或玩法验收，不使用旧测试冒充本次运行。只修改脚本／测试及相关文档，Source／Config／Content保持；未提交／Push。详见[当前用法](Configuration/Build_Editor_Tool_CN.md#2026-10-30重新整合后的当前入口)与[本轮验证](Configuration/Build_And_Launch_Reintegration_Verification_20261030.json)。自救保存参数／真人复测、F4及四机欠项保持原范围。
+
 **2026-10-29自救角速单位澄清。** 团队截图末行Maximum Recovery Angular Speed显示229.183121deg/s，对应之前只读内部4rad/s；较快建议内部6rad/s应在当前deg/s输入框填写约343.774677，不填裸数字6。前步口头说明未注明显示单位，已补[配置表与输入方法](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#92-团队editor调参步骤)。截图Minimum Recovery Tilt与Drive Exit Tilt均为65°，该角度关系现已正确；是否已保存并恢复实际驾驶仍待团队确认，不以截图冒充运行验收。本轮仅改说明，无C++／资产修改、构建或新测试，原诊断JSON和验证结果保持各自时点。
 
 **2026-10-29调参后Host无法操作已定位为保存配置无效，待团队改值复测。** 最新实际游戏日志先报Invalid Recovery／Vehicle blocked，随后已进入Playing；只读当前共享DA发现Minimum Recovery Tilt=60°小于Drive Exit Tilt=65°，导致共享规则初始化主动阻止车辆。团队按[自救9.4节](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#94-调参后host无法操作保存配置诊断2026-10-29)将Minimum Recovery Tilt改为65°并保存、新开局；Maximum Recovery Angular Speed仍为4，如使用较快组合另改6，与启动阻塞原因独立。无需新编译或改输入。保留本地Stability／Local两份DA和前步源码／文档，代理本轮无资产或C++修改；只读诊断1/1，不将其记为无效DA通过校验、恢复驾驶或真人自救验收。新证据见[配置诊断](Movement/MVPB_Vehicle_Recovery_ConfigDiagnosis_20261029.json)，原104项与双端结果保持原时点。
@@ -191,9 +205,9 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
 | 开发阶段 | 电墙／静态Visual等前步已提交；侧翻自救边界与反馈修正完成构建、104普通及基础双端，较快响应等待团队保存DA／真人复测；动态相机／F4／四机原安排保持 |
-| 当前本机分支／代码提交 | `main / ac9ffe1`；已含上次集成、车型资源重命名及团队地图更新，本轮自救修正与留档未提交／Push |
-| 引擎基线 | 本机UE `5.8.2-56702186`；本轮Editor／Game成功、104普通、自救左右侧双端均各1项通过；前步103／3工具及其他双端保持独立历史 |
-| 本机运行前置 | 新Editor DLL已完整链接，可重开配置主球；其他设备同步源码／资产、统一补丁并完整重编，不能用旧DLL或LiveCoding状态代替。本轮未自动重开Editor |
+| 当前本机分支／代码提交 | `main / 945e616`；统一构建入口与本轮Editor输入预览代码／测试／说明均未提交；保留用户删除旧Build_Editor.cmd |
+| 引擎基线 | 本机实际UE `5.8.3-58210709`；本轮独立快照完整Editor构建及最终测试源链接通过，六项UE专项未确认执行；脚本13项模拟及其他历史结果保持各自范围 |
+| 本机运行前置 | 保存退出Editor／游戏／Live Coding后由统一入口构建并加载主工程新DLL，核对生成蓝图Input只读引用；无需重建已有Car_02资产。真人界面／驾驶仍待验证 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
 | GAS 当前实现 | 原加速／免疫与Primary接线保留；共用Stun为原生GE及服务器ASC.ApplyStun（较晚结束时间、Avatar清理），主机HALStun调试指令保留；区域GE与Stun共用运动桥接，无新玩家施加RPC或库存框架 |
 | 场地持续运动效果 | 原生区域无ASC／GA，服务器按来源逐参数选最强并施加两类内部GE；加速度／上限／抓地与普通Buff增量合并，合并版3物理历史保存恢复曲线、实际消费值与Stun权限，DA不改；无需修改PlayerState.DefaultAbilities |

@@ -2,6 +2,8 @@
 
 更新：2026-10-23。工具属于现有 `HAL_Future_CreationEditor` 模块，通过 Editor 的 **Tools → HAL Tools → HAL Vehicle Asset Generator** 启动。公开接口位于 `Source/HAL_Future_CreationEditor/Public/VehicleAssetGenerator`，实现位于对应 Private 目录。
 
+2026-10-30输入引用显示补充：已在现有Editor模块加入车辆Details只读预览，生成蓝图及已有Car_02的Input直接显示当前Definition.LocalConfig中的十项输入引用和来源。共享Local不变，显示不复制Pawn旧默认值；构建统一由BuildAndLaunch.cmd负责。具体读取位置、运行初始化及验证边界见[输入引用显示](Vehicle_Input_Preview_CN_v0.1.md)。
+
 2026-10-23车型独立配置修正：面板仅选择 Skeletal Mesh 和共享车辆 Network Physics DA，已删除 Shared Vehicle Defaults 输入、参数和复制来源。每次直接新建独立 `UVehicleDefinition`，使用 C++ 初始参数，并自动引用固定共享资产 `/Game/Data/MVP_B/DA_Local_TestBaseline_v1`。生成器直接从原生 `ATestVehiclePawn` 创建玩家蓝图，连接本车型的新 Definition／Presentation；生产实现与核心测试均无需现有车辆 Definition 或 Blueprint。最终只生成两个 DA、一个 BP 和一个空 AnimGraph 的 ABP。
 
 2026-10-22菜单恢复历史基点为 `main/5f6c9ef`；本轮接收云端 `main/ad3e4d4`，保留 VP-3 实现及原有碰撞、视觉高度校准入口。Build.cs 已具备所需依赖及平铺头文件目录，本轮保持内容。HAL Tools 是 Tools 菜单内的分组标题，界面中可能直接列出三个工具。

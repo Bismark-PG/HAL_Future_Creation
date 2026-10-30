@@ -8,13 +8,17 @@
 #include "Animation/AnimBlueprint.h"
 #include "Engine/Blueprint.h"
 #include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/World.h"
 #include "Components/ActorComponent.h"
 #include "HALVehicleAnimInstance.h"
 #include "HALVehiclePresentationConfig.h"
+#include "HALVehicleInputDetails.h"
 #include "Misc/AutomationTest.h"
 #include "Misc/PackageName.h"
 #include "Physics/NetworkPhysicsSettingsComponent.h"
 #include "TestVehiclePawn.h"
+#include "Tests/HALLegacyCombatTestRules.h"
 #include "UObject/Package.h"
 #include "UObject/UnrealType.h"
 #include "VehicleDefinition.h"
@@ -37,6 +41,55 @@ namespace
 		const auto* Property = Object ? FindFProperty<FObjectPropertyBase>(Object->GetClass(), Name) : nullptr;
 		return Property ? Property->GetObjectPropertyValue_InContainer(Object) : nullptr;
 	}
+	struct FGeneratorRuntimeWorld
+	{
+		FScopedHALLegacyCombatTestRules LegacyRules;
+		UWorld* World;
+		FGeneratorRuntimeWorld()
+		{
+			const auto Values = UWorld::InitializationValues().AllowAudioPlayback(false).RequiresHitProxies(false)
+				.CreatePhysicsScene(true).CreateNavigation(false).CreateAISystem(false).CreateFXSystem(false)
+				.ShouldSimulatePhysics(false).EnableTraceCollision(true).SetTransactional(false);
+			World = UWorld::CreateWorld(EWorldType::Game, false, NAME_None, nullptr, true, ERHIFeatureLevel::Num, &Values);
+		}
+		~FGeneratorRuntimeWorld() { if (World) { World->DestroyWorld(false); } }
+	};
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALVehicleGeneratedInputInitializationTest, "HAL.Editor.VehicleAssetGenerator.RuntimeInputInitialization",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALVehicleGeneratedInputInitializationTest::RunTest(const FString&)
+{
+	FGeneratorFixture F;
+	FString Error;
+	if (!TestTrue(TEXT("Generate a transient vehicle set for runtime initialization"), HALVehicleAssets::Create(F.Mesh.Get(), F.SharedNetwork.Get(), F.Generated, Error)))
+	{
+		AddError(Error); return false;
+	}
+	auto* Definition = Cast<UVehicleDefinition>(F.Generated.Assets[2].Get());
+	auto* Blueprint = Cast<UBlueprint>(F.Generated.Assets[3].Get());
+	const auto* Baseline = LoadObject<UVehicleDefinition>(nullptr, TEXT("/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.DA_Vehicle_Player_TestBaseline_v1"));
+	if (!TestTrue(TEXT("Read the project's real convex mesh without copying another model's tuning"), Baseline && Baseline->CollisionMesh)) { return false; }
+	// A valid static fallback isolates input initialization from the team's empty AnimGraph/wheel calibration.
+	Definition->CollisionMesh = Baseline->CollisionMesh;
+	Definition->Visual.Mesh = Baseline->CollisionMesh;
+	Definition->Presentation = nullptr; // This input-only fixture explicitly selects the static presentation path.
+	Definition->bReadyForUse = true;
+	if (!TestTrue(TEXT("Only the transient fixture is made gameplay-ready"), Definition->Validate(Error))) { AddError(Error); return false; }
+	FGeneratorRuntimeWorld Fixture;
+	if (!TestNotNull(TEXT("Transient runtime world"), Fixture.World)) { return false; }
+	auto* Vehicle = Fixture.World->SpawnActor<ATestVehiclePawn>(Blueprint->GeneratedClass);
+	if (!TestNotNull(TEXT("Generated Blueprint class spawns through the normal native Pawn path"), Vehicle)) { return false; }
+	Vehicle->PreInitializeComponents();
+	TestTrue(TEXT("Generated vehicle accepts the configured runtime path"), Vehicle->IsConfigurationValid());
+	for (TFieldIterator<FObjectPropertyBase> It(ATestVehiclePawn::StaticClass(), EFieldIterationFlags::None); It; ++It)
+	{
+		if (It->GetMetaData(TEXT("Category")) != TEXT("Vehicle|Input")) { continue; }
+		const auto* LocalProperty = FindFProperty<FObjectPropertyBase>(UVehicleLocalConfig::StaticClass(), It->GetFName());
+		TestTrue(*FString::Printf(TEXT("Runtime initializes %s from the same shared source shown in Details"), *It->GetName()),
+			LocalProperty && It->GetObjectPropertyValue_InContainer(Vehicle) == LocalProperty->GetObjectPropertyValue_InContainer(F.SharedLocal.Get()));
+	}
+	return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALVehicleAssetNamingTest, "HAL.Editor.VehicleAssetGenerator.Naming",
@@ -102,6 +155,15 @@ bool FHALVehicleAssetGenerationTest::RunTest(const FString&)
 	TestTrue(TEXT("Vehicle links new Definition"), HALVehicleAssets::ReadDefinition(Pawn) == Definition);
 	auto* Defaults = Cast<ATestVehiclePawn>(Pawn->GeneratedClass->GetDefaultObject());
 	TestTrue(TEXT("Definition mode retained after compile"), Defaults && Defaults->GetConfigurationSource() == EVehicleConfigurationSource::Definition);
+	TestTrue(TEXT("Generated Blueprint resolves its shared Local Config even while the vehicle is a draft"),
+		HALVehicleInputPreview::LocalConfig(Defaults) == F.SharedLocal.Get());
+	for (TFieldIterator<FObjectPropertyBase> It(ATestVehiclePawn::StaticClass(), EFieldIterationFlags::None); It; ++It)
+	{
+		if (It->GetMetaData(TEXT("Category")) != TEXT("Vehicle|Input")) { continue; }
+		const auto* LocalProperty = FindFProperty<FObjectPropertyBase>(UVehicleLocalConfig::StaticClass(), It->GetFName());
+		TestTrue(*FString::Printf(TEXT("Generated Blueprint previews shared %s"), *It->GetName()),
+			LocalProperty && HALVehicleInputPreview::Input(Defaults, It->GetFName()) == LocalProperty->GetObjectPropertyValue_InContainer(F.SharedLocal.Get()));
+	}
 	UObject* ChildNetwork = ObjectProperty(Defaults, TEXT("NetworkPhysicsSettings"));
 	TestTrue(TEXT("Selected shared network settings retained after compile"), ChildNetwork && ObjectProperty(ChildNetwork, TEXT("SettingsDataAsset")) == F.SharedNetwork.Get());
 	TestTrue(TEXT("Independent network component template"), ChildNetwork != NativeNetwork);

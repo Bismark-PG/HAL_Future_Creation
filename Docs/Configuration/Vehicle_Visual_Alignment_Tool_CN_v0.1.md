@@ -6,7 +6,7 @@
 
 ## 1. 入口与首次使用
 
-1. 同步本轮Editor模块源码、Build.cs和说明；先保存工作，关闭Editor／游戏／Live Coding，再运行根目录`Build_Editor.cmd`。没有新增插件或工具蓝图。
+1. 同步本轮Editor模块源码、Build.cs和说明；先保存工作，关闭Editor／游戏／Live Coding，再运行根目录`BuildAndLaunch.cmd`。没有新增插件或工具蓝图。
 2. 编译成功后重新打开项目，在Content Browser选中**实际使用的Vehicle Definition**。当前玩家通常为`/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1`。不要选模型、碰撞Mesh、表现DA或Pawn蓝图。
 3. 打开顶部 **Tools → HAL Tools分组 → HAL Vehicle Visual Alignment**。HAL Tools是分组标题，不一定是子菜单。
 4. 工具会尝试读取当前选择；选择尚未完成或已有面板时，点击 **Analyze Selected Vehicle**。此时只测量，不修改资产。

@@ -1,0 +1,137 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Asia/Tokyo",
+  "git_head": "945e616a9d03ba776f1def0b69a52a36b1af700c",
+  "initial_worktree": "Clean",
+  "engine": "5.8.3-58210709",
+  "scope": "Reintegrate the standalone build launcher on the current checkout",
+  "entry": "BuildAndLaunch.cmd",
+  "entry_sha256": "5FFBE36009AF87BA4E3CAA3305154A1FA556D4AA2242845C7FE01661F58C1C89",
+  "legacy_root_cmd": "Preserved unchanged; user will delete it",
+  "legacy_ps1": "Only forwards to root CMD with -NoLaunch",
+  "standalone": "Validated in portable fixtures without Tools or Build_Editor.cmd",
+  "fixture_results": [
+    {
+      "Name": "PortablePreflight",
+      "ExitCode": 0,
+      "Passed": true
+    },
+    {
+      "Name": "GenerateAndBuildOnly",
+      "ExitCode": 0,
+      "Passed": true
+    },
+    {
+      "Name": "ExistingSolution",
+      "ExitCode": 0,
+      "Passed": true
+    },
+    {
+      "Name": "PreserveBuildFailure",
+      "ExitCode": 6,
+      "Passed": true
+    },
+    {
+      "Name": "PreserveGenerationFailure",
+      "ExitCode": 7,
+      "Passed": true
+    },
+    {
+      "Name": "MissingTarget",
+      "ExitCode": 1,
+      "Passed": true
+    },
+    {
+      "Name": "EditorGuard",
+      "ExitCode": 1,
+      "Passed": true
+    },
+    {
+      "Name": "LiveCodingGuard",
+      "ExitCode": 1,
+      "Passed": true
+    },
+    {
+      "Name": "ProjectGameGuard",
+      "ExitCode": 1,
+      "Passed": true
+    },
+    {
+      "Name": "OfficialRebuild",
+      "ExitCode": 0,
+      "Passed": true
+    },
+    {
+      "Name": "DeprecatedMSBuildPath",
+      "ExitCode": 0,
+      "Passed": true
+    },
+    {
+      "Name": "LaunchSuccessMock",
+      "ExitCode": 0,
+      "Passed": true
+    },
+    {
+      "Name": "LaunchEarlyExitMock",
+      "ExitCode": 1,
+      "Passed": true
+    }
+  ],
+  "fixture_report": "Saved/BuildTool/LauncherIntegration_4858fe0ef263430b9c3739502e55aba2/Results.json",
+  "checks": {
+    "source_config_content_changes": 0,
+    "real_paths_check_only": "Passed, exit 0",
+    "legacy_root_cmd_changes": 0,
+    "windows_powershell_5_1_syntax": "Passed"
+  },
+  "limits": [
+    "No real Unreal compile, Rebuild or Editor launch in this task.",
+    "Process guards and launch startup/early-exit use mock process data; sandbox process enumeration does not prove host Editor closure.",
+    "Existing 5.8.2 gameplay test results remain historical."
+  ],
+  "git_commit_created": false,
+  "completion_verification": {
+    "date": "2026-10-30T15:59:03.1593302+09:00",
+    "git_head": "945e616a9d03ba776f1def0b69a52a36b1af700c",
+    "entry": "BuildAndLaunch.cmd",
+    "final_entry_sha256": "A049F995CF22406B19A06BCBDDE39E897B71987E6F1E121E4C9B6DF4E77CE657",
+    "full_build_flags": [
+      "-NoHotReload",
+      "-NoLiveCoding"
+    ],
+    "launcher_fixture_count": 13,
+    "launcher_fixture_report": "D:\\UE Project\\HAL_Future_Creation\\Saved\\BuildTool\\LauncherIntegration_b0df8f42dad145808fdf71ace5d14015\\Results.json",
+    "main_editor_build": {
+      "ExitCode": 0,
+      "Result": "Succeeded",
+      "Log": "D:\\UE Project\\HAL_Future_Creation\\Saved\\VehicleReferencePreview\\20261030\\Completion_Editor_Build.log",
+      "Note": "Main-project 29-action compile/link/metadata completed through the unified entry. UBA-enabled process teardown stalled and was interrupted. A final main-project native Build.bat check with -NoUBA and the same full-build flags returned Succeeded, exit code 0, target up to date."
+    },
+    "interrupted_launcher_runs": [
+      "Saved/BuildTool/BuildAndLaunch_20261030_154800_356_568028",
+      "Saved/BuildTool/BuildAndLaunch_20261030_155028_334_aacc6a",
+      "Saved/BuildTool/BuildAndLaunch_20261030_155233_713_019346"
+    ],
+    "temporary_build_environment": "Process-only TMP/TEMP and UBA_ROOT use project Saved directories. No saved build configuration or engine files were changed.",
+    "main_binaries": [
+      {
+        "Path": "D:\\UE Project\\HAL_Future_Creation\\Binaries\\Win64\\UnrealEditor-HAL_Future_Creation.dll",
+        "SHA256": "B95008FEDC2D85087FD82F75FBE95776174985A6B71282BA1D15BEAB495FAB0C",
+        "LastWriteTime": "2026-10-30T15:55:01.1102453+09:00"
+      },
+      {
+        "Path": "D:\\UE Project\\HAL_Future_Creation\\Binaries\\Win64\\UnrealEditor-HAL_Future_CreationEditor.dll",
+        "SHA256": "E5AB32883E07D49757CC04D7441964B97B257B6F251CE18D34D89D88F773C508",
+        "LastWriteTime": "2026-10-30T15:56:05.4043856+09:00"
+      }
+    ],
+    "source_file_count": 218,
+    "source_snapshot_differences": [],
+    "asset_count": 1172,
+    "asset_differences": [],
+    "ue_automation": "Direct isolated UnrealEditor-Cmd retry returned 0 without log or report. None of the six UE tests is recorded as executed or passed.",
+    "legacy_cmd_deleted": true,
+    "gameplay_ready_gates_preserved": true,
+    "manual_next_step": "Reopen the Editor and inspect existing Car_02 Class Defaults / Vehicle / Input, then run both documented Automation groups. Model setup and Ready validation remain required."
+  }
+}
