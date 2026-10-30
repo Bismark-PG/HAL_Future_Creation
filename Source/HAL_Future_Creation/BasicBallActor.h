@@ -12,6 +12,7 @@ class USphereComponent;
 class UStaticMeshComponent;
 class UPrimitiveComponent;
 class UNetworkPhysicsSettingsComponent;
+class UHALBallPresentationComponent;
 
 class UBallDefinition;
 
@@ -96,6 +97,7 @@ public:
 	uint32 GetBallStateSequence() const { return RepState.StateSequence; }
 
 	USphereComponent* GetPhysicsRoot() const { return PhysicsRoot; }
+	UStaticMeshComponent* GetVisualMesh() const { return VisualMesh; }
 	bool IsPrimaryCameraTarget() const { return bPrimaryCameraTarget; }
 	/** Authority metadata only, never set from a client camera request. */
 	void SetPrimaryCameraTarget(bool bPrimary);
@@ -133,6 +135,8 @@ protected:
 	/** Optional per-ball PI tuning asset. Its mode override applies to simulated proxies. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ball|Components")
 	TObjectPtr<UNetworkPhysicsSettingsComponent> NetworkPhysicsSettings;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Ball|Components")
+	TObjectPtr<UHALBallPresentationComponent> BallPresentation;
 
 	/** Speed must stay below this value before Launched can return to Free. */
 	UPROPERTY(EditDefaultsOnly, Category = "Ball|State", meta = (ClampMin = "0.0", Units = "cm/s"))
@@ -167,6 +171,7 @@ private:
 	friend class FHALImpactBallPipelineTest;
 	friend class FControlledBallProxyPresentationTest;
 	friend class FHALCombatBallConsumptionTest;
+	friend struct FHALBallPresentationTestAccess;
 #endif
 	UFUNCTION()
 	void OnRep_BallRepState();

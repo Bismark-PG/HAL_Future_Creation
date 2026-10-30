@@ -118,6 +118,7 @@ private:
 	friend class FHALImpactBallPipelineTest;
 	friend class FConfigurationPlayerBallTest;
 	friend struct FHALRecoveryTestAccess;
+	friend struct FHALBallRelativeNetworkAccess;
 #endif
 	void EvaluateBallControl();
 	ABasicBallActor* FindBestCandidate() const;

@@ -201,8 +201,16 @@ EDataValidationResult Type::IsDataValid(FDataValidationContext& Context) const \
 	return EDataValidationResult::Valid; \
 }
 IMPLEMENT_CONFIG_VALIDATION(UVehicleDefinition)
-IMPLEMENT_CONFIG_VALIDATION(UBallDefinition)
 IMPLEMENT_CONFIG_VALIDATION(UVehicleLocalConfig)
 IMPLEMENT_CONFIG_VALIDATION(UCombatRulesDefinition)
 #undef IMPLEMENT_CONFIG_VALIDATION
+
+EDataValidationResult UBallDefinition::IsDataValid(FDataValidationContext& Context) const
+{
+	Super::IsDataValid(Context);
+	FString Error;
+	if (!Validate(Error) || !Presentation.Validate(Error))
+	{ Context.AddError(FText::FromString(Error)); return EDataValidationResult::Invalid; }
+	return EDataValidationResult::Valid;
+}
 #endif

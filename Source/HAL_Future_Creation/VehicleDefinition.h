@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HALBallPresentationTypes.h"
 #include "Engine/DataAsset.h"
 #include "Engine/Scene.h"
 #include "PhysicsEngine/BodyInstance.h"
@@ -238,6 +239,9 @@ public:
 	FBallGameplayConfig Gameplay;
 	UPROPERTY(EditAnywhere, Category = "Visual")
 	FVehicleVisualConfig Visual;
+	/** Optional client mesh presentation; invalid values fall back to the existing PI display. */
+	UPROPERTY(EditAnywhere, Category="Presentation")
+	FHALBallPresentationConfig Presentation;
 	bool Validate(FString& Error) const;
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;

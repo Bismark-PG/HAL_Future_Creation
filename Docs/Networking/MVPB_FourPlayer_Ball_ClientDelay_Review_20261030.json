@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-30T15:44:08+09:00",
+  "branch": "main",
+  "head": "945e616a9d03ba776f1def0b69a52a36b1af700c",
+  "engine": "5.8.2-56702186",
+  "scope": "四人客户端球延迟：只读检查与分析，不修实现。",
+  "initialWorkingTreeClean": true,
+  "userConfirmed": {
+    "localRole": "Client",
+    "affected": "own and remote held/capture/launch ball",
+    "network": "four computers on school wired network"
+  },
+  "evidenceDirectory": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\BallClientDelayReview\\20261030_153538",
+  "artifacts": [
+    {
+      "path": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\BallClientDelayReview\\20261030_153538\\UserFourPlayerClient.log",
+      "sha256": "295EC6CD89408779BC28F12A78457B8FD72A9DBE39D56CC423C0E3FCE358C516"
+    },
+    {
+      "path": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\BallClientDelayReview\\20261030_153538\\ReadOnlyRuntime.log",
+      "sha256": "5946648459E7EB4D8A11D254BE2C788F13125F1CFFC96C450E6D25EA661BFB39"
+    },
+    {
+      "path": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\BallClientDelayReview\\20261030_153538\\AssetsBefore.json",
+      "sha256": "99ABFBE8C7DB4512894F89E52FF893557F826A649A5CEC9C74DFFC20E6610173"
+    }
+  ],
+  "runtimeInspection": {
+    "mode": "Independent UnrealEditor-Cmd -game NetTest, NullRHI, no input; getall only then quit",
+    "pid": 36472,
+    "exitCode": 0,
+    "ballInstance": "BP_BasicBall_C_1",
+    "replicationMode": "PredictiveInterpolation",
+    "ballSettingsAsset": "/Game/Data/Network/DA_NetworkPhysics_Ball_MVPB",
+    "simProxyModeOverride": true,
+    "netUpdateFrequency": 100,
+    "minNetUpdateFrequency": 2,
+    "netPriority": 1,
+    "netDormancy": "DORM_Awake",
+    "actualFourPlayerSendRateMeasured": false,
+    "piPositionAndRotationOverridesEnabled": false,
+    "defaultPositionCorrectionMinSeconds": 0.1,
+    "defaultPositionCorrectionRTTMultiplier": 1,
+    "defaultPositionInterpolationMultiplier": 1.1,
+    "eventSchedulingMinDelaySeconds": 0.3,
+    "eventDelayIsNotRegularBallLaunchTimer": true,
+    "acquisitionIntervalSeconds": 0.05,
+    "controlPositionStrength": 35,
+    "controlVelocityStrength": 8,
+    "controlMaxForce": 40000
+  },
+  "actualClientLog": {
+    "joinUtc": "2026-10-30 06:18:06",
+    "server": "10.192.93.141:7777",
+    "map": "/Game/Maps/MVPB_NetTest",
+    "vehicleHistoryActors": 4,
+    "firstLocalPhysicsDeltaSeconds": 0.016667,
+    "ballStateDiagnostics": 0,
+    "launchDiagnostics": 0,
+    "invalidSimulateOrEnsureOrFatalSeen": false,
+    "hostCloseUtc": "2026-10-30 06:25:30",
+    "hostCloseDoesNotProveEarlierDelayCause": true,
+    "hostLogAvailable": false,
+    "pingOrLossOrHostFrameTimeOrBallReceiveIntervalsMeasured": false
+  },
+  "findings": [
+    "自动捕获和吸引约束只在服务器；客户端球持续依赖服务器刚体复制和PI。",
+    "本地车辆有输入预测，持球球体无本地约束预测；观察远端车与球也是独立复制／纠偏。",
+    "真实球发射等待服务器RPC裁决和球运动复制；已实现的预测主要是车辆后坐与视觉回弹。",
+    "PI默认纠偏受接收间隔／RTT影响；0.1秒是纠偏时间下限，不是固定排队时延。",
+    "未收到或已过期的Controlled序号可能使立即发射被拒绝，当前日志不能证明本场实际发生。",
+    "球目标频率100及下限2不等于实际接收100Hz或2Hz；学校有线不等于已经测得低RTT和零抖动。"
+  ],
+  "rootCauseConfirmed": false,
+  "nextSteps": [
+    "同一构建／资产，两人对四人：采集Host和客户端stat unit／stat net与BallNetLog／VehicleNetLog，短录主机和客户端捕获、急转、发射及立即发射。",
+    "区分状态迟到、真实更新间隔、Host负载、带宽／网络与PI；HALNetMetrics只含车辆帧／重模拟，精确球包年龄需要另授权诊断。",
+    "证据足够后再选Host／复制预算、已有球DA的PI或独立表现预测小步；保持服务器球权与碰撞权威。"
+  ],
+  "limitations": [
+    "无本次四人复现、动态画面／性能采样或Host日志，不能量化唯一根因。",
+    "只读新进程配置代表本机保存资产，不代表其他三台或四人时的瞬时CVar。",
+    "原阶段6／7双人反馈不扩写为四机验收通过。"
+  ],
+  "sourceChecks": [
+    {
+      "path": "Source/HAL_Future_Creation/BasicBallActor.cpp",
+      "sha256": "EB0EA11C70D995DAC50E850C996E06AA09EC71D5D4862B199413372282B0380E"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BasicBallActor.h",
+      "sha256": "21619740128E4C9784DD75AA377691D1527933A8611A4F124201AF3C1767C15C"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BallControlComponent.cpp",
+      "sha256": "FECCCD0CB099E5860D70DE442E70AF5DE3730E6BAB89459DEEF77640C231433C"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BallControlComponent.h",
+      "sha256": "6E33E8703F64DA50C9300A582D540C2E6D4A926735B33578F7B8C82520759E89"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+      "sha256": "8B0211CC32C70BF11ABCCDBE93A7B82EB99D7F72987B2FE9946E92A78C54CD7F"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.h",
+      "sha256": "5BEAF1A3A1D55105EB2466A5641AA30B1E46AA2FA8265EDFF2432450391DABE1"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleLaunchPresentation.cpp",
+      "sha256": "1F1EBF57C320A4BE6D3D2756F38C63692CBEB645492F927F0F94BC3A156EE25C"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerController.cpp",
+      "sha256": "CC8D6BB8461341E502A57B34676B4ED224B7071804D44F7A91EF104F723461AC"
+    },
+    {
+      "path": "Config/DefaultEngine.ini",
+      "sha256": "C671501D82AB3BD959F92AED3B5A849B4A313EFDD969212B680A0333D241F4E7"
+    },
+    {
+      "path": "Config/DefaultGame.ini",
+      "sha256": "D5DDF980D26136E7B20542AFD6B313BEA0BEEDF222E361CF4808B80109CB29B1"
+    },
+    {
+      "path": "HAL_Future_Creation.uproject",
+      "sha256": "07100B2E1554EF47889893C47407522D4D22CA27B60EE37DB7C5F8C970FFCCE5"
+    }
+  ],
+  "protection": {
+    "savedAssetCount": 1172,
+    "allSavedAssetHashesUnchanged": true,
+    "cppModified": false,
+    "projectConfigModified": false,
+    "savedAssetsModified": false,
+    "newBuild": false,
+    "newAutomation": false,
+    "newListenServerTest": false,
+    "commitCreated": false,
+    "pushed": false
+  }
+}

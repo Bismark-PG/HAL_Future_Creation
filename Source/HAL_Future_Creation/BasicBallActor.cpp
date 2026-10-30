@@ -2,6 +2,7 @@
 
 #include "BasicBallActor.h"
 #include "HALAbilitySystemComponent.h"
+#include "HALBallPresentationComponent.h"
 #include "UObject/UnrealType.h"
 #include "VehicleDefinition.h"
 #include "VehicleConfigurationApplication.h"
@@ -85,6 +86,7 @@ ABasicBallActor::ABasicBallActor()
 	VisualMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	VisualMesh->SetSimulatePhysics(false);
 	NetworkPhysicsSettings = CreateDefaultSubobject<UNetworkPhysicsSettingsComponent>(TEXT("BallNetworkPhysicsSettings"));
+	BallPresentation = CreateDefaultSubobject<UHALBallPresentationComponent>(TEXT("BallPresentation"));
 }
 
 void ABasicBallActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -139,6 +141,7 @@ bool ABasicBallActor::ApplyDefinition(bool bPreview)
 		RuntimeImpactConfig = Definition->Gameplay.Impact;
 		bLogDamageHits = Definition->Gameplay.Debug.bLogDamageHits;
 		bLogStateChanges = Definition->Gameplay.Debug.bLogStateChanges;
+		BallPresentation->Configure(Definition->Presentation);
 	}
 	return true;
 }
@@ -391,6 +394,7 @@ void ABasicBallActor::CommitRepState(const FBallRepState& NewState, const AActor
 		Committed.ServerPhysicsFrame = Movement->GetLastPhysicsFrame();
 	}
 	RepState = Committed;
+	if (BallPresentation) { BallPresentation->NotifyStateChanged(); }
 	ForceNetUpdate();
 
 	bool bShouldLogState = bLogStateChanges;
