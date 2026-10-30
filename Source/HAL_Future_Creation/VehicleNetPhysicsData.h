@@ -10,6 +10,8 @@
 #include "VehicleBounceBackTypes.h"
 #include "VehicleNetPhysicsData.generated.h"
 
+class UArcadeVehicleMovementComponent;
+
 /** One continuous input sample for a Chaos physics frame. Launch remains a separate edge event. */
 USTRUCT()
 struct HAL_FUTURE_CREATION_API FVehicleNetInputData
@@ -136,13 +138,13 @@ struct HAL_FUTURE_CREATION_API FVehicleImpactAction : public FNetworkPhysicsActi
 	}
 };
 
-/** Independent of Impact tiers, resistance and immunity. Authority physics action. */
+/** Independent of Impact tiers. Only the autonomous owner may speculate; authority restores final state. */
 USTRUCT()
 struct HAL_FUTURE_CREATION_API FVehicleBounceBackAction : public FNetworkPhysicsActionPayload
 {
 	GENERATED_BODY()
 	UPROPERTY() FVehicleBounceBackState Value;
-	virtual const EActionAuthorStyle GetAuthorStyle() const override { return EActionAuthorStyle::Authority; }
+	virtual const EActionAuthorStyle GetAuthorStyle() const override { return EActionAuthorStyle::PredictedAutonomousOnly; }
 	virtual bool IsNearlyEqual(const FNetworkPhysicsActionPayload& Other) const override
 	{ return Value.Equals(static_cast<const FVehicleBounceBackAction&>(Other).Value); }
 };
@@ -250,6 +252,8 @@ USTRUCT()
 struct HAL_FUTURE_CREATION_API FVehiclePhysicsHistoryState : public FNetworkPhysicsData
 {
 	GENERATED_BODY()
+	// Local-only observer; never serialized. The bound history component outlives comparisons.
+	UArcadeVehicleMovementComponent* LocalBounceObserver = nullptr;
 
 	UPROPERTY()
 	FVehicleNetStateData State;

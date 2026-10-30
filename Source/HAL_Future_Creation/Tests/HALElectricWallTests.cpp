@@ -20,6 +20,8 @@
 #include "Engine/World.h"
 #include <limits>
 #include "../VehicleNetPhysicsData.h"
+#include "../HALImpactSourceComponent.h"
+#include "../VehicleKnockbackSettings.h"
 #include "Serialization/MemoryReader.h"
 #include "Serialization/MemoryWriter.h"
 
@@ -122,12 +124,26 @@ bool FHALElectricWallContactTest::RunTest(const FString& Parameters)
 	auto* Visual=F.Pawn->FindComponentByClass<UHALShockedPresentationComponent>();
 	TestFalse(TEXT("Cannot mark shocked outside stun"),F.ASC->MarkShockedForCurrentStun(F.Wall));
 	F.ASC->AddLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune);
-	TestTrue(TEXT("Pillar contact applies despite impact immunity"),FHALElectricWallTestAccess::Contact(F.Wall,F.Pawn,0));
+	TestFalse(TEXT("Pillar A rejects electrical contact"),FHALElectricWallTestAccess::Contact(F.Wall,F.Pawn,0));
+	TestFalse(TEXT("Pillar B rejects electrical contact"),FHALElectricWallTestAccess::Contact(F.Wall,F.Pawn,1));
+	TestFalse(TEXT("Pillars cannot stun or mark shocked"),F.ASC->IsStunned() || Visual->IsShocked());
+	TestEqual(TEXT("Pillars cannot consume the field entry"),F.Wall->GetAcceptedContactCount(),uint32(0));
+	const auto* Profile = F.Wall->FindComponentByClass<UHALImpactSourceComponent>();
+	FHALCollisionImpactRules Rules; GetDefault<UVehicleKnockbackSettings>()->GetCollisionImpactRules(Rules);
+	TestEqual(TEXT("Pillars use ordinary measured wall impact"),Profile->Mode,EHALCollisionSourceMode::AutomaticCap);
+	TestEqual(TEXT("Pillars use the common environment cap"),Profile->Tier,Rules.EnvironmentTierCap);
+	for (int32 I : {0,1})
+	{
+		const auto* Pillar = FHALElectricWallTestAccess::Surface(F.Wall,I);
+		TestEqual(TEXT("Pillars keep physical blocking"),Pillar->GetCollisionEnabled(),ECollisionEnabled::QueryAndPhysics);
+		TestEqual(TEXT("Pillars block vehicles"),Pillar->GetCollisionResponseToChannel(ECC_PhysicsBody),ECR_Block);
+	}
+	TestTrue(TEXT("Field applies despite impact immunity"),FHALElectricWallTestAccess::Contact(F.Wall,F.Pawn,2));
 	TestEqual(TEXT("Bounce does not enter Impact receiver"),F.Pawn->FindComponentByClass<UHALImpactReceiverComponent>()->GetLastImpact().EffectiveTier,EHALImpactTier::None);
 	TestTrue(TEXT("Stun and shocked survive impact immunity"),F.ASC->IsStunned() && Visual->IsShocked());
-	TestFalse(TEXT("Other pillar shares cooldown"),FHALElectricWallTestAccess::Contact(F.Wall,F.Pawn,1));
+	TestFalse(TEXT("Pillar remains electrically inactive"),FHALElectricWallTestAccess::Contact(F.Wall,F.Pawn,1));
 	TestFalse(TEXT("Wall shares same cooldown"),FHALElectricWallTestAccess::Contact(F.Wall,F.Pawn,2));
-	TestEqual(TEXT("One contact across all three surfaces"),F.Wall->GetAcceptedContactCount(),uint32(1));
+	TestEqual(TEXT("Only one field contact"),F.Wall->GetAcceptedContactCount(),uint32(1));
 	TestEqual(TEXT("No contact damage"),F.ASC->GetNumericAttribute(UHALHealthAttributeSet::GetCurrentHPAttribute()),100.f);
 	TestTrue(TEXT("Repeated presentation mark is idempotent"),F.ASC->MarkShockedForCurrentStun(F.Wall));
 	TestEqual(TEXT("One shocked tag"),F.ASC->GetTagCount(HALGameplayTags::State_Visual_Shocked),1);
@@ -144,15 +160,15 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALElectricWallSweepTest,"HAL.FutureCreation.E
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FHALElectricWallSweepTest::RunTest(const FString& Parameters)
 {
-	for (int32 Mode=0; Mode<3; ++Mode)
+	for (int32 Mode=0; Mode<2; ++Mode)
 	{
 		HALElectricWallTests::FWorld F; if (!TestNotNull(TEXT("Saved vehicle"),F.Pawn)) { return false; }
 		FHALElectricWallTestAccess::Scan(F.Wall);
 		TestEqual(TEXT("Far vehicle unaffected"),F.Wall->GetAcceptedContactCount(),uint32(0));
-		const FVector End = Mode==0 ? FVector(0,0,1150) : Mode==1 ? FVector(0,-600,1150) : FVector(-500,0,1150);
+		const FVector End = Mode==0 ? FVector(0,0,1150) : FVector(0,-600,1150);
 		F.Pawn->SetActorLocation(End,false,nullptr,ETeleportType::TeleportPhysics);
 		FHALElectricWallTestAccess::Scan(F.Wall);
-		TestEqual(TEXT("Wall overlap, full fast crossing and pillar overlap each detected"),F.Wall->GetAcceptedContactCount(),uint32(1));
+		TestEqual(TEXT("Field overlap and full fast crossing are detected"),F.Wall->GetAcceptedContactCount(),uint32(1));
 		TestTrue(TEXT("Detection applies stun"),F.ASC->IsStunned());
 		FHALElectricWallTestAccess::Scan(F.Wall);
 		TestEqual(TEXT("Repeated scan cannot duplicate"),F.Wall->GetAcceptedContactCount(),uint32(1));
@@ -160,6 +176,24 @@ bool FHALElectricWallSweepTest::RunTest(const FString& Parameters)
 		F.Pawn->SetActorLocation(FVector(0,0,1150),false,nullptr,ETeleportType::TeleportPhysics); FHALElectricWallTestAccess::Scan(F.Wall);
 		TestEqual(TEXT("The bounce return cannot retrigger its own interaction"),F.Wall->GetAcceptedContactCount(),uint32(1));
 	}
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALElectricWallPillarScanTest,"HAL.FutureCreation.ElectricWall.PillarsAreOrdinaryWalls",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALElectricWallPillarScanTest::RunTest(const FString& Parameters)
+{
+	HALElectricWallTests::FWorld F;
+	if (!TestNotNull(TEXT("Saved vehicle"),F.Pawn)) { return false; }
+	const auto* Body=CastChecked<UPrimitiveComponent>(F.Pawn->GetRootComponent());
+	// Place outside the field's inner edge, while intersecting the solid pillar.
+	const double X=-440-Body->Bounds.BoxExtent.X-5;
+	F.Pawn->SetActorLocation(FVector(X,600,1150),false,nullptr,ETeleportType::TeleportPhysics);
+	FHALElectricWallTestAccess::Scan(F.Wall);
+	F.Pawn->SetActorLocation(FVector(X,0,1150),false,nullptr,ETeleportType::TeleportPhysics);
+	FHALElectricWallTestAccess::Scan(F.Wall);
+	TestEqual(TEXT("Pure pillar overlap/sweep does not trigger electricity"),F.Wall->GetAcceptedContactCount(),uint32(0));
+	TestFalse(TEXT("Pure pillar scan never stuns"),F.ASC->IsStunned());
+	TestFalse(TEXT("Pure pillar scan never marks shocked"),F.Pawn->FindComponentByClass<UHALShockedPresentationComponent>()->IsShocked());
 	return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALElectricWallRetriggerTest,"HAL.FutureCreation.ElectricWall.OneBouncePerEntry",

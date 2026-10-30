@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Asia/Tokyo",
+  "base_commit": "945e616",
+  "engine": "5.8.2-56702186",
+  "scope": "Pillars are ordinary blocking walls; only ElectricField participates in electrical overlap/sweep and ApplyContact. Pillars do not trigger BounceBack, Stun, shocked, or consume electric entry latch.",
+  "collision": "Keep native ContactImpactProfile component for saved BP compatibility; BeginPlay migrates FixedTier/None to AutomaticCap/shared EnvironmentTierCap. Ordinary wall impact/pose/drop rules may still apply. No contact HP damage.",
+  "builds": {
+    "Editor": "Succeeded",
+    "Game": "Succeeded",
+    "warnings": "Existing camera C4305 warnings; test zero warnings is separate."
+  },
+  "reports": {
+    "Regression": {
+      "succeeded": 106,
+      "failed": 0,
+      "succeededWithWarnings": 0,
+      "notRun": 0,
+      "sha256": "3b7ab1ac7100aab475d2f32e9663c94b91fbbc25e1f882415e8efa28e41ee4c2"
+    },
+    "Host": {
+      "succeeded": 1,
+      "failed": 0,
+      "succeededWithWarnings": 0,
+      "notRun": 0,
+      "sha256": "c6a1997a5d768f8a8b9345d63ba251cc1b675a6f71996aac76bbca16d68d2805"
+    },
+    "Client": {
+      "succeeded": 1,
+      "failed": 0,
+      "succeededWithWarnings": 0,
+      "notRun": 0,
+      "sha256": "1b7dd32845aac424b98c85e8bf07a5f8544eca7be3373877c9688781d14b6b70"
+    }
+  },
+  "network": "Existing aerial native field fixture, 60FPS/NullRHI, host outgoing 80ms injection (not measured RTT); each vehicle one contact, HP100, Stun/shocked end, client 33 resimulation runs/3 bridge rewinds. Not a new physical pillar rendered collision test.",
+  "unit_coverage": [
+    "Direct pillar A/B electrical entry rejected",
+    "Rejected pillars leave Stun/shocked absent and do not consume field contact",
+    "Pillars retain QueryAndPhysics and vehicle blocking, use common environment tier cap",
+    "Pure pillar overlap/sweep scan has no electricity",
+    "Central field overlap/fast crossing/re-entry latch and independent Stun remain covered"
+  ],
+  "assets": {
+    "count": 1172,
+    "changed": []
+  },
+  "prediction_status": "User agrees to local response prediction restricted to central field. No local BounceBack prediction implemented in this change. Contact pairing, authority confirmation/rejection and rollback remain next stage.",
+  "limits": [
+    "Human pillar/central-field boundary feel not newly verified",
+    "If car overlaps central field and pillar simultaneously it is still a valid field contact",
+    "Contact Margin retained as legacy unused serialized parameter"
+  ],
+  "git": "Uncommitted, no push."
+}

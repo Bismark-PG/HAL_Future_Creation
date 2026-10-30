@@ -67,6 +67,8 @@ void UArcadeVehicleMovementComponent::ApplyPendingMovementConfiguration()
 	MovementActions.Reset(); UsedMovementFrames.Reset(); ProcessedMovementStates.Reset();
 	CurrentMovement = {};
 	BounceBackPhysics = {}; PendingBounceBack = {}; PublishedBounceBack = {}; bPendingBounceBack=false;
+	BounceAuthorityFrame.Store(INDEX_NONE); BounceAuthoritySequence.Store(0);
+	PendingBouncePredictionFrame=INDEX_NONE; PredictedBounceCount=0;
 	CurrentMovementScales = FVector::OneVector;
 	MovementRewindRequests = 0; MovementLastRewind = INDEX_NONE;
 	LatestMovementAuthorityFrame = INDEX_NONE;

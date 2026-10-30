@@ -1,4 +1,4 @@
-<!-- Current rules updated 2026-10-29. Historical verification below remains historical. -->
+<!-- Current rules updated 2026-10-30. Historical verification below remains historical. -->
 # 成對電柱與電牆機關
 
 日期：2026-10-27（Asia/Tokyo）。本輪起點為乾淨 `main / 0b28303d1bb02a51fd101901bbb52831baa27353`，本機 UE 5.8.2-56702186。先前共用 Stun 與 debug 指令已提交，本輪保留既有實作並新增機關。
@@ -7,9 +7,33 @@
 
 2026-10-29改為獨立Bounce Back。舊Impact Tier、Push Preset及Retrigger Interval已移除，現有Blueprint重新完整編譯後在Config調整Bounce Back Distance／Seconds即可。代理未修改資產；實體柱子的自然碰撞仍可能改變姿態，回彈本身不加旋轉。Stun與回彈時間獨立，回彈執行時暫停自訂駕駛／翻身扭矩，完成後恢復原狀態規則。最新驗證見[MVPB_Electric_Wall_BounceBack_Verification_20261029.json](MVPB_Electric_Wall_BounceBack_Verification_20261029.json)。
 
+## 2026-10-30 Client本地回彈預測（代碼與原生驗證完成）
+
+用戶回報Client自己撞牆會先繼續前進再彈回，並要求解決。現僅Client的LocallyControlled車輛掃描同一中間ElectricField；柱子及遠端車輛不做本地預測。車輛／HP／比賽與Network Physics時序就緒後，按本地進入方向把BounceBack以PredictedAutonomousOnly動作排入下一物理幀，不在GT直接改速度，不傳送「命中／傷害」RPC給Host。
+
+Host仍用自身Overlap／Sweep獨立判定並可靠發布權威BounceBack，GAS Stun／shocked與脫球仍只由Host產生。每座牆由Host配發複製的PhysicsSourceId，避免Legacy網路模式對動態Actor沒有Iris穩定雜湊的限制。Client依最近收到的權威BounceBack序號產生下一個候選，來源碼與序號共同用於既有動作配對／去重；同一車未收到涵蓋候選幀的權威歷史前，不排第二個未解決候選。State Compare與ApplyData只觀察真正接收的權威歷史，不把本地重播當作Host確認；錯誤方向／不存在的接觸可由原BounceBack歷史比較及回滾恢復。
+
+Client的本次接觸鎖定至少涵蓋max(BounceBackSeconds,StunSeconds)加掃描間隔，並仍需完全離開樣本才重設，防止丟包／位置校正造成同次接觸重複預測。這不是預測GAS Stun，也不會本地修改球權；Stun與電擊視覺依舊可能晚於物理回彈抵達。沒有有效Config／PhysicsSourceId／物理時序時，保持等待權威結果的回退。
+
+本機UE5.8.2-56702186最終Editor／Game完整構建成功；最終普通106/106。150ms固定延遲的接受／誤判撤銷均雙端通過後，增加正式.05s掃描、Host出站150ms、±40ms抖動、10%丟包，最終兩組四份雙端報告均各1/1、0測試警告／失敗／未運行。接受夾具Client Count1／Early1／Velocity1、兩車Host接觸2次、最終序號1且inactive；拒絕夾具Client曾有實際反向速度，Host接觸0次，最終序號0且inactive，HP100。最終Accept Ack566／PredFrame428，Reject Ack609／PredFrame464。60FPS／NullRHI、空中隔離夾具；接受測試將Client運動刻意提前.2個伺服器時鐘秒以代表本地模擬領先，檢查在收到Stun之前的實際負向速度，不是實測RTT／真人駕駛或延遲百分位基準。
+
+首輪動態Actor來源雜湊Ensure後中止，改為複製來源碼；首輪丟包接受測試Client候選Count2違反嚴格斷言，補上上述本地接觸鎖定後原Count1斷言通過。失敗日誌／報告保留，未放寬測試。1172份保存資產相對柱子環節基線逐份SHA256全同；無BP／地圖改動，未改History線上序列化格式。詳見[預測驗證證據](MVPB_ElectricWall_Prediction_Verification_20261030.json)。編譯既有C4305等警告保留。未提交／Push。
+
+團隊下一步：兩端使用本次同版程式並重新啟動遊戲，用Client駕車碰中間電場，比較初次回彈、連續貼牆／離開再進入、純柱與柱牆交界；再測多牆及持球。無需新增藍圖節點。很高延遲、初始資料未送達或兩端碰撞判斷不同時仍可能校正，不宣稱所有網路情況完全無感；多牆同時接觸／Avatar更換／極端丟包斷線／四機與F4仍待後續矩陣。
+
+以下柱子段落保留當時環節紀錄；其中「預測尚未實作」由本節後續實作取代。
+
+## 2026-10-30 柱子改為一般牆壁（編譯與原生驗證完成）
+
+用戶確認本地回彈預測方向，並指定兩根柱子只當一般牆壁，不觸發shock。本輪先調整接觸規則：只有中間ElectricField可觸發專屬Bounce Back、Stun與shocked；柱子保留Capsule實體阻擋，恢復共用一般環境碰撞的量測檔位／上限。沿用既有ContactImpactProfile子元件名稱，在BeginPlay覆寫舊保存的FixedTier／None為AutomaticCap及共用EnvironmentTierCap，無需代理修改BP資產。
+
+伺服器Overlap／高速Sweep均只收中間ElectricField；ApplyContact也拒絕柱子，避免旁路誤觸發。純柱子不消耗電牆進入鎖；車體同時碰到中間電場時，仍屬合法電牆接觸。普通牆壁碰撞可能產生原有姿態／衝擊／脫球，無電牆專屬回彈、Stun或shocked。Contact Margin保留舊序列化欄位但已無柱子電擊用途，避免保存資產遷移破壞。
+
+新增純柱子Overlap／Sweep不電擊、直接兩柱入口拒絕、碰撞阻擋與共用環境檔位檢查，保留電牆快速穿越及每次進入去重。此項不等於Client本地預測完成：本地預測仍須接觸配對／確認或撤銷／回滾測試，目前尚未實作。本機UE5.8.2-56702186 Editor／Game完整編譯成功、普通106/106、真實Host／Client各1/1，3份報告均0測試警告／失敗／未執行。普通覆蓋兩柱入口拒絕／純柱Overlap與Sweep不電擊／實體阻擋及共用環境檔位；雙端沿用空中原生電場夾具，每車接觸一次、HP100、Stun／shocked結束，Client33次重模擬／3次橋接回滾。60FPS／NullRHI、Host出站80ms注入不是實測RTT，也不是新柱子真人畫面驗收。保存資產1172份前後哈希全同，未修改BP／地圖；編譯既有C4305警告保留。詳見[本輪驗證](MVPB_ElectricWall_Pillars_Verification_20261030.json)。未提交／Push。
+
 ## 1 本輪功能
 
-新增原生 C++ Actor `AHALElectricWallGimmick`。一個 Actor 管理兩根柱子與中間電牆，車輛接觸任一表面後，由伺服器依序執行：
+新增原生 C++ Actor `AHALElectricWallGimmick`。一個 Actor 管理兩根柱子與中間電牆，車輛接觸中間電牆後，由伺服器依序執行：
 
 ```text
 合法車輛接觸
@@ -18,12 +42,12 @@
 → 標記 shocked 並通知表現元件
 ```
 
-- 柱子具有簡單 Capsule 實體碰撞。柱子與電牆均優先按車輛進入前的水平移動方向反推：往東進入則向西推，往西則向東，斜向同樣反推；與車頭朝向或牆體旋轉無關。
+- 柱子具有簡單 Capsule 實體碰撞。只有中間電牆的專屬回彈按車輛進入前的水平移動方向反推：往東進入則向西推，往西則向東，斜向同樣反推；與車頭朝向或牆體旋轉無關。
 - 優先使用兩次掃描間的位移，避免柱子自然碰撞已反轉當前速度而判錯方向。沒有可用位移時才參考水平速度；車輛完全靜止時才退回柱子向外／牆面側向的幾何預設。
 - 同一次連續重疊保留進入方向且只觸發一次；確實離開後再進入才重新取方向。
 - 電牆是 Query Only 觸發區。回彈開始時取消原本水平速度，沿來向反向後退並線性減速；不改垂直速度及角速度。距離是無阻擋的目標距離，碰撞、阻尼或其他外力可縮短實際距離，不傳送或穿越障礙。
 - 不造成接觸傷害，不修改 HP／位置；水平速度由獨立權威物理動作控制。
-- 整組機關對每輛車每次進入只觸發一次，持續重疊不重複。回彈完成且取得一次完全離開三個表面的掃描後，重新進入才能觸發。高速穿越後回彈穿回同一牆屬同一次互動，避免自行往返觸發。
+- 整組機關對每輛車每次進入只觸發一次，持續重疊不重複。回彈完成且取得一次完全離開中間電場的掃描後，重新進入才能觸發。高速穿越後回彈穿回同一牆屬同一次互動，避免自行往返觸發。
 - 只作用於目前被控制、配置／ASC／HP就緒且存活的玩家車輛。
 - 有比賽 GameState 時僅在 Playing 生效；無比賽 GameState 的原生測試世界仍可驗證。
 - 球穿過電牆不附加任何效果或傷害，球相關玩法本輪後置。球仍可能與實體柱子發生普通物理碰撞。
@@ -38,7 +62,7 @@
 | Pillar Radius | 60 cm | 柱子碰撞半徑 |
 | Height | 300 cm | 柱子與電牆高度，必須至少為柱子直徑 |
 | Wall Half Thickness | 25 cm | 電牆厚度的一半，沿本地 Y 軸 |
-| Contact Margin | 10 cm | 柱子接觸判定容差，不擴大柱子的實體碰撞 |
+| Contact Margin | 10 cm | 舊序列化欄位保留；柱子已無電擊接觸容差用途 |
 | Scan Interval | 0.05 s | 伺服器檢查間隔，最小0.01秒 |
 | Bounce Back Distance | 100 cm | 無阻擋目標回彈距離，範圍大於0至1000公分 |
 | Bounce Back Seconds | 0.3 s | 線性減速回彈時間，範圍0.05至2秒；距離相同時越短越快 |

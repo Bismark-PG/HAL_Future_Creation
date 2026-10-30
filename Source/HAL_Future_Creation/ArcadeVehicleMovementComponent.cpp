@@ -560,7 +560,36 @@ void UArcadeVehicleMovementComponent::ApplyAction_Internal(
 	}
 }
 
-bool UArcadeVehicleMovementComponent::QueueBounceBack(const FVector& Direction, float Distance, float Duration)
+void UArcadeVehicleMovementComponent::ObserveBounceAuthority(int32 LocalFrame, uint32 Sequence)
+{
+	// Called only for received authoritative history, never for locally built replay states.
+	if (LocalFrame <= BounceAuthorityFrame.Load()) { return; }
+	BounceAuthoritySequence.Store(Sequence);
+	BounceAuthorityFrame.Store(LocalFrame);
+}
+
+bool UArcadeVehicleMovementComponent::PredictBounceBack(const FVector& Direction, float Distance, float Duration, uint32 SourceId)
+{
+	const auto* Pawn = Cast<APawn>(GetOwner());
+	auto* History = GetOwner()->FindComponentByClass<UNetworkPhysicsComponent>();
+	if (GetNetMode()!=NM_Client || !Pawn || !Pawn->IsLocallyControlled() || !SourceId
+		|| !bUseNetworkPhysicsHistory.Load() || !History || !History->IsNetworkPhysicsTickOffsetAssigned()
+		|| !UpdatedPrimitive || !UpdatedPrimitive->IsSimulatingPhysics() || GetLastPhysicsFrame()<0) { return false; }
+	// At most one unresolved speculative contact per vehicle, across all walls.
+	if (PendingBouncePredictionFrame.Load()>=0 && BounceAuthorityFrame.Load()<PendingBouncePredictionFrame.Load()) { return false; }
+	FVehicleBounceBackAction Action;
+	Action.Value.Direction=Direction; Action.Value.Distance=Distance; Action.Value.Duration=Duration;
+	Action.Value.Sequence=BounceAuthoritySequence.Load()+1;
+	if (!Action.Value.Sequence) { Action.Value.Sequence=1; }
+	Action.Value.bActive=true;
+	if (!Action.Value.IsValid()) { return false; }
+	PendingBouncePredictionFrame=GetLastPhysicsFrame()+1;
+	History->EnqueueScheduledActionAtFrame_External(Action,SourceId,PendingBouncePredictionFrame.Load(),false);
+	++PredictedBounceCount;
+	return true;
+}
+
+bool UArcadeVehicleMovementComponent::QueueBounceBack(const FVector& Direction, float Distance, float Duration, uint32 SourceId)
 {
 	if (!GetOwner()->HasAuthority() || !UpdatedPrimitive || !UpdatedPrimitive->IsSimulatingPhysics()) { return false; }
 	FVehicleBounceBackAction Action;
@@ -573,7 +602,7 @@ bool UArcadeVehicleMovementComponent::QueueBounceBack(const FVector& Direction, 
 	{
 		auto* History=GetOwner()->FindComponentByClass<UNetworkPhysicsComponent>();
 		if (!History) { return false; }
-		History->EnqueueImmediateAction_External(Action,uint32(0),true);
+		History->EnqueueImmediateAction_External(Action,SourceId,true);
 	}
 	else
 	{

@@ -20,7 +20,7 @@ struct HAL_FUTURE_CREATION_API FHALElectricWallConfig
 	UPROPERTY(EditAnywhere, Category="Geometry", meta=(ClampMin="1",Units="cm")) float PillarRadius = 60;
 	UPROPERTY(EditAnywhere, Category="Geometry", meta=(ClampMin="2",Units="cm")) float Height = 300;
 	UPROPERTY(EditAnywhere, Category="Geometry", meta=(ClampMin="1",Units="cm")) float WallHalfThickness = 25;
-	/** Small contact tolerance around solid pillars; not extra vehicle collision. */
+	/** Legacy serialized setting; pillars now use ordinary collision and no electric contact margin. */
 	UPROPERTY(EditAnywhere, Category="Contact", meta=(ClampMin="0",Units="cm")) float ContactMargin = 10;
 	UPROPERTY(EditAnywhere, Category="Contact", meta=(ClampMin="0.01",Units="s")) float ScanInterval = .05f;
 	/** Unobstructed horizontal target distance. Contacts/drag can shorten actual travel. */
@@ -31,7 +31,7 @@ struct HAL_FUTURE_CREATION_API FHALElectricWallConfig
 	bool Validate(FString& Error) const;
 };
 
-/** One pair owns all three contact surfaces and one per-vehicle entry latch.
+/** Only the middle electrical field owns the per-vehicle electric entry latch.
 	* Pillars are solid; the electrical field is a query-only trigger. No ball effects, damage or ASC. */
 UCLASS()
 class HAL_FUTURE_CREATION_API AHALElectricWallGimmick : public AActor
@@ -46,6 +46,7 @@ public:
 	/** Optional deferred-spawn configuration. Never changes geometry or rules mid-contact. */
 	bool Configure(const FHALElectricWallConfig& InConfig);
 	uint32 GetAcceptedContactCount() const { return AcceptedContactCount; }
+	uint32 GetPhysicsSourceId() const { return PhysicsSourceId; }
 protected:
 	UPROPERTY(EditDefaultsOnly, ReplicatedUsing=OnRep_Config, Category="Electric Wall") FHALElectricWallConfig Config;
 	UPROPERTY(EditDefaultsOnly, Category="Electric Wall|Debug") bool bDrawDebug = false;
@@ -76,6 +77,7 @@ private:
 	};
 	TMap<TWeakObjectPtr<ATestVehiclePawn>,FContactRecord> Contacts;
 	UPROPERTY(Replicated) uint32 AcceptedContactCount = 0;
+	UPROPERTY(Replicated) uint32 PhysicsSourceId = 0;
 	FTimerHandle ScanTimer;
 	bool bReady = false;
 };

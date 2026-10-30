@@ -6,6 +6,7 @@
 #include "TestVehiclePawn.h"
 #include "VehicleHealthComponent.h"
 #include "ArcadeVehicleMovementComponent.h"
+#include "VehicleKnockbackSettings.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -53,9 +54,9 @@ AHALElectricWallGimmick::AHALElectricWallGimmick()
 	WallVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WallVisual")); WallVisual->SetupAttachment(ElectricField);
 	for (auto* Visual : {PillarVisualA.Get(),PillarVisualB.Get(),WallVisual.Get()})
 	{ Visual->SetCollisionEnabled(ECollisionEnabled::NoCollision); Visual->SetGenerateOverlapEvents(false); Visual->SetSimulatePhysics(false); }
-	// Natural pillar collision remains, but never adds a second authored impact on top of our contact pulse.
+	// Keep the saved native component identity; pillars use ordinary environment collision rules.
 	ContactImpactProfile = CreateDefaultSubobject<UHALImpactSourceComponent>(TEXT("ContactImpactProfile"));
-	ContactImpactProfile->Mode = EHALCollisionSourceMode::FixedTier; ContactImpactProfile->Tier = EHALImpactTier::None;
+	ContactImpactProfile->Mode = EHALCollisionSourceMode::AutomaticCap; ContactImpactProfile->Tier = EHALImpactTier::Heavy;
 	UpdateGeometry();
 }
 void AHALElectricWallGimmick::UpdateGeometry()
@@ -63,7 +64,7 @@ void AHALElectricWallGimmick::UpdateGeometry()
 	FString Error;
 	if (!Config.Validate(Error))
 	{
-		for (UPrimitiveComponent* Surface : TArray<UPrimitiveComponent*>{PillarA.Get(),PillarB.Get(),ElectricField.Get()})
+		for (UPrimitiveComponent* Surface : TArray<UPrimitiveComponent*>{ElectricField.Get()})
 		{ Surface->SetCollisionEnabled(ECollisionEnabled::NoCollision); }
 		return;
 	}
@@ -86,7 +87,17 @@ void AHALElectricWallGimmick::OnRep_Config() { UpdateGeometry(); }
 void AHALElectricWallGimmick::BeginPlay()
 {
 	Super::BeginPlay(); UpdateGeometry();
-	if (!HasAuthority() || GetNetMode()==NM_Client) { return; }
+	if (HasAuthority())
+	{
+		// Legacy replication has no Iris NetRefHandle for runtime actors.
+		PhysicsSourceId=GetTypeHash(FGuid::NewGuid());
+		if (!PhysicsSourceId) { PhysicsSourceId=1; }
+	}
+	// Override old saved FixedTier/None defaults without editing Blueprint assets.
+	FHALCollisionImpactRules CollisionRules;
+	ContactImpactProfile->Mode = EHALCollisionSourceMode::AutomaticCap;
+	ContactImpactProfile->Tier = GetDefault<UVehicleKnockbackSettings>()->GetCollisionImpactRules(CollisionRules)
+		? CollisionRules.EnvironmentTierCap : EHALImpactTier::Heavy;
 	FString Error;
 	bReady = Config.Validate(Error);
 	if (!bReady) { UE_LOG(LogTemp,Error,TEXT("Electric wall %s disabled: invalid geometry/timing. %s"),*GetName(),*Error); return; }
@@ -100,6 +111,7 @@ void AHALElectricWallGimmick::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AHALElectricWallGimmick,Config); DOREPLIFETIME(AHALElectricWallGimmick,AcceptedContactCount);
+	DOREPLIFETIME(AHALElectricWallGimmick,PhysicsSourceId);
 }
 FVector AHALElectricWallGimmick::GetPushDirection(UPrimitiveComponent* Surface,const FVector& Current,const FVector& Previous,const FVector& Velocity) const
 {
@@ -124,7 +136,7 @@ FVector AHALElectricWallGimmick::GetPushDirection(UPrimitiveComponent* Surface,c
 bool AHALElectricWallGimmick::ApplyContact(ATestVehiclePawn* Target,UPrimitiveComponent* Surface,const FVector& Previous)
 {
 	if (!bReady || !HasAuthority() || GetNetMode()==NM_Client || !IsValid(Target)
-		|| (Surface!=PillarA && Surface!=PillarB && Surface!=ElectricField)) { return false; }
+		|| Surface!=ElectricField) { return false; }
 	const auto* Match = GetWorld()->GetGameState<AHALMatchGameState>();
 	if (Match && Match->GetMatchPhase()!=EHALMatchPhase::Playing) { return false; }
 	auto* ASC = Cast<UHALAbilitySystemComponent>(Target->GetAbilitySystemComponent());
@@ -139,7 +151,7 @@ bool AHALElectricWallGimmick::ApplyContact(ATestVehiclePawn* Target,UPrimitiveCo
 		? Record.IncomingPushDirection : GetPushDirection(Surface,Body->GetComponentLocation(),Previous,Body->GetPhysicsLinearVelocity());
 	if (Direction.IsNearlyZero()) { return false; }
 	auto* Movement=Target->FindComponentByClass<UArcadeVehicleMovementComponent>();
-	if (!Movement || !Movement->QueueBounceBack(Direction,Config.BounceBackDistance,Config.BounceBackSeconds)) { return false; }
+	if (!Movement || !Movement->QueueBounceBack(Direction,Config.BounceBackDistance,Config.BounceBackSeconds,PhysicsSourceId)) { return false; }
 	if (!ASC->ApplyStun(Config.StunSeconds,this)) { return false; }
 	const bool bShocked = ASC->MarkShockedForCurrentStun(this);
 	Record.bTriggered = true; Record.BounceEndsAt=GetWorld()->GetTimeSeconds()+Config.BounceBackSeconds+Config.ScanInterval; ++AcceptedContactCount; ForceNetUpdate();
@@ -153,31 +165,29 @@ bool AHALElectricWallGimmick::ApplyContact(ATestVehiclePawn* Target,UPrimitiveCo
 }
 void AHALElectricWallGimmick::ScanContacts()
 {
-	if (!bReady || !HasAuthority() || GetNetMode()==NM_Client) { return; }
+	if (!bReady) { return; }
 	const auto* Match = GetWorld()->GetGameState<AHALMatchGameState>();
 	if (Match && Match->GetMatchPhase()!=EHALMatchPhase::Playing) { Contacts.Reset(); return; }
 	TMap<TWeakObjectPtr<ATestVehiclePawn>,UPrimitiveComponent*> Touches;
 	const FCollisionObjectQueryParams Objects(ECC_PhysicsBody);
 	FCollisionQueryParams Query(SCENE_QUERY_STAT(ElectricWallContacts),false,this);
-	for (UPrimitiveComponent* Surface : TArray<UPrimitiveComponent*>{PillarA.Get(),PillarB.Get(),ElectricField.Get()})
+	for (UPrimitiveComponent* Surface : TArray<UPrimitiveComponent*>{ElectricField.Get()})
 	{
 		TArray<FOverlapResult> Hits;
-		const auto* Pillar = Cast<UCapsuleComponent>(Surface);
-		const float Scale = Surface->GetComponentScale().GetAbsMax();
-		const auto Shape = Pillar ? FCollisionShape::MakeCapsule(Pillar->GetScaledCapsuleRadius()+Config.ContactMargin*Scale,Pillar->GetScaledCapsuleHalfHeight()+Config.ContactMargin*Scale)
-			: FCollisionShape::MakeBox(ElectricField->GetScaledBoxExtent());
+		const auto Shape = FCollisionShape::MakeBox(ElectricField->GetScaledBoxExtent());
 		GetWorld()->OverlapMultiByObjectType(Hits,Surface->GetComponentLocation(),Surface->GetComponentQuat(),Objects,Shape,Query);
 		for (const auto& Hit : Hits)
 		{ if (auto* V = Cast<ATestVehiclePawn>(Hit.GetActor()); V && !Touches.Contains(V)) { Touches.Add(V,Surface); } }
 		if (bDrawDebug)
 		{
-			if (Pillar) { DrawDebugCapsule(GetWorld(),Surface->GetComponentLocation(),Shape.GetCapsuleHalfHeight(),Shape.GetCapsuleRadius(),Surface->GetComponentQuat(),FColor::Cyan,false,Config.ScanInterval,0,2); }
-			else { DrawDebugBox(GetWorld(),Surface->GetComponentLocation(),ElectricField->GetScaledBoxExtent(),Surface->GetComponentQuat(),FColor::Cyan,false,Config.ScanInterval,0,2); }
+			DrawDebugBox(GetWorld(),Surface->GetComponentLocation(),ElectricField->GetScaledBoxExtent(),Surface->GetComponentQuat(),FColor::Cyan,false,Config.ScanInterval,0,2);
 		}
 	}
 	for (TActorIterator<ATestVehiclePawn> It(GetWorld()); It; ++It)
 	{
-		auto* V = *It; auto* Body = Cast<UPrimitiveComponent>(V->GetRootComponent()); if (!Body) { continue; }
+		auto* V = *It;
+		if (GetNetMode()==NM_Client && !V->IsLocallyControlled()) { continue; }
+		auto* Body = Cast<UPrimitiveComponent>(V->GetRootComponent()); if (!Body) { continue; }
 		const FVector Current = Body->GetComponentLocation();
 		const auto* Old = Contacts.Find(V); const FVector Previous = Old && Old->SampledAt>=0 ? Old->PreviousLocation : Current;
 		UPrimitiveComponent* Surface = Touches.FindRef(V);
@@ -189,16 +199,31 @@ void AHALElectricWallGimmick::ScanContacts()
 			SweepQuery.bFindInitialOverlaps = true;
 			GetWorld()->ComponentSweepMulti(Swept,Body,Previous,Current,Body->GetComponentQuat(),SweepQuery);
 			for (const auto& Hit : Swept)
-			{ if (Hit.GetActor()==this && (Hit.GetComponent()==PillarA || Hit.GetComponent()==PillarB || Hit.GetComponent()==ElectricField)) { Surface = Hit.GetComponent(); break; } }
+			{ if (Hit.GetActor()==this && Hit.GetComponent()==ElectricField) { Surface = Hit.GetComponent(); break; } }
 		}
 		auto& Record = Contacts.FindOrAdd(V);
 		if (Surface)
 		{
 			if (!Record.bInContact) { Record.IncomingPushDirection = GetPushDirection(Surface,Current,Previous,Body->GetPhysicsLinearVelocity()); }
 			Record.bInContact = true;
-			ApplyContact(V,Surface,Previous);
+			if (GetNetMode()!=NM_Client) { ApplyContact(V,Surface,Previous); }
+			else if (!Record.bTriggered)
+			{
+				auto* Health=V->FindComponentByClass<UVehicleHealthComponent>();
+				auto* Movement=V->FindComponentByClass<UArcadeVehicleMovementComponent>();
+				if (V->IsConfigurationValid() && Health && Health->IsHealthReady() && Health->GetCurrentHP()>0
+					&& !UHALAbilitySystemComponent::IsActorStunned(V) && Movement
+					&& Movement->PredictBounceBack(Record.IncomingPushDirection,Config.BounceBackDistance,Config.BounceBackSeconds,PhysicsSourceId))
+				{
+					Record.bTriggered=true;
+					// A rewind can move the owner out and back through the field before the
+					// authoritative Stun tag arrives. Keep that correction in this interaction.
+					Record.BounceEndsAt=GetWorld()->GetTimeSeconds()
+						+FMath::Max(Config.BounceBackSeconds,Config.StunSeconds)+Config.ScanInterval;
+				}
+			}
 		}
-		// One bounce per continuous contact across all three surfaces. A completed crossing
+		// One bounce per continuous contact with the electrical field. A completed crossing
 		// is not an overlap; a later entry can bounce again.
 		// A high-speed full crossing can bounce back through the same field. Keep that
 		// return in the same interaction; rearm only after the bounce and a clear sample.

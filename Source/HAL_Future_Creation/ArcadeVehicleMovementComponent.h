@@ -62,7 +62,12 @@ public:
 	void ResetInputCommand();
 	void QueueRecoil(const FVector& DeltaVelocity);
 	bool QueueImpact(FVehicleImpactAction& Action);
-	bool QueueBounceBack(const FVector& Direction, float Distance, float Duration);
+	bool QueueBounceBack(const FVector& Direction, float Distance, float Duration, uint32 SourceId = 0);
+	bool PredictBounceBack(const FVector& Direction, float Distance, float Duration, uint32 SourceId);
+	void ObserveBounceAuthority(int32 LocalFrame, uint32 Sequence);
+	int32 GetPredictedBounceCount() const { return PredictedBounceCount.Load(); }
+	int32 GetLastPredictedBounceFrame() const { return PendingBouncePredictionFrame.Load(); }
+	int32 GetBounceAuthorityFrame() const { return BounceAuthorityFrame.Load(); }
 	int32 GetLastPhysicsFrame() const { return LastPhysicsFrame.Load(); }
 	/** Number of local resimulation runs observed by this physics component; diagnostic only. */
 	int32 GetResimulationRunCount() const { return ResimulationRunCount.Load(); }
@@ -114,6 +119,10 @@ private:
 	FVehicleBounceBackState PublishedBounceBack; // Protected by PendingPhysicsDataLock.
 	bool bPendingBounceBack = false;
 	uint32 NextBounceBackSequence = 0;
+	TAtomic<int32> BounceAuthorityFrame { INDEX_NONE };
+	TAtomic<uint32> BounceAuthoritySequence { 0 };
+	TAtomic<int32> PendingBouncePredictionFrame { INDEX_NONE };
+	TAtomic<int32> PredictedBounceCount { 0 };
 	FVehicleRecoveryPhysicsState RecoveryPhysics;
 	FVehicleRecoveryPhysicsState PendingRecovery;
 	bool bPendingRecovery = false;

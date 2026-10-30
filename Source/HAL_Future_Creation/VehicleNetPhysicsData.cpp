@@ -97,6 +97,7 @@ void FVehiclePhysicsHistoryState::ApplyData(UActorComponent* NetworkComponent) c
 {
 	if (UArcadeVehicleMovementComponent* Movement = Cast<UArcadeVehicleMovementComponent>(NetworkComponent))
 	{
+		if (bReceivedData) { Movement->ObserveBounceAuthority(LocalFrame,State.BounceBack.Sequence); }
 		Movement->ApplyHistoryState(State);
 	}
 }
@@ -105,6 +106,7 @@ void FVehiclePhysicsHistoryState::BuildData(const UActorComponent* NetworkCompon
 {
 	if (const UArcadeVehicleMovementComponent* Movement = Cast<UArcadeVehicleMovementComponent>(NetworkComponent))
 	{
+		LocalBounceObserver=const_cast<UArcadeVehicleMovementComponent*>(Movement);
 		Movement->BuildHistoryState(State, LocalFrame);
 	}
 }
@@ -137,6 +139,10 @@ void FVehiclePhysicsHistoryState::InterpolateData(const FNetworkPhysicsData& Min
 bool FVehiclePhysicsHistoryState::CompareData(const FNetworkPhysicsData& PredictedData)
 {
 	const auto& Predicted = static_cast<const FVehiclePhysicsHistoryState&>(PredictedData);
+	if (bReceivedData && Predicted.LocalBounceObserver)
+	{
+		Predicted.LocalBounceObserver->ObserveBounceAuthority(LocalFrame,State.BounceBack.Sequence);
+	}
 	if (State.bPoseDriveAllowed != Predicted.State.bPoseDriveAllowed
 		|| !FMath::IsNearlyEqual(State.PoseStableSeconds,Predicted.State.PoseStableSeconds,.025f)
 		|| !State.Recovery.Equals(Predicted.State.Recovery)
