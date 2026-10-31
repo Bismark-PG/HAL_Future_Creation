@@ -120,6 +120,8 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 车辆接续先读[VP-3实施／手工接线](Presentation/MVPB_Vehicle_Presentation_VP3_Implementation_CN_v0.1.md)及[本轮摘要](Presentation/MVPB_Vehicle_Presentation_VP3_Verification_20261022.json)，既有Chassis节点与调参见[VP-2](Presentation/MVPB_Vehicle_Presentation_VP2_Implementation_CN_v0.1.md)。物理背景见[姿态／自救](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md)、[已确认计划](Movement/MVPB_Vehicle_Stability_And_SelfRighting_Plan_CN_v0.1.md)、[支撑分类](Movement/MVPB_Vehicle_Support_Classification_Fix_CN_v0.1.md)及[共享DA／PM](Movement/MVPB_Vehicle_Stability_MinimalFix_CN_v0.1.md)。保持Movable普通地面、共享规则和静态高度校准；VP-3只消费参考几何并输出骨骼位移，团队增加四悬挂节点。自救许可／回滚和副作用边界、VP-1结束及F4后置保持。
 
+特效接续先读[电弧特效制作步骤](Presentation/MVPB_ElectricArc_FX_Authoring_CN_v0.1.md)：该文件只覆盖两柱之间电弧的Niagara本体制作（资产位置与命名、System建立与模块版本相依性修正、端点开放为User Parameter、三层Ribbon叠加、材质及团队手动验证／排错），不含碰撞体、伤害判定、机关状态机与球是否被电流阻挡的玩法规则。按AGENTS.md第8.3节由团队在Editor内手动完成；当前仓库只到达素材与步骤留档，没有运行时接入代码或画面验收，不把素材导入当作特效接线完成。机关侧后续入口（C++权威状态机、细长UBoxComponent判定、FVehicleHitContext→CombatResolver、两个Scene Component喂端点参数）见该文件第10节，未确认项见第9节。
+
 ## 2. 当前工程位置和开发阶段
 
 | 项目 | 最新接续核对结果与既有团队反馈 |
@@ -132,7 +134,7 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 | GAS 当前实现 | 原加速／免疫与Primary接线保留；共用Stun为原生GE及服务器ASC.ApplyStun（较晚结束时间、Avatar清理），主机HALStun调试指令保留；区域GE与Stun共用运动桥接，无新玩家施加RPC或库存框架 |
 | 场地持续运动效果 | 原生区域无ASC／GA，服务器按来源逐参数选最强并施加两类内部GE；加速度／上限／抓地与普通Buff增量合并，合并版3物理历史保存恢复曲线、实际消费值与Stun权限，DA不改；无需修改PlayerState.DefaultAbilities |
 | 当前 HP／冲击 | 三档保留免疫／降档、向上／翻转、脱球和骨骼回弹；主动球／拳／爆炸另选Short／Standard／Long／ExtraLong水平预设，先降档再乘倍率、扣除自然响应，只追加非负补足。普通接触仍走原稳定性路径，伤害独立；旧来源默认Standard |
-| 当前 Editor 接线 | 当前1163保存资产，新增电弧和Car_02及Car_01目录／AnimBP更新来自团队提交；本代理未改资产。区域BP／范围／地图仍由团队手工配置，Stun尚无机关，素材导入不代表运行时接线 |
+| 当前 Editor 接线 | 当前1163保存资产，新增电弧（[制作步骤](Presentation/MVPB_ElectricArc_FX_Authoring_CN_v0.1.md)）和Car_02及Car_01目录／AnimBP更新来自团队提交；本代理未改资产。区域BP／范围／地图仍由团队手工配置，Stun尚无机关，素材导入不代表运行时接线 |
 | 测试地图 | `/Game/Maps/MVPB_NetTest`用于单Host及联机玩法；从`/Game/Maps/MVPB_NetEntry`进入Host→Start。团队已提交测试MinimumPlayersToStart=1并反馈可用；直接Standalone仍受Listen Server开始限制，Playing后拒绝Join保持。旧`/Game/Maps/Test`按专项目的使用 |
 
 代码提交号是本次交接的比较基点，后续提交会变化。F1保存基线及F2历史证据保持；10月17日F3的原生GE／调试入口证据见原摘要。本轮运动GA补充不改保存配置、DA／地图或F2物理协议；329资产前后哈希全同，134份源码／配置及最终两Target／45项／正常GA双端证据见[本轮摘要](Combat/MVPB_Phase10F3Ability_Verification_20261019.json)。首次Live Coding阻塞、补Period防护前的通过记录独立保留；历史结果不冒充本次复测。
@@ -259,6 +261,7 @@ MVP-B收尾时使用届时冻结的同一提交／构建／资产，统一覆盖
 | 10-D 后续回归／调参 | 击飞恢复已获团队反馈；补三档／降档／免疫／脱球、连续接触、双向及网络扰动记录；档位响应与碰撞标尺数值以后调整，不作为新增开发功能 |
 | 10-E 团队验收 | 无额外核心算式待定；基础双端免疫反馈和双向命中日志子项已记录，接线已提交。下次开AbilityLog，补精确计时、输入边沿、目标持球、带效果退出及扰动细项；正式表现素材暂未指定，当前用调试HUD |
 | VP-4后续 | 现有功能总体基础表现获正向反馈；4C清单统一并入MVP-B末尾F4，当前不另开功能／审计／组合测试施工。复杂验收仍待完成，已发现阻塞缺陷及时修；可选新表现独立立项 |
+| 电弧特效与机关接入 | [电弧制作步骤](Presentation/MVPB_ElectricArc_FX_Authoring_CN_v0.1.md)已留档，只到特效本体；球碰到电流是穿过／阻挡／带电、柱子是否带实体碰撞、撞歪柱子是否中断电流均未确认，直接影响判定宽度与争球路线。机关Actor／状态机／伤害接入尚未施工，Ribbon强制CPU Sim的开销待电流数量增多后评估；若改由C++持有UNiagaraComponent需在Build.cs加`"Niagara"` |
 | MVP-B收尾统一验收 | 10-F-4完整A～D矩阵已由用户后置；届时合并原阶段9／10-D／10-E欠项，覆盖真实物理组合／角色互换／退出、100ms实测RTT／1%loss／20msjitter、压力档与四台有线PC。F2回滚驾驶需覆盖，不以单局日志代替完整验收 |
 | 团队环境变更时 | 本轮设备5.8.2已有新两Target／71项／基本双端证据；另一设备5.8.3旧结果保留。联机前统一补丁／构建及RPC版本，真人组合／完整扰动和四台有线PC证据仍待补齐 |
 
@@ -275,6 +278,8 @@ MVP-B收尾时使用届时冻结的同一提交／构建／资产，统一覆盖
 > 这是同一 Unreal 项目的接续开发。请完整读取根目录 AGENTS.md、Docs/Project_Status_CN.md 和当前环节规格，再核对 Git、实际引擎版本与相关源码／配置。先汇报已完成、未验收及差异，再执行我本次指定的环节。涉及蓝图／Data Asset 编辑，请提供 Unreal Editor 操作步骤，不直接修改资产。
 
 ## 8. 本次更新记录
+
+- 2026-10-31：补齐电弧特效制作步骤的接续索引。该文件随`cd957ba`已提交，但第1／6节没有入口，按第1节流程换设备接手会漏读；现于第1节新增特效接续段、第2节当前Editor接线行补链接、第6节待确定项新增电弧特效与机关接入行。明确只有特效本体步骤已留档，碰撞／伤害／机关状态机与球阻挡规则未确认，没有运行时接入代码或画面验收。本轮仅修改本状态文件，无新源码／资产／配置修改、构建／Unreal运行或测试结论，未提交／Push。
 
 - 2026-10-27：用户明确同类区域逐参数分别取最强，并询问车辆数据中间层。将此定义标为已确认，补充DA基础值→区域／GAS修饰→运行时有效倍率／桥接→权威物理帧快照／历史→Movement的职责说明；每车独立、DA不被覆盖，离区保留其他效果和惯性。既有加速度／速度通道与待新增区域／抓地／过渡明确区分；仅文档，无新源码／资产／配置、构建／测试或施工授权推定。
 
