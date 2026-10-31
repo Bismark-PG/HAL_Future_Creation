@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HALBallPresentationTypes.h"
 #include "Engine/DataAsset.h"
 #include "Engine/Scene.h"
 #include "PhysicsEngine/BodyInstance.h"
@@ -14,6 +15,7 @@ class UMaterialInterface;
 class UInputMappingContext;
 class UInputAction;
 class UHALVehiclePresentationConfig;
+class UHALCameraConfig;
 
 UENUM(BlueprintType)
 enum class EVehicleCollisionShape : uint8 { ConvexMesh, Box };
@@ -150,7 +152,12 @@ public:
 	/** Optional independent held recovery action. Leave empty only when recovery input is not wired yet. */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputAction> SelfRightAction;
-	UPROPERTY(EditAnywhere, Category = "Camera")
+	/** Optional Axis2D actions; camera input never enters vehicle physics commands. */
+	UPROPERTY(EditAnywhere, Category = "Input|Camera") TObjectPtr<UInputAction> CameraMouseAction;
+	UPROPERTY(EditAnywhere, Category = "Input|Camera") TObjectPtr<UInputAction> CameraStickAction;
+	/** When assigned and valid, this profile is the sole active camera source. */
+	UPROPERTY(EditAnywhere, Category = "Camera") TObjectPtr<UHALCameraConfig> CameraProfile;
+	UPROPERTY(EditAnywhere, Category = "Camera", meta=(EditCondition="CameraProfile == nullptr"))
 	FVehicleCameraConfig Camera;
 	bool Validate(FString& Error) const;
 #if WITH_EDITOR
@@ -187,9 +194,10 @@ public:
 	/** Explicitly migrated tier/drop/collision configuration. Physical body tuning is unchanged. */
 	UPROPERTY(EditAnywhere, Category = "Impact")
 	FHALVehicleImpactConfig Impact;
+	/** Static appearance/fallback. Optional for driving vehicles with a valid ready skeletal Presentation. */
 	UPROPERTY(EditAnywhere, Category = "Visual")
 	FVehicleVisualConfig Visual;
-	/** Optional visual-only rig. Invalid/unready rig falls back to Visual, without disabling gameplay. */
+	/** Visual-only rig. An invalid/unready rig requires a valid static Visual fallback. */
 	UPROPERTY(EditAnywhere, Category = "Visual")
 	TObjectPtr<UHALVehiclePresentationConfig> Presentation;
 	UPROPERTY(EditAnywhere, Category = "Local")
@@ -208,6 +216,8 @@ public:
 	bool bForwardArrowHiddenInGame = false;
 	/** Box definitions are passive fixtures; movement/local configuration is not consumed. */
 	bool Validate(FString& Error) const;
+	/** At least one supported visual path must be valid; passive Box fixtures require static Visual. */
+	bool ValidateVisual(FString& Error) const;
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 #endif
@@ -229,6 +239,9 @@ public:
 	FBallGameplayConfig Gameplay;
 	UPROPERTY(EditAnywhere, Category = "Visual")
 	FVehicleVisualConfig Visual;
+	/** Optional client mesh presentation; invalid values fall back to the existing PI display. */
+	UPROPERTY(EditAnywhere, Category="Presentation")
+	FHALBallPresentationConfig Presentation;
 	bool Validate(FString& Error) const;
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;

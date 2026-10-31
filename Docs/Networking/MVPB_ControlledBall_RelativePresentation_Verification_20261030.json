@@ -1,0 +1,180 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Asia/Tokyo",
+  "baseCommit": "945e616a9d03ba776f1def0b69a52a36b1af700c",
+  "branch": "main",
+  "engine": "UE5.8.2-56702186",
+  "scope": "Controlled-ball relative visual presentation and bounded state handoff; authority ball/constraint/gameplay unchanged",
+  "evidenceRoot": "Saved/BallRelativePresentation/20261030_160330",
+  "builds": [
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/BuildEditor_CallbackRepair.log",
+      "result": "Result: Succeeded",
+      "sha256": "63C6FFC9A355AFE58E59C0453152B1F308F77F69D71BBF56E275E69197736E8A"
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/BuildEditor_ConstrainedFixture.log",
+      "result": "Result: Succeeded",
+      "sha256": "092F2929F0D1E33B76C27D1862534DC3278FE7CF7E1FBEF7F794B8A06EFCF8D9"
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/BuildEditor_Final.log",
+      "result": "Result: Succeeded",
+      "sha256": "36FDB5E6267CBBF651CF149692EC0C5356E866D1F032962CC0250A94E9F49B56"
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/BuildEditor_Initial.log",
+      "result": "Result: Failed (OtherCompilationError)",
+      "sha256": "8A2D87F7C6D276E5941C9667897409F22DB972D7611F7FD92787B25C72B55443"
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/BuildEditor_Repair.log",
+      "result": "Result: Succeeded",
+      "sha256": "8673A2F6C8D2DAD5ADA19DC25B87E60153D11C0385BBB1F328DD9071B3580C8E"
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/BuildGame_CallbackRepair.log",
+      "result": "Result: Succeeded",
+      "sha256": "CB5A127281F52860F5918E9AD2CA76993E3FCF0AB468D8B61C3E98C99F04D749"
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/BuildGame_ConstrainedFixture.log",
+      "result": "Result: Succeeded",
+      "sha256": "2AFA96EE7F685DE043313E5F58936A877D587FABDE50BC5D3A1B710009F8CC63"
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/BuildGame_Final.log",
+      "result": "Result: Succeeded",
+      "sha256": "72907794D88FE2B420F2C50A85A3408E66EDA2BBA9800854D04763F2E7B04BC5"
+    }
+  ],
+  "reports": [
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/Native_CallbackRepaired/index.json",
+      "succeeded": 107,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "sha256": "189E5A0828075F1B528FE2188BBC990560CA72CBCD83FDE9E7C1834A041889B5"
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/Native_Final/index.json",
+      "succeeded": 107,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "sha256": "CA44FAFB476B8D3038552CC305317F80735983F744D73EB09822662953A25115"
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/NetClient_Launch_Regression/index.json",
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "sha256": "79122115DAD229A064E5A240E51E1ADC30C05502E58404F4E79FE96954D152BF"
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/NetClient_Relative_CallbackRepaired/index.json",
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "sha256": "D85437CCEA054CFCB619FD77AF41C773AA6E50D46292C5ACB7B39CA81CA45F6F"
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/NetHost_Launch_Regression/index.json",
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "sha256": "9702119A9A58DDC307A36BCBDA809A6D7619B19B3728F898F33C8C2B09DE825C"
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/NetHost_Relative_CallbackRepaired/index.json",
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "sha256": "C29E69487A6198E83244FA34D95EEEE0588DDBFE3B15FAC698A01D76D29380A9"
+    }
+  ],
+  "networkLogs": [
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/NetClient_Launch_Regression.log",
+      "sha256": "524791C4022BD0B2F14403501A4F62E920D833FF9794F6FC70EF8F1D3C8DCC0C",
+      "fatalOrEnsure": false,
+      "completion": []
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/NetClient_Relative_CallbackRepaired.log",
+      "sha256": "81BDB032F3927A56F85526BF68E34C281CA8D85EB1ED0765FEA4220BEE0C1099",
+      "fatalOrEnsure": false,
+      "completion": [
+        "[2026.10.30-07.36.27:082][547]LogTemp: Display: HAL BallRelative smoke: Host=0 Complete=1 OwnSamples=42 RemoteSamples=22 OwnRelativeFrames=135 RemoteRelativeFrames=129 Resimulations=57 HostOutgoingLag=80ms"
+      ]
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/NetClient_Relative_Initial.log",
+      "sha256": "1E8593C187C8BF3A007DB51C7529AFBADC1DF77E1194618A0B2EB80CA7A6B64D",
+      "fatalOrEnsure": false,
+      "completion": []
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/NetHost_Launch_Regression.log",
+      "sha256": "7B5BC158B32214B86173B89BFD0D4516736CE2E8997A117E989C1EBAB927F808",
+      "fatalOrEnsure": false,
+      "completion": []
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/NetHost_Relative_CallbackRepaired.log",
+      "sha256": "BCE23FE37EF76202C4FF225C39895082DBE9B7888F11D3B0EB7922C3227A8B38",
+      "fatalOrEnsure": false,
+      "completion": [
+        "[2026.10.30-07.36.26:971][864]LogTemp: Display: HAL BallRelative smoke: Host=1 Complete=1 OwnSamples=43 RemoteSamples=45 OwnRelativeFrames=0 RemoteRelativeFrames=0 Resimulations=0 HostOutgoingLag=80ms"
+      ]
+    },
+    {
+      "path": "Saved/BallRelativePresentation/20261030_160330/NetHost_Relative_Initial.log",
+      "sha256": "2A7A70661CE834427C3A2D40F00BE51B7C96F2A6B8C6400A7A9D659159B90623",
+      "fatalOrEnsure": true,
+      "completion": []
+    }
+  ],
+  "finalReports": [
+    "Native_CallbackRepaired",
+    "NetHost_Relative_CallbackRepaired",
+    "NetClient_Relative_CallbackRepaired",
+    "NetHost_Launch_Regression",
+    "NetClient_Launch_Regression"
+  ],
+  "processesAfter": {
+    "RemainingUECount": 0,
+    "Processes": []
+  },
+  "assets": {
+    "before": 1172,
+    "after": 1172,
+    "changed": 0,
+    "manifest": "Saved/BallRelativePresentation/20261030_160330/AssetsAfter.json",
+    "manifestSHA256": "660A3491A4A8FAD6280C42A063D3FD645AECCBAE5D32C4173B299EAF3E7E829F"
+  },
+  "buildInputs": {
+    "count": 226,
+    "changedAfterBuild": 0,
+    "manifest": "Saved/BallRelativePresentation/20261030_160330/SourceAtBuild.json",
+    "manifestSHA256": "9A7896F7C7B40734CF699D9CCA44E2347182B9EE9508E0B35BDE3C3C133A2DEE"
+  },
+  "limitations": [
+    "NullRHI two-process native assertions are not visual/real four-PC acceptance.",
+    "80ms host outgoing lag injection is not measured RTT.",
+    "Launch trajectory prediction and removal of first possession/launch confirmation latency remain outside this step.",
+    "Four-PC school wired LAN, stress/long-run and F4/VP complex combination checks remain pending."
+  ],
+  "assetEditing": "No .uasset/.umap edited or saved by agent",
+  "gitActions": "No commit or push",
+  "failedAttempts": [
+    "Initial Editor compile API/namespace issues repaired; original failure log retained.",
+    "Relative_Initial host crashed at the base OnPreSimulate assertion because the callback override was missing. Added the required no-op hook; full rebuild and retest followed. That crashed attempt has raw host/client logs but no final report; only its own remaining client process was stopped.",
+    "Native_Final 107/107 predates the callback repair and is retained as intermediate evidence; final reports are named separately."
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Asia/Tokyo",
+  "base_commit": "945e616 plus prior uncommitted pillar-only rule change",
+  "engine": "5.8.2-56702186",
+  "implementation": [
+    "Owning client alone scans the same middle ElectricField overlap/sweep; no pillar or remote pawn prediction",
+    "PredictedAutonomousOnly BounceBack action scheduled into existing Network Physics next local frame; no client hit/damage RPC",
+    "Authority independently scans, queues reliable action and applies GAS Stun/shocked/ball release; client never writes GAS or HP",
+    "Host-issued replicated PhysicsSourceId supports placed and dynamically spawned walls without Iris object hash",
+    "Speculative sequence comes from latest received authority bounce sequence, only one outstanding frame per vehicle; incoming history comparison/restore observes real authority frames, not locally built replay",
+    "Existing rewindable BounceBack state and sequence guard restore/reconcile physical results; rejected speculation converges back to sequence 0 in fixture",
+    "Local per-wall latch covers max(BounceBackSeconds,StunSeconds) plus scan interval and requires clear sample; prevents a correction crossing from becoming a second prediction"
+  ],
+  "builds": {
+    "Editor": "Succeeded final production version",
+    "Game": "Succeeded final production and test version",
+    "warnings": "Existing camera C4305 warnings; zero test warnings does not mean no compiler warnings"
+  },
+  "reports": {
+    "Regression": {
+      "succeeded": 106,
+      "failed": 0,
+      "succeededWithWarnings": 0,
+      "notRun": 0,
+      "sha256": "a882a8b1bf09897d437d213359a625d9a84794a8a60bceb1c52c2dca85f0f663"
+    },
+    "Regression2": {
+      "succeeded": 106,
+      "failed": 0,
+      "succeededWithWarnings": 0,
+      "notRun": 0,
+      "sha256": "bacf63fdff81efbcc4bde7a1d22710fdbc17cb59d564fe357e26811e46786ff7"
+    },
+    "Accept2Host": {
+      "succeeded": 1,
+      "failed": 0,
+      "succeededWithWarnings": 0,
+      "notRun": 0,
+      "sha256": "def49b11980b874ce7279990bd7041392cddd70cfbe09c15ed5370f7635d718e"
+    },
+    "Accept2Client": {
+      "succeeded": 1,
+      "failed": 0,
+      "succeededWithWarnings": 0,
+      "notRun": 0,
+      "sha256": "508414469a507796e72c0152677fc4dbecfb23a46a4129b4c41c0bcdca62b396"
+    },
+    "RejectHost": {
+      "succeeded": 1,
+      "failed": 0,
+      "succeededWithWarnings": 0,
+      "notRun": 0,
+      "sha256": "ca239329e55e15dfd93416ef0d144dd774182f8cb9de2b44e5916bb1f9077d12"
+    },
+    "RejectClient": {
+      "succeeded": 1,
+      "failed": 0,
+      "succeededWithWarnings": 0,
+      "notRun": 0,
+      "sha256": "2f9b1d25c783dff2d410852e435ac003217f01fff80903e31bac3b8a95e71c92"
+    },
+    "Accept3Host": {
+      "succeeded": 1,
+      "failed": 0,
+      "succeededWithWarnings": 0,
+      "notRun": 0,
+      "sha256": "371f6870c941ffd1b7904c21784fbc66ff4ba203dbedba56d042b3a36bf5dbaa"
+    },
+    "Accept3Client": {
+      "succeeded": 0,
+      "failed": 1,
+      "succeededWithWarnings": 0,
+      "notRun": 0,
+      "sha256": "58f02ba30a80ebf9a1e2f484698328dafc73ecb8d3fa2634beede0423648f464"
+    },
+    "Accept4Host": {
+      "succeeded": 1,
+      "failed": 0,
+      "succeededWithWarnings": 0,
+      "notRun": 0,
+      "sha256": "f8191408e5a62f5c6f13c35cfdc6315bb693cd34d3eae9cf8749ab5e5a3505a8"
+    },
+    "Accept4Client": {
+      "succeeded": 1,
+      "failed": 0,
+      "succeededWithWarnings": 0,
+      "notRun": 0,
+      "sha256": "6e7eeb7c2c696fc3a829235cb83321e7da37df1c235a834a865bf214f029b55a"
+    },
+    "Reject2Host": {
+      "succeeded": 1,
+      "failed": 0,
+      "succeededWithWarnings": 0,
+      "notRun": 0,
+      "sha256": "3fa82b9a89997a7cafe94ac47eaaafc8c402a153bcc16bdb84d04ef202d30c92"
+    },
+    "Reject2Client": {
+      "succeeded": 1,
+      "failed": 0,
+      "succeededWithWarnings": 0,
+      "notRun": 0,
+      "sha256": "0bff649840287284dc1f299af78280db758f70632d1b36bb702e60051a5b7d19"
+    }
+  },
+  "final_reports": [
+    "Regression2",
+    "Accept4Host",
+    "Accept4Client",
+    "Reject2Host",
+    "Reject2Client"
+  ],
+  "network_conditions": {
+    "map": "/Game/Maps/MVPB_NetTest",
+    "rendering": "NullRHI",
+    "fps_cap": 60,
+    "host_outgoing_lag_ms": 150,
+    "host_lag_variance_ms": 40,
+    "host_packet_loss_percent": 10,
+    "field_scan_seconds": 0.05,
+    "measured_RTT": null
+  },
+  "fixtures": {
+    "accept": "Two vehicles and aerial runtime wall; autonomous starts a controlled .2 server-clock seconds ahead to represent client prediction lead. Local reverse velocity must occur before owning ASC Stun is observed; one speculative contact, two server contacts total, final sequence1/inactive, HP100. No human driving or latency percentile benchmark.",
+    "reject": "Client explicitly queues one speculative action away from field; server records 0 contacts. After received authority history, sequence0/inactive and HP100. Real physical speculative velocity was observed.",
+    "final_accept_client": "Count1 Early1 Velocity1 Contacts2 Seq1 Active0 Ack566 PredFrame428",
+    "final_reject_client": "Count1 Early1 Velocity1 Contacts0 Seq0 Active0 Ack609 PredFrame464"
+  },
+  "iterations": [
+    "First accept aborted after source-object hash ensure on runtime actor; log preserved. Host-issued replicated ID replaced Iris-dependent source hashing.",
+    "Constant150ms accept/reject both roles passed.",
+    "First loss/jitter accept client failed strict one-prediction assertion (count2). Production latch extended through expected Stun; strict assertion unchanged; final accept passed count1."
+  ],
+  "assets": {
+    "count": 1172,
+    "changed": []
+  },
+  "limits": [
+    "No newly rendered/human acceptance; team must test actual driving on both roles",
+    "Stun/shocked and ball ownership remain authority-timed, not locally predicted",
+    "Large latency, wrong local geometry, missed initial config/source ID, or contradictory prediction can still produce corrections or delayed authority effects",
+    "No claim of all simultaneous-wall, avatar-rebind, extreme-loss, disconnect, four-machine or full F4 matrix coverage"
+  ],
+  "git": "Uncommitted, no push."
+}

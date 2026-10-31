@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-29T16:07:12+09:00",
+  "purpose": "用户要求解决拉取将覆盖Project_Status_CN.md和TestVehiclePawn.cpp；保留本地静态Visual可选功能与远端电墙／Bounce Back／shocked。",
+  "branch": "main",
+  "headBefore": "98b1a8d63b2ac87dbe72e743a55ca56163a08c24",
+  "headAfter": "ac14e60d296401db0c29fb167d27623afe7a5c17",
+  "incomingCommits": [
+    "dc3372e Add paired electric wall with independent bounce back and stun",
+    "91da2d1 Merge origin/main with electric wall bounce back; use remote test map",
+    "ac14e60 Upload eletric wall"
+  ],
+  "engine": {
+    "path": "D:/Program Files/Epic Games/UE_5.8",
+    "version": "5.8.2",
+    "changelist": 56702186
+  },
+  "integration": {
+    "workflow": "逐文件校验备份 → fetch origin → stash含未跟踪文件 → fast-forward origin/main → apply并保留stash → 语义核对与文档冲突合并；恢复原未暂存状态。",
+    "backupDirectory": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\GitMerge\\20261029_154853",
+    "localFileCount": 10,
+    "preservedStash": "a45e14cdd055421fb0a8a3276f568ceb3035676c",
+    "olderStashesRetained": [
+      "2329483b079e3be9217129e6da3b0ac88c02802e",
+      "124b307648d1098727d987ad1464261f10dfcabb"
+    ],
+    "pullBlockedPaths": [
+      "Docs/Project_Status_CN.md",
+      "Source/HAL_Future_Creation/TestVehiclePawn.cpp"
+    ],
+    "actualTextConflictPaths": [
+      "Docs/Project_Status_CN.md"
+    ],
+    "statusConflictBlocks": 3,
+    "pawnMerge": "自动合并后核对：远端shocked头文件、默认子对象、Bind、Unbind均保留；本地ApplyDefinition安全静态回退初始化保留。",
+    "otherLocalFiles": "除状态文档和Pawn外，其余8份本地文件与备份逐份换行归一后相同；历史可选Visual验证JSON原样保留。",
+    "unmergedEntries": 0,
+    "diffCheck": "Passed",
+    "commitCreated": false,
+    "pushed": false,
+    "workingChanges": "原本地功能与此次状态／验证留档仍未提交，未暂存；远端3个提交已在main。",
+    "localFiles": [
+      {
+        "path": "Docs/Configuration/MVPB_DataAsset_QuickGuide_CN_v1.0.md",
+        "sha256": "0E394173657BC6F9487B8D4F2241EF54D996311154CD2F10454174201A01B861",
+        "untracked": false
+      },
+      {
+        "path": "Docs/Configuration/MVPB_Optional_Static_Visual_Verification_20261029.json",
+        "sha256": "CDB9BF91D367D22BC751A09B6F1FF38A284396242BDE2DD8C40EB89A429EA9C6",
+        "untracked": true
+      },
+      {
+        "path": "Docs/Configuration/Vehicle_Asset_Generator_CN_v0.1.md",
+        "sha256": "224D286354BD25B5B114E5BF16B629E2D1A8827A83EEBCFE21A0075A604D98F8",
+        "untracked": false
+      },
+      {
+        "path": "Docs/Project_Status_CN.md",
+        "sha256": "F8975951C3D1238ED9DA504665E492CDD0FA30AF4D3980F3E112CE0D81D1542F",
+        "untracked": false
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALVehiclePresentationTests.cpp",
+        "sha256": "0C025052DF00F5B9E035313F237167004187C25B9A9BE81FD8137D63D426FE23",
+        "untracked": false
+      },
+      {
+        "path": "Source/HAL_Future_Creation/Tests/HALVehiclePresentationTestSupport.h",
+        "sha256": "FE9BFB4991959C7C846523BB156691B7BFCF6415D95B4D171078E50B40F1C38A",
+        "untracked": false
+      },
+      {
+        "path": "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+        "sha256": "B0EA50AF2E3D567DD066AC70629F1E137E8CEC4C09000BE74C7A9D654671639C",
+        "untracked": false
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleDefinition.cpp",
+        "sha256": "C4898C76C4F242E20960A4112B439D797B647B870073A94BA284C7F70F12DC92",
+        "untracked": false
+      },
+      {
+        "path": "Source/HAL_Future_Creation/VehicleDefinition.h",
+        "sha256": "AF8746456907C44F435554313CE12DF3E11A3799BADF69AE571BAD099E93AFBF",
+        "untracked": false
+      },
+      {
+        "path": "Source/HAL_Future_CreationEditor/Private/VehicleAssetGenerator/SHALVehicleAssetGenerator.cpp",
+        "sha256": "5868EC1607CFBAFE1EA1DBDDC803570BB1DE29909AF895FF5E4B6E8DC17FBEF9",
+        "untracked": false
+      }
+    ]
+  },
+  "builds": [
+    {
+      "target": "HAL_Future_CreationEditor",
+      "configuration": "Win64 Development",
+      "result": "Succeeded",
+      "totalSeconds": 94.26,
+      "logPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\GitMerge\\20261029_154853\\BuildEditor.log",
+      "logSha256": "99f3454c9fb491a669982aaa8392cce43166872192e33cfec35d976450921d94"
+    },
+    {
+      "target": "HAL_Future_Creation",
+      "configuration": "Win64 Development",
+      "result": "Succeeded",
+      "totalSeconds": 74.64,
+      "logPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\GitMerge\\20261029_154853\\BuildGame.log",
+      "logSha256": "6bf9822fb26006a06bd7e764dd801c9f5346c43c486b04afc46aff10c1c8713f"
+    }
+  ],
+  "automation": [
+    {
+      "name": "Regression",
+      "succeeded": 103,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "reportPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\GitMerge\\20261029_154853\\Regression\\index.json",
+      "reportSha256": "5b99a45a5f4cdb606a92b5dafb7b2f4bf1702b7a9226139f870aabfe62cb73d7",
+      "logPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\GitMerge\\20261029_154853\\Regression.log",
+      "logSha256": "5f396f87a84260b2f06d27c3380028594e0928442d3d10ab05f5e8fdafd667a0"
+    },
+    {
+      "name": "Generator",
+      "succeeded": 3,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "reportPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\GitMerge\\20261029_154853\\Generator\\index.json",
+      "reportSha256": "ceb7d8c3e185cead126844d8442804da5a28f4b78853a45f03654bc12bf867d1",
+      "logPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\GitMerge\\20261029_154853\\Generator.log",
+      "logSha256": "a11b55a53056f1e2b44d389c5621770187f15a2a01e3d24a1f615505d8d9e264"
+    },
+    {
+      "name": "NetHost_ElectricWall",
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "reportPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\GitMerge\\20261029_154853\\NetHost_ElectricWall\\index.json",
+      "reportSha256": "e62974fe918b6fe910f86bc464a2b3523ba78b49effc6db5944e7f356b97a06f",
+      "logPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\GitMerge\\20261029_154853\\NetHost_ElectricWall.log",
+      "logSha256": "a53c0cf8a7691a7a3950b1e090275568d25a33dee5970ab09081b65cebe054c4"
+    },
+    {
+      "name": "NetClient_ElectricWall",
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "reportPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\GitMerge\\20261029_154853\\NetClient_ElectricWall\\index.json",
+      "reportSha256": "1f3571a98e88392a098d626654a3189aa8c4daeaf656389b509a7d2951f2654b",
+      "logPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\GitMerge\\20261029_154853\\NetClient_ElectricWall.log",
+      "logSha256": "67974fdd715fcb2c4fdca253786110a579c65d8c4973ac58e25e6e38fe4e177c"
+    },
+    {
+      "name": "NetHost_Presentation",
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "reportPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\GitMerge\\20261029_154853\\NetHost_Presentation\\index.json",
+      "reportSha256": "7467416e7af390d4b30bf370e86a64036ca59c9909fa1129cc645509b49675cb",
+      "logPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\GitMerge\\20261029_154853\\NetHost_Presentation.log",
+      "logSha256": "e5e002dd70d5e3576aaaa7e55e0ce4a0761fd30be818ac802ecae7344d5ac54c"
+    },
+    {
+      "name": "NetClient_Presentation",
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "reportPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\GitMerge\\20261029_154853\\NetClient_Presentation\\index.json",
+      "reportSha256": "03199372ff246a8f499cbdb43eb906d77c99f173fb3be830a4c05a7c44f202f6",
+      "logPath": "D:\\UnrealProjects\\HAL_Future_Creation\\Saved\\GitMerge\\20261029_154853\\NetClient_Presentation.log",
+      "logSha256": "084ebc0f225beefe0dc1408b17ddd5fdbdcf5b4c0d450f48840500dcb1c3dc06"
+    }
+  ],
+  "network": {
+    "mode": "两个独立UnrealEditor -game进程，MVPB_NetTest Listen Server，NullRHI，60 FPS上限。",
+    "electricWall": {
+      "port": 7861,
+      "filter": "HAL.NetworkSmoke.ElectricWall",
+      "host": "Complete=1 Contacts=2 PeakWest=620.090 HP=100 Stun=0 Shocked=0 Resimulations=0 Rewinds=0",
+      "client": "Complete=1 Contacts=2 PeakWest=166.666 HP=100 Stun=0 Shocked=0 Resimulations=40 Rewinds=2",
+      "interpretation": "2个接触对应两辆车各一次；无新增规则Impact结算，Stun／shocked正常结束。",
+      "impairment": "主机出站80ms注入，非实测RTT；未注入丢包／抖动。"
+    },
+    "presentation": {
+      "port": 7862,
+      "filter": "HAL.NetworkSmoke.VehiclePresentation",
+      "host": "Complete=1 Local=0.004 Remote=-0.013 SkidInputs=0",
+      "client": "Complete=1 Local=-0.004 Remote=0.003 SkidInputs=0",
+      "interpretation": "现有保存车辆输入／观察者／归零链路，静态缺省通过普通原生临时副本另测；不是保存Mesh=None资产的真人画面验收。"
+    },
+    "ownedProcessIds": [
+      33228,
+      21528,
+      52680,
+      26924
+    ],
+    "allOwnedProcessesExited": true
+  },
+  "preservation": {
+    "agentEditedSavedAssets": false,
+    "beforePullAssetCount": 1172,
+    "afterPullAssetCount": 1173,
+    "expectedIncomingAssetChanges": [
+      "Content/Blueprints/MapMechanic/BP_ElectricWallGimmick.uasset (新增)",
+      "Content/Maps/MVPB_NetTest.umap (远端更新)"
+    ],
+    "allAssetsUnchangedAfterPull": true,
+    "assetDigestAlgorithm": "SHA-256 of UTF-8, no BOM: sorted path|lowercase-sha256 strings joined by LF, no final LF.",
+    "afterPullAssetDigest": "0cded4413017fffc0b880ed66644ed4e4a3e03ebcd7acc0a39b428e359ef713c",
+    "afterTestsAssetDigest": "0cded4413017fffc0b880ed66644ed4e4a3e03ebcd7acc0a39b428e359ef713c",
+    "afterPullManifestSha256": "914e7251a44c920eb3b728f44fba54057f6e47c660f9974d8133c76847571518",
+    "sourceInputCount": 219,
+    "compiledInputsUnchangedAfterTests": true,
+    "compiledInputDigest": "66c576215f70b2270e67f9f9bd5fddca056d116df7696b88c3be0320e82c0218",
+    "sourceManifestSha256": "493912ad712169aabce7be89ad4a99498ce8eb54edf84f6aa75e4eae96a44d10",
+    "configUprojectBuildCsUnchangedFromRemote": true
+  },
+  "limitations": [
+    "103普通、3生成器和4份双端报告均0测试警告／失败／未运行；编译既有C4305／C4996与引擎启动警告未宣称消失。",
+    "NullRHI数据检查不代表最终渲染、驾驶手感、Mesh=None保存配置或团队Blueprint／地图验收。",
+    "未追加完整F4扰动、VP复杂组合或四台真实有线PC验收；电墙距离仍为无阻挡目标。",
+    "跨设备联机需同步同一源码／资产并完整重编，不能混用拉取前DLL；未创建提交或Push。"
+  ],
+  "next": "团队重开已重编Editor继续相机和车型手工配置，按电墙说明复测地图与shocked表现；跨设备前将本地功能与留档纳入正常Git提交。"
+}

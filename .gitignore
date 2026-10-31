@@ -3,6 +3,7 @@
 
 # Markdown documents
 *.md
+!Docs/Combat/MVPB_Electric_Wall_CN_v0.1.md
 !Docs/Combat/MVPB_Stun_State_CN_v0.1.md
 !Docs/Configuration/Stun_Reuse_And_Parameters_CN.md
 !Docs/Configuration/Stun_Reuse_And_Parameters_JA.md
@@ -103,6 +104,8 @@ DerivedDataCache/*
 !Docs/Networking/MVPB_Phase6_AuthoritativeCapture_CN_v0.2.md
 !Docs/Networking/MVPB_Phase6_AuthoritativeCapture_CN_v0.3.md
 !Docs/Networking/MVPB_Listen_Phase9_Implementation_CN_v0.1.md
+!Docs/Networking/MVPB_FourPlayer_Ball_ClientDelay_Review_CN_v0.1.md
+!Docs/Networking/MVPB_ControlledBall_RelativePresentation_CN_v0.1.md
 !Docs/Combat/MVPB_Phase10A_GAS_Impact_Spec_CN_v0.1.md
 !Docs/Combat/MVPB_GAS_Architecture_Overview_CN_v0.1.md
 !Docs/Project_Status_CN.md
@@ -133,6 +136,9 @@ DerivedDataCache/*
 !Docs/Presentation/MVPB_Vehicle_Presentation_VP4B_Plan_CN_v0.1.md
 !Docs/Presentation/MVPB_Vehicle_Presentation_VP4B_Implementation_CN_v0.1.md
 !Docs/Presentation/MVPB_Vehicle_Presentation_VP4C_Plan_CN_v0.1.md
+!Docs/Presentation/MVPB_Vehicle_TireSkid_Implementation_CN_v0.1.md
+!Docs/Presentation/MVPB_Dynamic_Camera_Plan_CN_v0.1.md
+!Docs/Presentation/MVPB_Dynamic_Camera_Implementation_CN_v0.1.md
 !Docs/Presentation/MVPB_Car01_AssetInspection_CN_v0.1.md
 !Docs/Presentation/MVPB_ElectricArc_FX_Authoring_CN_v0.1.md
 !Docs/Movement/MVPB_Vehicle_Stability_And_SelfRighting_Plan_CN_v0.1.md

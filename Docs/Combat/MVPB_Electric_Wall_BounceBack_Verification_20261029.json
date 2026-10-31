@@ -1,0 +1,173 @@
+{
+  "date": "2026-10-29",
+  "timezone": "Asia/Tokyo",
+  "branch": "main",
+  "head": "0b28303d1bb02a51fd101901bbb52831baa27353",
+  "engine": "5.8.2-56702186",
+  "scope": "Electric wall / pillar independent Bounce Back; shared Stun and shocked retained; ball enhancement deferred",
+  "parameters": {
+    "BounceBackDistance": {
+      "default": 100,
+      "units": "cm",
+      "valid": ">0, <=1000"
+    },
+    "BounceBackSeconds": {
+      "default": 0.3,
+      "units": "game seconds",
+      "valid": "0.05..2"
+    },
+    "StunSeconds": {
+      "default": 1,
+      "independent": true
+    },
+    "removed": [
+      "ImpactTier",
+      "PushPreset",
+      "RetriggerInterval"
+    ]
+  },
+  "rules": [
+    "Reverse sampled horizontal incoming travel (velocity then geometry fallback). Replace horizontal motion, preserve Z and W.",
+    "Finite linearly decelerating velocity profile, exact unconstrained integral equals configured distance; obstacles and damping can shorten travel. No teleport or angular impulse.",
+    "One interaction across wall and pillars. Bounce complete plus a fully clear scan rearms entry; return through wall during bounce is not a fresh interaction.",
+    "New Authority FVehicleBounceBackAction and serialized, compared/restored FVehicleBounceBackState in Network Physics history. No Impact immunity/tier lookup or CombatResolver call.",
+    "ContactImpactProfile None is only a suppressor of pillar-contact authored Impact; natural solid Chaos collisions retained."
+  ],
+  "builds": {
+    "Editor": "Succeeded: Editor_Network.log",
+    "Game": "Succeeded: Game_Final.log"
+  },
+  "reports": {
+    "Automation": {
+      "path": "Saved/ElectricWall/BounceBack_20261029/Automation/index.json",
+      "sha256": "F5ABE043351B3F68FF0CCA023F593438790CFE5DD5BD75CFB8E88429A2B1985B",
+      "succeeded": 86,
+      "succeededWithWarnings": 0,
+      "failed": 1
+    },
+    "Automation_Final": {
+      "path": "Saved/ElectricWall/BounceBack_20261029/Automation_Final/index.json",
+      "sha256": "DC132212853AA425726C6A2412AA6BE9A98BE71EB876BDA107E2CA6DAC55E033",
+      "succeeded": 88,
+      "succeededWithWarnings": 0,
+      "failed": 0
+    },
+    "Network_Host": {
+      "path": "Saved/ElectricWall/BounceBack_20261029/Network_Host/index.json",
+      "sha256": "146AD2071453ECB95679E154A9C9E0CC936F47B10885F6A517ABCE8D3C6CEC90",
+      "succeeded": 0,
+      "succeededWithWarnings": 0,
+      "failed": 1
+    },
+    "Network_Client": {
+      "path": "Saved/ElectricWall/BounceBack_20261029/Network_Client/index.json",
+      "sha256": "7E5F761B3BE12BD8287DDEFD128615E3A4DFD949AE99962E03B8B38B196E9086",
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0
+    },
+    "Network_Final_Host": {
+      "path": "Saved/ElectricWall/BounceBack_20261029/Network_Final_Host/index.json",
+      "sha256": "E9179E0CFDB894F8BA5EE9108F0C1E86ACDE6320A9EAE95744F3D57113B22D2A",
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0
+    },
+    "Network_Final_Client": {
+      "path": "Saved/ElectricWall/BounceBack_20261029/Network_Final_Client/index.json",
+      "sha256": "B7C1559AF43C8B6C99F8197EB161BFB5816061AB992705AAB6323C51866A26D4",
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0
+    }
+  },
+  "automated_coverage": [
+    "Existing 87 tests plus new BounceHistoryContract = 88. Serialization roundtrip, mismatch correction, nonhorizontal payload rejection.",
+    "Real TaskGraph Solver production action/tick: 6000cm/s + lateral velocity replaced by reverse profile; Z=-30 and W=(.2,.3,.7) preserved; same restored action repeats same result; 100cm horizontal travel within0.5cm and XY stop over20 frames at60Hz.",
+    "Continuous overlap remains one hit beyond Stun duration; complete-clear sample then reentry triggers again; return during active bounce cannot retrigger. Existing Stun/shocked/overlap/full-crossing/directions preserved."
+  ],
+  "network": {
+    "map": "/Game/Maps/MVPB_NetTest",
+    "port": 7825,
+    "hostOutgoingInjectedLagMs": 80,
+    "fpsCap": 60,
+    "incomingSpeedCmPerSecond": 4000,
+    "fixture": "native aerial rotated90 degree wall, gravity disabled, linear damping0, two possessed cars. Authority adds ImpactImmune before contact.",
+    "hostPeakObservedWestCmPerSecond": 627.402,
+    "clientPeakObservedWestCmPerSecond": 279.897,
+    "clientResimulationsAtCompletion": 35,
+    "clientBridgeRewindsAtCompletion": 2,
+    "assertions": [
+      "2 total accepted contacts / one per car",
+      "actual westward velocity on both peers",
+      "HP100",
+      "own and remote Stun/shocked observed then expire",
+      "movement bridge ready and controls restored",
+      "authority Impact EventId identical before/after bounce"
+    ],
+    "processIds": [
+      29852,
+      41720
+    ],
+    "processesExited": true
+  },
+  "earlier_failures": [
+    {
+      "report": "Automation",
+      "result": "86 passed / 1 failed",
+      "reason": "Reentry fixture used a departing sweep as a fully-clear sample; scanner conservatively still saw the wall. Added second stationary-clear scan; continuous-overlap assertion retained."
+    },
+    {
+      "reports": [
+        "Network_Host",
+        "Network_Client"
+      ],
+      "result": "Host0/1 Client1/1",
+      "reason": "Asserting LastImpact.EffectiveTier None wrongly treats preexisting map-contact history as new bounce output. Final assertion compares authority EventId immediately before and after contact; no production weakening."
+    }
+  ],
+  "verification_order_note": "Automation_Final88/88 ran after pending/public state support and entry fixture fix. Subsequent edit removed an accidental BounceBack reset in the existing unsupported-history-size error path and changed the network assertion to event identity comparison; final Editor/Game builds and paired network test ran after those edits. Unsupported >254 frame history remains outside runtime validation.",
+  "saved_assets": {
+    "countBefore": 1158,
+    "countAfter": 1158,
+    "allSha256Identical": true,
+    "preservedExistingUserChanges": [
+      "Content/Maps/MVPB_NetTest.umap",
+      "Content/Blueprints/MapMechanic/BP_ElectricWallGimmick.uasset"
+    ]
+  },
+  "limits": [
+    "No rendered/manual driving acceptance, wall corners, slopes, airborne obstacle contacts, chain car collisions or full network disturbances/four players.",
+    "Native aerial network fixture demonstrates actual reverse motion/replication, not identical visually sampled peak speeds on both peers or guaranteed final wall clearance.",
+    "Distance starts at authority bounce execution; scan may first observe a full crossing. No teleport to original contact plane.",
+    "Natural pillar collisions can still rotate or flip cars. Bounce Back itself never writes angular velocity.",
+    "New reflection/history payload requires same rebuilt code on all peers; team must manually recompile/save Blueprint. No asset edits, commit or push."
+  ],
+  "sourceSha256": {
+    "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp": "94234F9F280CE7F014215684F15A6D2B281E1C0D2C74F5115275D919D8ACCD29",
+    "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h": "50C2A9A396F1D2F6958D8BF0A370A46B19BF55E45D38A8FA0BDF62426495E199",
+    "Source/HAL_Future_Creation/ArcadeVehicleMovementEffects.cpp": "0B7B3A919B63F8E893E2E4C6D60DDC681249F5FB88E0F5359A5E033E99054E28",
+    "Source/HAL_Future_Creation/VehicleNetPhysicsData.h": "212005BC8EAC2C6CE08A7B6A87D13C09125BFE7483B119B7737A3976BDD71008",
+    "Source/HAL_Future_Creation/VehicleNetPhysicsData.cpp": "6FB0C4A6446FD5C96C171A32EA1FB1E768FB7DD6DE1E4B9745F2FBFF93D1C804",
+    "Source/HAL_Future_Creation/VehicleBounceBackTypes.h": "8E4BAFB9DD037EB26322D4C3F0D5113D62E16E0EDF7D69824C32E1AB49AF9B15",
+    "Source/HAL_Future_Creation/HALElectricWallGimmick.h": "4366C64E10846E828B42B3113BAB709E20D510FFDAC77BBF272545D6436D6779",
+    "Source/HAL_Future_Creation/HALElectricWallGimmick.cpp": "E2EA7FD51AAB4FE6A22BED3F094481489765E4226C791C43AD58AE5CE19DC6CC",
+    "Source/HAL_Future_Creation/Tests/HALElectricWallTests.cpp": "E0941A26C1B41C081BF218BDCBEB57625093483F1E8E9C9A57FF89A8294D2423",
+    "Source/HAL_Future_Creation/Tests/HALElectricWallNetworkTests.cpp": "ECE333C0FF5E239BF36A314B82FEA095FBE25CEE93D9545EF8D496F9AC86CA47",
+    "Source/HAL_Future_Creation/Tests/HALImpactPhysicsThreadTests.cpp": "35156CB2802BBE8D8CF3C1CF6CC0FB4FF8DC8193C689D8077B94EA3CD3E01C1D"
+  },
+  "artifactRoot": "Saved/ElectricWall/BounceBack_20261029",
+  "artifactSha256": {
+    "Editor_Network.log": "E030D27AC1EAF1272ADC201F96D5B2ADC1272CB35AE8D0A78E76861E7004640A",
+    "Game_Final.log": "2C442A30BD1FEDA2BFE3F94A6E734FA178C9CD862E3AB7A453EA586631B58800",
+    "Automation.log": "69E7FFD974EAFF323C53E928AEC1E0393BFD4B28C87A38FC0350CEFA3282737A",
+    "Automation_Final.log": "1F4F1894D4A48A52F2ABD3E0D2F505A704B55C66C56451A0A490BB3CC8A6C52F",
+    "Network_Host.log": "E3201CEF6871BBCEBDB7A42E8FBFF0E969E41231927AB6DCD474284732472549",
+    "Network_Client.log": "A762981CA593115EAE639BA13B46BAF5037442636282B3ACFD823FC541B7B671",
+    "Network_Final_Host.log": "D4395EE712A54A27B219A4B023F6D9161BD468426C7A860C23F62F2471656E8D",
+    "Network_Final_Client.log": "D24557348239C081F21A76A774B0ACD015ABEDC273AD835B09E76AD1D629A1CF",
+    "Assets_Before.json": "7D6F9D0FEF76F4EEBB899A1122F28F833E2FEBFD4F69601BEEDE7D8154E1E510",
+    "Assets_After.json": "7D6F9D0FEF76F4EEBB899A1122F28F833E2FEBFD4F69601BEEDE7D8154E1E510"
+  },
+  "commitPreparationNote": "Removed trailing whitespace only from network test during commit preparation; no executable code change or new runtime verification."
+}

@@ -30,6 +30,64 @@ namespace
 	}
 }
 
+float FSpringPunchMotion::EvaluateOffset(double ServerTime, float Distance) const
+{
+	const double Elapsed = ServerTime - StartsAt;
+	if (!bValid || Elapsed <= 0) { return 0; }
+	if (Elapsed < ExtendSeconds)
+	{
+		return Distance * EvaluatePunchCurve(ExtensionCurve, float(Elapsed / FMath::Max(.01f, ExtendSeconds)));
+	}
+	const float Alpha = float((Elapsed - ExtendSeconds) / FMath::Max(.01f, RetractSeconds));
+	return Distance * (1.f - EvaluatePunchCurve(RetractionCurve, Alpha));
+}
+
+double FSpringPunchCycle::Period() const
+{
+	return double(Motion.ExtendSeconds) + Motion.RetractSeconds + CooldownSeconds + WindupSeconds;
+}
+
+float FSpringPunchCycle::EvaluateOffset(double ServerTime) const
+{
+	if (!bValid || ServerTime < Motion.StartsAt) { return 0; }
+	const double Elapsed = FMath::Fmod(ServerTime - Motion.StartsAt, Period());
+	return Motion.EvaluateOffset(Motion.StartsAt + Elapsed, Distance);
+}
+
+ESpringPunchState FSpringPunchCycle::EvaluateState(double ServerTime) const
+{
+	if (!bValid || ServerTime < Motion.StartsAt - WindupSeconds) { return ESpringPunchState::Idle; }
+	if (ServerTime < Motion.StartsAt) { return ESpringPunchState::Windup; }
+	const double Elapsed = FMath::Fmod(ServerTime - Motion.StartsAt, Period());
+	if (Elapsed < Motion.ExtendSeconds) { return ESpringPunchState::Extending; }
+	if (Elapsed < double(Motion.ExtendSeconds) + Motion.RetractSeconds) { return ESpringPunchState::Retracting; }
+	if (Elapsed < double(Motion.ExtendSeconds) + Motion.RetractSeconds + CooldownSeconds) { return ESpringPunchState::Cooldown; }
+	return ESpringPunchState::Windup;
+}
+
+void ASpringPunchGimmick::ConfigureCycle(double FirstExtensionTime)
+{
+	Cycle.bValid = true;
+	Cycle.Motion.bValid = true;
+	Cycle.Motion.StartsAt = FirstExtensionTime;
+	Cycle.Motion.ExtendSeconds = FMath::Max(.01f, ExtendDuration);
+	Cycle.Motion.RetractSeconds = FMath::Max(.01f, RetractDuration);
+	Cycle.Motion.ExtensionCurve = ExtensionCurve;
+	Cycle.Motion.RetractionCurve = RetractionCurve;
+	Cycle.WindupSeconds = FMath::Max(.01f, WindupDuration);
+	Cycle.CooldownSeconds = FMath::Max(.01f, CooldownDuration);
+	Cycle.Distance = FMath::Max(0.f, PunchDistance);
+	Cycle.Origin = RetractedRelativeLocation;
+	Cycle.FirstPunchNumber = Phase.PunchNumber + 1;
+}
+
+void ASpringPunchGimmick::OnRep_Cycle()
+{
+	if (GetNetMode() != NM_Client) { return; }
+	SetActorTickEnabled(Cycle.bValid);
+	UpdatePunchVisual();
+}
+
 ASpringPunchGimmick::ASpringPunchGimmick()
 {
 	// Tick は使用可能にするが、初期状態では停止しておく。
@@ -84,6 +142,7 @@ void ASpringPunchGimmick::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ASpringPunchGimmick, Phase);
+	DOREPLIFETIME(ASpringPunchGimmick, Cycle);
 }
 
 double ASpringPunchGimmick::GetPhaseTime() const
@@ -97,7 +156,9 @@ void ASpringPunchGimmick::OnRep_Phase()
 	CurrentState = Phase.State;
 	StateStartTime = Phase.StartedAt;
 	RetractedRelativeLocation = Phase.RetractedLocation;
-	SetActorTickEnabled(CurrentState == ESpringPunchState::Extending || CurrentState == ESpringPunchState::Retracting);
+	// A preannounced windup also ticks on observers: no boundary packet is needed.
+	SetActorTickEnabled(CurrentState == ESpringPunchState::Extending || CurrentState == ESpringPunchState::Retracting
+		|| (GetNetMode() == NM_Client && (Cycle.bValid || (Phase.Motion.bValid && CurrentState == ESpringPunchState::Windup))));
 	UpdatePunchVisual();
 }
 
@@ -164,6 +225,36 @@ void ASpringPunchGimmick::EnterState(ESpringPunchState NewState)
 	// 新しい状態と、その開始時刻を記録する。
 	CurrentState = NewState;
 	StateStartTime = World->GetTimeSeconds();
+	if (NewState == ESpringPunchState::Idle)
+	{
+		ConfigureCycle(StateStartTime + FMath::Max(0.f, InitialDelay) + FMath::Max(.01f, WindupDuration));
+		Phase.Motion.bValid = false;
+	}
+	if (NewState == ESpringPunchState::Windup)
+	{
+		// Re-anchor only when authored configuration changes, never on every punch.
+		const bool SameConfig = Cycle.bValid && Cycle.Motion.ExtendSeconds == FMath::Max(.01f, ExtendDuration)
+			&& Cycle.Motion.RetractSeconds == FMath::Max(.01f, RetractDuration)
+			&& Cycle.WindupSeconds == FMath::Max(.01f, WindupDuration)
+			&& Cycle.CooldownSeconds == FMath::Max(.01f, CooldownDuration)
+			&& Cycle.Motion.ExtensionCurve == ExtensionCurve && Cycle.Motion.RetractionCurve == RetractionCurve
+			&& Cycle.Distance == FMath::Max(0.f, PunchDistance) && Cycle.Origin == RetractedRelativeLocation;
+		if (!SameConfig) { ConfigureCycle(StateStartTime + FMath::Max(.01f, WindupDuration)); }
+		Phase.Motion = Cycle.Motion;
+		const uint32 Index = Phase.PunchNumber + 1 - Cycle.FirstPunchNumber;
+		Phase.Motion.StartsAt += double(Index) * Cycle.Period();
+		StateStartTime = Phase.Motion.StartsAt - Cycle.WindupSeconds;
+	}
+	if (Phase.Motion.bValid && NewState == ESpringPunchState::Extending) { StateStartTime = Phase.Motion.StartsAt; }
+	if (Phase.Motion.bValid && NewState == ESpringPunchState::Retracting)
+	{
+		StateStartTime = Phase.Motion.StartsAt + Phase.Motion.ExtendSeconds;
+	}
+	if (Phase.Motion.bValid && NewState == ESpringPunchState::Cooldown)
+	{
+		StateStartTime = Phase.Motion.StartsAt + Phase.Motion.ExtendSeconds + Phase.Motion.RetractSeconds;
+		Phase.Motion.bValid = false;
+	}
 	if (NewState == ESpringPunchState::Extending) { ++Phase.PunchNumber; }
 
 	// 新しいパンチの開始時に、ヒット記録と判定開始位置を初期化する。
@@ -190,15 +281,15 @@ void ASpringPunchGimmick::EnterState(ESpringPunchState NewState)
 		break;
 
 	case ESpringPunchState::Extending:
-		Duration = FMath::Max(0.01f, ExtendDuration);
+		Duration = Phase.Motion.bValid ? Phase.Motion.ExtendSeconds : FMath::Max(0.01f, ExtendDuration);
 		break;
 
 	case ESpringPunchState::Retracting:
-		Duration = FMath::Max(0.01f, RetractDuration);
+		Duration = Phase.Motion.bValid ? Phase.Motion.RetractSeconds : FMath::Max(0.01f, RetractDuration);
 		break;
 
 	case ESpringPunchState::Cooldown:
-		Duration = FMath::Max(0.01f, CooldownDuration);
+		Duration = Cycle.bValid ? Cycle.CooldownSeconds : FMath::Max(0.01f, CooldownDuration);
 		break;
 
 	default:
@@ -208,10 +299,10 @@ void ASpringPunchGimmick::EnterState(ESpringPunchState NewState)
 	Phase.State = NewState;
 	Phase.StartedAt = StateStartTime;
 	Phase.Duration = Duration;
-	Phase.Distance = FMath::Max(0.0f, PunchDistance);
+	Phase.Distance = Cycle.bValid ? Cycle.Distance : FMath::Max(0.0f, PunchDistance);
 	Phase.RetractedLocation = RetractedRelativeLocation;
-	Phase.ExtensionCurve = NewState == ESpringPunchState::Extending ? ExtensionCurve.Get() : nullptr;
-	Phase.RetractionCurve = NewState == ESpringPunchState::Retracting ? RetractionCurve.Get() : nullptr;
+	Phase.ExtensionCurve = NewState == ESpringPunchState::Extending ? (Phase.Motion.bValid ? Phase.Motion.ExtensionCurve.Get() : ExtensionCurve.Get()) : nullptr;
+	Phase.RetractionCurve = NewState == ESpringPunchState::Retracting ? (Phase.Motion.bValid ? Phase.Motion.RetractionCurve.Get() : RetractionCurve.Get()) : nullptr;
 	UpdatePunchVisual();
 	ForceNetUpdate();
 
@@ -222,6 +313,8 @@ void ASpringPunchGimmick::EnterState(ESpringPunchState NewState)
 
 	SetActorTickEnabled(bMoving);
 
+	// Keep announced boundaries despite timer callbacks landing on a later frame.
+	Duration = FMath::Max(0.f, float(StateStartTime + Duration - World->GetTimeSeconds()));
 	// 待機時間がゼロの場合は、次のゲームフレームで状態を進める。
 	if (Duration <= 0.0f)
 	{
@@ -291,6 +384,19 @@ void ASpringPunchGimmick::UpdatePunchVisual()
 	UWorld* World = GetWorld();
 	if (!World || !PunchPivot)
 	{
+		return;
+	}
+
+	if (GetNetMode() == NM_Client && Cycle.bValid)
+	{
+		CurrentState = Cycle.EvaluateState(GetPhaseTime());
+		PunchPivot->SetRelativeLocation(Cycle.Origin + FVector(Cycle.EvaluateOffset(GetPhaseTime()), 0, 0));
+		return;
+	}
+	if (GetNetMode() == NM_Client && Phase.Motion.bValid)
+	{
+		PunchPivot->SetRelativeLocation(RetractedRelativeLocation
+			+ FVector(Phase.Motion.EvaluateOffset(GetPhaseTime(), Phase.Distance), 0, 0));
 		return;
 	}
 

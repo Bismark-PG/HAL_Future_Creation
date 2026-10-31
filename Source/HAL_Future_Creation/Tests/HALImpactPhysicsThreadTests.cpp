@@ -23,12 +23,14 @@ namespace
 		FVector InitialVelocity = FVector::ZeroVector;
 		FVector InitialAngularVelocity = FVector::ZeroVector;
 		int32 CaseId = 0;
+		int32 Steps = 1;
 		void Reset() { Movement = nullptr; Body = nullptr; Action.Reset(); CaseId = 0; }
 	};
 	struct FImpactProbeOutput : Chaos::FSimCallbackOutput
 	{
 		FVector Velocity = FVector::ZeroVector;
 		FVector AngularVelocity = FVector::ZeroVector;
+		FVector Travel = FVector::ZeroVector;
 		int32 CaseId = 0;
 		bool bPhysicsContext = false;
 		uint32 ThreadId = 0;
@@ -43,9 +45,14 @@ namespace
 		bool bPrePhysicsContext = false;
 		uint32 PreThreadId = 0;
 		FBodyInstanceAsyncPhysicsTickHandle Handle;
+		FVector Start;
+		int32 StepsLeft=0;
+		UArcadeVehicleMovementComponent* BounceMovement=nullptr;
 		virtual void OnPreSimulate_Internal() override
 		{
 			const auto* Input = GetConsumerInput_Internal();
+			if (StepsLeft>0 && BounceMovement)
+			{ BounceMovement->AsyncPhysicsTickComponent(GetDeltaTime_Internal(),GetSimTime_Internal()); return; }
 			if (!Input || Input->CaseId == 0 || Input->CaseId == LastCase || !Input->Body || !Input->Movement) { return; }
 			Handle = Input->Body->GetBodyInstance()->GetBodyInstanceAsyncPhysicsTickHandle();
 			if (!Handle.IsValid()) { return; }
@@ -58,15 +65,19 @@ namespace
 			Handle->SetW(Input->InitialAngularVelocity);
 			Handle->SetLinearImpulse(FVector::ZeroVector, false);
 			Handle->SetAngularImpulse(FVector::ZeroVector, false);
+			Start=Handle->X(); StepsLeft=Input->Steps;
 			Input->Movement->ApplyAction_Internal(Input->Action);
+			BounceMovement=Input->Action.GetPtr<FVehicleBounceBackAction>() ? Input->Movement : nullptr;
+			if (BounceMovement) { BounceMovement->AsyncPhysicsTickComponent(GetDeltaTime_Internal(),GetSimTime_Internal()); }
 		}
 		virtual void OnPostSolve_Internal() override
 		{
-			if (PendingCase == 0 || !Handle.IsValid()) { return; }
+			if (PendingCase == 0 || !Handle.IsValid() || --StepsLeft>0) { return; }
 			auto& Output = GetProducerOutputData_Internal();
 			Output.CaseId = PendingCase;
 			Output.Velocity = Handle->V();
 			Output.AngularVelocity = Handle->W();
+			Output.Travel=Handle->X()-Start;
 			Output.bPhysicsContext = bPrePhysicsContext;
 			Output.ThreadId = PreThreadId;
 			PendingCase = 0;
@@ -115,24 +126,28 @@ bool FHALImpactPhysicsThreadTest::RunTest(const FString& Parameters)
 	int32 CaseId = 0;
 	const uint32 GameThreadId = FPlatformTLS::GetCurrentThreadId();
 	bool bObservedWorker = false;
-	const auto RunCase = [&](const TCHAR* Label, const FVehicleImpactAction& Action, const FVector& InitialV,
-		const FVector& InitialW, const FVector& ExpectedV, const FVector& ExpectedW)
+	const auto RunCase = [&](const TCHAR* Label, const auto& Action, const FVector& InitialV,
+		const FVector& InitialW, const FVector& ExpectedV, const FVector& ExpectedW, int32 Steps=1, FVector Travel=FVector::ZeroVector)
 	{
 		auto* Input = Probe->GetProducerInputData_External();
 		Input->Movement = Movement;
 		Input->Body = Body;
 		Input->CaseId = ++CaseId;
-		Input->Action = TInstancedStruct<FNetworkPhysicsActionPayload>::Make<FVehicleImpactAction>(Action);
+		using ActionType=std::decay_t<decltype(Action)>;
+		Input->Action = TInstancedStruct<FNetworkPhysicsActionPayload>::Make<ActionType>(Action);
+		Input->Steps=Steps;
+		Movement->BounceBackPhysics={};
 		Input->InitialVelocity = InitialV;
 		Input->InitialAngularVelocity = InitialW;
 		bool bMeasured = false;
-		for (int32 Attempt = 0; Attempt < 4 && !bMeasured; ++Attempt)
+		for (int32 Attempt = 0; Attempt < Steps+4 && !bMeasured; ++Attempt)
 		{
 			Step();
 			while (auto Output = Probe->PopFutureOutputData_External())
 			{
 				if (Output->CaseId != CaseId) { continue; }
 				bMeasured = true;
+				if (Steps>1) { TestTrue(TEXT("Unobstructed bounce covers configured horizontal distance"),FVector(Output->Travel.X,Output->Travel.Y,0).Equals(Travel,.5)); }
 				TestTrue(FString::Printf(TEXT("%s executes in Solver physics context"), Label), Output->bPhysicsContext);
 				// TaskGraph can execute some solver work on the frozen GT; require actual worker coverage overall.
 				bObservedWorker |= Output->ThreadId != GameThreadId;
@@ -171,6 +186,14 @@ bool FHALImpactPhysicsThreadTest::RunTest(const FString& Parameters)
 	Movement->bShouldRunPhysics.Store(false);
 	Action.EventSequence = 4;
 	RunCase(TEXT("Inactive/proxy handler never applies"), Action, FVector(1, 2, 3), FVector(4, 5, 6), FVector(1, 2, 3), FVector(4, 5, 6));
+	Movement->bShouldRunPhysics.Store(true);
+	FVehicleBounceBackAction Bounce;
+	Bounce.Value.Sequence=1; Bounce.Value.bActive=true; Bounce.Value.Direction=FVector(-1,0,0);
+	Bounce.Value.Distance=100; Bounce.Value.Duration=.3f;
+	const float Speed=100*(2/.3f-(1.f/60)/(.3f*.3f));
+	RunCase(TEXT("Bounce cancels high horizontal speed and preserves Z/W"),Bounce,FVector(6000,400,-30),FVector(.2,.3,.7),FVector(-Speed,0,-30),FVector(.2,.3,.7));
+	RunCase(TEXT("Bounce replay from restored state"),Bounce,FVector(6000,400,-30),FVector(.2,.3,.7),FVector(-Speed,0,-30),FVector(.2,.3,.7));
+	RunCase(TEXT("Bounce distance and stop"),Bounce,FVector(6000,400,-30),FVector::ZeroVector,FVector(0,0,-30),FVector::ZeroVector,20,FVector(-100,0,0));
 	TestTrue(TEXT("Solver exercised production handler on an actual worker thread"), bObservedWorker);
 	Solver->UnregisterAndFreeSimCallbackObject_External(Probe);
 	Step();

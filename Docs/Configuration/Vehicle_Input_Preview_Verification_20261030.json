@@ -1,0 +1,139 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Asia/Tokyo",
+  "git_head": "945e616a9d03ba776f1def0b69a52a36b1af700c",
+  "engine": "5.8.3-58210709",
+  "scope": "Definition/LocalConfig read-only input preview for generated and existing vehicle Blueprints",
+  "implementation": [
+    "Register the native vehicle Details customization in the existing Editor module.",
+    "Project the current shared Local Config into all ten Blueprint Input reference rows, with a source row.",
+    "Do not copy serialized input defaults or save existing assets.",
+    "Extend generator reference and transient runtime initialization coverage."
+  ],
+  "launcher": {
+    "editor_target_already_includes_editor_module": true,
+    "legacy_cmd_stays_deleted": true,
+    "rebuild_supported": true,
+    "entry": "BuildAndLaunch.cmd"
+  },
+  "build": {
+    "latest_source_content_matches_snapshot": true,
+    "full_build": {
+      "ExitCode": 0,
+      "Project": "D:\\UE Project\\HAL_Future_Creation\\Saved\\RV_944c95\\HAL_Future_Creation.uproject",
+      "Log": "D:\\UE Project\\HAL_Future_Creation\\Saved\\VehicleReferencePreview\\20261030\\Isolated_Editor_Build.log"
+    },
+    "verified_final_build": {
+      "ExitCode": 0,
+      "Project": "D:\\UE Project\\HAL_Future_Creation\\Saved\\RV_944c95\\HAL_Future_Creation.uproject",
+      "Log": "D:\\UE Project\\HAL_Future_Creation\\Saved\\VehicleReferencePreview\\20261030\\Verified_Editor_Build.log",
+      "Note": "Copied test source timestamps refreshed to force recompilation."
+    },
+    "isolation_project": "D:\\UE Project\\HAL_Future_Creation\\Saved\\RV_944c95\\HAL_Future_Creation.uproject",
+    "warning_notes": [
+      "Existing C4305 camera test warnings.",
+      "UBA action-result store messages; build result Succeeded."
+    ]
+  },
+  "automation": {
+    "passed_count": null,
+    "executed_confirmed": false,
+    "attempts": [
+      {
+        "ProcessId": 9460,
+        "ExitCode": null,
+        "TimedOut": false,
+        "Project": "D:\\UE Project\\HAL_Future_Creation\\Saved\\RV_944c95\\HAL_Future_Creation.uproject",
+        "Log": "D:\\UE Project\\HAL_Future_Creation\\Saved\\VehicleReferencePreview\\20261030\\Automation.log",
+        "Report": "D:\\UE Project\\HAL_Future_Creation\\Saved\\VehicleReferencePreview\\20261030\\AutomationReport\\index.json",
+        "ReportCreated": false
+      },
+      {
+        "ExitCode": 0,
+        "LogCreated": false,
+        "ReportCreated": false,
+        "Report": "D:\\UE Project\\HAL_Future_Creation\\Saved\\VehicleReferencePreview\\20261030\\NativeAutomationReport\\index.json"
+      },
+      {
+        "ProcessId": 17252,
+        "ExitCode": null,
+        "TimedOut": false,
+        "Project": "D:\\UE Project\\HAL_Future_Creation\\Saved\\RV_944c95\\HAL_Future_Creation.uproject",
+        "Log": "D:\\UE Project\\HAL_Future_Creation\\Saved\\VehicleReferencePreview\\20261030\\EditorAutomation.log",
+        "Report": "D:\\UE Project\\HAL_Future_Creation\\Saved\\VehicleReferencePreview\\20261030\\EditorAutomationReport\\index.json",
+        "ReportCreated": false
+      }
+    ],
+    "compiled_tests": [
+      "HAL.Editor.VehicleInputPreview.LiveSource",
+      "HAL.Editor.VehicleInputPreview.DetailsRows",
+      "HAL.Editor.VehicleAssetGenerator.Naming",
+      "HAL.Editor.VehicleAssetGenerator.ReferenceChain",
+      "HAL.Editor.VehicleAssetGenerator.Preflight",
+      "HAL.Editor.VehicleAssetGenerator.RuntimeInputInitialization"
+    ],
+    "limitation": "No Unreal log, stdout/stderr content, or automation report was produced. Native Cmd exit code 0 is not recorded as a test pass."
+  },
+  "integrity": {
+    "SourceFiles": 218,
+    "SourceSnapshotDifferences": [],
+    "AssetCountBefore": 1172,
+    "AssetCountAfter": 1172,
+    "AssetDifferences": 0
+  },
+  "config_snapshot_differences": [],
+  "unchanged_runtime_sources": [],
+  "new_editor_sources": [
+    "Source/HAL_Future_CreationEditor/Private/HALVehicleInputDetails.h",
+    "Source/HAL_Future_CreationEditor/Private/HALVehicleInputDetails.cpp",
+    "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleInputDetailsTests.cpp"
+  ],
+  "manual_validation": "Close the user Editor normally after saving; run BuildAndLaunch.cmd; inspect existing Car_02 Class Defaults Input and run the two automation groups. Draft vehicle configuration gates remain unchanged.",
+  "original_editor_restarted_by_agent": false,
+  "original_assets_saved_by_agent": false,
+  "git_commit_created": false,
+  "completion_verification": {
+    "date": "2026-10-30T15:59:03.1593302+09:00",
+    "git_head": "945e616a9d03ba776f1def0b69a52a36b1af700c",
+    "entry": "BuildAndLaunch.cmd",
+    "final_entry_sha256": "A049F995CF22406B19A06BCBDDE39E897B71987E6F1E121E4C9B6DF4E77CE657",
+    "full_build_flags": [
+      "-NoHotReload",
+      "-NoLiveCoding"
+    ],
+    "launcher_fixture_count": 13,
+    "launcher_fixture_report": "D:\\UE Project\\HAL_Future_Creation\\Saved\\BuildTool\\LauncherIntegration_b0df8f42dad145808fdf71ace5d14015\\Results.json",
+    "main_editor_build": {
+      "ExitCode": 0,
+      "Result": "Succeeded",
+      "Log": "D:\\UE Project\\HAL_Future_Creation\\Saved\\VehicleReferencePreview\\20261030\\Completion_Editor_Build.log",
+      "Note": "Main-project 29-action compile/link/metadata completed through the unified entry. UBA-enabled process teardown stalled and was interrupted. A final main-project native Build.bat check with -NoUBA and the same full-build flags returned Succeeded, exit code 0, target up to date."
+    },
+    "interrupted_launcher_runs": [
+      "Saved/BuildTool/BuildAndLaunch_20261030_154800_356_568028",
+      "Saved/BuildTool/BuildAndLaunch_20261030_155028_334_aacc6a",
+      "Saved/BuildTool/BuildAndLaunch_20261030_155233_713_019346"
+    ],
+    "temporary_build_environment": "Process-only TMP/TEMP and UBA_ROOT use project Saved directories. No saved build configuration or engine files were changed.",
+    "main_binaries": [
+      {
+        "Path": "D:\\UE Project\\HAL_Future_Creation\\Binaries\\Win64\\UnrealEditor-HAL_Future_Creation.dll",
+        "SHA256": "B95008FEDC2D85087FD82F75FBE95776174985A6B71282BA1D15BEAB495FAB0C",
+        "LastWriteTime": "2026-10-30T15:55:01.1102453+09:00"
+      },
+      {
+        "Path": "D:\\UE Project\\HAL_Future_Creation\\Binaries\\Win64\\UnrealEditor-HAL_Future_CreationEditor.dll",
+        "SHA256": "E5AB32883E07D49757CC04D7441964B97B257B6F251CE18D34D89D88F773C508",
+        "LastWriteTime": "2026-10-30T15:56:05.4043856+09:00"
+      }
+    ],
+    "source_file_count": 218,
+    "source_snapshot_differences": [],
+    "asset_count": 1172,
+    "asset_differences": [],
+    "ue_automation": "Direct isolated UnrealEditor-Cmd retry returned 0 without log or report. None of the six UE tests is recorded as executed or passed.",
+    "legacy_cmd_deleted": true,
+    "gameplay_ready_gates_preserved": true,
+    "manual_next_step": "Reopen the Editor and inspect existing Car_02 Class Defaults / Vehicle / Input, then run both documented Automation groups. Model setup and Ready validation remain required."
+  }
+}

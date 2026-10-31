@@ -4,6 +4,7 @@
 #include "ArcadeVehicleMovementComponent.h"
 #include "VehicleRecoveryComponent.h"
 #include "TestVehiclePawn.h"
+#include "HALAbilitySystemComponent.h"
 #include "AnimationRuntime.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -25,6 +26,7 @@ void UHALVehiclePresentationComponent::GetLifetimeReplicatedProps(TArray<FLifeti
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME_CONDITION(UHALVehiclePresentationComponent, ObserverSteering, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(UHALVehiclePresentationComponent, bObserverDrivingLeanAllowed, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(UHALVehiclePresentationComponent, ObserverTireSkidInputs, COND_SkipOwner);
 }
 
 void UHALVehiclePresentationComponent::Configure(UHALVehiclePresentationConfig* InConfig, UPrimitiveComponent* InBody,
@@ -42,6 +44,9 @@ void UHALVehiclePresentationComponent::Configure(UHALVehiclePresentationConfig* 
 		return;
 	}
 	Config = InConfig;
+	bTireSkidReady = Config->TireSkid.bEnabled && Config->TireSkid.Validate(Error);
+	if (Config->TireSkid.bEnabled && !bTireSkidReady)
+	{ UE_LOG(LogTemp, Warning, TEXT("%s: tire skid disabled: %s"), *GetNameSafe(GetOwner()), *Error); }
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Mesh->SetSimulatePhysics(false);
 	Mesh->SetRelativeTransform(Config->RelativeTransform);
@@ -81,6 +86,8 @@ void UHALVehiclePresentationComponent::EndPlay(const EEndPlayReason::Type Reason
 
 void UHALVehiclePresentationComponent::StopPresentation()
 {
+	ClearTireSkids();
+	bTireSkidReady = false;
 	SetComponentTickEnabled(false);
 	if (bConfigured && Fallback)
 	{
@@ -102,6 +109,7 @@ void UHALVehiclePresentationComponent::StopPresentation()
 
 void UHALVehiclePresentationComponent::ResetPose()
 {
+	ClearTireSkids();
 	Frame = FHALVehiclePresentationFrame();
 	ChassisState = FHALChassisPresentationState();
 	// Keep the shot watermark: a delayed confirmation must not restart a cleared/expired shot.
@@ -135,6 +143,7 @@ float UHALVehiclePresentationComponent::ReadSteering(float DeltaTime, bool bDriv
 	auto* Pawn = Cast<ATestVehiclePawn>(GetOwner());
 	if (!Pawn) { return 0; }
 	float Accepted = 0;
+	uint8 AcceptedTireSkidInputs = 0;
 	if (Pawn->HasAuthority())
 	{
 		if (Pawn->GetController())
@@ -143,6 +152,7 @@ float UHALVehiclePresentationComponent::ReadSteering(float DeltaTime, bool bDriv
 			{
 				const auto Input = Movement->GetPresentationInput();
 				Accepted = Input.bValid ? Input.Steering : 0;
+				AcceptedTireSkidInputs = Input.bValid ? Input.TireSkidInputs : 0;
 			}
 		}
 		// Cosmetic property updates are bounded to 15 Hz, independent of render rate.
@@ -151,10 +161,12 @@ float UHALVehiclePresentationComponent::ReadSteering(float DeltaTime, bool bDriv
 		{
 			PublishElapsed = FMath::Fmod(PublishElapsed, 1.f / 15.f);
 			const int8 Quantized = int8(FMath::RoundToInt(FMath::Clamp(Accepted, -1.f, 1.f) * 127.f));
-			if (ObserverSteering != Quantized || bObserverDrivingLeanAllowed != bDrivingLeanAllowed)
+			if (ObserverSteering != Quantized || bObserverDrivingLeanAllowed != bDrivingLeanAllowed
+				|| ObserverTireSkidInputs != AcceptedTireSkidInputs)
 			{
 				ObserverSteering = Quantized;
 				bObserverDrivingLeanAllowed = bDrivingLeanAllowed;
+				ObserverTireSkidInputs = AcceptedTireSkidInputs;
 				Pawn->ForceNetUpdate();
 			}
 		}
@@ -224,6 +236,7 @@ void UHALVehiclePresentationComponent::TickComponent(float DeltaTime, ELevelTick
 		Pose.SpinRotation = HALVehiclePresentation::AxisRotation(Wheel.SpinAxis, SpinDegrees[Slot]);
 	}
 	UpdateSuspension(DeltaTime);
+	UpdateTireSkids(Velocity, bDrivingLeanAllowed);
 	bHasSample = true;
 	Frame.bValid = true;
 }

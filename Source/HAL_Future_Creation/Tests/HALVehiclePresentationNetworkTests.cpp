@@ -14,7 +14,7 @@ namespace
 	class FPresentationLiveTest : public IAutomationLatentCommand
 	{
 		FAutomationTestBase* Test;
-		double Deadline = FPlatformTime::Seconds() + 90, Complete = -1, NeutralAt = -1;
+		double Deadline = FPlatformTime::Seconds() + 90, Complete = -1, NeutralAt = -1, NextDiagnostic = 0;
 		bool bStarted = false, bActive = false, bNeutral = false;
 	public:
 		explicit FPresentationLiveTest(FAutomationTestBase* InTest) : Test(InTest) {}
@@ -50,12 +50,27 @@ namespace
 				return false;
 			}
 			const float Desired = bHost ? 0.65f : -0.65f;
-			if (!bStarted) { FHALPresentationTestAccess::SetInput(Own, Desired); bStarted = true; }
+			auto* Movement = Own->FindComponentByClass<UArcadeVehicleMovementComponent>();
+			if (!Movement || !Movement->GetMovementEffectStatus().bReady) { return false; }
+			// Emulate a held command, including after PawnClientRestart/input-context resets.
+			// Continue through the production input/physics/replication path; never set observer bits.
+			if (!bNeutral) { FHALPresentationTestAccess::SetInput(Own, Desired, 0, true); bStarted = true; }
+			else { FHALPresentationTestAccess::SetInput(Own, 0); }
 			const auto LocalFrame = Local->GetPresentationFrame();
 			const auto RemoteFrame = Remote->GetPresentationFrame();
+			if (World->GetTimeSeconds() >= NextDiagnostic)
+			{
+				NextDiagnostic = World->GetTimeSeconds() + 2;
+				const auto Input = Movement->GetPresentationInput();
+				const auto Support = Movement->GetStabilityObservation();
+				UE_LOG(LogTemp, Display, TEXT("HAL Presentation probe: Host=%d Started=%d Active=%d Neutral=%d Local=%.3f Remote=%.3f ConsumedSteer=%.3f ConsumedSkid=%u ObserverSkid=%u Ground=%d Drive=%d"),
+					bHost, bStarted, bActive, bNeutral, LocalFrame.SteeringDegrees, RemoteFrame.SteeringDegrees,
+					Input.Steering, Input.TireSkidInputs, Remote->GetObserverTireSkidInputs(), Support.bNearGround, Support.bDrivingAllowed);
+			}
 			if (!bActive && LocalFrame.bValid && RemoteFrame.bValid
 				&& FMath::Abs(LocalFrame.SteeringDegrees - Desired * 25) < 0.6f
-				&& FMath::Abs(RemoteFrame.SteeringDegrees + Desired * 25) < 0.8f)
+				&& FMath::Abs(RemoteFrame.SteeringDegrees + Desired * 25) < 0.8f
+				&& (Remote->GetObserverTireSkidInputs() & 1))
 			{
 				bActive = true;
 				Test->TestTrue(TEXT("Rear wheels remain unsteered for both roles"), LocalFrame.BL.SteeringRotation.IsNearlyZero() && RemoteFrame.BR.SteeringRotation.IsNearlyZero());
@@ -67,20 +82,22 @@ namespace
 				{
 					const auto Input = Other->FindComponentByClass<UArcadeVehicleMovementComponent>()->GetPresentationInput();
 					Test->TestTrue(TEXT("Server remote animation reads consumed client physics input"), Input.bValid && Input.Steering < -0.6f);
+					Test->TestTrue(TEXT("Server publishes consumed handbrake for trails"), (Input.TireSkidInputs & 1) != 0);
 				}
 				PC->SetName(bHost ? TEXT("HAL_VP_HostActive") : TEXT("HAL_VP_ClientActive"));
-				UE_LOG(LogTemp, Display, TEXT("HAL Presentation smoke: Host=%d Active=1 Local=%.3f Remote=%.3f Observer=%.3f HeadlessProbe=1"),
-					bHost ? 1 : 0, LocalFrame.SteeringDegrees, RemoteFrame.SteeringDegrees, Remote->GetObserverSteering());
+				UE_LOG(LogTemp, Display, TEXT("HAL Presentation smoke: Host=%d Active=1 Local=%.3f Remote=%.3f Observer=%.3f SkidInputs=%u HeadlessProbe=1"),
+					bHost ? 1 : 0, LocalFrame.SteeringDegrees, RemoteFrame.SteeringDegrees, Remote->GetObserverSteering(), Remote->GetObserverTireSkidInputs());
 			}
 			if (bActive && !bNeutral && Other->GetPlayerState()->GetPlayerName().Contains(TEXT("Active")))
 			{
 				FHALPresentationTestAccess::SetInput(Own, 0); bNeutral = true; NeutralAt = World->GetTimeSeconds();
 			}
 			if (bNeutral && World->GetTimeSeconds() - NeutralAt > 1
-				&& FMath::Abs(LocalFrame.SteeringDegrees) < 0.2f && FMath::Abs(RemoteFrame.SteeringDegrees) < 0.2f)
+				&& FMath::Abs(LocalFrame.SteeringDegrees) < 0.2f && FMath::Abs(RemoteFrame.SteeringDegrees) < 0.2f
+				&& Remote->GetObserverTireSkidInputs() == 0)
 			{
 				Test->TestTrue(TEXT("Both local and observer steering return to neutral"), true);
-				UE_LOG(LogTemp, Display, TEXT("HAL Presentation smoke: Host=%d Complete=1 Local=%.3f Remote=%.3f"), bHost ? 1 : 0, LocalFrame.SteeringDegrees, RemoteFrame.SteeringDegrees);
+				UE_LOG(LogTemp, Display, TEXT("HAL Presentation smoke: Host=%d Complete=1 Local=%.3f Remote=%.3f SkidInputs=%u"), bHost ? 1 : 0, LocalFrame.SteeringDegrees, RemoteFrame.SteeringDegrees, Remote->GetObserverTireSkidInputs());
 				Complete = FPlatformTime::Seconds();
 			}
 			return false;

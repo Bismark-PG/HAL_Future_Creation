@@ -1,5 +1,32 @@
 # 弹簧拳：战斗与联机接入交接注意事项（v0.1）
 
+## 2026-10-29：完整循环同步与丢包验证
+
+团队真人反馈不稳网络下整拳漏播／延迟。上一版只保证当前拳的预告已抵达后可跨边界播放，预告本身缺失仍可能跳过整拳；本轮经用户授权升级为持久`FSpringPunchCycle`复制属性。
+
+- Idle即发布首拳开始时刻、出拳／收拳／冷却／预告时长、起点／距离、两份Curve与首拳序号。后续拳按同一绝对周期推导，不每拳重新设时钟；服务器仍用原状态机／Timer／最后一段Sweep／CombatResolver，阶段边界也锚定同一时间表。
+- 配置改变在下一Windup重新建立Cycle。曲线资产引用／时长／距离应保持两端同版；未分配Curve保持线性。现有机关没有新增暂停／动态调度系统，销毁沿用Actor生命周期。
+- Client持有Cycle后，即使全部逐拳Phase通知缺失，也按同步服务器时间更新位置与可读CurrentState；现有表现Tick在Client整个循环保持启用，包括冷却，服务器仍只在伸缩时Tick。Client不创建攻击／Sweep／伤害；Phase仍用于权威信息与无有效Cycle的回退。
+- 最初Cycle尚未收到时不能凭空知道规则，迟到时恢复当前循环进度；配置变更仍须送达。服务器长时间卡顿、时钟校正、断线与相关性恢复不在本轮保证范围。
+
+本机UE5.8.2-56702186 Editor／Game完整编译成功；专项2/2（含第0／1／5／1000轮非线性取样）、普通102/104，两项仍为既有SM_CarCollisionProxy旧路径。连续循环双端Host／Client各1/1；另原伤害双端各1/1，四份0测试警告／失败。两端各注入80ms出站延迟、±60ms抖动、15%随机丢包，60FPS／NullRHI，不代表实测RTT或真人渲染。连续夹具原生Actor＋保存BP、两份实际Curve、.25s出拳／.7s收拳／.4s预告／.35s冷却，每Actor至少观察三轮出拳和收拳；Client临时清空Phase／调用RepNotify，确认保留Cycle即可维持Tick与实际Pivot。另一次精确单拳夹具两车HP75／Medium保持，没有客户端CombatAction。
+
+保存资产1172份前后SHA256全同；无BP／地图／Curve编辑。证据：[循环验证](SpringPunch_Cycle_Verification_20261029.json)。测试过滤请用`HAL.NetworkSmoke.SpringPunchCycle`运行多轮；单拳用`^HAL.NetworkSmoke.SpringPunch$`精确匹配，分别独立进程启动，避免两个夹具共用同一局。团队重新编译两端并按原双视窗启动方式复测实际连续画面，无需新增蓝图节点。本轮未提交／Push。
+
+## 2026-10-29：Client曲线差异修正（验证完成）
+
+团队反馈Host正常、Client出拳及收拳速度／曲线不同。源码确认旧实现仅在各阶段开始后复制通知，Client收到后以服务器当前时间采样，因此跳过通知传输期间的曲线前段；旧双端报告仅覆盖阶段／HP，并未验证完整运动曲线，不能视为画面通过。
+
+本次在Windup阶段预告下一拳完整运动：出拳起点、两段时长与两份曲线引用。Client可跨越出拳／收拳边界自行采样表现，不等待边界通知；不进行命中结算。服务器仍独占状态转换／Sweep／CombatResolver，并使用已预告时间与曲线。时长／曲线配置变更从下一次Windup生效；未分配曲线仍线性。正常预警需足够让快照在动作前送达；晚加入／严重延迟仍只能重建当前进度，不承诺播放已经过去的片段。两端必须重新编译并保持相同曲线资产。
+
+新增AnnouncedMotion专项与既有CombatLifecycle的时间／曲线锁定断言；双端夹具改用已保存两份Curve资产、0.25秒出拳／0.7秒收拳，检查Windup提前取得两份曲线。测试夹具未修改保存资产。
+
+本机UE5.8.2-56702186，最终Editor／Game Target完整编译成功；专项2/2，普通102/104。两项普通失败均引用已在既有129bebe提交中改名的`/Game/Meshes/SM_CarCollisionProxy`，未修改无关测试。最终真实Listen Server Host／Client各1/1，0测试警告／失败；60FPS／NullRHI，两端各80ms出站注入，不代表实测RTT。双端确认Windup取得两份保存Curve；Client临时保留Windup状态以模拟缺少出拳／收拳边界通知，两种情况下实际PunchPivot仍按预告更新；两车各一次25伤害、HP75及Medium保持、Client无CombatAction。此为数据／运动路径验证，未真人验收渲染画面。
+
+首轮夹具误计地图原有机关（3而非2）；第二轮用服务器Actor名字过滤，Client动态Actor名称不保留导致0；最终以已复制车辆Owner辨识两份运行时测试拳，保留原伤害／阶段／双端完成断言。前两轮失败报告独立保留。Editor曾两次占用DLL，团队保存关闭后完成最终链接。1172份保存资产前后SHA256全同；代理未编辑BP／地图／Curve。证据见[本轮验证](SpringPunch_ClientMotion_Verification_20261029.json)。未提交／Push。
+
+团队复测：重开Editor；两端同步本次源码与曲线并重新编译；在现有BP_SpringPunch保留原Timing及两份Curve设置，以Listen Server双端对比完整出拳与收拳，特别观察前段加速与末段减速。无需新增蓝图节点。若预警本身过短或预告包迟到，客户端仍只能重建当前进度；完整丢包／晚加入／相关性重入／四机矩阵后置。
+
 ## 2026-10-23：独立收拳曲线
 
 用户追加要求收拳也可配置曲线。新增同一Movement分类下的`Retraction Curve`，与`Extension Curve`分开指定Curve Float；横轴仍为该阶段归一化时间0～1，纵轴为**收回完成比例**：0代表仍完全伸出，1代表完全回到原位，不能把纵轴误当成剩余伸出长度。总时间由Retract Duration控制。未指定/空曲线仍线性；范围/端点与非法值回退共用出拳策略。

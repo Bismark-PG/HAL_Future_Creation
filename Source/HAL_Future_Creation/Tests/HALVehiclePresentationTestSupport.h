@@ -18,15 +18,19 @@
 /** Headless data-path probe only: no imported rig or Blueprint/CDO/asset mutation. */
 struct FHALPresentationTestAccess
 {
-	/** Isolate the fallback fixture from whichever rig the team has saved on its player. */
-	static bool SelectNoRigFixture(ATestVehiclePawn* Pawn)
+	/** Isolate visual-path fixtures from the team's saved optional static fallback. */
+	static bool SelectVisualFixture(ATestVehiclePawn* Pawn, bool bWithoutRig, bool bWithoutStatic, bool bInvalidStaticTransform = false)
 	{
 		if (!Pawn || !Pawn->Definition) { return false; }
 		auto* Fixture = DuplicateObject<UVehicleDefinition>(Pawn->Definition, Pawn);
-		Fixture->Presentation = nullptr;
+		if (bWithoutRig) { Fixture->Presentation = nullptr; }
+		Fixture->Visual = {};
+		if (!bWithoutStatic) { Fixture->Visual.Mesh = Fixture->CollisionMesh; }
+		if (bInvalidStaticTransform) { Fixture->Visual.RelativeTransform.SetScale3D(FVector::ZeroVector); }
 		Pawn->Definition = Fixture;
 		return true;
 	}
+	static bool SelectNoRigFixture(ATestVehiclePawn* Pawn) { return SelectVisualFixture(Pawn, true, false); }
 	static UHALVehiclePresentationComponent* EnableProbe(ATestVehiclePawn* Pawn)
 	{
 		auto* Result = Pawn->VehiclePresentation.Get();
@@ -62,14 +66,39 @@ struct FHALPresentationTestAccess
 		Movement->PublishedStability.bDrivingAllowed = bDriving;
 		Movement->PublishedStability.Recovery.bActive = bRecovering;
 	}
-	static void SetInput(ATestVehiclePawn* Pawn, float Steering, float Throttle = 0)
+	static void SetInput(ATestVehiclePawn* Pawn, float Steering, float Throttle = 0, bool bHandbrake = false)
 	{
 		Pawn->CurrentInputCommand.Reset();
 		Pawn->CurrentInputCommand.Steering = Steering;
 		Pawn->CurrentInputCommand.Throttle = Throttle;
+		Pawn->CurrentInputCommand.bHandbrake = bHandbrake;
 		Pawn->PushInputCommand();
 	}
 	static UStaticMeshComponent* Body(ATestVehiclePawn* Pawn) { return Pawn->CollisionRoot; }
+	static UHALVehiclePresentationComponent* EnableTireSkidProbe(ATestVehiclePawn* Pawn, UNiagaraSystem* System)
+	{
+		auto* Result = EnableSuspensionProbe(Pawn, true);
+		Result->Config->Suspension.bEnabled = false; // Skids must work independently of visual suspension.
+		Result->Config->TireSkid.bEnabled = true;
+		Result->Config->TireSkid.System = System;
+		FString Error;
+		Result->bTireSkidReady = Result->Config->TireSkid.Validate(Error);
+		return Result;
+	}
+	static void PublishTireSkidInput(ATestVehiclePawn* Pawn, uint8 Inputs)
+	{
+		Pawn->CurrentInputCommand.Reset();
+		Pawn->CurrentInputCommand.bHandbrake = (Inputs & 1) != 0;
+		Pawn->CurrentInputCommand.Brake = (Inputs & 2) ? 1 : 0;
+		Pawn->CurrentInputCommand.Throttle = (Inputs & 4) ? 1 : 0;
+		Pawn->PushInputCommand();
+		auto* Movement = Pawn->FindComponentByClass<UArcadeVehicleMovementComponent>();
+		FScopeLock Lock(&Movement->PendingPhysicsDataLock);
+		Movement->PublishedPresentationInput.bValid = true;
+		Movement->PublishedPresentationInput.TireSkidInputs = Inputs;
+	}
+	static UNiagaraComponent* TireSkid(UHALVehiclePresentationComponent* Component, int32 Slot) { return Component->TireSkidComponents[Slot]; }
+	static int32 FadingTireSkids(UHALVehiclePresentationComponent* Component) { return Component->FadingTireSkids.Num(); }
 	static void Reset(UHALVehiclePresentationComponent* Component) { Component->ResetPose(); }
 	static void DisableChassis(UHALVehiclePresentationComponent* Component) { Component->Config->Chassis.bEnabled = false; }
 	/** Runtime instance copies only. Actual rig caching stays intact unless a synthetic probe is requested. */

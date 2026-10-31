@@ -14,6 +14,7 @@ enum class EHALBoneAxis : uint8 { X, Y, Z };
 struct FHALImpactReboundConfig;
 struct FHALImpactReboundTier;
 struct FHALCombatHitResult;
+struct FHALTireSkidConfig;
 
 /** Authority result, already reduced for resistance. Direction is captured in target-local space. */
 USTRUCT()
@@ -106,6 +107,8 @@ struct FHALVehiclePresentationInput
 	int32 PhysicsFrame = INDEX_NONE;
 	bool bGrounded = false;
 	bool bValid = false;
+	/** Accepted driving demand only: handbrake=1, brake/reverse=2, throttle=4. */
+	uint8 TireSkidInputs = 0;
 };
 
 USTRUCT(BlueprintType)
@@ -134,6 +137,9 @@ struct HAL_FUTURE_CREATION_API FHALVehiclePresentationFrame
 	GENERATED_BODY()
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Vehicle Presentation")
 	bool bValid = false;
+	/** Cosmetic decisions, also available for headless diagnostics. Bits use EHALVehicleWheel slots. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Vehicle Presentation") uint8 TireSkidWheelMask = 0;
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Vehicle Presentation") uint8 TireSkidReasons = 0;
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Vehicle Presentation")
 	FHALWheelPresentationPose FL;
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Vehicle Presentation")
@@ -175,6 +181,10 @@ struct HAL_FUTURE_CREATION_API FHALVehiclePresentationFrame
 
 namespace HALVehiclePresentation
 {
+	HAL_FUTURE_CREATION_API uint8 TireSkidInputs(float Brake, float Throttle, bool bHandbrake);
+	/** Reasons: drift=1, counter-direction braking=2. Passive deceleration cannot trigger this. */
+	HAL_FUTURE_CREATION_API uint8 TireSkidReasons(const FHALTireSkidConfig& Config, uint8 Inputs,
+		float ForwardSpeed, float LateralSpeed, uint8 PreviousReasons, bool bAllowed);
 	HAL_FUTURE_CREATION_API bool IsImpactReboundEligible(const FHALCombatHitResult& Result);
 	HAL_FUTURE_CREATION_API bool ImpactLocalDirection(const FVector& WorldDirection, const FQuat& TargetRotation,
 		float MinimumHorizontal, FVector& OutLocal);

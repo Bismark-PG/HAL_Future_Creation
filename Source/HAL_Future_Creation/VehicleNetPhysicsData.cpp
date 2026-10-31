@@ -97,6 +97,7 @@ void FVehiclePhysicsHistoryState::ApplyData(UActorComponent* NetworkComponent) c
 {
 	if (UArcadeVehicleMovementComponent* Movement = Cast<UArcadeVehicleMovementComponent>(NetworkComponent))
 	{
+		if (bReceivedData) { Movement->ObserveBounceAuthority(LocalFrame,State.BounceBack.Sequence); }
 		Movement->ApplyHistoryState(State);
 	}
 }
@@ -105,6 +106,7 @@ void FVehiclePhysicsHistoryState::BuildData(const UActorComponent* NetworkCompon
 {
 	if (const UArcadeVehicleMovementComponent* Movement = Cast<UArcadeVehicleMovementComponent>(NetworkComponent))
 	{
+		LocalBounceObserver=const_cast<UArcadeVehicleMovementComponent*>(Movement);
 		Movement->BuildHistoryState(State, LocalFrame);
 	}
 }
@@ -122,6 +124,7 @@ void FVehiclePhysicsHistoryState::InterpolateData(const FNetworkPhysicsData& Min
 	State.AngularVelocityRadians = FMath::Lerp(Min.State.AngularVelocityRadians, Max.State.AngularVelocityRadians, Alpha);
 	State.PhysicsFrame = LocalFrame;
 	State.Recovery = LocalFrame < Max.LocalFrame ? Min.State.Recovery : Max.State.Recovery;
+	State.BounceBack = LocalFrame < Max.LocalFrame ? Min.State.BounceBack : Max.State.BounceBack;
 	// Movement parameters are discrete. Retain the timeline covering this frame;
 	// never Lerp a multiplier or select a revision by nearest endpoint.
 	const int32 ServerTarget = ServerFrame;
@@ -136,9 +139,14 @@ void FVehiclePhysicsHistoryState::InterpolateData(const FNetworkPhysicsData& Min
 bool FVehiclePhysicsHistoryState::CompareData(const FNetworkPhysicsData& PredictedData)
 {
 	const auto& Predicted = static_cast<const FVehiclePhysicsHistoryState&>(PredictedData);
+	if (bReceivedData && Predicted.LocalBounceObserver)
+	{
+		Predicted.LocalBounceObserver->ObserveBounceAuthority(LocalFrame,State.BounceBack.Sequence);
+	}
 	if (State.bPoseDriveAllowed != Predicted.State.bPoseDriveAllowed
 		|| !FMath::IsNearlyEqual(State.PoseStableSeconds,Predicted.State.PoseStableSeconds,.025f)
-		|| !State.Recovery.Equals(Predicted.State.Recovery)) { return false; }
+		|| !State.Recovery.Equals(Predicted.State.Recovery)
+		|| !State.BounceBack.Equals(Predicted.State.BounceBack)) { return false; }
 	// Chaos compares and rewinds the rigid body using the Settings Data Asset thresholds.
 	// This comparison covers movement memory which Chaos does not know about.
 	if (!State.MovementSnapshot.Equals(Predicted.State.MovementSnapshot)) { return false; }
@@ -171,6 +179,7 @@ bool FVehiclePhysicsHistoryState::NetSerialize(FArchive& Ar, UPackageMap* Map, b
 	Ar << State.Position << State.Rotation << State.LinearVelocity << State.AngularVelocityRadians;
 	Ar << State.bPoseDriveAllowed << State.PoseStableSeconds;
 	State.Recovery.Serialize(Ar);
+	State.BounceBack.Serialize(Ar);
 	if (!FMath::IsFinite(State.PoseStableSeconds) || State.PoseStableSeconds < 0 || State.PoseStableSeconds > 1.1f) { Ar.SetError(); }
 	State.MovementSnapshot.Serialize(Ar);
 	Ar << State.MovementConsumedScales;

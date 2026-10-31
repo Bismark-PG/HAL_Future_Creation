@@ -14,9 +14,9 @@
 
 ## 2. 首次安装／换电脑
 
-1. 同步 `.uproject`、`Source/HAL_Future_CreationEditor.Target.cs`、整个 `Source/HAL_Future_CreationEditor/` 及本说明。若使用双击编译工具，同时同步根目录 `Build_Editor.cmd` 与 `Tools/BuildEditor.ps1`。
+1. 同步 `.uproject`、`Source/HAL_Future_CreationEditor.Target.cs`、整个 `Source/HAL_Future_CreationEditor/` 及本说明。若使用双击编译工具，同时同步独立的根目录 `BuildAndLaunch.cmd`。
 2. 核对实际 UE 补丁版本，团队使用同一补丁。`.uproject` 的 `5.8` 不锁定 5.8.2／5.8.3。
-3. 保存并关闭 Editor、游戏和 Live Coding，再双击 `Build_Editor.cmd`；成功后打开项目。工具新增了 Editor 模块和反射类型，首次接入应完整构建 Editor Target，不靠 Live Coding 加载。
+3. 保存并关闭 Editor、游戏和 Live Coding，再双击 `BuildAndLaunch.cmd`；成功后自动打开项目。工具新增了 Editor 模块和反射类型，首次接入应完整构建 Editor Target，不靠 Live Coding 加载。
 4. 在 Unreal 顶部打开 **Tools**，找到 **HAL Tools** 分组中的 **HAL Vehicle Collision Generator**。它只在完整 Editor 中提供，不在游戏窗口或打包游戏中提供。
 5. 找不到菜单时先检查本机是否成功构建了 `UnrealEditor-HAL_Future_CreationEditor.dll`，以及 `.uproject` 中是否包含该 Editor 模块；不需要重建玩家蓝图。
 
@@ -114,7 +114,7 @@
 
 ### 9.2 团队操作：修复旧生成结果并重新接入
 
-1. 本机本轮已关闭 Editor 并重编成功，可重新打开。其他电脑同步源码后，先关闭 Editor／Live Coding，执行根目录 `Build_Editor.cmd`，成功后再打开。
+1. 本机本轮已关闭 Editor 并重编成功，可重新打开。其他电脑同步源码后，先关闭 Editor／Live Coding，执行统一入口 `BuildAndLaunch.cmd`，成功后自动打开。
 2. 在 Content Browser 选中旧 `SM_Car01_Collision`，打开 **Tools → HAL Vehicle Collision Generator**，点击 **Load Selected Mesh Recipe**。旧配方Version=1仍可读取。
 3. 核对 Height 是否确实希望为269 cm（2.69米厚）。它是**车身物理代理的厚度**，不必包含尾翼、车顶等全部视觉高度。按实际需要调整；工具不替团队决定新的碰撞尺寸。
 4. 用新名字，如 `SM_Car01_Collision_v2`，点击 **Create New Mesh**。在新资产 Static Mesh Editor 中检查实体顶面及 **Show → Simple Collision** 的凸包，再Ctrl+S。保留旧资产用于回退，现有资产不会随工具重编自动修好。

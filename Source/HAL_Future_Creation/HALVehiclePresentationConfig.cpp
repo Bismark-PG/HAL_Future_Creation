@@ -191,7 +191,7 @@ EDataValidationResult UHALVehiclePresentationConfig::IsDataValid(FDataValidation
 {
 	Super::IsDataValid(Context);
 	FString Error;
-	if (!Validate(Error)) { Context.AddError(FText::FromString(Error)); return EDataValidationResult::Invalid; }
+	if (!Validate(Error) || !TireSkid.Validate(Error)) { Context.AddError(FText::FromString(Error)); return EDataValidationResult::Invalid; }
 	return EDataValidationResult::Valid;
 }
 #endif

@@ -30,7 +30,7 @@ private:
 	void UpdateRecovery();
 	bool Start(const FVehicleStabilityObservation& Sample);
 	void Finish(FName Outcome);
-	void LogTransition(EVehicleRecoveryPhase Before) const;
+	void LogTransition(EVehicleRecoveryPhase Before, FName PreviousBlockReason = NAME_None) const;
 	FVehicleRecoveryConfig Rules;
 	FVehicleRecoveryClock Clock;
 	FTimerHandle Timer;

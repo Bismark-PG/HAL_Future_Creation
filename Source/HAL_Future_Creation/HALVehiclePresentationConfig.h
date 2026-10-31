@@ -7,7 +7,36 @@
 
 class USkeletalMesh;
 class UHALVehicleAnimInstance;
+class UNiagaraSystem;
 struct FReferenceSkeleton;
+
+/** Optional cosmetic ground trails. No tire force, damage or physics material changes. */
+USTRUCT(BlueprintType)
+struct HAL_FUTURE_CREATION_API FHALTireSkidConfig
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, Category="Tire Skid") bool bEnabled = false;
+	UPROPERTY(EditAnywhere, Category="Tire Skid") TObjectPtr<UNiagaraSystem> System;
+	UPROPERTY(EditAnywhere, Category="Tire Skid") TArray<EHALVehicleWheel> Wheels { EHALVehicleWheel::BL, EHALVehicleWheel::BR };
+	/** Hysteresis prevents rapid toggling near the speed/slip thresholds. */
+	UPROPERTY(EditAnywhere, Category="Trigger", meta=(ClampMin="1", ClampMax="10000", Units="cm/s")) float StartSpeed = 400;
+	UPROPERTY(EditAnywhere, Category="Trigger", meta=(ClampMin="0", ClampMax="10000", Units="cm/s")) float StopSpeed = 300;
+	UPROPERTY(EditAnywhere, Category="Trigger", meta=(ClampMin="1", ClampMax="10000", Units="cm/s")) float DriftStartLateralSpeed = 150;
+	UPROPERTY(EditAnywhere, Category="Trigger", meta=(ClampMin="0", ClampMax="10000", Units="cm/s")) float DriftStopLateralSpeed = 100;
+	UPROPERTY(EditAnywhere, Category="Ground", meta=(ClampMin="0", ClampMax="50", Units="cm")) float MaximumGroundGapCm = 8;
+	UPROPERTY(EditAnywhere, Category="Ground", meta=(ClampMin="0", ClampMax="10", Units="cm")) float SurfaceOffsetCm = 1;
+	/** In vehicle local axes, in world cm; never taken from a rolling/steering bone. */
+	UPROPERTY(EditAnywhere, Category="Ground") FVector ContactOffsetCm = FVector::ZeroVector;
+	UPROPERTY(EditAnywhere, Category="Lifecycle", meta=(ClampMin="10", ClampMax="1000", Units="cm")) float MaximumSegmentDistanceCm = 200;
+	UPROPERTY(EditAnywhere, Category="Niagara") FName SlipRatioParameter = TEXT("User.SlipRatio");
+	UPROPERTY(EditAnywhere, Category="Niagara") FName RibbonIDParameter = TEXT("User.RibbonID");
+	UPROPERTY(EditAnywhere, Category="Niagara", meta=(ClampMin="0.01", ClampMax="1")) float SlipRatio = 1;
+	/** Optional vector User parameter, only after the Niagara asset binds it to RibbonFacing. */
+	UPROPERTY(EditAnywhere, Category="Niagara") FName SurfaceNormalParameter;
+	/** Safety cleanup after emission stops. Must exceed the template's longest particle lifetime. */
+	UPROPERTY(EditAnywhere, Category="Lifecycle", meta=(ClampMin="0.1", ClampMax="30", Units="s")) float MaximumFadeSeconds = 5;
+	bool Validate(FString& Error) const;
+};
 
 /** Per-effective-tier cosmetic envelope, independent of gameplay impact strength. */
 USTRUCT(BlueprintType)
@@ -178,6 +207,8 @@ public:
 	/** Visual traces only; later physical wheel observations replace this source, not add another spring. */
 	UPROPERTY(EditAnywhere, Category = "Suspension")
 	FHALVisualSuspensionConfig Suspension;
+	UPROPERTY(EditAnywhere, Category = "Tire Skid")
+	FHALTireSkidConfig TireSkid;
 	/** Exactly FL/FR/BL/BR, in any order. Names do not rebind AnimBP Modify Bone nodes. */
 	UPROPERTY(EditAnywhere, Category = "Wheels")
 	TArray<FHALWheelPresentationConfig> Wheels;

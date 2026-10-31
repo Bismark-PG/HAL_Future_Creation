@@ -1,4 +1,86 @@
-# 双击编译 Editor 工具
+# 编译、重新构建并启动 Editor 工具
+
+## 2026-10-30：重新整合后的当前入口
+
+同日车辆蓝图引用显示补充：Input预览的Editor C++现已加入当前源码，由本入口构建的现有Editor模块注册；旧Build_Editor.cmd已由用户删除，无需恢复。运行`BuildAndLaunch.cmd`即可按需编译这些新源文件；`-Rebuild`仍可用于官方完整重新构建。已有Car_02与新生成车型使用同一套只读读取，详见[车辆输入引用显示](Vehicle_Input_Preview_CN_v0.1.md)。主工程新版DLL已完成编译／链接；UBA启用时收尾阻塞，最终以`-NoUBA`原生构建核对返回Succeeded／0。脚本隔离检查重新13/13通过，六项UE自动化及蓝图界面验收仍待完成；详细证据见引用显示说明的主工程收尾核对，不将隔离夹具或编译成功记作界面验收。
+
+当前统一使用根目录 **BuildAndLaunch.cmd**。此前在干净的`main/945e616`重新核对，实际文件仍为旧的整份解决方案MSBuild流程，已恢复独立整合版并重新验证。旧`Build_Editor.cmd`现已删除；根目录统一入口不引用它或Tools目录。`Tools/BuildEditor.ps1`现在仅转发到统一入口的`-NoLaunch`模式。
+
+完整构建参数现明确包含`-NoHotReload -NoLiveCoding`，保留旧入口禁用Hot Reload的行为；默认编译和`-Rebuild`都生成正常Editor模块。生成器和Input预览同属该模块，普通运行本入口即可编译新增源码并在下次Editor启动时注册，无需单独的编辑器重构脚本。
+
+| 操作 | 统一入口 |
+|---|---|
+| 编译成功后打开Editor | `BuildAndLaunch.cmd` |
+| 只编译 | `BuildAndLaunch.cmd -NoLaunch` |
+| 只检查工程／引擎／目标／进程占用 | `BuildAndLaunch.cmd -CheckOnly` |
+| 官方重新构建 | `BuildAndLaunch.cmd -Rebuild -NoLaunch` |
+| 结果窗口等待按键 | 添加`-Pause` |
+| 指定引擎或Editor Target | 添加`-EngineRoot`或`-EditorTarget` |
+
+整合内容包括引擎注册／Launcher／默认路径定位、实际版本与CL显示、Source目标定位、Editor／游戏／Live Coding占用检查、逐次日志／Result.json、真实构建退出码保留、失败不启动，以及成功后自动打开Editor和0～30秒启动早退观察。保留缺少同名解决方案时的生成能力；实际编译直接调用目标引擎Build.bat构建项目Editor Target。`-MSBuildPath`只作兼容提示，不再编译整份解决方案。
+
+每次实际生成／编译的日志位于`Saved/BuildTool/BuildAndLaunch_日期时间_短ID`，包含Console.log、Result.json和由Unreal写入的构建／启动日志。CheckOnly与前置失败不建立构建日志目录。`-NoPopup`仅输出控制台错误；`-Pause`为可选交互行为，默认不阻塞终端。显式选择与EngineAssociation不同主次版本时显示警告，由UnrealBuildTool检查兼容性。
+
+本机实际UE5.8.3-58210709。本次Windows PowerShell5.1语法检查、**13/13独立假引擎／进程检查**及真实路径CheckOnly通过。测试覆盖单文件便携、生成／编译及其失败码、已有解决方案、空目标、三类占用、Rebuild和启动成功／早退。启动进程为模拟句柄，宿主进程在工具沙箱中不可完整枚举，不能把CheckOnly返回0当作宿主Editor已退出。**本轮未执行真实Unreal编译、Editor启动或玩法／界面验收。** 可复测入口为`Tools/Tests/TestBuildAndLaunch.ps1`，本轮证据见[重新整合验证](Build_And_Launch_Reintegration_Verification_20261030.json)。
+
+以下2026-10-20／28内容保留各自历史含义。当前入口及命令以上节为准，历史构建通过不代替本次真实构建验证。
+
+## 2026-10-28：BuildAndLaunch.cmd修复与用法
+
+推荐入口为工程根目录 **BuildAndLaunch.cmd**，可以单独复制到其他同名C++ Editor Target工程的`.uproject`旁；不依赖Tools目录、Visual Studio界面、已有`.sln`或`.slnx`。保留原有Build_Editor.cmd作为只编译的旧入口，两者行为不同。
+
+旧BuildAndLaunch已在本机复现：它调用整份解决方案MSBuild，把安装版引擎的AutomationTool、规则与插件C#工程一起构建，因缺少NuGet `project.assets.json`报NETSDK1004，共57个错误。修复改为引擎自带的Build.bat，仅构建本工程`HAL_Future_CreationEditor Win64 Development`；不为绕开错误去恢复或重编无关引擎C#工程。
+
+### 推荐命令
+
+先保存并关闭Editor、独立游戏、Live Coding。在工程根目录打开PowerShell：
+
+```powershell
+# 按需编译成功后打开Editor
+.\BuildAndLaunch.cmd
+
+# 官方Rebuild，成功后打开Editor
+.\BuildAndLaunch.cmd -Rebuild
+
+# 只编译，成功后不启动
+.\BuildAndLaunch.cmd -NoLaunch
+
+# 强制重新构建，但暂不启动
+.\BuildAndLaunch.cmd -Rebuild -NoLaunch
+
+# 只检查工程、引擎和占用情况，不构建、不启动
+.\BuildAndLaunch.cmd -CheckOnly
+```
+
+找不到引擎或需要选定本机安装时：
+
+```powershell
+.\BuildAndLaunch.cmd -EngineRoot 'D:\Program Files\Epic Games\UE_5.8'
+```
+
+cmd.exe中将路径改用双引号。可以从其他工作目录调用脚本的绝对路径；工程位置始终取自脚本所在目录。工具读取`.uproject`的EngineAssociation，按注册表／Launcher记录查找本机引擎，并输出实际补丁版本；显式路径也须与工程主次版本匹配。`5.8`不锁定5.8.2或5.8.3，联机仍须团队统一实际补丁与程序。
+
+普通模式使用Build.bat按需更新；`-Rebuild`调用同一引擎的官方Rebuild.bat（UE5.8转交UBT `-Rebuild`），重建本Editor Target的编译产物。工具不手工删除Content、Saved、DDC或.vs，不保存蓝图／DA／地图，不打包或生成独立Game Target。
+
+### 失败处理与日志
+
+- 前置检查会列出仍运行的UnrealEditor、LiveCodingConsole和本项目游戏进程；返回1，不强制关闭进程，不在已加载DLL上构建。检查保守覆盖其他工程Editor。
+- Native构建失败时保留真实退出码，例如UBT返回6则脚本也返回6；绝不启动Editor。修复后默认只在终端显示错误，`-NoPopup`保留兼容。
+- 每次实际构建写入`Saved/BuildTool/BuildAndLaunch_日期时间_短ID/`，包含`Console.log`、`UnrealBuildTool.log`、`Result.json`，启动时另有`Editor.log`。前置失败／CheckOnly不创建项目日志目录。
+- 启动后默认等待5秒；如果Editor已退出，返回1并提示Editor.log。进程仍运行会记录PID、返回0；这只是成功发起启动，不保证地图／资产／玩法验收。可用`-LaunchWaitSeconds 10`调整0～30秒的早退观察窗口。
+- 不再需要MSBuildPath；旧命令传入`-MSBuildPath`会提示弃用并忽略。真正的Visual Studio C++工具链与Windows SDK仍由UnrealBuildTool选择和检查。
+
+建议在已有终端运行以保留前置错误。工具不额外pause阻塞命令行；双击成功后会打开Editor，构建失败时可查上述日志。
+
+### 本轮实际验证
+
+本机UE5.8.3-58210709、Windows PowerShell5.1：从工程外目录预检及普通Build通过；真实`-Rebuild -NoLaunch`成功（116.20秒），随后默认入口再次Build成功并启动交互式Editor PID49912，日志确认Engine初始化与Startup complete，主窗口标题为HAL_Future_Creation。工具在该Editor／LiveCoding仍打开时能正确拒绝再次编译、返回1；没有关闭用户窗口。
+
+独立假引擎夹具在含中文、空格、`&`的路径，且没有Tools目录／.sln的情况下检查了5项行为：预检0、构建失败保留6且不启动、NoLaunch成功0、Rebuild选择正确入口成功0、Editor立即退出时返回1。夹具不代表真实C++构建，真实构建证据单列。
+
+1167份保存资产和197份Source／Config／uproject相对本次开工基线全同；只修改工具／说明／进度留档。保留现有MSVC优选版本及引擎启动的可选DLL／widget等警告，没有将整份日志写成零警告。没有重跑85项玩法回归、进入PIE、双端／四机或验收新Car_02。完整结果见[本轮验证与进度核对](Build_And_Launch_Verification_20261028.json)。本轮未提交／Push。
+
+## 原有 Build_Editor.cmd（只编译）
 
 更新：2026-10-20。入口为工程根目录 `Build_Editor.cmd`，实现为 `Tools/BuildEditor.ps1`；两份脚本及本说明应随 Git 同步。
 

@@ -8,9 +8,11 @@
 #include "VehicleConfigurationApplication.h"
 #include "VehicleKnockbackSettings.h"
 #include "HALAbilitySystemComponent.h"
+#include "HALShockedPresentationComponent.h"
 #include "HALMovementEffectBridge.h"
 #include "HALMovementAreaReceiver.h"
 #include "HALVehiclePresentationComponent.h"
+#include "HALDynamicCameraComponent.h"
 #include "HALPlayerState.h"
 #include "HALGameplayTags.h"
 
@@ -97,6 +99,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	NetworkPhysicsHistory = CreateDefaultSubobject<UNetworkPhysicsComponent>(TEXT("VehicleNetworkPhysicsHistory"));
 	NetworkPhysicsHistory->SetAutoActivate(false);
 	MovementEffectBridge = CreateDefaultSubobject<UHALMovementEffectBridge>(TEXT("MovementEffectBridge"));
+	ShockedPresentation = CreateDefaultSubobject<UHALShockedPresentationComponent>(TEXT("ShockedPresentation"));
 	MovementAreaReceiver = CreateDefaultSubobject<UHALMovementAreaReceiver>(TEXT("MovementAreaReceiver"));
 
 	BallControlPoint = CreateDefaultSubobject<USceneComponent>(TEXT("BallControlPoint"));
@@ -125,6 +128,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	TopDownCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("TopDownCamera"));
 	TopDownCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	TopDownCamera->bUsePawnControlRotation = false;
+	DynamicCamera = CreateDefaultSubobject<UHALDynamicCameraComponent>(TEXT("DynamicCamera"));
 }
 
 void ATestVehiclePawn::BeginPlay()
@@ -169,6 +173,7 @@ void ATestVehiclePawn::BeginPlay()
 void ATestVehiclePawn::PawnClientRestart()
 {
 	Super::PawnClientRestart();
+	DynamicCamera->ResetCamera();
 	InitializeAbilitySystem();
 
 	if (ArcadeMovement) { ArcadeMovement->SetHistoryInputBlocked(false); }
@@ -199,6 +204,7 @@ void ATestVehiclePawn::PossessedBy(AController* NewController)
 
 void ATestVehiclePawn::UnPossessed()
 {
+	DynamicCamera->ResetCamera();
 	if (VehicleRecovery) { VehicleRecovery->CancelForOwnerExit(); }
 	UninitializeAbilitySystem();
 	if (ArcadeMovement) { ArcadeMovement->SetHistoryInputBlocked(true); }
@@ -257,6 +263,7 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 	}
 	ASC->InitAbilityActorInfo(State, this);
 	Health->BindToAbilitySystem(ASC);
+	ShockedPresentation->Bind(ASC);
 	MovementEffectBridge->Bind(ASC, State->GetPlayerId());
 	MovementAreaReceiver->Bind(ASC);
 	if (HasAuthority() && bConfigurationValid)
@@ -269,6 +276,7 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 
 void ATestVehiclePawn::UninitializeAbilitySystem()
 {
+	ShockedPresentation->Unbind();
 	MovementAreaReceiver->Unbind();
 	MovementEffectBridge->Unbind();
 	UHALAbilitySystemComponent* ASC = Health->GetBoundAbilitySystem();
@@ -325,6 +333,13 @@ void ATestVehiclePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		EnhancedInput->BindAction(SelfRightAction,ETriggerEvent::Completed,this,&ThisClass::OnSelfRightCompleted);
 		EnhancedInput->BindAction(SelfRightAction,ETriggerEvent::Canceled,this,&ThisClass::OnSelfRightCompleted);
 	}
+	if (CameraMouseAction) { EnhancedInput->BindAction(CameraMouseAction,ETriggerEvent::Triggered,this,&ThisClass::OnCameraMouse); }
+	if (CameraStickAction)
+	{
+		EnhancedInput->BindAction(CameraStickAction,ETriggerEvent::Triggered,this,&ThisClass::OnCameraStick);
+		EnhancedInput->BindAction(CameraStickAction,ETriggerEvent::Completed,this,&ThisClass::OnCameraStickCompleted);
+		EnhancedInput->BindAction(CameraStickAction,ETriggerEvent::Canceled,this,&ThisClass::OnCameraStickCompleted);
+	}
 
 	if (!DefaultMappingContext || !SteeringAction || !ThrottleAction || !BrakeAction || !HandbrakeAction || !LaunchAction)
 	{
@@ -360,6 +375,7 @@ void ATestVehiclePawn::AddDefaultInputContext()
 
 bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
 {
+	DynamicCamera->Configure(nullptr);
 	VehiclePresentation->Configure(nullptr, CollisionRoot, VisualMesh, SkeletalVisual, bPreview);
 	if (ConfigurationSource == EVehicleConfigurationSource::Legacy) { return true; }
 	FString Error;
@@ -372,7 +388,17 @@ bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
 	}
 	CollisionRoot->SetStaticMesh(Definition->CollisionMesh);
 	VehicleConfiguration::ApplyBody(*CollisionRoot, Definition->Physics);
-	VehicleConfiguration::ApplyVisual(*VisualMesh, Definition->Visual);
+	FVehicleVisualConfig StaticVisual = Definition->Visual;
+	FString StaticError;
+	if (!StaticVisual.Validate(StaticError))
+	{
+		// Definition validation already guarantees a usable skeletal path. Never
+		// apply an unused invalid static transform or retain an old preview mesh.
+		StaticVisual = {};
+		StaticVisual.bVisible = false;
+		StaticVisual.bHiddenInGame = true;
+	}
+	VehicleConfiguration::ApplyVisual(*VisualMesh, StaticVisual);
 	VehiclePresentation->Configure(Definition->Presentation, CollisionRoot, VisualMesh, SkeletalVisual, bPreview);
 	BallControlPoint->SetRelativeTransform(Definition->BallControlPoint);
 	ForwardArrow->SetRelativeTransform(Definition->ForwardArrowTransform);
@@ -381,8 +407,9 @@ bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
 	ForwardArrow->ArrowLength = Definition->ForwardArrowLength;
 	ForwardArrow->SetVisibility(Definition->bForwardArrowVisible);
 	ForwardArrow->SetHiddenInGame(Definition->bForwardArrowHiddenInGame);
-	const UVehicleLocalConfig* Local = Definition->LocalConfig;
+	UVehicleLocalConfig* Local = Definition->LocalConfig;
 	VehicleConfiguration::ApplyCamera(*CameraBoom, *TopDownCamera, Local->Camera);
+	if (!bPreview) { DynamicCamera->Configure(Local); }
 	if (!bPreview)
 	{
 		verify(ArcadeMovement->ApplyConfiguration(Definition->Movement));
@@ -398,6 +425,8 @@ bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
 		LaunchAction = Local->LaunchAction;
 		PrimarySkillAction = Local->PrimarySkillAction;
 		SelfRightAction = Local->SelfRightAction;
+		CameraMouseAction = Local->CameraMouseAction;
+		CameraStickAction = Local->CameraStickAction;
 		UE_LOG(LogTemp, Log, TEXT("%s: using VehicleDefinition %s."), *GetName(), *GetNameSafe(Definition));
 	}
 	return true;
@@ -421,6 +450,14 @@ void ATestVehiclePawn::RemoveDefaultInputContext()
 		}
 	}
 }
+
+void ATestVehiclePawn::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
+{
+	if (!DynamicCamera->CalculateView(DeltaTime,OutResult)) { Super::CalcCamera(DeltaTime,OutResult); }
+}
+void ATestVehiclePawn::OnCameraMouse(const FInputActionValue& Value) { DynamicCamera->AddMouseDelta(Value.Get<FVector2D>()); }
+void ATestVehiclePawn::OnCameraStick(const FInputActionValue& Value) { DynamicCamera->SetStickInput(Value.Get<FVector2D>()); }
+void ATestVehiclePawn::OnCameraStickCompleted(const FInputActionValue& Value) { DynamicCamera->SetStickInput(FVector2D::ZeroVector); }
 
 void ATestVehiclePawn::PushInputCommand()
 {

@@ -15,49 +15,96 @@ param(
     [Parameter(Mandatory = $true)][string]$ProjectDirectory,
     [string]$EngineRoot,
     [string]$MSBuildPath,
+    [string]$EditorTarget,
     [string]$Platform = 'Win64',
     [switch]$CheckOnly,
     [switch]$NoLaunch,
-    [switch]$NoPopup
+    [switch]$NoPopup,
+    [switch]$Rebuild,
+    [switch]$Pause,
+    [ValidateRange(0, 30)][int]$LaunchWaitSeconds = 5
 )
 
 $ErrorActionPreference = 'Stop'
 
-function Find-EngineRoot([string]$Association) {
-    $customBuilds = Get-ItemProperty 'HKCU:\Software\Epic Games\Unreal Engine\Builds' -ErrorAction SilentlyContinue
-    if ($customBuilds) {
-        $entry = $customBuilds.PSObject.Properties[$Association]
-        if ($entry -and (Test-Path -LiteralPath ([string]$entry.Value))) { return [string]$entry.Value }
-    }
-    foreach ($key in @(
-        "HKLM:\SOFTWARE\EpicGames\Unreal Engine\$Association",
-        "HKLM:\SOFTWARE\WOW6432Node\EpicGames\Unreal Engine\$Association"
-    )) {
-        $entry = Get-ItemProperty $key -ErrorAction SilentlyContinue
-        if ($entry -and $entry.InstalledDirectory -and (Test-Path -LiteralPath $entry.InstalledDirectory)) {
-            return [string]$entry.InstalledDirectory
+function Find-EngineRoot([string]$Association, [string]$OverrideRoot) {
+    $candidates = @()
+    if ($OverrideRoot) { $candidates += $OverrideRoot }
+    else {
+        if (-not $Association) { throw 'EngineAssociation is empty. Specify -EngineRoot.' }
+        $customBuilds = Get-ItemProperty 'HKCU:\Software\Epic Games\Unreal Engine\Builds' -ErrorAction SilentlyContinue
+        if ($customBuilds) {
+            $entry = $customBuilds.PSObject.Properties[$Association]
+            if ($entry) { $candidates += [string]$entry.Value }
         }
+        foreach ($key in @(
+            "HKLM:\SOFTWARE\EpicGames\Unreal Engine\$Association",
+            "HKLM:\SOFTWARE\WOW6432Node\EpicGames\Unreal Engine\$Association"
+        )) {
+            $entry = Get-ItemProperty $key -ErrorAction SilentlyContinue
+            if ($entry -and $entry.InstalledDirectory) { $candidates += [string]$entry.InstalledDirectory }
+        }
+        if ($env:ProgramData) {
+            $manifestPath = Join-Path $env:ProgramData 'Epic\UnrealEngineLauncher\LauncherInstalled.dat'
+            if (Test-Path -LiteralPath $manifestPath -PathType Leaf) {
+                try {
+                    $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+                    $candidates += @($manifest.InstallationList | Where-Object { $_.AppName -eq "UE_$Association" } | ForEach-Object { $_.InstallLocation })
+                }
+                catch { Write-Warning "Could not read Launcher installations: $($_.Exception.Message)" }
+            }
+        }
+        if ($env:ProgramFiles) { $candidates += Join-Path $env:ProgramFiles "Epic Games\UE_$Association" }
     }
-    $manifestPath = Join-Path $env:ProgramData 'Epic\UnrealEngineLauncher\LauncherInstalled.dat'
-    if (Test-Path -LiteralPath $manifestPath) {
-        $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-        $entry = $manifest.InstallationList | Where-Object { $_.AppName -eq "UE_$Association" } | Select-Object -First 1
-        if ($entry -and (Test-Path -LiteralPath $entry.InstallLocation)) { return [string]$entry.InstallLocation }
+    foreach ($candidate in ($candidates | Select-Object -Unique)) {
+        if ([string]::IsNullOrWhiteSpace($candidate)) { continue }
+        $buildFile = Join-Path $candidate 'Engine\Build\BatchFiles\Build.bat'
+        $versionFile = Join-Path $candidate 'Engine\Build\Build.version'
+        if (-not (Test-Path -LiteralPath $buildFile -PathType Leaf) -or -not (Test-Path -LiteralPath $versionFile -PathType Leaf)) { continue }
+        $version = Get-Content -LiteralPath $versionFile -Raw | ConvertFrom-Json
+        $majorMinor = '{0}.{1}' -f $version.MajorVersion, $version.MinorVersion
+        if ($Association -match '^\d+\.\d+$' -and $majorMinor -ne $Association) {
+            if (-not $OverrideRoot) { Write-Warning "Skipping engine $candidate : expected $Association, found $majorMinor."; continue }
+            Write-Warning "Explicit engine $majorMinor differs from EngineAssociation $Association. UnrealBuildTool will check compatibility."
+        }
+        return [PSCustomObject]@{ Root = (Resolve-Path -LiteralPath $candidate).Path; Version = $version }
     }
-    throw "EngineAssociation '$Association' に対応する Unreal Engine が見つかりません。-EngineRoot でこの PC のエンジンのインストール先を指定してください。"
+    throw "No usable engine for '$Association'. Specify -EngineRoot with this computer's engine directory."
 }
 
-function Find-MSBuild {
-    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-    if (Test-Path -LiteralPath $vswhere) {
-        $found = @(& $vswhere -latest -prerelease -products '*' -requires Microsoft.Component.MSBuild Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find 'MSBuild\**\Bin\MSBuild.exe')
-        if ($LASTEXITCODE -eq 0 -and $found.Count -gt 0) { return [string]$found[0] }
+function Find-EditorTarget([string]$Root, [string]$ProjectName, [string]$Requested) {
+    $source = Join-Path $Root 'Source'
+    if (-not (Test-Path -LiteralPath $source -PathType Container)) { throw "C++ Source directory is missing: $source" }
+    $targets = @(Get-ChildItem -LiteralPath $source -Recurse -File -Filter '*.Target.cs' | Where-Object {
+        $_.Name -like '*Editor.Target.cs' -or (Select-String -LiteralPath $_.FullName -Pattern 'Type\s*=\s*TargetType\.Editor' -Quiet)
+    })
+    if ($Requested) {
+        if (@($targets | Where-Object { $_.Name -eq ($Requested + '.Target.cs') }).Count -eq 1) { return $Requested }
+        throw "Editor Target '$Requested' was not found under Source."
     }
-    $command = Get-Command MSBuild.exe -ErrorAction SilentlyContinue
-    if ($command) { return $command.Source }
-    throw 'MSBuild が見つかりません。Visual Studio または Build Tools に「C++ によるデスクトップ開発」をインストールするか、-MSBuildPath で実行ファイルを指定してください。'
+    $conventional = @($targets | Where-Object { $_.Name -eq ($ProjectName + 'Editor.Target.cs') })
+    if ($conventional.Count -eq 1) { return $ProjectName + 'Editor' }
+    if ($targets.Count -eq 1) { return $targets[0].Name -replace '\.Target\.cs$', '' }
+    throw 'Editor Target is missing or ambiguous. Specify -EditorTarget with a target under Source.'
 }
 
+function Invoke-UnrealBuild([string]$Entry, [string[]]$Arguments) {
+    # PowerShell 5.1 must not turn native stderr warnings into a terminating error.
+    $previousPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $global:LASTEXITCODE = $null
+        & $Entry @Arguments 2>&1 | Out-Host
+        if ($null -eq $LASTEXITCODE) { throw 'The Unreal build tool did not return an exit code.' }
+        return [int]$LASTEXITCODE
+    }
+    finally { $ErrorActionPreference = $previousPreference }
+}
+
+$exitCode = 1
+$transcriptStarted = $false
+$runDirectory = $null
+$result = $null
 try {
     $projectRoot = (Resolve-Path -LiteralPath $ProjectDirectory).Path
     $projects = @(Get-ChildItem -LiteralPath $projectRoot -Filter '*.uproject' -File)
@@ -71,57 +118,85 @@ try {
     $projectName = $projects[0].BaseName
     $solutionPath = Join-Path $projectRoot ($projectName + '.sln')
     $project = Get-Content -LiteralPath $projectPath -Raw | ConvertFrom-Json
-    if (-not $EngineRoot) { $EngineRoot = Find-EngineRoot ([string]$project.EngineAssociation) }
-    $EngineRoot = (Resolve-Path -LiteralPath $EngineRoot).Path
+    $engine = Find-EngineRoot ([string]$project.EngineAssociation).Trim() $EngineRoot
+    $EngineRoot = $engine.Root
+    $EditorTarget = Find-EditorTarget $projectRoot $projectName $EditorTarget
     $buildScript = Join-Path $EngineRoot 'Engine\Build\BatchFiles\Build.bat'
+    $buildEntry = $buildScript
+    if ($Rebuild) { $buildEntry = Join-Path $EngineRoot 'Engine\Build\BatchFiles\Rebuild.bat' }
     $editorPath = Join-Path $EngineRoot 'Engine\Binaries\Win64\UnrealEditor.exe'
-    if (-not $MSBuildPath) { $MSBuildPath = Find-MSBuild }
-    $MSBuildPath = (Resolve-Path -LiteralPath $MSBuildPath).Path
-    foreach ($required in @($buildScript, $editorPath, $MSBuildPath)) {
+    foreach ($required in @($buildEntry, $editorPath)) {
         if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "必要なファイルが見つかりません。`n$required" }
     }
-    $version = Get-Content -LiteralPath (Join-Path $EngineRoot 'Engine\Build\Build.version') -Raw | ConvertFrom-Json
+    $version = $engine.Version
     Write-Host "Project:  $projectPath"
     Write-Host "Solution: $solutionPath"
-    Write-Host "Engine:   $($version.MajorVersion).$($version.MinorVersion).$($version.PatchVersion) ($EngineRoot)"
-    Write-Host "MSBuild:  $MSBuildPath"
-    Write-Host "Config:   Development Editor | $Platform"
+    Write-Host "Engine:   $($version.MajorVersion).$($version.MinorVersion).$($version.PatchVersion) CL$($version.Changelist) ($EngineRoot)"
+    Write-Host "Target:   $EditorTarget $Platform Development"
+    Write-Host 'Use the same actual engine patch version as teammates for multiplayer.'
+    if ($MSBuildPath) { Write-Warning '-MSBuildPath is deprecated and ignored. UnrealBuildTool selects the local C++ toolchain and SDK.' }
     $needsGeneration = -not (Test-Path -LiteralPath $solutionPath -PathType Leaf)
     Write-Host "Generate solution: $needsGeneration"
+    $blocking = @(Get-Process | Where-Object {
+        $_.ProcessName -like 'UnrealEditor*' -or $_.ProcessName -like 'LiveCodingConsole*' -or $_.ProcessName -like "$projectName*"
+    })
+    if ($blocking.Count -gt 0) {
+        $blocking | Select-Object ProcessName, Id | Format-Table -AutoSize | Out-Host
+        throw 'Save your work and close Unreal Editor, project game windows and Live Coding before building. No process was stopped.'
+    }
     if ($CheckOnly) {
-        Write-Host 'Check only. No files generated, build executed, or Editor launched.'
-        exit 0
+        Write-Host 'Preflight passed. No files generated, build logs created, build executed, or Editor launched.'
+        $exitCode = 0
     }
-    if (Get-Process -Name UnrealEditor, UnrealEditor-Cmd -ErrorAction SilentlyContinue) {
-        throw 'Unreal Editor または UnrealEditor-Cmd が実行中です。終了してから、もう一度実行してください。'
-    }
-
-    Push-Location -LiteralPath $projectRoot
-    try {
-        if ($needsGeneration) {
-            Write-Host 'Generating Visual Studio solution...'
-            & $buildScript '-ProjectFiles' "-Project=$projectPath" '-Game' '-Engine' '-VisualStudio'
-            if ($LASTEXITCODE -ne 0) { throw "ソリューションの生成に失敗しました（終了コード: $LASTEXITCODE）。上のログを確認してください。" }
-            if (-not (Test-Path -LiteralPath $solutionPath -PathType Leaf)) {
-                throw "生成処理は終了しましたが、必要な .sln ファイルが作成されていません。`n$solutionPath"
-            }
+    else {
+        $runName = 'BuildAndLaunch_{0}_{1}' -f (Get-Date -Format 'yyyyMMdd_HHmmss_fff'), ([Guid]::NewGuid().ToString('N').Substring(0, 6))
+        $runDirectory = Join-Path $projectRoot ("Saved\BuildTool\$runName")
+        New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
+        Start-Transcript -LiteralPath (Join-Path $runDirectory 'Console.log') | Out-Null
+        $transcriptStarted = $true
+        Write-Host "Project: $projectPath"
+        Write-Host "Engine: $EngineRoot ($($version.MajorVersion).$($version.MinorVersion).$($version.PatchVersion) CL$($version.Changelist))"
+        Write-Host "Target: $EditorTarget $Platform Development"
+        Write-Host "Logs: $runDirectory"
+        $result = [ordered]@{
+            Project = $projectPath; Engine = $EngineRoot; EngineVersion = "$($version.MajorVersion).$($version.MinorVersion).$($version.PatchVersion)"
+            Target = $EditorTarget; Platform = $Platform; EngineChangelist = $version.Changelist; BuildEntry = (Split-Path -Leaf $buildEntry)
+            Status = 'Starting'; BuildExitCode = $null; ExitCode = 1; EditorProcessId = $null; Error = $null
         }
-        # Reproduce Build Solution in Visual Studio without opening the IDE.
-        Write-Host 'Building solution...'
-        & $MSBuildPath $solutionPath '/t:Build' '/p:Configuration=Development Editor' "/p:Platform=$Platform" '/m' '/nologo'
-        if ($LASTEXITCODE -ne 0) { throw "ビルドに失敗しました（終了コード: $LASTEXITCODE）。上のログを確認してください。エディターは起動していません。" }
+        Push-Location -LiteralPath $projectRoot
+        try {
+            if ($needsGeneration) {
+                $result.Status = 'GeneratingSolution'
+                Write-Host 'Generating Visual Studio solution...'
+                $exitCode = Invoke-UnrealBuild $buildScript @('-ProjectFiles', "-Project=$projectPath", '-Game', '-Engine', '-VisualStudio', "-Log=$(Join-Path $runDirectory 'ProjectFiles.log')")
+                if ($exitCode -ne 0) { throw "Solution generation failed (exit code $exitCode). Editor was not launched." }
+                if (-not (Test-Path -LiteralPath $solutionPath -PathType Leaf)) { throw "Solution generation returned success but the solution is missing: $solutionPath" }
+            }
+            $result.Status = 'Building'
+            Write-Host 'Building the project Editor Target...'
+            $exitCode = Invoke-UnrealBuild $buildEntry @($EditorTarget, $Platform, 'Development', "-Project=$projectPath", '-WaitMutex', '-NoHotReload', '-NoLiveCoding', "-Log=$(Join-Path $runDirectory 'UnrealBuildTool.log')")
+            $result.BuildExitCode = $exitCode
+            if ($exitCode -ne 0) { throw "Build failed (exit code $exitCode). Editor was not launched." }
+        }
+        finally { Pop-Location }
+        $result.Status = 'BuildSucceeded'
+        Write-Host 'BUILD SUCCEEDED (exit code 0).'
+        if (-not $NoLaunch) {
+            $result.Status = 'LaunchingEditor'
+            # This is the requested interactive Editor, so its window remains visible.
+            $editorProcess = Start-Process -FilePath $editorPath -ArgumentList ('"{0}" -log="{1}"' -f $projectPath, (Join-Path $runDirectory 'Editor.log')) -WorkingDirectory $projectRoot -PassThru
+            $result.EditorProcessId = $editorProcess.Id
+            $exited = $editorProcess.WaitForExit($LaunchWaitSeconds * 1000)
+            if ($exited) { throw "Editor exited during startup. See $(Join-Path $runDirectory 'Editor.log')." }
+            $result.Status = 'EditorStarted'
+            Write-Host "Editor launched (PID $($editorProcess.Id))."
+        }
+        $exitCode = 0
     }
-    finally {
-        Pop-Location
-    }
-    Write-Host 'Build succeeded.'
-    if (-not $NoLaunch) {
-        Start-Process -FilePath $editorPath -ArgumentList ('"{0}"' -f $projectPath) -WorkingDirectory $projectRoot
-        Write-Host 'Editor launched.'
-    }
-    exit 0
 }
 catch {
+    if ($exitCode -eq 0) { $exitCode = 1 }
+    if ($result) { $result.Error = $_.Exception.Message; $result.Status = 'Failed' }
     $message = "処理を中止しました。`n`n$($_.Exception.Message)"
     Write-Host "エラー: $message" -ForegroundColor Red
     if (-not $NoPopup) {
@@ -131,5 +206,16 @@ catch {
         }
         catch { Write-Host 'エラーダイアログを表示できませんでした。上のエラーメッセージを確認してください。' }
     }
-    exit 1
 }
+finally {
+    if ($result) {
+        $result.ExitCode = $exitCode
+        try { $result | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $runDirectory 'Result.json') -Encoding UTF8 }
+        catch { Write-Warning "Could not save Result.json: $($_.Exception.Message)" }
+    }
+    if ($transcriptStarted) { Stop-Transcript | Out-Null }
+    if ($runDirectory) { Write-Host "Logs: $runDirectory" }
+    Write-Host "Exit code: $exitCode"
+    if ($Pause -and -not $CheckOnly) { [void](Read-Host 'Press Enter to close') }
+}
+exit $exitCode

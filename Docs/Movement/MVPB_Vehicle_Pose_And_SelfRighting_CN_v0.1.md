@@ -1,5 +1,7 @@
 # 姿态操控限制与长按自救：实现和配置（v0.1）
 
+**2026-10-29侧翻自救补充以第9节为当前入口。** 保留原已保存参数；允许将Minimum Recovery Tilt设为Drive Exit Tilt以关闭角度空档，补充仅供自救使用的近地支撑采样及Block拒绝原因。较快响应由团队按第9节修改共享DA；不缩短长按，不直接修改保存资产。构建与验证以本次新增记录为准，下面10月21日结果为历史。
+
 日期：2026-10-21；施工基点 `main/f634292b4893fafdf9bba52e5b8e1a928f2469e5`；本机UE5.8.3-58210709。用户反馈上一轮修正后“弹动有效减少”，并授权开始本步。原[已确认规则](MVPB_Vehicle_Stability_And_SelfRighting_Plan_CN_v0.1.md#51-首版测试规则2026-10-21用户已确认)继续有效；VP-1结束，10-F-4完整集成／四机仍后置。
 
 本轮代码、Editor／Game编译和自动化检查已完成，**手工输入接线与真人手感仍待团队完成**。完整报告及保护哈希见[本轮验证摘要](MVPB_Vehicle_Pose_And_SelfRighting_Verification_20261021.json)。代理未保存或编辑BP、DA、Input Action、地图。
@@ -51,7 +53,7 @@
 | Success Tilt | 15° | 回到近地且低角速时的成功倾角 |
 | Angular Position Gain／Angular Damping Gain | 25／7 | 翻正PD增益 |
 | Maximum Angular Acceleration | 30rad/s² | 恢复力矩对应的角加速度上限 |
-| Maximum Recovery Angular Speed | 4rad/s | 恢复力矩不继续加速超过此角速；不清除已有更高角速 |
+| Maximum Recovery Angular Speed | 内部4rad/s；Editor可能显示229.18°/s | 恢复力矩不继续加速超过此角速；不清除已有更高角速 |
 
 字段带范围、有限值与跨字段校验：`Success Tilt < Drive Enter Tilt < Drive Exit Tilt < Minimum Recovery Tilt`，打断档位只允许Medium／Heavy。不要把 `Support Distance` 设得很大来掩盖真实腾空，也不要通过无限增大增益补偿卡住的几何。
 
@@ -118,3 +120,59 @@ UE5.8.3 Win64 Development **Editor／Game均成功**；普通回归 **57/57，0�
 用户确认：**“自救真人验收已经完成，功能可以工作，表现可以后面再优化”**，并授权开始VP-2。将此记录为自救功能真人验收完成；表现优化列后续事项，不再将输入接线或基本功能作为VP-2阻塞。输入补充代码及团队Local DA／共享DA／IA／IMC已在`eae910e`提交。
 
 本条来自团队实际操作反馈，未附新的逐项角色／FPS／网络扰动清单或日志，不扩写为所有组合和四机最终验收。前文“尚无真人反馈／未提交”均保留为当时的历史记录，当前结论以本节及项目状态为准。
+
+## 9. 侧面着地自救与较快翻正响应（2026-10-29）
+
+用户反馈同时存在“没有长按进度”和“触发后尝试翻正但没翻起”，另要求加快实际翻正，未要求缩短按键时间。核对基点`main/ac9ffe1`、UE5.8.2-56702186，开工工作区干净。该提交已包含上次合并、车型资产重命名及团队NetTest地图更新；保留当前保存资产，不从旧基线回填。
+
+### 9.1 已核对边界与修改
+
+- 原默认Drive Exit Tilt=65°、Minimum Recovery Tilt=70°，65°～70°附近可以出现已经不能驾驶、又不符合自救倾角的空档；旧校验还禁止把两者设为相等。现在允许`Drive Exit Tilt <= Minimum Recovery Tilt`，团队可以配置为65°／65°。原已保存70°保持，未用C++覆盖；相对有效地面法线判定，视觉车身倾斜不作为物理姿态。
+- 原中心近地射线可能漏掉只支撑代理一部分的台沿，或者首先命中墙面。仅当中心未提供有效可用地面时，新增固定顺序、位于代理投影范围内的偏移射线，继续使用原垂直距离与坡度限制。结果只供自救资格／成功检查，普通驾驶、轮胎表现接地仍使用原中心探测；这不是物理悬挂，也不会给腾空车辆无限距离找地。
+- HUD新增服务器复制的`Block`拒绝原因，`hal.VehicleRecoveryLog 1`在阶段／原因改变时记录Ground、Tilt、Speed、AngularDeg、Held与Frame。可区分未开始计时和已执行后Timeout／Interrupted，不再只显示Idle而没有依据。
+- 原PD翻正本体、世界向上目标、角速／角加速度限制、2秒时限及碰撞保留；不传送、不直接改旋转、不增加抬升／穿透或落地自动扶正。更快响应使用已有DA参数。规则签名标记为RecoveryV2，物理历史序列化格式3不变，两端必须同步重编并使用相同资产。
+
+原已编译版本的当前保存凸包理想平地Solver基线1/1通过，左右侧翻和倒扣可翻起。这只能排除理想平地完全不可翻正，不能确认用户原局是哪一个拒绝条件，亦不能说明所有贴墙几何都有空间。没有取得失败原局的Recovery日志，不将上述代码边界冒充唯一原因。
+
+### 9.2 团队Editor调参步骤
+
+1. 完整重编后重开Editor，停止PIE／Standalone。先在Project Settings → Game → Vehicle Stability确认Shared Rules当前引用，打开该DA；当前配置路径仍是`/Game/Data/MVP_B/DA_Vehicle_Stability_Test_v1`。
+2. 展开 **Recovery → Pose／Eligibility**。保留Drive Enter Tilt=50°、Drive Exit Tilt=65°，将 **Minimum Recovery Tilt设为65°**；这关闭默认角度空档。若该DA已使用其他驾驶阈值，则让Minimum Recovery Tilt等于实际Drive Exit Tilt，勿照抄65°覆盖其他已调值。
+3. 展开 **Recovery → Response**，先记下原值，再试以下较快组合：
+
+| 字段 | 原生初值 | 建议测试值 | 作用 |
+|---|---:|---:|---|
+| Angular Position Gain | 25 | **60** | 增强纠正倾角的角加速度需求 |
+| Angular Damping Gain | 7 | **12** | 配合更强响应抑制过冲与摆动 |
+| Maximum Angular Acceleration | 30rad/s² | **80rad/s²** | 放宽恢复力矩的角加速度上限 |
+| Maximum Recovery Angular Speed | 内部4rad/s＝显示约229.18°/s | **内部6rad/s＝显示约343.77°/s** | 提高翻正过程的角速上限 |
+
+**单位对照（2026-10-29截图确认）：** 该字段原生存储单位是rad/s，当前Editor自动以deg/s显示；截图末行229.183121 deg/s对应内部4rad/s。若输入框后缀为deg/s，建议填写 **343.774677**（约343.77°/s），对应内部6rad/s，不能直接填写裸数字6，否则会成为6°/s、反而大幅降低翻正角速。上方另一个`Maximum Angular Speed=60deg/s`是启动资格／成功角速阈值，保持原值。Angular Position Gain=60、Angular Damping Gain=12、Maximum Angular Acceleration=80按截图无单位数值填写，不需要一起换算。
+
+4. **保留当前Hold Seconds、Flipped Seconds、Maximum Execution Seconds和Cooldown Seconds。** 本次只读实际保存DA为：长按1.5秒、侧翻资格等待**2秒**（已不同于旧原生1秒）、执行上限2秒、冷却3秒；因此在刚稳定侧翻时按住，约需2+1.5秒才开始执行。Maximum Execution Seconds是失败退出的上限，减小它不会加快翻正，反而可能提前超时。Support Distance、线速／角速资格及普通Physics Body阻尼先保持，避免同时改变驾驶／受击表现。
+5. Save该DA并Validate。停止本局、重新启动Host／Client，两端使用同一份代码与DA；共享快照不在本局内热更新。R的IA／IMC／Local接线保持，不需要新增GA或修改PlayerState。
+6. 控制台输入`hal.DebugHUD 1`、`hal.VehicleRecoveryLog 1`。依次测左右侧、65°～70°斜靠、倒扣、靠墙／墙角和窄支撑；低速稳定后长按R，观察Holding→Executing→Succeeded。开始后可以松手。再测腾空／高速翻滚仍不能启动、受外部Medium／Heavy打断、持球执行时释放、冷却及双端观察。
+
+`Block`含义：`Tilt`未达到自救倾角；`NoGround`未取得近地支撑；`SteepGround`坡度不合格；`LinearSpeed`／`AngularSpeed`尚在移动／翻滚；`Stabilizing`等待配置的Flipped Seconds资格时间（当前保存2秒）；`NotHeld`未收到按住意图；`FrameGap`服务器计时样本间隔过大；`OwnerOrPhysics`控制者、HP、比赛或物理新鲜度条件不足；`Stunned`被眩晕；`Cooldown`等待重试。`None`表示没有上述阻塞，不等于动作已结束。日志在权威Host的运行日志查看，客户端HUD显示复制结果。
+
+已进入Executing却Timeout时，检查空间与代理几何；加强有限力矩不会保证穿出夹缝。上述数值是可回退的测试响应，正式平衡仍以后续实际车型与双端手感为准。自动化数据不代表团队已保存新DA或完成真人画面验收。
+
+### 9.3 本轮验证
+
+本机UE5.8.2-56702186 **Editor／Game完整编译成功，最终普通回归104/104，真实Listen Server双端Host／Client各1/1**，最终3份报告均0测试警告／失败／未运行。新增角度边界、窄支撑／中心遗漏、墙面拒绝、腾空距离及速度拒绝检查；真实Solver使用保存凸包／阻尼，8工况共1440步。15°以内且角速不超过60°/s的收敛时间：原响应侧翻1.017秒、倒扣1.417秒；建议响应左右侧各0.583秒、倒扣0.817秒。是受控平地数据，不保证受阻几何或所有车型相同。
+
+双端在实际NetTest世界中使用双方相同的临时原生平地隔离夹具，左右90°侧翻；均观察到Holding／Executing、开始和结束序号2、两车Succeeded及正立，客户端实际49次重模拟。60FPS上限／NullRHI，主机出站注入80ms，非实测RTT，无丢包／抖动注入；保存共享DA未更改，联机夹具用临时默认规则，较快响应由上述Solver对比验证。
+
+初次普通回归102/104，两个旧测试还引用团队已重命名的SM_CarCollisionProxy；改为从当前玩家Definition读取碰撞Mesh，保持原断言后104/104。初次双端各0/1超时，旧固定地图位置使主机车持续NoGround、客户端车已成功；只将联机夹具移到临时地板隔离区域，不放宽自救资格／成功或时限。失败报告均保留，最终重编后再次完整回归通过。
+
+1172份uasset／umap与开工／用户保存关闭后的基线逐份SHA-256相同，219份构建输入最终未变，Config／uproject／Build.cs未改；全部专用进程已退出。完整构建仍有既有C4305等警告，不宣称零编译警告。详见[本次验证](MVPB_Vehicle_SideRecovery_Verification_20261029.json)。本次未提交／Push；保存DA的65°及较快组合、实际R键／墙角／低顶／复杂组合画面仍待团队按9.2节保存与复测，F4／四机后置保持。
+
+### 9.4 调参后Host无法操作：保存配置诊断（2026-10-29）
+
+团队调参后反馈Host开始比赛即无法操作。最新实际游戏日志`HAL_Future_Creation_2.log`明确先报告`Invalid VehicleStabilityRules ... Invalid Recovery ... Vehicle blocked; no fallback`，随后仍进入`Playing with 1 players`；是共享规则初始化失败，不以Playing或输入焦点作为恢复依据。
+
+只读加载当前保存DA得到：Drive Enter Tilt=50°、Drive Exit Tilt=65°、**Minimum Recovery Tilt=60°**，其余响应为60／12／80／4（末项为内部rad/s），资格等待2秒、长按1.5秒、执行上限2秒、冷却3秒。60°小于65°违反校验关系。团队在Editor打开共享DA → Recovery → Eligibility，将 **Minimum Recovery Tilt从60改为65**，保留Drive Exit Tilt=65；若采用9.2较快组合，将Response → Maximum Recovery Angular Speed的内部4rad/s改为6rad/s，即当前Editor显示约229.18deg/s改为343.77deg/s。后者不是初始化失败原因。
+
+保存并停止旧局、重新Host开始；不需要重编，也不需要重新设置输入或蓝图。新局应不再有Invalid Recovery／Vehicle blocked，并出现有效VehicleStabilityRules Snapshot。Editor的通用Validate Assets结果不能替代新局原生规则初始化日志。未放宽配置校验或静默退回C++默认值。
+
+本次只有日志与现有原生只读诊断检查（1/1），没有新C++、编译或完整联机回归。两份团队修改的Stability／Local DA前后哈希相同，代理未保存资产；实际修正65°／6、恢复驾驶与翻正手感仍待团队操作确认。见[配置诊断留档](MVPB_Vehicle_Recovery_ConfigDiagnosis_20261029.json)，原9.3构建／自动化保持原资产基线，不冒充本次保存配置验收。

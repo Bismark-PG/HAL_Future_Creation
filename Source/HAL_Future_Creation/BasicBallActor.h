@@ -12,6 +12,7 @@ class USphereComponent;
 class UStaticMeshComponent;
 class UPrimitiveComponent;
 class UNetworkPhysicsSettingsComponent;
+class UHALBallPresentationComponent;
 
 class UBallDefinition;
 
@@ -96,6 +97,10 @@ public:
 	uint32 GetBallStateSequence() const { return RepState.StateSequence; }
 
 	USphereComponent* GetPhysicsRoot() const { return PhysicsRoot; }
+	UStaticMeshComponent* GetVisualMesh() const { return VisualMesh; }
+	bool IsPrimaryCameraTarget() const { return bPrimaryCameraTarget; }
+	/** Authority metadata only, never set from a client camera request. */
+	void SetPrimaryCameraTarget(bool bPrimary);
 
 	bool CanBeControlledBy(const AActor* CandidateVehicle) const;
 	bool BeginControl(AActor* NewHolder);
@@ -106,6 +111,8 @@ public:
 	bool HandleVehicleExit(const AActor* LeavingVehicle);
 
 protected:
+	/** Mark exactly one placed ordinary ball. Debug-spawned balls remain unmarked. */
+	UPROPERTY(EditInstanceOnly, Replicated, Category="Ball|Camera") bool bPrimaryCameraTarget = false;
 	UPROPERTY(EditAnywhere, Category = "Ball|Configuration")
 	EVehicleConfigurationSource ConfigurationSource = EVehicleConfigurationSource::Legacy;
 
@@ -128,6 +135,8 @@ protected:
 	/** Optional per-ball PI tuning asset. Its mode override applies to simulated proxies. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ball|Components")
 	TObjectPtr<UNetworkPhysicsSettingsComponent> NetworkPhysicsSettings;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Ball|Components")
+	TObjectPtr<UHALBallPresentationComponent> BallPresentation;
 
 	/** Speed must stay below this value before Launched can return to Free. */
 	UPROPERTY(EditDefaultsOnly, Category = "Ball|State", meta = (ClampMin = "0.0", Units = "cm/s"))
@@ -162,6 +171,7 @@ private:
 	friend class FHALImpactBallPipelineTest;
 	friend class FControlledBallProxyPresentationTest;
 	friend class FHALCombatBallConsumptionTest;
+	friend struct FHALBallPresentationTestAccess;
 #endif
 	UFUNCTION()
 	void OnRep_BallRepState();

@@ -9,6 +9,7 @@
 
 class UHALDebugHUDWidget;
 class UHALAbilitySystemComponent;
+class UHALCameraDebugWidget;
 
 /** Local input, camera and match UI entry point for a single player. */
 UCLASS()
@@ -36,6 +37,8 @@ public:
 	/** Local network-physics diagnostic snapshot for four-machine testing. */
 	UFUNCTION(Exec)
 	void HALNetMetrics();
+	UFUNCTION(Exec) void HALCameraReset();
+	UFUNCTION(Exec) void HALCameraStatus();
 
 	/** Print every vehicle's GAS Owner/Avatar and sole authoritative HP source. */
 	UFUNCTION(Exec)
@@ -66,6 +69,7 @@ private:
 	UFUNCTION(Client, Reliable) void ClientDebugBombResult(const FString& Message, bool bSuccess);
 	UPROPERTY(Transient)
 	TObjectPtr<UHALDebugHUDWidget> DebugHUD;
+	UPROPERTY(Transient) TObjectPtr<UHALCameraDebugWidget> CameraDebugHUD;
 	TMap<TWeakObjectPtr<UHALAbilitySystemComponent>, FActiveGameplayEffectHandle> DebugImpactImmuneTargets;
 
 	UFUNCTION(Server, Reliable)

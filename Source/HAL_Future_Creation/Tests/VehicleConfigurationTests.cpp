@@ -202,7 +202,8 @@ bool FConfigurationPlayerBallTest::RunTest(const FString& Parameters)
 	FConfigurationTestWorld Fixture;
 	if (!TestNotNull(TEXT("Transient world"), Fixture.World)) { return false; }
 	UVehicleDefinition* Definition = NewObject<UVehicleDefinition>();
-	Definition->CollisionMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Game/Meshes/SM_CarCollisionProxy.SM_CarCollisionProxy"));
+	const auto* SavedPlayer = LoadObject<UVehicleDefinition>(nullptr, TEXT("/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.DA_Vehicle_Player_TestBaseline_v1"));
+	Definition->CollisionMesh = SavedPlayer ? SavedPlayer->CollisionMesh.Get() : nullptr;
 	if (!TestNotNull(TEXT("Existing read-only convex mesh"), Definition->CollisionMesh.Get())) { return false; }
 	Definition->Visual.Mesh = Definition->CollisionMesh;
 	Definition->bReadyForUse = true;

@@ -2,6 +2,9 @@
 
 namespace HALGameplayTags
 {
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_ElectricWall,"Combat.Source.ElectricWall","Paired pillars and electric wall contact; no damage or ball enhancement.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Visual_Shocked,"State.Visual.Shocked","Presentation-only shock marker following the current Stun lifetime.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Visual_Shocked,"Effect.Visual.Shocked","Avatar-scoped presentation effect removed when Stun ends.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Stun, "State.Stun", "Blocks controls, abilities, ball acquisition and launch; does not freeze physics.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Stun, "Effect.Vehicle.Stun", "Shared timed Avatar-scoped stun.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_Bomb, "Combat.Source.Bomb", "Bomb explosion: configured damage and authored impact tier.");

@@ -16,6 +16,7 @@ struct HAL_FUTURE_CREATION_API FVehicleRecoveryConfig
 	UPROPERTY(EditDefaultsOnly, Category = "Pose", meta = (ClampMin = "0", ClampMax = "1", Units = "s")) float DriveStableSeconds = .1f;
 	/** Additional distance below the projected physical proxy bounds. */
 	UPROPERTY(EditDefaultsOnly, Category = "Pose", meta = (ClampMin = "0", ClampMax = "100", Units = "cm")) float SupportDistance = 30;
+	/** Set equal to DriveExitTilt to avoid a no-drive/no-recovery angle gap. Saved tuning is preserved. */
 	UPROPERTY(EditDefaultsOnly, Category = "Eligibility", meta = (ClampMin = "1", ClampMax = "180", Units = "deg")) float MinimumRecoveryTilt = 70;
 	UPROPERTY(EditDefaultsOnly, Category = "Eligibility", meta = (ClampMin = "0", ClampMax = "10", Units = "s")) float FlippedSeconds = 1;
 	UPROPERTY(EditDefaultsOnly, Category = "Eligibility", meta = (ClampMin = "1", ClampMax = "1000", Units = "cm/s")) float MaximumLinearSpeed = 150;
@@ -36,6 +37,7 @@ struct HAL_FUTURE_CREATION_API FVehicleRecoveryConfig
 	bool GroundIsValid(bool bNear, const FVector& Normal) const;
 	bool CanDrive(bool bPreviouslyAllowed, const FVector& Up, const FVector& Normal) const;
 	bool IsEligible(bool bNear, const FVector& Up, const FVector& Normal, float Speed, float AngularRadians) const;
+	FName EligibilityBlockReason(bool bNear, const FVector& Up, const FVector& Normal, float Speed, float AngularRadians) const;
 };
 
 /** Only physics memory is replayed. Permission timers, GAS and ball side effects stay on authority GT. */
@@ -77,6 +79,8 @@ struct HAL_FUTURE_CREATION_API FVehicleRecoveryStatus
 	UPROPERTY(BlueprintReadOnly) float CooldownRemaining = 0;
 	UPROPERTY(BlueprintReadOnly) int64 Sequence = 0;
 	UPROPERTY(BlueprintReadOnly) FName LastOutcome;
+	/** Authority permission feedback; None while executing or ready to accumulate hold. */
+	UPROPERTY(BlueprintReadOnly) FName BlockReason;
 };
 
 /** Pure authority permission clock; never read/replayed by the physics thread. */
