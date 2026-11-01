@@ -95,13 +95,29 @@ void APassiveTestVehicle::OnConstruction(const FTransform& Transform)
 
 void APassiveTestVehicle::PreInitializeComponents()
 {
+	const UWorld* World = GetWorld();
+	if (!World || !World->IsGameWorld())
+	{
+		// Blueprint editor and thumbnail previews spawn the actor into a world that never simulates.
+		// OnConstruction already applies the preview configuration there, and the authoritative checks
+		// below assume gameplay components a preview actor is not guaranteed to have.
+		Super::PreInitializeComponents();
+		return;
+	}
 	bConfigurationValid = ApplyDefinition(false);
 	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules()) { bConfigurationValid = false; }
-	if (!ImpactReceiver->CheckConfiguredRules()) { bConfigurationValid = false; }
+	if (!ImpactReceiver || !ImpactReceiver->CheckConfiguredRules()) { bConfigurationValid = false; }
 	if (!bConfigurationValid)
 	{
-		CollisionRoot->SetSimulatePhysics(false);
-		CollisionRoot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		if (!CollisionRoot)
+		{
+			UE_LOG(LogTemp, Error, TEXT("%s: invalid configuration and no collision root to disable."), *GetName());
+		}
+		else
+		{
+			CollisionRoot->SetSimulatePhysics(false);
+			CollisionRoot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
 	}
 	Super::PreInitializeComponents();
 }

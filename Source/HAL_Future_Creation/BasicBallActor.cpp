@@ -555,6 +555,15 @@ void ABasicBallActor::OnConstruction(const FTransform& Transform)
 
 void ABasicBallActor::PreInitializeComponents()
 {
+	const UWorld* World = GetWorld();
+	if (!World || !World->IsGameWorld())
+	{
+		// Blueprint editor and thumbnail previews spawn the actor into a world that never simulates.
+		// OnConstruction already applies the preview configuration there, and the authoritative checks
+		// below assume gameplay components a preview actor is not guaranteed to have.
+		Super::PreInitializeComponents();
+		return;
+	}
 	if (GetNetMode() != NM_Standalone && GetLocalRole() == ROLE_SimulatedProxy)
 	{
 		// Preserve PI even if an older Blueprint serialized the actor's former default mode.
@@ -572,8 +581,15 @@ void ABasicBallActor::PreInitializeComponents()
 	}
 	if (!bConfigurationValid)
 	{
-		PhysicsRoot->SetSimulatePhysics(false);
-		PhysicsRoot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		if (!PhysicsRoot)
+		{
+			UE_LOG(LogTemp, Error, TEXT("%s: invalid configuration and no physics root to disable."), *GetName());
+		}
+		else
+		{
+			PhysicsRoot->SetSimulatePhysics(false);
+			PhysicsRoot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
 	}
 	Super::PreInitializeComponents();
 }
