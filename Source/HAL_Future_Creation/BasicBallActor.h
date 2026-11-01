@@ -13,6 +13,7 @@ class UStaticMeshComponent;
 class UPrimitiveComponent;
 class UNetworkPhysicsSettingsComponent;
 class UHALBallPresentationComponent;
+class UHALMagnetBeamPresentationComponent;
 
 class UBallDefinition;
 
@@ -137,6 +138,10 @@ protected:
 	TObjectPtr<UNetworkPhysicsSettingsComponent> NetworkPhysicsSettings;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Ball|Components")
 	TObjectPtr<UHALBallPresentationComponent> BallPresentation;
+
+	/** Ownership presentation: holder-coloured roof beam and shell pulse. Visual only. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Ball|Components")
+	TObjectPtr<UHALMagnetBeamPresentationComponent> MagnetBeam;
 
 	/** Speed must stay below this value before Launched can return to Free. */
 	UPROPERTY(EditDefaultsOnly, Category = "Ball|State", meta = (ClampMin = "0.0", Units = "cm/s"))

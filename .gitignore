@@ -8,6 +8,11 @@
 !Docs/Configuration/Stun_Reuse_And_Parameters_CN.md
 !Docs/Configuration/Stun_Reuse_And_Parameters_JA.md
 !Docs/Configuration/Stun_Debug_Command_CN.md
+!Docs/Presentation/MVPB_BallMagnetBeam_FX_Authoring_CN_v0.1.md
+
+# Editor-only Python bridge. Remote execution stays on the author's own machine
+# by standing decision, so this never goes to a remote.
+Tools/UnrealBridge/
 !MVP_A_Vehicle_Ball_Rules_CN.md
 !MVP_A_Tiered_Knockback_Design_CN.md
 !MVP_A_Rounded_Vehicle_Setup_CN.md

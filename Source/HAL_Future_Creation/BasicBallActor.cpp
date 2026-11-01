@@ -12,6 +12,7 @@
 #include "ArcadeVehicleMovementComponent.h"
 #include "BallControlComponent.h"
 #include "HALGameplayTags.h"
+#include "HALMagnetBeamPresentationComponent.h"
 
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -87,6 +88,7 @@ ABasicBallActor::ABasicBallActor()
 	VisualMesh->SetSimulatePhysics(false);
 	NetworkPhysicsSettings = CreateDefaultSubobject<UNetworkPhysicsSettingsComponent>(TEXT("BallNetworkPhysicsSettings"));
 	BallPresentation = CreateDefaultSubobject<UHALBallPresentationComponent>(TEXT("BallPresentation"));
+	MagnetBeam = CreateDefaultSubobject<UHALMagnetBeamPresentationComponent>(TEXT("MagnetBeam"));
 }
 
 void ABasicBallActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -321,6 +323,9 @@ void ABasicBallActor::OnRep_BallRepState()
 {
 	if (!HasActorBegunPlay()) { return; }
 	ApplyReplicatedPresentation();
+	// After ApplyReplicatedPresentation, so an out-of-order snapshot it rejected does not
+	// restart the beam on a state the server has already moved past.
+	if (MagnetBeam) { MagnetBeam->SyncToBallState(RepState.State, RepState.Holder); }
 #if !UE_BUILD_SHIPPING
 	if (CVarHALBallNetLog.GetValueOnGameThread() > 0)
 	{
@@ -395,6 +400,9 @@ void ABasicBallActor::CommitRepState(const FBallRepState& NewState, const AActor
 	}
 	RepState = Committed;
 	if (BallPresentation) { BallPresentation->NotifyStateChanged(); }
+	// The client path below returns early on authority, so the listen-server host would
+	// otherwise be the one player who never sees who holds the ball.
+	if (MagnetBeam) { MagnetBeam->SyncToBallState(RepState.State, RepState.Holder); }
 	ForceNetUpdate();
 
 	bool bShouldLogState = bLogStateChanges;
