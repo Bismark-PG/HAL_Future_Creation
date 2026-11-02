@@ -7,6 +7,8 @@
 #include "AbilitySystemInterface.h"
 #include "HALAbilityTypes.h"
 #include "HALRoomTypes.h"
+#include "HALVehicleLifecycleTypes.h"
+#include "UObject/ObjectKey.h"
 #include "HALPlayerState.generated.h"
 
 class UHALAbilitySystemComponent;
@@ -27,6 +29,11 @@ public:
 	UHALAbilitySystemComponent* GetHALAbilitySystemComponent() const { return AbilitySystem; }
 	/** Called after Avatar binding, authority only. Existing specs survive a repeated bind. */
 	void GrantVehicleAbilities();
+	/** Explicit authority transitions, fresh Pawn only. Serials are monotonic within this PlayerState. */
+	bool ChangeVehicleAvatar(ATestVehiclePawn* Next, uint32 ChangeSerial);
+	bool BeginNewRoundAvatar(ATestVehiclePawn* Next, uint32 RoundId, uint32 ChangeSerial);
+	bool CanBindVehicleAvatar(const ATestVehiclePawn* Pawn) const;
+	const FHALVehicleLifecycleState& GetVehicleLifecycle() const { return Lifecycle; }
 	UFUNCTION(BlueprintPure, Category="Room") const FHALRoomPlayerData& GetRoomData() const { return RoomData; }
 	UPROPERTY(BlueprintAssignable, Category="Room") FHALRoomPlayerChanged OnRoomDataChanged;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
@@ -37,6 +44,12 @@ protected:
 	TArray<FHALAbilityGrant> DefaultAbilities;
 
 private:
+	bool TransitionVehicleAvatar(ATestVehiclePawn* Next, uint32 ChangeSerial, uint32 RoundId);
+	UFUNCTION() void OnRep_Lifecycle();
+	UPROPERTY(ReplicatedUsing=OnRep_Lifecycle) FHALVehicleLifecycleState Lifecycle;
+	FObjectKey LastVehicleTransitionKey;
+	uint32 LastVehicleTransitionRound = 0;
+	bool bVehicleTransitionInProgress = false, bLastVehicleTransitionSucceeded = false;
 	friend class UHALRoomComponent;
 	void SetRoomData(const FHALRoomPlayerData& Data);
 	UFUNCTION() void OnRep_RoomData();

@@ -102,6 +102,10 @@ void UHALMovementAreaReceiver::UpdateEffects()
 }
 void UHALMovementAreaReceiver::EndPlay(const EEndPlayReason::Type Reason)
 {
+	ClearForOwnerExit(); Super::EndPlay(Reason);
+}
+void UHALMovementAreaReceiver::ClearForOwnerExit()
+{
 	for (const auto& Pair : Sources) { if (auto* Source = Pair.Key.Get()) { Source->OnEndPlay.RemoveDynamic(this, &ThisClass::SourceEnded); } }
-	Sources.Reset(); Unbind(); Super::EndPlay(Reason);
+	Sources.Reset(); Selection = {}; Unbind();
 }

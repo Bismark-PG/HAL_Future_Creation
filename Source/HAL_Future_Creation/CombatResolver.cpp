@@ -202,7 +202,8 @@ FHALCombatHitResult FCombatResolver::ResolveCombatHit(FHALCombatAction& Action, 
 			return Result;
 		}
 		Result.bDamageImmune = ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_DamageImmune);
-		const double Resolved = Result.bDamageImmune ? 0.0
+		Result.bDamageSuppressedByFlow = !HALGameFlow::Permissions(Target->GetWorld(),TargetPawn).bDamage;
+		const double Resolved = Result.bDamageImmune || Result.bDamageSuppressedByFlow ? 0.0
 			: double(Result.RawDamage) * FMath::Max(0.0f, Combat->GetDamageTakenMultiplier());
 		if (!FMath::IsFinite(Resolved) || Resolved > MAX_flt)
 		{

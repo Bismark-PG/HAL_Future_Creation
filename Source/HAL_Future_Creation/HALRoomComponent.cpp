@@ -69,12 +69,33 @@ bool UHALRoomComponent::AvatarReady(const AHALPlayerController* PC) const
 		&& ASC->GetOwnerActor() == PS && ASC->GetAvatarActor() == Pawn && ASC->IsHealthInitialized()
 		&& ASC->IsCombatInitialized() && ASC->IsImpactInitialized() && Health && Health->IsHealthReady() && Health->GetCurrentHP() > 0;
 }
-EHALRoomResult UHALRoomComponent::CompleteAvatar(AHALPlayerController* PC, uint32 Revision)
+bool UHALRoomComponent::CanInitializeAvatar(const AHALPlayerController* PC, const APawn* Next) const
+{
+	const auto* PS = Member(PC); FString Error;
+	if (!PS || !Next || Next->GetWorld() != GetWorld() || !ServerConfig || !ServerConfig->Catalog) { return false; }
+	const auto& P = PS->GetRoomData();
+	if (Data.Phase != EHALRoomPhase::Open && Data.Phase != EHALRoomPhase::Loading) { return false; }
+	if (Data.Phase == EHALRoomPhase::Open && P.Phase != EHALRoomPlayerPhase::PreparingAvatar) { return false; }
+	if (Data.Phase == EHALRoomPhase::Loading && !Data.LockedRoster.ContainsByPredicate([PS,&P](const FHALRoomRosterEntry& E)
+	{ return E.Player == PS && E.VehicleId == P.VehicleId && E.SelectionRevision == P.SelectionRevision; })) { return false; }
+	return Next->GetClass() == ServerConfig->Catalog->Resolve(P.VehicleId,Error);
+}
+void UHALRoomComponent::InvalidateAvatarForLifecycle(AHALPlayerController* PC)
+{
+	if (!GetOwner()->HasAuthority() || (Data.Phase != EHALRoomPhase::Open && Data.Phase != EHALRoomPhase::Loading)) { return; }
+	auto* PS = Member(PC); if (!PS) { return; }
+	auto Player = PS->GetRoomData();
+	if (Player.Phase == EHALRoomPlayerPhase::PreparingAvatar && !Player.ReadyAvatar) { return; }
+	Player.Phase = EHALRoomPlayerPhase::PreparingAvatar; Player.ReadyAvatar = nullptr; PS->SetRoomData(Player); Publish();
+}
+EHALRoomResult UHALRoomComponent::CompleteAvatar(AHALPlayerController* PC, uint32 Revision, uint32 ExpectedRound)
 {
 	if (!GetOwner()->HasAuthority()) { return EHALRoomResult::NotAuthority; }
 	auto* PS = Member(PC); if (!PS) { return EHALRoomResult::NotMember; }
 	auto Player = PS->GetRoomData();
-	if (Data.Phase != EHALRoomPhase::Open || Player.Phase != EHALRoomPlayerPhase::PreparingAvatar) { return EHALRoomResult::WrongPhase; }
+	if ((Data.Phase != EHALRoomPhase::Open && Data.Phase != EHALRoomPhase::Loading) || Player.Phase != EHALRoomPlayerPhase::PreparingAvatar) { return EHALRoomResult::WrongPhase; }
+	if (Data.Phase == EHALRoomPhase::Loading && (!ExpectedRound || ExpectedRound != Data.RoundId)) { return EHALRoomResult::StaleSelection; }
+	if (Data.Phase == EHALRoomPhase::Loading && (PS->GetVehicleLifecycle().RoundId != ExpectedRound || PS->GetVehicleLifecycle().Avatar != PC->GetPawn())) { return EHALRoomResult::NotReady; }
 	if (Player.SelectionRevision != Revision) { return EHALRoomResult::StaleSelection; }
 	if (!AvatarReady(PC)) { return EHALRoomResult::NotReady; }
 	Player.Phase = EHALRoomPlayerPhase::Ready; Player.ReadyAvatar = PC->GetPawn(); PS->SetRoomData(Player); Publish(); return EHALRoomResult::Accepted;

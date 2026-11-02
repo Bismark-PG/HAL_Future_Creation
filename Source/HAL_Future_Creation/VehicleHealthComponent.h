@@ -32,6 +32,7 @@ public:
 	void UnbindFromAbilitySystem();
 	UHALAbilitySystemComponent* GetBoundAbilitySystem() const { return AbilitySystem.Get(); }
 	bool IsHealthReady() const;
+	float GetInitializationMaxHP() const { return MaxHP; }
 
 	UFUNCTION(BlueprintPure, Category = "Vehicle|Health")
 	float GetCurrentHP() const;

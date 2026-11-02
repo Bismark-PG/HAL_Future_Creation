@@ -103,6 +103,7 @@ struct FHALCombatHitResult
 	float ResolvedDamage = 0.0f;
 	float ActualHPRemoved = 0.0f;
 	bool bDamageImmune = false;
+	bool bDamageSuppressedByFlow = false;
 	bool bImpactApplied = false;
 	/** Accepted rule response, before physics integration; excludes natural Chaos impulse. */
 	FVector RuleDeltaVelocity = FVector::ZeroVector;

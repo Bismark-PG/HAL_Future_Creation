@@ -34,6 +34,7 @@ class UVehicleRecoveryComponent;
 class USkeletalMeshComponent;
 class UHALDynamicCameraComponent;
 struct FInputActionValue;
+struct FHALVehicleLifecycleSeed;
 
 /** Minimal player vehicle used to validate MVP-A ground handling. */
 class UVehicleDefinition;
@@ -51,7 +52,10 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 	EVehicleConfigurationSource GetConfigurationSource() const { return ConfigurationSource; }
 	const UVehicleDefinition* GetVehicleDefinition() const { return Definition; }
-	bool IsConfigurationValid() const { return bConfigurationValid; }
+	bool IsConfigurationValid() const { return bConfigurationValid && !bLifecycleRetired; }
+	bool GetLifecycleSeed(FHALVehicleLifecycleSeed& Out) const;
+	void RetireForVehicleTransition();
+	void RefreshAbilitySystemBinding() { InitializeAbilitySystem(); }
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* Property) const override;
 #endif
@@ -175,6 +179,7 @@ protected:
 	float RemoteInputTimeoutSeconds = 0.25f;
 
 private:
+	bool bLifecycleRetired = false;
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALPresentationTestAccess;
 #endif

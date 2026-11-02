@@ -14,6 +14,8 @@
 #include "HALVehiclePresentationComponent.h"
 #include "HALDynamicCameraComponent.h"
 #include "HALGameFlowPermissions.h"
+#include "HALVehicleLifecycleTypes.h"
+#include "EngineUtils.h"
 #include "HALPlayerState.h"
 #include "HALGameplayTags.h"
 
@@ -252,6 +254,7 @@ void ATestVehiclePawn::OnRep_PlayerState()
 void ATestVehiclePawn::InitializeAbilitySystem()
 {
 	AHALPlayerState* State = GetPlayerState<AHALPlayerState>();
+	if (bLifecycleRetired || (State && !State->CanBindVehicleAvatar(this))) { return; }
 	UHALAbilitySystemComponent* ASC = State ? State->GetHALAbilitySystemComponent() : nullptr;
 	if (Health->GetBoundAbilitySystem() != ASC) { UninitializeAbilitySystem(); }
 	if (!ASC)
@@ -283,6 +286,26 @@ void ATestVehiclePawn::UninitializeAbilitySystem()
 	UHALAbilitySystemComponent* ASC = Health->GetBoundAbilitySystem();
 	Health->UnbindFromAbilitySystem();
 	if (ASC) { ASC->ClearAvatarIfCurrent(this); }
+}
+
+bool ATestVehiclePawn::GetLifecycleSeed(FHALVehicleLifecycleSeed& Out) const
+{
+	if (!IsConfigurationValid()) { return false; }
+	FHALVehicleLifecycleSeed Seed; Seed.MaxHP = Health->GetInitializationMaxHP(); Seed.Combat = RuntimeCombatConfig;
+	Seed.Impact = ImpactReceiver->GetConfiguration();
+	if (!Seed.Validate()) { return false; }
+	Out = Seed; return true;
+}
+void ATestVehiclePawn::RetireForVehicleTransition()
+{
+	if (!HasAuthority() || bLifecycleRetired) { return; }
+	bLifecycleRetired = true;
+	BallControl->PrepareForOwnerExit();
+	for (TActorIterator<ABasicBallActor> It(GetWorld()); It; ++It) { It->HandleVehicleExit(this); }
+	VehicleRecovery->CancelForOwnerExit(); MovementAreaReceiver->ClearForOwnerExit();
+	UninitializeAbilitySystem(); ArcadeMovement->SetHistoryInputBlocked(true); ResetInputCommand();
+	GetWorldTimerManager().ClearTimer(InputSendTimerHandle); GetWorldTimerManager().ClearTimer(RemoteInputTimeoutHandle);
+	RemoveDefaultInputContext(); DynamicCamera->ResetCamera();
 }
 
 void ATestVehiclePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

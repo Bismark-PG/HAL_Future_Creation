@@ -24,7 +24,9 @@ public:
 	void RemoveMember(AHALPlayerController* Controller);
 	EHALRoomResult Request(AHALPlayerController* Controller, EHALRoomAction Action, FName VehicleId, uint32 ExpectedRevision);
 	/** GF-3 native callback after actual Avatar initialization; clients cannot declare themselves ready. */
-	EHALRoomResult CompleteAvatar(AHALPlayerController* Controller, uint32 ExpectedRevision);
+	EHALRoomResult CompleteAvatar(AHALPlayerController* Controller, uint32 ExpectedRevision, uint32 ExpectedRound = 0);
+	bool CanInitializeAvatar(const AHALPlayerController* Controller, const APawn* Next) const;
+	void InvalidateAvatarForLifecycle(AHALPlayerController* Controller);
 	EHALRoomResult CheckStart(const AHALPlayerController* Controller) const;
 	/** GF-4 will call after its travel/readiness barrier; this contract does not implement that barrier. */
 	EHALRoomResult AdvanceRound(uint32 ExpectedRound, EHALRoomPhase Next);

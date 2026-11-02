@@ -81,3 +81,5 @@
 本轮完整Target构建包含现有FX源码，但NullRHI／数据检查不增加其真人或Niagara画面验收结论。没有执行手柄／鼠标UI、真正房间配置地图启动、单人完整转场、四台有线PC或实测RTT／丢包／抖动；这些按GF-3～GF-6及原F4分开记录。跨设备先同步本轮源码／文档及团队保存资产，统一补丁并重编，不混用旧RPC／DLL。
 
 下一入口为 **GF-2：换车与新局GAS生命周期**。它需要明确区分首次初始化、重复绑定、换车及新局，清理旧Avatar作用域能力／效果／区域／球权及输入状态，重新应用正确车型种子；同时消费练习HP策略，验证A→B→A、重复调用幂等和命中／冲击独立。GF-1没有清除初始化保护或改写ASC数值来绕过这些待办。
+
+**同日后续：** GF-1已提交为`653320d`；团队随后创建了三份Gameflow DA，GF-2代码、两Target／118项及真实双端验证也已完成，见[GF-2实施](GF2_Vehicle_Lifecycle_Implementation_CN_v0.1.md)。当前下一入口为GF-3；上段及本节114项／1177资产等保持GF-1交付时点，不代表GF-2结果。两份Room的Catalog与两个车型有效，`DA_Room_Development.Rules.Profile`仍待团队从Exhibition改为Development并保存；当前旧NetTest不启用Room Config。

@@ -37,7 +37,7 @@ UAbilitySystemComponent* AHALPlayerState::GetAbilitySystemComponent() const
 }
 
 void AHALPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{ Super::GetLifetimeReplicatedProps(OutLifetimeProps); DOREPLIFETIME(AHALPlayerState,RoomData); }
+{ Super::GetLifetimeReplicatedProps(OutLifetimeProps); DOREPLIFETIME(AHALPlayerState,RoomData); DOREPLIFETIME(AHALPlayerState,Lifecycle); }
 void AHALPlayerState::SetRoomData(const FHALRoomPlayerData& Data)
 { if (HasAuthority()) { RoomData = Data; OnRep_RoomData(); ForceNetUpdate(); } }
 void AHALPlayerState::OnRep_RoomData() { OnRoomDataChanged.Broadcast(); }

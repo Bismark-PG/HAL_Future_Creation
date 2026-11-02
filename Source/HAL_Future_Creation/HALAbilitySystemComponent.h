@@ -53,6 +53,12 @@ public:
 	FHALHealthInitialized OnHealthInitialized;
 
 private:
+	friend class AHALPlayerState;
+	bool ResetVehicleAttributes(const struct FHALVehicleLifecycleSeed& Seed, bool bNewRound);
+public:
+	/** Remove only grants owned by this exact source; player-owned shared grants survive. */
+	void RemoveAbilitiesFromSource(UObject* Source);
+private:
 	void StunTagChanged(FGameplayTag Tag, int32 Count);
 	FDelegateHandle StunTagHandle;
 	void RemoveAvatarEffects();

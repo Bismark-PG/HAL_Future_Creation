@@ -114,6 +114,9 @@ protected:
 
 private:
 #if WITH_DEV_AUTOMATION_TESTS
+	friend struct FHALVehicleLifecycleTestAccess;
+#endif
+#if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALStunTestAccess;
 	friend class FHALImpactBallPipelineTest;
 	friend class FConfigurationPlayerBallTest;

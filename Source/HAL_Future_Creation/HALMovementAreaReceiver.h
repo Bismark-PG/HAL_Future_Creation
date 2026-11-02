@@ -16,6 +16,7 @@ public:
 	UHALMovementAreaReceiver();
 	void Bind(UHALAbilitySystemComponent* InASC);
 	void Unbind();
+	void ClearForOwnerExit();
 	bool RegisterArea(AActor* Source, const FHALMovementAreaConfig& Config);
 	void UnregisterArea(AActor* Source);
 	int32 GetAreaCount() const { return Sources.Num(); }

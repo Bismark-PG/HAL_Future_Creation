@@ -9,6 +9,8 @@
 #include "HALHealthAttributeSet.h"
 #include "HALCombatAttributeSet.h"
 #include "HALImpactAttributeSet.h"
+#include "HALMovementAttributeSet.h"
+#include "HALVehicleLifecycleTypes.h"
 #include "HALGameplayTags.h"
 #include "Net/UnrealNetwork.h"
 
@@ -289,12 +291,47 @@ bool UHALAbilitySystemComponent::InitializeHealth(float SavedMaxHP)
 void UHALAbilitySystemComponent::ClearAvatarIfCurrent(const AActor* ExpectedAvatar)
 {
 	if (!ExpectedAvatar || BoundAvatarKey != FObjectKey(ExpectedAvatar)) { return; }
+	RemoveAbilitiesFromSource(const_cast<AActor*>(ExpectedAvatar));
 	InitAbilityActorInfo(GetOwner(), nullptr);
 	if (CVarHALGASLog.GetValueOnGameThread() > 0)
 	{
 		UE_LOG(LogHALGAS, Log, TEXT("Avatar cleared Owner=%s FormerAvatar=%s"),
 			*GetNameSafe(GetOwner()), *GetNameSafe(ExpectedAvatar));
 	}
+}
+
+void UHALAbilitySystemComponent::RemoveAbilitiesFromSource(UObject* Source)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !Source) { return; }
+	TArray<FGameplayAbilitySpecHandle> Handles;
+	{ ABILITYLIST_SCOPE_LOCK(); for (const auto& Spec : GetActivatableAbilities()) { if (Spec.SourceObject == Source) { Handles.Add(Spec.Handle); } } }
+	for (const auto Handle : Handles) { CancelAbilityHandle(Handle); ClearAbility(Handle); }
+}
+bool UHALAbilitySystemComponent::ResetVehicleAttributes(const FHALVehicleLifecycleSeed& Seed, bool bNewRound)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !Seed.Validate() || !GetSet<UHALHealthAttributeSet>()
+		|| !GetSet<UHALCombatAttributeSet>() || !GetSet<UHALImpactAttributeSet>() || !GetSet<UHALMovementAttributeSet>()) { return false; }
+	CancelAllAbilities();
+	if (bNewRound) { RemoveActiveEffects(FGameplayEffectQuery()); }
+	else
+	{
+		RemoveAvatarEffects();
+		const FGameplayTag Cooldown = FGameplayTag::RequestGameplayTag(TEXT("Cooldown"),false);
+		if (Cooldown.IsValid()) { RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(FGameplayTagContainer(Cooldown))); }
+	}
+	const bool Migrated = Seed.Combat.Version == EHALCombatConfigVersion::AttackSnapshotV1;
+	CombatConfigVersion = Seed.Combat.Version;
+	SetNumericAttributeBase(UHALHealthAttributeSet::GetMaxHPAttribute(),Seed.MaxHP);
+	SetNumericAttributeBase(UHALHealthAttributeSet::GetCurrentHPAttribute(),Seed.MaxHP);
+	SetNumericAttributeBase(UHALCombatAttributeSet::GetAttackPowerAttribute(),Migrated ? Seed.Combat.AttackPower : 0);
+	SetNumericAttributeBase(UHALCombatAttributeSet::GetOutputMultiplierDeltaAttribute(),Migrated ? Seed.Combat.OutputMultiplierDelta : 0);
+	SetNumericAttributeBase(UHALCombatAttributeSet::GetDamageTakenMultiplierAttribute(),Migrated ? Seed.Combat.DamageTakenMultiplier : 1);
+	SetNumericAttributeBase(UHALImpactAttributeSet::GetTierReductionAttribute(),Seed.Impact.Version == EHALImpactVersion::TieredV1 ? Seed.Impact.TierReduction : 0);
+	for (const auto& Attribute : { UHALMovementAttributeSet::GetAccelerationMultiplierDeltaAttribute(),UHALMovementAttributeSet::GetSpeedLimitMultiplierDeltaAttribute(),
+		UHALMovementAttributeSet::GetLateralGripMultiplierDeltaAttribute(),UHALMovementAttributeSet::GetAreaAccelerationDeltaAttribute(),
+		UHALMovementAttributeSet::GetAreaSpeedDeltaAttribute(),UHALMovementAttributeSet::GetAreaGripDeltaAttribute() }) { SetNumericAttributeBase(Attribute,0); }
+	bHealthInitialized = bCombatInitialized = bImpactInitialized = true;
+	OnHealthInitialized.Broadcast(); GetOwner()->ForceNetUpdate(); return true;
 }
 
 void UHALAbilitySystemComponent::OnRep_HealthInitialized()
