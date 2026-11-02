@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BallControlComponent.h"
+#include "HALGameFlowPermissions.h"
+#include "GameFramework/Pawn.h"
 #include "HALAbilitySystemComponent.h"
 #include "VehicleRecoveryComponent.h"
 #include "VehicleKnockbackSettings.h"
@@ -195,6 +197,8 @@ void UBallControlComponent::ReleaseForStun()
 
 void UBallControlComponent::EvaluateBallControl()
 {
+	if (!HALGameFlow::Permissions(GetWorld(),Cast<APawn>(GetOwner())).bBallControl)
+	{ if (GetOwner()->HasAuthority()) { ReleaseHeldBall(FVector::ZeroVector,false); } return; }
 	if (UHALAbilitySystemComponent::IsActorStunned(GetOwner())) { return; }
 	if (!GetOwner()->HasAuthority())
 	{

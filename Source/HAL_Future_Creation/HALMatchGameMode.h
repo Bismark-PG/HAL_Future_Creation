@@ -7,6 +7,7 @@
 #include "HALMatchGameMode.generated.h"
 
 class AHALPlayerController;
+class UHALRoomConfig;
 
 /** Server-only connection, spawn and minimal phase rules for the Listen Server match. */
 UCLASS()
@@ -16,6 +17,8 @@ class HAL_FUTURE_CREATION_API AHALMatchGameMode : public AGameModeBase
 
 public:
 	AHALMatchGameMode();
+	virtual void InitGameState() override;
+	virtual void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
 
 	virtual void PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage) override;
 	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
@@ -24,9 +27,11 @@ public:
 
 	/** Called by the PlayerController; only the local Listen Server host may start. */
 	bool TryStartMatch(AHALPlayerController* Requestor);
-	int32 GetMinimumPlayersToStart() const { return MinimumPlayersToStart; }
+	int32 GetMinimumPlayersToStart() const;
 
 protected:
+	/** Optional GF room foundation. Keep null on existing regression maps; GF-3 will wire its dedicated map. */
+	UPROPERTY(EditDefaultsOnly, Category="Room") TObjectPtr<UHALRoomConfig> RoomConfig;
 	/** Maximum players, including the Listen Server host. */
 	UPROPERTY(EditDefaultsOnly, Category = "Match|Players", meta = (ClampMin = "1", ClampMax = "4"))
 	int32 MaximumPlayers = 4;

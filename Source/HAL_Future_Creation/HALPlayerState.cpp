@@ -7,6 +7,7 @@
 #include "HALMovementAttributeSet.h"
 #include "HALImpactImmunityAbility.h"
 #include "HALGameplayTags.h"
+#include "Net/UnrealNetwork.h"
 
 AHALPlayerState::AHALPlayerState()
 {
@@ -34,3 +35,9 @@ UAbilitySystemComponent* AHALPlayerState::GetAbilitySystemComponent() const
 {
 	return AbilitySystem;
 }
+
+void AHALPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{ Super::GetLifetimeReplicatedProps(OutLifetimeProps); DOREPLIFETIME(AHALPlayerState,RoomData); }
+void AHALPlayerState::SetRoomData(const FHALRoomPlayerData& Data)
+{ if (HasAuthority()) { RoomData = Data; OnRep_RoomData(); ForceNetUpdate(); } }
+void AHALPlayerState::OnRep_RoomData() { OnRoomDataChanged.Broadcast(); }

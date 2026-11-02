@@ -3,6 +3,9 @@
 #include "HALMatchGameState.h"
 
 #include "Net/UnrealNetwork.h"
+#include "HALRoomComponent.h"
+
+AHALMatchGameState::AHALMatchGameState() { Room = CreateDefaultSubobject<UHALRoomComponent>(TEXT("Room")); }
 
 void AHALMatchGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {

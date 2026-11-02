@@ -1,4 +1,5 @@
 #include "HALMovementBoostAbility.h"
+#include "HALGameFlowPermissions.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALAbilityTypes.h"
 #include "HALGameplayTags.h"
@@ -27,14 +28,13 @@ bool UHALMovementBoostAbility::CanActivateAbility(const FGameplayAbilitySpecHand
 	const auto* ASC = ActorInfo ? Cast<UHALAbilitySystemComponent>(ActorInfo->AbilitySystemComponent.Get()) : nullptr;
 	const auto* Vehicle = ActorInfo ? Cast<ATestVehiclePawn>(ActorInfo->AvatarActor.Get()) : nullptr;
 	const AActor* Owner = ActorInfo ? ActorInfo->OwnerActor.Get() : nullptr;
-	const auto* Match = Vehicle ? Vehicle->GetWorld()->GetGameState<AHALMatchGameState>() : nullptr;
 	const auto* Health = Vehicle ? Vehicle->FindComponentByClass<UVehicleHealthComponent>() : nullptr;
 	const auto* Effect = MovementEffectClass ? MovementEffectClass->GetDefaultObject<UHALMovementBoostEffect>() : nullptr;
 	const bool bReady = ASC && Vehicle && Owner && ASC->GetOwnerActor() == Owner
 		&& Vehicle->GetPlayerState() == Owner && Vehicle->GetAbilitySystemComponent() == ASC
 		&& Vehicle->GetController() && Vehicle->IsConfigurationValid()
 		&& ASC->IsHealthInitialized() && ASC->GetSet<UHALMovementAttributeSet>() && Health && Health->IsHealthReady()
-		&& Match && Match->GetMatchPhase() == EHALMatchPhase::Playing;
+		&& HALGameFlow::Permissions(Vehicle->GetWorld(),Vehicle).bAbilities;
 	const bool bEffectValid = Effect && Effect->DurationPolicy == EGameplayEffectDurationType::HasDuration
 		&& Effect->GetStackingType() == EGameplayEffectStackingType::AggregateByTarget && Effect->GetStackLimitCount() == 1
 		&& Effect->StackDurationRefreshPolicy == EGameplayEffectStackingDurationPolicy::RefreshOnSuccessfulApplication

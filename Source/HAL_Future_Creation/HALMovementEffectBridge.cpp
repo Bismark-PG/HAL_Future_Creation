@@ -5,6 +5,8 @@
 #include "ArcadeVehicleMovementComponent.h"
 #include "Engine/World.h"
 #include "Net/UnrealNetwork.h"
+#include "HALGameFlowPermissions.h"
+#include "GameFramework/Pawn.h"
 
 UHALMovementEffectBridge::UHALMovementEffectBridge()
 {
@@ -79,11 +81,13 @@ void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float D
 	if (World != GetWorld() || !ASC || ASC->GetAvatarActor() != GetOwner() || !Movement) { return; }
 	// Tick-offset readiness belongs to the GT API; the physics thread only reads this atomic flag.
 	Movement->SetMovementTickOffsetReady(GetOwner()->HasAuthority() || !History || History->IsNetworkPhysicsTickOffsetAssigned());
+	const bool bFlowBlocked = !HALGameFlow::Permissions(World,Cast<APawn>(GetOwner())).bDrive;
+	if (GetOwner()->HasAuthority() && bFlowBlocked != bLastFlowBlocked) { bDirty = true; bLastFlowBlocked = bFlowBlocked; }
 	if (!GetOwner()->HasAuthority() || !bDirty) { return; }
 	const auto* Values = ASC->GetSet<UHALMovementAttributeSet>();
 	FHALMovementSnapshot Snapshot;
 	Snapshot.Epoch = Epoch;
-	Snapshot.bControlsBlocked = ASC->IsStunned();
+	Snapshot.bControlsBlocked = ASC->IsStunned() || bFlowBlocked;
 	if (!Values) { return; }
 	Snapshot.bHasAreaState = true;
 	Snapshot.AreaAcceleration.OrdinaryDelta = Values->GetAccelerationMultiplierDelta();

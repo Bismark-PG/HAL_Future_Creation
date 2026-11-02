@@ -1,4 +1,5 @@
 #include "HALPlayerController.h"
+#include "HALGameFlowPermissions.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALDebugSettings.h"
 #include "HALGameplayTags.h"
@@ -42,7 +43,6 @@ void AHALPlayerController::ServerRequestMovementBoost_Implementation(bool bRemov
 	// all come from current authority state; there is no arbitrary effect/target RPC.
 	auto* Vehicle = Cast<ATestVehiclePawn>(GetPawn());
 	auto* ASC = Vehicle ? Cast<UHALAbilitySystemComponent>(Vehicle->GetAbilitySystemComponent()) : nullptr;
-	const auto* Match = GetWorld()->GetGameState<AHALMatchGameState>();
 	const auto* Health = Vehicle ? Vehicle->FindComponentByClass<UVehicleHealthComponent>() : nullptr;
 	FString Message;
 	bool bSuccess = false;
@@ -52,9 +52,9 @@ void AHALPlayerController::ServerRequestMovementBoost_Implementation(bool bRemov
 	{
 		Message = TEXT("HALMovementBoost: rejected; no ready owned vehicle/ASC.");
 	}
-	else if (!Match || Match->GetMatchPhase() != EHALMatchPhase::Playing)
+	else if (!HALGameFlow::Permissions(GetWorld(),Vehicle).bAbilities)
 	{
-		Message = TEXT("HALMovementBoost: rejected; start the match (Playing) first.");
+		Message = TEXT("HALMovementBoost: rejected; gameplay actions are not permitted in this phase.");
 	}
 	else if (!bRemove && CVarHALMovementBoostDebug.GetValueOnGameThread() == 0)
 	{

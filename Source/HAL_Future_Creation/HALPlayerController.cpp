@@ -14,6 +14,8 @@
 #include "HALNetworkGameInstance.h"
 #include "HALDebugHUDWidget.h"
 #include "HALCameraDebugWidget.h"
+#include "HALRoomComponent.h"
+#include "HALPlayerState.h"
 #include "HALDynamicCameraComponent.h"
 #include "HALDebugSettings.h"
 #include "BasicBallActor.h"
@@ -96,6 +98,8 @@ void AHALPlayerController::HALCameraStatus()
 
 void AHALPlayerController::RequestStartMatch()
 {
+	if (const auto* State = GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr; State && State->GetRoom()->IsEnabled())
+	{ SubmitRoomAction(EHALRoomAction::Start); return; }
 	if (!IsLocalController())
 	{
 		return;
@@ -112,6 +116,34 @@ void AHALPlayerController::RequestStartMatch()
 	{
 		ServerRequestStartMatch();
 	}
+}
+
+void AHALPlayerController::SelectRoomVehicle(FName Id) { SubmitRoomAction(EHALRoomAction::SelectVehicle,Id); }
+void AHALPlayerController::ConfirmRoomVehicle() { SubmitRoomAction(EHALRoomAction::ConfirmVehicle); }
+void AHALPlayerController::CancelRoomConfirmation() { SubmitRoomAction(EHALRoomAction::CancelConfirmation); }
+void AHALPlayerController::SubmitRoomAction(EHALRoomAction Action, FName Id)
+{
+	if (!IsLocalController()) { return; }
+	const auto* PS = GetPlayerState<AHALPlayerState>();
+	if (PS) { ServerRoomAction(Action,Id,PS->GetRoomData().SelectionRevision); }
+}
+void AHALPlayerController::ServerRoomAction_Implementation(EHALRoomAction Action, FName Id, uint32 Revision)
+{
+	auto* State = GetWorld()->GetGameState<AHALMatchGameState>();
+	const auto Result = State ? State->GetRoom()->Request(this,Action,Id,Revision) : EHALRoomResult::Inactive;
+	ClientRoomResult(Result);
+}
+void AHALPlayerController::ClientRoomResult_Implementation(EHALRoomResult Result)
+{ LastRoomResult = Result; OnRoomRequestCompleted.Broadcast(Result); }
+void AHALPlayerController::HALRoomStatus()
+{
+	const auto* State = GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr;
+	const auto* PS = GetPlayerState<AHALPlayerState>();
+	if (!IsLocalController() || !State || !PS) { return; }
+	const auto& R = State->GetRoom()->GetData(); const auto& P = PS->GetRoomData();
+	UE_LOG(LogTemp,Display,TEXT("HAL Room: Phase=%d Profile=%d Players=%d Min=%d Max=%d Round=%u Seat=%d Number=%d Vehicle=%s PlayerPhase=%d Selection=%u LastResult=%d"),
+		int32(R.Phase),int32(R.Rules.Profile),R.Members.Num(),R.Rules.MinimumPlayers(),R.Rules.MaximumPlayers(),R.RoundId,
+		P.Seat,P.Number,*P.VehicleId.ToString(),int32(P.Phase),P.SelectionRevision,int32(LastRoomResult));
 }
 
 void AHALPlayerController::HALStartMatch()

@@ -1,4 +1,5 @@
 #include "HALDynamicCameraComponent.h"
+#include "HALGameFlowPermissions.h"
 #include "HALCameraConfig.h"
 #include "BasicBallActor.h"
 #include "TestVehiclePawn.h"
@@ -46,9 +47,8 @@ bool UHALDynamicCameraComponent::CalculateView(float Dt, FMinimalViewInfo& Out)
 	if (X < 1 || Y < 1) { ResetCamera(); return false; }
 	const auto* Player = PC->GetLocalPlayer();
 	const auto* Viewport = Player && Player->ViewportClient ? Player->ViewportClient->Viewport : nullptr;
-	const auto* Match = GetWorld()->GetGameState<AHALMatchGameState>();
 	const bool bAccept = Viewport && Viewport->HasFocus() && Viewport->IsForegroundWindow() && !PC->bShowMouseCursor
-		&& !PC->IsLookInputIgnored() && (!Match || Match->GetMatchPhase() == EHALMatchPhase::Playing) && !GetWorld()->IsPaused();
+		&& !PC->IsLookInputIgnored() && HALGameFlow::Permissions(GetWorld(),Pawn).bObserve && !GetWorld()->IsPaused();
 	if (PreviousController.Get() != PC) { ResetCamera(); PreviousController = PC; }
 	if (CalculatedFrame == GFrameCounter && Frame.bValid) { Out = Frame.View; return true; }
 	CalculatedFrame = GFrameCounter;

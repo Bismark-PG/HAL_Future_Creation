@@ -1,4 +1,5 @@
 #include "HALPlayerController.h"
+#include "HALGameFlowPermissions.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALGameplayTags.h"
 #include "HALMatchGameState.h"
@@ -20,7 +21,6 @@ void AHALPlayerController::HALStun(int32 PlayerId, float DurationSeconds)
 #if !UE_BUILD_SHIPPING
 	FString Message;
 	bool bSuccess = false;
-	const auto* Match = GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr;
 	if (!HasAuthority() || !IsLocalController())
 	{
 		Message = TEXT("HALStun: rejected; use the host console. Usage: HALStun PlayerId DurationSeconds.");
@@ -33,9 +33,9 @@ void AHALPlayerController::HALStun(int32 PlayerId, float DurationSeconds)
 	{
 		Message = TEXT("HALStun: rejected; use HALStun PlayerId DurationSeconds with a nonnegative ID and positive finite game seconds.");
 	}
-	else if (!Match || Match->GetMatchPhase() != EHALMatchPhase::Playing)
+	else if (!HALGameFlow::Permissions(GetWorld(),GetPawn()).bAbilities)
 	{
-		Message = TEXT("HALStun: rejected; start the match (Playing) first.");
+		Message = TEXT("HALStun: rejected; gameplay actions are not permitted in this phase.");
 	}
 	else
 	{

@@ -13,6 +13,7 @@
 #include "HALMovementAreaReceiver.h"
 #include "HALVehiclePresentationComponent.h"
 #include "HALDynamicCameraComponent.h"
+#include "HALGameFlowPermissions.h"
 #include "HALPlayerState.h"
 #include "HALGameplayTags.h"
 
@@ -461,6 +462,7 @@ void ATestVehiclePawn::OnCameraStickCompleted(const FInputActionValue& Value) { 
 
 void ATestVehiclePawn::PushInputCommand()
 {
+	if (!HALGameFlow::Permissions(GetWorld(),this).bDrive) { CurrentInputCommand.Reset(); }
 	CurrentInputCommand.Sanitize();
 	if ((HasAuthority() || bNetworkPhysicsHistoryActive) && ArcadeMovement)
 	{

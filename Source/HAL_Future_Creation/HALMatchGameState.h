@@ -6,6 +6,8 @@
 #include "GameFramework/GameStateBase.h"
 #include "HALMatchGameState.generated.h"
 
+class UHALRoomComponent;
+
 UENUM(BlueprintType)
 enum class EHALMatchPhase : uint8
 {
@@ -22,6 +24,8 @@ class HAL_FUTURE_CREATION_API AHALMatchGameState : public AGameStateBase
 	GENERATED_BODY()
 
 public:
+	AHALMatchGameState();
+	UFUNCTION(BlueprintPure, Category="Room") UHALRoomComponent* GetRoom() const { return Room; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	EHALMatchPhase GetMatchPhase() const { return MatchPhase; }
@@ -31,6 +35,7 @@ public:
 	FHALMatchPhaseChanged OnMatchPhaseChanged;
 
 protected:
+	UPROPERTY(VisibleAnywhere, Category="Room") TObjectPtr<UHALRoomComponent> Room;
 	UPROPERTY(ReplicatedUsing = OnRep_MatchPhase, BlueprintReadOnly, Category = "Match")
 	EHALMatchPhase MatchPhase = EHALMatchPhase::WaitingForPlayers;
 

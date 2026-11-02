@@ -1,4 +1,5 @@
 #include "HALImpactImmunityAbility.h"
+#include "HALGameFlowPermissions.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALAbilityTypes.h"
 #include "HALGameplayTags.h"
@@ -27,7 +28,6 @@ bool UHALImpactImmunityAbility::CanActivateAbility(const FGameplayAbilitySpecHan
 	const auto* ASC = ActorInfo ? Cast<UHALAbilitySystemComponent>(ActorInfo->AbilitySystemComponent.Get()) : nullptr;
 	const auto* Vehicle = ActorInfo ? Cast<ATestVehiclePawn>(ActorInfo->AvatarActor.Get()) : nullptr;
 	const AActor* Owner = ActorInfo ? ActorInfo->OwnerActor.Get() : nullptr;
-	const auto* Match = Vehicle ? Vehicle->GetWorld()->GetGameState<AHALMatchGameState>() : nullptr;
 	const auto* Health = Vehicle ? Vehicle->FindComponentByClass<UVehicleHealthComponent>() : nullptr;
 	const auto* Receiver = Vehicle ? Vehicle->FindComponentByClass<UHALImpactReceiverComponent>() : nullptr;
 	FHALCollisionImpactRules Rules;
@@ -39,7 +39,7 @@ bool UHALImpactImmunityAbility::CanActivateAbility(const FGameplayAbilitySpecHan
 	const bool bReady = ASC && ASC->IsHealthInitialized() && ASC->IsImpactInitialized() && Vehicle && Owner
 		&& ASC->GetOwnerActor() == Owner && Vehicle->GetAbilitySystemComponent() == ASC
 		&& Vehicle->GetController() && Vehicle->IsConfigurationValid()
-		&& bTiered && Health && Health->IsHealthReady() && Match && Match->GetMatchPhase() == EHALMatchPhase::Playing
+		&& bTiered && Health && Health->IsHealthReady() && HALGameFlow::Permissions(Vehicle->GetWorld(),Vehicle).bAbilities
 		&& Immunity && Immunity->DurationPolicy == EGameplayEffectDurationType::HasDuration
 		&& Immunity->GetGrantedTags().HasTagExact(HALGameplayTags::State_Combat_ImpactImmune)
 		&& Immunity->GetAssetTags().HasTagExact(HALGameplayTags::Effect_Scope_Avatar)

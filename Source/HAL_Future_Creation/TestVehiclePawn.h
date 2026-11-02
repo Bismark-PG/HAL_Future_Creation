@@ -50,6 +50,7 @@ public:
 	virtual void PostInitializeComponents() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 	EVehicleConfigurationSource GetConfigurationSource() const { return ConfigurationSource; }
+	const UVehicleDefinition* GetVehicleDefinition() const { return Definition; }
 	bool IsConfigurationValid() const { return bConfigurationValid; }
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* Property) const override;

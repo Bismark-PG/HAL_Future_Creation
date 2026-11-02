@@ -5,11 +5,13 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "GameplayEffectTypes.h"
+#include "HALRoomTypes.h"
 #include "HALPlayerController.generated.h"
 
 class UHALDebugHUDWidget;
 class UHALAbilitySystemComponent;
 class UHALCameraDebugWidget;
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHALRoomRequestCompleted, EHALRoomResult, Result);
 
 /** Local input, camera and match UI entry point for a single player. */
 UCLASS()
@@ -25,6 +27,13 @@ public:
 	/** Request the transition from WaitingForPlayers to Playing. The server checks host ownership. */
 	UFUNCTION(BlueprintCallable, Category = "Match")
 	void RequestStartMatch();
+	/** GF-1 contract only; GF-3 implements spawning/UI. No target PlayerState is supplied by clients. */
+	UFUNCTION(BlueprintCallable, Category="Room") void SelectRoomVehicle(FName VehicleId);
+	UFUNCTION(BlueprintCallable, Category="Room") void ConfirmRoomVehicle();
+	UFUNCTION(BlueprintCallable, Category="Room") void CancelRoomConfirmation();
+	UFUNCTION(BlueprintPure, Category="Room") EHALRoomResult GetLastRoomResult() const { return LastRoomResult; }
+	UPROPERTY(BlueprintAssignable, Category="Room") FHALRoomRequestCompleted OnRoomRequestCompleted;
+	UFUNCTION(Exec) void HALRoomStatus();
 
 	/** Console entry point for early PIE/LAN tests; uses the same checked request path. */
 	UFUNCTION(Exec)
@@ -65,6 +74,10 @@ public:
 	void HALClearMovementBoost();
 
 private:
+	void SubmitRoomAction(EHALRoomAction Action, FName VehicleId = NAME_None);
+	UFUNCTION(Server, Reliable) void ServerRoomAction(EHALRoomAction Action, FName VehicleId, uint32 SelectionRevision);
+	UFUNCTION(Client, Reliable) void ClientRoomResult(EHALRoomResult Result);
+	EHALRoomResult LastRoomResult = EHALRoomResult::Inactive;
 	UFUNCTION(Server, Reliable) void ServerSpawnDebugBomb();
 	UFUNCTION(Client, Reliable) void ClientDebugBombResult(const FString& Message, bool bSuccess);
 	UPROPERTY(Transient)

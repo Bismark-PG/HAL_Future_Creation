@@ -25,6 +25,9 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 private:
+#if WITH_DEV_AUTOMATION_TESTS
+	friend struct FHALRoomTestAccess;
+#endif
 	void ConfigurePhysics();
 	void AttributeChanged(const FOnAttributeChangeData& Data);
 	void StunChanged(FGameplayTag Tag, int32 Count);
@@ -40,4 +43,5 @@ private:
 	FHALMovementSnapshot LastPublished;
 	int32 BoundPlayerId = INDEX_NONE;
 	bool bDirty = false;
+	bool bLastFlowBlocked = false;
 };

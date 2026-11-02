@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "CombatResolver.h"
+#include "HALGameFlowPermissions.h"
 
 #include "Components/PrimitiveComponent.h"
 #include "Engine/World.h"
@@ -164,6 +165,8 @@ FHALCombatHitResult FCombatResolver::ResolveCombatHit(FHALCombatAction& Action, 
 	Result.RejectReason = Action.CheckRequest(Request);
 	if (Result.RejectReason != EHALHitRejectReason::None) { return Result; }
 	AActor* Target = Request.Hit.TargetActor;
+	if (Target && !HALGameFlow::Permissions(Target->GetWorld()).bWorldInteractions)
+	{ Result.RejectReason = EHALHitRejectReason::TargetNotReady; return Result; }
 	if (!VehicleConfiguration::IsReadyForGameplay(Target))
 	{
 		Result.RejectReason = EHALHitRejectReason::TargetNotReady;

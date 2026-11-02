@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerState.h"
 #include "AbilitySystemInterface.h"
 #include "HALAbilityTypes.h"
+#include "HALRoomTypes.h"
 #include "HALPlayerState.generated.h"
 
 class UHALAbilitySystemComponent;
@@ -13,6 +14,7 @@ class UHALHealthAttributeSet;
 class UHALCombatAttributeSet;
 class UHALImpactAttributeSet;
 class UHALMovementAttributeSet;
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FHALRoomPlayerChanged);
 
 /** Stable player identity and GAS Owner; the current vehicle is its Avatar. */
 UCLASS()
@@ -25,6 +27,9 @@ public:
 	UHALAbilitySystemComponent* GetHALAbilitySystemComponent() const { return AbilitySystem; }
 	/** Called after Avatar binding, authority only. Existing specs survive a repeated bind. */
 	void GrantVehicleAbilities();
+	UFUNCTION(BlueprintPure, Category="Room") const FHALRoomPlayerData& GetRoomData() const { return RoomData; }
+	UPROPERTY(BlueprintAssignable, Category="Room") FHALRoomPlayerChanged OnRoomDataChanged;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 
 protected:
 	/** Initial player loadout. Additional grant sources can use the same ASC contract later. */
@@ -32,6 +37,10 @@ protected:
 	TArray<FHALAbilityGrant> DefaultAbilities;
 
 private:
+	friend class UHALRoomComponent;
+	void SetRoomData(const FHALRoomPlayerData& Data);
+	UFUNCTION() void OnRep_RoomData();
+	UPROPERTY(ReplicatedUsing=OnRep_RoomData) FHALRoomPlayerData RoomData;
 	UPROPERTY(VisibleAnywhere, Category = "GAS")
 	TObjectPtr<UHALAbilitySystemComponent> AbilitySystem;
 	UPROPERTY()

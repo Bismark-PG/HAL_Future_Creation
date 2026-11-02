@@ -9,11 +9,14 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/GameSession.h"
 #include "HALMatchGameState.h"
 #include "HALPlayerController.h"
 #include "HALPlayerStart.h"
 #include "HALPlayerState.h"
 #include "TestVehiclePawn.h"
+#include "HALRoomComponent.h"
+#include "HALRoomConfig.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHALMatch, Log, All);
 
@@ -44,6 +47,24 @@ bool AHALMatchGameMode::CountValidSpawnSlots(int32& OutCount) const
 	return true;
 }
 
+void AHALMatchGameMode::InitGameState()
+{
+	Super::InitGameState();
+	if (RoomConfig)
+	{
+		auto* State = GetGameState<AHALMatchGameState>();
+		if (!State || State->GetRoom()->Initialize(RoomConfig) != EHALRoomResult::Accepted)
+		{ UE_LOG(LogHALMatch,Error,TEXT("Room initialization rejected; check profile and vehicle catalog. Connections remain closed.")); }
+	}
+}
+void AHALMatchGameMode::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer)
+{
+	if (!RoomConfig) { Super::HandleStartingNewPlayer_Implementation(NewPlayer); }
+	// Enabled rooms wait for the future GF-3 explicit selected-vehicle spawn path.
+}
+int32 AHALMatchGameMode::GetMinimumPlayersToStart() const
+{ return RoomConfig ? RoomConfig->Rules.MinimumPlayers() : MinimumPlayersToStart; }
+
 void AHALMatchGameMode::PreLogin(
 	const FString& Options,
 	const FString& Address,
@@ -60,6 +81,14 @@ void AHALMatchGameMode::PreLogin(
 	if (!MatchState)
 	{
 		ErrorMessage = TEXT("The network GameState is unavailable or misconfigured.");
+		return;
+	}
+	if (RoomConfig)
+	{
+		const auto* Room = MatchState->GetRoom(); int32 Slots = 0;
+		if (!Room->IsEnabled()) { ErrorMessage = TEXT("Room configuration is unavailable."); }
+		else if (!Room->CanAdmitPlayer()) { ErrorMessage = TEXT("The room is full or its participant list is locked."); }
+		else if (!CountValidSpawnSlots(Slots) || Slots < RoomConfig->Rules.MinimumPlayers()) { ErrorMessage = TEXT("Room needs sufficient unique spawn slots."); }
 		return;
 	}
 	if (MatchState->GetMatchPhase() != EHALMatchPhase::WaitingForPlayers)
@@ -134,6 +163,19 @@ AActor* AHALMatchGameMode::ChoosePlayerStart_Implementation(AController* Player)
 void AHALMatchGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
+	if (RoomConfig)
+	{
+		auto* State = GetGameState<AHALMatchGameState>();
+		const auto Result = State ? State->GetRoom()->AddMember(Cast<AHALPlayerController>(NewPlayer)) : EHALRoomResult::Inactive;
+		if (Result != EHALRoomResult::Accepted && NewPlayer)
+		{
+			// PreLogin is not a seat reservation: simultaneous arrivals must still be rejected here.
+			const FText Reason = FText::FromString(TEXT("The room is full, locked, or unavailable."));
+			if (!GameSession || !GameSession->KickPlayer(NewPlayer,Reason))
+			{ NewPlayer->ClientReturnToMainMenuWithTextReason(Reason); NewPlayer->Destroy(); }
+		}
+		return;
+	}
 	UE_LOG(LogHALMatch, Log, TEXT("Player joined: %s, Pawn=%s, Start=%s."),
 		*GetNameSafe(NewPlayer), *GetNameSafe(NewPlayer ? NewPlayer->GetPawn() : nullptr),
 		*GetNameSafe(NewPlayer ? NewPlayer->StartSpot.Get() : nullptr));
@@ -145,6 +187,8 @@ void AHALMatchGameMode::PostLogin(APlayerController* NewPlayer)
 
 void AHALMatchGameMode::Logout(AController* Exiting)
 {
+	if (auto* State = GetGameState<AHALMatchGameState>(); State && State->GetRoom()->IsEnabled())
+	{ State->GetRoom()->RemoveMember(Cast<AHALPlayerController>(Exiting)); }
 	APawn* LeavingPawn = Exiting ? Exiting->GetPawn() : nullptr;
 	if (IsValid(LeavingPawn))
 	{
@@ -174,6 +218,11 @@ void AHALMatchGameMode::Logout(AController* Exiting)
 bool AHALMatchGameMode::TryStartMatch(AHALPlayerController* Requestor)
 {
 	AHALMatchGameState* MatchState = GetGameState<AHALMatchGameState>();
+	if (MatchState && MatchState->GetRoom()->IsEnabled())
+	{
+		const auto* PS = Requestor ? Requestor->GetPlayerState<AHALPlayerState>() : nullptr;
+		return PS && MatchState->GetRoom()->Request(Requestor,EHALRoomAction::Start,NAME_None,PS->GetRoomData().SelectionRevision) == EHALRoomResult::Accepted;
+	}
 	if (!Requestor || Requestor->GetWorld() != GetWorld() || !Requestor->IsLocalController()
 		|| !Requestor->GetPawn() || GetNetMode() != NM_ListenServer
 		|| !MatchState || MatchState->GetMatchPhase() != EHALMatchPhase::WaitingForPlayers)

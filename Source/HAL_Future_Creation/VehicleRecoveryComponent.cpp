@@ -1,4 +1,5 @@
 #include "VehicleRecoveryComponent.h"
+#include "HALGameFlowPermissions.h"
 #include "HALAbilitySystemComponent.h"
 #include "ArcadeVehicleMovementComponent.h"
 #include "VehicleStabilityRules.h"
@@ -127,11 +128,10 @@ void UVehicleRecoveryComponent::UpdateRecovery()
 	if (Sample.bValid && Sample.PhysicsFrame != ObservedPhysicsFrame)
 	{ ObservedPhysicsFrame = Sample.PhysicsFrame; LastPhysicsTime = Now; }
 	const auto* Pawn = Cast<APawn>(GetOwner());
-	const auto* Match = GetWorld()->GetGameState<AHALMatchGameState>();
 	const auto* Health = GetOwner()->FindComponentByClass<UVehicleHealthComponent>();
 	const bool bPermitted = !bOwnerExiting && Pawn && Pawn->GetController() && Pawn->GetController()->GetPawn() == Pawn
 		&& !UHALAbilitySystemComponent::IsActorStunned(GetOwner())
-		&& (!Match || Match->GetMatchPhase() == EHALMatchPhase::Playing)
+		&& HALGameFlow::Permissions(GetWorld(),Pawn).bRecovery
 		&& Health && Health->IsHealthReady() && Health->GetCurrentHP() > 0 && Sample.bValid && Now-LastPhysicsTime <= .25;
 	Status.bDrivingAllowed = Sample.bDrivingAllowed; Status.bNearGround = Sample.bNearGround;
 	if (!bPermitted)

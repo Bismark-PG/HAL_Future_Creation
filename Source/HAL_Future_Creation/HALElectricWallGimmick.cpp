@@ -1,4 +1,5 @@
 #include "HALElectricWallGimmick.h"
+#include "HALGameFlowPermissions.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALGameplayTags.h"
 #include "HALImpactSourceComponent.h"
@@ -138,7 +139,8 @@ bool AHALElectricWallGimmick::ApplyContact(ATestVehiclePawn* Target,UPrimitiveCo
 	if (!bReady || !HasAuthority() || GetNetMode()==NM_Client || !IsValid(Target)
 		|| Surface!=ElectricField) { return false; }
 	const auto* Match = GetWorld()->GetGameState<AHALMatchGameState>();
-	if (Match && Match->GetMatchPhase()!=EHALMatchPhase::Playing) { return false; }
+	const auto Flow = HALGameFlow::Permissions(GetWorld(),Target);
+	if (Flow.bRoomEnabled ? !Flow.bWorldInteractions : Match && Match->GetMatchPhase()!=EHALMatchPhase::Playing) { return false; }
 	auto* ASC = Cast<UHALAbilitySystemComponent>(Target->GetAbilitySystemComponent());
 	const auto* Health = Target->FindComponentByClass<UVehicleHealthComponent>();
 	auto* Body = Cast<UPrimitiveComponent>(Target->GetRootComponent());
@@ -167,7 +169,8 @@ void AHALElectricWallGimmick::ScanContacts()
 {
 	if (!bReady) { return; }
 	const auto* Match = GetWorld()->GetGameState<AHALMatchGameState>();
-	if (Match && Match->GetMatchPhase()!=EHALMatchPhase::Playing) { Contacts.Reset(); return; }
+	const auto Flow = HALGameFlow::Permissions(GetWorld());
+	if (Flow.bRoomEnabled ? !Flow.bWorldInteractions : Match && Match->GetMatchPhase()!=EHALMatchPhase::Playing) { Contacts.Reset(); return; }
 	TMap<TWeakObjectPtr<ATestVehiclePawn>,UPrimitiveComponent*> Touches;
 	const FCollisionObjectQueryParams Objects(ECC_PhysicsBody);
 	FCollisionQueryParams Query(SCENE_QUERY_STAT(ElectricWallContacts),false,this);
