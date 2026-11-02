@@ -20,11 +20,15 @@ public:
 	bool IsEnabled() const { return Data.Phase != EHALRoomPhase::Inactive; }
 	bool CanAdmitPlayer() const;
 	EHALRoomResult Initialize(UHALRoomConfig* Config);
+	void EnablePracticeRoom();
+	void CloseForReturn();
+	const UHALRoomConfig* GetServerConfig() const { return ServerConfig; }
 	EHALRoomResult AddMember(AHALPlayerController* Controller);
 	void RemoveMember(AHALPlayerController* Controller);
 	EHALRoomResult Request(AHALPlayerController* Controller, EHALRoomAction Action, FName VehicleId, uint32 ExpectedRevision);
 	/** GF-3 native callback after actual Avatar initialization; clients cannot declare themselves ready. */
 	EHALRoomResult CompleteAvatar(AHALPlayerController* Controller, uint32 ExpectedRevision, uint32 ExpectedRound = 0);
+	EHALRoomResult FailAvatar(AHALPlayerController* Controller, uint32 ExpectedRevision, EHALRoomResult Reason);
 	bool CanInitializeAvatar(const AHALPlayerController* Controller, const APawn* Next) const;
 	void InvalidateAvatarForLifecycle(AHALPlayerController* Controller);
 	EHALRoomResult CheckStart(const AHALPlayerController* Controller) const;

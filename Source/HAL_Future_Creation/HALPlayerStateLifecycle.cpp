@@ -29,7 +29,10 @@ bool AHALPlayerState::TransitionVehicleAvatar(ATestVehiclePawn* Next, uint32 Ser
 	}
 	FHALVehicleLifecycleSeed Seed;
 	if (AbilitySystem->GetOwnerActor() && AbilitySystem->GetOwnerActor() != this) { return false; }
-	if (AbilitySystem->GetAvatarActor() && AbilitySystem->GetAvatarActor() != PC->GetPawn()) { return false; }
+	// GAS InitializeComponent defaults Owner and Avatar to the PlayerState before its first Pawn exists.
+	const bool bInitialOwnerAvatar = !Lifecycle.Revision && !PC->GetPawn()
+		&& AbilitySystem->GetOwnerActor() == this && AbilitySystem->GetAvatarActor() == this;
+	if (AbilitySystem->GetAvatarActor() && AbilitySystem->GetAvatarActor() != PC->GetPawn() && !bInitialOwnerAvatar) { return false; }
 	if (Serial < Lifecycle.ChangeSerial || Lifecycle.Revision == MAX_uint32 || (Round && Round <= Lifecycle.RoundId)
 		|| PC->GetPawn() == Next || Next->GetController() || !Next->GetLifecycleSeed(Seed)) { return false; }
 	const auto* State = GetWorld()->GetGameState<AHALMatchGameState>();

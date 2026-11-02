@@ -221,7 +221,7 @@ bool AHALMatchGameMode::TryStartMatch(AHALPlayerController* Requestor)
 	if (MatchState && MatchState->GetRoom()->IsEnabled())
 	{
 		const auto* PS = Requestor ? Requestor->GetPlayerState<AHALPlayerState>() : nullptr;
-		return PS && MatchState->GetRoom()->Request(Requestor,EHALRoomAction::Start,NAME_None,PS->GetRoomData().SelectionRevision) == EHALRoomResult::Accepted;
+		return PS && HandleRoomAction(Requestor,EHALRoomAction::Start,NAME_None,PS->GetRoomData().SelectionRevision) == EHALRoomResult::Accepted;
 	}
 	if (!Requestor || Requestor->GetWorld() != GetWorld() || !Requestor->IsLocalController()
 		|| !Requestor->GetPawn() || GetNetMode() != NM_ListenServer
@@ -239,4 +239,10 @@ bool AHALMatchGameMode::TryStartMatch(AHALPlayerController* Requestor)
 	MatchState->SetMatchPhase(EHALMatchPhase::Playing);
 	UE_LOG(LogHALMatch, Log, TEXT("Match phase changed to Playing with %d players."), GetNumPlayers());
 	return true;
+}
+
+EHALRoomResult AHALMatchGameMode::HandleRoomAction(AHALPlayerController* Player, EHALRoomAction Action, FName Id, uint32 Revision)
+{
+	auto* State = GetGameState<AHALMatchGameState>();
+	return State ? State->GetRoom()->Request(Player,Action,Id,Revision) : EHALRoomResult::Inactive;
 }

@@ -1,5 +1,6 @@
 #include "HALMagnetBeamPresentationComponent.h"
 #include "HALBallPresentationComponent.h"
+#include "HALPlayerState.h"
 
 #include "Components/MeshComponent.h"
 #include "Components/SphereComponent.h"
@@ -196,8 +197,10 @@ void UHALMagnetBeamPresentationComponent::StopBeam()
 
 FLinearColor UHALMagnetBeamPresentationComponent::ResolveHolderColor(const AActor* Holder) const
 {
-	if (HolderPalette.IsEmpty()) { return FallbackColor; }
 	const APawn* Pawn = Cast<APawn>(Holder);
+	if (const auto* RoomPlayer = Pawn ? Pawn->GetPlayerState<AHALPlayerState>() : nullptr; RoomPlayer && RoomPlayer->GetRoomData().Seat != INDEX_NONE)
+	{ return RoomPlayer->GetRoomData().Color; }
+	if (HolderPalette.IsEmpty()) { return FallbackColor; }
 	const APlayerState* State = Pawn ? Pawn->GetPlayerState() : nullptr;
 	if (!State || State->GetPlayerId() < 0) { return FallbackColor; }
 	return HolderPalette[State->GetPlayerId() % HolderPalette.Num()];

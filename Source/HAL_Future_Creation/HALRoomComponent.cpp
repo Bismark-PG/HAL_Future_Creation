@@ -24,6 +24,26 @@ EHALRoomResult UHALRoomComponent::Initialize(UHALRoomConfig* Config)
 	{ return EHALRoomResult::InvalidConfiguration; }
 	ServerConfig = Config; Data.Rules = Config->Rules; Data.Phase = EHALRoomPhase::Open; Publish(); return EHALRoomResult::Accepted;
 }
+void UHALRoomComponent::EnablePracticeRoom()
+{
+	if (!GetOwner()->HasAuthority() || !ServerConfig || Data.Phase != EHALRoomPhase::Open) { return; }
+	Data.bPracticeRoom = true; Data.Catalog = ServerConfig->Catalog; Publish();
+}
+void UHALRoomComponent::CloseForReturn()
+{
+	if (GetOwner()->HasAuthority() && IsEnabled() && Data.Phase != EHALRoomPhase::Returning)
+	{ Data.Phase = EHALRoomPhase::Returning; Publish(); }
+}
+EHALRoomResult UHALRoomComponent::FailAvatar(AHALPlayerController* PC, uint32 Revision, EHALRoomResult Reason)
+{
+	if (!GetOwner()->HasAuthority()) { return EHALRoomResult::NotAuthority; }
+	auto* PS = Member(PC); if (!PS) { return EHALRoomResult::NotMember; }
+	auto P = PS->GetRoomData();
+	if (Data.Phase != EHALRoomPhase::Open || P.Phase != EHALRoomPlayerPhase::PreparingAvatar) { return EHALRoomResult::WrongPhase; }
+	if (P.SelectionRevision != Revision || Revision == MAX_uint32) { return EHALRoomResult::StaleSelection; }
+	P.Phase = EHALRoomPlayerPhase::Selecting; P.ReadyAvatar = nullptr; P.AvatarResult = Reason;
+	++P.SelectionRevision; PS->SetRoomData(P); Publish(); return Reason;
+}
 AHALPlayerState* UHALRoomComponent::Member(const AHALPlayerController* PC) const
 {
 	AHALPlayerState* PS = PC && PC->GetWorld() == GetWorld() ? PC->GetPlayerState<AHALPlayerState>() : nullptr;
@@ -146,10 +166,10 @@ EHALRoomResult UHALRoomComponent::Request(AHALPlayerController* PC, EHALRoomActi
 	case EHALRoomAction::ConfirmVehicle:
 		if (Player.Phase != EHALRoomPlayerPhase::Selecting) { return EHALRoomResult::WrongPhase; }
 		if (!ServerConfig || !ServerConfig->Catalog || !ServerConfig->Catalog->Resolve(Player.VehicleId,Error)) { return EHALRoomResult::InvalidVehicle; }
-		Player.Phase = EHALRoomPlayerPhase::PreparingAvatar; Player.ReadyAvatar = nullptr; break;
+		Player.Phase = EHALRoomPlayerPhase::PreparingAvatar; Player.ReadyAvatar = nullptr; Player.AvatarResult = EHALRoomResult::Accepted; break;
 	case EHALRoomAction::CancelConfirmation:
 		if (Player.Phase == EHALRoomPlayerPhase::Selecting) { return EHALRoomResult::Accepted; }
-		Player.Phase = EHALRoomPlayerPhase::Selecting; Player.ReadyAvatar = nullptr; break;
+		Player.Phase = EHALRoomPlayerPhase::Selecting; Player.ReadyAvatar = nullptr; Player.AvatarResult = EHALRoomResult::Accepted; break;
 	default: return EHALRoomResult::InvalidRequest;
 	}
 	++Player.SelectionRevision; PS->SetRoomData(Player); Publish(); return EHALRoomResult::Accepted;

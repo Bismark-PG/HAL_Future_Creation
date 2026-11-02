@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "HALRoomTypes.h"
 #include "HALMatchGameMode.generated.h"
 
 class AHALPlayerController;
@@ -28,6 +29,8 @@ public:
 	/** Called by the PlayerController; only the local Listen Server host may start. */
 	bool TryStartMatch(AHALPlayerController* Requestor);
 	int32 GetMinimumPlayersToStart() const;
+	/** Default remains the GF-1 data contract. Dedicated practice mode also orchestrates Avatars. */
+	virtual EHALRoomResult HandleRoomAction(AHALPlayerController* Player, EHALRoomAction Action, FName VehicleId, uint32 Revision);
 
 protected:
 	/** Optional GF room foundation. Keep null on existing regression maps; GF-3 will wire its dedicated map. */

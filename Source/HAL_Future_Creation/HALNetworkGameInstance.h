@@ -34,6 +34,8 @@ public:
 
 	/** Called by the local match PlayerController once its map has begun play. */
 	void ShowMatchLobby(APlayerController* LocalController);
+	void ShowPracticeRoom(APlayerController* LocalController);
+	void ReturnToEntry(const FText& Reason);
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Network Menu")
@@ -57,6 +59,8 @@ private:
 	void ShowEntryMenu();
 	void ReplaceVisibleWidget(UUserWidget* NewWidget);
 	void SetConnectionMessage(const FString& Message);
+	void OpenEntryAfterDisconnect();
+	bool bPracticeRoomActive = false, bReturningToEntry = false;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UUserWidget> VisibleWidget;

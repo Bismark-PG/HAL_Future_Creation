@@ -4,6 +4,7 @@
 
 class AHALPlayerState;
 class APawn;
+class UHALVehicleCatalog;
 
 UENUM(BlueprintType)
 enum class EHALRoomProfile : uint8 { Exhibition, Development };
@@ -17,7 +18,8 @@ UENUM(BlueprintType)
 enum class EHALRoomResult : uint8
 {
 	Accepted, NotAuthority, Inactive, InvalidConfiguration, NotMember, WrongPhase,
-	InvalidVehicle, StaleSelection, NotHost, NotReady, Full, InvalidRequest
+	InvalidVehicle, StaleSelection, NotHost, NotReady, Full, InvalidRequest,
+	MissingSpawn, SpawnBlocked, SpawnFailed
 };
 
 /** Explicit server profile. Never inferred from PIE, player count or packaged/editor builds. */
@@ -43,6 +45,7 @@ struct HAL_FUTURE_CREATION_API FHALRoomPlayerData
 	UPROPERTY(BlueprintReadOnly, Category="Room") EHALRoomPlayerPhase Phase = EHALRoomPlayerPhase::Unassigned;
 	/** Runtime readiness belongs to this Avatar, never automatically inherited by a replacement Pawn. */
 	UPROPERTY(BlueprintReadOnly, Category="Room") TObjectPtr<APawn> ReadyAvatar;
+	UPROPERTY(BlueprintReadOnly, Category="Room") EHALRoomResult AvatarResult = EHALRoomResult::Accepted;
 	UPROPERTY() uint32 SelectionRevision = 0;
 };
 
@@ -63,6 +66,9 @@ struct HAL_FUTURE_CREATION_API FHALRoomData
 	GENERATED_BODY()
 	UPROPERTY(BlueprintReadOnly, Category="Room") EHALRoomPhase Phase = EHALRoomPhase::Inactive;
 	UPROPERTY(BlueprintReadOnly, Category="Room") FHALRoomRules Rules;
+	/** Dedicated GF-3 room; legacy regression fixtures remain data-only. */
+	UPROPERTY(BlueprintReadOnly, Category="Room") bool bPracticeRoom = false;
+	UPROPERTY(BlueprintReadOnly, Category="Room") TSoftObjectPtr<UHALVehicleCatalog> Catalog;
 	UPROPERTY(BlueprintReadOnly, Category="Room") TObjectPtr<AHALPlayerState> Host;
 	UPROPERTY(BlueprintReadOnly, Category="Room") TArray<TObjectPtr<AHALPlayerState>> Members;
 	UPROPERTY(BlueprintReadOnly, Category="Room") TArray<FHALRoomRosterEntry> LockedRoster;

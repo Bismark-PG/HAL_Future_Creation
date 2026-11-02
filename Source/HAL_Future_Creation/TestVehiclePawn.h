@@ -56,6 +56,8 @@ public:
 	bool GetLifecycleSeed(FHALVehicleLifecycleSeed& Out) const;
 	void RetireForVehicleTransition();
 	void RefreshAbilitySystemBinding() { InitializeAbilitySystem(); }
+	/** Local UI transition sends neutral intent through the ordinary input/history path. */
+	void NeutralizeInputForMenu();
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* Property) const override;
 #endif

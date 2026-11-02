@@ -70,3 +70,5 @@ GF-4：锁定名单 → 真实转场并重建身份／车型 → 为每人生成
 没有进行本轮真人UI／手柄操作、Niagara画面、真实跨图、打包、完整网络扰动或四台电脑验收；新局测试只验证当前World中的阶段／身份契约。GF-3仍须实现生产选车／生成编排和基本UI，GF-4才接真实ServerTravel与客户端载入屏障。既有F4／VP-4C和FX欠项不因本轮回归通过而关闭。
 
 下一环节为 **GF-3：灰盒房间、选车与练习**。团队目前无需重配Primary GA／GE；修正Development Profile并保留两份Room配置与目录即可。GF-3再提供专用房间地图／GameMode／UI和出生点的手工接线步骤，继续保留现用NetTest回归入口。
+
+**同日后续：** GF-2及团队三份DA已提交为`d1add4b`，Development Profile修正也已只读确认。GF-3已接生产生成／取消／原生灰盒界面及基本退出，补齐首次无车的Owner=Avatar初始状态窄处理；代码、两Target／122项／真实双端与D3D12检查完成，见[GF-3实施及团队接线](GF3_Practice_Room_Implementation_CN_v0.1.md)。上方118项、未跟踪资产及Profile待改保持GF-2交付时点，当前状态以GF-3和Project Status为准。

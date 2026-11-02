@@ -22,7 +22,10 @@ class HAL_FUTURE_CREATION_API AHALPlayerController : public APlayerController
 public:
 	AHALPlayerController();
 	virtual void BeginPlay() override;
+	virtual void SetupInputComponent() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void ClientReturnToMainMenuWithTextReason_Implementation(const FText& ReturnReason) override;
+	UFUNCTION(Client, Reliable) void ClientRoomSelectionView(FVector Location, FRotator Rotation);
 
 	/** Request the transition from WaitingForPlayers to Playing. The server checks host ownership. */
 	UFUNCTION(BlueprintCallable, Category = "Match")
@@ -31,6 +34,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Room") void SelectRoomVehicle(FName VehicleId);
 	UFUNCTION(BlueprintCallable, Category="Room") void ConfirmRoomVehicle();
 	UFUNCTION(BlueprintCallable, Category="Room") void CancelRoomConfirmation();
+	UFUNCTION(BlueprintCallable, Category="Room") void LeaveRoom();
+	bool IsRoomRequestPending() const;
+	bool WantsRoomMenu() const;
+	void ToggleRoomMenu();
 	UFUNCTION(BlueprintPure, Category="Room") EHALRoomResult GetLastRoomResult() const { return LastRoomResult; }
 	UPROPERTY(BlueprintAssignable, Category="Room") FHALRoomRequestCompleted OnRoomRequestCompleted;
 	UFUNCTION(Exec) void HALRoomStatus();
@@ -76,7 +83,12 @@ public:
 private:
 	void SubmitRoomAction(EHALRoomAction Action, FName VehicleId = NAME_None);
 	UFUNCTION(Server, Reliable) void ServerRoomAction(EHALRoomAction Action, FName VehicleId, uint32 SelectionRevision);
-	UFUNCTION(Client, Reliable) void ClientRoomResult(EHALRoomResult Result);
+	UFUNCTION(Client, Reliable) void ClientRoomResult(EHALRoomResult Result, uint32 Revision);
+	UFUNCTION() void RefreshRoomUI();
+	bool bRoomRequestAwaitingReply = false;
+	uint32 RoomReplyRevision = 0;
+	double RoomRequestTime = 0;
+	bool bRoomMenuOpen = false;
 	EHALRoomResult LastRoomResult = EHALRoomResult::Inactive;
 	UFUNCTION(Server, Reliable) void ServerSpawnDebugBomb();
 	UFUNCTION(Client, Reliable) void ClientDebugBombResult(const FString& Message, bool bSuccess);

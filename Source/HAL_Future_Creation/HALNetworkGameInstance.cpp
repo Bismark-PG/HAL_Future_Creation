@@ -8,6 +8,8 @@
 #include "GameFramework/PlayerController.h"
 #include "HALMatchLobbyWidget.h"
 #include "HALNetworkMenuWidget.h"
+#include "HALPracticeRoomWidget.h"
+#include "TimerManager.h"
 #include "Interfaces/IPv4/IPv4Address.h"
 #include "Kismet/GameplayStatics.h"
 #include "Misc/PackageName.h"
@@ -40,6 +42,7 @@ void UHALNetworkGameInstance::LoadComplete(const float LoadTime, const FString& 
 	Super::LoadComplete(LoadTime, MapName);
 	if (!EntryMapPath.IsEmpty() && MapName.EndsWith(FPackageName::GetShortName(EntryMapPath)))
 	{
+		bPracticeRoomActive = false; bReturningToEntry = false;
 		ShowEntryMenu();
 	}
 }
@@ -99,12 +102,32 @@ void UHALNetworkGameInstance::ShowEntryMenu()
 	}
 	if (UHALNetworkMenuWidget* Menu = CreateWidget<UHALNetworkMenuWidget>(LocalController, MenuWidgetClass))
 	{
+		Menu->SetIsFocusable(true);
 		ReplaceVisibleWidget(Menu);
 		LocalController->bShowMouseCursor = true;
 		FInputModeUIOnly InputMode;
 		InputMode.SetWidgetToFocus(Menu->TakeWidget());
 		LocalController->SetInputMode(InputMode);
 	}
+}
+void UHALNetworkGameInstance::ShowPracticeRoom(APlayerController* PC)
+{
+	if (bReturningToEntry || !GetWorld() || GetWorld()->bIsTearingDown || !PC || PC->IsActorBeingDestroyed() || !PC->IsLocalController()) { return; }
+	bPracticeRoomActive = true;
+	if (!Cast<UHALPracticeRoomWidget>(VisibleWidget))
+	{ ReplaceVisibleWidget(CreateWidget<UHALPracticeRoomWidget>(PC,UHALPracticeRoomWidget::StaticClass())); }
+}
+void UHALNetworkGameInstance::ReturnToEntry(const FText& Reason)
+{
+	if (bReturningToEntry || !GetWorld()) { return; }
+	SetConnectionMessage(Reason.ToString()); bReturningToEntry = true;
+	ReplaceVisibleWidget(nullptr);
+	// Defer out of network failure / RPC callbacks; OpenLevel closes the old NetDriver.
+	GetWorld()->GetTimerManager().SetTimerForNextTick(this,&ThisClass::OpenEntryAfterDisconnect);
+}
+void UHALNetworkGameInstance::OpenEntryAfterDisconnect()
+{
+	if (!EntryMapPath.IsEmpty()) { UGameplayStatics::OpenLevel(this,FName(*EntryMapPath),true); }
 }
 
 void UHALNetworkGameInstance::ReplaceVisibleWidget(UUserWidget* NewWidget)
@@ -128,6 +151,7 @@ void UHALNetworkGameInstance::SetConnectionMessage(const FString& Message)
 
 void UHALNetworkGameInstance::OnNetworkFailure(UWorld* World, UNetDriver*, const ENetworkFailure::Type FailureType, const FString& ErrorString)
 {
+	if (bReturningToEntry) { return; }
 	if (World && World->GetGameInstance() != this)
 	{
 		return;
@@ -135,10 +159,12 @@ void UHALNetworkGameInstance::OnNetworkFailure(UWorld* World, UNetDriver*, const
 	const FString Reason = !ErrorString.IsEmpty() ? ErrorString
 		: FString::Printf(TEXT("Network connection failed (%s)."), ENetworkFailure::ToString(FailureType));
 	SetConnectionMessage(Reason);
+	if (bPracticeRoomActive) { ReturnToEntry(FText::FromString(Reason)); }
 }
 
 void UHALNetworkGameInstance::OnTravelFailure(UWorld* World, const ETravelFailure::Type FailureType, const FString& ErrorString)
 {
+	if (bReturningToEntry) { return; }
 	if (World && World->GetGameInstance() != this)
 	{
 		return;
@@ -146,4 +172,5 @@ void UHALNetworkGameInstance::OnTravelFailure(UWorld* World, const ETravelFailur
 	const FString Reason = !ErrorString.IsEmpty() ? ErrorString
 		: FString::Printf(TEXT("Could not open the destination (%s)."), ETravelFailure::ToString(FailureType));
 	SetConnectionMessage(Reason);
+	if (bPracticeRoomActive) { ReturnToEntry(FText::FromString(Reason)); }
 }

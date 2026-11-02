@@ -296,6 +296,12 @@ bool ATestVehiclePawn::GetLifecycleSeed(FHALVehicleLifecycleSeed& Out) const
 	if (!Seed.Validate()) { return false; }
 	Out = Seed; return true;
 }
+void ATestVehiclePawn::NeutralizeInputForMenu()
+{
+	if (!IsLocallyControlled()) { return; }
+	ResetInputCommand(); DynamicCamera->ResetCamera();
+	if (!HasAuthority() && !bNetworkPhysicsHistoryActive) { SendInputSnapshot(); }
+}
 void ATestVehiclePawn::RetireForVehicleTransition()
 {
 	if (!HasAuthority() || bLifecycleRetired) { return; }

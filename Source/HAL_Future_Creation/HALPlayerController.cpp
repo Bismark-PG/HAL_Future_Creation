@@ -10,6 +10,7 @@
 #include "Engine/World.h"
 #include "GameFramework/PlayerState.h"
 #include "HALMatchGameMode.h"
+#include "HALPracticeRoomGameMode.h"
 #include "HALMatchGameState.h"
 #include "HALNetworkGameInstance.h"
 #include "HALDebugHUDWidget.h"
@@ -25,10 +26,31 @@
 #include "HALCombatAttributeSet.h"
 #include "HALGameplayTags.h"
 #include "VehicleHealthComponent.h"
+#include "Components/InputComponent.h"
+#include "InputCoreTypes.h"
 
 AHALPlayerController::AHALPlayerController()
 {
 	bAutoManageActiveCameraTarget = true;
+}
+void AHALPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+	InputComponent->BindKey(EKeys::Tab,IE_Pressed,this,&ThisClass::ToggleRoomMenu);
+	InputComponent->BindKey(EKeys::Escape,IE_Pressed,this,&ThisClass::ToggleRoomMenu);
+	InputComponent->BindKey(EKeys::Gamepad_Special_Right,IE_Pressed,this,&ThisClass::ToggleRoomMenu);
+}
+bool AHALPlayerController::WantsRoomMenu() const
+{
+	const auto* PS = GetPlayerState<AHALPlayerState>();
+	return !PS || PS->GetRoomData().Phase != EHALRoomPlayerPhase::Ready || bRoomMenuOpen;
+}
+void AHALPlayerController::ToggleRoomMenu()
+{
+	const auto* S = GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr;
+	const auto* PS = GetPlayerState<AHALPlayerState>();
+	if (IsLocalController() && S && S->GetRoom()->GetData().bPracticeRoom && PS && PS->GetRoomData().Phase == EHALRoomPlayerPhase::Ready)
+	{ bRoomMenuOpen = !bRoomMenuOpen; }
 }
 
 void AHALPlayerController::BeginPlay()
@@ -36,10 +58,13 @@ void AHALPlayerController::BeginPlay()
 	Super::BeginPlay();
 	if (IsLocalController())
 	{
+		if (auto* State = GetWorld()->GetGameState<AHALMatchGameState>())
+		{ State->GetRoom()->OnRoomChanged.AddDynamic(this,&ThisClass::RefreshRoomUI); }
 		if (UHALNetworkGameInstance* Network = GetGameInstance<UHALNetworkGameInstance>())
 		{
 			Network->ShowMatchLobby(this);
 		}
+		RefreshRoomUI();
 #if !UE_BUILD_SHIPPING
 		DebugHUD = CreateWidget<UHALDebugHUDWidget>(this, UHALDebugHUDWidget::StaticClass());
 		if (DebugHUD)
@@ -60,6 +85,8 @@ void AHALPlayerController::BeginPlay()
 
 void AHALPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (auto* State = GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr)
+	{ State->GetRoom()->OnRoomChanged.RemoveDynamic(this,&ThisClass::RefreshRoomUI); }
 	if (CameraDebugHUD) { CameraDebugHUD->RemoveFromParent(); CameraDebugHUD = nullptr; }
 #if !UE_BUILD_SHIPPING
 	for (const auto& Entry : DebugImpactImmuneTargets)
@@ -123,18 +150,51 @@ void AHALPlayerController::ConfirmRoomVehicle() { SubmitRoomAction(EHALRoomActio
 void AHALPlayerController::CancelRoomConfirmation() { SubmitRoomAction(EHALRoomAction::CancelConfirmation); }
 void AHALPlayerController::SubmitRoomAction(EHALRoomAction Action, FName Id)
 {
-	if (!IsLocalController()) { return; }
+	if (!IsLocalController() || IsRoomRequestPending()) { return; }
 	const auto* PS = GetPlayerState<AHALPlayerState>();
-	if (PS) { ServerRoomAction(Action,Id,PS->GetRoomData().SelectionRevision); }
+	if (PS)
+	{
+		if (Action == EHALRoomAction::ConfirmVehicle) { bRoomMenuOpen = false; }
+		bRoomRequestAwaitingReply = true; RoomRequestTime = FPlatformTime::Seconds();
+		ServerRoomAction(Action,Id,PS->GetRoomData().SelectionRevision);
+	}
 }
 void AHALPlayerController::ServerRoomAction_Implementation(EHALRoomAction Action, FName Id, uint32 Revision)
 {
-	auto* State = GetWorld()->GetGameState<AHALMatchGameState>();
-	const auto Result = State ? State->GetRoom()->Request(this,Action,Id,Revision) : EHALRoomResult::Inactive;
-	ClientRoomResult(Result);
+	auto* Mode = GetWorld()->GetAuthGameMode<AHALMatchGameMode>();
+	const auto Result = Mode ? Mode->HandleRoomAction(this,Action,Id,Revision) : EHALRoomResult::Inactive;
+	const auto* PS = GetPlayerState<AHALPlayerState>();
+	ClientRoomResult(Result,PS ? PS->GetRoomData().SelectionRevision : 0);
 }
-void AHALPlayerController::ClientRoomResult_Implementation(EHALRoomResult Result)
-{ LastRoomResult = Result; OnRoomRequestCompleted.Broadcast(Result); }
+void AHALPlayerController::ClientRoomResult_Implementation(EHALRoomResult Result, uint32 Revision)
+{ bRoomRequestAwaitingReply = false; RoomReplyRevision = Revision; LastRoomResult = Result; OnRoomRequestCompleted.Broadcast(Result); }
+bool AHALPlayerController::IsRoomRequestPending() const
+{
+	if (FPlatformTime::Seconds()-RoomRequestTime > 5) { return false; }
+	const auto* PS = GetPlayerState<AHALPlayerState>();
+	return bRoomRequestAwaitingReply || (PS && PS->GetRoomData().SelectionRevision < RoomReplyRevision);
+}
+void AHALPlayerController::RefreshRoomUI()
+{
+	const auto* S = GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr;
+	if (IsLocalController() && !IsActorBeingDestroyed() && !GetWorld()->bIsTearingDown && S && S->GetRoom()->GetData().bPracticeRoom)
+	{ if (auto* GI = GetGameInstance<UHALNetworkGameInstance>()) { GI->ShowPracticeRoom(this); } }
+}
+void AHALPlayerController::ClientRoomSelectionView_Implementation(FVector Location, FRotator Rotation)
+{
+	SetInitialLocationAndRotation(Location,Rotation); SetViewTarget(this);
+}
+void AHALPlayerController::ClientReturnToMainMenuWithTextReason_Implementation(const FText& Reason)
+{
+	if (auto* GI = GetGameInstance<UHALNetworkGameInstance>()) { GI->ReturnToEntry(Reason); }
+	else { Super::ClientReturnToMainMenuWithTextReason_Implementation(Reason); }
+}
+void AHALPlayerController::LeaveRoom()
+{
+	if (!IsLocalController()) { return; }
+	if (auto* Mode = GetWorld()->GetAuthGameMode<AHALPracticeRoomGameMode>()) { Mode->ReturnRoomToEntry(this); }
+	else if (auto* GI = GetGameInstance<UHALNetworkGameInstance>()) { GI->ReturnToEntry(FText::FromString(TEXT("Left the room."))); }
+}
 void AHALPlayerController::HALRoomStatus()
 {
 	const auto* State = GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr;
