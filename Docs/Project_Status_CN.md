@@ -1,5 +1,9 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-02房间流程六项确认及GF施工入口已恢复；GF-0留档完成，下一步GF-1。** 用户确认允许重复车型并用颜色／编号区分、允许取消确认、不另设准备按钮、练习不扣血、展示四人／开发单人完整流程，以及开始前允许加入／开始后拒绝／Host离开全员回入口。执行依据为[v0.2确认基线与分段施工](Networking/Room_VehicleSelection_Practice_Match_Construction_CN_v0.2.md)，依次为GF-1数据与权限基础→GF-2换车／新局GAS生命周期→GF-3灰盒房间／选车／练习→GF-4统一转场／全员就绪／倒计时→GF-5街机入口与选车表现→GF-6退出返回／连续两局／打包与四机验收。GF-1至GF-6均未开始；每段分别记录代码、构建及测试，不一次执行整个流程阶段，没有新的必须阻塞GF-1的玩法确认项。
+
+用户因冲突丢弃了Git白名单与状态文件的本地更改，本次按仍保留的v0.1／v0.2文档及此前确认恢复这些入口。当前实际`main/256be6f`，已包含其后提交的受电／球权光束等更新；原规格记录时的`0486607`及下方旧分支记录保留历史意义。本机D盘UE5.8.2-56702186。本次只恢复`.gitignore`两条流程文档白名单、状态与接续链接，保留远端新增FX记录及其他内容，不修改两份规格正文、C++、配置或保存资产，没有新构建／测试，不追加FX或四机通过结论；恢复尚未提交／Push。
+
 **2026-11-02 球權歸屬識別（車頂磁力光束）已完成 C++ 與資產，尚未編譯。**（本段以繁體撰寫，下方既有各段維持原簡體，未改寫他人段落。）球被持有時幾乎貼合車頭（球半徑 50cm、車體 Box Extent (100,70,35)），水平方向沒有畫特效的空間，故歸屬識別改走垂直方向：由持有者車頂拉一道弧形光束落到球上。相機為 `FRotator(-60,0,0)`，60° 仰角下垂直方向在螢幕上仍佔實際長度的一半，且車身上方是空螢幕區。新增 `HALMagnetBeamGeometry.h`／`.cpp`（二次 Bezier 加螺旋偏移，弧頂方向**鎖世界 +Z** 而非車體區域上方，否則翻車時光束會朝地裡打；純函式，不碰 World）與 `UHALMagnetBeamPresentationComponent`（`Idle`／`Attach`／`Hold`／`Release`／`Launch` 五階段，`Release` 從球端收回、`Launch` 從車頂端塌縮，只在執行中開 Tick、`TG_PostPhysics`）。元件掛在 `ABasicBallActor` 而非車輛上：驅動它的 `Controlled` 與 `Holder` 已在球上複製、`OnRep` 就是現成事件鉤子，所有車輛自動生效（受電特效掛在車輛藍圖上導致四個車輛藍圖至今為空、被電沒有任何表現，正是這個代價）。雙路接線：權威 `CommitRepState` 與客戶端 `OnRep_BallRepState` 各呼叫一次 `SyncToBallState`，因為 `ApplyReplicatedPresentation()` 開頭就是 `if (HasAuthority()) return;`，Listen Server 主機玩家否則是唯一看不到球權的人。球端錨點用 `GetDisplayedRootPose()` 而非物理姿態，因為 `Controlled` 時客戶端由持有者相對樣本顯示球，用物理根算出的光束會打不到玩家看得見的球。第二層球殼染色脈衝與光束同色同相位，走球材質的 `HolderColor`／`HolderPulse` 參數，參數不存在時為無操作。顏色按 `PlayerId` 取模索引 `HolderPalette`，是窗口極窄的適配層：工程裡**沒有**玩家配色系統，將來接入正式配色時 `ResolveHolderColor()` 是唯一需要改的地方；調色盤刻意不含藍色，藍色已表示「被電」。新增診斷開關 `hal.MagnetBeamLog`。
 
 **資產：User Parameter 名稱為 `Beam*`，專用 Ribbon 材質已產生。** 團隊已在 `NS_BallMagnetBeam` 上完成改名，已核對存檔後的 `.uasset`：`BeamPositions`／`BeamWidths`／`BeamPointsPerRibbon`／`BeamRibbonCount`／`BeamAlpha`／`BeamColor` 六個全部存在，`Arc*` 殘留為 0，C++ 讀的就是這六個名稱。期間曾因回報「名稱鎖住無法改」而一度把 C++ 改成讀 `Arc*`，團隊改名成功後已改回，此事僅留作經過。原先要求刪除的 Sprite Renderer **在這份拷貝裡並不存在**（`Render` 分組下只有 `Ribbon Renderer`），該步驟作廢。新增 `M_FX_MagnetBeam_Ribbon`，由 `Tools/UnrealBridge/build_magnet_beam_ribbon_material.py` 經橋接在執行中的 Editor 產生（`failures: 0`、155 條像素指令），並已回讀核對：Additive、Unlit、two_sided、`used_with_niagara_ribbons=True`，七個標量參數預設值符合預期。關鍵設計差異：**沒有白熱芯**（Additive 會把超過 1 的部分裁成白色，而光束唯一的工作就是表達持有者顏色），改用柔和管狀截面加一道沿線流動的磁通帶（`FlowSpeed` 正值＝流向車頂，讀作「吸住」）。這份材質有可重現的產生腳本，但按使用者決定，**橋接僅在本機使用、永不入庫**（`Tools/UnrealBridge/` 已列入 `.gitignore`，`Config/DefaultEngine.ini` 的 Python 區塊也不提交），所以換設備時只能直接用這份 `.uasset`。
@@ -224,14 +228,18 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 特效接续先读[电弧特效制作步骤](Presentation/MVPB_ElectricArc_FX_Authoring_CN_v0.1.md)：该文件只覆盖两柱之间电弧的Niagara本体制作（资产位置与命名、System建立与模块版本相依性修正、端点开放为User Parameter、三层Ribbon叠加、材质及团队手动验证／排错），不含碰撞体、伤害判定、机关状态机与球是否被电流阻挡的玩法规则。按AGENTS.md第8.3节由团队在Editor内手动完成；当前仓库只到达素材与步骤留档，没有电流画面接入或画面验收，不把素材导入当作特效接线完成。机关侧已另行实现，接线以[电墙说明](Combat/MVPB_Electric_Wall_CN_v0.1.md)为准：`AHALElectricWallGimmick`的两柱实体Capsule＋Query Only电墙、独立Authority Bounce Back、共用Stun及`UHALShockedPresentationComponent`表现接口均已有代码与双端证据。电弧文件第9／10节写于该实现之前，其中“机关Actor／状态机待建立”“伤害走CombatResolver”“柱子是否带实体碰撞未确认”“Build.cs不需修改”四项已过期：机关回弹不经CombatResolver、没有Idle／Warning／Active状态机，`Niagara`已在Private依赖中。仍未确认的是球碰到电流的规则（当前球穿墙不附加效果）与撞歪柱子是否中断电流。车身受电特效已于2026-11-01实现并接到`BP_RoundedVehiclePawn`，做法与两柱电弧不同：几何在C++算（`HALShockArcGeometry`），Niagara只负责画线，制作步骤文件按用户决定不入库，接续请读本文件第1节顶部该段与`UHALShockedPresentationComponent`源码；其余四个车辆BP尚未指派。两柱电流画面仍未接入。
 
+**2026-10-30进入房间／选车／练习／正式关卡流程讨论，尚未施工（恢复原时点记录）。** 当时实际`main/4209445`、开工工作区干净，已包含Car_02配置更新及上一轮客户端球相对表现；球改造仍由团队复测，不追加四机通过结论。用户提出街机入口→加入房间→选车→练习等待Host→全员进入正式关卡，已结合现有Host／Join、唯一默认Pawn、两状态GameState及PlayerState ASC检查形成[v0.1讨论草案](Networking/Room_VehicleSelection_Practice_Match_Plan_CN_v0.1.md)。建议选车与练习共用房间地图、按每位玩家确认进入练习，Host开始时锁定名单并统一ServerTravel，正式地图等待全员就绪后倒计时；该日尚待确认的六项已于11月2日确认，当前按v0.2执行。
+
+该次检查指出HP／Combat／Impact均有一次初始化保护，换车型／开启新局须补正式重置契约，不能只重复Possess；练习权限也不能只把Waiting改成Playing。10月30日仅只读核对及草案／入口留档，无C++／Config／资产修改或新构建／测试；本段恢复历史依据，不代表本次重新检查或完成了相应功能。
+
 ## 2. 当前工程位置和开发阶段
 
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
-| 开发阶段 | 电墙／静态Visual等前步已提交；侧翻自救边界与反馈修正完成构建、104普通及基础双端，较快响应等待团队保存DA／真人复测；动态相机／F4／四机原安排保持 |
-| 当前本机分支／代码提交 | `main / 945e616`；统一构建入口与本轮Editor输入预览代码／测试／说明均未提交；保留用户删除旧Build_Editor.cmd |
-| 引擎基线 | 本机实际UE `5.8.3-58210709`；本轮独立快照完整Editor构建及最终测试源链接通过，六项UE专项未确认执行；脚本13项模拟及其他历史结果保持各自范围 |
-| 本机运行前置 | 保存退出Editor／游戏／Live Coding后由统一入口构建并加载主工程新DLL，核对生成蓝图Input只读引用；无需重建已有Car_02资产。真人界面／驾驶仍待验证 |
+| 开发阶段 | 房间流程六项规则已确认，GF-0留档完成、下一环节GF-1，GF-1至6未开始；并行受电／球权光束的实现及未完成验证按上方各自记录；原MVP-B收尾余项保持 |
+| 当前本机分支／代码提交 | `main / 256be6f`；已包含输入预览、Car_02、球表现、电墙及最新FX提交；本轮仅恢复Git白名单／状态记录，流程v0.1／v0.2文件仍保留但尚未跟踪／提交 |
+| 引擎基线 | 本次读取本机D盘UE为 `5.8.2-56702186`；旧5.8.3输入预览构建、脚本及各次回归保持原设备／时点，不能当作本次恢复的新运行结果 |
+| 本机运行前置 | 本次文档恢复无需重编或Editor接线；球权光束重编及配置按上方FX记录，未新增其通过结论；后续GF蓝图接线另给团队手工步骤，各端同步源码／配置并统一补丁 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
 | GAS 当前实现 | 原加速／免疫与Primary接线保留；共用Stun为原生GE及服务器ASC.ApplyStun（较晚结束时间、Avatar清理），主机HALStun调试指令保留；区域GE与Stun共用运动桥接，无新玩家施加RPC或库存框架 |
 | 场地持续运动效果 | 原生区域无ASC／GA，服务器按来源逐参数选最强并施加两类内部GE；加速度／上限／抓地与普通Buff增量合并，合并版3物理历史保存恢复曲线、实际消费值与Stun权限，DA不改；无需修改PlayerState.DefaultAbilities |
@@ -328,6 +336,8 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 7. `ApplyAction_Internal`线程缺陷已修复，用户本轮确认击飞效果恢复并接受当前档位响应暂用。仍保留水平补足，不再把恢复旧完整追加作为当前待办；后续力度按配置调参另记。原第8节为历史诊断，最新结论见[10-D第10节](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md#10-团队击飞回归与10-e接续2026-10-16)。
 
 ## 6. 下一环节和待确定项
+
+2026-11-02当前流程施工入口（已恢复）：按[GF-1数据与权限基础](Networking/Room_VehicleSelection_Practice_Match_Construction_CN_v0.2.md#gf-1数据与权限基础)逐段开发。六项玩法确认已到齐，不再重复询问；先建立车型目录、玩家／房间状态、展示4人／开发1人配置和统一权限契约，再接GF-2换车／新局初始化，不能先用UI切Pawn掩盖旧ASC数值残留。当前只完成GF-0留档，GF-1代码尚未开始；之后按GF-1→2→3→4→5→6顺序，各段构建／验证／团队手测独立记录。v0.1中的“仍待确认／只讨论”保留原时点，现以v0.2为准；并行FX工作仍按顶部各自接续记录处理。
 
 2026-10-29自救最新入口：重开已完整重编Editor，按[自救第9.2节](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#92-团队editor调参步骤)将共享DA的Minimum Recovery Tilt按需设为实际Drive Exit Tilt（当前65°），试60／12／80／6的Response组合；保留当前资格等待2秒、长按1.5秒与执行／冷却。手动保存／Validate后新开双端，左右侧／斜靠／倒扣／墙角复测，查看Block及Outcome；没有自动覆盖保存资产，也不改变下述相机和MVP-B收尾排期。
 
