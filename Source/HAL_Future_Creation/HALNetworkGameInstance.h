@@ -13,6 +13,8 @@ class UHALMatchLobbyWidget;
 class UUserWidget;
 class UNetDriver;
 class UHALFrontEndConfig;
+class UHALArcadeEntryWidget;
+class UHALPracticeRoomWidget;
 
 /** Local menu travel and connection feedback. Gameplay authority stays in the match GameMode. */
 UCLASS()
@@ -50,8 +52,13 @@ public:
 	bool TakeRoundTravel(const FString& Map, FHALRoundTravel& Out);
 
 protected:
-	/** New native front end works without changing existing Widget Blueprints. Disable to use the legacy entry. */
-	UPROPERTY(EditDefaultsOnly, Category="Front End") bool bUseNativeArcadeEntry = true;
+	/** None selects the existing native layout. A Widget Blueprint subclass owns the Designer layout. */
+	UPROPERTY(EditDefaultsOnly, Category="Front End|Screens") TSubclassOf<UHALArcadeEntryWidget> EntryScreenClass;
+	UPROPERTY(EditDefaultsOnly, Category="Front End|Screens") TSubclassOf<UHALPracticeRoomWidget> RoomScreenClass;
+	/** Optional separate local menu while a confirmed driver opens the menu in practice or Playing. */
+	UPROPERTY(EditDefaultsOnly, Category="Front End|Screens") TSubclassOf<UHALPracticeRoomWidget> PauseScreenClass;
+	/** Serialized compatibility only. New screen-class settings always take precedence. */
+	UPROPERTY(meta=(DeprecatedProperty,DeprecationMessage="Use Entry Screen Class; None selects the native fallback.")) bool bUseNativeArcadeEntry = true;
 	UPROPERTY(EditDefaultsOnly, Category="Front End") TObjectPtr<UHALFrontEndConfig> FrontEndConfig;
 	UPROPERTY(EditDefaultsOnly, Category = "Network Menu")
 	FString EntryMapPath = TEXT("/Game/Maps/MVPB_NetEntry");
@@ -62,13 +69,16 @@ protected:
 	/** UE's default listen port for this milestone; Host and Join use the same fixed value. */
 	static constexpr int32 MatchPort = 7777;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Network Menu|Widgets")
+	UPROPERTY(meta=(DeprecatedProperty,DeprecationMessage="Use Entry Screen Class with HALArcadeEntryWidget as parent."))
 	TSubclassOf<UHALNetworkMenuWidget> MenuWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Network Menu|Widgets")
 	TSubclassOf<UHALMatchLobbyWidget> MatchLobbyWidgetClass;
 
 private:
+	friend struct FHALWidgetExtensionTestAccess;
+	UClass* ResolveEntryScreen() const;
+	UClass* ResolveRoomScreen(APlayerController* LocalController) const;
 	void OnNetworkFailure(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString);
 	void OnTravelFailure(UWorld* World, ETravelFailure::Type FailureType, const FString& ErrorString);
 	void ShowEntryMenu();

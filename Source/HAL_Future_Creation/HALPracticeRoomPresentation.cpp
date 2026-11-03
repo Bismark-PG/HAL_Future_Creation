@@ -95,10 +95,17 @@ void UHALPracticeRoomWidget::NativeDestruct()
 	if (FSlateApplication::IsInitialized()) { FSlateApplication::Get().OnApplicationActivationStateChanged().RemoveAll(this); }
 	if (CatalogLoad) { CatalogLoad->CancelHandle(); } if (ImageLoad) { ImageLoad->CancelHandle(); }
 	CatalogLoad.Reset(); ImageLoad.Reset(); LoadedCatalog=nullptr; LoadedPreview=nullptr;
+	bHasPublishedView=false; PublishedView={};
 	PreviewBrush.SetResourceObject(nullptr); ResetMenuControls(); Super::NativeDestruct();
+}
+void UHALPracticeRoomWidget::RefreshFromRoomState()
+{
+	if (IsInViewport() && GetCachedWidget().IsValid() && GetWorld() && !GetWorld()->bIsTearingDown) { RefreshInput(); }
 }
 void UHALPracticeRoomWidget::RefreshInput()
 {
+	if (bRefreshingView) { return; }
+	TGuardValue<bool> RefreshGuard(bRefreshingView,true);
 	RefreshPresentation();
 	auto* PC=GetOwningPlayer<AHALPlayerController>(); if (!PC || !PC->GetLocalPlayer()) { return; }
 	const auto* PS=PC->GetPlayerState<AHALPlayerState>(); auto* Vehicle=Cast<ATestVehiclePawn>(PC->GetPawn());
@@ -107,9 +114,10 @@ void UHALPracticeRoomWidget::RefreshInput()
 	const bool Ready=PS && Vehicle && PS->GetRoomData().ReadyAvatar==Vehicle && ASC && ASC->GetAvatarActor()==Vehicle && Vehicle->GetPlayerState()==PS && M && M->GetMovementEffectStatus().bReady;
 	const bool Menu=MenuVisible() || !Ready;
 	if (bInputModeKnown && bUsingMenu==Menu && InputAvatar.Get()==Vehicle)
-	{ if (Menu && !IsMenuControlFocused()) { FocusMenu(); } return; }
+	{ PublishRoomView(); if (Menu && !IsMenuControlFocused()) { FocusMenu(); } return; }
 	bInputModeKnown=true; bUsingMenu=Menu; InputAvatar=Vehicle; PC->bShowMouseCursor=Menu;
 	if (Vehicle) { Vehicle->SetMenuInputActive(Menu); }
+	PublishRoomView();
 	// Enhanced Input's mapping rebuild handles held keys. Do not flush physical key state before that rebuild.
 	if (Menu)
 	{ FInputModeUIOnly Mode; Mode.SetWidgetToFocus(TakeWidget()); PC->SetInputMode(Mode); FocusMenu(); }
@@ -118,6 +126,7 @@ void UHALPracticeRoomWidget::RefreshInput()
 TSharedRef<SWidget> UHALPracticeRoomWidget::RebuildWidget()
 {
 	SetIsFocusable(true); ResetMenuControls();
+	if (UsesDesignerLayout()) { return Super::RebuildWidget(); }
 	const auto* GI=GetGameInstance<UHALNetworkGameInstance>(); const auto* Config=GI?GI->GetFrontEndConfig():GetDefault<UHALFrontEndConfig>();
 	auto Actions=SNew(SVerticalBox);
 	auto AddAction=[this,Actions](const TCHAR* Label,FSimpleDelegate Action,TAttribute<bool> Enabled,TAttribute<EVisibility> ControlVisibility=TAttribute<EVisibility>(EVisibility::Visible))
@@ -130,16 +139,13 @@ TSharedRef<SWidget> UHALPracticeRoomWidget::RebuildWidget()
 	auto PrevButton=HALArcade::Button(TEXT("< PREVIOUS"),Previous); PrevButton->SetEnabled(TAttribute<bool>::CreateLambda([this]{ return CanSelect(); })); RegisterMenuControl(PrevButton,Previous);
 	auto NextButton=HALArcade::Button(TEXT("NEXT >"),Next); NextButton->SetEnabled(TAttribute<bool>::CreateLambda([this]{ return CanSelect(); })); RegisterMenuControl(NextButton,Next);
 	Actions->AddSlot().AutoHeight().Padding(0,4)[SNew(SHorizontalBox)+SHorizontalBox::Slot().FillWidth(1).Padding(0,0,4,0)[PrevButton]+SHorizontalBox::Slot().FillWidth(1)[NextButton]];
-	AddAction(TEXT("CONFIRM & PRACTICE"),FSimpleDelegate::CreateWeakLambda(this,[this]{ if (auto* PC=GetOwningPlayer<AHALPlayerController>()) { PC->ConfirmRoomVehicle(); } }),TAttribute<bool>::CreateLambda([this]{ return CanConfirm(); }));
-	AddAction(TEXT("CHANGE VEHICLE"),FSimpleDelegate::CreateWeakLambda(this,[this]{ if (auto* PC=GetOwningPlayer<AHALPlayerController>()) { PC->CancelRoomConfirmation(); } }),TAttribute<bool>::CreateLambda([this]
-	{ const auto* PC=GetOwningPlayer<AHALPlayerController>(); const auto* PS=GetOwningPlayerState<AHALPlayerState>(); const auto* R=PresentationRoom(this); return PC && PS && R && !PC->IsRoomRequestPending() && R->GetData().Phase==EHALRoomPhase::Open && PS->GetRoomData().Phase!=EHALRoomPlayerPhase::Selecting; }));
-	AddAction(TEXT("HOST: START MATCH"),FSimpleDelegate::CreateWeakLambda(this,[this]{ if (auto* PC=GetOwningPlayer<AHALPlayerController>()) { PC->RequestStartMatch(); } }),TAttribute<bool>::CreateLambda([this]{ return CanStart(); }));
-	AddAction(TEXT("RESUME DRIVING"),FSimpleDelegate::CreateUObject(this,&ThisClass::BackMenu),TAttribute<bool>::CreateLambda([this]
-	{ const auto* PS=GetOwningPlayerState<AHALPlayerState>(); const auto* R=PresentationRoom(this); return PS && R && (R->GetData().Phase==EHALRoomPhase::Open || R->GetData().Phase==EHALRoomPhase::Playing) && PS->GetRoomData().Phase==EHALRoomPlayerPhase::Ready; }));
-	AddAction(TEXT("RETURN TO ROOM"),FSimpleDelegate::CreateWeakLambda(this,[this]{ if (auto* PC=GetOwningPlayer<AHALPlayerController>()) { PC->HALReturnToRoom(); } }),TAttribute<bool>::CreateLambda([this]
-	{ const auto* R=PresentationRoom(this); return R && R->GetData().Host==GetOwningPlayerState<AHALPlayerState>(); }),TAttribute<EVisibility>::CreateLambda([this]
+	AddAction(TEXT("CONFIRM & PRACTICE"),FSimpleDelegate::CreateUObject(this,&ThisClass::ConfirmSelection),TAttribute<bool>::CreateLambda([this]{ return CanConfirm(); }));
+	AddAction(TEXT("CHANGE VEHICLE"),FSimpleDelegate::CreateUObject(this,&ThisClass::CancelSelection),TAttribute<bool>::CreateLambda([this]{ return CanCancel(); }));
+	AddAction(TEXT("HOST: START MATCH"),FSimpleDelegate::CreateUObject(this,&ThisClass::StartRoomMatch),TAttribute<bool>::CreateLambda([this]{ return CanStart(); }));
+	AddAction(TEXT("RESUME DRIVING"),FSimpleDelegate::CreateUObject(this,&ThisClass::ResumeDriving),TAttribute<bool>::CreateLambda([this]{ return CanResume(); }));
+	AddAction(TEXT("RETURN TO ROOM"),FSimpleDelegate::CreateUObject(this,&ThisClass::ReturnToRoom),TAttribute<bool>::CreateLambda([this]{ return CanReturnToRoom(); }),TAttribute<EVisibility>::CreateLambda([this]
 	{ const auto* R=PresentationRoom(this); return R && R->GetData().Phase==EHALRoomPhase::Playing && R->GetData().Rules.Profile==EHALRoomProfile::Development?EVisibility::Visible:EVisibility::Collapsed; }));
-	AddAction(TEXT("LEAVE ROOM"),FSimpleDelegate::CreateWeakLambda(this,[this]{ if (auto* PC=GetOwningPlayer<AHALPlayerController>()) { PC->LeaveRoom(); } }),true);
+	AddAction(TEXT("LEAVE ROOM"),FSimpleDelegate::CreateUObject(this,&ThisClass::LeaveCurrentRoom),true);
 	auto Seats=SNew(SHorizontalBox);
 	for (int32 I=0;I<4;++I)
 	{

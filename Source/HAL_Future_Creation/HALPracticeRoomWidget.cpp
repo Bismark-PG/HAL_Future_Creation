@@ -82,7 +82,7 @@ void UHALPracticeRoomWidget::CycleVehicle(int32 Direction)
 	if (!C || C->Vehicles.IsEmpty()) { return; }
 	const FName Current = PC->GetPlayerState<AHALPlayerState>()->GetRoomData().VehicleId;
 	const int32 Index = C->Vehicles.IndexOfByPredicate([Current](const FHALVehicleCatalogEntry& E) { return E.VehicleId == Current; });
-	const int32 Next = Index == INDEX_NONE ? 0 : (Index+Direction+C->Vehicles.Num())%C->Vehicles.Num();
+	const int32 Next = Index == INDEX_NONE ? 0 : (Index+(Direction<0?-1:1)+C->Vehicles.Num())%C->Vehicles.Num();
 	PC->SelectRoomVehicle(C->Vehicles[Next].VehicleId);
 }
 FText UHALPracticeRoomWidget::VehicleText() const
@@ -150,7 +150,7 @@ int32 UHALPracticeRoomWidget::NativePaint(const FPaintArgs& Args, const FGeometr
 {
 	const int32 Base = Super::NativePaint(Args,G,Culling,Elements,Layer,Style,bParentEnabled);
 	const auto* R=Room(this); auto* PC=GetOwningPlayer();
-	if (!R || !PC || MenuVisible()) { return Base; }
+	if (!R || !PC || MenuVisible() || UsesDesignerLayout()) { return Base; }
 	for (const auto& PS : R->GetData().Members)
 	{
 		const auto* Pawn=PS ? PS->GetPawn() : nullptr; if (!Pawn) { continue; }

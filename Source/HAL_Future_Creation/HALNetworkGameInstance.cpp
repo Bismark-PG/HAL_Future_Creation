@@ -11,6 +11,10 @@
 #include "HALPracticeRoomWidget.h"
 #include "HALArcadeEntryWidget.h"
 #include "HALFrontEndConfig.h"
+#include "HALPlayerController.h"
+#include "HALPlayerState.h"
+#include "HALMatchGameState.h"
+#include "HALRoomComponent.h"
 #include "TimerManager.h"
 #include "Containers/Ticker.h"
 #include "Interfaces/IPv4/IPv4Address.h"
@@ -112,15 +116,32 @@ void UHALNetworkGameInstance::ShowMatchLobby(APlayerController* LocalController)
 	}
 }
 
+namespace
+{
+	UClass* ValidScreenOrFallback(UClass* Configured,UClass* RequiredBase,UClass* Fallback=nullptr)
+	{ return Configured && Configured->IsChildOf(RequiredBase) && !Configured->HasAnyClassFlags(CLASS_Abstract|CLASS_Deprecated|CLASS_NewerVersionExists)?Configured:(Fallback?Fallback:RequiredBase); }
+}
+UClass* UHALNetworkGameInstance::ResolveEntryScreen() const
+{ return ValidScreenOrFallback(EntryScreenClass.Get(),UHALArcadeEntryWidget::StaticClass()); }
+UClass* UHALNetworkGameInstance::ResolveRoomScreen(APlayerController* LocalController) const
+{
+	const auto* PC=Cast<AHALPlayerController>(LocalController); const auto* PS=PC?PC->GetPlayerState<AHALPlayerState>():nullptr;
+	const auto* State=PC && PC->GetWorld()?PC->GetWorld()->GetGameState<AHALMatchGameState>():nullptr;
+	const bool Paused=PC && PS && State && PC->WantsRoomMenu() && PS->GetRoomData().Phase==EHALRoomPlayerPhase::Ready
+		&& (State->GetRoom()->GetData().Phase==EHALRoomPhase::Open || State->GetRoom()->GetData().Phase==EHALRoomPhase::Playing);
+	UClass* Native=UHALPracticeRoomWidget::StaticClass();
+	UClass* RoomClass=ValidScreenOrFallback(RoomScreenClass.Get(),Native);
+	return Paused && PauseScreenClass?ValidScreenOrFallback(PauseScreenClass.Get(),Native,RoomClass):RoomClass;
+}
 void UHALNetworkGameInstance::ShowEntryMenu()
 {
 	APlayerController* LocalController = GetFirstLocalPlayerController();
 	if (!LocalController || !LocalController->IsLocalController() || !LocalController->GetLocalPlayer())
 	{
-		UE_LOG(LogHALNetworkMenu, Warning, TEXT("Entry menu unavailable: local controller or MenuWidgetClass is missing."));
+		UE_LOG(LogHALNetworkMenu, Warning, TEXT("Entry menu unavailable: local player is not attached."));
 		return;
 	}
-	UClass* EntryClass=bUseNativeArcadeEntry || !MenuWidgetClass ? UHALArcadeEntryWidget::StaticClass() : MenuWidgetClass.Get();
+	UClass* EntryClass=ResolveEntryScreen();
 	if (UUserWidget* Menu = CreateWidget<UUserWidget>(LocalController, EntryClass))
 	{
 		FinishConnection(); EndTravelPresentation();
@@ -137,8 +158,10 @@ void UHALNetworkGameInstance::ShowPracticeRoom(APlayerController* PC)
 	if (bReturningToEntry || !GetWorld() || GetWorld()->bIsTearingDown || !PC || PC->IsActorBeingDestroyed() || !PC->IsLocalController() || !PC->GetLocalPlayer()) { return; }
 	bPracticeRoomActive = true;
 	FinishConnection(); EndTravelPresentation();
-	if (!Cast<UHALPracticeRoomWidget>(VisibleWidget) || VisibleWidget->GetWorld()!=PC->GetWorld() || VisibleWidget->GetOwningPlayer()!=PC)
-	{ ReplaceVisibleWidget(CreateWidget<UHALPracticeRoomWidget>(PC,UHALPracticeRoomWidget::StaticClass())); }
+	UClass* Desired=ResolveRoomScreen(PC);
+	if (!VisibleWidget || VisibleWidget->GetClass()!=Desired || VisibleWidget->GetWorld()!=PC->GetWorld() || VisibleWidget->GetOwningPlayer()!=PC)
+	{ ReplaceVisibleWidget(CreateWidget<UHALPracticeRoomWidget>(PC,Desired)); }
+	if (auto* Screen=Cast<UHALPracticeRoomWidget>(VisibleWidget)) { Screen->RefreshFromRoomState(); }
 }
 void UHALNetworkGameInstance::ReturnToEntry(const FText& Reason)
 {

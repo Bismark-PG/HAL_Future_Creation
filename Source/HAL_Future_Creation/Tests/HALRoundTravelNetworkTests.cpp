@@ -20,6 +20,7 @@
 #include "UnrealClient.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
+#include "HALWidgetExtensionTestAccess.h"
 
 namespace
 {
@@ -28,7 +29,7 @@ namespace
 		FAutomationTestBase* Test;
 		bool Solo=false,Timeout=false,RoleKnown=false,Host=false,Verified=false,SawLoading=false,SawCountdown=false,Disconnect=false,BadMap=false;
 		uint32 LoadedRound=0, CountdownRound=0;
-		bool ExitLoading=false,ScreenshotRequested=false;
+		bool ExitLoading=false,ScreenshotRequested=false,ContractConfigured=false;
 		uint32 PracticeWorldId=0, DirtyRound=MAX_uint32, ReturnedRound=0, CountedPlaying=0;
 		FGuid Key,FirstEpoch,FirstFlow,RoundOneEpoch; int32 Seat=INDEX_NONE;
 		FLinearColor Color; FString PracticeMap;
@@ -56,6 +57,12 @@ namespace
 			auto* PS=PC?PC->GetPlayerState<AHALPlayerState>():nullptr;
 			if (!PS || PS->GetRoomData().Phase==EHALRoomPlayerPhase::Unassigned) { return false; }
 			if (!RoleKnown) { Host=Solo || W->GetNetMode()==NM_ListenServer; RoleKnown=true; }
+			if (!ContractConfigured && FParse::Param(FCommandLine::Get(),TEXT("HALContractUI")))
+			{
+				if (auto* GI=W->GetGameInstance<UHALNetworkGameInstance>())
+				{ FHALWidgetExtensionTestAccess::Configure(GI,true); GI->ShowPracticeRoom(PC); ContractConfigured=true;
+					UE_LOG(LogTemp,Display,TEXT("Widget contract UI configured for local role Host=%d"),Host); }
+			}
 			const auto D=R->GetData(); const auto P=PS->GetRoomData();
 			AHALPlayerState* Other=nullptr;
 			for (const auto& Member:D.Members) { if (Member && Member!=PS) { Other=Member; break; } }

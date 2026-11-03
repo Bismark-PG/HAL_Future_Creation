@@ -14,34 +14,55 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SScaleBox.h"
 
-void UHALArcadeEntryWidget::OpenConnections() { bAttract=false; FocusMenu(); }
+FHALEntryView UHALArcadeEntryWidget::GetEntryView() const
+{
+	FHALEntryView View; View.bAttract=bAttract;
+	if (const auto* GI=GetGameInstance<UHALNetworkGameInstance>())
+	{ View.bConnecting=GI->IsConnecting(); View.Message=HALMenuFeedback::Connection(GI->GetConnectionMessage()); View.LastHostAddress=GI->GetLastHostAddress(); }
+	return View;
+}
+void UHALArcadeEntryWidget::PublishEntryView()
+{
+	const auto View=GetEntryView();
+	if (!bHasPublishedView || !FHALEntryView::StaticStruct()->CompareScriptStruct(&View,&PublishedView,0))
+	{ PublishedView=View; bHasPublishedView=true; ReceiveEntryView(View); }
+}
+void UHALArcadeEntryWidget::OpenConnections() { bAttract=false; PublishEntryView(); FocusMenu(); }
+bool UHALArcadeEntryWidget::HostRoom()
+{ auto* GI=GetGameInstance<UHALNetworkGameInstance>(); const bool Result=GI && GI->HostMatch(); PublishEntryView(); return Result; }
+bool UHALArcadeEntryWidget::JoinRoom(const FString& HostIPv4)
+{ auto* GI=GetGameInstance<UHALNetworkGameInstance>(); const bool Result=GI && GI->JoinMatch(HostIPv4); PublishEntryView(); return Result; }
+void UHALArcadeEntryWidget::CancelConnection()
+{ if (auto* GI=GetGameInstance<UHALNetworkGameInstance>()) { GI->CancelConnection(); } }
 void UHALArcadeEntryWidget::Join()
-{ if (auto* GI=GetGameInstance<UHALNetworkGameInstance>(); GI && Address) { GI->JoinMatch(Address->GetText().ToString()); } }
+{ if (Address) { JoinRoom(Address->GetText().ToString()); } }
 void UHALArcadeEntryWidget::BackMenu()
 {
 	if (auto* GI=GetGameInstance<UHALNetworkGameInstance>(); GI && GI->IsConnecting()) { GI->CancelConnection(); return; }
-	bAttract=!bAttract; FocusMenu();
+	bAttract=!bAttract; PublishEntryView(); FocusMenu();
 }
 void UHALArcadeEntryWidget::RefreshEntry()
 {
 	const auto* GI=GetGameInstance<UHALNetworkGameInstance>(); if (!GI) { return; }
 	const bool Busy=GI->IsConnecting();
+	PublishEntryView();
 	if (bLastBusy!=Busy || !IsMenuControlFocused()) { bLastBusy=Busy; FocusMenu(); }
 }
 void UHALArcadeEntryWidget::NativeConstruct()
 {
-	Super::NativeConstruct();
 	if (const auto* GI=GetGameInstance<UHALNetworkGameInstance>()) { bAttract=GI->GetConnectionMessage().IsEmpty(); }
+	Super::NativeConstruct(); PublishEntryView();
 	GetWorld()->GetTimerManager().SetTimer(RefreshTimer,this,&ThisClass::RefreshEntry,.1f,true);
 }
 void UHALArcadeEntryWidget::NativeDestruct()
 {
 	if (GetWorld()) { GetWorld()->GetTimerManager().ClearTimer(RefreshTimer); }
-	ResetMenuControls(); Address.Reset(); Super::NativeDestruct();
+	bHasPublishedView=false; PublishedView={}; ResetMenuControls(); Address.Reset(); Super::NativeDestruct();
 }
 TSharedRef<SWidget> UHALArcadeEntryWidget::RebuildWidget()
 {
 	SetIsFocusable(true); ResetMenuControls();
+	if (UsesDesignerLayout()) { return Super::RebuildWidget(); }
 	const auto* GI=GetGameInstance<UHALNetworkGameInstance>();
 	const auto* Config=GI?GI->GetFrontEndConfig():GetDefault<UHALFrontEndConfig>();
 	BackgroundBrush.SetResourceObject(Config->Background); LogoBrush.SetResourceObject(Config->Logo);
@@ -51,7 +72,7 @@ TSharedRef<SWidget> UHALArcadeEntryWidget::RebuildWidget()
 	auto Continue=HALArcade::Button(TEXT("PRESS START / ENTER"),FSimpleDelegate::CreateUObject(this,&ThisClass::OpenConnections));
 	Continue->SetVisibility(TAttribute<EVisibility>::CreateLambda([this]{ return bAttract?EVisibility::Visible:EVisibility::Collapsed; }));
 	RegisterMenuControl(Continue,FSimpleDelegate::CreateUObject(this,&ThisClass::OpenConnections));
-	auto HostAction=FSimpleDelegate::CreateWeakLambda(this,[this]{ if (auto* N=GetGameInstance<UHALNetworkGameInstance>()) { N->HostMatch(); } });
+	auto HostAction=FSimpleDelegate::CreateWeakLambda(this,[this]{ HostRoom(); });
 	auto Host=HALArcade::Button(TEXT("CREATE ROOM"),HostAction); Host->SetVisibility(TAttribute<EVisibility>::CreateLambda(IdleVisibility)); RegisterMenuControl(Host,HostAction);
 	SAssignNew(Address,SEditableTextBox).HintText(FText::FromString(TEXT("HOST IPv4 ADDRESS"))).Text(FText::FromString(GI?GI->GetLastHostAddress():TEXT("127.0.0.1")))
 		.Font(FCoreStyle::GetDefaultFontStyle("Regular",21)).Padding(FMargin(12)).SelectAllTextWhenFocused(true)
@@ -61,7 +82,7 @@ TSharedRef<SWidget> UHALArcadeEntryWidget::RebuildWidget()
 	auto JoinButton=HALArcade::Button(TEXT("JOIN ROOM"),JoinAction); JoinButton->SetVisibility(TAttribute<EVisibility>::CreateLambda(IdleVisibility)); RegisterMenuControl(JoinButton,JoinAction);
 	auto BackAction=FSimpleDelegate::CreateUObject(this,&ThisClass::BackMenu);
 	auto Back=HALArcade::Button(TEXT("BACK"),BackAction); Back->SetVisibility(TAttribute<EVisibility>::CreateLambda(IdleVisibility)); RegisterMenuControl(Back,BackAction);
-	auto CancelAction=FSimpleDelegate::CreateWeakLambda(this,[this]{ if (auto* N=GetGameInstance<UHALNetworkGameInstance>()) { N->CancelConnection(); } });
+	auto CancelAction=FSimpleDelegate::CreateUObject(this,&ThisClass::CancelConnection);
 	auto Cancel=HALArcade::Button(TEXT("CANCEL CONNECTION"),CancelAction);
 	Cancel->SetVisibility(TAttribute<EVisibility>::CreateLambda([this,Busy]{ return !bAttract && Busy()?EVisibility::Visible:EVisibility::Collapsed; })); RegisterMenuControl(Cancel,CancelAction);
 	return SNew(SOverlay)

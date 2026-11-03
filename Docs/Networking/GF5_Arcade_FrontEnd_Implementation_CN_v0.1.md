@@ -18,7 +18,7 @@
 
 ## 2. 无新增资产也可运行
 
-完整编译并重开Editor后，从`MVPB_NetEntry`启动，GameInstance新增的 **Use Native Arcade Entry** 默认开启，自动使用原生入口，不需要改现有WBP Event Graph。旧Menu Widget Class保留；关闭该开关可回到旧Blueprint入口。原生选车界面沿用既有PracticeRoom接入路径。
+完整编译并重开Editor后，从`MVPB_NetEntry`启动，可直接使用原生入口，不需要改现有WBP Event Graph。**2026-11-03接口补充后，以GI的Front End → Screens配置为准：Entry／Room／Pause Screen Class留空使用原生回退，配置Widget Blueprint后使用其Designer布局。** 旧Use Native Arcade Entry／Menu Widget Class不再参与新入口选择。详见[Widget Blueprint接口与完整接线](GF5_Widget_Blueprint_Interfaces_CN_v0.1.md)；原选车及房间规则继续使用。
 
 以下引用保持：
 
@@ -38,7 +38,7 @@
 2. 配置Title、Subtitle；Background与Logo可留空。背景建议横向16:9图片，Logo使用带透明背景的横向图。
 3. Accent为标题／重点提示色，不覆盖服务器分配的四位玩家身份色。
 4. Connection Timeout Seconds默认30秒，范围5～120秒，只控制加入房间时本地等待上限；GF-4的Load Timeout Seconds独立控制开局全员就绪等待。
-5. 打开`BP_MVPB_NetworkGameInstance` → Class Defaults → Front End，将Front End Config指向此DA；保持Use Native Arcade Entry开启，编译并保存。
+5. 打开`BP_MVPB_NetworkGameInstance` → Class Defaults → Front End，将Front End Config指向此DA，编译并保存。未配置自定义界面时，原生回退读取它；自定义Widget可按接口文档引用同一DA或使用自己的素材。
 
 未指派DA时使用原生默认标题、配色和30秒连接上限。背景、Logo为DA直接引用；保存后重新进入入口／重新Host读取。首版不增加运行中样式热重载。
 
