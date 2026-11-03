@@ -1,4 +1,14 @@
 #include "HALPracticeRoomWidget.h"
+#include "HALArcadeStyle.h"
+#include "HALNetworkGameInstance.h"
+#include "HALFrontEndConfig.h"
+#include "Engine/AssetManager.h"
+#include "Engine/StreamableManager.h"
+#include "Engine/Texture2D.h"
+#include "Misc/PackageName.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SScaleBox.h"
 #include "HALPlayerController.h"
 #include "HALPlayerState.h"
 #include "HALMatchGameState.h"
@@ -68,7 +78,7 @@ void UHALPracticeRoomWidget::CycleVehicle(int32 Direction)
 {
 	if (!CanSelect()) { return; }
 	auto* PC = GetOwningPlayer<AHALPlayerController>(); const auto* R = Room(this);
-	const auto* C = R ? R->GetData().Catalog.LoadSynchronous() : nullptr;
+	const auto* C = R ? LoadedCatalog.Get() : nullptr;
 	if (!C || C->Vehicles.IsEmpty()) { return; }
 	const FName Current = PC->GetPlayerState<AHALPlayerState>()->GetRoomData().VehicleId;
 	const int32 Index = C->Vehicles.IndexOfByPredicate([Current](const FHALVehicleCatalogEntry& E) { return E.VehicleId == Current; });
@@ -79,7 +89,7 @@ FText UHALPracticeRoomWidget::VehicleText() const
 {
 	const auto* PS = GetOwningPlayerState<AHALPlayerState>(); const auto* R = Room(this);
 	const FName Id = PS ? PS->GetRoomData().VehicleId : NAME_None;
-	const auto* C = R ? R->GetData().Catalog.LoadSynchronous() : nullptr;
+	const auto* C = R ? LoadedCatalog.Get() : nullptr;
 	const auto* E = C ? C->Vehicles.FindByPredicate([Id](const FHALVehicleCatalogEntry& V) { return V.VehicleId == Id; }) : nullptr;
 	return E ? (E->DisplayName.IsEmpty() ? FText::FromName(Id) : E->DisplayName) : FText::FromString(TEXT("Choose a vehicle"));
 }
@@ -94,7 +104,11 @@ FText UHALPracticeRoomWidget::SeatText(int32 Seat) const
 			const auto& D = P->GetRoomData();
 			const TCHAR* Phase = D.Phase == EHALRoomPlayerPhase::Ready ? (R->GetData().Phase==EHALRoomPhase::Open ? TEXT("Practicing") : R->GetData().Phase==EHALRoomPhase::Playing ? TEXT("Playing") : D.bClientLoaded ? TEXT("Ready") : TEXT("Loading"))
 				: D.Phase == EHALRoomPlayerPhase::PreparingAvatar ? TEXT("Preparing") : TEXT("Selecting");
-			return FText::FromString(FString::Printf(TEXT("P%d %s | %s | %s%s"),D.Number,*P->GetPlayerName(),*D.VehicleId.ToString(),Phase,P==R->GetData().Host?TEXT(" [Host]"):TEXT("")));
+			const FString Name=P->GetPlayerName().Len()>18?P->GetPlayerName().Left(17)+TEXT("..."):P->GetPlayerName();
+			const auto* Entry=LoadedCatalog?LoadedCatalog->Vehicles.FindByPredicate([&D](const FHALVehicleCatalogEntry& V){ return V.VehicleId==D.VehicleId; }):nullptr;
+			FString Model=Entry && !Entry->DisplayName.IsEmpty()?Entry->DisplayName.ToString():D.VehicleId.IsNone()?TEXT("Choose a vehicle"):D.VehicleId.ToString();
+			if (Model.Len()>20) { Model=Model.Left(17)+TEXT("..."); }
+			return FText::FromString(FString::Printf(TEXT("P%d  %s\n%s%s\n%s"),D.Number,*Name,*Model,P==R->GetData().Host?TEXT(" / Host"):TEXT(""),Phase));
 		}
 	}
 	return FText::FromString(FString::Printf(TEXT("P%d - Empty"),Seat+1));
@@ -131,75 +145,12 @@ FText UHALPracticeRoomWidget::StatusText() const
 	if (!R->GetData().FlowMessage.IsEmpty()) { return FText::FromString(R->GetData().FlowMessage); }
 	return FText::FromString(FString::Printf(TEXT("Practice: no HP damage. Start needs %d confirmed player(s)."),R->GetData().Rules.MinimumPlayers()));
 }
-TSharedRef<SWidget> UHALPracticeRoomWidget::RebuildWidget()
-{
-	SetIsFocusable(true);
-	auto Controls = SNew(SVerticalBox);
-	Controls->AddSlot().AutoHeight().Padding(0,4)[SNew(STextBlock).Text(FText::FromString(TEXT("VEHICLE ROOM")))];
-	for (int32 I=0; I<4; ++I)
-	{ Controls->AddSlot().AutoHeight().Padding(0,4)[SNew(STextBlock).Text_Lambda([this,I]{ return SeatText(I); }).ColorAndOpacity_Lambda([this,I]{ return SeatColor(I); })]; }
-	Controls->AddSlot().AutoHeight().Padding(0,12)[SNew(STextBlock).Text_UObject(this,&ThisClass::VehicleText)];
-	Controls->AddSlot().AutoHeight()[SNew(SHorizontalBox)
-		+SHorizontalBox::Slot().FillWidth(1)[SNew(SButton).Text(FText::FromString(TEXT("Previous"))).IsEnabled_UObject(this,&ThisClass::CanSelect).OnClicked_Lambda([this]{ CycleVehicle(-1); return FReply::Handled(); })]
-		+SHorizontalBox::Slot().FillWidth(1)[SNew(SButton).Text(FText::FromString(TEXT("Next"))).IsEnabled_UObject(this,&ThisClass::CanSelect).OnClicked_Lambda([this]{ CycleVehicle(1); return FReply::Handled(); })]];
-	Controls->AddSlot().AutoHeight().Padding(0,6)[SNew(SButton).Text(FText::FromString(TEXT("Confirm & Practice"))).IsEnabled_UObject(this,&ThisClass::CanConfirm).OnClicked_Lambda([this]{ GetOwningPlayer<AHALPlayerController>()->ConfirmRoomVehicle(); return FReply::Handled(); })];
-	Controls->AddSlot().AutoHeight().Padding(0,6)[SNew(SButton).Text(FText::FromString(TEXT("Cancel / Change vehicle"))).IsEnabled_Lambda([this]
-	{
-		const auto* PC=GetOwningPlayer<AHALPlayerController>(); const auto* PS=GetOwningPlayerState<AHALPlayerState>(); const auto* R=Room(this);
-		return PC && PS && R && !PC->IsRoomRequestPending() && R->GetData().Phase==EHALRoomPhase::Open && PS->GetRoomData().Phase!=EHALRoomPlayerPhase::Selecting;
-	}).OnClicked_Lambda([this]{ GetOwningPlayer<AHALPlayerController>()->CancelRoomConfirmation(); return FReply::Handled(); })];
-	Controls->AddSlot().AutoHeight().Padding(0,6)[SNew(SButton).Text(FText::FromString(TEXT("Host: Start"))).IsEnabled_UObject(this,&ThisClass::CanStart).OnClicked_Lambda([this]{ GetOwningPlayer<AHALPlayerController>()->RequestStartMatch(); return FReply::Handled(); })];
-	Controls->AddSlot().AutoHeight().Padding(0,6)[SNew(SButton).Text(FText::FromString(TEXT("Resume driving (Tab / Start)"))).IsEnabled_Lambda([this]{ const auto* PS=GetOwningPlayerState<AHALPlayerState>(); const auto* R=Room(this); return PS && R && (R->GetData().Phase==EHALRoomPhase::Open || R->GetData().Phase==EHALRoomPhase::Playing) && PS->GetRoomData().Phase==EHALRoomPlayerPhase::Ready; }).OnClicked_Lambda([this]{ GetOwningPlayer<AHALPlayerController>()->ToggleRoomMenu(); return FReply::Handled(); })];
-	Controls->AddSlot().AutoHeight().Padding(0,6)[SNew(SButton).Text(FText::FromString(TEXT("Leave room"))).OnClicked_Lambda([this]{ GetOwningPlayer<AHALPlayerController>()->LeaveRoom(); return FReply::Handled(); })];
-	Controls->AddSlot().AutoHeight().Padding(0,6)[SNew(SButton).Text(FText::FromString(TEXT("Host: Return to room")))
-		.Visibility_Lambda([this]{ const auto* R=Room(this); return R && R->GetData().Phase==EHALRoomPhase::Playing && R->GetData().Rules.Profile==EHALRoomProfile::Development ? EVisibility::Visible:EVisibility::Collapsed; })
-		.IsEnabled_Lambda([this]{ const auto* R=Room(this); return R && R->GetData().Host==GetOwningPlayerState<AHALPlayerState>(); })
-		.OnClicked_Lambda([this]{ GetOwningPlayer<AHALPlayerController>()->HALReturnToRoom(); return FReply::Handled(); })];
-	Controls->AddSlot().AutoHeight().Padding(0,8)[SNew(STextBlock).Text_UObject(this,&ThisClass::StatusText).AutoWrapText(true)];
-	return SNew(SOverlay)
-		+SOverlay::Slot().HAlign(HAlign_Left).VAlign(VAlign_Top).Padding(16)
-		[SNew(SBox).WidthOverride(420).Visibility_Lambda([this]{ return MenuVisible()?EVisibility::Visible:EVisibility::Collapsed; })
-		[SNew(SBorder).BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")).Padding(16).BorderBackgroundColor(FLinearColor(.025f,.04f,.065f,.94f))[Controls]]]
-		+SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Top).Padding(16)
-		[SNew(STextBlock).Visibility_Lambda([this]{ return MenuVisible()?EVisibility::Collapsed:EVisibility::HitTestInvisible; }).Text(FText::FromString(TEXT("PRACTICE - Tab / Esc / Gamepad Start: room menu")))];
-}
-void UHALPracticeRoomWidget::NativeConstruct()
-{
-	Super::NativeConstruct(); RefreshInput();
-	GetWorld()->GetTimerManager().SetTimer(InputRefreshTimer,this,&ThisClass::RefreshInput,.1f,true);
-}
-void UHALPracticeRoomWidget::NativeDestruct()
-{
-	if (GetWorld()) { GetWorld()->GetTimerManager().ClearTimer(InputRefreshTimer); }
-	Super::NativeDestruct();
-}
-void UHALPracticeRoomWidget::RefreshInput()
-{
-	auto* PC = GetOwningPlayer<AHALPlayerController>(); if (!PC) { return; }
-	const auto* PS = PC->GetPlayerState<AHALPlayerState>(); auto* Pawn = Cast<ATestVehiclePawn>(PC->GetPawn());
-	const auto* ASC = PS ? PS->GetHALAbilitySystemComponent() : nullptr;
-	const auto* Movement = Pawn ? Pawn->FindComponentByClass<UArcadeVehicleMovementComponent>() : nullptr;
-	const bool Ready = PS && Pawn && PS->GetRoomData().ReadyAvatar == Pawn && ASC && ASC->GetAvatarActor()==Pawn
-		&& Pawn->GetPlayerState()==PS && Movement && Movement->GetMovementEffectStatus().bReady;
-	const bool Menu = MenuVisible() || !Ready;
-	if (bInputModeKnown && bUsingMenu==Menu) { return; }
-	bInputModeKnown=true; bUsingMenu=Menu; PC->bShowMouseCursor=Menu;
-	if (Pawn) { Pawn->NeutralizeInputForMenu(); }
-	if (Menu) { FInputModeUIOnly Mode; Mode.SetWidgetToFocus(TakeWidget()); PC->SetInputMode(Mode); }
-	else { PC->SetInputMode(FInputModeGameOnly()); }
-}
-FReply UHALPracticeRoomWidget::NativeOnKeyDown(const FGeometry& G, const FKeyEvent& E)
-{
-	if (E.GetKey()==EKeys::Tab || E.GetKey()==EKeys::Escape || E.GetKey()==EKeys::Gamepad_Special_Right)
-	{ if (auto* PC=GetOwningPlayer<AHALPlayerController>()) { PC->ToggleRoomMenu(); } return FReply::Handled(); }
-	return Super::NativeOnKeyDown(G,E);
-}
 int32 UHALPracticeRoomWidget::NativePaint(const FPaintArgs& Args, const FGeometry& G, const FSlateRect& Culling,
 	FSlateWindowElementList& Elements, int32 Layer, const FWidgetStyle& Style, bool bParentEnabled) const
 {
 	const int32 Base = Super::NativePaint(Args,G,Culling,Elements,Layer,Style,bParentEnabled);
 	const auto* R=Room(this); auto* PC=GetOwningPlayer();
-	if (!R || !PC) { return Base; }
+	if (!R || !PC || MenuVisible()) { return Base; }
 	for (const auto& PS : R->GetData().Members)
 	{
 		const auto* Pawn=PS ? PS->GetPawn() : nullptr; if (!Pawn) { continue; }

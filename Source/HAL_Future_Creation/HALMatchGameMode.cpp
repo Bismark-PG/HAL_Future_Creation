@@ -87,7 +87,8 @@ void AHALMatchGameMode::PreLogin(
 	{
 		const auto* Room = MatchState->GetRoom(); int32 Slots = 0;
 		if (!Room->IsEnabled()) { ErrorMessage = TEXT("Room configuration is unavailable."); }
-		else if (!Room->CanAdmitPlayer()) { ErrorMessage = TEXT("The room is full or its participant list is locked."); }
+		else if (!Room->CanAdmitPlayer())
+		{ ErrorMessage = Room->GetData().Phase!=EHALRoomPhase::Open ? TEXT("The match has already started; its participant list is locked.") : TEXT("The room is full."); }
 		else if (!CountValidSpawnSlots(Slots) || Slots < RoomConfig->Rules.MinimumPlayers()) { ErrorMessage = TEXT("Room needs sufficient unique spawn slots."); }
 		return;
 	}

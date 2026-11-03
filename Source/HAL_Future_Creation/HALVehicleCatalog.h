@@ -15,6 +15,9 @@ struct HAL_FUTURE_CREATION_API FHALVehicleCatalogEntry
 	/** Optional presentation metadata; it does not decide driving/config validity. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Display") FText DisplayName;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Display") TSoftObjectPtr<UTexture2D> Icon;
+	/** Optional static selection artwork, loaded locally. Never spawns a preview Pawn. Icon is the fallback. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Display") TSoftObjectPtr<UTexture2D> PreviewImage;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Display", meta=(MultiLine=true)) FText Description;
 };
 
 /** Server allowlist. Entries refer to existing BP->Definition; no copied vehicle tuning. */

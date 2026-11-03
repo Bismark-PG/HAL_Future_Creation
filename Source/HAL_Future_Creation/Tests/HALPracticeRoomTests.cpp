@@ -31,7 +31,10 @@ namespace
 			GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(World);
 			World->SetGameInstance(NewObject<UGameInstance>(GEngine));
 			FURL URL; URL.AddOption(TEXT("game=/Script/HAL_Future_Creation.HALPracticeRoomGameMode"));
-			URL.AddOption(TEXT("RoomConfig=/Game/Data/Gameflow/DA_Room_Development.DA_Room_Development"));
+			// GF-3 lock-only fixture must not inherit the team's newly enabled GF-4 travel setting.
+			auto* Saved=LoadObject<UHALRoomConfig>(nullptr,TEXT("/Game/Data/Gameflow/DA_Room_Development.DA_Room_Development"));
+			auto* Config=DuplicateObject<UHALRoomConfig>(Saved,World->GetGameInstance()); Config->bEnableRoundTravel=false;
+			URL.AddOption(*FString::Printf(TEXT("RoomConfig=%s"),*Config->GetPathName()));
 			World->SetGameMode(URL); World->InitializeActorsForPlay(URL);
 			Mode=World->GetAuthGameMode<AHALPracticeRoomGameMode>(); Room=World->GetGameState<AHALMatchGameState>()->GetRoom();
 		}

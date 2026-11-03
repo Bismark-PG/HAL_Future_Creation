@@ -302,6 +302,13 @@ void ATestVehiclePawn::NeutralizeInputForMenu()
 	ResetInputCommand(); DynamicCamera->ResetCamera();
 	if (!HasAuthority() && !bNetworkPhysicsHistoryActive) { SendInputSnapshot(); }
 }
+void ATestVehiclePawn::SetMenuInputActive(bool bMenu)
+{
+	if (!IsLocallyControlled()) { return; }
+	NeutralizeInputForMenu();
+	if (bMenu) { RemoveDefaultInputContext(); }
+	else { AddDefaultInputContext(); }
+}
 void ATestVehiclePawn::RetireForVehicleTransition()
 {
 	if (!HasAuthority() || bLifecycleRetired) { return; }
@@ -399,7 +406,9 @@ void ATestVehiclePawn::AddDefaultInputContext()
 		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer))
 	{
 		InputSubsystem->RemoveMappingContext(DefaultMappingContext);
-		InputSubsystem->AddMappingContext(DefaultMappingContext, 0);
+		FModifyContextOptions Options;
+		Options.bIgnoreAllPressedKeysUntilRelease=true;
+		InputSubsystem->AddMappingContext(DefaultMappingContext, 0, Options);
 	}
 }
 

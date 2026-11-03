@@ -5,12 +5,14 @@
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
 #include "HALRoundTravelTypes.h"
+#include "Containers/Ticker.h"
 #include "HALNetworkGameInstance.generated.h"
 
 class UHALNetworkMenuWidget;
 class UHALMatchLobbyWidget;
 class UUserWidget;
 class UNetDriver;
+class UHALFrontEndConfig;
 
 /** Local menu travel and connection feedback. Gameplay authority stays in the match GameMode. */
 UCLASS()
@@ -32,17 +34,25 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Network Menu")
 	FText GetConnectionMessage() const { return ConnectionMessage; }
+	const UHALFrontEndConfig* GetFrontEndConfig() const;
+	bool IsConnecting() const { return bConnecting; }
+	const FString& GetLastHostAddress() const { return LastHostAddress; }
+	void CancelConnection();
+	void BeginTravelPresentation();
 
 	/** Called by the local match PlayerController once its map has begun play. */
 	void ShowMatchLobby(APlayerController* LocalController);
 	void ShowPracticeRoom(APlayerController* LocalController);
 	void ReturnToEntry(const FText& Reason);
-	void HideTravelWidgets() { ReplaceVisibleWidget(nullptr); }
+	void HideTravelWidgets();
 	/** Server GameMode's one-shot map handoff; not a replicated rule store. */
 	void StoreRoundTravel(const FHALRoundTravel& Value) { PendingRoundTravel=Value; }
 	bool TakeRoundTravel(const FString& Map, FHALRoundTravel& Out);
 
 protected:
+	/** New native front end works without changing existing Widget Blueprints. Disable to use the legacy entry. */
+	UPROPERTY(EditDefaultsOnly, Category="Front End") bool bUseNativeArcadeEntry = true;
+	UPROPERTY(EditDefaultsOnly, Category="Front End") TObjectPtr<UHALFrontEndConfig> FrontEndConfig;
 	UPROPERTY(EditDefaultsOnly, Category = "Network Menu")
 	FString EntryMapPath = TEXT("/Game/Maps/MVPB_NetEntry");
 
@@ -65,7 +75,13 @@ private:
 	void ReplaceVisibleWidget(UUserWidget* NewWidget);
 	void SetConnectionMessage(const FString& Message);
 	void OpenEntryAfterDisconnect();
+	void EndTravelPresentation();
+	void FinishConnection();
 	bool bPracticeRoomActive = false, bReturningToEntry = false;
+	bool bConnecting=false;
+	FString LastHostAddress=TEXT("127.0.0.1");
+	FTSTicker::FDelegateHandle ConnectionTicker;
+	TSharedPtr<SWidget> TravelOverlay;
 	UPROPERTY(Transient) FHALRoundTravel PendingRoundTravel;
 
 	UPROPERTY(Transient)

@@ -58,6 +58,8 @@ public:
 	void RefreshAbilitySystemBinding() { InitializeAbilitySystem(); }
 	/** Local UI transition sends neutral intent through the ordinary input/history path. */
 	void NeutralizeInputForMenu();
+	/** Remove only this vehicle's IMC while a local menu owns input. Re-add ignores held keys until release. */
+	void SetMenuInputActive(bool bMenu);
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* Property) const override;
 #endif
