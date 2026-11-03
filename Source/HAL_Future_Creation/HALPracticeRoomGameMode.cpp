@@ -37,16 +37,32 @@ namespace
 
 void AHALPracticeRoomGameMode::InitGame(const FString& Map, const FString& Options, FString& Error)
 {
+	if (auto* GI=GetGameInstance<UHALNetworkGameInstance>(); GI && GI->TakeRoundTravel(UWorld::RemovePIEPrefix(GetWorld()->GetOutermost()->GetName()),Travel))
+	{ bRestoringTravel=true; bRoundWorld=!Travel.bToPractice; RoomConfig=Travel.Config; }
 	Super::InitGame(Map,Options,Error);
 	// Server startup URL only; never read PreLogin/client options to configure the room.
 	const FString ConfigPath = UGameplayStatics::ParseOption(Options,TEXT("RoomConfig"));
 	if (!RoomConfig && !ConfigPath.IsEmpty()) { RoomConfig = LoadObject<UHALRoomConfig>(nullptr,*ConfigPath); }
+	// Optional server-only development launch override; never written to a saved DA.
+	const FString MatchPath=UGameplayStatics::ParseOption(Options,TEXT("RoundMap"));
+	if (!bRestoringTravel && RoomConfig && !MatchPath.IsEmpty())
+	{
+		RoomConfig=DuplicateObject<UHALRoomConfig>(RoomConfig,GetGameInstance());
+		RoomConfig->bEnableRoundTravel=true; RoomConfig->MatchMap=TSoftObjectPtr<UWorld>(FSoftObjectPath(MatchPath));
+		const FString Timeout=UGameplayStatics::ParseOption(Options,TEXT("LoadTimeout"));
+		if (!Timeout.IsEmpty()) { LexTryParseString(RoomConfig->LoadTimeoutSeconds,*Timeout); }
+	}
 	if (!RoomConfig) { Error = TEXT("Practice room needs a server Room Config."); }
 }
 void AHALPracticeRoomGameMode::InitGameState()
 {
 	Super::InitGameState();
 	if (auto* S = GetGameState<AHALMatchGameState>(); S && RoomConfig) { S->GetRoom()->EnablePracticeRoom(); }
+	if (bRestoringTravel)
+	{
+		GetGameState<AHALMatchGameState>()->GetRoom()->RestoreTravel(Travel);
+		if (bRoundWorld) { GetWorldTimerManager().SetTimer(RoundBarrierTimer,this,&ThisClass::PollRoundBarrier,.1f,true); }
+	}
 }
 void AHALPracticeRoomGameMode::SetSelectionView(AHALPlayerController* PC)
 {
@@ -71,7 +87,7 @@ void AHALPracticeRoomGameMode::RemovePracticeAvatar(AHALPlayerController* PC)
 	if (Old) { Old->Destroy(); }
 	SetSelectionView(PC);
 }
-EHALRoomResult AHALPracticeRoomGameMode::SpawnSelectedVehicle(AHALPlayerController* PC, uint32 Revision)
+EHALRoomResult AHALPracticeRoomGameMode::SpawnSelectedVehicle(AHALPlayerController* PC, uint32 Revision, uint32 Round)
 {
 	auto* S = GetGameState<AHALMatchGameState>(); auto* PS = PC ? PC->GetPlayerState<AHALPlayerState>() : nullptr;
 	auto* Room = S ? S->GetRoom() : nullptr;
@@ -102,7 +118,9 @@ EHALRoomResult AHALPracticeRoomGameMode::SpawnSelectedVehicle(AHALPlayerControll
 	else
 	{
 		auto* Old = Cast<ATestVehiclePawn>(PC->GetPawn());
-		if (!PS->ChangeVehicleAvatar(Next,PS->GetVehicleLifecycle().ChangeSerial+1))
+		const bool Changed=Round ? PS->BeginNewRoundAvatar(Next,Round,PS->GetVehicleLifecycle().ChangeSerial+1)
+			: PS->ChangeVehicleAvatar(Next,PS->GetVehicleLifecycle().ChangeSerial+1);
+		if (!Changed)
 		{
 			auto* ASC=PS->GetHALAbilitySystemComponent(); FHALVehicleLifecycleSeed Seed;
 			UE_LOG(LogTemp,Log,TEXT("Practice lifecycle refused: Owner=%s Avatar=%s Current=%s CandidateController=%s Seed=%d RoomCandidate=%d Serial=%u"),
@@ -113,7 +131,7 @@ EHALRoomResult AHALPracticeRoomGameMode::SpawnSelectedVehicle(AHALPlayerControll
 		{
 			if (Old) { Old->Destroy(); }
 			PC->StartSpot = Start;
-			Failure = Room->CompleteAvatar(PC,Revision);
+			Failure = Room->CompleteAvatar(PC,Revision,Round);
 			if (Failure == EHALRoomResult::Accepted)
 			{
 				UE_LOG(LogTemp,Log,TEXT("Practice Avatar ready: Seat=%d Vehicle=%s Pawn=%s Serial=%u"),P.Seat,*P.VehicleId.ToString(),*GetNameSafe(Next),PS->GetVehicleLifecycle().ChangeSerial);
@@ -128,12 +146,27 @@ EHALRoomResult AHALPracticeRoomGameMode::SpawnSelectedVehicle(AHALPlayerControll
 }
 EHALRoomResult AHALPracticeRoomGameMode::HandleRoomAction(AHALPlayerController* PC, EHALRoomAction Action, FName Id, uint32 Revision)
 {
-	if (!HasAuthority() || bReturningToEntry) { return EHALRoomResult::WrongPhase; }
+	if (!HasAuthority() || bReturningToEntry || bTravelDeparting) { return EHALRoomResult::WrongPhase; }
+	if (Action==EHALRoomAction::ReturnToRoom)
+	{
+		auto* Room=GetGameState<AHALMatchGameState>()->GetRoom();
+		if (!bRoundWorld || Room->GetData().Phase!=EHALRoomPhase::Playing || Room->GetData().Rules.Profile!=EHALRoomProfile::Development) { return EHALRoomResult::WrongPhase; }
+		if (!PC || Room->GetData().Host!=PC->GetPlayerState<AHALPlayerState>() || !PC->IsLocalController()) { return EHALRoomResult::NotHost; }
+		if (!Id.IsNone()) { return EHALRoomResult::InvalidRequest; }
+		if (PC->GetPlayerState<AHALPlayerState>()->GetRoomData().SelectionRevision!=Revision) { return EHALRoomResult::StaleSelection; }
+		return StartRoundTravel(true,TEXT("Returned to room. Please confirm your vehicle again."))?EHALRoomResult::Accepted:EHALRoomResult::InvalidConfiguration;
+	}
+	if (Action==EHALRoomAction::Start && RoomConfig && RoomConfig->bEnableRoundTravel && !PreflightRound()) { return EHALRoomResult::InvalidConfiguration; }
 	const auto Result = Super::HandleRoomAction(PC,Action,Id,Revision);
 	if (Result != EHALRoomResult::Accepted) { return Result; }
 	if (Action == EHALRoomAction::ConfirmVehicle)
 	{ return SpawnSelectedVehicle(PC,PC->GetPlayerState<AHALPlayerState>()->GetRoomData().SelectionRevision); }
 	if (Action == EHALRoomAction::CancelConfirmation) { RemovePracticeAvatar(PC); }
+	if (Action == EHALRoomAction::Start && RoomConfig && RoomConfig->bEnableRoundTravel && !StartRoundTravel(false))
+	{
+		if (auto* GI=GetGameInstance<UHALNetworkGameInstance>()) { GI->ReturnToEntry(FText::FromString(TEXT("Could not prepare the match. Please recreate the room."))); }
+		return EHALRoomResult::InvalidConfiguration;
+	}
 	return Result;
 }
 void AHALPracticeRoomGameMode::ReturnRoomToEntry(AHALPlayerController* Host)
@@ -162,4 +195,6 @@ void AHALPracticeRoomGameMode::Logout(AController* Exiting)
 	if (S && S->GetRoom()->GetData().Host == (PC ? PC->GetPlayerState<AHALPlayerState>() : nullptr)) { ReturnRoomToEntry(PC); }
 	if (auto* Pawn = PC ? Cast<ATestVehiclePawn>(PC->GetPawn()) : nullptr) { Pawn->RetireForVehicleTransition(); }
 	Super::Logout(Exiting);
+	if (bRoundWorld && !bTravelDeparting && !bReturningToEntry && !GetWorld()->bIsTearingDown)
+	{ StartRoundTravel(true,TEXT("A participant left. Please confirm again.")); }
 }

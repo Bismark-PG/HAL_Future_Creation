@@ -13,7 +13,7 @@ enum class EHALRoomPhase : uint8 { Inactive, Open, Locked, Loading, Countdown, P
 UENUM(BlueprintType)
 enum class EHALRoomPlayerPhase : uint8 { Unassigned, Selecting, PreparingAvatar, Ready };
 UENUM(BlueprintType)
-enum class EHALRoomAction : uint8 { SelectVehicle, ConfirmVehicle, CancelConfirmation, Start };
+enum class EHALRoomAction : uint8 { SelectVehicle, ConfirmVehicle, CancelConfirmation, Start, ReturnToRoom };
 UENUM(BlueprintType)
 enum class EHALRoomResult : uint8
 {
@@ -38,6 +38,7 @@ USTRUCT(BlueprintType)
 struct HAL_FUTURE_CREATION_API FHALRoomPlayerData
 {
 	GENERATED_BODY()
+	UPROPERTY(BlueprintReadOnly, Category="Room") FGuid PlayerKey;
 	UPROPERTY(BlueprintReadOnly, Category="Room") int32 Seat = INDEX_NONE;
 	UPROPERTY(BlueprintReadOnly, Category="Room") int32 Number = 0;
 	UPROPERTY(BlueprintReadOnly, Category="Room") FLinearColor Color = FLinearColor::White;
@@ -46,6 +47,8 @@ struct HAL_FUTURE_CREATION_API FHALRoomPlayerData
 	/** Runtime readiness belongs to this Avatar, never automatically inherited by a replacement Pawn. */
 	UPROPERTY(BlueprintReadOnly, Category="Room") TObjectPtr<APawn> ReadyAvatar;
 	UPROPERTY(BlueprintReadOnly, Category="Room") EHALRoomResult AvatarResult = EHALRoomResult::Accepted;
+	UPROPERTY(BlueprintReadOnly, Category="Room") bool bClientLoaded=false;
+	UPROPERTY() FGuid LoadToken;
 	UPROPERTY() uint32 SelectionRevision = 0;
 };
 
@@ -74,4 +77,8 @@ struct HAL_FUTURE_CREATION_API FHALRoomData
 	UPROPERTY(BlueprintReadOnly, Category="Room") TArray<FHALRoomRosterEntry> LockedRoster;
 	UPROPERTY() uint32 RoundId = 0;
 	UPROPERTY() uint32 Revision = 0;
+	UPROPERTY(BlueprintReadOnly, Category="Room") FGuid FlowId;
+	UPROPERTY(BlueprintReadOnly, Category="Room") int32 ExpectedPlayers=0;
+	UPROPERTY(BlueprintReadOnly, Category="Room") double CountdownEndServerTime=0;
+	UPROPERTY(BlueprintReadOnly, Category="Room") FString FlowMessage;
 };

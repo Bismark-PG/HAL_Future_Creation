@@ -7,6 +7,8 @@
 class UHALRoomConfig;
 class AHALPlayerController;
 class APawn;
+struct FHALRoundTravel;
+struct FHALTravelPlayer;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FHALRoomChanged);
 
 /** Dormant on legacy NetTest. Only server GameMode may initialize/register/advance it. No Tick or spawning. */
@@ -22,6 +24,11 @@ public:
 	EHALRoomResult Initialize(UHALRoomConfig* Config);
 	void EnablePracticeRoom();
 	void CloseForReturn();
+	void RestoreTravel(const FHALRoundTravel& Travel);
+	bool ImportTravelMember(AHALPlayerController* Controller, const FHALTravelPlayer& Player, FGuid HostKey);
+	EHALRoomResult AcknowledgeLoaded(AHALPlayerController* Controller, FGuid Flow, uint32 Round, FGuid Token, APawn* Pawn);
+	bool AllClientsLoaded() const;
+	void SetCountdown(double EndTime);
 	const UHALRoomConfig* GetServerConfig() const { return ServerConfig; }
 	EHALRoomResult AddMember(AHALPlayerController* Controller);
 	void RemoveMember(AHALPlayerController* Controller);

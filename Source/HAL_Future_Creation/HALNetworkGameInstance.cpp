@@ -10,6 +10,7 @@
 #include "HALNetworkMenuWidget.h"
 #include "HALPracticeRoomWidget.h"
 #include "TimerManager.h"
+#include "Containers/Ticker.h"
 #include "Interfaces/IPv4/IPv4Address.h"
 #include "Kismet/GameplayStatics.h"
 #include "Misc/PackageName.h"
@@ -43,6 +44,7 @@ void UHALNetworkGameInstance::LoadComplete(const float LoadTime, const FString& 
 	if (!EntryMapPath.IsEmpty() && MapName.EndsWith(FPackageName::GetShortName(EntryMapPath)))
 	{
 		bPracticeRoomActive = false; bReturningToEntry = false;
+		PendingRoundTravel={};
 		ShowEntryMenu();
 	}
 }
@@ -82,7 +84,7 @@ bool UHALNetworkGameInstance::JoinMatch(const FString& HostIPv4)
 
 void UHALNetworkGameInstance::ShowMatchLobby(APlayerController* LocalController)
 {
-	if (!LocalController || !LocalController->IsLocalController() || !MatchLobbyWidgetClass)
+	if (!LocalController || !LocalController->IsLocalController() || !LocalController->GetLocalPlayer() || !MatchLobbyWidgetClass)
 	{
 		return;
 	}
@@ -112,18 +114,25 @@ void UHALNetworkGameInstance::ShowEntryMenu()
 }
 void UHALNetworkGameInstance::ShowPracticeRoom(APlayerController* PC)
 {
-	if (bReturningToEntry || !GetWorld() || GetWorld()->bIsTearingDown || !PC || PC->IsActorBeingDestroyed() || !PC->IsLocalController()) { return; }
+	if (bReturningToEntry || !GetWorld() || GetWorld()->bIsTearingDown || !PC || PC->IsActorBeingDestroyed() || !PC->IsLocalController() || !PC->GetLocalPlayer()) { return; }
 	bPracticeRoomActive = true;
-	if (!Cast<UHALPracticeRoomWidget>(VisibleWidget))
+	if (!Cast<UHALPracticeRoomWidget>(VisibleWidget) || VisibleWidget->GetWorld()!=PC->GetWorld() || VisibleWidget->GetOwningPlayer()!=PC)
 	{ ReplaceVisibleWidget(CreateWidget<UHALPracticeRoomWidget>(PC,UHALPracticeRoomWidget::StaticClass())); }
 }
 void UHALNetworkGameInstance::ReturnToEntry(const FText& Reason)
 {
 	if (bReturningToEntry || !GetWorld()) { return; }
 	SetConnectionMessage(Reason.ToString()); bReturningToEntry = true;
+	PendingRoundTravel={};
 	ReplaceVisibleWidget(nullptr);
 	// Defer out of network failure / RPC callbacks; OpenLevel closes the old NetDriver.
-	GetWorld()->GetTimerManager().SetTimerForNextTick(this,&ThisClass::OpenEntryAfterDisconnect);
+	FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateWeakLambda(this,[this](float)
+	{ OpenEntryAfterDisconnect(); return false; }));
+}
+bool UHALNetworkGameInstance::TakeRoundTravel(const FString& Map, FHALRoundTravel& Out)
+{
+	if (!PendingRoundTravel.IsValid() || PendingRoundTravel.Destination!=Map) { return false; }
+	Out=PendingRoundTravel; PendingRoundTravel={}; return true;
 }
 void UHALNetworkGameInstance::OpenEntryAfterDisconnect()
 {

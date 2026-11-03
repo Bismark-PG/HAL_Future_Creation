@@ -43,14 +43,17 @@ void AHALPlayerController::SetupInputComponent()
 bool AHALPlayerController::WantsRoomMenu() const
 {
 	const auto* PS = GetPlayerState<AHALPlayerState>();
-	return !PS || PS->GetRoomData().Phase != EHALRoomPlayerPhase::Ready || bRoomMenuOpen;
+	return !PS || PS->GetRoomData().Phase != EHALRoomPlayerPhase::Ready || !PS->GetRoomData().ReadyAvatar || bRoomMenuOpen;
 }
 void AHALPlayerController::ToggleRoomMenu()
 {
 	const auto* S = GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr;
 	const auto* PS = GetPlayerState<AHALPlayerState>();
 	if (IsLocalController() && S && S->GetRoom()->GetData().bPracticeRoom && PS && PS->GetRoomData().Phase == EHALRoomPlayerPhase::Ready)
-	{ bRoomMenuOpen = !bRoomMenuOpen; }
+	{
+		const auto Phase=S->GetRoom()->GetData().Phase;
+		if (Phase==EHALRoomPhase::Open || Phase==EHALRoomPhase::Playing) { bRoomMenuOpen = !bRoomMenuOpen; }
+	}
 }
 
 void AHALPlayerController::BeginPlay()
@@ -58,6 +61,7 @@ void AHALPlayerController::BeginPlay()
 	Super::BeginPlay();
 	if (IsLocalController())
 	{
+		GetWorldTimerManager().SetTimer(RoundReadyTimer,this,&ThisClass::PollRoundReadiness,.1f,true);
 		if (auto* State = GetWorld()->GetGameState<AHALMatchGameState>())
 		{ State->GetRoom()->OnRoomChanged.AddDynamic(this,&ThisClass::RefreshRoomUI); }
 		if (UHALNetworkGameInstance* Network = GetGameInstance<UHALNetworkGameInstance>())
@@ -65,7 +69,14 @@ void AHALPlayerController::BeginPlay()
 			Network->ShowMatchLobby(this);
 		}
 		RefreshRoomUI();
+		CreateLocalDebugWidgets();
+	}
+}
+void AHALPlayerController::CreateLocalDebugWidgets()
+{
 #if !UE_BUILD_SHIPPING
+	if (GetLocalPlayer() && !DebugHUD && !GetWorld()->bIsTearingDown)
+	{
 		DebugHUD = CreateWidget<UHALDebugHUDWidget>(this, UHALDebugHUDWidget::StaticClass());
 		if (DebugHUD)
 		{
@@ -79,12 +90,13 @@ void AHALPlayerController::BeginPlay()
 			CameraDebugHUD->SetVisibility(ESlateVisibility::HitTestInvisible);
 			CameraDebugHUD->AddToPlayerScreen(105);
 		}
-#endif
 	}
+#endif
 }
 
 void AHALPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	GetWorldTimerManager().ClearTimer(RoundReadyTimer);
 	if (auto* State = GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr)
 	{ State->GetRoom()->OnRoomChanged.RemoveDynamic(this,&ThisClass::RefreshRoomUI); }
 	if (CameraDebugHUD) { CameraDebugHUD->RemoveFromParent(); CameraDebugHUD = nullptr; }

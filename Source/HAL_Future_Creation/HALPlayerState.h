@@ -26,6 +26,9 @@ class HAL_FUTURE_CREATION_API AHALPlayerState : public APlayerState, public IAbi
 public:
 	AHALPlayerState();
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	virtual void CopyProperties(APlayerState* Other) override;
+	void PrepareForWorldExit();
+	void RestoreTravelCounters(uint32 Serial, uint32 Revision, uint32 Round);
 	UHALAbilitySystemComponent* GetHALAbilitySystemComponent() const { return AbilitySystem; }
 	/** Called after Avatar binding, authority only. Existing specs survive a repeated bind. */
 	void GrantVehicleAbilities();

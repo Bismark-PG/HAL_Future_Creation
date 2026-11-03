@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "HALRoundTravelTypes.h"
 #include "HALNetworkGameInstance.generated.h"
 
 class UHALNetworkMenuWidget;
@@ -36,6 +37,10 @@ public:
 	void ShowMatchLobby(APlayerController* LocalController);
 	void ShowPracticeRoom(APlayerController* LocalController);
 	void ReturnToEntry(const FText& Reason);
+	void HideTravelWidgets() { ReplaceVisibleWidget(nullptr); }
+	/** Server GameMode's one-shot map handoff; not a replicated rule store. */
+	void StoreRoundTravel(const FHALRoundTravel& Value) { PendingRoundTravel=Value; }
+	bool TakeRoundTravel(const FString& Map, FHALRoundTravel& Out);
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Network Menu")
@@ -61,6 +66,7 @@ private:
 	void SetConnectionMessage(const FString& Message);
 	void OpenEntryAfterDisconnect();
 	bool bPracticeRoomActive = false, bReturningToEntry = false;
+	UPROPERTY(Transient) FHALRoundTravel PendingRoundTravel;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UUserWidget> VisibleWidget;

@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-03 GF-4真实跨图／全员就绪／同步倒计时完成代码、构建及程序验证，待团队正式地图和DA接线／双端初测；下一开发环节GF-5。** 用户确认GF-3测试暂无问题，记为基础初测正向反馈。本轮接续`main/2e7d72c826abf26c33da4b688abccf63aba8e182`，保留GI修改及新建PracticeRoom地图／GameMode BP；已只读确认Host入口指向PracticeRoom及现有BP_HALPlayerState技能。新增按目标World一次性消费的纯值交接、跨World身份／生命周期计数、同车型新Pawn、新局初始化、带Flow／Round／Token／实际Avatar验证的客户端就绪屏障及服务器倒计时；加载失败／超时或Client离房返回房间，Host离开回入口，提供Development返回房间验证第二局。普通重绑、伤害／冲击解耦及物理协议3保持。详见[GF-4实施与详细Editor步骤](Networking/GF4_Round_Travel_Implementation_CN_v0.1.md)、[验证与保护基线](Networking/GF4_Verification_20261103.json)。本机UE5.8.3最终Editor／Game成功，**125/125普通回归**，真实双端连续两局／超时／Client离房／Host离房，以及GF-3／GF-2兼容六组均各端1/1，0测试警告／失败；Listen单Host与D3D12 Standalone两局也通过，1280×900倒计时画面已检查。**1182保存资产逐份哈希全同**，266份最终源码／配置／uproject留档，Config未改。新增Round Travel默认关闭，团队须按第4节保存独立正式图并配置两份Room DA；GI Host目标继续指练习房。GF-4真人接线、PIE／打包、真实硬件／突然断线／完整扰动与四机仍待验收；无正式比赛计时／淘汰／结算，GF-5／6及原F4／VP-4C／FX余项继续独立。早期失败及修正保留，本轮未提交／Push，验证进程已退出。下方旧段落保留各自历史时点，第2／6节为当前入口。
+
 **2026-11-02 GF-3灰盒房间／选车／练习完成代码、构建和程序验证，待团队专用资产接线／真人初测；下一开发环节GF-4。** 本轮从干净`main/d1add4bf9e8b065f525ad4c1dd6c17042f30dc99`接续，已包含GF-2和三份Gameflow DA；只读确认Development Profile现已正确，不再列为待改。新增专用Practice GameMode：连接先选车，确认后校验车型／版本／席位出生点及真实物理根，生成所选Pawn、走显式生命周期及服务器就绪；取消先撤销Ready再清理旧车，失败可重试。原生灰盒界面提供四席位／身份色／编号、选车确认／取消、练习菜单及离房，车上方编号和球权光束消费同一身份色；原NetTest仍用旧模式。补齐GAS首次无车时Owner=Avatar=PlayerState的窄初始状态，错误Avatar仍拒绝。Client离房释放席位且Host继续练习，受控Host退出两端回入口并保留原因，修复teardown期间旧委托重建Widget。详见[GF-3实施与详细Editor接线](Networking/GF3_Practice_Room_Implementation_CN_v0.1.md)、[本轮验证／保护基线](Networking/GF3_Verification_20261102.json)。UE5.8.3最终Editor／Game成功，**122/122普通回归**（新增4项），GF-3 Flow／Client Exit两组真实独立进程双端均各**1/1**，GF-1／GF-2双端兼容复验也均各1/1，0测试警告／失败；最终D3D12 1280×900占位界面已看图。1180保存资产逐份哈希全同、260份源码／配置／uproject留档，Config未改，早期失败独立保留。**尚需团队按文档建立Room GameMode BP／独立房间地图并修改GI Host目标；当前保存GI仍指向NetTest。GF-3开始只到Locked，真实跨图／载入屏障／倒计时留GF-4。** 未新增真人鼠标／手柄、团队接线、突然断网、打包／四机或原F4／VP-4C／FX验收结论；本轮未提交／Push。下方GF-2等保持历史时点，第2／6节为当前入口。
 
 **2026-11-02 GF-2换车／新局GAS生命周期与练习伤害策略完成代码及程序验证，下一步GF-3。** 本轮从`main/653320d27a66fe50135eef320dd36dec6fa7e863`接续，GF-1已提交；保留团队新增的三份Gameflow DA。新增服务器显式换车／新局接口、单调操作序号与Round／Avatar复制身份，以新Pawn隔离物理历史；旧车退休时清理球权、来源能力／效果、区域及输入，重新应用正确车型种子，普通重复绑定仍不回血或清冷却。标准Resolver在练习阶段抑制扣血，冲击／脱球／命中消费保持独立。详见[GF-2实施与接续调用](Networking/GF2_Vehicle_Lifecycle_Implementation_CN_v0.1.md)、[验证与保护基线](Networking/GF2_Verification_20261102.json)。本机UE5.8.3最终Editor／Game成功，**118/118普通回归**（新增4项）、GF-2真实NullRHI双端各**1/1**、既有GF-1双端兼容复验各**1/1**，均0测试警告／失败；A→B→A→新局Round1的复制绑定、属性／效果清理及新Epoch有证据。早期编译错误与117/118夹具漏开冲击分别留档，修正后最终通过，没有降低断言。**1180保存资产逐份哈希全同**，254份源码／配置／uproject留档，Config未改、专用进程已退出。只读核对两份Room的Catalog及Car_01／Car_02有效，**磁盘上的`DA_Room_Development → Rules → Profile`仍是Exhibition，待团队改为Development并保存**。本轮没有修改资产，三份新DA仍未跟踪，当前`main/653320d`加未提交GF-2源码／文档，未提交／Push。GF-3至6未开始；现用NetTest的Room Config继续None，不将原生生命周期测试当作完整选车UI、生车编排、真实跨图、真人／四机验收。下方GF-1／GF-0及旧“未开始”段保持历史时点，第2／6节为当前入口。
@@ -244,17 +246,17 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
-| 开发阶段 | GF-1至GF-3代码、编译及程序验证完成；GF-3专用房间资产接线／真人初测待团队，下一开发环节GF-4，GF-4至6未开始；原MVP-B收尾余项分别记账 |
-| 当前本机分支／代码提交 | `main / d1add4b`已含GF-2与三份正确Gameflow DA，加本轮未提交GF-3源码／文档；开工干净，本轮未提交／Push |
-| 引擎基线 | 本次 **5.8.3-58210709** 最终Editor／Game、122项普通回归、GF-3两组及GF-1／GF-2兼容真实双端各1项通过，最终D3D12占位界面已检查；不替代真人／四机／完整扰动 |
-| 本机运行前置 | 最终完整构建及专用验证进程已退出，可重开Editor；按GF-3文档建立Practice GameMode BP、独立Room地图／出生点并修改GI Host目标。三份DA已正确，旧NetTest的Room Config保持None；各设备同步并统一补丁／重编 |
+| 开发阶段 | GF-1至GF-4代码、编译及程序验证完成；GF-3获团队基础初测正向反馈。GF-4正式地图／DA接线及真人双端待团队，下一开发环节GF-5；GF-5／6未开始，原MVP-B余项分别记账 |
+| 当前本机分支／代码提交 | `main / 2e7d72c`已含GF-3，加本轮未提交GF-4源码／文档；保留团队GI修改及两个新Room资产，未提交／Push |
+| 引擎基线 | 本次 **5.8.3-58210709** 最终Editor／Game成功，125项普通回归、GF-4四组及GF-3／GF-2兼容六组真实双端均各端1项通过；单Host、D3D12两局及倒计时画面已检查。不替代真人／四机／完整扰动 |
+| 本机运行前置 | 验证进程已退出，可重开完整重编的Editor；按GF-4第4节建立独立正式地图，配置两份Room DA的Round Travel及Match Map，默认倒计时3秒／超时45秒；GI Host仍指PracticeRoom |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
-| GAS 当前实现 | 原加速／免疫、Stun及Primary接线保留；显式换车／新局、来源清理及防迟到重绑已接生产选车，补无车首次Owner=Avatar的窄处理；普通重绑仍不回血。新Room BP应引用现有BP_HALPlayerState保留技能，无新GA／GE接线 |
+| GAS 当前实现 | 原加速／免疫、Stun与Primary接线保留；GF-4新World恢复可信计数后走显式新局初始化，清旧Avatar及本局效果／冷却，新Pawn隔离物理历史；普通重绑仍不重置。Room BP继续引用BP_HALPlayerState，无新GA／GE接线 |
 | 场地持续运动效果 | 原生区域无ASC／GA，服务器按来源逐参数选最强并施加两类内部GE；加速度／上限／抓地与普通Buff增量合并，合并版3物理历史保存恢复曲线、实际消费值与Stun权限，DA不改；无需修改PlayerState.DefaultAbilities |
 | 当前 HP／冲击 | 三档／免疫／降档／水平预设及回弹保持；GF-2练习规则在标准Resolver抑制扣血，冲击／脱球／命中消费继续，Playing正常扣血。伤害与冲击抗性继续独立，旧Room关闭入口行为保持 |
-| 当前 Editor 接线 | 三份Gameflow DA及Development Profile已正确；GF-3专用GameMode BP／Room地图及GI Host目标待按实施第3节手工配置。相机／表现及既有调参继续分别跟踪，本代理未改资产 |
+| 当前 Editor 接线 | 团队已建PracticeRoom地图／GameMode BP，GI Host目标已指新房间，Development Profile正确。GF-4新增字段默认未开启，正式地图及DA按实施第4节手配；本代理未保存资产 |
 | 电墙／Bounce Back | 远端ac14e60已接收：独立Authority水平回弹100cm／0.3秒、每次进入一次，保留Stun／shocked；与静态Visual可选集成后本机重新构建、普通回归及电墙双端通过，真人手感仍按机关说明复测 |
-| 测试地图 | `/Game/Maps/MVPB_NetTest`用于单Host及联机玩法；从`/Game/Maps/MVPB_NetEntry`进入Host→Start。团队已提交测试MinimumPlayersToStart=1并反馈可用；直接Standalone仍受Listen Server开始限制，Playing后拒绝Join保持。旧`/Game/Maps/Test`按专项目的使用 |
+| 测试地图 | Entry→Host进入`/Game/Maps/MVPB_PracticeRoom`；GF-4程序验证以服务器临时RoundMap指向另一World NetTest，未改保存DA。正式Match Map需团队新建；旧NetTest的Room Config保持None供兼容回归，旧`/Game/Maps/Test`按专项目的使用 |
 
 代码提交号是本次交接的比较基点，后续提交会变化。F1保存基线及F2历史证据保持；10月17日F3的原生GE／调试入口证据见原摘要。本轮运动GA补充不改保存配置、DA／地图或F2物理协议；329资产前后哈希全同，134份源码／配置及最终两Target／45项／正常GA双端证据见[本轮摘要](Combat/MVPB_Phase10F3Ability_Verification_20261019.json)。首次Live Coding阻塞、补Period防护前的通过记录独立保留；历史结果不冒充本次复测。
 
@@ -266,8 +268,9 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 | 环节 | 已有结果 | 证据边界 |
 |---|---|---|
-| GF-3灰盒房间／选车练习 | 专用生产GameMode、实际车型生成／就绪、取消／重试、原生四席位UI与身份色／编号、Client／Host基本退出完成；最终两Target、122普通、GF-3两组／既有GF-1／2真实双端各1项及D3D12界面检查通过 | 1180资产未改，团队仍需接Room BP／地图及GI入口并真人初测；开始只到Locked，GF-4再接真实转场／倒计时。详见[配置与验证](Networking/GF3_Practice_Room_Implementation_CN_v0.1.md) |
-| GF-2换车／新局生命周期 | 显式权威转换、Avatar复制身份／幂等、新车型种子和旧车清理、练习HP抑制完成；原两Target、118普通、GF-2及GF-1兼容双端各1项通过 | 原1180资产保护结论保持，GF-3已接生产生成并补首次无车状态；Profile修正已确认，真实跨图仍留GF-4。详见[实施](Networking/GF2_Vehicle_Lifecycle_Implementation_CN_v0.1.md) |
+| GF-4真实跨图与开赛 | 一次性交接、同车型新Avatar／新局重置、客户端屏障、同步倒计时及基本恢复完成；最终两Target、125普通、跨图两局／三组恢复／GF-3及GF-2兼容双端各1项、D3D12通过 | 1182保存资产全同、266源码／配置留档；团队正式图／DA接线及真人双端待测，下一开发GF-5。详见[实施及配置](Networking/GF4_Round_Travel_Implementation_CN_v0.1.md)、[验证](Networking/GF4_Verification_20261103.json) |
+| GF-3灰盒房间／选车练习 | 原代码／构建／122项／双端证据保留；团队已接Room BP／地图／GI入口，并报告基础测试暂无问题 | 未提供逐项／网络工况／四机日志，不扩写；真实跨图已由GF-4接续，详见[更新](Networking/GF3_Practice_Room_Implementation_CN_v0.1.md#7-2026-11-03团队反馈及gf-4接续) |
+| GF-2换车／新局生命周期 | 显式权威转换、Avatar复制身份／幂等、新车型种子和旧车清理、练习HP抑制完成；原两Target／118普通证据保留，本轮旧NetTest真实双端兼容复验各1项通过 | 原1180资产保护结论保持，GF-3已接生产生成并补首次无车状态；GF-4已接跨图新局初始化。详见[实施](Networking/GF2_Vehicle_Lifecycle_Implementation_CN_v0.1.md) |
 | GF-1数据与权限基础 | 车型目录／人数Profile／玩家及房间复制状态／权威请求／权限快照完成；原最终两Target、114普通、真实双端各1项通过 | 原1177资产保护结论保持；三份DA及Profile已正确，练习HP已由GF-2消费，生产房间代码已由GF-3接入；真人配置与跨图分开验收。详见[实施](Networking/GF1_Data_And_Permissions_Implementation_CN_v0.1.md) |
 | 车辆表现路径校验 | 驾驶车允许有效骨骼或静态路径之一，被动Box／球保持静态；独立96项历史保留，与电墙集成后本机两Target、103普通、3工具及表现双端各1项通过 | 缺省静态用原生临时副本验证，双端为现有保存车；团队实际清空DA／保存／画面仍待测，见[配置第6节](Configuration/MVPB_DataAsset_QuickGuide_CN_v1.0.md#6-静态回退可选团队配置与验证2026-10-29) |
 | 动态相机0.1 | 实现已随16b39eb提交，上一设备5.8.3的Editor／Game、93项、真实视口双端保持；10月29日本机5.8.2修复主球编辑保护，Editor／94项通过 | 团队正在Camera DA／IA／IMC接线，主球待重新勾选保存；本步1172资产全同。真实输入、驾驶／UI／斜坡及双端／扰动仍待验，见[实施第9节](Presentation/MVPB_Dynamic_Camera_Implementation_CN_v0.1.md#9-主球勾选置灰原因与修复2026-10-29) |
@@ -348,7 +351,7 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 ## 6. 下一环节和待确定项
 
-2026-11-02当前流程入口：**GF-3代码与程序验证已完成，团队先按[GF-3第3／4节](Networking/GF3_Practice_Room_Implementation_CN_v0.1.md#3-团队editor配置步骤)建立专用房间GameMode BP、Room地图／出生点，引用现有BP_HALPlayerState，并将GI的Match Map Path改到新Room地图，完成选车／取消／练习／双端退出初测。** 三份DA及Development Profile已正确，不必重建或继续改Profile；原NetTest的Room Config保持None。原生选车UI自动替换旧等待界面，不需新建Widget／GA／GE／IA。当前保存GI仍指向NetTest，未接线时Entry→Host仍走旧流程；也可按实施第5节用服务器启动URL临时测试原生GameMode。下一开发入口为[GF-4：真实跨图与全员开赛](Networking/Room_VehicleSelection_Practice_Match_Construction_CN_v0.2.md#gf-4真实跨图与全员开赛)，承接GF-3锁定名单，明确跨World身份／序号、GF-2新局初始化、客户端载入屏障、同步倒计时及有界恢复，GF-4至6尚未施工。六项规则已确认，不重复询问；普通Possess／OnRep不能重置属性，原FX画面、F4／VP-4C及四机仍独立验收。
+2026-11-03当前流程入口：**GF-4代码／构建／程序验证完成，团队先按[GF-4第4／5节](Networking/GF4_Round_Travel_Implementation_CN_v0.1.md#4-团队editor配置步骤)创建并保存独立正式地图，配置Room DA的Match Map／Enable Round Travel，验证单人及Host＋Client从房间跨图、全员等待／倒计时、正式权限、返回后第二局。** 默认3秒倒计时／45秒超时；GI的Match Map Path仍指PracticeRoom，Room BP仍使用BP_HALPlayerState，无新增GA／GE／输入。Development正式阶段可用菜单Host: Return to room或HALReturnToRoom；Exhibition仍要求四人。GF-3接线已只读确认并获用户基础正向反馈，不再列作未接线。下一开发环节为GF-5街机入口／车型预览／硬件焦点，GF-5／6尚未施工；GF-6、原F4／VP-4C／FX、突然断线与四机继续独立验收。规格已确认，不重复询问；不在普通Possess／OnRep中重置属性。
 
 2026-10-29自救最新入口：重开已完整重编Editor，按[自救第9.2节](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#92-团队editor调参步骤)将共享DA的Minimum Recovery Tilt按需设为实际Drive Exit Tilt（当前65°），试60／12／80／6的Response组合；保留当前资格等待2秒、长按1.5秒与执行／冷却。手动保存／Validate后新开双端，左右侧／斜靠／倒扣／墙角复测，查看Block及Outcome；没有自动覆盖保存资产，也不改变下述相机和MVP-B收尾排期。
 
@@ -429,6 +432,8 @@ MVP-B收尾时使用届时冻结的同一提交／构建／资产，统一覆盖
 > 这是同一 Unreal 项目的接续开发。请完整读取根目录 AGENTS.md、Docs/Project_Status_CN.md 和当前环节规格，再核对 Git、实际引擎版本与相关源码／配置。先汇报已完成、未验收及差异，再执行我本次指定的环节。涉及蓝图／Data Asset 编辑，请提供 Unreal Editor 操作步骤，不直接修改资产。
 
 ## 8. 本次更新记录
+
+- 2026-11-03：接收GF-3基础测试正向反馈，从`main/2e7d72c`完成GF-4跨World身份／新车新局、全员客户端就绪、服务器倒计时及超时／离房恢复。最终Editor／Game、125/125、跨图连续两局／三组恢复及GF-3／GF-2兼容六组双端均各端1/1，Listen单Host与D3D12 Standalone两局通过，倒计时画面已检查。1182保存资产逐份全同、266源码／配置留档；保留团队GI及两份Room资产。按[GF-4配置](Networking/GF4_Round_Travel_Implementation_CN_v0.1.md)手配正式图和DA后真人复测，下一开发GF-5；未追加PIE／打包／真实扰动／四机结论，未提交／Push。早期失败独立保留，见[共享验证](Networking/GF4_Verification_20261103.json)。
 
 - 2026-11-02：从干净`main/d1add4b`完成GF-3生产选车／生车／取消重选／原生房间UI及基本退出。Development Profile正确保存已核对。补首次Owner-only ASC及teardown Widget重建保护，最终Editor／Game、122/122、两组GF-3和GF-1／2兼容双端均各1/1通过，D3D12占位界面已检查；1180资产全同，260源码／配置哈希留档。团队按[详细配置](Networking/GF3_Practice_Room_Implementation_CN_v0.1.md)手动建专用Room资产及GI Host入口，再真人初测；GF-3开始仅锁房，下一开发GF-4真实跨图与倒计时。没有代理资产编辑或新增真人／四机／完整扰动结论，未提交／Push。
 

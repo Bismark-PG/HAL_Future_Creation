@@ -31,6 +31,7 @@ namespace
 		case EHALRoomResult::SpawnBlocked: return TEXT("Spawn point blocked. Clear it and confirm again.");
 		case EHALRoomResult::MissingSpawn: return TEXT("Your spawn point is unavailable. Ask the host to check the room.");
 		case EHALRoomResult::InvalidVehicle: return TEXT("Vehicle unavailable. Select another vehicle.");
+		case EHALRoomResult::InvalidConfiguration: return TEXT("Match destination unavailable. Ask the host to check the room settings.");
 		case EHALRoomResult::SpawnFailed: return TEXT("Could not prepare the vehicle. Confirm to retry.");
 		case EHALRoomResult::NotHost: return TEXT("Only the host can start.");
 		case EHALRoomResult::StaleSelection: return TEXT("Selection updated. Please retry.");
@@ -42,7 +43,7 @@ namespace
 bool UHALPracticeRoomWidget::MenuVisible() const
 {
 	const auto* PC = GetOwningPlayer<AHALPlayerController>(); const auto* R = Room(this);
-	return !PC || PC->WantsRoomMenu() || !R || R->GetData().Phase != EHALRoomPhase::Open;
+	return !PC || PC->WantsRoomMenu() || !R || (R->GetData().Phase != EHALRoomPhase::Open && R->GetData().Phase != EHALRoomPhase::Playing);
 }
 bool UHALPracticeRoomWidget::CanSelect() const
 {
@@ -91,7 +92,7 @@ FText UHALPracticeRoomWidget::SeatText(int32 Seat) const
 		{
 			if (!P || P->GetRoomData().Seat != Seat) { continue; }
 			const auto& D = P->GetRoomData();
-			const TCHAR* Phase = D.Phase == EHALRoomPlayerPhase::Ready ? TEXT("Practicing")
+			const TCHAR* Phase = D.Phase == EHALRoomPlayerPhase::Ready ? (R->GetData().Phase==EHALRoomPhase::Open ? TEXT("Practicing") : R->GetData().Phase==EHALRoomPhase::Playing ? TEXT("Playing") : D.bClientLoaded ? TEXT("Ready") : TEXT("Loading"))
 				: D.Phase == EHALRoomPlayerPhase::PreparingAvatar ? TEXT("Preparing") : TEXT("Selecting");
 			return FText::FromString(FString::Printf(TEXT("P%d %s | %s | %s%s"),D.Number,*P->GetPlayerName(),*D.VehicleId.ToString(),Phase,P==R->GetData().Host?TEXT(" [Host]"):TEXT("")));
 		}
@@ -109,13 +110,25 @@ FText UHALPracticeRoomWidget::StatusText() const
 	const auto* R = Room(this); const auto* PC = GetOwningPlayer<AHALPlayerController>();
 	const auto* PS = PC ? PC->GetPlayerState<AHALPlayerState>() : nullptr;
 	if (!R || !PS) { return FText::FromString(TEXT("Connecting to room...")); }
-	if (R->GetData().Phase == EHALRoomPhase::Returning) { return FText::FromString(TEXT("Returning to entry...")); }
+	if (R->GetData().Phase==EHALRoomPhase::Loading)
+	{
+		int32 Loaded=0; for (const auto& P:R->GetData().Members) { if (P && P->GetRoomData().bClientLoaded) { ++Loaded; } }
+		return FText::FromString(FString::Printf(TEXT("Loading vehicles: %d / %d"),Loaded,R->GetData().ExpectedPlayers));
+	}
+	if (R->GetData().Phase == EHALRoomPhase::Countdown)
+	{
+		const auto* S=GetWorld()->GetGameState<AHALMatchGameState>();
+		return FText::FromString(FString::Printf(TEXT("Match starts in %d"),FMath::CeilToInt(FMath::Max(0.0,R->GetData().CountdownEndServerTime-S->GetServerWorldTimeSeconds()))));
+	}
+	if (R->GetData().Phase == EHALRoomPhase::Playing) { return FText::FromString(TEXT("Match in progress.")); }
+	if (R->GetData().Phase == EHALRoomPhase::Returning) { return FText::FromString(TEXT("Leaving this arena...")); }
 	if (R->GetData().Phase != EHALRoomPhase::Open) { return FText::FromString(TEXT("Preparing the match. New players and vehicle changes are closed.")); }
 	if (PC->IsRoomRequestPending()) { return FText::FromString(TEXT("Updating selection...")); }
 	const auto Last = PC->GetLastRoomResult();
 	const auto Result = PS->GetRoomData().AvatarResult != EHALRoomResult::Accepted ? PS->GetRoomData().AvatarResult
 		: Last == EHALRoomResult::Inactive ? EHALRoomResult::Accepted : Last;
 	if (Result != EHALRoomResult::Accepted) { return FText::FromString(ResultText(Result)); }
+	if (!R->GetData().FlowMessage.IsEmpty()) { return FText::FromString(R->GetData().FlowMessage); }
 	return FText::FromString(FString::Printf(TEXT("Practice: no HP damage. Start needs %d confirmed player(s)."),R->GetData().Rules.MinimumPlayers()));
 }
 TSharedRef<SWidget> UHALPracticeRoomWidget::RebuildWidget()
@@ -136,8 +149,12 @@ TSharedRef<SWidget> UHALPracticeRoomWidget::RebuildWidget()
 		return PC && PS && R && !PC->IsRoomRequestPending() && R->GetData().Phase==EHALRoomPhase::Open && PS->GetRoomData().Phase!=EHALRoomPlayerPhase::Selecting;
 	}).OnClicked_Lambda([this]{ GetOwningPlayer<AHALPlayerController>()->CancelRoomConfirmation(); return FReply::Handled(); })];
 	Controls->AddSlot().AutoHeight().Padding(0,6)[SNew(SButton).Text(FText::FromString(TEXT("Host: Start"))).IsEnabled_UObject(this,&ThisClass::CanStart).OnClicked_Lambda([this]{ GetOwningPlayer<AHALPlayerController>()->RequestStartMatch(); return FReply::Handled(); })];
-	Controls->AddSlot().AutoHeight().Padding(0,6)[SNew(SButton).Text(FText::FromString(TEXT("Resume practice (Tab / Start)"))).IsEnabled_Lambda([this]{ const auto* PS=GetOwningPlayerState<AHALPlayerState>(); return PS && PS->GetRoomData().Phase==EHALRoomPlayerPhase::Ready; }).OnClicked_Lambda([this]{ GetOwningPlayer<AHALPlayerController>()->ToggleRoomMenu(); return FReply::Handled(); })];
+	Controls->AddSlot().AutoHeight().Padding(0,6)[SNew(SButton).Text(FText::FromString(TEXT("Resume driving (Tab / Start)"))).IsEnabled_Lambda([this]{ const auto* PS=GetOwningPlayerState<AHALPlayerState>(); const auto* R=Room(this); return PS && R && (R->GetData().Phase==EHALRoomPhase::Open || R->GetData().Phase==EHALRoomPhase::Playing) && PS->GetRoomData().Phase==EHALRoomPlayerPhase::Ready; }).OnClicked_Lambda([this]{ GetOwningPlayer<AHALPlayerController>()->ToggleRoomMenu(); return FReply::Handled(); })];
 	Controls->AddSlot().AutoHeight().Padding(0,6)[SNew(SButton).Text(FText::FromString(TEXT("Leave room"))).OnClicked_Lambda([this]{ GetOwningPlayer<AHALPlayerController>()->LeaveRoom(); return FReply::Handled(); })];
+	Controls->AddSlot().AutoHeight().Padding(0,6)[SNew(SButton).Text(FText::FromString(TEXT("Host: Return to room")))
+		.Visibility_Lambda([this]{ const auto* R=Room(this); return R && R->GetData().Phase==EHALRoomPhase::Playing && R->GetData().Rules.Profile==EHALRoomProfile::Development ? EVisibility::Visible:EVisibility::Collapsed; })
+		.IsEnabled_Lambda([this]{ const auto* R=Room(this); return R && R->GetData().Host==GetOwningPlayerState<AHALPlayerState>(); })
+		.OnClicked_Lambda([this]{ GetOwningPlayer<AHALPlayerController>()->HALReturnToRoom(); return FReply::Handled(); })];
 	Controls->AddSlot().AutoHeight().Padding(0,8)[SNew(STextBlock).Text_UObject(this,&ThisClass::StatusText).AutoWrapText(true)];
 	return SNew(SOverlay)
 		+SOverlay::Slot().HAlign(HAlign_Left).VAlign(VAlign_Top).Padding(16)

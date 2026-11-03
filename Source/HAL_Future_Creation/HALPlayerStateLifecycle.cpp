@@ -6,6 +6,31 @@
 #include "TestVehiclePawn.h"
 #include "Engine/World.h"
 
+void AHALPlayerState::PrepareForWorldExit()
+{
+	if (!HasAuthority()) { return; }
+	if (auto* Pawn=Cast<ATestVehiclePawn>(AbilitySystem->GetAvatarActor())) { Pawn->RetireForVehicleTransition(); }
+	Lifecycle.Avatar=nullptr; RoomData.ReadyAvatar=nullptr; RoomData.bClientLoaded=false; RoomData.LoadToken.Invalidate();
+	AbilitySystem->InitAbilityActorInfo(this,nullptr); ForceNetUpdate();
+}
+void AHALPlayerState::RestoreTravelCounters(uint32 Serial, uint32 Revision, uint32 Round)
+{
+	if (!HasAuthority()) { return; }
+	Lifecycle.ChangeSerial=FMath::Max(Lifecycle.ChangeSerial,Serial); Lifecycle.Revision=FMath::Max(Lifecycle.Revision,Revision);
+	Lifecycle.RoundId=FMath::Max(Lifecycle.RoundId,Round); Lifecycle.Avatar=nullptr;
+	bLastVehicleTransitionSucceeded=false; LastVehicleTransitionKey=FObjectKey();
+	AbilitySystem->InitAbilityActorInfo(this,nullptr);
+}
+void AHALPlayerState::CopyProperties(APlayerState* Other)
+{
+	Super::CopyProperties(Other);
+	if (auto* Next=Cast<AHALPlayerState>(Other))
+	{
+		auto P=RoomData; P.ReadyAvatar=nullptr; P.bClientLoaded=false; P.LoadToken.Invalidate(); Next->SetRoomData(P);
+		Next->RestoreTravelCounters(Lifecycle.ChangeSerial,Lifecycle.Revision,Lifecycle.RoundId);
+	}
+}
+
 bool AHALPlayerState::CanBindVehicleAvatar(const ATestVehiclePawn* Pawn) const
 { return !Lifecycle.Revision || Lifecycle.Avatar == Pawn; }
 void AHALPlayerState::OnRep_Lifecycle()

@@ -11,6 +11,7 @@
 class UHALDebugHUDWidget;
 class UHALAbilitySystemComponent;
 class UHALCameraDebugWidget;
+class UHALRoomComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHALRoomRequestCompleted, EHALRoomResult, Result);
 
 /** Local input, camera and match UI entry point for a single player. */
@@ -23,6 +24,10 @@ public:
 	AHALPlayerController();
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
+	virtual void PreClientTravel(const FString& URL,ETravelType Type,bool bSeamless) override;
+	virtual void PostSeamlessTravel() override;
+	virtual void TickActor(float DeltaSeconds,ELevelTick TickType,FActorTickFunction& ThisTickFunction) override;
+	UFUNCTION(Exec) void HALReturnToRoom();
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void ClientReturnToMainMenuWithTextReason_Implementation(const FText& ReturnReason) override;
 	UFUNCTION(Client, Reliable) void ClientRoomSelectionView(FVector Location, FRotator Rotation);
@@ -81,6 +86,13 @@ public:
 	void HALClearMovementBoost();
 
 private:
+	void PollRoundReadiness();
+	void CreateLocalDebugWidgets();
+	UFUNCTION(Server,Reliable) void ServerRoundLoaded(FGuid Flow,uint32 Round,FGuid Token,APawn* ExpectedAvatar);
+	FTimerHandle RoundReadyTimer;
+	TWeakObjectPtr<UHALRoomComponent> BoundRoom;
+	FGuid ObservedLoadToken;
+	double ReadyObservedAt=0, NextReadyRequest=0;
 	void SubmitRoomAction(EHALRoomAction Action, FName VehicleId = NAME_None);
 	UFUNCTION(Server, Reliable) void ServerRoomAction(EHALRoomAction Action, FName VehicleId, uint32 SelectionRevision);
 	UFUNCTION(Client, Reliable) void ClientRoomResult(EHALRoomResult Result, uint32 Revision);
