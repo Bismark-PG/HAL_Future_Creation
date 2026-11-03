@@ -16,6 +16,7 @@
 #include "TimerManager.h"
 #include "Components/PrimitiveComponent.h"
 #include "Engine/OverlapResult.h"
+#include "Misc/CommandLine.h"
 
 namespace
 {
@@ -37,6 +38,9 @@ namespace
 
 void AHALPracticeRoomGameMode::InitGame(const FString& Map, const FString& Options, FString& Error)
 {
+#if !UE_BUILD_SHIPPING
+	bAllowTestRoundEnd=FParse::Param(FCommandLine::Get(),TEXT("HALAllowTestRoundEnd"));
+#endif
 	if (auto* GI=GetGameInstance<UHALNetworkGameInstance>(); GI && GI->TakeRoundTravel(UWorld::RemovePIEPrefix(GetWorld()->GetOutermost()->GetName()),Travel))
 	{ bRestoringTravel=true; bRoundWorld=!Travel.bToPractice; RoomConfig=Travel.Config; }
 	Super::InitGame(Map,Options,Error);
@@ -149,12 +153,12 @@ EHALRoomResult AHALPracticeRoomGameMode::HandleRoomAction(AHALPlayerController* 
 	if (!HasAuthority() || bReturningToEntry || bTravelDeparting) { return EHALRoomResult::WrongPhase; }
 	if (Action==EHALRoomAction::ReturnToRoom)
 	{
+		if (!CanRequestRoundReturn()) { return EHALRoomResult::WrongPhase; }
 		auto* Room=GetGameState<AHALMatchGameState>()->GetRoom();
-		if (!bRoundWorld || Room->GetData().Phase!=EHALRoomPhase::Playing || Room->GetData().Rules.Profile!=EHALRoomProfile::Development) { return EHALRoomResult::WrongPhase; }
 		if (!PC || Room->GetData().Host!=PC->GetPlayerState<AHALPlayerState>() || !PC->IsLocalController()) { return EHALRoomResult::NotHost; }
 		if (!Id.IsNone()) { return EHALRoomResult::InvalidRequest; }
 		if (PC->GetPlayerState<AHALPlayerState>()->GetRoomData().SelectionRevision!=Revision) { return EHALRoomResult::StaleSelection; }
-		return StartRoundTravel(true,TEXT("Returned to room. Please confirm your vehicle again."))?EHALRoomResult::Accepted:EHALRoomResult::InvalidConfiguration;
+		return ReturnActiveRoundToRoom();
 	}
 	if (Action==EHALRoomAction::Start && RoomConfig && RoomConfig->bEnableRoundTravel && !PreflightRound()) { return EHALRoomResult::InvalidConfiguration; }
 	const auto Result = Super::HandleRoomAction(PC,Action,Id,Revision);
@@ -168,6 +172,29 @@ EHALRoomResult AHALPracticeRoomGameMode::HandleRoomAction(AHALPlayerController* 
 		return EHALRoomResult::InvalidConfiguration;
 	}
 	return Result;
+}
+bool AHALPracticeRoomGameMode::CanRequestRoundReturn() const
+{
+	const auto* S=GetGameState<AHALMatchGameState>(); const auto* Room=S?S->GetRoom():nullptr;
+	if (!HasAuthority() || bReturningToEntry || bTravelDeparting || !bRoundWorld || !Room || !Room->IsEnabled()
+		|| Room->GetData().Phase!=EHALRoomPhase::Playing) { return false; }
+	if (Room->GetData().Rules.Profile==EHALRoomProfile::Development) { return true; }
+#if !UE_BUILD_SHIPPING
+	return bAllowTestRoundEnd && Room->GetData().Rules.Profile==EHALRoomProfile::Exhibition;
+#else
+	return false;
+#endif
+}
+EHALRoomResult AHALPracticeRoomGameMode::ReturnActiveRoundToRoom()
+{
+	if (!HasAuthority()) { return EHALRoomResult::NotAuthority; }
+	const auto* S=GetGameState<AHALMatchGameState>(); const auto* Room=S?S->GetRoom():nullptr;
+	if (bReturningToEntry || bTravelDeparting || !bRoundWorld || !Room || !Room->IsEnabled()
+		|| Room->GetData().Phase!=EHALRoomPhase::Playing) { return EHALRoomResult::WrongPhase; }
+	const uint32 Round=Room->GetData().RoundId;
+	if (!StartRoundTravel(true,TEXT("Round ended. Please confirm your vehicle again."))) { return EHALRoomResult::InvalidConfiguration; }
+	UE_LOG(LogTemp,Display,TEXT("GF6 round return accepted: Round=%u"),Round);
+	return EHALRoomResult::Accepted;
 }
 void AHALPracticeRoomGameMode::ReturnRoomToEntry(AHALPlayerController* Host)
 {

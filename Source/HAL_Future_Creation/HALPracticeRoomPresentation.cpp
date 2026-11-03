@@ -144,7 +144,7 @@ TSharedRef<SWidget> UHALPracticeRoomWidget::RebuildWidget()
 	AddAction(TEXT("HOST: START MATCH"),FSimpleDelegate::CreateUObject(this,&ThisClass::StartRoomMatch),TAttribute<bool>::CreateLambda([this]{ return CanStart(); }));
 	AddAction(TEXT("RESUME DRIVING"),FSimpleDelegate::CreateUObject(this,&ThisClass::ResumeDriving),TAttribute<bool>::CreateLambda([this]{ return CanResume(); }));
 	AddAction(TEXT("RETURN TO ROOM"),FSimpleDelegate::CreateUObject(this,&ThisClass::ReturnToRoom),TAttribute<bool>::CreateLambda([this]{ return CanReturnToRoom(); }),TAttribute<EVisibility>::CreateLambda([this]
-	{ const auto* R=PresentationRoom(this); return R && R->GetData().Phase==EHALRoomPhase::Playing && R->GetData().Rules.Profile==EHALRoomProfile::Development?EVisibility::Visible:EVisibility::Collapsed; }));
+	{ return CanReturnToRoom()?EVisibility::Visible:EVisibility::Collapsed; }));
 	AddAction(TEXT("LEAVE ROOM"),FSimpleDelegate::CreateUObject(this,&ThisClass::LeaveCurrentRoom),true);
 	auto Seats=SNew(SHorizontalBox);
 	for (int32 I=0;I<4;++I)

@@ -7,23 +7,30 @@
 #include "../HALMatchGameState.h"
 #include "../HALAbilitySystemComponent.h"
 #include "../HALGameFlowPermissions.h"
+#include "../HALPracticeRoomGameMode.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+
+struct FHALPracticeRoomTestAccess
+{
+	static void Setup(AHALPracticeRoomGameMode* Mode,UWorld* World,bool Round,bool OptIn)
+	{ Mode->GameState=World->GetGameState(); Mode->bRoundWorld=Round; Mode->bAllowTestRoundEnd=OptIn; }
+};
 
 namespace
 {
 	struct FTravelWorld
 	{
 		UWorld* W; UHALRoomComponent* Room; TArray<AHALPlayerController*> PCs;
-		FTravelWorld()
+		FTravelWorld(int32 Players=2,EHALRoomProfile Profile=EHALRoomProfile::Development)
 		{
 			const auto V=UWorld::InitializationValues().AllowAudioPlayback(false).RequiresHitProxies(false).CreatePhysicsScene(true)
 				.CreateNavigation(false).CreateAISystem(false).CreateFXSystem(false).ShouldSimulatePhysics(false).EnableTraceCollision(true).SetTransactional(false);
 			W=UWorld::CreateWorld(EWorldType::Game,false,NAME_None,nullptr,true,ERHIFeatureLevel::Num,&V);
 			GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(W);
 			auto* S=W->SpawnActor<AHALMatchGameState>(); W->SetGameState(S); Room=S->GetRoom();
-			Room->Initialize(FHALRoomTestAccess::Config(Room,EHALRoomProfile::Development)); Room->EnablePracticeRoom();
-			for (int32 I=0;I<2;++I)
+			Room->Initialize(FHALRoomTestAccess::Config(Room,Profile)); Room->EnablePracticeRoom();
+			for (int32 I=0;I<Players;++I)
 			{
 				auto* PC=W->SpawnActor<AHALPlayerController>(); PC->SetAsLocalPlayerController();
 				auto* PS=W->SpawnActor<AHALPlayerState>(); PS->SetOwner(PC); PC->SetPlayerState(PS);
@@ -49,6 +56,36 @@ namespace
 		}
 		~FTravelWorld() { W->DestroyWorld(false); GEngine->DestroyWorldContext(W); }
 	};
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALRoundReturnGateTest,"HAL.FutureCreation.GameFlow.GF6.RoundReturnAuthorityAndOptIn",
+	EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALRoundReturnGateTest::RunTest(const FString&)
+{
+	for (const auto Profile:{EHALRoomProfile::Development,EHALRoomProfile::Exhibition})
+	{
+		FTravelWorld F(4,Profile); const auto T=F.Ticket(); F.Room->RestoreTravel(T);
+		for (int32 I=0;I<4;++I) { F.Room->ImportTravelMember(F.PCs[I],T.Players[I],T.HostKey); }
+		auto* Mode=F.W->SpawnActor<AHALPracticeRoomGameMode>(); FHALPracticeRoomTestAccess::Setup(Mode,F.W,true,true);
+		TestFalse(TEXT("Loading cannot be ended by test UI"),Mode->CanRequestRoundReturn());
+		TestEqual(TEXT("Trusted server call also respects phase"),Mode->ReturnActiveRoundToRoom(),EHALRoomResult::WrongPhase);
+		F.Room->AdvanceRound(1,EHALRoomPhase::Countdown); F.Room->AdvanceRound(1,EHALRoomPhase::Playing);
+		FHALPracticeRoomTestAccess::Setup(Mode,F.W,true,false);
+		TestEqual(TEXT("Exhibition defaults closed, Development retains existing control"),Mode->CanRequestRoundReturn(),Profile==EHALRoomProfile::Development);
+		auto* Host=F.PCs[0]; const uint32 Revision=Host->GetPlayerState<AHALPlayerState>()->GetRoomData().SelectionRevision;
+		if (Profile==EHALRoomProfile::Exhibition)
+		{ TestEqual(TEXT("Unopted host request rejected"),Mode->HandleRoomAction(Host,EHALRoomAction::ReturnToRoom,NAME_None,Revision),EHALRoomResult::WrongPhase); }
+		FHALPracticeRoomTestAccess::Setup(Mode,F.W,true,true);
+		TestTrue(TEXT("Non-Shipping server opt-in enables test entry"),Mode->CanRequestRoundReturn());
+		TestEqual(TEXT("Client cannot end another player's round"),Mode->HandleRoomAction(F.PCs[1],EHALRoomAction::ReturnToRoom,NAME_None,Revision),EHALRoomResult::NotHost);
+		TestEqual(TEXT("Null requester rejected"),Mode->HandleRoomAction(nullptr,EHALRoomAction::ReturnToRoom,NAME_None,Revision),EHALRoomResult::NotHost);
+		TestEqual(TEXT("No arbitrary vehicle/result payload accepted"),Mode->HandleRoomAction(Host,EHALRoomAction::ReturnToRoom,TEXT("Car_01"),Revision),EHALRoomResult::InvalidRequest);
+		TestEqual(TEXT("Old selection request rejected"),Mode->HandleRoomAction(Host,EHALRoomAction::ReturnToRoom,NAME_None,Revision+1),EHALRoomResult::StaleSelection);
+		TestEqual(TEXT("Missing handoff configuration fails without closing room"),Mode->ReturnActiveRoundToRoom(),EHALRoomResult::InvalidConfiguration);
+		TestEqual(TEXT("Failed request leaves active phase intact"),F.Room->GetData().Phase,EHALRoomPhase::Playing);
+		FHALPracticeRoomTestAccess::Setup(Mode,F.W,false,true);
+		TestFalse(TEXT("Practice world cannot masquerade as a round"),Mode->CanRequestRoundReturn());
+	}
+	return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALRoundConfigTest,"HAL.FutureCreation.GameFlow.GF4.ConfigAndReferenceFreeEnvelope",
 	EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)

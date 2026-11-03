@@ -29,13 +29,13 @@ namespace
 		FAutomationTestBase* Test;
 		bool Solo=false,Timeout=false,RoleKnown=false,Host=false,Verified=false,SawLoading=false,SawCountdown=false,Disconnect=false,BadMap=false;
 		uint32 LoadedRound=0, CountdownRound=0;
-		bool ExitLoading=false,ScreenshotRequested=false,ContractConfigured=false;
+		bool ExitLoading=false,ScreenshotRequested=false,ContractConfigured=false,Exhibition=false;
 		uint32 PracticeWorldId=0, DirtyRound=MAX_uint32, ReturnedRound=0, CountedPlaying=0;
 		FGuid Key,FirstEpoch,FirstFlow,RoundOneEpoch; int32 Seat=INDEX_NONE;
 		FLinearColor Color; FString PracticeMap;
 		double Deadline=FPlatformTime::Seconds()+180, NextAction=0, Finished=-1, ExitAt=-1;
 	public:
-		FRoundProbe(FAutomationTestBase* T,bool S,bool O,bool D=false,bool B=false,bool H=false):Test(T),Solo(S),Timeout(O),Disconnect(D),BadMap(B),ExitLoading(H) {}
+		FRoundProbe(FAutomationTestBase* T,bool S,bool O,bool D=false,bool B=false,bool H=false,bool E=false):Test(T),Solo(S),Timeout(O),Disconnect(D),BadMap(B),ExitLoading(H),Exhibition(E) {}
 		virtual bool Update() override
 		{
 			const double Now=FPlatformTime::Seconds();
@@ -66,6 +66,12 @@ namespace
 			const auto D=R->GetData(); const auto P=PS->GetRoomData();
 			AHALPlayerState* Other=nullptr;
 			for (const auto& Member:D.Members) { if (Member && Member!=PS) { Other=Member; break; } }
+			const auto AllOthersNamed=[&](const FString& Name)
+			{
+				if (D.Members.Num()!=(Exhibition?4:2)) { return false; }
+				for (const auto& Member:D.Members) { if (!Member || (Member!=PS && Member->GetPlayerName()!=Name)) { return false; } }
+				return true;
+			};
 			auto* Pawn=Cast<ATestVehiclePawn>(PC->GetPawn()); auto* ASC=PS->GetHALAbilitySystemComponent();
 			auto* M=Pawn?Pawn->FindComponentByClass<UArcadeVehicleMovementComponent>():nullptr;
 			const auto Physics=M?M->GetMovementEffectStatus():FHALMovementStatus();
@@ -77,13 +83,15 @@ namespace
 			if (Verified)
 			{
 				if (!Host) { PC->SetName(TEXT("GF4_DONE")); }
-				else if ((Solo || Disconnect || (Other && Other->GetPlayerName()==TEXT("GF4_DONE"))) && ExitAt<0) { ExitAt=Now+1; }
+				else if ((Solo || Disconnect || AllOthersNamed(TEXT("GF4_DONE"))) && ExitAt<0) { ExitAt=Now+1; }
 				if (Host && ExitAt>0 && Now>=ExitAt) { ExitAt=MAX_dbl; PC->LeaveRoom(); }
 				return false;
 			}
 			if (D.Phase==EHALRoomPhase::Loading || D.Phase==EHALRoomPhase::Countdown)
 			{
 				if (!Ready) { return false; }
+				if (Exhibition)
+				{ Test->TestEqual(TEXT("Actual Exhibition requires four members"),D.Rules.MinimumPlayers(),4); Test->TestEqual(TEXT("All four real processes travel together"),D.ExpectedPlayers,4); }
 				Test->TestTrue(TEXT("Actual new World and distinct match package"),W->GetUniqueID()!=PracticeWorldId && W->GetOutermost()->GetName()!=PracticeMap);
 				Test->TestTrue(TEXT("Fresh physics epoch after map travel"),FirstEpoch.IsValid() && Physics.Value.Epoch!=FirstEpoch);
 				if (D.RoundId==1) { RoundOneEpoch=Physics.Value.Epoch; }
@@ -123,8 +131,12 @@ namespace
 				if (D.RoundId==1)
 				{
 					if (!Host) { PC->SetName(TEXT("GF4_PLAY_1")); }
-					if (Host && (Solo || (Other && Other->GetPlayerName()==TEXT("GF4_PLAY_1"))) && Now>=NextAction)
-					{ NextAction=Now+.25; PC->HALReturnToRoom(); }
+					if (Host && (Solo || AllOthersNamed(TEXT("GF4_PLAY_1"))) && Now>=NextAction)
+					{
+						NextAction=Now+.25;
+						if (Exhibition) { Test->TestTrue(TEXT("Server launch opt-in permits Exhibition host return"),W->GetAuthGameMode<AHALPracticeRoomGameMode>()->CanRequestRoundReturn()); }
+						PC->HALReturnToRoom();
+					}
 				}
 				else { Verified=true; }
 				return false;
@@ -156,7 +168,7 @@ namespace
 				}
 				if (!FirstEpoch.IsValid()) { FirstEpoch=Physics.Value.Epoch; }
 				if (!Host) { PC->SetName(FString::Printf(TEXT("GF4_READY_%u"),D.RoundId)); }
-				if (Host && R->CheckStart(PC)==EHALRoomResult::Accepted && (Solo || (Other && Other->GetPlayerName()==FString::Printf(TEXT("GF4_READY_%u"),D.RoundId))))
+				if (Host && R->CheckStart(PC)==EHALRoomResult::Accepted && (Solo || AllOthersNamed(FString::Printf(TEXT("GF4_READY_%u"),D.RoundId))))
 				{
 					if (DirtyRound!=D.RoundId)
 					{
@@ -178,6 +190,8 @@ namespace
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALRoundNetworkTest,"HAL.NetworkSmoke.GameFlow.GF4.TwoRounds",EAutomationTestFlags::ClientContext|EAutomationTestFlags::ServerContext|EAutomationTestFlags::EngineFilter)
 bool FHALRoundNetworkTest::RunTest(const FString&) { FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FRoundProbe>(this,false,false)); return true; }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALExhibitionRoundNetworkTest,"HAL.NetworkSmoke.GameFlow.GF6.ExhibitionFourProcessesTwoRounds",EAutomationTestFlags::ClientContext|EAutomationTestFlags::ServerContext|EAutomationTestFlags::EngineFilter)
+bool FHALExhibitionRoundNetworkTest::RunTest(const FString&) { FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FRoundProbe>(this,false,false,false,false,false,true)); return true; }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALRoundTimeoutNetworkTest,"HAL.NetworkSmoke.GameFlow.GF4.TimeoutRecovery",EAutomationTestFlags::ClientContext|EAutomationTestFlags::ServerContext|EAutomationTestFlags::EngineFilter)
 bool FHALRoundTimeoutNetworkTest::RunTest(const FString&) { FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FRoundProbe>(this,false,true)); return true; }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALRoundSingleTest,"HAL.NetworkSmoke.GameFlow.GF4.SingleHost",EAutomationTestFlags::ClientContext|EAutomationTestFlags::ServerContext|EAutomationTestFlags::EngineFilter)

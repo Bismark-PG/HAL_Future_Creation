@@ -4,6 +4,7 @@
 #include "HALMatchGameState.h"
 #include "HALRoomComponent.h"
 #include "HALVehicleCatalog.h"
+#include "HALPracticeRoomGameMode.h"
 #include "Engine/World.h"
 
 namespace
@@ -26,8 +27,9 @@ bool UHALPracticeRoomWidget::CanResume() const
 bool UHALPracticeRoomWidget::CanReturnToRoom() const
 {
 	const auto* R=ScreenRoom(this); const auto* PC=GetOwningPlayer<AHALPlayerController>();
-	return R && PC && !PC->IsRoomRequestPending() && R->GetData().Phase==EHALRoomPhase::Playing
-		&& R->GetData().Rules.Profile==EHALRoomProfile::Development && R->GetData().Host==GetOwningPlayerState<AHALPlayerState>();
+	const auto* Mode=GetWorld()?GetWorld()->GetAuthGameMode<AHALPracticeRoomGameMode>():nullptr;
+	return R && PC && PC->IsLocalController() && !PC->IsRoomRequestPending() && Mode && Mode->CanRequestRoundReturn()
+		&& R->GetData().Host==GetOwningPlayerState<AHALPlayerState>();
 }
 void UHALPracticeRoomWidget::SelectVehicleById(FName Id)
 { if (CanSelect()) { GetOwningPlayer<AHALPlayerController>()->SelectRoomVehicle(Id); } }

@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-03 GF-6工程收尾完成代码、构建及程序验证；下一步实际打包／四机验收，GF-6整体尚未验收结束。** 从干净`main/125395cb4464654f9f6374f7f1b9e70e2e2ae50e`接续，已含此前GF-5 Widget接口提交，旧“未提交／下一GF-6未开始”按原时点阅读。新增服务器`ReturnActiveRoundToRoom()`共用返回接口；Development保留手动返回，Exhibition默认拒绝，仅非Shipping主机启动带`-HALAllowTestRoundEnd`时开放原按钮／命令，保持Host／阶段／版本／重复请求校验。补PracticeRoom／Match显式Cook地图及Gameflow窄目录根、只读依赖预检、可复跑双端／四进程循环工具。详见[工程收尾与操作步骤](Networking/GF6_Engineering_Closeout_CN_v0.1.md)、[本轮验证／保护基线](Networking/GF6_Engineering_Verification_20261103.json)。UE5.8.3最终Editor／Game成功，**130/130普通回归、Exhibition同机四进程连续两局各1/1、Development保存BP双端两局各1/1、D3D12原生UI流程1/1**，测试报告均0警告／失败；只读预检成功，86个项目依赖包存在，GA／GE及两车资源可追踪。**1183保存资产SHA-256逐份全同，285源码／配置／uproject留档**；Config仅新增3条Cook根，Build.cs／uproject未改，无代理保存BP／DA／地图。Exhibition夹具使用原生GameMode／PlayerState配保存DA，不冒充团队BP技能／WBP接线或四台实体PC；当前三项Screen类仍None，原生回退。未执行UAT Cook／Stage／实际发布包、完整扰动／突然断线或真人硬件验收；没有正式比赛计时／淘汰／观战／结算，F4／VP-4C／FX余项独立。失败预检迭代如实留档，专用进程均退出；本轮修改未提交／Push，需正常Git提交同步。
+
 **2026-11-03 GF-5 Widget Blueprint接口补充完成代码、构建及程序验证，当前原生布局作为未配置时回退，团队可开始制作自定义界面。** 从干净`main/35aa00c41566b5ba2161445574b61950006a024b`接续，原GF-5已提交。用户授权新增入口／房间／独立暂停页的可配置类，引用有效Widget Blueprint时使用其Designer WidgetTree，清空回原生；暂停未配时沿用Room页面。补只读Entry／Room／Seat／Vehicle显示快照、初次及变化通知、语义按钮请求、嵌套焦点与UMG导航／子面板返回处理，保留C++输入、权限和跨图清理；旧入口开关／MenuWidgetClass不再参与新选择。修正已聚焦时SetUserFocus返回false的处理，并在房间状态变化时立即同步输入／界面。详见[完整Blueprint接线步骤](Networking/GF5_Widget_Blueprint_Interfaces_CN_v0.1.md)、[本轮验证及保护基线](Networking/GF5_Widget_Interfaces_Verification_20261103.json)。最终UE5.8.3 Editor／Game成功，**129/129普通回归**、D3D12 1280×720内存UMG完整流程及原生回退分别**1/1**、原生Host＋自定义UMG Client真实双端连续两局各**1/1**，均0测试警告／失败；原生Playing输入断言保留并通过。**1183保存资产逐份全同，285源码／配置／uproject哈希留档**，Config／Build.cs／uproject未改，没有代理制作或保存BP／DA／地图。内存UMG夹具不冒充实际新编译Widget Blueprint／真人硬件验收；本轮未提交／Push，专用进程已退出。阻塞跨World加载幕仍为原生Slate；实际Blueprint Designer／按钮／动画／嵌套导航、硬件／失焦／打包／四机及原F4／VP-4C／FX余项待团队。下一开发仍为GF-6，尚未开始；下段保留原GF-5交付时点，第2／6节为当前入口。
 
 **2026-11-03 GF-5街机入口／选车表现完成代码、构建及程序验证，待团队硬件与素材初测；下一开发环节GF-6。** 本轮接续干净`main/817e443e48bc8647862ff9ba74eb9c5098f93df9`，已含GF-4实现、正式MVPB_Match和两份Room DA更新。用户报告GF-4初步测试暂无问题、后续继续更多测试，记为基础正向反馈，不追加细项／网络工况／四机结论。新增默认可用的原生待机／Host／IPv4 Join入口、四席位与静态车型预览卡、可选品牌DA／Catalog图片说明、本地键鼠／手柄焦点、菜单与车辆IMC切换、加载／倒计时及可读错误；保留服务器权威与物理协议3。修正取消Join残留PendingNetGame、隐藏页面焦点、长名裁切和菜单编号穿透，房满／已开始分别提示。详见[GF-5实施与配置](Networking/GF5_Arcade_FrontEnd_Implementation_CN_v0.1.md)、[验证与保护基线](Networking/GF5_Verification_20261103.json)。UE5.8.3最终Editor／Game成功、**127/127普通回归**、**实际D3D12 1280×720 UI流程1/1**、使用保存正式地图／DA的真实双端连续两局各1/1，均0测试警告／失败。UI通过真实Slate焦点注入键盘与手柄A／B，测试进程隔离额外XInput事件，不冒充物理硬件验收。**1183保存资产逐份全同，278源码／配置／uproject哈希留档**，Config／Build.cs／uproject未改；未保存BP／DA／地图或提交／Push，专用进程已退出。原生界面无需先改WBP或新增GA／GE；品牌DA及真实预览图可选手配，真人按住键／失焦／多窗口、全部分辨率／图片分支、PIE／打包／完整扰动／四机仍待补。GF-6、原F4／VP-4C／FX余项独立记账；下段保留GF-4原交付时点，第2／6节为当前入口。
@@ -250,8 +252,8 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
-| 开发阶段 | GF-1至GF-5及Widget Blueprint接口补充完成代码／构建／程序验证；当前先由团队制作并接线自定义UI、补真人硬件反馈，下一开发GF-6（未开始）；原MVP-B余项独立记账 |
-| 当前本机分支／代码提交 | `main / 35aa00c`已含原GF-5；开工干净，加本轮未提交Widget Blueprint接口源码／文档，无保存资产改动，未提交／Push |
+| 开发阶段 | GF-1至GF-5及Widget接口、GF-6工程收尾完成代码／构建／程序验证；下一步实际Win64打包及四台真实PC验收，GF-6整体未验收完成；原MVP-B余项独立记账 |
+| 当前本机分支／代码提交 | `main / 125395c`已含GF-5 Widget接口；开工干净，加本轮未提交GF-6工程收尾源码／配置／工具／文档，无保存资产改动，未提交／Push |
 | 引擎基线 | 本机 **5.8.3-58210709** 最终Editor／Game成功、129普通、实际D3D12内存UMG与原生回退各1项、原生Host／自定义Client双端连续两局各端1项通过；不替代实际新WBP／真人／四机验收 |
 | 本机运行前置 | 验证进程已退出，可重开完整编译Editor；新WBP分别继承HALArcadeEntryWidget／HALPracticeRoomWidget，在GI Front End→Screens指派Entry／Room／Pause Screen Class；全部留空继续原生回退 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
@@ -272,6 +274,7 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 | 环节 | 已有结果 | 证据边界 |
 |---|---|---|
+| GF-6工程收尾 | 服务器共用返回、Exhibition非Shipping主机测试开关、Cook根与只读资源预检／循环工具完成；Editor／Game、130普通、四进程两局／双端两局各端1项、原生UI1项通过 | 1183资产全同，285源码／配置哈希；预检86项目包。实际Cook／发布包、完整异常／真人／四机待验收，见[操作步骤](Networking/GF6_Engineering_Closeout_CN_v0.1.md)及[验证](Networking/GF6_Engineering_Verification_20261103.json) |
 | GF-5 Widget Blueprint接口补充 | 可配置入口／Room／Pause类、Designer完整布局及原生回退、只读视图／变化事件、语义动作／焦点和状态即时同步完成；最终两Target、129普通、内存UMG／原生UI各1项、混合界面双端两局各1项通过 | 1183资产全同，285源码／配置哈希；实际新WBP／Designer／动画及真人硬件待团队，详见[接线](Networking/GF5_Widget_Blueprint_Interfaces_CN_v0.1.md)与[验证](Networking/GF5_Widget_Interfaces_Verification_20261103.json) |
 | GF-5入口与表现 | 原生待机／Host／Join、四席位／静态车型卡、可选品牌素材、焦点／输入切换及加载错误完成；最终两Target、127普通、D3D12 UI完整流程1项及双端两局各1项通过 | 1183资产全同、278源码／配置留档；真实手柄／鼠标、按住键／失焦、素材及四机待团队，下一开发GF-6。详见[实施与接线](Networking/GF5_Arcade_FrontEnd_Implementation_CN_v0.1.md) |
 | GF-4真实跨图与开赛 | 原交付证据保留；团队已保存正式地图与Room DA，用户报告基础初测暂无问题；本轮使用保存引用的双端连续两局重新通过 | 后续更多测试仍待进行，不追加真人细项／网络扰动／四机结论，见[跟进](Networking/GF4_Round_Travel_Implementation_CN_v0.1.md#7-2026-11-03团队初测及gf-5接续) |
@@ -357,7 +360,7 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 ## 6. 下一环节和待确定项
 
-2026-11-03当前流程入口：**GF-5 Widget Blueprint替换接口完成代码与程序验证，团队按[接口文档第1～5节](Networking/GF5_Widget_Blueprint_Interfaces_CN_v0.1.md#1-配置优先级与范围)制作入口、房间／选车及可选暂停页，连接只读View事件和C++按钮请求，再在GI Front End→Screens指派类。** 无配置继续原生；配置WBP后Designer布局优先；Pause不配则沿用Room，清空恢复原生。用MenuPanel／HUDPanel按bMenuVisible显隐，不自行Remove整页／切InputMode／改服务器状态；按文档设置焦点，补实际WBP、键鼠／手柄、动画／素材、按住键／失焦和双端测试。阻塞加载幕仍原生，当前没有新增3D预览或技能展示数据。下一开发GF-6尚未开始，F4／VP-4C／FX独立。
+2026-11-03当前流程入口：**GF-6工程收尾完成，按[收尾文档第2～6节](Networking/GF6_Engineering_Closeout_CN_v0.1.md#2-团队操作)测试受控结束、资源预检，随后实际生成Win64 Development包并进行发布包双端／四台有线PC验收。** 展示配置须四人，手动结束仅非Shipping主机显式开关允许；服务器未来比赛规则复用共用返回接口。团队仍可按[Widget接口文档](Networking/GF5_Widget_Blueprint_Interfaces_CN_v0.1.md)制作并指派实际WBP；未配置继续原生，禁止UI反向修改服务器状态。当前无正式计时／淘汰／结算；F4／VP-4C／FX保持独立。
 
 2026-10-29自救最新入口：重开已完整重编Editor，按[自救第9.2节](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#92-团队editor调参步骤)将共享DA的Minimum Recovery Tilt按需设为实际Drive Exit Tilt（当前65°），试60／12／80／6的Response组合；保留当前资格等待2秒、长按1.5秒与执行／冷却。手动保存／Validate后新开双端，左右侧／斜靠／倒扣／墙角复测，查看Block及Outcome；没有自动覆盖保存资产，也不改变下述相机和MVP-B收尾排期。
 

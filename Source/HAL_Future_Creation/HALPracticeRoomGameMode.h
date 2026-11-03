@@ -20,6 +20,10 @@ public:
 	virtual EHALRoomResult HandleRoomAction(AHALPlayerController* Player, EHALRoomAction Action, FName VehicleId, uint32 Revision) override;
 	void ReturnRoomToEntry(AHALPlayerController* Host);
 	bool IsRoundWorld() const { return bRoundWorld; }
+	/** Local host's manual test control. Exhibition requires a non-Shipping server opt-in. */
+	bool CanRequestRoundReturn() const;
+	/** Trusted server rules may end an active round through this path, regardless of test UI policy. */
+	EHALRoomResult ReturnActiveRoundToRoom();
 private:
 	friend struct FHALPracticeRoomTestAccess;
 	void RemovePracticeAvatar(AHALPlayerController* Player);
@@ -32,4 +36,5 @@ private:
 	bool bRestoringTravel=false, bRoundWorld=false, bTravelDeparting=false;
 	FTimerHandle RoundBarrierTimer;
 	bool bReturningToEntry = false;
+	bool bAllowTestRoundEnd = false;
 };
