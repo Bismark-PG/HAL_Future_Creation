@@ -1,5 +1,9 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-04临时车顶血条完成代码、构建及相关回归，待正式场地真人扣血／双端画面验收。** 从干净`main/93f18e6`接续，此前车型技能接口与留档已提交，旧“未提交”按原时点阅读。按用户要求在原生车顶P1／P2绘制下增加68×10 Slate单位血条，文字水平居中并上移字体高度＋6单位；读取当前Pawn的Health组件／GAS CurrentHP与MaxHP，绿／黄／红分档，未就绪隐藏、0血空框，不新增复制字段／RPC／Tick或Widget资产。保留菜单及Designer布局排除规则，无需BP／DA接线。见[使用与验收](Presentation/MVPB_Temporary_Overhead_HealthBar_CN_v0.1.md)及[验证记录](Presentation/MVPB_Temporary_Overhead_HealthBar_Verification_20261104.json)。
+
+本机UE5.8.3最终Editor／Game成功，现有Health回归2/2、D3D12原生UI流程1/1，均0测试警告／失败／未运行；不沿用此前134项或联机作为本次复测。旧UI夹具PracticeHUD截图实际为同帧打开的菜单，不冒充血条外观验收；历史7图逐份还原。本轮1183保存资产全同、289构建输入留档，唯一源码修改NativePaint所在文件，Config／Build.cs／uproject保持；未改BP／DA／地图，未提交／Push。下一步重开Editor看默认HUD，进入Playing再用球／机关扣血测试，练习房间仍抑制伤害；重新打包后再分发给组员。原技能DA迁移、手感参数与学校局域网／四机验收保持独立。
+
 **2026-11-04车型技能配置完成代码、构建与程序验证，待团队保存DA并真人复测。** 用户确认Car01加速／Car02抗冲击，两车共用Primary按键。从`main/1d1c0c2`接续，保留开工前方案／状态／白名单改动；Definition新增显式Legacy／Vehicle Definition V1，按当前Pawn来源授予、整体校验、换车前预检与服务器／拥有者就绪检查。直接Avatar替换／退休／销毁均清旧来源，迟到清理不撤新车，普通重绑不刷新冷却，显式换车／新局沿用GF-2。见[实现与DA迁移步骤](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)及[验证保护清单](Combat/MVPB_Vehicle_Ability_Loadout_Verification_20261104.json)。
 
 本机UE5.8.3最终Editor／Game成功、**134/134原生，V1及原保存Legacy两套真实双端连续两局均各端1/1**，共5份最终自动化报告均0测试警告／失败／未运行。V1分别通过正常Primary／GAS RPC发动加速／免疫，校验唯一Spec、当前Pawn来源、拥有者冷却和跨图清理；V1出站80ms注入、60FPS／NullRHI、同机，不代表实测RTT／画面／四机。只读打包预检通过，严格迁移检查正确拒绝当前Legacy；初次Tag类型编译错误和旧夹具回归失败均独立保留并修正后重验。**1183保存资产逐份全同，289最终源码／配置／uproject冻结，7份Config／uproject／Build.cs保持**；专用进程已退出，未提交／Push。代理未修改BP／DA／地图，两份保存DA仍Legacy：团队将Abilities.Version设为Vehicle Definition V1，各填唯一Primary，Car01引用GA_MovementBoost、Car02引用GA_ImpactImmunity；全部迁移后再清旧PlayerState Primary，旧Legacy仍需时可保留。原手感DA／代理调整、真人技能验收、实际打包及四机／MVP-B集中收尾继续后置。
@@ -264,9 +268,9 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
-| 开发阶段 | GF-6工程收尾、打包前手感和车型技能完成代码／构建／程序验证；下一步团队迁移两份技能DA与手感实测，再回实际打包及四机验收 |
-| 当前本机分支／代码提交 | `main / 1d1c0c2`已含此前手感调整；保留开工方案／状态改动，本轮车型技能源码／工具／留档尚未提交／Push，保存资产未改 |
-| 引擎基线 | 本机 **5.8.3-58210709** 最终Editor／Game成功、134普通、V1及Legacy真实双端连续两局各端1项通过；原UI证据保持原时点，不替代DA保存／真人／四机验收 |
+| 开发阶段 | GF-6工程收尾、打包前手感／车型技能及临时车顶血条已完成各自代码与程序检查；下一步团队DA迁移、正式场地血条／技能手测，再回学校局域网打包及四机验收 |
+| 当前本机分支／代码提交 | `main / 93f18e6`已含车型技能接口／留档；本轮起始干净，临时车顶血条源码／文档尚未提交／Push，保存资产未改 |
+| 引擎基线 | 本机 **5.8.3-58210709**；本轮血条Editor／Game成功、Health2项和D3D12原生UI1项通过。此前车型技能134项／两套双端两局保持原时点，不冒充本轮全量或联机复测 |
 | 本机运行前置 | 验证进程已退出，可重开完整编译Editor；新WBP分别继承HALArcadeEntryWidget／HALPracticeRoomWidget，在GI Front End→Screens指派Entry／Room／Pause Screen Class；全部留空继续原生回退 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
 | GAS 当前实现 | Definition.Abilities显式V1按当前Pawn授予唯一Primary并加入Ready；旧DefaultAbilities只用于Legacy。换车／新局清理沿GF-2，普通重绑保留计时；两份保存DA仍Legacy，待团队迁移Car01加速／Car02免疫 |
@@ -286,6 +290,7 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 | 环节 | 已有结果 | 证据边界 |
 |---|---|---|
+| 临时车顶血条 | 编号居中上移、按真实HP／MaxHP绘制绿黄红血条；Editor／Game、Health2项与原生UI1项通过 | 原生默认HUD，无资产接线；真实双端受击／血条外观及重新打包待团队，见[说明](Presentation/MVPB_Temporary_Overhead_HealthBar_CN_v0.1.md) |
 | 车型主技能配置 | V1／Legacy、当前Pawn来源授予、整体校验及Ready、显式换车与迟到清理完成；两Target、134普通、V1／Legacy双端两局均通过 | 1183资产全同；保存DA仍Legacy，团队迁移并真人复测，见[配置步骤](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)及[验证](Combat/MVPB_Vehicle_Ability_Loadout_Verification_20261104.json) |
 | 打包前车辆手感调整 | 共享车辆Gravity Scale／有效重力翻滚、普通墙独立脱球门槛、XZ侧面圆角生成与兼容完成；两Target、132普通、5工具、2UI及1.5倍双端／两局均通过 | 1183资产全同，286源码／配置；DA仍1、新代理未生成／引用，待团队手感；见[配置与引用](Movement/MVPB_Prepackage_Gameplay_Polish_CN_v0.1.md)及[验证](Movement/MVPB_Prepackage_Gameplay_Polish_Verification_20261104.json) |
 | GF-6工程收尾 | 服务器共用返回、Exhibition非Shipping主机测试开关、Cook根与只读资源预检／循环工具完成；Editor／Game、130普通、四进程两局／双端两局各端1项、原生UI1项通过 | 1183资产全同，285源码／配置哈希；预检86项目包。实际Cook／发布包、完整异常／真人／四机待验收，见[操作步骤](Networking/GF6_Engineering_Closeout_CN_v0.1.md)及[验证](Networking/GF6_Engineering_Verification_20261103.json) |
@@ -373,6 +378,8 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 7. `ApplyAction_Internal`线程缺陷已修复，用户本轮确认击飞效果恢复并接受当前档位响应暂用。仍保留水平补足，不再把恢复旧完整追加作为当前待办；后续力度按配置调参另记。原第8节为历史诊断，最新结论见[10-D第10节](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md#10-团队击飞回归与10-e接续2026-10-16)。
 
 ## 6. 下一环节和待确定项
+
+2026-11-04临时血条入口：重开完整编译的Editor，确认驾驶时编号与血条；正式Playing用球／机关扣血，双端核对比例与换车／两局。原生HUD无需额外配置，练习房间不扣血；打包分发前重新生成包。见[验收步骤](Presentation/MVPB_Temporary_Overhead_HealthBar_CN_v0.1.md#2-团队快速验收)。
 
 2026-11-04车型技能入口：重开已完整编译的Editor，按[第2节](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md#2-editor逐步配置)将Car01／Car02真实Definition设V1、各填唯一Primary／Level1及加速／免疫GA，保存／Validate后新开房间，做不同车型、同车型、取消换车及两局真人测试。无需新按键或新GA／GE；旧PlayerState列表仅Legacy使用，正式车型迁移后可清旧Primary。此步不代替下列重力／代理调参或MVP-B集中验收。
 

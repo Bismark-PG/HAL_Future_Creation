@@ -15,6 +15,7 @@
 #include "HALRoomComponent.h"
 #include "HALVehicleCatalog.h"
 #include "HALAbilitySystemComponent.h"
+#include "VehicleHealthComponent.h"
 #include "TestVehiclePawn.h"
 #include "ArcadeVehicleMovementComponent.h"
 #include "Engine/World.h"
@@ -28,6 +29,8 @@
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Rendering/DrawElements.h"
 #include "Styling/CoreStyle.h"
+#include "Fonts/FontMeasure.h"
+#include "Rendering/SlateRenderer.h"
 
 namespace
 {
@@ -151,15 +154,41 @@ int32 UHALPracticeRoomWidget::NativePaint(const FPaintArgs& Args, const FGeometr
 	const int32 Base = Super::NativePaint(Args,G,Culling,Elements,Layer,Style,bParentEnabled);
 	const auto* R=Room(this); auto* PC=GetOwningPlayer();
 	if (!R || !PC || MenuVisible() || UsesDesignerLayout()) { return Base; }
+	const auto Font=FCoreStyle::GetDefaultFontStyle("Bold",20);
+	const auto FontMeasure=FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+	const auto* Brush=FCoreStyle::Get().GetBrush("WhiteBrush");
+	// Temporary screen-space test HUD, in DPI-scaled Slate units; no world components or assets.
+	const FVector2D BarSize(68,10);
+	constexpr float Border=1.f, LabelGap=6.f;
 	for (const auto& PS : R->GetData().Members)
 	{
 		const auto* Pawn=PS ? PS->GetPawn() : nullptr; if (!Pawn) { continue; }
 		FVector Center,Extent; Pawn->GetActorBounds(true,Center,Extent); FVector2D Screen;
 		if (UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(PC,Center+FVector(0,0,Extent.Z+30),Screen,true))
 		{
-			FSlateDrawElement::MakeText(Elements,Base+1,G.ToPaintGeometry(FVector2D(1,1),FSlateLayoutTransform(Screen)),
-				FString::Printf(TEXT("P%d"),PS->GetRoomData().Number),FCoreStyle::GetDefaultFontStyle("Bold",20),ESlateDrawEffect::None,PS->GetRoomData().Color);
+			const FString Label=FString::Printf(TEXT("P%d"),PS->GetRoomData().Number);
+			const FVector2D LabelSize=FontMeasure->Measure(Label,Font);
+			const FVector2D LabelPosition=Screen-FVector2D(LabelSize.X*.5,LabelSize.Y+LabelGap);
+			FSlateDrawElement::MakeText(Elements,Base+3,G.ToPaintGeometry(FVector2D(1,1),FSlateLayoutTransform(LabelPosition)),
+				Label,Font,ESlateDrawEffect::None,PS->GetRoomData().Color);
+			const auto* Health=Pawn->FindComponentByClass<UVehicleHealthComponent>();
+			if (!Health || !Health->IsHealthReady()) { continue; }
+			const float Fraction=FMath::Clamp(Health->GetCurrentHP()/Health->GetMaxHP(),0.f,1.f);
+			const FVector2D Position=Screen-FVector2D(BarSize.X*.5,0);
+			FSlateDrawElement::MakeBox(Elements,Base+1,G.ToPaintGeometry(BarSize,FSlateLayoutTransform(Position)),
+				Brush,ESlateDrawEffect::None,FLinearColor(0,0,0,.95f));
+			const FVector2D InnerSize=BarSize-FVector2D(Border*2,Border*2);
+			const FVector2D InnerPosition=Position+FVector2D(Border,Border);
+			FSlateDrawElement::MakeBox(Elements,Base+1,G.ToPaintGeometry(InnerSize,FSlateLayoutTransform(InnerPosition)),
+				Brush,ESlateDrawEffect::None,FLinearColor(.12f,.12f,.14f,1));
+			if (Fraction>0)
+			{
+				const FLinearColor Color=Fraction<=.25f?FLinearColor(.95f,.12f,.10f,1)
+					:Fraction<=.5f?FLinearColor(.95f,.70f,.08f,1):FLinearColor(.12f,.85f,.22f,1);
+				FSlateDrawElement::MakeBox(Elements,Base+2,G.ToPaintGeometry(FVector2D(InnerSize.X*Fraction,InnerSize.Y),FSlateLayoutTransform(InnerPosition)),
+					Brush,ESlateDrawEffect::None,Color);
+			}
 		}
 	}
-	return Base+1;
+	return Base+3;
 }
