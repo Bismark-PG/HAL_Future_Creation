@@ -1,0 +1,282 @@
+{
+  "date": "2026-11-04",
+  "start_commit": "a09b4551b0bbb6beebd2266eed09fc67a4221dc0",
+  "branch": "main",
+  "engine": "5.8.3-58210709",
+  "scope": "TestGameFlowLoop PowerShell 5.1 exit-code compatibility and actionable diagnostics; no gameplay code changes",
+  "original_user_run": {
+    "reports": [
+      {
+        "path": "Saved/GameFlow/Loop_20261104_101003/Host/index.json",
+        "sha256": "89792710ec251f518ade5b79e0c661b453fe1b27212571548005a69d9ab18f01",
+        "counts": {
+          "succeeded": 1,
+          "succeededWithWarnings": 0,
+          "failed": 0,
+          "notRun": 0,
+          "inProcess": 0
+        }
+      },
+      {
+        "path": "Saved/GameFlow/Loop_20261104_101003/Client1/index.json",
+        "sha256": "111e2ef82b8474e0500a2c892a4efb59bce0ada1b60ea1009548a79d2d9854df",
+        "counts": {
+          "succeeded": 1,
+          "succeededWithWarnings": 0,
+          "failed": 0,
+          "notRun": 0,
+          "inProcess": 0
+        }
+      }
+    ],
+    "finding": "Both Automation tests passed; script falsely rejected null Process.ExitCode. Original process objects are gone; do not infer a recovered OS exit code from this run."
+  },
+  "reproduction": [
+    {
+      "Version": "5.1.26100.9711",
+      "RetainedHandle": false,
+      "BeforeWait": null,
+      "AfterWait": null,
+      "Exited": true
+    },
+    {
+      "Version": "5.1.26100.9711",
+      "RetainedHandle": true,
+      "BeforeWait": 7,
+      "AfterWait": 7,
+      "Exited": true
+    }
+  ],
+  "fix": "Retain Process.Handle immediately after Start-Process; WaitForExit after exit detection; reject unavailable/nonzero exit codes and nonclean reports; write all role Summary results before throwing detailed error.",
+  "fixture_runs": [
+    {
+      "path": "Saved/GameFlow/LoopToolFixture_a90cf23bc3f64ec4a3dee94018e53825/Results.json",
+      "sha256": "142b112f773ef03341626b85b3d21bbe51e4e9442a50d59dd56cd5b2046735da",
+      "cases": [
+        {
+          "Scenario": "Pass",
+          "Verified": true,
+          "Shell": "5.1.26100.9711",
+          "RunnerExit": 0,
+          "HostExit": 0,
+          "Reports": "D:\\HAL_Future_Creation\\Saved\\GameFlow\\LoopToolFixture_a90cf23bc3f64ec4a3dee94018e53825\\Pass"
+        },
+        {
+          "Scenario": "ExitCode",
+          "Verified": true,
+          "Shell": "5.1.26100.9711",
+          "RunnerExit": 1,
+          "HostExit": 9,
+          "Reports": "D:\\HAL_Future_Creation\\Saved\\GameFlow\\LoopToolFixture_a90cf23bc3f64ec4a3dee94018e53825\\ExitCode"
+        },
+        {
+          "Scenario": "Failed",
+          "Verified": true,
+          "Shell": "5.1.26100.9711",
+          "RunnerExit": 1,
+          "HostExit": 0,
+          "Reports": "D:\\HAL_Future_Creation\\Saved\\GameFlow\\LoopToolFixture_a90cf23bc3f64ec4a3dee94018e53825\\Failed"
+        },
+        {
+          "Scenario": "Warnings",
+          "Verified": true,
+          "Shell": "5.1.26100.9711",
+          "RunnerExit": 1,
+          "HostExit": 0,
+          "Reports": "D:\\HAL_Future_Creation\\Saved\\GameFlow\\LoopToolFixture_a90cf23bc3f64ec4a3dee94018e53825\\Warnings"
+        },
+        {
+          "Scenario": "Missing",
+          "Verified": true,
+          "Shell": "5.1.26100.9711",
+          "RunnerExit": 1,
+          "HostExit": 0,
+          "Reports": "D:\\HAL_Future_Creation\\Saved\\GameFlow\\LoopToolFixture_a90cf23bc3f64ec4a3dee94018e53825\\Missing"
+        },
+        {
+          "Scenario": "Malformed",
+          "Verified": true,
+          "Shell": "5.1.26100.9711",
+          "RunnerExit": 1,
+          "HostExit": 0,
+          "Reports": "D:\\HAL_Future_Creation\\Saved\\GameFlow\\LoopToolFixture_a90cf23bc3f64ec4a3dee94018e53825\\Malformed"
+        }
+      ]
+    },
+    {
+      "path": "Saved/GameFlow/LoopToolFixture_ec35f1439e714e86a7a086ddeedb023f/Results.json",
+      "sha256": "503d3eba470e162fbefa4292b40715922c3bdbe5f0dfe81543d596cadf099c7f",
+      "cases": [
+        {
+          "Scenario": "Pass",
+          "Verified": true,
+          "Shell": "7.6.5",
+          "RunnerExit": 0,
+          "HostExit": 0,
+          "Reports": "D:\\HAL_Future_Creation\\Saved\\GameFlow\\LoopToolFixture_ec35f1439e714e86a7a086ddeedb023f\\Pass"
+        },
+        {
+          "Scenario": "ExitCode",
+          "Verified": true,
+          "Shell": "7.6.5",
+          "RunnerExit": 1,
+          "HostExit": 9,
+          "Reports": "D:\\HAL_Future_Creation\\Saved\\GameFlow\\LoopToolFixture_ec35f1439e714e86a7a086ddeedb023f\\ExitCode"
+        },
+        {
+          "Scenario": "Failed",
+          "Verified": true,
+          "Shell": "7.6.5",
+          "RunnerExit": 1,
+          "HostExit": 0,
+          "Reports": "D:\\HAL_Future_Creation\\Saved\\GameFlow\\LoopToolFixture_ec35f1439e714e86a7a086ddeedb023f\\Failed"
+        },
+        {
+          "Scenario": "Warnings",
+          "Verified": true,
+          "Shell": "7.6.5",
+          "RunnerExit": 1,
+          "HostExit": 0,
+          "Reports": "D:\\HAL_Future_Creation\\Saved\\GameFlow\\LoopToolFixture_ec35f1439e714e86a7a086ddeedb023f\\Warnings"
+        },
+        {
+          "Scenario": "Missing",
+          "Verified": true,
+          "Shell": "7.6.5",
+          "RunnerExit": 1,
+          "HostExit": 0,
+          "Reports": "D:\\HAL_Future_Creation\\Saved\\GameFlow\\LoopToolFixture_ec35f1439e714e86a7a086ddeedb023f\\Missing"
+        },
+        {
+          "Scenario": "Malformed",
+          "Verified": true,
+          "Shell": "7.6.5",
+          "RunnerExit": 1,
+          "HostExit": 0,
+          "Reports": "D:\\HAL_Future_Creation\\Saved\\GameFlow\\LoopToolFixture_ec35f1439e714e86a7a086ddeedb023f\\Malformed"
+        }
+      ]
+    }
+  ],
+  "real_windows_powershell_51_rerun": {
+    "launcher_exit": 0,
+    "reports": [
+      {
+        "path": "Saved/GameFlow/GF6_LoopToolFix_20261104/Real_WinPS51/Host/index.json",
+        "sha256": "840b94e1706ec2858134daf04d59f9a4d8c142cae86e105f6d688463e4fa90a5",
+        "counts": {
+          "succeeded": 1,
+          "succeededWithWarnings": 0,
+          "failed": 0,
+          "notRun": 0,
+          "inProcess": 0
+        }
+      },
+      {
+        "path": "Saved/GameFlow/GF6_LoopToolFix_20261104/Real_WinPS51/Client1/index.json",
+        "sha256": "c7f30b0b7af762c9c3f0ac864eb2c5dbac118ed56880ae1756ffb0148b2da8fe",
+        "counts": {
+          "succeeded": 1,
+          "succeededWithWarnings": 0,
+          "failed": 0,
+          "notRun": 0,
+          "inProcess": 0
+        }
+      }
+    ],
+    "summary": [
+      {
+        "Role": "Host",
+        "Pid": 39316,
+        "ExitCode": 0,
+        "Passed": 1,
+        "Warnings": 0,
+        "Failed": 0,
+        "NotRun": 0,
+        "InProcess": 0,
+        "Error": ""
+      },
+      {
+        "Role": "Client1",
+        "Pid": 16940,
+        "ExitCode": 0,
+        "Passed": 1,
+        "Warnings": 0,
+        "Failed": 0,
+        "NotRun": 0,
+        "InProcess": 0,
+        "Error": ""
+      }
+    ],
+    "test": "HAL.NetworkSmoke.GameFlow.GF4.TwoRounds"
+  },
+  "protection": {
+    "assets_count": 1183,
+    "assets_all_unchanged": true,
+    "source_config_project_count": 285,
+    "source_config_project_all_unchanged": true,
+    "original_user_run_files_unchanged": true,
+    "manifest_digest_algorithm": "SHA256 of UTF-8 json.dumps(mapping,sort_keys=True,separators=(comma,colon)); relative posix path -> SHA256 bytes",
+    "assets_manifest_sha256": "df6d612130d64a4cc6ac53e47de5b75c1419555a6eac0411772639d645a5dbab",
+    "source_config_project_manifest_sha256": "5ccac460e9f3e571302652b0d3f254d88d7cc9b563cc2c3ea3d3d4e9417cfc56",
+    "original_user_run_manifest_sha256": "8598b9744603eb9e7ac81ed5886bf25bf0ab7f906c5844344ad5253f2cb17e68"
+  },
+  "changed_tool_hashes": {
+    "Tools/TestGameFlowLoop.ps1": "b3370d498675ea5ad462e50dd05e23b07d17ec562b086a73de7e3dcff35ebc64",
+    "Tools/Tests/TestGameFlowLoop.ps1": "2c26a0edef84d9650d203541fe7218c60630583e88a8d12b782bff6dfd8dc8c2"
+  },
+  "fixture_development_notes": [
+    "First fixture attempt exposed Windows PowerShell 5.1 ConvertFrom-Json array wrapping in the test harness; corrected harness.",
+    "Second fixture attempt stopped on expected native stderr under ErrorAction Stop; harness now captures child stdout/stderr and the real process exit code. These were fixture issues, not accepted production passes."
+  ],
+  "limits": [
+    "No C++/Config/asset modifications; no new Unreal build or 130-test rerun required/performed.",
+    "No new Exhibition four-process run, package/Cook, actual four-PC, custom WBP or hardware acceptance.",
+    "Only tool/documentation changes; no agent commit or push."
+  ],
+  "team_independent_rerun_20261104_103440": {
+    "source": "User ran the documented Windows PowerShell command and supplied this folder; reports/logs read by agent.",
+    "summary": [
+      {
+        "Role": "Host",
+        "Pid": 17076,
+        "ExitCode": 0,
+        "Passed": 1,
+        "Warnings": 0,
+        "Failed": 0,
+        "NotRun": 0,
+        "InProcess": 0,
+        "Error": ""
+      },
+      {
+        "Role": "Client1",
+        "Pid": 11876,
+        "ExitCode": 0,
+        "Passed": 1,
+        "Warnings": 0,
+        "Failed": 0,
+        "NotRun": 0,
+        "InProcess": 0,
+        "Error": ""
+      }
+    ],
+    "reports": [
+      {
+        "role": "Host",
+        "path": "Saved/GameFlow/Loop_20261104_103440/Host/index.json",
+        "sha256": "59c41bbf91f2c6c63e72a0bca42642aad5800c8d806331410ada25b4f6fbb5e2",
+        "test": "HAL.NetworkSmoke.GameFlow.GF4.TwoRounds",
+        "state": "Success"
+      },
+      {
+        "role": "Client1",
+        "path": "Saved/GameFlow/Loop_20261104_103440/Client1/index.json",
+        "sha256": "44ea41735885d625d0b8654c29bf06d2c50bab7c9738181331fa3b43ed97d662",
+        "test": "HAL.NetworkSmoke.GameFlow.GF4.TwoRounds",
+        "state": "Success"
+      }
+    ],
+    "log_confirmed": "Both roles PlayingRounds=2 Identity=1 Fresh=1 Entry=1; Host Round1 -> room -> Round2; both requested exit status 0.",
+    "scope": "Same-machine Development two-process automated flow only."
+  }
+}

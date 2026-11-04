@@ -21,6 +21,7 @@ if (-not $ReportDirectory) { $ReportDirectory = Join-Path $projectRoot ('Saved\G
 $ReportDirectory = [IO.Path]::GetFullPath($ReportDirectory)
 if (Test-Path -LiteralPath $ReportDirectory) { throw 'Use a new report directory to retain earlier evidence.' }
 New-Item -ItemType Directory -Path $ReportDirectory | Out-Null
+Write-Output "Reports: $ReportDirectory"
 if ($Profile -eq 'Exhibition') {
     $players = 4
     $test = 'HAL.NetworkSmoke.GameFlow.GF6.ExhibitionFourProcessesTwoRounds'
@@ -44,6 +45,8 @@ try {
         if ($hostRole -and $Profile -eq 'Exhibition') { $arguments += '-HALAllowTestRoundEnd' }
         $process = Start-Process -FilePath $editor -ArgumentList $arguments -WorkingDirectory $projectRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput "$ReportDirectory\${role}_Console.log" -RedirectStandardError "$ReportDirectory\${role}_Stderr.log"
         $owned += $process
+        # Windows PowerShell 5.1 otherwise loses ExitCode after a redirected process exits.
+        $null = $process.Handle
         Write-Output "$role PID=$($process.Id)"
         if ($hostRole) {
             $deadline = [DateTime]::UtcNow.AddSeconds(120)
@@ -59,12 +62,28 @@ try {
     while ([DateTime]::UtcNow -lt $deadline -and @($owned | Where-Object { -not $_.HasExited }).Count) { Start-Sleep -Seconds 1 }
     if (@($owned | Where-Object { -not $_.HasExited }).Count) { throw 'Smoke test timed out; owned processes will be stopped.' }
     $results = for ($i = 0; $i -lt $roles.Count; ++$i) {
-        $report = Get-Content -LiteralPath "$ReportDirectory\$($roles[$i])\index.json" -Raw | ConvertFrom-Json
-        if ($owned[$i].ExitCode -ne 0 -or $report.succeeded -ne 1 -or $report.succeededWithWarnings -ne 0 -or $report.failed -ne 0 -or $report.notRun -ne 0 -or $report.inProcess -ne 0) { throw "Unclean result: $($roles[$i])" }
-        [pscustomobject]@{ Role = $roles[$i]; Pid = $owned[$i].Id; ExitCode = $owned[$i].ExitCode; Passed = $report.succeeded; Warnings = $report.succeededWithWarnings; Failed = $report.failed }
+        $owned[$i].WaitForExit() # Ensure redirected output has drained before reading artifacts.
+        $exitCode = $owned[$i].ExitCode
+        $problems = @()
+        if ($null -eq $exitCode) { $problems += 'Process exit code unavailable' }
+        elseif ($exitCode -ne 0) { $problems += "Process exit code $exitCode" }
+        $report = $null
+        $reportPath = Join-Path $ReportDirectory "$($roles[$i])\index.json"
+        if (-not (Test-Path -LiteralPath $reportPath -PathType Leaf)) { $problems += "Missing report: $reportPath" }
+        else {
+            try { $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json }
+            catch { $problems += "Unreadable report: $($_.Exception.Message)" }
+            if ($null -ne $report -and ($report.succeeded -ne 1 -or $report.succeededWithWarnings -ne 0 -or $report.failed -ne 0 -or $report.notRun -ne 0 -or $report.inProcess -ne 0)) {
+                $problems += "Automation counts: passed=$($report.succeeded), warnings=$($report.succeededWithWarnings), failed=$($report.failed), notRun=$($report.notRun), inProcess=$($report.inProcess)"
+            }
+            if ($null -eq $report -and -not $problems.Count) { $problems += 'Empty automation report' }
+        }
+        [pscustomobject]@{ Role = $roles[$i]; Pid = $owned[$i].Id; ExitCode = $exitCode; Passed = $report.succeeded; Warnings = $report.succeededWithWarnings; Failed = $report.failed; NotRun = $report.notRun; InProcess = $report.inProcess; Error = ($problems -join '; ') }
     }
     $results | ConvertTo-Json | Set-Content -LiteralPath "$ReportDirectory\Summary.json" -Encoding utf8
-    $results | Format-Table
+    $results | Format-Table Role, Pid, ExitCode, Passed, Warnings, Failed
+    $badResults = @($results | Where-Object { $_.Error })
+    if ($badResults.Count) { throw ("GameFlow check failed. Reports: $ReportDirectory. " + (($badResults | ForEach-Object { "$($_.Role): $($_.Error)" }) -join ' | ')) }
 } finally {
     foreach ($process in $owned) { if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force } }
 }

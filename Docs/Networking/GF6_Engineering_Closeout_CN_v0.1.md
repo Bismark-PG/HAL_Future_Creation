@@ -77,22 +77,34 @@ UI 的 Host／Join 使用固定 **7777**。同机其他进程填 `127.0.0.1`；�
 `Tools/TestGameFlowLoop.ps1` 创建独立进程和独立报告，检查进程退出码以及 Automation JSON，失败／超时只清理工具自己启动的进程。默认 Exhibition 四进程：
 
 ```powershell
-& 'D:\HAL_Future_Creation\Tools\TestGameFlowLoop.ps1' `
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'D:\HAL_Future_Creation\Tools\TestGameFlowLoop.ps1' `
   -EngineRoot 'D:\Program Files\Epic Games\UE_5.8' -Profile Exhibition
 ```
 
 Development 兼容：
 
 ```powershell
-& 'D:\HAL_Future_Creation\Tools\TestGameFlowLoop.ps1' `
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'D:\HAL_Future_Creation\Tools\TestGameFlowLoop.ps1' `
   -EngineRoot 'D:\Program Files\Epic Games\UE_5.8' -Profile Development -Port 7910
 ```
 
-默认报告位于新建 `Saved/GameFlow/Loop_日期时间`。需要使用已编译的本轮 Editor DLL；该工具不自动关闭用户 Editor，不负责构建。
+默认报告位于新建 `Saved/GameFlow/Loop_日期时间`，启动时会输出完整目录。上述`-ExecutionPolicy Bypass`仅作用于本次子PowerShell进程，不修改系统持久策略，适用于Windows默认禁止直接运行ps1的情况。需要使用已编译的本轮 Editor DLL；该工具不自动关闭用户 Editor，不负责构建。
 
 Exhibition 夹具在启动 URL 指定原生 PracticeRoom GameMode 与保存的 Exhibition DA，避免修改团队 BP。使用真实保存的 PracticeRoom／Match、目录、两类车辆及输入／物理初始化，四端验证全员屏障、共同倒计时、Round1→返回→重新确认→Round2→Host离房→全员入口，并检查新 Epoch、身份保持、满 HP、旧 Buff／Stun／冷却清理。四端均成功才通过。原生 GameMode 使用原生 PlayerState，**不会冒充团队 BP PlayerState 初始技能或实际自定义 WBP 接线验证**；Development 兼容组走保存的地图 GameMode。
 
 测试使用 NullRHI，不验证画面／真实手柄；关闭测试进程 XInput 以排除额外控制器事件，不修改项目插件配置。同机独立进程也不能代替四台真实电脑。
+
+### 4.1 Windows PowerShell 5.1误报修正（2026-11-04）
+
+团队使用Windows PowerShell 5.1运行时，旧脚本输出`Unclean result: Host`。已读取原目录`Saved/GameFlow/Loop_20261104_101003`：Host／Client报告均1/1通过，0测试警告／失败，日志均完成两局并回入口。原错误来自工具退出码读取，不将其误记为游戏流程失败。
+
+用真实重定向子进程复现：5.1不提前保留`Process.Handle`时，进程已退出但`ExitCode`为null，即使事后WaitForExit也仍为null；保留句柄后得到真实退出码7。旧验证使用PowerShell 7.6.5，未覆盖这一5.1差异。
+
+工具现会在Start-Process后立即保留句柄，结束后等待输出排空；继续严格校验真实退出码与全部Automation计数，空退出码仍报错。报告检查失败也会保存Host／Client全部`Summary.json`结果，打印具体原因及目录，不再仅给出`Unclean result`。成功时每端应为`ExitCode=0, Passed=1, Warnings=0, Failed=0`。
+
+新增`Tools/Tests/TestGameFlowLoop.ps1`：以真实重定向子进程和合成报告验证成功、非零退出、测试失败、警告、缺报告、坏JSON六种情况；夹具不启动Unreal。后续验证及本次真实双端重跑见[修正证据](GF6_LoopTool_Compatibility_Verification_20261104.json)。本次不改C++／Config／保存资产，无需因本脚本修正重新编译。
+
+2026-11-04团队独立复跑：`Loop_20261104_103440`已逐项核查，Host17076／Client11876均`ExitCode=0, Passed=1, Warnings=0, Failed=0`，未运行／进行中均0；两端日志确认两局、新状态及回入口。本次为修正后的团队同机Development自动化证据，四机／发布包仍待后续。
 
 ## 5. 本轮验证
 
