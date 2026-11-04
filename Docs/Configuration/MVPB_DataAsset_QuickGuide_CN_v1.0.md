@@ -1,5 +1,7 @@
 # MVP-B Data Asset 配置速查（现行10-E）
 
+2026-11-04补充：车辆共享重力与普通墙体额外脱球门槛位于`DA_Vehicle_Stability_Test_v1`的 **Gravity／Wall Ball Drop**；新代理引用仍为每车型`Vehicle Definition → Physics → Collision Mesh`。配置和限制见[打包前车辆手感调整](../Movement/MVPB_Prepackage_Gameplay_Polish_CN_v0.1.md)。停止旧游戏并开启新World后生效。
+
 2026-10-21输入接线补充：Definition模式下，BP的旧Input字段只读；自救输入填写在 **玩家Vehicle Definition → Local Config → Input → Self Right Action**。现已补齐可选Digital (bool)字段及初始化复制，具体按键仍在IMC；不要切Legacy绕过。详细步骤见[自救配置第4节](../Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#4-独立长按输入editor手工步骤)。
 
 初版：2026-09-18；更新：2026-10-16。适用：当前车辆、普通球与测试场景，按已迁移的10-C AttackSnapshotV1／10-D TieredV1说明字段用途。本次只按现有源码核对职责，没有重新导出DA保存值或修改资产，以下不作为新数值基线。旧文件名保留便于已有链接继续使用；接续入口见[Project_Status](../Project_Status_CN.md)。

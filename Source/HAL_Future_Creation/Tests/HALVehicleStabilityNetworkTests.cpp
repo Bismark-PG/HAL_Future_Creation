@@ -11,6 +11,9 @@
 #include "Engine/NetDriver.h"
 #include "EngineUtils.h"
 #include "Misc/CommandLine.h"
+#include "../BasicBallActor.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/SphereComponent.h"
 
 namespace
 {
@@ -27,6 +30,8 @@ namespace
 				{ Settings->SharedRules = Rules; }
 				else
 				{ auto* NewRules = MakeHALStabilityTestRules(TEXT("HAL_StabilityNetworkRules")); NewRules->AddToRoot(); Settings->SharedRules = NewRules; }
+				float Scale=1;
+				if (FParse::Value(FCommandLine::Get(),TEXT("HALVehicleGravityScale="),Scale)) { Settings->SharedRules.Get()->GravityScale=Scale; }
 				Settings->bUseSharedRules = true;
 			});
 		}
@@ -84,7 +89,13 @@ namespace
 				Test->TestTrue(TEXT("Both replicated vehicles retain valid matching material and physics"),
 					Body->IsSimulatingPhysics() && Body->BodyInstance.GetSimplePhysicalMaterial() == Shared->GetVehicleMaterial()
 					&& Vehicle->FindComponentByClass<UHALImpactReceiverComponent>()->HasMatchingStabilityRules());
+				Test->TestEqual(TEXT("Both vehicles use native vehicle gravity group"),int32(Body->BodyInstance.GravityGroupIndex),1);
 			}
+			float Scale=1; FParse::Value(FCommandLine::Get(),TEXT("HALVehicleGravityScale="),Scale);
+			Test->TestEqual(TEXT("Network world uses configured vehicle gravity"),Shared->GetVehicleGravityZ(),World->GetGravityZ()*Scale);
+			for (TActorIterator<ABasicBallActor> It(World);It;++It)
+			{ Test->TestEqual(TEXT("Real ball retains world gravity group"),int32(It->GetPhysicsRoot()->BodyInstance.GravityGroupIndex),0); }
+			if (Scale!=1 && !bHost && Own->FindComponentByClass<UArcadeVehicleMovementComponent>()->GetResimulationRunCount()==0) { return false; }
 			UE_LOG(LogTemp, Display, TEXT("HAL Stability smoke: Host=%d Complete=1 Signature=%u MaterialRestitution=%.3f Input=%.2f Resimulations=%d HostOutgoingLag=80ms"),
 				bHost, Shared->GetSignature(), Shared->GetVehicleMaterial()->Restitution, Input.Steering,
 				Own->FindComponentByClass<UArcadeVehicleMovementComponent>()->GetResimulationRunCount());

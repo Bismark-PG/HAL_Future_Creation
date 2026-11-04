@@ -12,16 +12,17 @@
 #include "StaticMeshAttributes.h"
 #include "UObject/MetaData.h"
 #include "UObject/Package.h"
+#include "CompGeom/ConvexHull3.h"
 
 namespace
 {
-	constexpr int32 RecipeVersion = 1;
+	constexpr int32 RecipeVersion = 2;
 	bool Fail(FString& Error, const TCHAR* Message) { Error = Message; return false; }
 	void WriteRecipe(UStaticMesh& Mesh, const FHALVehicleCollisionParameters& P)
 	{
 		auto& Data = Mesh.GetOutermost()->GetMetaData();
-		Data.SetValue(&Mesh, TEXT("HALCollision.Version"), TEXT("1"));
-		Data.SetValue(&Mesh, TEXT("HALCollision.GeneratorRevision"), TEXT("2"));
+		Data.SetValue(&Mesh, TEXT("HALCollision.Version"), TEXT("2"));
+		Data.SetValue(&Mesh, TEXT("HALCollision.GeneratorRevision"), TEXT("3"));
 		const auto SetFloat = [&](const TCHAR* Key, float Value) {
 			Data.SetValue(&Mesh, Key, *FString::Printf(TEXT("%.9g"), Value));
 		};
@@ -30,6 +31,8 @@ namespace
 		SetFloat(TEXT("HALCollision.HeightCm"), P.HeightCm);
 		SetFloat(TEXT("HALCollision.FrontRadiusCm"), P.FrontRadiusCm);
 		SetFloat(TEXT("HALCollision.RearRadiusCm"), P.RearRadiusCm);
+		SetFloat(TEXT("HALCollision.FrontSideRadiusCm"), P.FrontSideRadiusCm);
+		SetFloat(TEXT("HALCollision.RearSideRadiusCm"), P.RearSideRadiusCm);
 		Data.SetValue(&Mesh, TEXT("HALCollision.SegmentsPerCorner"), *LexToString(P.SegmentsPerCorner));
 	}
 }
@@ -55,6 +58,13 @@ bool FHALVehicleCollisionParameters::Validate(FString& Error) const
 	{
 		return Fail(Error, TEXT("Front radius + rear radius must not exceed length."));
 	}
+	for (const float Radius:{FrontSideRadiusCm,RearSideRadiusCm})
+	{
+		if (!FMath::IsFinite(Radius) || Radius<0 || Radius>HeightCm*0.5f)
+		{ return Fail(Error,TEXT("Side radii must be finite and between 0 and height / 2.")); }
+	}
+	if (FrontSideRadiusCm+RearSideRadiusCm>LengthCm)
+	{ return Fail(Error,TEXT("Front side radius + rear side radius must not exceed length.")); }
 	if (SegmentsPerCorner < 1 || SegmentsPerCorner > 8)
 	{
 		return Fail(Error, TEXT("Segments per corner must be between 1 and 8."));
@@ -100,6 +110,79 @@ bool HALVehicleCollision::BuildGeometry(const FHALVehicleCollisionParameters& P,
 		Out.Triangles.Emplace(Bottom, J, I);
 		Out.Triangles.Emplace(I, J, N + J);
 		Out.Triangles.Emplace(I, N + J, N + I);
+	}
+	Out.SideOutline={FVector2D(-X,-Z),FVector2D(X,-Z),FVector2D(X,Z),FVector2D(-X,Z)};
+	if (P.FrontSideRadiusCm>0 || P.RearSideRadiusCm>0)
+	{
+		// Intersect the XY prism with a convex polygonal XZ profile. The legacy zero-radius
+		// branch above stays byte-for-byte geometrically identical, including flat-top winding.
+		FHALVehicleCollisionParameters Side=P; Side.WidthCm=P.HeightCm; Side.HeightCm=1;
+		Side.FrontRadiusCm=P.FrontSideRadiusCm; Side.RearRadiusCm=P.RearSideRadiusCm;
+		Side.FrontSideRadiusCm=Side.RearSideRadiusCm=0;
+		FGeometry SideShape;
+		if (!BuildGeometry(Side,SideShape,Error)) { return false; }
+		Out.SideOutline=SideShape.Outline;
+		TArray<double> Heights;
+		const auto AddHeight=[&](double Value)
+		{ if (!Heights.ContainsByPredicate([&](double V){return FMath::IsNearlyEqual(V,Value,1.e-6);})) { Heights.Add(Value); } };
+		for (const auto& Point:Out.SideOutline) { AddHeight(Point.Y); }
+		AddHeight(0); Heights.Sort();
+		TArray<FVector> Points;
+		for (const double Height:Heights)
+		{
+			double MinX=TNumericLimits<double>::Max(),MaxX=-TNumericLimits<double>::Max();
+			for (int32 I=0;I<Out.SideOutline.Num();++I)
+			{
+				const auto A=Out.SideOutline[I],B=Out.SideOutline[(I+1)%Out.SideOutline.Num()];
+				if (FMath::IsNearlyEqual(A.Y,Height,1.e-7)) { MinX=FMath::Min(MinX,A.X); MaxX=FMath::Max(MaxX,A.X); }
+				if (FMath::Abs(B.Y-A.Y)>1.e-7 && Height>=FMath::Min(A.Y,B.Y) && Height<=FMath::Max(A.Y,B.Y))
+				{ const double V=FMath::Lerp(A.X,B.X,(Height-A.Y)/(B.Y-A.Y)); MinX=FMath::Min(MinX,V); MaxX=FMath::Max(MaxX,V); }
+			}
+			TArray<FVector2D> Ring=Out.Outline;
+			for (const bool KeepLess:{true,false})
+			{
+				const double Limit=KeepLess?MaxX:MinX;
+				TArray<FVector2D> Clipped;
+				for (int32 I=0;I<Ring.Num();++I)
+				{
+					const auto A=Ring[I],B=Ring[(I+1)%Ring.Num()];
+					const bool InA=KeepLess?A.X<=Limit:A.X>=Limit,InB=KeepLess?B.X<=Limit:B.X>=Limit;
+					if (InA) { Clipped.Add(A); }
+					if (InA!=InB) { Clipped.Add(FMath::Lerp(A,B,(Limit-A.X)/(B.X-A.X))); }
+				}
+				Ring=MoveTemp(Clipped);
+			}
+			for (const auto& Point:Ring)
+			{
+				// Arc seams and clipping endpoints can differ by roundoff; weld BEFORE hull
+				// triangulation so near-identical rings cannot create zero-area sliver faces.
+				const FVector V(Point.X,Point.Y,Height);
+				if (!Points.ContainsByPredicate([&](const FVector& Q){return Q.Equals(V,1.e-6);})) { Points.Add(V); }
+			}
+		}
+		UE::Geometry::FConvexHull3d Hull;
+		Hull.bSaveTriangleNeighbors=true;
+		Hull.SimplificationSettings.DegenerateEdgeTolerance=1.e-6;
+		Hull.SimplificationSettings.SkipAtHullDistanceAbsolute=1.e-6;
+		if (!Hull.Solve(Points.Num(),[&](int32 I){return Points[I];})) { return Fail(Error,TEXT("Could not build rounded convex hull.")); }
+		Out.Vertices.Reset(); Out.Triangles.Reset(); TMap<int32,int32> Remap;
+		const auto Index=[&](int32 Original) { if (const auto* Found=Remap.Find(Original)) { return *Found; }
+			const int32 Value=Out.Vertices.Add(Points[Original]); Remap.Add(Original,Value); return Value; };
+		FVector Center=FVector::ZeroVector; for (const auto& Point:Points) { Center+=Point; } Center/=Points.Num();
+		// Merge coplanar facets and discard collinear hull-edge samples before render
+		// triangulation. Exact-predicate hulls otherwise retain roundoff-sized slivers.
+		TArray<UE::Geometry::FConvexHull3d::FPolygonFace> Faces;
+		Hull.GetSimplifiedFaces(Faces,[&](int32 I){return Points[I];},0.01,1.e-6);
+		for (const auto& Face:Faces)
+		{
+			for (int32 I=1;I+1<Face.Num();++I)
+			{
+				FIntVector Triangle(Index(Face[0]),Index(Face[I]),Index(Face[I+1]));
+				const auto A=Out.Vertices[Triangle.X],B=Out.Vertices[Triangle.Y],C=Out.Vertices[Triangle.Z];
+				if (FVector::DotProduct(FVector::CrossProduct(B-A,C-A),A-Center)<0) { Swap(Triangle.Y,Triangle.Z); }
+				Out.Triangles.Add(Triangle);
+			}
+		}
 	}
 	return true;
 }
@@ -192,7 +275,7 @@ bool HALVehicleCollision::ReadRecipe(UStaticMesh& Mesh, FHALVehicleCollisionPara
 {
 	auto& Data = Mesh.GetOutermost()->GetMetaData();
 	int32 Version = 0;
-	if (!LexTryParseString(Version, *Data.GetValue(&Mesh, TEXT("HALCollision.Version"))) || Version != RecipeVersion)
+	if (!LexTryParseString(Version, *Data.GetValue(&Mesh, TEXT("HALCollision.Version"))) || (Version!=1 && Version!=RecipeVersion))
 	{
 		return Fail(Error, TEXT("Select a mesh generated by this version of the HAL Collision Generator."));
 	}
@@ -205,6 +288,9 @@ bool HALVehicleCollision::ReadRecipe(UStaticMesh& Mesh, FHALVehicleCollisionPara
 	{
 		return Fail(Error, TEXT("The saved generator recipe is incomplete."));
 	}
+	if (Version>=2 && (!ReadFloat(TEXT("HALCollision.FrontSideRadiusCm"),P.FrontSideRadiusCm)
+		|| !ReadFloat(TEXT("HALCollision.RearSideRadiusCm"),P.RearSideRadiusCm)))
+	{ return Fail(Error,TEXT("The saved side-radius recipe is incomplete.")); }
 	if (!P.Validate(Error)) { return false; }
 	Out = P;
 	Error.Reset();

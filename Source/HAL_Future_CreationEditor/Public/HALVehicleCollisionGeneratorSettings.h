@@ -22,6 +22,11 @@ struct FHALVehicleCollisionParameters
 	/** Radius of both -X corners in the XY plane. Width/2 produces a semicircular rear. */
 	UPROPERTY(EditAnywhere, Category = "Corners", meta = (DisplayName = "Rear Corner Radius", Units = "cm", ClampMin = "0"))
 	float RearRadiusCm = 70;
+	/** XZ end rounding, independent of top-view corners. Height/2 removes the vertical end face. */
+	UPROPERTY(EditAnywhere, Category = "Side Corners", meta = (DisplayName = "Front Side Radius", Units = "cm", ClampMin = "0"))
+	float FrontSideRadiusCm = 0;
+	UPROPERTY(EditAnywhere, Category = "Side Corners", meta = (DisplayName = "Rear Side Radius", Units = "cm", ClampMin = "0"))
+	float RearSideRadiusCm = 0;
 	/** Polygon approximation per 90 degree arc. More segments increase the collision vertex count. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "Corners", meta = (ClampMin = "1", ClampMax = "8"))
 	int32 SegmentsPerCorner = 4;

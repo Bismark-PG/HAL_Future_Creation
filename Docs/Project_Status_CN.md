@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-04打包前三项车辆手感调整完成代码、构建及程序验证，下一步团队调Gravity Scale／生成并引用新碰撞体后实测。** 从干净`main/d85a24d4f93fa55033ff28c0508775e5ea66d89a`接续，已含此前GF-6工具修正及团队独立复跑留档。用户确认共用车辆重力、侧面圆角和普通墙独立脱球门槛后授权：现有共享稳定性DA增加Gravity Scale（默认1，0.1～5）与墙门槛（默认600cm/s、60°），原生Chaos车辆组1保留球／世界组0，翻滚按有效重力估算，参数加入不可变签名／一致性校验；墙门槛仅补脱球资格，不改变档位、自然碰撞或追加响应，特殊来源／车辆／球及普通支撑保留原规则，超距释放增加可关闭原因日志。生成器增加XZ前后端上下圆角、侧视预览与v2配方／v1兼容，继续新资产／单凸包。见[配置与Collision Mesh引用步骤](Movement/MVPB_Prepackage_Gameplay_Polish_CN_v0.1.md)、[本轮验证／保护清单](Movement/MVPB_Prepackage_Gameplay_Polish_Verification_20261104.json)。最终UE5.8.3 Editor／Game成功，**132/132普通、5/5工具、2/2实际界面、1.5倍真实NetTest双端及房间连续两局双端各端1/1**，均0测试警告／失败；直接NetTest Client54次重模拟，Host出站注入80ms，不等于实测RTT／四机。**1183保存资产逐份全同，286源码／配置／uproject留档**，Config／uproject未改，Editor Build.cs仅新增GeometryCore依赖，物理历史格式3保持。只读确认当前共享DA Gravity Scale仍1.0，团队可试1.5；两车型Definition均引用`SM_Car01_Collision`，需手工生成新代理并在Definition→Physics→Collision Mesh切换，未代理保存BP／DA／地图。早期编译／探针断言及几何退化失败与修正如实留档。尚无新代理竖立概率、真实画面手感／全部坡面工况、实际打包或四机验收；GF-6／F4／VP-4C／FX余项独立。下一步先团队配置和基础反馈，再回实际Win64打包／四机；本轮未提交／Push。
+
 **2026-11-04团队独立复跑确认：** 已核查用户提供的`Saved/GameFlow/Loop_20261104_103440`，Host17076／Client11876实际退出码均0，`GF4.TwoRounds`各1/1，0测试警告／失败／未运行／进行中；两端日志均`PlayingRounds=2 Identity=1 Fresh=1 Entry=1`，主机Round1返回房间后进入Round2，最终两端回入口退出。本次确认修正后的文档命令可在团队Windows PowerShell环境运行；仅同机Development自动化，不追加发布包／真人画面／四机结论。证据补入[工具修正验证](Networking/GF6_LoopTool_Compatibility_Verification_20261104.json)，下一步实际打包与四机验收保持。
 
 **2026-11-04 GF-6循环工具Windows PowerShell 5.1误报已修复并实跑验证；当前仍待实际打包／四机验收。** 开工干净`main/a09b4551b0bbb6beebd2266eed09fc67a4221dc0`，已含此前GF-6工程收尾提交，旧“本轮未提交／main125395c”保留历史时点。团队原`Loop_20261104_101003`的Host／Client报告均1/1、0警告／失败，旧脚本因5.1重定向进程ExitCode为null而报`Unclean result: Host`，不是本次游戏流程失败。真实子进程复现并修正：立即保留Process.Handle，退出后排空输出，继续严格拒绝空／非零退出码及不合格报告；失败也保存全部角色Summary并打印具体原因／目录。文档改为子进程范围ExecutionPolicy Bypass调用。Windows PowerShell **5.1.26100.9711**与PowerShell **7.6.5**各6项工具夹具通过；5.1真实Development双端连续两局Host／Client各1/1、0测试警告／失败、实际退出码均0，工具退出0。详见[说明第4.1节](Networking/GF6_Engineering_Closeout_CN_v0.1.md#41-windows-powershell-51误报修正2026-11-04)、[本轮证据](Networking/GF6_LoopTool_Compatibility_Verification_20261104.json)。**1183资产、285源码／配置／uproject与用户原测试文件逐份全同**；仅工具／夹具／文档变化，无C++编译或新增130项／展示四进程／发布包／真人／四机结论。本轮修改未提交／Push，旧GF-6功能证据保持；下一入口仍为实际Win64 Development包和四台有线PC验收。
@@ -256,8 +258,8 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
-| 开发阶段 | GF-1至GF-5及Widget接口、GF-6工程收尾完成代码／构建／程序验证；下一步实际Win64打包及四台真实PC验收，GF-6整体未验收完成；原MVP-B余项独立记账 |
-| 当前本机分支／代码提交 | `main / a09b455`已含GF-6工程收尾；开工干净，加本轮未提交PowerShell 5.1工具修正／夹具／文档，无源码／配置／保存资产改动，未提交／Push |
+| 开发阶段 | GF-6工程收尾及打包前重力／侧面圆角／墙体脱球调整完成代码／构建／程序验证；下一步团队配置／手感实测，再回实际打包及四机验收 |
+| 当前本机分支／代码提交 | `main / d85a24d`已含工具修正与团队复跑留档；开工干净，加本轮未提交手感调整源码／文档，无保存资产改动，未提交／Push |
 | 引擎基线 | 本机 **5.8.3-58210709** 最终Editor／Game成功、129普通、实际D3D12内存UMG与原生回退各1项、原生Host／自定义Client双端连续两局各端1项通过；不替代实际新WBP／真人／四机验收 |
 | 本机运行前置 | 验证进程已退出，可重开完整编译Editor；新WBP分别继承HALArcadeEntryWidget／HALPracticeRoomWidget，在GI Front End→Screens指派Entry／Room／Pause Screen Class；全部留空继续原生回退 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
@@ -278,6 +280,7 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 | 环节 | 已有结果 | 证据边界 |
 |---|---|---|
+| 打包前车辆手感调整 | 共享车辆Gravity Scale／有效重力翻滚、普通墙独立脱球门槛、XZ侧面圆角生成与兼容完成；两Target、132普通、5工具、2UI及1.5倍双端／两局均通过 | 1183资产全同，286源码／配置；DA仍1、新代理未生成／引用，待团队手感；见[配置与引用](Movement/MVPB_Prepackage_Gameplay_Polish_CN_v0.1.md)及[验证](Movement/MVPB_Prepackage_Gameplay_Polish_Verification_20261104.json) |
 | GF-6工程收尾 | 服务器共用返回、Exhibition非Shipping主机测试开关、Cook根与只读资源预检／循环工具完成；Editor／Game、130普通、四进程两局／双端两局各端1项、原生UI1项通过 | 1183资产全同，285源码／配置哈希；预检86项目包。实际Cook／发布包、完整异常／真人／四机待验收，见[操作步骤](Networking/GF6_Engineering_Closeout_CN_v0.1.md)及[验证](Networking/GF6_Engineering_Verification_20261103.json) |
 | GF-5 Widget Blueprint接口补充 | 可配置入口／Room／Pause类、Designer完整布局及原生回退、只读视图／变化事件、语义动作／焦点和状态即时同步完成；最终两Target、129普通、内存UMG／原生UI各1项、混合界面双端两局各1项通过 | 1183资产全同，285源码／配置哈希；实际新WBP／Designer／动画及真人硬件待团队，详见[接线](Networking/GF5_Widget_Blueprint_Interfaces_CN_v0.1.md)与[验证](Networking/GF5_Widget_Interfaces_Verification_20261103.json) |
 | GF-5入口与表现 | 原生待机／Host／Join、四席位／静态车型卡、可选品牌素材、焦点／输入切换及加载错误完成；最终两Target、127普通、D3D12 UI完整流程1项及双端两局各1项通过 | 1183资产全同、278源码／配置留档；真实手柄／鼠标、按住键／失焦、素材及四机待团队，下一开发GF-6。详见[实施与接线](Networking/GF5_Arcade_FrontEnd_Implementation_CN_v0.1.md) |
@@ -364,7 +367,7 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 ## 6. 下一环节和待确定项
 
-2026-11-03当前流程入口：**GF-6工程收尾完成，按[收尾文档第2～6节](Networking/GF6_Engineering_Closeout_CN_v0.1.md#2-团队操作)测试受控结束、资源预检，随后实际生成Win64 Development包并进行发布包双端／四台有线PC验收。** 展示配置须四人，手动结束仅非Shipping主机显式开关允许；服务器未来比赛规则复用共用返回接口。团队仍可按[Widget接口文档](Networking/GF5_Widget_Blueprint_Interfaces_CN_v0.1.md)制作并指派实际WBP；未配置继续原生，禁止UI反向修改服务器状态。当前无正式计时／淘汰／结算；F4／VP-4C／FX保持独立。
+2026-11-04当前流程入口：**先按[打包前手感调整](Movement/MVPB_Prepackage_Gameplay_Polish_CN_v0.1.md)在共享DA试Gravity Scale=1.5及墙脱球门槛，通过工具生成侧面圆角新代理，在每车型Definition→Physics→Collision Mesh切换，补团队驾驶／带球／碰撞／落地反馈。** 程序验证已完成，保存DA仍Gravity Scale=1、原代理未替换；本轮不保证消除所有竖立。之后继续[GF-6实际打包／四机](Networking/GF6_Engineering_Closeout_CN_v0.1.md#6-下一步验收)，WBP接线、F4／VP-4C／FX及正式比赛规则保持独立。
 
 2026-10-29自救最新入口：重开已完整重编Editor，按[自救第9.2节](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#92-团队editor调参步骤)将共享DA的Minimum Recovery Tilt按需设为实际Drive Exit Tilt（当前65°），试60／12／80／6的Response组合；保留当前资格等待2秒、长按1.5秒与执行／冷却。手动保存／Validate后新开双端，左右侧／斜靠／倒扣／墙角复测，查看Block及Outcome；没有自动覆盖保存资产，也不改变下述相机和MVP-B收尾排期。
 

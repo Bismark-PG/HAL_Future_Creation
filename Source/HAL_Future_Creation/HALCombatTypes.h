@@ -109,6 +109,8 @@ struct FHALCombatHitResult
 	FVector RuleDeltaVelocity = FVector::ZeroVector;
 	float RuleMinimumUpwardSpeed = 0;
 	bool bSupportSupplementSuppressed = false;
+	bool bWallDropSuppressed = false;
+	float WallDropThreshold = 0;
 	/** GT contact diagnostics; command classification, not an integrated physics sample. */
 	FName SupportSourceReason;
 	float NaturalNormalDeltaSpeed = 0;

@@ -129,7 +129,7 @@ private:
 	bool AcquireBall(ABasicBallActor* Candidate);
 	void ConfigureConstraint(ABasicBallActor* Ball);
 	void ReleaseConstraint();
-	void ReleaseHeldBall(const FVector& ReleaseDirection, bool bApplyReleaseImpulse);
+	void ReleaseHeldBall(const FVector& ReleaseDirection, bool bApplyReleaseImpulse, FName Reason = NAME_None);
 	void DrawAcquisitionDebug(const ABasicBallActor* BestCandidate) const;
 
 	UPROPERTY(Transient)

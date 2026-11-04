@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "CombatResolver.h"
+#include "VehicleStabilityRules.h"
 #include "HALGameFlowPermissions.h"
 
 #include "Components/PrimitiveComponent.h"
@@ -108,10 +109,8 @@ namespace
 		if (Tier.AirborneFlipTurns > 0.0f && Tier.TargetVerticalSpeed > KINDA_SMALL_NUMBER)
 		{
 			bApplyAuthoredRotation = true;
-			const float ExpectedAirTime = (2.0f * Tier.TargetVerticalSpeed) / 980.0f;
-			const float RequestedFlipSpeed =
-				(2.0f * PI * Tier.AirborneFlipTurns) / FMath::Max(0.1f, ExpectedAirTime);
-			const float FlipSpeed = FMath::Min(FMath::Max(0.0f, MaxAngularSpeed), RequestedFlipSpeed);
+			const float FlipSpeed = HALVehicleStability::FlipAngularSpeed(Tier.TargetVerticalSpeed,Tier.AirborneFlipTurns,
+				HALVehicleStability::GetVehicleGravityZ(&Body),MaxAngularSpeed);
 			const FVector FlipAxis = FVector::CrossProduct(UpDirection, PushDirection).GetSafeNormal();
 			DesiredAngularVelocity += FlipAxis * FlipSpeed;
 		}
@@ -306,7 +305,7 @@ FHALCombatHitResult FCombatResolver::ResolveCombatHit(FHALCombatAction& Action, 
 	}
 	if (CVarHALCombatLog.GetValueOnGameThread() > 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("HAL Combat: Attack=%s Pulse=%u PlayerId=%d Source=%s Mode=%d Target=%s Raw=%.2f Resolved=%.2f Actual=%.2f DamageImmune=%d Impact=%d LegacyTier=%d SourceTier=%d EffectiveTier=%d ImpactImmune=%d Drop=%d Frame=%d SupportSuppressed=%d RuleDV=%s RuleUp=%.2f ContactActor=%s ContactBody=%s Mobility=%d ObjectType=%d SupportSource=%s Normal=%s NormalImpulse=%s NaturalDV=%.3f RelativeAfter=%.3f"),
+		UE_LOG(LogTemp, Log, TEXT("HAL Combat: Attack=%s Pulse=%u PlayerId=%d Source=%s Mode=%d Target=%s Raw=%.2f Resolved=%.2f Actual=%.2f DamageImmune=%d Impact=%d LegacyTier=%d SourceTier=%d EffectiveTier=%d ImpactImmune=%d Drop=%d Frame=%d SupportSuppressed=%d RuleDV=%s RuleUp=%.2f ContactActor=%s ContactBody=%s Mobility=%d ObjectType=%d SupportSource=%s Normal=%s NormalImpulse=%s NaturalDV=%.3f RelativeAfter=%.3f WallDropSuppressed=%d WallDropThreshold=%.3f"),
 			*Result.AttackId.ToString(), Result.PulseSequence, Result.InstigatorPlayerId, *Source.SourceTag.ToString(),
 			int32(Source.DamageMode), *GetNameSafe(Target), Result.RawDamage, Result.ResolvedDamage, Result.ActualHPRemoved,
 			Result.bDamageImmune ? 1 : 0, int32(Result.ImpactOutcome), int32(Result.KnockbackTier),
@@ -315,7 +314,7 @@ FHALCombatHitResult FCombatResolver::ResolveCombatHit(FHALCombatAction& Action, 
 			Result.bSupportSupplementSuppressed ? 1 : 0, *Result.RuleDeltaVelocity.ToString(), Result.RuleMinimumUpwardSpeed,
 			*GetNameSafe(Hit.SourceActor), *GetNameSafe(Hit.SourcePhysicsBody), Hit.SourcePhysicsBody ? int32(Hit.SourcePhysicsBody->Mobility) : -1,
 			Hit.SourcePhysicsBody ? int32(Hit.SourcePhysicsBody->GetCollisionObjectType()) : -1, *Result.SupportSourceReason.ToString(),
-			*Hit.ImpactNormal.ToString(), *Hit.NormalImpulse.ToString(), Result.NaturalNormalDeltaSpeed, Result.RelativeNormalSpeedAfter);
+			*Hit.ImpactNormal.ToString(), *Hit.NormalImpulse.ToString(), Result.NaturalNormalDeltaSpeed, Result.RelativeNormalSpeedAfter, Result.bWallDropSuppressed, Result.WallDropThreshold);
 	}
 	return Result;
 }

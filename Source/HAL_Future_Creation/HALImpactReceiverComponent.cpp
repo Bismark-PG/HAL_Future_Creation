@@ -43,6 +43,7 @@ bool UHALImpactReceiverComponent::InitializeStabilityRules()
 	LocalStabilitySignature = Shared->GetSignature();
 	if (auto* Root = Cast<UPrimitiveComponent>(GetOwner()->GetRootComponent()))
 	{
+		Shared->ConfigureVehicleGravity(Root);
 		if (auto* Material = Shared->GetVehicleMaterial()) { Root->SetPhysMaterialOverride(Material); }
 	}
 	bStabilityValid = true;
@@ -265,8 +266,7 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 			const auto* Other = Hit.SourceActor;
 			Result.NaturalNormalDeltaSpeed = Natural;
 			Result.RelativeNormalSpeedAfter = RelativeAfter;
-			Result.SupportSourceReason = !StabilityRules.bSuppressSupportSupplement ? FName(TEXT("Disabled"))
-				: IsValid(OtherBody) && IsValid(Other) && OtherBody->GetOwner() == Other
+			Result.SupportSourceReason = IsValid(OtherBody) && IsValid(Other) && OtherBody->GetOwner() == Other
 				? HALVehicleStability::ClassifySupportSource(OtherBody, Hit.ImpactPoint) : FName(TEXT("InvalidSource"));
 			if (StabilityRules.SuppressesSupplement(Result.SupportSourceReason == TEXT("StationaryWorld"), Hit.ImpactNormal, Direction))
 			{
@@ -286,9 +286,9 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 			if (Tier.AirborneFlipTurns > 0)
 			{
 				PhysicsAction.bSetPlanarAngularVelocity = true;
-				const float AirTime = 2 * Tier.TargetVerticalSpeed / 980.0f;
 				PhysicsAction.PlanarAngularVelocity = FVector::CrossProduct(FVector::UpVector, Direction).GetSafeNormal()
-					* FMath::Min(Table.MaxAirborneAngularSpeed, 2 * PI * Tier.AirborneFlipTurns / FMath::Max(0.1f, AirTime));
+					* HALVehicleStability::FlipAngularSpeed(Tier.TargetVerticalSpeed,Tier.AirborneFlipTurns,
+						HALVehicleStability::GetVehicleGravityZ(Body),Table.MaxAirborneAngularSpeed);
 			}
 		}
 		bool bQueued = false;
@@ -309,7 +309,9 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 		{ Recovery->NotifyExternalImpact(Request,Summary.EffectiveTier); }
 		if (Config.bDropOnImpact && uint8(Summary.EffectiveTier) >= uint8(Config.MinimumDropTier))
 		{
-			if (UBallControlComponent* BallControl = GetOwner()->FindComponentByClass<UBallControlComponent>())
+			Result.bWallDropSuppressed=bPhysical && !StabilityRules.AllowsWallDrop(Result.SupportSourceReason==TEXT("StationaryWorld"),Hit.ImpactNormal,Natural);
+			Result.WallDropThreshold=StabilityRules.WallDropNormalDeltaSpeed;
+			if (UBallControlComponent* BallControl = GetOwner()->FindComponentByClass<UBallControlComponent>(); BallControl && !Result.bWallDropSuppressed)
 			{
 				Summary.bBallDropped = BallControl->ReleaseFromImpact(Direction);
 			}

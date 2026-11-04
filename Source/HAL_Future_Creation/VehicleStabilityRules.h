@@ -14,6 +14,8 @@ namespace HALVehicleStability
 {
 	/** GT-only contact classification. Mobility is permission to move, not proof of motion. */
 	HAL_FUTURE_CREATION_API FName ClassifySupportSource(const UPrimitiveComponent* SourceBody, const FVector& ContactPoint);
+	HAL_FUTURE_CREATION_API float GetVehicleGravityZ(const UPrimitiveComponent* Body);
+	HAL_FUTURE_CREATION_API float FlipAngularSpeed(float VerticalSpeed, float Turns, float GravityZ, float MaximumSpeed);
 }
 
 /** Pure contact policy; authority resolves it before queuing the existing physics action. */
@@ -21,7 +23,11 @@ struct HAL_FUTURE_CREATION_API FVehicleContactStabilityRules
 {
 	bool bSuppressSupportSupplement = false;
 	float MinimumSupportUpDot = 1;
+	float MaximumWallUpDot = 0.5f;
+	float WallDropNormalDeltaSpeed = 0;
 	bool SuppressesSupplement(bool bOrdinaryStationaryEnvironment, const FVector& Normal, const FVector& ImpulseDirection) const;
+	bool IsOrdinaryWall(bool bOrdinaryStationaryEnvironment, const FVector& Normal) const;
+	bool AllowsWallDrop(bool bOrdinaryStationaryEnvironment, const FVector& Normal, float NormalDeltaSpeed) const;
 };
 
 /** Shared vehicle contact, pose and recovery rules. */
@@ -32,6 +38,9 @@ class HAL_FUTURE_CREATION_API UVehicleStabilityRules : public UDataAsset
 public:
 	UPROPERTY(EditDefaultsOnly, Category = "Validation")
 	bool bReadyForUse = false;
+	/** All vehicle collision roots; free balls keep world gravity. Frozen until a new world starts. */
+	UPROPERTY(EditDefaultsOnly, Category = "Gravity", meta = (ClampMin = "0.1", ClampMax = "5"))
+	float GravityScale = 1;
 	/** Applied to vehicle collision roots only; does not replace the ball or arena material. */
 	UPROPERTY(EditDefaultsOnly, Category = "Contact")
 	TObjectPtr<UPhysicalMaterial> VehiclePhysicalMaterial;
@@ -41,6 +50,12 @@ public:
 	/** Maximum slope from world up; both geometric normal and impulse must qualify. */
 	UPROPERTY(EditDefaultsOnly, Category = "Contact", meta = (ClampMin = "0", ClampMax = "80", Units = "deg"))
 	float MaximumSupportSlopeDegrees = 45;
+	/** Additional drop gate for ordinary stationary walls. Does not scale collision physics or tiers. */
+	UPROPERTY(EditDefaultsOnly, Category = "Wall Ball Drop", meta = (ClampMin = "0", ClampMax = "5000", Units = "cm/s"))
+	float WallDropNormalDeltaSpeed = 600;
+	/** Surface slope from world up; excludes ordinary floor/ramp support and ceilings. */
+	UPROPERTY(EditDefaultsOnly, Category = "Wall Ball Drop", meta = (ClampMin = "45", ClampMax = "90", Units = "deg"))
+	float MinimumWallSlopeDegrees = 60;
 	UPROPERTY(EditDefaultsOnly, Category = "Recovery") FVehicleRecoveryConfig Recovery;
 	bool Validate(FString& Error) const;
 };
@@ -68,11 +83,15 @@ public:
 	const FVehicleRecoveryConfig& GetRecoveryRules() const { return RecoveryRules; }
 	UPhysicalMaterial* GetVehicleMaterial() const { return Material; }
 	uint32 GetSignature() const { return Signature; }
+	void ConfigureVehicleGravity(UPrimitiveComponent* Body) const;
+	float GetVehicleGravityZ() const { return VehicleGravityZ; }
 private:
 	bool bInitialized = false;
 	bool bValid = false;
 	FVehicleContactStabilityRules ContactRules;
 	FVehicleRecoveryConfig RecoveryRules;
 	uint32 Signature = 0;
+	bool bUseVehicleGravity = false;
+	float VehicleGravityZ = -980;
 	UPROPERTY(Transient) TObjectPtr<UPhysicalMaterial> Material;
 };

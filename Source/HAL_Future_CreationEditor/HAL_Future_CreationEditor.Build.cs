@@ -11,7 +11,7 @@ public class HAL_Future_CreationEditor : ModuleRules
 			"Core", "CoreUObject", "Engine", "PhysicsCore", "UnrealEd",
 			"Slate", "SlateCore", "PropertyEditor", "ToolMenus",
 			"AssetRegistry", "AssetTools", "ContentBrowser", "MeshDescription", "StaticMeshDescription",
-			"SkeletalMeshDescription", "AnimationCore", "HAL_Future_Creation"
+			"SkeletalMeshDescription", "AnimationCore", "GeometryCore", "HAL_Future_Creation"
 		});
 	}
 }

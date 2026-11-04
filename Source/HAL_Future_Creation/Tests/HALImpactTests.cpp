@@ -486,6 +486,29 @@ bool FHALImpactBallPipelineTest::RunTest(const FString& Parameters)
 	ShortHit.Impact.PushPreset = EHALImpactPushPreset::Short;
 	const auto ShortDrop = FCombatResolver::ResolveCombatHit(ShortAction, ShortHit);
 	TestTrue(TEXT("Short push still drops by effective Medium tier"), ShortDrop.ImpactSummary.EffectiveTier == EHALImpactTier::Medium && ShortDrop.ImpactSummary.bBallDropped && Control->GetHeldBall() == nullptr);
+	auto HoldNew=[&]() { auto* B=F.World->SpawnActor<ABasicBallActor>(); TestTrue(TEXT("Fresh ball acquired for wall policy"),B->BeginControl(Pawn)); Control->HeldBall=B; return B; };
+	const auto* Retained=HoldNew();
+	const auto WallRequest=[&](FHALCombatAction& A,float NormalDV)
+	{
+		auto H=Request(A,Pawn,EHALImpactTier::Heavy,false); H.Impact.Mode=EHALImpactMode::PhysicalContact;
+		H.Hit.SourceActor=Hazard; H.Hit.SourcePhysicsBody=Floor;
+		H.Hit.ImpactNormal=FVector::ForwardVector; H.Hit.NormalImpulse=FVector(NormalDV*Body(Pawn)->GetMass(),0,0);
+		return H;
+	};
+	FHALCombatAction WallAction; Begin(WallAction,Hazard,0);
+	const auto Wall=FCombatResolver::ResolveCombatHit(WallAction,WallRequest(WallAction,450));
+	TestTrue(TEXT("Wall retains held ball below independent 600cm/s threshold"),Wall.bWallDropSuppressed && Control->GetHeldBall()==Retained);
+	TestTrue(TEXT("Wall tier and physics response still applied"),Wall.bImpactApplied && Wall.ImpactSummary.EffectiveTier==EHALImpactTier::Medium);
+	auto* Special=NewObject<UHALImpactSourceComponent>(Hazard); Hazard->AddInstanceComponent(Special); Special->RegisterComponent();
+	FHALCombatAction SpecialAction; Begin(SpecialAction,Hazard,0);
+	const auto SpecialHit=FCombatResolver::ResolveCombatHit(SpecialAction,WallRequest(SpecialAction,450));
+	TestTrue(TEXT("Specialized source bypasses ordinary wall gate"),!SpecialHit.bWallDropSuppressed && SpecialHit.ImpactSummary.bBallDropped);
+	TestTrue(TEXT("Only drop changes, not physical response"),SpecialHit.RuleDeltaVelocity.Equals(Wall.RuleDeltaVelocity,0.001f)
+		&& SpecialHit.ImpactSummary.EffectiveTier==Wall.ImpactSummary.EffectiveTier && SpecialHit.RuleMinimumUpwardSpeed==Wall.RuleMinimumUpwardSpeed);
+	Special->DestroyComponent(); HoldNew();
+	FHALCombatAction StrongWallAction; Begin(StrongWallAction,Hazard,0);
+	const auto StrongWall=FCombatResolver::ResolveCombatHit(StrongWallAction,WallRequest(StrongWallAction,600));
+	TestTrue(TEXT("Wall at threshold drops and keeps existing reacquire lock"),StrongWall.ImpactSummary.bBallDropped && !Control->GetHeldBall() && !Retained->CanBeControlledBy(Pawn));
 	return true;
 }
 

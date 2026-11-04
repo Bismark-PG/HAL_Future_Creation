@@ -9,6 +9,7 @@ namespace HALVehicleCollision
 	struct FGeometry
 	{
 		TArray<FVector2D> Outline;
+		TArray<FVector2D> SideOutline;
 		TArray<FVector> Vertices;
 		TArray<FIntVector> Triangles;
 	};

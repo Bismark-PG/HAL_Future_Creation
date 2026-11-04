@@ -42,7 +42,7 @@ namespace
 					Label, FAppStyle::GetFontStyle("NormalFont"), ESlateDrawEffect::None, FLinearColor::White);
 			};
 			Text(FVector2D(12, 10), LOCTEXT("Top", "Top (XY) - front +X ->"));
-			Text(FVector2D(12, Size.Y * 0.5 + 10), LOCTEXT("Side", "Side (XZ) - flat top and bottom"));
+			Text(FVector2D(12, Size.Y * 0.5 + 10), LOCTEXT("Side", "Side (XZ) - rounded front/rear edges"));
 			HALVehicleCollision::FGeometry Shape;
 			FString Error;
 			if (!HALVehicleCollision::BuildGeometry(Settings->Shape, Shape, Error)) { return Layer + 1; }
@@ -59,8 +59,7 @@ namespace
 			};
 			const auto& P = Settings->Shape;
 			Draw(Shape.Outline, P.LengthCm, P.WidthCm, Size.Y * 0.25 + 12, FLinearColor(0.1f, 0.8f, 0.4f));
-			Draw({ FVector2D(-P.LengthCm/2,-P.HeightCm/2), FVector2D(P.LengthCm/2,-P.HeightCm/2),
-				FVector2D(P.LengthCm/2,P.HeightCm/2), FVector2D(-P.LengthCm/2,P.HeightCm/2) },
+			Draw(Shape.SideOutline,
 				P.LengthCm, P.HeightCm, Size.Y * 0.75 + 12, FLinearColor(0.2f, 0.65f, 1));
 			return Layer + 1;
 		}
@@ -89,7 +88,7 @@ namespace
 				[
 					SNew(SVerticalBox)
 					+ SVerticalBox::Slot().AutoHeight().Padding(0,0,0,8)
-					[ SNew(STextBlock).AutoWrapText(true).Text(LOCTEXT("Intro", "Dimensions are in cm. +X is forward; pivot is at the bounds center. Corner radii affect the XY outline only. Create makes a new asset; save it before using it.")) ]
+					[ SNew(STextBlock).AutoWrapText(true).Text(LOCTEXT("Intro", "Dimensions are in cm. +X is forward; pivot is centered. Corner radii shape XY; Side radii round XZ ends. Create makes a new asset; save it before using it.")) ]
 					+ SVerticalBox::Slot().FillHeight(1)
 					[
 						SNew(SSplitter)

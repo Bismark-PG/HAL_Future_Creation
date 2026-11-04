@@ -7,6 +7,27 @@
 #include "BasicBallActor.h"
 #include "HALImpactReceiverComponent.h"
 #include "HALImpactSourceComponent.h"
+#include "Engine/World.h"
+#include "Physics/Experimental/PhysScene_Chaos.h"
+#include "PBDRigidsSolver.h"
+#include "Chaos/PBDRigidsEvolutionGBF.h"
+
+namespace { constexpr int32 VehicleGravityGroup = 1; } // Group 0 remains world/ball gravity.
+
+float HALVehicleStability::GetVehicleGravityZ(const UPrimitiveComponent* Body)
+{
+	check(IsInGameThread());
+	const auto* World=Body?Body->GetWorld():nullptr;
+	if (!World) { return 0; }
+	const auto* Shared=World->GetSubsystem<UVehicleStabilitySubsystem>();
+	return Shared && Body->BodyInstance.GravityGroupIndex==VehicleGravityGroup ? Shared->GetVehicleGravityZ() : World->GetGravityZ();
+}
+float HALVehicleStability::FlipAngularSpeed(float VerticalSpeed,float Turns,float GravityZ,float MaximumSpeed)
+{
+	if (!FMath::IsFinite(VerticalSpeed) || !FMath::IsFinite(Turns) || !FMath::IsFinite(GravityZ) || !FMath::IsFinite(MaximumSpeed)
+		|| VerticalSpeed<=0 || Turns<=0 || GravityZ>=-KINDA_SMALL_NUMBER || MaximumSpeed<=0) { return 0; }
+	return FMath::Min(MaximumSpeed,2*PI*Turns/FMath::Max(0.1f,2*VerticalSpeed/-GravityZ));
+}
 
 FName HALVehicleStability::ClassifySupportSource(const UPrimitiveComponent* SourceBody, const FVector& ContactPoint)
 {
@@ -44,6 +65,10 @@ bool FVehicleContactStabilityRules::SuppressesSupplement(bool bOrdinaryStationar
 
 bool UVehicleStabilityRules::Validate(FString& Error) const
 {
+	if (!FMath::IsFinite(GravityScale) || GravityScale<0.1f || GravityScale>5
+		|| !FMath::IsFinite(WallDropNormalDeltaSpeed) || WallDropNormalDeltaSpeed<0 || WallDropNormalDeltaSpeed>5000
+		|| !FMath::IsFinite(MinimumWallSlopeDegrees) || MinimumWallSlopeDegrees<45 || MinimumWallSlopeDegrees>90)
+	{ Error=TEXT("Invalid gravity scale or wall ball-drop threshold/slope"); return false; }
 	if (!Recovery.Validate(Error)) { return false; }
 	if (!bReadyForUse || !IsValid(VehiclePhysicalMaterial))
 	{
@@ -79,6 +104,7 @@ bool UVehicleStabilitySubsystem::InitializeRules()
 	check(IsInGameThread());
 	if (bInitialized) { return bValid; }
 	bInitialized = true;
+	VehicleGravityZ=GetWorld()->GetGravityZ();
 	const auto* Settings = GetDefault<UVehicleStabilitySettings>();
 	if (!Settings->bUseSharedRules)
 	{
@@ -94,6 +120,16 @@ bool UVehicleStabilitySubsystem::InitializeRules()
 		return false;
 	}
 	ContactRules.bSuppressSupportSupplement = Definition->bSuppressSupportSupplement;
+	ContactRules.WallDropNormalDeltaSpeed=Definition->WallDropNormalDeltaSpeed;
+	ContactRules.MaximumWallUpDot=FMath::Cos(FMath::DegreesToRadians(Definition->MinimumWallSlopeDegrees));
+	VehicleGravityZ*=Definition->GravityScale;
+	if (!FMath::IsFinite(VehicleGravityZ)) { return false; }
+	auto* Scene=GetWorld()->GetPhysicsScene(); auto* Solver=Scene?Scene->GetSolver():nullptr;
+	if (!Solver) { UE_LOG(LogTemp,Error,TEXT("Vehicle gravity requires a physics solver")); return false; }
+	// Native Chaos group gravity is integrated in normal and rewind steps. No extra Tick/forces.
+	Solver->EnqueueCommandImmediate([Solver,G=VehicleGravityZ]()
+	{ Solver->GetEvolution()->GetGravityForces().SetAcceleration(Chaos::FVec3(0,0,G),VehicleGravityGroup); });
+	bUseVehicleGravity=true;
 	RecoveryRules = Definition->Recovery;
 	ContactRules.MinimumSupportUpDot = FMath::Cos(FMath::DegreesToRadians(Definition->MaximumSupportSlopeDegrees));
 	// Freeze the material too: editing the source DA/PM during PIE cannot change this world's history.
@@ -107,10 +143,31 @@ bool UVehicleStabilitySubsystem::InitializeRules()
 		Material->SleepLinearVelocityThreshold, Material->SleepAngularVelocityThreshold, Material->SleepCounterThreshold,
 		Material->RaiseMassToPower, int32(Material->SoftCollisionMode), Material->SoftCollisionThickness, Material->BaseFrictionImpulse);
 	Key += RecoveryRules.SignatureKey();
+	Key += FString::Printf(TEXT(":GravityWallV1:%.9g:%.9g:%.9g:%.9g"),Definition->GravityScale,VehicleGravityZ,
+		Definition->WallDropNormalDeltaSpeed,Definition->MinimumWallSlopeDegrees);
 	Signature = FCrc::StrCrc32(*Key);
 	if (!Signature) { Signature = 1; } // Zero means no authority snapshot received yet.
 	bValid = true;
 	UE_LOG(LogTemp, Display, TEXT("VehicleStabilityRules Snapshot=%u Asset=%s Restitution=%.3f SupportSlope=%.1f SuppressSupport=%d"),
 		Signature, *Definition->GetPathName(), Material->Restitution, Definition->MaximumSupportSlopeDegrees, ContactRules.bSuppressSupportSupplement);
+	UE_LOG(LogTemp,Display,TEXT("VehicleGravity Scale=%.3f GravityZ=%.3f Group=%d WallDropDV=%.3f WallSlope=%.1f"),
+		Definition->GravityScale,VehicleGravityZ,VehicleGravityGroup,ContactRules.WallDropNormalDeltaSpeed,Definition->MinimumWallSlopeDegrees);
 	return true;
+}
+
+bool FVehicleContactStabilityRules::IsOrdinaryWall(bool bOrdinaryStationaryEnvironment,const FVector& Normal) const
+{
+	return bOrdinaryStationaryEnvironment && !Normal.ContainsNaN() && !Normal.IsNearlyZero()
+		&& FMath::Abs(Normal.GetSafeNormal().Z)<=FMath::Max(0.f,MaximumWallUpDot)+1.e-6f;
+}
+bool FVehicleContactStabilityRules::AllowsWallDrop(bool bOrdinaryStationaryEnvironment,const FVector& Normal,float NormalDeltaSpeed) const
+{
+	return !IsOrdinaryWall(bOrdinaryStationaryEnvironment,Normal)
+		|| (FMath::IsFinite(NormalDeltaSpeed) && NormalDeltaSpeed>=WallDropNormalDeltaSpeed);
+}
+void UVehicleStabilitySubsystem::ConfigureVehicleGravity(UPrimitiveComponent* Body) const
+{
+	check(IsInGameThread());
+	if (bValid && bUseVehicleGravity && Body && Body->GetOwner() && Body->GetWorld()==GetWorld())
+	{ Body->BodyInstance.SetGravityGroupIndex(VehicleGravityGroup); }
 }

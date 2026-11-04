@@ -21,6 +21,58 @@
 #include "UObject/StrongObjectPtr.h"
 #include <limits>
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALCollisionSideRadiusTest,"HAL.Editor.CollisionGenerator.SideRoundedConvexAndLegacyRecipe",
+	EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALCollisionSideRadiusTest::RunTest(const FString&)
+{
+	FString Error; FHALVehicleCollisionParameters Bad;
+	Bad.FrontSideRadiusCm=36; TestFalse(TEXT("Side radius bounded by half height"),Bad.Validate(Error));
+	Bad.FrontSideRadiusCm=std::numeric_limits<float>::quiet_NaN(); TestFalse(TEXT("Nonfinite side radius rejected"),Bad.Validate(Error));
+	int32 MaxVertices=0;
+	for (const int32 Segments:{1,4,8})
+	{
+		for (const FVector2D Side:{FVector2D(0,20),FVector2D(35,35),FVector2D(10,30)})
+		{
+			FHALVehicleCollisionParameters P; P.FrontSideRadiusCm=Side.X; P.RearSideRadiusCm=Side.Y; P.SegmentsPerCorner=Segments;
+			HALVehicleCollision::FGeometry G;
+			if (!TestTrue(TEXT("Rounded geometry built"),HALVehicleCollision::BuildGeometry(P,G,Error))) { AddError(Error); return false; }
+			MaxVertices=FMath::Max(MaxVertices,G.Vertices.Num());
+			FBox Bounds(ForceInit); for (const auto& V:G.Vertices) { Bounds+=V; }
+			TestTrue(TEXT("Full bounds and centered pivot retained"),Bounds.GetSize().Equals(FVector(P.LengthCm,P.WidthCm,P.HeightCm),0.001) && Bounds.GetCenter().IsNearlyZero(0.001));
+			TMap<FIntPoint,int32> Edges; double Volume=0,MinAreaSquared=TNumericLimits<double>::Max();
+			for (const auto& T:G.Triangles)
+			{
+				const auto A=G.Vertices[T.X],B=G.Vertices[T.Y],C=G.Vertices[T.Z]; const auto N=FVector::CrossProduct(B-A,C-A);
+				MinAreaSquared=FMath::Min(MinAreaSquared,N.SizeSquared());
+				for (const auto& V:G.Vertices) { TestTrue(TEXT("All vertices inside every convex face"),FVector::DotProduct(N.GetSafeNormal(),V-A)<0.001); }
+				Volume+=FVector::DotProduct(A,FVector::CrossProduct(B,C))/6;
+				for (const auto E:{FIntPoint(T.X,T.Y),FIntPoint(T.Y,T.Z),FIntPoint(T.Z,T.X)})
+				{ ++Edges.FindOrAdd(FIntPoint(FMath::Min(E.X,E.Y),FMath::Max(E.X,E.Y))); }
+			}
+			for (const auto& E:Edges) { TestEqual(TEXT("Rounded manifold closed"),E.Value,2); }
+			TestTrue(FString::Printf(TEXT("Rounded faces nondegenerate: segments=%d side=(%.1f,%.1f) minAreaSq=%.9g"),Segments,Side.X,Side.Y,MinAreaSquared),MinAreaSquared>1.e-8);
+			TestTrue(TEXT("Positive outward volume"),Volume>0);
+			for (const auto& V:G.Vertices)
+			{
+				if (FMath::IsNearlyEqual(V.X,double(P.LengthCm/2),0.001))
+				{ TestTrue(TEXT("Front flat end height shrinks by authored rounding"),FMath::Abs(V.Z)<=P.HeightCm/2-P.FrontSideRadiusCm+0.001); }
+			}
+		}
+	}
+	TestTrue(TEXT("Bounded single-convex vertex count"),MaxVertices<=256);
+	FHALVehicleCollisionParameters P; P.FrontSideRadiusCm=35; P.RearSideRadiusCm=20;
+	TStrongObjectPtr<UStaticMesh> Mesh(NewObject<UStaticMesh>(GetTransientPackage()));
+	if (!TestTrue(TEXT("Rounded render and physics mesh build"),HALVehicleCollision::BuildMesh(*Mesh,P,Error))) { AddError(Error); return false; }
+	TestEqual(TEXT("Still one simple physics hull"),Mesh->GetBodySetup()->AggGeom.ConvexElems.Num(),1);
+	FHALVehicleCollisionParameters Loaded;
+	TestTrue(TEXT("New recipe reads"),HALVehicleCollision::ReadRecipe(*Mesh,Loaded,Error));
+	TestEqual(TEXT("Side radius roundtrip"),Loaded.FrontSideRadiusCm,P.FrontSideRadiusCm);
+	Mesh->GetOutermost()->GetMetaData().SetValue(Mesh.Get(),TEXT("HALCollision.Version"),TEXT("1"));
+	TestTrue(TEXT("Old recipe still reads"),HALVehicleCollision::ReadRecipe(*Mesh,Loaded,Error));
+	TestEqual(TEXT("Old recipe has zero side rounding"),Loaded.FrontSideRadiusCm,0.f);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALCollisionParameterTest, "HAL.Editor.CollisionGenerator.ParameterValidation",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FHALCollisionParameterTest::RunTest(const FString&)

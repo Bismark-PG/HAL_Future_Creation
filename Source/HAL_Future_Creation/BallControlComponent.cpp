@@ -19,6 +19,10 @@
 #include "Engine/World.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "TimerManager.h"
+#include "HAL/IConsoleManager.h"
+
+static TAutoConsoleVariable<int32> CVarHALBallControlLog(TEXT("hal.BallControlLog"),0,
+	TEXT("Authority ball release reason and control-point distance. 0=off, 1=on."));
 
 UBallControlComponent::UBallControlComponent()
 {
@@ -175,30 +179,30 @@ void UBallControlComponent::HandleVehicleCollision(const FVector& NormalImpulse,
 	{
 		ReleaseDirection = Hit.ImpactNormal.GetSafeNormal();
 	}
-	ReleaseHeldBall(ReleaseDirection, true);
+	ReleaseHeldBall(ReleaseDirection, true,TEXT("LegacyImpact"));
 }
 
 bool UBallControlComponent::ReleaseFromImpact(const FVector& Direction)
 {
 	if (!GetOwner()->HasAuthority() || !IsValid(HeldBall)) { return false; }
-	ReleaseHeldBall(Direction, true);
+	ReleaseHeldBall(Direction, true,TEXT("Impact"));
 	return true;
 }
 
 void UBallControlComponent::ReleaseForRecovery()
 {
-	if (GetOwner()->HasAuthority()) { ReleaseHeldBall(FVector::ZeroVector,false); }
+	if (GetOwner()->HasAuthority()) { ReleaseHeldBall(FVector::ZeroVector,false,TEXT("Recovery")); }
 }
 
 void UBallControlComponent::ReleaseForStun()
 {
-	if (GetOwner()->HasAuthority()) { ReleaseHeldBall(FVector::ZeroVector, false); }
+	if (GetOwner()->HasAuthority()) { ReleaseHeldBall(FVector::ZeroVector, false,TEXT("Stun")); }
 }
 
 void UBallControlComponent::EvaluateBallControl()
 {
 	if (!HALGameFlow::Permissions(GetWorld(),Cast<APawn>(GetOwner())).bBallControl)
-	{ if (GetOwner()->HasAuthority()) { ReleaseHeldBall(FVector::ZeroVector,false); } return; }
+	{ if (GetOwner()->HasAuthority()) { ReleaseHeldBall(FVector::ZeroVector,false,TEXT("PhaseControlDisabled")); } return; }
 	if (UHALAbilitySystemComponent::IsActorStunned(GetOwner())) { return; }
 	if (!GetOwner()->HasAuthority())
 	{
@@ -224,7 +228,7 @@ void UBallControlComponent::EvaluateBallControl()
 		else if (FVector::DistSquared(HeldBall->GetActorLocation(), ControlPoint->GetComponentLocation())
 			> FMath::Square(MaxControlledDistance))
 		{
-			ReleaseHeldBall(FVector::ZeroVector, false);
+			ReleaseHeldBall(FVector::ZeroVector, false,TEXT("DistanceExceeded"));
 		}
 	}
 
@@ -418,7 +422,7 @@ void UBallControlComponent::ReleaseConstraint()
 
 void UBallControlComponent::ReleaseHeldBall(
 	const FVector& ReleaseDirection,
-	const bool bApplyReleaseImpulse)
+	const bool bApplyReleaseImpulse, FName Reason)
 {
 	ABasicBallActor* BallToRelease = HeldBall;
 	if (!IsValid(BallToRelease))
@@ -428,6 +432,11 @@ void UBallControlComponent::ReleaseHeldBall(
 		return;
 	}
 
+	if (CVarHALBallControlLog.GetValueOnGameThread()>0)
+	{ UE_LOG(LogTemp,Log,TEXT("HAL BallRelease Vehicle=%s Ball=%s Reason=%s Distance=%.3f Limit=%.3f AddImpulse=%d"),
+		*GetNameSafe(GetOwner()),*GetNameSafe(BallToRelease),*Reason.ToString(),
+		ControlPoint?FVector::Distance(BallToRelease->GetActorLocation(),ControlPoint->GetComponentLocation()):0,
+		MaxControlledDistance,bApplyReleaseImpulse); }
 	ReleaseConstraint();
 	if (BallToRelease->ReleaseFromControl(GetOwner(), DropReacquireLockDuration)
 		&& bApplyReleaseImpulse)

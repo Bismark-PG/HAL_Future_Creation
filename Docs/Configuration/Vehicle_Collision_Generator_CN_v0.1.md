@@ -4,9 +4,11 @@
 
 ![实际 Editor 参数面板与预览](VehicleCollisionGenerator_Panel_20261020.png)
 
+2026-11-04扩展：新增独立的 **Front Side Radius／Rear Side Radius**，可对XZ侧视前后端上、下边缘做圆角；Side Radius=0保留旧形状。配方v2兼容读取v1，侧视预览同步更新，仍生成新资产并由团队手工保存／引用。完整参数、`Vehicle Definition → Physics → Collision Mesh`引用步骤和验收见[打包前手感调整说明](../Movement/MVPB_Prepackage_Gameplay_Polish_CN_v0.1.md#2-生成带侧面圆角的新碰撞体)。下方旧截图与2026-10-20记录保持原时点。
+
 ## 1. 用途与边界
 
-输入长、宽、高、前后圆角，生成独立的 Static Mesh 代理和一个简单凸包。俯视前后圆润，侧视上下平整；沿用现有 `VehiclePhysicsBody` 单 Chaos 刚体、驾驶和网络物理。
+输入长、宽、高、前后圆角，生成独立的 Static Mesh 代理和一个简单凸包。俯视前后圆润；侧视可配置独立圆角，默认0保持上下平整的旧挤出形状；沿用现有 `VehiclePhysicsBody` 单 Chaos 刚体、驾驶和网络物理。
 
 生成工具不自动修改车辆 Blueprint、Vehicle Definition、表现 DA、地图、质量、驾驶参数或球控制点。资产生成后由团队检查、保存，再手工分配给车型。
 
@@ -31,6 +33,7 @@
 | Height | 本地 Z 方向总厚度，范围1～10000 cm；顶、底各位于 `±Height/2` |
 | Front Corner Radius | 车头 +X 端的两个水平圆角半径；范围0～Width/2 |
 | Rear Corner Radius | 车尾 -X 端的两个水平圆角半径；范围0～Width/2 |
+| Front Side Radius / Rear Side Radius | XZ侧视前后端上下圆角，各0～Height/2，前后之和不超过Length；默认0 |
 | Segments Per Corner（高级项） | 每个90°圆弧的分段数，范围1～8，默认4；增加后线框更圆，但凸包更复杂 |
 | Output Folder | 输出虚拟目录，例如 `/Game/Meshes/Collision`，必须在 `/Game/` 下，不带末尾斜杠 |
 | Asset Name | 输出资产名，例如 `SM_Collision_Car01_v1`；单个名称，不填路径／扩展名 |
