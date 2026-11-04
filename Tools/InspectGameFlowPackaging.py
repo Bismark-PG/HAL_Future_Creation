@@ -40,6 +40,8 @@ def manifest():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", required=True)
+    parser.add_argument("--require-vehicle-abilities", action="store_true",
+                        help="Reject catalog vehicles still using the explicit legacy PlayerState list")
     args, _ = parser.parse_known_args()
     output = pathlib.Path(args.output).resolve()
     if PROJECT not in output.parents or output.exists():
@@ -101,8 +103,30 @@ def main():
             definition = prop(unreal.get_default_object(cls), "Definition")
             check(definition is not None, "Vehicle Definition missing: " + path(cls))
             check(definition and prop(definition, "bReadyForUse"), "Vehicle Definition not ready: " + path(cls))
-            room["vehicles"].append({"id": str(prop(vehicle, "VehicleId")), "class": path(cls),
-                                     "definition": path(definition)})
+            record = {"id": str(prop(vehicle, "VehicleId")), "class": path(cls),
+                      "definition": path(definition), "abilities": []}
+            room["vehicles"].append(record)
+            if definition:
+                config = prop(definition, "Abilities")
+                version = prop(config, "Version")
+                v1 = version == unreal.HALVehicleAbilityVersion.VEHICLE_DEFINITION_V1
+                check(v1 or version == unreal.HALVehicleAbilityVersion.LEGACY_PLAYER_STATE,
+                      "Unknown vehicle ability version: " + path(definition))
+                record["ability_version"] = str(version)
+                record["ability_migration_pending"] = not v1
+                if args.require_vehicle_abilities:
+                    check(v1, "Vehicle ability migration pending: " + path(definition))
+                grants = prop(config, "Grants")
+                tags = []
+                for grant in grants:
+                    ga = load_class(prop(grant, "Ability"))
+                    tag = str(prop(prop(grant, "InputTag"), "TagName"))
+                    level = int(prop(grant, "Level"))
+                    record["abilities"].append({"class": path(ga), "input": tag, "level": level})
+                    tags.append(tag)
+                    check(ga is not None and level >= 1, "Invalid vehicle GA/level: " + path(definition))
+                check((v1 and tags == ["Input.Ability.Primary"]) or (not v1 and not tags),
+                      "Vehicle needs one V1 Primary, or an empty explicit Legacy list: " + path(definition))
         check(len(room["vehicles"]) >= 2, "Both test vehicles must resolve: " + path(asset))
     check(len(report["rooms"]) >= 2, "Development and Exhibition Room DAs required")
     check("/Game/Data/Gameflow" in cook_dirs, "Both room profiles must be included as explicit cook roots")
@@ -156,6 +180,10 @@ def main():
             for key in ("class", "definition"):
                 check(vehicle[key] and vehicle[key].split(".")[0] in reachable,
                       "Vehicle resource absent from cook dependency graph: " + str(vehicle[key]))
+            for grant in vehicle["abilities"]:
+                package = grant["class"].split(".")[0] if grant["class"] else ""
+                check(package.startswith("/Script/") or package in reachable,
+                      "Vehicle GA absent from cook dependency graph: " + str(grant["class"]))
     report["project_package_dependencies"] = sorted(reachable)
     report["assets_unchanged"] = before == manifest()
     report["protected_asset_count"] = len(before)

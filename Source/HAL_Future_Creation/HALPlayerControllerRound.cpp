@@ -61,7 +61,7 @@ void AHALPlayerController::PollRoundReadiness()
 	const auto* H=Vehicle->FindComponentByClass<UVehicleHealthComponent>();
 	if (P.bClientLoaded || !P.LoadToken.IsValid() || P.ReadyAvatar!=Vehicle || Vehicle->GetPlayerState()!=PS || !Vehicle->IsLocallyControlled()
 		|| !Vehicle->InputComponent || ASC->GetOwnerActor()!=PS || ASC->GetAvatarActor()!=Vehicle || !ASC->IsHealthInitialized()
-		|| !ASC->IsCombatInitialized() || !ASC->IsImpactInitialized() || !H || !H->IsHealthReady()
+		|| !ASC->IsCombatInitialized() || !ASC->IsImpactInitialized() || !PS->AreVehicleAbilitiesReady(Vehicle) || !H || !H->IsHealthReady()
 		|| PS->GetVehicleLifecycle().RoundId!=R->GetData().RoundId || PS->GetVehicleLifecycle().Avatar!=Vehicle
 		|| !M || !M->GetMovementEffectStatus().bReady || !M->GetMovementEffectStatus().Value.Epoch.IsValid()) { return; }
 	if (ObservedLoadToken!=P.LoadToken) { ObservedLoadToken=P.LoadToken; ReadyObservedAt=FPlatformTime::Seconds(); }

@@ -30,7 +30,10 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor) override;
 	/** Authority-only, idempotent for the same source/class/input. Does not reset active cooldowns. */
-	void GrantAbilities(const TArray<FHALAbilityGrant>& Grants, UObject* Source);
+	bool GrantAbilities(const TArray<FHALAbilityGrant>& Grants, UObject* Source);
+	/** IgnoreSource is only the outgoing Avatar during an explicit transition. */
+	bool CanGrantAbilities(const TArray<FHALAbilityGrant>& Grants, const UObject* Source, FString& Error, const UObject* IgnoreSource=nullptr) const;
+	bool AreAbilitiesGranted(const TArray<FHALAbilityGrant>& Grants, const UObject* Source) const;
 	bool HasAbilityForInput(FGameplayTag InputTag) const;
 	/** Uses GAS's own activation RPC; true on a client means a request, not authority acceptance. */
 	bool TryActivateAbilityInput(FGameplayTag InputTag);

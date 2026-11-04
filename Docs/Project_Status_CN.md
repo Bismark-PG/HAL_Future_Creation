@@ -1,5 +1,9 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-04车型技能配置完成代码、构建与程序验证，待团队保存DA并真人复测。** 用户确认Car01加速／Car02抗冲击，两车共用Primary按键。从`main/1d1c0c2`接续，保留开工前方案／状态／白名单改动；Definition新增显式Legacy／Vehicle Definition V1，按当前Pawn来源授予、整体校验、换车前预检与服务器／拥有者就绪检查。直接Avatar替换／退休／销毁均清旧来源，迟到清理不撤新车，普通重绑不刷新冷却，显式换车／新局沿用GF-2。见[实现与DA迁移步骤](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)及[验证保护清单](Combat/MVPB_Vehicle_Ability_Loadout_Verification_20261104.json)。
+
+本机UE5.8.3最终Editor／Game成功、**134/134原生，V1及原保存Legacy两套真实双端连续两局均各端1/1**，共5份最终自动化报告均0测试警告／失败／未运行。V1分别通过正常Primary／GAS RPC发动加速／免疫，校验唯一Spec、当前Pawn来源、拥有者冷却和跨图清理；V1出站80ms注入、60FPS／NullRHI、同机，不代表实测RTT／画面／四机。只读打包预检通过，严格迁移检查正确拒绝当前Legacy；初次Tag类型编译错误和旧夹具回归失败均独立保留并修正后重验。**1183保存资产逐份全同，289最终源码／配置／uproject冻结，7份Config／uproject／Build.cs保持**；专用进程已退出，未提交／Push。代理未修改BP／DA／地图，两份保存DA仍Legacy：团队将Abilities.Version设为Vehicle Definition V1，各填唯一Primary，Car01引用GA_MovementBoost、Car02引用GA_ImpactImmunity；全部迁移后再清旧PlayerState Primary，旧Legacy仍需时可保留。原手感DA／代理调整、真人技能验收、实际打包及四机／MVP-B集中收尾继续后置。
+
 **2026-11-04打包前三项车辆手感调整完成代码、构建及程序验证，下一步团队调Gravity Scale／生成并引用新碰撞体后实测。** 从干净`main/d85a24d4f93fa55033ff28c0508775e5ea66d89a`接续，已含此前GF-6工具修正及团队独立复跑留档。用户确认共用车辆重力、侧面圆角和普通墙独立脱球门槛后授权：现有共享稳定性DA增加Gravity Scale（默认1，0.1～5）与墙门槛（默认600cm/s、60°），原生Chaos车辆组1保留球／世界组0，翻滚按有效重力估算，参数加入不可变签名／一致性校验；墙门槛仅补脱球资格，不改变档位、自然碰撞或追加响应，特殊来源／车辆／球及普通支撑保留原规则，超距释放增加可关闭原因日志。生成器增加XZ前后端上下圆角、侧视预览与v2配方／v1兼容，继续新资产／单凸包。见[配置与Collision Mesh引用步骤](Movement/MVPB_Prepackage_Gameplay_Polish_CN_v0.1.md)、[本轮验证／保护清单](Movement/MVPB_Prepackage_Gameplay_Polish_Verification_20261104.json)。最终UE5.8.3 Editor／Game成功，**132/132普通、5/5工具、2/2实际界面、1.5倍真实NetTest双端及房间连续两局双端各端1/1**，均0测试警告／失败；直接NetTest Client54次重模拟，Host出站注入80ms，不等于实测RTT／四机。**1183保存资产逐份全同，286源码／配置／uproject留档**，Config／uproject未改，Editor Build.cs仅新增GeometryCore依赖，物理历史格式3保持。只读确认当前共享DA Gravity Scale仍1.0，团队可试1.5；两车型Definition均引用`SM_Car01_Collision`，需手工生成新代理并在Definition→Physics→Collision Mesh切换，未代理保存BP／DA／地图。早期编译／探针断言及几何退化失败与修正如实留档。尚无新代理竖立概率、真实画面手感／全部坡面工况、实际打包或四机验收；GF-6／F4／VP-4C／FX余项独立。下一步先团队配置和基础反馈，再回实际Win64打包／四机；本轮未提交／Push。
 
 **2026-11-04团队独立复跑确认：** 已核查用户提供的`Saved/GameFlow/Loop_20261104_103440`，Host17076／Client11876实际退出码均0，`GF4.TwoRounds`各1/1，0测试警告／失败／未运行／进行中；两端日志均`PlayingRounds=2 Identity=1 Fresh=1 Entry=1`，主机Round1返回房间后进入Round2，最终两端回入口退出。本次确认修正后的文档命令可在团队Windows PowerShell环境运行；仅同机Development自动化，不追加发布包／真人画面／四机结论。证据补入[工具修正验证](Networking/GF6_LoopTool_Compatibility_Verification_20261104.json)，下一步实际打包与四机验收保持。
@@ -240,6 +244,8 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 ## 1. 先读什么、先检查什么
 
+本环节优先读[车型技能实现与DA迁移](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)及[本轮验证](Combat/MVPB_Vehicle_Ability_Loadout_Verification_20261104.json)，再按下列通用入口接续。
+
 1. 完整阅读根目录 [AGENTS.md](../AGENTS.md) 和本文件。
 2. 按用户当前指定的后续功能读取相关规格；涉及GAS／运动时先读[加速GA及团队反馈](Combat/MVPB_Phase10F3_Movement_Ability_CN_v0.1.md)、[手动日志](Combat/MVPB_Phase10F3Ability_ManualLogReview_20261019.json)、[施工验证](Combat/MVPB_Phase10F3Ability_Verification_20261019.json)、[F2桥接](Combat/MVPB_Phase10F2_Implementation_CN_v0.1.md)、[F1规格](Combat/MVPB_Phase10F1_Spec_CN_v0.1.md)与[保存基线](Combat/MVPB_Phase10F1_Baseline_20261017.json)。F1～F3及团队接线／基础反馈完成，331资产已提交；[F4方案](Combat/MVPB_Phase10F4_Integration_Plan_CN_v0.1.md)与[总计划](Combat/MVPB_Phase10F_Movement_Effects_Plan_CN_v0.1.md)保留，但A～D整体按用户决定后置至MVP-B收尾，不能沿旧入口自动开工。10-D／10-E欠项见各自[施工记录](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)、[实施](Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)及[手动日志](Combat/MVPB_Phase10E_ManualLogReview_20261016.json)。规则背景见[GAS总体方案](Combat/MVPB_GAS_Architecture_Overview_CN_v0.1.md)，双端启动见[操作说明](Configuration/MVPB_DebugHUD_And_GAS_Test_CN_v0.1.md)，DA职责见[速查](Configuration/MVPB_DataAsset_QuickGuide_CN_v1.0.md)。
 3. 以 [MVP-B Listen Server v0.2 计划](MVP_B_Listen_Server_Plan_CN_v0.2.md)和对应 `Docs/Networking/` 实施记录确认已存在的网络边界。早期 [MVP-A→MVP-B 交接](MVP_A_to_MVP_B_Handoff_CN_v1.0.md)用于追踪背景，不能把旧参数当成当前 DA。
@@ -258,15 +264,15 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
-| 开发阶段 | GF-6工程收尾及打包前重力／侧面圆角／墙体脱球调整完成代码／构建／程序验证；下一步团队配置／手感实测，再回实际打包及四机验收 |
-| 当前本机分支／代码提交 | `main / d85a24d`已含工具修正与团队复跑留档；开工干净，加本轮未提交手感调整源码／文档，无保存资产改动，未提交／Push |
-| 引擎基线 | 本机 **5.8.3-58210709** 最终Editor／Game成功、129普通、实际D3D12内存UMG与原生回退各1项、原生Host／自定义Client双端连续两局各端1项通过；不替代实际新WBP／真人／四机验收 |
+| 开发阶段 | GF-6工程收尾、打包前手感和车型技能完成代码／构建／程序验证；下一步团队迁移两份技能DA与手感实测，再回实际打包及四机验收 |
+| 当前本机分支／代码提交 | `main / 1d1c0c2`已含此前手感调整；保留开工方案／状态改动，本轮车型技能源码／工具／留档尚未提交／Push，保存资产未改 |
+| 引擎基线 | 本机 **5.8.3-58210709** 最终Editor／Game成功、134普通、V1及Legacy真实双端连续两局各端1项通过；原UI证据保持原时点，不替代DA保存／真人／四机验收 |
 | 本机运行前置 | 验证进程已退出，可重开完整编译Editor；新WBP分别继承HALArcadeEntryWidget／HALPracticeRoomWidget，在GI Front End→Screens指派Entry／Room／Pause Screen Class；全部留空继续原生回退 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
-| GAS 当前实现 | 原加速／免疫、Stun与Primary接线保留；GF-4新World恢复可信计数后走显式新局初始化，清旧Avatar及本局效果／冷却，新Pawn隔离物理历史；普通重绑仍不重置。Room BP继续引用BP_HALPlayerState，无新GA／GE接线 |
+| GAS 当前实现 | Definition.Abilities显式V1按当前Pawn授予唯一Primary并加入Ready；旧DefaultAbilities只用于Legacy。换车／新局清理沿GF-2，普通重绑保留计时；两份保存DA仍Legacy，待团队迁移Car01加速／Car02免疫 |
 | 场地持续运动效果 | 原生区域无ASC／GA，服务器按来源逐参数选最强并施加两类内部GE；加速度／上限／抓地与普通Buff增量合并，合并版3物理历史保存恢复曲线、实际消费值与Stun权限，DA不改；无需修改PlayerState.DefaultAbilities |
 | 当前 HP／冲击 | 三档／免疫／降档／水平预设及回弹保持；GF-2练习规则在标准Resolver抑制扣血，冲击／脱球／命中消费继续，Playing正常扣血。伤害与冲击抗性继续独立，旧Room关闭入口行为保持 |
-| 当前 Editor 接线 | 房间／正式地图、原DA及BP_HALPlayerState引用保持；新WBP由团队手工制作。Entry／Room／Pause类独立可选，Pause空则用Room；旧Use Native Arcade Entry／MenuWidgetClass已弃用，按新接口文档配置 |
+| 当前 Editor 接线 | 车辆Definition.Abilities需手动设V1／唯一Primary；GA／GE／IA／IMC不重建。房间地图和BP_HALPlayerState引用保持；新WBP仍按独立接口配置，空类保留原生回退 |
 | 电墙／Bounce Back | 远端ac14e60已接收：独立Authority水平回弹100cm／0.3秒、每次进入一次，保留Stun／shocked；与静态Visual可选集成后本机重新构建、普通回归及电墙双端通过，真人手感仍按机关说明复测 |
 | 测试地图 | Entry→Host进入`/Game/Maps/MVPB_PracticeRoom`，GF-4正式目标`/Game/Maps/MVPB_Match`已保存；本轮UI及双端均实际使用这些保存引用，无临时RoundMap覆盖。旧NetTest的Room Config仍供旧兼容回归，旧`/Game/Maps/Test`按专项目的使用 |
 
@@ -280,6 +286,7 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 | 环节 | 已有结果 | 证据边界 |
 |---|---|---|
+| 车型主技能配置 | V1／Legacy、当前Pawn来源授予、整体校验及Ready、显式换车与迟到清理完成；两Target、134普通、V1／Legacy双端两局均通过 | 1183资产全同；保存DA仍Legacy，团队迁移并真人复测，见[配置步骤](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)及[验证](Combat/MVPB_Vehicle_Ability_Loadout_Verification_20261104.json) |
 | 打包前车辆手感调整 | 共享车辆Gravity Scale／有效重力翻滚、普通墙独立脱球门槛、XZ侧面圆角生成与兼容完成；两Target、132普通、5工具、2UI及1.5倍双端／两局均通过 | 1183资产全同，286源码／配置；DA仍1、新代理未生成／引用，待团队手感；见[配置与引用](Movement/MVPB_Prepackage_Gameplay_Polish_CN_v0.1.md)及[验证](Movement/MVPB_Prepackage_Gameplay_Polish_Verification_20261104.json) |
 | GF-6工程收尾 | 服务器共用返回、Exhibition非Shipping主机测试开关、Cook根与只读资源预检／循环工具完成；Editor／Game、130普通、四进程两局／双端两局各端1项、原生UI1项通过 | 1183资产全同，285源码／配置哈希；预检86项目包。实际Cook／发布包、完整异常／真人／四机待验收，见[操作步骤](Networking/GF6_Engineering_Closeout_CN_v0.1.md)及[验证](Networking/GF6_Engineering_Verification_20261103.json) |
 | GF-5 Widget Blueprint接口补充 | 可配置入口／Room／Pause类、Designer完整布局及原生回退、只读视图／变化事件、语义动作／焦点和状态即时同步完成；最终两Target、129普通、内存UMG／原生UI各1项、混合界面双端两局各1项通过 | 1183资产全同，285源码／配置哈希；实际新WBP／Designer／动画及真人硬件待团队，详见[接线](Networking/GF5_Widget_Blueprint_Interfaces_CN_v0.1.md)与[验证](Networking/GF5_Widget_Interfaces_Verification_20261103.json) |
@@ -367,6 +374,8 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 ## 6. 下一环节和待确定项
 
+2026-11-04车型技能入口：重开已完整编译的Editor，按[第2节](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md#2-editor逐步配置)将Car01／Car02真实Definition设V1、各填唯一Primary／Level1及加速／免疫GA，保存／Validate后新开房间，做不同车型、同车型、取消换车及两局真人测试。无需新按键或新GA／GE；旧PlayerState列表仅Legacy使用，正式车型迁移后可清旧Primary。此步不代替下列重力／代理调参或MVP-B集中验收。
+
 2026-11-04当前流程入口：**先按[打包前手感调整](Movement/MVPB_Prepackage_Gameplay_Polish_CN_v0.1.md)在共享DA试Gravity Scale=1.5及墙脱球门槛，通过工具生成侧面圆角新代理，在每车型Definition→Physics→Collision Mesh切换，补团队驾驶／带球／碰撞／落地反馈。** 程序验证已完成，保存DA仍Gravity Scale=1、原代理未替换；本轮不保证消除所有竖立。之后继续[GF-6实际打包／四机](Networking/GF6_Engineering_Closeout_CN_v0.1.md#6-下一步验收)，WBP接线、F4／VP-4C／FX及正式比赛规则保持独立。
 
 2026-10-29自救最新入口：重开已完整重编Editor，按[自救第9.2节](Movement/MVPB_Vehicle_Pose_And_SelfRighting_CN_v0.1.md#92-团队editor调参步骤)将共享DA的Minimum Recovery Tilt按需设为实际Drive Exit Tilt（当前65°），试60／12／80／6的Response组合；保留当前资格等待2秒、长按1.5秒与执行／冷却。手动保存／Validate后新开双端，左右侧／斜靠／倒扣／墙角复测，查看Block及Outcome；没有自动覆盖保存资产，也不改变下述相机和MVP-B收尾排期。
@@ -448,6 +457,8 @@ MVP-B收尾时使用届时冻结的同一提交／构建／资产，统一覆盖
 > 这是同一 Unreal 项目的接续开发。请完整读取根目录 AGENTS.md、Docs/Project_Status_CN.md 和当前环节规格，再核对 Git、实际引擎版本与相关源码／配置。先汇报已完成、未验收及差异，再执行我本次指定的环节。涉及蓝图／Data Asset 编辑，请提供 Unreal Editor 操作步骤，不直接修改资产。
 
 ## 8. 本次更新记录
+
+- 2026-11-04：用户确认Car01加速／Car02免疫，完成车型V1／Legacy来源授予与校验、直接Avatar替换清理及Ready，Editor／Game成功、134/134和V1／Legacy真实双端连续两局各端1/1。1183资产全同、289构建输入冻结；保存DA迁移／真人验收待团队。详见[实现](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)与[证据](Combat/MVPB_Vehicle_Ability_Loadout_Verification_20261104.json)，未提交／Push。
 
 - 2026-11-03：用户授权现有UI作为回退、引用WBP后以Designer为准。从干净`main/35aa00c`完成三类页面配置、只读显示快照／变化通知、按钮请求、UMG导航／嵌套焦点及返回优先级；房间状态变化立即同步输入，原生Playing断言保留。最终两Target、129/129、D3D12内存UMG及原生UI各1/1、原生Host＋自定义Client双端两局各1/1，0测试警告／失败；1183资产全同、285源码／配置留档。实际新WBP／Designer／硬件待团队按[接线文档](Networking/GF5_Widget_Blueprint_Interfaces_CN_v0.1.md)制作；不冒充四机或打包，未保存资产或提交／Push，早期失败独立保留。
 

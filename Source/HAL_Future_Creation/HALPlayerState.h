@@ -16,6 +16,7 @@ class UHALHealthAttributeSet;
 class UHALCombatAttributeSet;
 class UHALImpactAttributeSet;
 class UHALMovementAttributeSet;
+class ATestVehiclePawn;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FHALRoomPlayerChanged);
 
 /** Stable player identity and GAS Owner; the current vehicle is its Avatar. */
@@ -31,7 +32,10 @@ public:
 	void RestoreTravelCounters(uint32 Serial, uint32 Revision, uint32 Round);
 	UHALAbilitySystemComponent* GetHALAbilitySystemComponent() const { return AbilitySystem; }
 	/** Called after Avatar binding, authority only. Existing specs survive a repeated bind. */
-	void GrantVehicleAbilities();
+	bool GrantVehicleAbilities();
+	bool ValidateVehicleAbilities(const ATestVehiclePawn* Vehicle,FString& Error,const UObject* OutgoingSource=nullptr) const;
+	/** Server or owning client only; simulated proxies do not receive owner-only ability specs. */
+	bool AreVehicleAbilitiesReady(const ATestVehiclePawn* Vehicle) const;
 	/** Explicit authority transitions, fresh Pawn only. Serials are monotonic within this PlayerState. */
 	bool ChangeVehicleAvatar(ATestVehiclePawn* Next, uint32 ChangeSerial);
 	bool BeginNewRoundAvatar(ATestVehiclePawn* Next, uint32 RoundId, uint32 ChangeSerial);
@@ -42,11 +46,12 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 
 protected:
-	/** Initial player loadout. Additional grant sources can use the same ASC contract later. */
-	UPROPERTY(EditDefaultsOnly, Category = "GAS|Abilities", meta = (TitleProperty = "InputTag"))
+	/** Explicit Legacy Player State mode only. Definition V1 ignores this list entirely. */
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Legacy Abilities", meta = (TitleProperty = "InputTag"))
 	TArray<FHALAbilityGrant> DefaultAbilities;
 
 private:
+	const TArray<FHALAbilityGrant>* ResolveVehicleGrants(const ATestVehiclePawn* Vehicle,FString& Error) const;
 	bool TransitionVehicleAvatar(ATestVehiclePawn* Next, uint32 ChangeSerial, uint32 RoundId);
 	UFUNCTION() void OnRep_Lifecycle();
 	UPROPERTY(ReplicatedUsing=OnRep_Lifecycle) FHALVehicleLifecycleState Lifecycle;

@@ -5,6 +5,7 @@
 #include "../HALAbilitySystemComponent.h"
 #include "../HALGameplayTags.h"
 #include "../HALPlayerState.h"
+#include "../TestVehiclePawn.h"
 #include "UObject/UnrealType.h"
 
 namespace HALMovementAbilityTests
@@ -26,7 +27,7 @@ namespace HALMovementAbilityTests
 			if (Spec.GetDynamicSpecSourceTags().HasTagExact(HALGameplayTags::Input_Ability_Primary)) { Remove.Add(Spec.Handle); }
 		}
 		for (const auto Handle : Remove) { ASC->ClearAbility(Handle); }
-		if (ASC->GetAvatarActor()) { State->GrantVehicleAbilities(); State->ForceNetUpdate(); }
+		if (Cast<ATestVehiclePawn>(ASC->GetAvatarActor())) { State->GrantVehicleAbilities(); State->ForceNetUpdate(); }
 		return true;
 	}
 	inline bool HasMovementPrimary(const UHALAbilitySystemComponent* ASC)

@@ -29,6 +29,8 @@ namespace
 		FAutomationTestBase* Test;
 		bool Solo=false,Timeout=false,RoleKnown=false,Host=false,Verified=false,SawLoading=false,SawCountdown=false,Disconnect=false,BadMap=false;
 		uint32 LoadedRound=0, CountdownRound=0;
+		uint32 SkillRequestedRound=0, SkillVerifiedRound=0;
+		double SkillRequestedAt=0;
 		bool ExitLoading=false,ScreenshotRequested=false,ContractConfigured=false,Exhibition=false;
 		uint32 PracticeWorldId=0, DirtyRound=MAX_uint32, ReturnedRound=0, CountedPlaying=0;
 		FGuid Key,FirstEpoch,FirstFlow,RoundOneEpoch; int32 Seat=INDEX_NONE;
@@ -76,6 +78,22 @@ namespace
 			auto* M=Pawn?Pawn->FindComponentByClass<UArcadeVehicleMovementComponent>():nullptr;
 			const auto Physics=M?M->GetMovementEffectStatus():FHALMovementStatus();
 			const bool Ready=Pawn && P.ReadyAvatar==Pawn && Pawn->GetPlayerState()==PS && ASC->GetAvatarActor()==Pawn && Physics.bReady;
+			const bool SkillFixture=FParse::Param(FCommandLine::Get(),TEXT("HALVehicleAbilitiesFixture"));
+			if (SkillFixture && Ready)
+			{
+				if (!PS->AreVehicleAbilitiesReady(Pawn)) { return false; }
+				Test->TestTrue(TEXT("Fixture uses explicit Definition V1"),Pawn->GetVehicleAbilityConfig().Version==EHALVehicleAbilityVersion::VehicleDefinitionV1);
+				int32 Primary=0;
+				for (const auto& Spec:ASC->GetActivatableAbilities())
+				{
+					if (!Spec.PendingRemove && Spec.GetDynamicSpecSourceTags().HasTagExact(HALGameplayTags::Input_Ability_Primary))
+					{
+						++Primary; Test->TestTrue(TEXT("Primary source is the current replicated Pawn"),Spec.SourceObject==Pawn);
+						Test->TestEqual(TEXT("Primary matches selected model"),Spec.Ability->GetClass()->GetName(),Host?FString(TEXT("GA_MovementBoost_C")):FString(TEXT("GA_ImpactImmunity_C")));
+					}
+				}
+				Test->TestEqual(TEXT("Exactly one owner Primary across travel"),Primary,1);
+			}
 			if (!Key.IsValid())
 			{ Key=P.PlayerKey; Seat=P.Seat; Color=P.Color; FirstFlow=D.FlowId; PracticeMap=W->GetOutermost()->GetName(); PracticeWorldId=W->GetUniqueID(); }
 			if (P.PlayerKey!=Key || Seat!=P.Seat || Color!=P.Color || D.FlowId!=FirstFlow)
@@ -128,6 +146,17 @@ namespace
 				CountedPlaying=FMath::Max(CountedPlaying,D.RoundId);
 				Test->TestTrue(TEXT("Barrier and countdown observed for this round"),LoadedRound==D.RoundId && CountdownRound==D.RoundId);
 				Test->TestEqual(TEXT("Explicit new round identity"),PS->GetVehicleLifecycle().RoundId,D.RoundId);
+				if (SkillFixture && SkillVerifiedRound!=D.RoundId)
+				{
+					if (SkillRequestedRound!=D.RoundId) { SkillRequestedRound=D.RoundId; SkillRequestedAt=Now; Pawn->RequestPrimarySkill(); return false; }
+					const FGameplayTag Expected=Host?HALGameplayTags::State_Movement_Boost:HALGameplayTags::State_Combat_ImpactImmune;
+					if (!ASC->HasMatchingGameplayTag(Expected))
+					{ if (Now-SkillRequestedAt>8) { Test->AddError(TEXT("Selected model skill did not activate through primary input RPC")); return true; } return false; }
+					Test->TestFalse(TEXT("Other model effect never installed on this owner"),ASC->HasMatchingGameplayTag(Host?HALGameplayTags::State_Combat_ImpactImmune:HALGameplayTags::State_Movement_Boost));
+					if (!Host) { Test->TestTrue(TEXT("Immunity cooldown replicated to its own player"),ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity)>0); }
+					SkillVerifiedRound=D.RoundId;
+					UE_LOG(LogTemp,Display,TEXT("HAL vehicle skill verified Host=%d Round=%u Source=%s Class=%s"),Host,D.RoundId,*Pawn->GetName(),*Pawn->GetVehicleAbilityConfig().Grants[0].Ability->GetName());
+				}
 				if (D.RoundId==1)
 				{
 					if (!Host) { PC->SetName(TEXT("GF4_PLAY_1")); }

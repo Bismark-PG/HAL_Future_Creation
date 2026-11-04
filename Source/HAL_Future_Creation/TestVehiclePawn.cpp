@@ -455,6 +455,7 @@ bool ATestVehiclePawn::ApplyDefinition(bool bPreview)
 		verify(BallControl->ApplyConfiguration(Definition->BallControl));
 		verify(Health->ApplyConfiguration(Definition->Health));
 		RuntimeCombatConfig = Definition->Combat;
+		RuntimeAbilities = Definition->Abilities;
 		verify(ImpactReceiver->ApplyConfiguration(Definition->Impact));
 		DefaultMappingContext = Local->DefaultMappingContext;
 		SteeringAction = Local->SteeringAction;
@@ -768,7 +769,8 @@ bool ATestVehiclePawn::DispatchAbilityInput(const FVehicleInputCmd& Request)
 	if (!Request.bPrimarySkill || !IsLocallyControlled() || !bConfigurationValid) { return false; }
 	UHALAbilitySystemComponent* ASC = Cast<UHALAbilitySystemComponent>(GetAbilitySystemComponent());
 	// Discrete gameplay is dispatched once on the GT; it never enters the Chaos history/RPC payload.
-	return ASC && ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary);
+	const auto* State=GetPlayerState<AHALPlayerState>();
+	return ASC && State && State->AreVehicleAbilitiesReady(this) && ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary);
 }
 
 void ATestVehiclePawn::OnPrimarySkillStarted(const FInputActionValue& Value)

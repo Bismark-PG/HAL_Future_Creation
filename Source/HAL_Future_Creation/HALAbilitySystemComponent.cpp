@@ -65,34 +65,69 @@ void UHALAbilitySystemComponent::RemoveAvatarEffects()
 void UHALAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor)
 {
 	const FObjectKey NextAvatar(InAvatarActor);
-	if (BoundAvatarKey != FObjectKey() && BoundAvatarKey != NextAvatar) { RemoveAvatarEffects(); }
+	if (BoundAvatarKey != FObjectKey() && BoundAvatarKey != NextAvatar)
+	{
+		RemoveAvatarEffects();
+		// Direct Avatar replacement must retire its grants even if UnPossess arrives later.
+		// The initial owner-as-Avatar is not a vehicle source; preserve owner-scoped grants.
+		if (BoundAvatarKey != FObjectKey(GetOwnerActor()))
+		{ RemoveAbilitiesFromSource(BoundAvatarKey.ResolveObjectPtrEvenIfGarbage()); }
+	}
 	Super::InitAbilityActorInfo(InOwnerActor, InAvatarActor);
 	BoundAvatarKey = NextAvatar;
 }
 
-void UHALAbilitySystemComponent::GrantAbilities(const TArray<FHALAbilityGrant>& Grants, UObject* Source)
+bool UHALAbilitySystemComponent::CanGrantAbilities(const TArray<FHALAbilityGrant>& Grants,const UObject* Source,FString& Error,const UObject* IgnoreSource) const
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority() || !Source) { return; }
-	TSet<FGameplayTag> Inputs;
-	for (const auto& Grant : Grants)
+	if (!Source) { Error=TEXT("Ability grants require an explicit source object."); return false; }
+	if (!HALAbilities::ValidateGrants(Grants,Error)) { return false; }
+	for (const auto& Grant:Grants)
 	{
-		if (!Grant.Ability || Grant.Ability->HasAnyClassFlags(CLASS_Abstract) || !Grant.InputTag.IsValid()
-			|| Grant.Level < 1 || Inputs.Contains(Grant.InputTag))
+		int32 Matches=0;
+		for (const auto& Spec:GetActivatableAbilities())
 		{
-			UE_LOG(LogHALAbility, Error, TEXT("Invalid or duplicate input grant on %s."), *GetNameSafe(Source));
-			continue;
+			if (Spec.PendingRemove || (IgnoreSource && Spec.SourceObject.GetEvenIfUnreachable()==IgnoreSource)
+				|| !Spec.GetDynamicSpecSourceTags().HasTagExact(Grant.InputTag)) { continue; }
+			if (++Matches>1 || !Spec.Ability || Spec.SourceObject.GetEvenIfUnreachable()!=Source
+				|| Spec.Ability->GetClass()!=Grant.Ability || Spec.Level!=Grant.Level)
+			{ Error=FString::Printf(TEXT("Conflicting ability input %s for source %s."),*Grant.InputTag.ToString(),*GetNameSafe(Source)); return false; }
 		}
-		Inputs.Add(Grant.InputTag);
-		const bool bExists = GetActivatableAbilities().ContainsByPredicate([&](const FGameplayAbilitySpec& Spec)
-		{
-			return Spec.Ability && Spec.Ability->GetClass() == Grant.Ability && Spec.SourceObject == Source
-				&& Spec.GetDynamicSpecSourceTags().HasTagExact(Grant.InputTag);
-		});
-		if (bExists) { continue; }
-		FGameplayAbilitySpec Spec(Grant.Ability, Grant.Level, INDEX_NONE, Source);
-		Spec.GetDynamicSpecSourceTags().AddTag(Grant.InputTag);
-		GiveAbility(Spec);
 	}
+	return true;
+}
+bool UHALAbilitySystemComponent::GrantAbilities(const TArray<FHALAbilityGrant>& Grants,UObject* Source)
+{
+	FString Error;
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !CanGrantAbilities(Grants,Source,Error))
+	{ UE_LOG(LogHALAbility,Error,TEXT("Ability grant rejected Source=%s: %s"),*GetNameSafe(Source),*Error); return false; }
+	TArray<FGameplayAbilitySpecHandle> Added;
+	for (const auto& Grant:Grants)
+	{
+		const bool Exists=GetActivatableAbilities().ContainsByPredicate([&](const auto& Spec)
+		{ return !Spec.PendingRemove && Spec.Ability && Spec.Ability->GetClass()==Grant.Ability && Spec.SourceObject==Source
+			&& Spec.GetDynamicSpecSourceTags().HasTagExact(Grant.InputTag); });
+		if (Exists) { continue; }
+		FGameplayAbilitySpec Spec(Grant.Ability,Grant.Level,INDEX_NONE,Source);
+		Spec.GetDynamicSpecSourceTags().AddTag(Grant.InputTag);
+		const auto Handle=GiveAbility(Spec);
+		if (!Handle.IsValid()) { for (const auto H:Added) { CancelAbilityHandle(H); ClearAbility(H); } return false; }
+		Added.Add(Handle);
+		if (HALAbilities::ShouldLog()) { UE_LOG(LogHALAbility,Log,TEXT("Ability granted Source=%s GA=%s Input=%s Level=%d"),
+			*GetNameSafe(Source),*GetNameSafe(Grant.Ability.Get()),*Grant.InputTag.ToString(),Grant.Level); }
+	}
+	return true;
+}
+bool UHALAbilitySystemComponent::AreAbilitiesGranted(const TArray<FHALAbilityGrant>& Grants,const UObject* Source) const
+{
+	FString Error;
+	if (!CanGrantAbilities(Grants,Source,Error)) { return false; }
+	for (const auto& G:Grants)
+	{
+		if (!GetActivatableAbilities().ContainsByPredicate([&](const auto& S)
+		{ return !S.PendingRemove && S.Ability && S.SourceObject==Source && S.Ability->GetClass()==G.Ability
+			&& S.Level==G.Level && S.GetDynamicSpecSourceTags().HasTagExact(G.InputTag); })) { return false; }
+	}
+	return true;
 }
 
 bool UHALAbilitySystemComponent::HasAbilityForInput(FGameplayTag InputTag) const
@@ -290,8 +325,8 @@ bool UHALAbilitySystemComponent::InitializeHealth(float SavedMaxHP)
 
 void UHALAbilitySystemComponent::ClearAvatarIfCurrent(const AActor* ExpectedAvatar)
 {
-	if (!ExpectedAvatar || BoundAvatarKey != FObjectKey(ExpectedAvatar)) { return; }
 	RemoveAbilitiesFromSource(const_cast<AActor*>(ExpectedAvatar));
+	if (!ExpectedAvatar || BoundAvatarKey != FObjectKey(ExpectedAvatar)) { return; }
 	InitAbilityActorInfo(GetOwner(), nullptr);
 	if (CVarHALGASLog.GetValueOnGameThread() > 0)
 	{
@@ -304,8 +339,10 @@ void UHALAbilitySystemComponent::RemoveAbilitiesFromSource(UObject* Source)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority() || !Source) { return; }
 	TArray<FGameplayAbilitySpecHandle> Handles;
-	{ ABILITYLIST_SCOPE_LOCK(); for (const auto& Spec : GetActivatableAbilities()) { if (Spec.SourceObject == Source) { Handles.Add(Spec.Handle); } } }
-	for (const auto Handle : Handles) { CancelAbilityHandle(Handle); ClearAbility(Handle); }
+	{ ABILITYLIST_SCOPE_LOCK(); for (const auto& Spec : GetActivatableAbilities()) { if (Spec.SourceObject.GetEvenIfUnreachable() == Source) { Handles.Add(Spec.Handle); } } }
+	for (const auto Handle : Handles)
+	{ CancelAbilityHandle(Handle); ClearAbility(Handle);
+		if (HALAbilities::ShouldLog()) { UE_LOG(LogHALAbility,Log,TEXT("Ability removed Source=%s"),*GetNameSafe(Source)); } }
 }
 bool UHALAbilitySystemComponent::ResetVehicleAttributes(const FHALVehicleLifecycleSeed& Seed, bool bNewRound)
 {

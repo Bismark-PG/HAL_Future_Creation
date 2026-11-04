@@ -9,6 +9,7 @@
 #include "VehicleNetPhysicsData.h"
 #include "VehicleConfigurationTypes.h"
 #include "HALCombatTypes.h"
+#include "HALAbilityTypes.h"
 #include "TestVehiclePawn.generated.h"
 
 class UArcadeVehicleMovementComponent;
@@ -43,6 +44,9 @@ UCLASS()
 class HAL_FUTURE_CREATION_API ATestVehiclePawn : public APawn, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
+#if WITH_DEV_AUTOMATION_TESTS
+	friend struct FHALVehicleAbilityTestAccess;
+#endif
 
 public:
 	ATestVehiclePawn();
@@ -52,6 +56,8 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 	EVehicleConfigurationSource GetConfigurationSource() const { return ConfigurationSource; }
 	const UVehicleDefinition* GetVehicleDefinition() const { return Definition; }
+	/** Immutable per-Avatar snapshot; not read back from a mutable source DA during binding. */
+	const FHALVehicleAbilityConfig& GetVehicleAbilityConfig() const { return RuntimeAbilities; }
 	bool IsConfigurationValid() const { return bConfigurationValid && !bLifecycleRetired; }
 	bool GetLifecycleSeed(FHALVehicleLifecycleSeed& Out) const;
 	void RetireForVehicleTransition();
@@ -189,6 +195,7 @@ private:
 #endif
 	void InitializeAbilitySystem();
 	FVehicleCombatConfig RuntimeCombatConfig;
+	UPROPERTY(Transient) FHALVehicleAbilityConfig RuntimeAbilities;
 	void UninitializeAbilitySystem();
 	void AddDefaultInputContext();
 	void RemoveDefaultInputContext();

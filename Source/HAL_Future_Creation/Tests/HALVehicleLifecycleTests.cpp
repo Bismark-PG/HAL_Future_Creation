@@ -95,7 +95,7 @@ bool FHALVehicleChangeTest::RunTest(const FString&)
 	TestEqual(TEXT("Old boost removed"),F.ASC->GetSet<UHALMovementAttributeSet>()->GetAccelerationMultiplierDelta(),0.f);
 	TestEqual(TEXT("Old area membership removed"),F.Initial->FindComponentByClass<UHALMovementAreaReceiver>()->GetAreaCount(),0);
 	TestEqual(TEXT("Old controlled ball released"),Ball->GetBallState(),EBasicBallState::Free);
-	TestEqual(TEXT("Old source grants removed, shared retained"),F.ASC->GetActivatableAbilities().Num(),Shared);
+	TestEqual(TEXT("Old source removed and exactly one fresh vehicle grant installed"),F.ASC->GetActivatableAbilities().Num(),Shared);
 	TestEqual(TEXT("Explicit vehicle change clears cooldown"),F.ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity),0.f);
 	F.SetHP(51); F.Effect(GetDefault<UHALImpactImmunityCooldownEffect>());
 	TestTrue(TEXT("Same operation idempotent"),F.PS->ChangeVehicleAvatar(B,1)); B->RefreshAbilitySystemBinding(); F.PS->GrantVehicleAbilities();

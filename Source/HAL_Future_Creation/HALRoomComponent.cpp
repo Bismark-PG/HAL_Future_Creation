@@ -88,7 +88,8 @@ bool UHALRoomComponent::AvatarReady(const AHALPlayerController* PC) const
 	return Class && Pawn && Pawn->GetClass() == Class && Pawn->GetController() == PC && Pawn->GetPlayerState() == PS
 		&& Pawn->IsConfigurationValid() && ASC && Pawn->GetAbilitySystemComponent() == ASC
 		&& ASC->GetOwnerActor() == PS && ASC->GetAvatarActor() == Pawn && ASC->IsHealthInitialized()
-		&& ASC->IsCombatInitialized() && ASC->IsImpactInitialized() && Health && Health->IsHealthReady() && Health->GetCurrentHP() > 0;
+		&& ASC->IsCombatInitialized() && ASC->IsImpactInitialized() && PS->AreVehicleAbilitiesReady(Pawn)
+		&& Health && Health->IsHealthReady() && Health->GetCurrentHP() > 0;
 }
 bool UHALRoomComponent::CanInitializeAvatar(const AHALPlayerController* PC, const APawn* Next) const
 {

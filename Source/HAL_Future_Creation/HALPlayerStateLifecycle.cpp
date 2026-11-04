@@ -67,6 +67,9 @@ bool AHALPlayerState::TransitionVehicleAvatar(ATestVehiclePawn* Next, uint32 Ser
 		if (!Room->CanInitializeAvatar(PC,Next) || (Round && (Room->GetData().Phase != EHALRoomPhase::Loading || Room->GetData().RoundId != Round))
 			|| (!Round && Room->GetData().Phase != EHALRoomPhase::Open)) { return false; }
 	}
+	FString AbilityError;
+	if (!ValidateVehicleAbilities(Next,AbilityError,Cast<ATestVehiclePawn>(AbilitySystem->GetAvatarActor())))
+	{ UE_LOG(LogHALAbility,Error,TEXT("Vehicle transition abilities rejected: %s"),*AbilityError); return false; }
 	TGuardValue<bool> Guard(bVehicleTransitionInProgress,true);
 	Lifecycle.ChangeSerial = Serial; ++Lifecycle.Revision;
 	LastVehicleTransitionKey = FObjectKey(Next); LastVehicleTransitionRound = Round; bLastVehicleTransitionSucceeded = false;
@@ -78,7 +81,7 @@ bool AHALPlayerState::TransitionVehicleAvatar(ATestVehiclePawn* Next, uint32 Ser
 	if (!AbilitySystem->ResetVehicleAttributes(Seed,Round != 0))
 	{ Lifecycle.Avatar = nullptr; AbilitySystem->ClearAvatarIfCurrent(Next); ForceNetUpdate(); return false; }
 	PC->Possess(Next);
-	if (PC->GetPawn() != Next || AbilitySystem->GetAvatarActor() != Next)
+	if (PC->GetPawn() != Next || AbilitySystem->GetAvatarActor() != Next || !AreVehicleAbilitiesReady(Next))
 	{ Lifecycle.Avatar = nullptr; AbilitySystem->ClearAvatarIfCurrent(Next); ForceNetUpdate(); return false; }
 	if (Round) { Lifecycle.RoundId = Round; }
 	bLastVehicleTransitionSucceeded = true; ForceNetUpdate();

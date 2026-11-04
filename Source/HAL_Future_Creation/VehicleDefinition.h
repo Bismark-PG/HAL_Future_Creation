@@ -8,6 +8,7 @@
 #include "VehicleConfigurationTypes.h"
 #include "VehicleKnockbackTypes.h"
 #include "HALCombatTypes.h"
+#include "HALAbilityTypes.h"
 #include "VehicleDefinition.generated.h"
 
 class UStaticMesh;
@@ -194,6 +195,9 @@ public:
 	/** Explicitly migrated tier/drop/collision configuration. Physical body tuning is unchanged. */
 	UPROPERTY(EditAnywhere, Category = "Impact")
 	FHALVehicleImpactConfig Impact;
+	/** Per-model active skills; server grants them with the live vehicle Pawn as source. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Abilities", meta=(ShowOnlyInnerProperties))
+	FHALVehicleAbilityConfig Abilities;
 	/** Static appearance/fallback. Optional for driving vehicles with a valid ready skeletal Presentation. */
 	UPROPERTY(EditAnywhere, Category = "Visual")
 	FVehicleVisualConfig Visual;

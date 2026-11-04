@@ -161,7 +161,9 @@ bool FHALMovementAbilityGuardTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Rejected periodic GE applies no movement effect"),F->Boosted());
 	F->ASC->InitAbilityActorInfo(F->State,F->World->SpawnActor<AActor>());
 	TestFalse(TEXT("Non-vehicle Avatar rejects"),F->ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary));
-	F->ASC->InitAbilityActorInfo(F->State,F->Vehicle);
+	TestEqual(TEXT("Changing away from the vehicle retires its source grants"),F->ASC->GetActivatableAbilities().Num(),0);
+	F->Vehicle->RefreshAbilitySystemBinding();
+	TestTrue(TEXT("Restoring the vehicle binding reinstalls its unique Primary"),HALMovementAbilityTests::HasMovementPrimary(F->ASC));
 	TestTrue(TEXT("Valid config activates again"),F->Activate());
 	return true;
 }

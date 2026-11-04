@@ -110,7 +110,7 @@ bool UVehicleDefinition::ValidateVisual(FString& Error) const
 bool UVehicleDefinition::Validate(FString& Error) const
 {
 	if (!bReadyForUse) { return Fail(Error, TEXT("VehicleDefinition is not marked ReadyForUse after baseline comparison.")); }
-	if (!Physics.Validate(Error) || !ValidateVisual(Error) || !Health.Validate(Error) || !Combat.Validate(Error) || !Impact.Validate(Error)) { return false; }
+	if (!Physics.Validate(Error) || !ValidateVisual(Error) || !Health.Validate(Error) || !Combat.Validate(Error) || !Impact.Validate(Error) || !Abilities.Validate(Error)) { return false; }
 	if (CollisionShape == EVehicleCollisionShape::Box)
 	{
 		return PositiveVector(BoxExtent) || Fail(Error, TEXT("BoxExtent must be finite and positive."));
