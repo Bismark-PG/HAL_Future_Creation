@@ -35,6 +35,7 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* TickFunction) override;
 	/** Optional world-space shock origin, so the overlay wipe spreads from the real impact point. */
+	void RefreshShocked();
 	void NotifyShockOrigin(const FVector& WorldLocation);
 	UFUNCTION(BlueprintPure, Category="Shocked") bool IsShocked() const { return bShocked; }
 	UPROPERTY(BlueprintAssignable, Category="Shocked") FHALShockedChanged OnShockedChanged;
@@ -121,7 +122,6 @@ private:
 	float ComputeFlicker() const;
 	void TagChanged(FGameplayTag Tag, int32 Count);
 	void SetShocked(bool bActive);
-	void RefreshShocked();
 	TWeakObjectPtr<UArcadeVehicleMovementComponent> LocalBounceMovement;
 	UPROPERTY(Transient) TObjectPtr<UHALAbilitySystemComponent> ASC;
 	UPROPERTY(Transient) TObjectPtr<UNiagaraComponent> ArcComponent;

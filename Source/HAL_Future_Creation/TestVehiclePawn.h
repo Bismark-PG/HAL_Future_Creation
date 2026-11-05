@@ -74,6 +74,8 @@ public:
 	virtual void PawnClientRestart() override;
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_PlayerState() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	bool IsReplicatedElectricBounceActive() const { return bReplicatedElectricBounceActive; }
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual void UnPossessed() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -88,6 +90,8 @@ public:
 	void SetSelfRightHeld(bool bHeld);
 
 protected:
+	virtual void GatherCurrentMovement() override;
+
 	UPROPERTY(EditAnywhere, Category = "Vehicle|Configuration")
 	EVehicleConfigurationSource ConfigurationSource = EVehicleConfigurationSource::Legacy;
 
@@ -189,6 +193,13 @@ protected:
 	float RemoteInputTimeoutSeconds = 0.25f;
 
 private:
+	UPROPERTY(ReplicatedUsing=OnRep_ElectricBounceActive)
+	bool bReplicatedElectricBounceActive = false;
+
+	UFUNCTION()
+	void OnRep_ElectricBounceActive();
+
+
 	bool bLifecycleRetired = false;
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALPresentationTestAccess;

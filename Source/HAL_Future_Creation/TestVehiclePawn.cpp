@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "TestVehiclePawn.h"
+#include "Net/UnrealNetwork.h"
 #include "VehicleRecoveryComponent.h"
 #include "HALImpactReceiverComponent.h"
 #include "UObject/UnrealType.h"
@@ -243,6 +244,23 @@ UAbilitySystemComponent* ATestVehiclePawn::GetAbilitySystemComponent() const
 {
 	const AHALPlayerState* State = GetPlayerState<AHALPlayerState>();
 	return State ? State->GetAbilitySystemComponent() : nullptr;
+}
+
+void ATestVehiclePawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME_CONDITION(ATestVehiclePawn, bReplicatedElectricBounceActive, COND_SimulatedOnly);
+}
+
+void ATestVehiclePawn::GatherCurrentMovement()
+{
+	Super::GatherCurrentMovement();
+	bReplicatedElectricBounceActive = ArcadeMovement && ArcadeMovement->IsBounceBackActive();
+}
+
+void ATestVehiclePawn::OnRep_ElectricBounceActive()
+{
+	ShockedPresentation->RefreshShocked();
 }
 
 void ATestVehiclePawn::OnRep_PlayerState()

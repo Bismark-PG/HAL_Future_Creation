@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-05 Client 自車及觀察車輛車身電流起點修正。** 本輪基點為乾淨 main/b3aa5bf，本機 UE5.8.2-56702186。同 ASC 重新綁定時更新本機控制權，觀察車輛從收集移動時同步的回彈標記開始表現，Niagara 在啟動前填入首批電弧資料。Editor／Game 構建通過。兩輪高速雙端都通過新增特效斷言，Client 仍觸發既有的初始反向速度波動斷言，沒有額外反向脈衝。D3D12 離屏 Accept 各 1/1，夾具 Car_02 日誌無材質及 Ribbon，僅核對觸發。卡頓原因與正式地圖畫面同步仍待複測。見[車身電流同步第10節](Combat/MVPB_Electric_Wall_CN_v0.1.md#10-client-自車與觀察車輛的電流起點2026-11-05)。
+
 **2026-11-05 車身電流接上 Client 本機回彈。** 本輪基點為乾淨 `main/3a8af57`，本機 UE5.8.2-56702186。自控 Client 在物理更新後開始車身電流，權威 shocked 標籤抵達時接續原時間軸。雙端夾具加入反向速度與視覺狀態重疊、以及兩者結束後釋放的檢查。首輪 Editor 因占用 DLL 連結失敗，使用者關閉後完整構建通過，Game Target 亦通過。首次高速雙端的兩項特效斷言均通過，Client 觸發既有的回彈速度波動斷言。以相同條件重跑，Host／Client 各 1/1 通過。Host 否決接觸的回歸也各 1/1。測試使用 NullRHI，正式地圖可見效果待複測。見[車身電流同步](Combat/MVPB_Electric_Wall_CN_v0.1.md#9-車身電流與本機回彈同步2026-11-05)。
 
 **2026-11-05 GF-7基础比赛闭环完成代码、构建及本机程序验证，待团队真人／发布包验收。** 用户已确认并列／全灭、退场观战、8秒结算返房及Client弃权继续四组规则。正式Playing默认300秒，权威批次淘汰／绝对HP超时判定、值快照、独立本地观战、自动返房／Host提前返房已接入；全部UI保持原生回退＋Widget Blueprint可替换。Room DA新增Match Rules，现有资产读取默认值，无必建UI／输入／GA资产。见[已确认规格](Networking/GF7_Match_Loop_Plan_CN_v0.1.md)、[配置／UI接线与验收](Networking/GF7_Match_Loop_Implementation_CN_v0.1.md)及[验证保护清单](Networking/GF7_Match_Loop_Verification_20261105.json)。

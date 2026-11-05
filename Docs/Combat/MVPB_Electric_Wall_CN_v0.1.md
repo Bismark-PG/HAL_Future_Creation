@@ -185,3 +185,14 @@ Client 原本先執行本機回彈，車身電流則等 Host 複製 shocked 標�
 雙端回歸增加兩項檢查：Client 已有反向速度且尚未收到暈眩時，車身電流應已開始；回彈與暈眩都結束後，車身電流應釋放。測試觀察元件狀態，正式地圖仍須以可見視窗確認 Niagara、材質和燈光在畫面上的起始時機。
 
 本機 UE5.8.2 Editor／Game 構建通過。Host 出站 150ms±40ms 與 10% 丟包、NullRHI 雙端下，高速實駕重跑與否決測試皆 Host／Client 各 1/1。首輪高速 Client 兩項新特效斷言均通過，但既有的再次反向加速斷言失敗，原斷言保留。原始報告位於本機 Saved/ElectricWall/Jitter_20261030 的 ShockSyncDriving、ShockSyncDrivingRetry 及 ShockSyncReject。
+
+
+## 10 Client 自車與觀察車輛的電流起點（2026-11-05）
+
+用戶回報自車與對方車輛都呈現回彈、短暫卡頓、電流才出現。基點為乾淨 main/b3aa5bf，本機 UE5.8.2-56702186。PlayerState 可能先於 ClientRestart 完成 ASC 綁定，原本同一 ASC 的早退會略過自控資格更新。現在每次 Bind 重新辨認本機控制權，同一 ASC 的標籤訂閱則直接沿用。
+
+觀察車輛先前完全依賴 PlayerState 的 shocked 標籤。現在 Host 在收集車輛移動時一併取樣該車的回彈狀態，車輛自身將此標記複製給觀察端。回彈標記啟動車身表現，權威標籤可延續持續效果。Niagara ribbon 先收到首批點、寬度及透明度，再啟動。
+
+Editor／Game 構建成功。兩輪 150ms±40ms Host 出站、10% 丟包的高速 NullRHI 雙端都通過自車及觀察車輛的電流狀態檢查，Host 各 1/1。兩輪 Client 都觸發既有速度斷言，原斷言保留。額外反向脈衝都是 0，但初次變號後相鄰兩筆反向速度仍有 942.171 及 207.035 cm/s 差異，位置殘差為 7.851 及 1.724cm。現有軌跡只量測車體取樣，尚不足以把用戶所見卡頓歸因於網路位置校正、第一幀插值或畫面負載。原始報告保存在本機 Saved/ElectricWall/Jitter_20261030 下的 ShockBothDriving 和 ShockBothDrivingRetry。
+
+D3D12 離屏雙端 Accept 各 1/1，兩端的 Car_02 觸發日誌顯示 overlays=0、ribbon=0、material=NONE，因此此夾具僅能核對觸發。若用 Car_02 驗收車身電流，先在 BP_VehiclePawn_Car_02 的 ShockedPresentation 元件核對 Ribbon System 與 Overlay Material，可參考 BP_RoundedVehiclePawn 的 NS_VehicleShockRibbon 及 M_FX_VehicleShock_Overlay 配置，由團隊在 Editor 手動設定與保存。再在正式地圖讓 Host 和 Client 分別撞中間電牆，從 Client 確認兩車畫面上的電流首幀及回彈連續性。離屏報告為 ShockBothRendered。

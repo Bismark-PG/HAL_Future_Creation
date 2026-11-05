@@ -27,6 +27,7 @@ class FRun : public IAutomationLatentCommand
     bool Reject;
     bool Driving=false,Stopped=false;
     bool SawEarlyShockVisual=false;
+    bool SawObservedBounceVisual=false, MissedObservedBounceVisual=false;
     bool Prepared=false,ReadySent=false,Aligned=false,Started=false,SawEarly=false,SawPredictedVelocity=false;
     double Deadline=FPlatformTime::Seconds()+100, StartAt=-1, Complete=-1;
     FString Diagnostic;
@@ -156,6 +157,13 @@ public:
             TraceTime=T; TraceX=X; TraceVX=VX;
         }
         auto* ShockVisual=Own->FindComponentByClass<UHALShockedPresentationComponent>();
+        if (!Host && Started && Other->IsReplicatedElectricBounceActive())
+        {
+            const auto* ObservedVisual=Other->FindComponentByClass<UHALShockedPresentationComponent>();
+            const bool bVisible=ObservedVisual && ObservedVisual->IsShocked();
+            SawObservedBounceVisual |= bVisible;
+            MissedObservedBounceVisual |= !bVisible;
+        }
         if (!Host && Started && Movement->GetPredictedBounceCount()>0 && Body->GetPhysicsLinearVelocity().X < -1)
         {
             SawPredictedVelocity=true;
@@ -171,6 +179,11 @@ public:
         if (!Host)
         {
             if (!SawPredictedVelocity || !SawEarly || State.BounceBack.Sequence!=uint32(Reject ? 0 : 1)) { return false; }
+            if (!Reject)
+            {
+                Test->TestTrue(TEXT("Observed bounce snapshot activates shock visual"),SawObservedBounceVisual);
+                Test->TestFalse(TEXT("Observed bounce snapshot has no missing shock visual frame"),MissedObservedBounceVisual);
+            }
             if (Driving)
             {
                 Test->TestTrue(TEXT("Actual throttle input reaches meaningful collision speed"),PeakIncomingSpeed>1000);

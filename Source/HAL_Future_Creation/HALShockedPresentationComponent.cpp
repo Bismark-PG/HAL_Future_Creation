@@ -9,6 +9,7 @@
 #include "Engine/Scene.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
+#include "TestVehiclePawn.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
 #include "Math/RandomStream.h"
@@ -73,15 +74,23 @@ UHALShockedPresentationComponent::UHALShockedPresentationComponent()
 void UHALShockedPresentationComponent::Bind(UHALAbilitySystemComponent* InASC)
 {
 	if (!InASC || InASC->GetAvatarActor() != GetOwner()) { Unbind(); return; }
-	if (ASC == InASC && TagHandle.IsValid()) { RefreshShocked(); return; }
-	Unbind(); ASC = InASC;
-	if (GetOwner()->GetLocalRole() == ROLE_AutonomousProxy)
+	// PlayerState may bind the ASC before ClientRestart establishes local ownership.
+	// Refresh the local source even when the ASC and its subscription are unchanged.
+	if (ASC != InASC || !TagHandle.IsValid())
 	{
-		LocalBounceMovement = GetOwner()->FindComponentByClass<UArcadeVehicleMovementComponent>();
-		SetComponentTickEnabled(LocalBounceMovement.IsValid());
+		Unbind();
+		ASC = InASC;
+		TagHandle = ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Visual_Shocked,EGameplayTagEventType::NewOrRemoved)
+			.AddUObject(this,&ThisClass::TagChanged);
 	}
-	TagHandle = ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Visual_Shocked,EGameplayTagEventType::NewOrRemoved)
-		.AddUObject(this,&ThisClass::TagChanged);
+
+	const auto* Pawn = Cast<ATestVehiclePawn>(GetOwner());
+	LocalBounceMovement = Pawn && Pawn->GetNetMode() == NM_Client && Pawn->IsLocallyControlled()
+		? Pawn->FindComponentByClass<UArcadeVehicleMovementComponent>() : nullptr;
+	if (LocalBounceMovement.IsValid())
+	{
+		SetComponentTickEnabled(true);
+	}
 	RefreshShocked();
 }
 void UHALShockedPresentationComponent::Unbind()
@@ -201,7 +210,6 @@ void UHALShockedPresentationComponent::EnsureRibbon()
 	RibbonComponent->SetVariableInt(HALShockedOverlay::ArcPointsPerRibbonParam, HALShockArcGeometry::PointsPerRibbon(ArcSettings));
 	RibbonComponent->SetVariableInt(HALShockedOverlay::ArcRibbonCountParam, HALShockArcGeometry::RibbonCount(ArcSettings));
 	RibbonComponent->SetVariableLinearColor(HALShockedOverlay::ArcColorParam, ArcColor);
-	RibbonComponent->Activate(true);
 }
 void UHALShockedPresentationComponent::PushArcs(float FilamentAlpha)
 {
@@ -266,7 +274,12 @@ void UHALShockedPresentationComponent::BeginTimeline()
 	Phase = EHALShockPhase::Active; PhaseSeconds = 0.f;
 	HeldSeconds = (ScorchRiseSeconds > 0.f) ? Carried * ScorchRiseSeconds : 0.f;
 	if (IsValid(ShockLight)) { ShockLight->SetVisibility(true); }
+	// Populate the initial points, widths and alpha before Niagara's first spawn.
 	ApplyTimeline(1.f, ScorchRamp());
+	if (IsValid(RibbonComponent))
+	{
+		RibbonComponent->Activate(true);
+	}
 	SetComponentTickEnabled(true);
 }
 void UHALShockedPresentationComponent::ReleaseTimeline()
@@ -370,7 +383,10 @@ void UHALShockedPresentationComponent::RefreshShocked()
 	const auto* Movement = LocalBounceMovement.Get();
 	const bool bLocalBounce = Movement && Movement->IsBounceBackActive();
 	const bool bAuthorityShocked = ASC && ASC->HasMatchingGameplayTag(HALGameplayTags::State_Visual_Shocked);
-	SetShocked(bLocalBounce || bAuthorityShocked);
+	const auto* Pawn = Cast<ATestVehiclePawn>(GetOwner());
+	const bool bObservedBounce = ASC && Pawn && Pawn->GetLocalRole() == ROLE_SimulatedProxy
+		&& Pawn->IsReplicatedElectricBounceActive();
+	SetShocked(bLocalBounce || bObservedBounce || bAuthorityShocked);
 }
 
 void UHALShockedPresentationComponent::TagChanged(FGameplayTag Tag,int32 Count) { RefreshShocked(); }
