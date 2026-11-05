@@ -1,5 +1,6 @@
 #include "HALRoomComponent.h"
 #include "HALRoomConfig.h"
+#include "HALMatchGameState.h"
 #include "HALVehicleCatalog.h"
 #include "HALPlayerController.h"
 #include "HALPlayerState.h"
@@ -74,7 +75,8 @@ void UHALRoomComponent::RemoveMember(AHALPlayerController* PC)
 	// Cleanup must still remove the seat when PlayerState has already entered EndPlay.
 	auto* PS = PC && PC->GetWorld() == GetWorld() ? PC->GetPlayerState<AHALPlayerState>() : nullptr;
 	if (!PS || !Data.Members.Contains(PS)) { return; }
-	if (PS == Data.Host || Data.Phase != EHALRoomPhase::Open) { Data.Phase = EHALRoomPhase::Returning; }
+	const bool SettledRound=Data.Match.bActive && (Data.Phase==EHALRoomPhase::Playing || Data.Phase==EHALRoomPhase::Results);
+	if (PS == Data.Host || (Data.Phase != EHALRoomPhase::Open && !SettledRound)) { Data.Phase = EHALRoomPhase::Returning; }
 	Data.Members.Remove(PS); if (!PS->IsActorBeingDestroyed()) { PS->SetRoomData({}); } Publish();
 	// GF-3/4 own actual connection/map recovery. Never silently shrink a locked exhibition round.
 }
@@ -130,6 +132,7 @@ void UHALRoomComponent::RestoreTravel(const FHALRoundTravel& T)
 	ServerConfig=T.Config; Data={}; Data.Rules=T.Config->Rules; Data.FlowId=T.FlowId; Data.RoundId=T.RoundId;
 	Data.bPracticeRoom=true; Data.Catalog=T.Config->Catalog; Data.ExpectedPlayers=T.Players.Num(); Data.FlowMessage=T.Reason;
 	Data.Phase=T.bToPractice?EHALRoomPhase::Open:EHALRoomPhase::Loading; Publish();
+	if (T.bToPractice) { Data.Match=T.PreviousMatch; Data.Match.bActive=false; Publish(); }
 }
 bool UHALRoomComponent::ImportTravelMember(AHALPlayerController* PC, const FHALTravelPlayer& T, FGuid Host)
 {
@@ -139,6 +142,7 @@ bool UHALRoomComponent::ImportTravelMember(AHALPlayerController* PC, const FHALT
 	if (Data.Members.Contains(PS)) { return true; }
 	for (const auto& M:Data.Members) { if (M && M->GetRoomData().Seat==T.Identity.Seat) { return false; } }
 	auto P=T.Identity; P.ReadyAvatar=nullptr; P.LoadToken.Invalidate(); P.bClientLoaded=false;
+	P.RoundLife=EHALRoundLife::None;
 	P.Phase=Data.Phase==EHALRoomPhase::Open?EHALRoomPlayerPhase::Selecting:EHALRoomPlayerPhase::PreparingAvatar;
 	if (P.Phase==EHALRoomPlayerPhase::Selecting) { ++P.SelectionRevision; }
 	PS->RestoreTravelCounters(T.ChangeSerial,T.LifecycleRevision,T.PreviousRound); PS->SetRoomData(P);
@@ -177,6 +181,8 @@ EHALRoomResult UHALRoomComponent::CheckStart(const AHALPlayerController* PC) con
 		const auto* P = PS ? Cast<AHALPlayerController>(PS->GetOwner()) : nullptr;
 		if (!PS || PS->GetRoomData().Phase != EHALRoomPlayerPhase::Ready || !P
 			|| PS->GetRoomData().ReadyAvatar != P->GetPawn() || !AvatarReady(P)) { return EHALRoomResult::NotReady; }
+		// Reliable possession acknowledgement must arrive before its old World can be torn down.
+		if (!P->IsLocalController() && P->GetNetConnection() && P->AcknowledgedPawn!=P->GetPawn()) { return EHALRoomResult::NotReady; }
 	}
 	return Data.RoundId == MAX_uint32 ? EHALRoomResult::InvalidRequest : EHALRoomResult::Accepted;
 }
@@ -227,6 +233,7 @@ EHALRoomResult UHALRoomComponent::AdvanceRound(uint32 ExpectedRound, EHALRoomPha
 	const bool bValid = (Data.Phase == EHALRoomPhase::Locked && Next == EHALRoomPhase::Loading)
 		|| (Data.Phase == EHALRoomPhase::Loading && Next == EHALRoomPhase::Countdown)
 		|| (Data.Phase == EHALRoomPhase::Countdown && Next == EHALRoomPhase::Playing)
+		|| (Data.Phase == EHALRoomPhase::Playing && Next == EHALRoomPhase::Results && Data.Match.bComplete)
 		|| (Data.Phase != EHALRoomPhase::Inactive && Next == EHALRoomPhase::Returning);
 	if (!bValid) { return EHALRoomResult::WrongPhase; }
 	Data.Phase = Next; Publish(); return EHALRoomResult::Accepted;
@@ -237,6 +244,15 @@ bool UHALRoomComponent::AllowsPlayerActions(const APawn* Pawn) const
 	if (!PS || !Data.Members.Contains(PS) || !Pawn->GetController() || Pawn->GetController()->GetPawn() != Pawn
 		|| PS->GetRoomData().Phase != EHALRoomPlayerPhase::Ready || PS->GetRoomData().ReadyAvatar != Pawn) { return false; }
 	if (Data.Phase == EHALRoomPhase::Open) { return true; }
+	if (Data.Match.bActive && (Data.Match.bComplete || PS->GetRoomData().RoundLife!=EHALRoundLife::Alive
+		|| GetWorld()->GetGameState<AGameStateBase>()->GetServerWorldTimeSeconds()>=Data.Match.EndServerTime)) { return false; }
 	return Data.Phase == EHALRoomPhase::Playing && Data.LockedRoster.ContainsByPredicate([PS](const FHALRoomRosterEntry& E)
 	{ return E.Player == PS && E.VehicleId == PS->GetRoomData().VehicleId && E.SelectionRevision == PS->GetRoomData().SelectionRevision; });
+}
+bool UHALRoomComponent::SetMatchData(const FHALRoundMatchData& Match)
+{
+	if (!GetOwner()->HasAuthority() || !Data.bPracticeRoom || Match.RoundId!=Data.RoundId
+		|| (Data.Phase!=EHALRoomPhase::Playing && Data.Phase!=EHALRoomPhase::Results)
+		|| (Data.Match.bComplete && Data.Match.Reason!=EHALMatchEndReason::None)) { return false; }
+	Data.Match=Match; Publish(); return true;
 }

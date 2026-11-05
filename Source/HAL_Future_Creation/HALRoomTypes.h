@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "HALRoundMatchTypes.h"
 #include "HALRoomTypes.generated.h"
 
 class AHALPlayerState;
@@ -9,7 +10,7 @@ class UHALVehicleCatalog;
 UENUM(BlueprintType)
 enum class EHALRoomProfile : uint8 { Exhibition, Development };
 UENUM(BlueprintType)
-enum class EHALRoomPhase : uint8 { Inactive, Open, Locked, Loading, Countdown, Playing, Returning };
+enum class EHALRoomPhase : uint8 { Inactive, Open, Locked, Loading, Countdown, Playing, Returning, Results };
 UENUM(BlueprintType)
 enum class EHALRoomPlayerPhase : uint8 { Unassigned, Selecting, PreparingAvatar, Ready };
 UENUM(BlueprintType)
@@ -50,6 +51,7 @@ struct HAL_FUTURE_CREATION_API FHALRoomPlayerData
 	UPROPERTY(BlueprintReadOnly, Category="Room") bool bClientLoaded=false;
 	UPROPERTY() FGuid LoadToken;
 	UPROPERTY() uint32 SelectionRevision = 0;
+	UPROPERTY(BlueprintReadOnly, Category="Match") EHALRoundLife RoundLife=EHALRoundLife::None;
 };
 
 USTRUCT(BlueprintType)
@@ -81,4 +83,5 @@ struct HAL_FUTURE_CREATION_API FHALRoomData
 	UPROPERTY(BlueprintReadOnly, Category="Room") int32 ExpectedPlayers=0;
 	UPROPERTY(BlueprintReadOnly, Category="Room") double CountdownEndServerTime=0;
 	UPROPERTY(BlueprintReadOnly, Category="Room") FString FlowMessage;
+	UPROPERTY(BlueprintReadOnly, Category="Match") FHALRoundMatchData Match;
 };

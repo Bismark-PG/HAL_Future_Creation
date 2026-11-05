@@ -42,6 +42,8 @@ public:
 	/** GF-4 will call after its travel/readiness barrier; this contract does not implement that barrier. */
 	EHALRoomResult AdvanceRound(uint32 ExpectedRound, EHALRoomPhase Next);
 	bool AllowsPlayerActions(const APawn* Pawn) const;
+	/** Authority-only snapshot publication for this exact active round. */
+	bool SetMatchData(const FHALRoundMatchData& Match);
 	UPROPERTY(BlueprintAssignable, Category="Room") FHALRoomChanged OnRoomChanged;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 private:

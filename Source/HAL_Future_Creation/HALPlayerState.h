@@ -59,6 +59,7 @@ private:
 	uint32 LastVehicleTransitionRound = 0;
 	bool bVehicleTransitionInProgress = false, bLastVehicleTransitionSucceeded = false;
 	friend class UHALRoomComponent;
+	friend class AHALPracticeRoomGameMode;
 	void SetRoomData(const FHALRoomPlayerData& Data);
 	UFUNCTION() void OnRep_RoomData();
 	UPROPERTY(ReplicatedUsing=OnRep_RoomData) FHALRoomPlayerData RoomData;

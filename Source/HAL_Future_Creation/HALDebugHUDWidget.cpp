@@ -113,7 +113,7 @@ void UHALDebugHUDWidget::RefreshStatus()
 	if (!Controller || !World) { return; }
 	const AHALMatchGameState* MatchState = World->GetGameState<AHALMatchGameState>();
 	const TCHAR* Phase = !MatchState ? TEXT("Unavailable")
-		: MatchState->GetMatchPhase() == EHALMatchPhase::Playing ? TEXT("Playing") : TEXT("WaitingForPlayers");
+		: MatchState->GetMatchPhase() == EHALMatchPhase::Playing ? TEXT("Playing") : MatchState->GetMatchPhase() == EHALMatchPhase::Finished ? TEXT("Finished") : TEXT("WaitingForPlayers");
 	const TCHAR* Mode = World->GetNetMode() == NM_Client ? TEXT("Client")
 		: World->GetNetMode() == NM_ListenServer ? TEXT("Listen Host") : TEXT("Standalone");
 	const ATestVehiclePawn* Vehicle = Cast<ATestVehiclePawn>(Controller->GetPawn());

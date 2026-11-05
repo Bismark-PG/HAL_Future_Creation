@@ -45,6 +45,8 @@ void UHALPracticeRoomWidget::LeaveCurrentRoom()
 { if (auto* PC=GetOwningPlayer<AHALPlayerController>()) { PC->LeaveRoom(); } }
 void UHALPracticeRoomWidget::ReturnToRoom()
 { if (CanReturnToRoom()) { GetOwningPlayer<AHALPlayerController>()->HALReturnToRoom(); } }
+void UHALPracticeRoomWidget::CycleSpectator(int32 Direction)
+{ if (auto* PC=GetOwningPlayer<AHALPlayerController>()) { PC->CycleSpectatedPlayer(Direction); PublishRoomView(); } }
 FHALRoomView UHALPracticeRoomWidget::GetRoomView() const
 {
 	FHALRoomView View; const auto* R=ScreenRoom(this); const auto* PC=GetOwningPlayer<AHALPlayerController>();
@@ -54,6 +56,8 @@ FHALRoomView UHALPracticeRoomWidget::GetRoomView() const
 	View.bRequestPending=PC && PC->IsRoomRequestPending();
 	View.bCanSelect=CanSelect(); View.bCanConfirm=CanConfirm(); View.bCanCancel=CanCancel(); View.bCanStart=CanStart();
 	View.bCanResume=CanResume(); View.bCanReturnToRoom=CanReturnToRoom();
+	View.bSpectating=PC && PC->IsRoundSpectating(); View.SpectatedNumber=PC?PC->GetSpectatedPlayerNumber():0;
+	if (View.bSpectating) { View.bMenuVisible=MenuVisible(); }
 	View.bCanLeave=PC && GetWorld() && !GetWorld()->bIsTearingDown && !PC->IsActorBeingDestroyed();
 	View.SelectedVehicleName=VehicleText(); View.Description=DescriptionText(); View.LoadedPreview=LoadedPreview; View.Status=StatusText();
 	if (PS)
@@ -61,6 +65,12 @@ FHALRoomView UHALPracticeRoomWidget::GetRoomView() const
 	if (R)
 	{
 		const auto& D=R->GetData(); View.Phase=D.Phase; View.RoundId=D.RoundId; View.MinimumPlayers=D.Rules.MinimumPlayers();
+		View.Match=D.Match; View.bShowResults=D.Phase==EHALRoomPhase::Results;
+		View.bCanCycleSpectator=View.bSpectating && D.Phase==EHALRoomPhase::Playing;
+		const double Now=GetWorld()->GetGameState<AHALMatchGameState>()->GetServerWorldTimeSeconds();
+		if (D.Match.bActive) { View.MatchRemaining=D.Match.bComplete?0:float(FMath::Max(0.0,D.Match.EndServerTime-Now)); }
+		if (View.bShowResults) { View.ResultsRemaining=float(FMath::Max(0.0,D.Match.ReturnServerTime-Now)); }
+		View.ResultSummary=MatchResultText();
 		View.ExpectedPlayers=D.ExpectedPlayers; View.bHost=PS && D.Host==PS;
 		if (D.Phase==EHALRoomPhase::Countdown)
 		{ View.CountdownRemaining=FMath::Max(0.0,D.CountdownEndServerTime-GetWorld()->GetGameState<AHALMatchGameState>()->GetServerWorldTimeSeconds()); }

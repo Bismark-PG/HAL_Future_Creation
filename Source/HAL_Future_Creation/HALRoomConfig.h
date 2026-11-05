@@ -13,6 +13,7 @@ class HAL_FUTURE_CREATION_API UHALRoomConfig : public UDataAsset
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Room") FHALRoomRules Rules;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Room") TObjectPtr<UHALVehicleCatalog> Catalog;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Match Rules", meta=(ShowOnlyInnerProperties)) FHALMatchRules MatchRules;
 	/** Opt in after creating a distinct match map; legacy GF-3 remains lock-only until configured. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Round Travel") bool bEnableRoundTravel=false;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Round Travel", meta=(EditCondition="bEnableRoundTravel")) TSoftObjectPtr<UWorld> MatchMap;

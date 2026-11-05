@@ -43,6 +43,9 @@ public:
 	bool IsRoomRequestPending() const;
 	bool WantsRoomMenu() const;
 	void ToggleRoomMenu();
+	UFUNCTION(BlueprintPure, Category="Match|Spectator") bool IsRoundSpectating() const;
+	UFUNCTION(BlueprintPure, Category="Match|Spectator") int32 GetSpectatedPlayerNumber() const { return SpectatedNumber; }
+	UFUNCTION(BlueprintCallable, Category="Match|Spectator") void CycleSpectatedPlayer(int32 Direction);
 	UFUNCTION(BlueprintPure, Category="Room") EHALRoomResult GetLastRoomResult() const { return LastRoomResult; }
 	UPROPERTY(BlueprintAssignable, Category="Room") FHALRoomRequestCompleted OnRoomRequestCompleted;
 	UFUNCTION(Exec) void HALRoomStatus();
@@ -86,6 +89,13 @@ public:
 	void HALClearMovementBoost();
 
 private:
+	void UpdateRoundSpectator(float DeltaSeconds);
+	void ClearRoundSpectator();
+	UPROPERTY(Transient) TObjectPtr<class ACameraActor> RoundSpectatorCamera;
+	FGuid SpectatedKey;
+	int32 SpectatedNumber=0;
+	FVector LastSpectatorFocus=FVector::ZeroVector;
+	bool bHasSpectatorFocus=false;
 	void PollRoundReadiness();
 	void CreateLocalDebugWidgets();
 	UFUNCTION(Server,Reliable) void ServerRoundLoaded(FGuid Flow,uint32 Round,FGuid Token,APawn* ExpectedAvatar);

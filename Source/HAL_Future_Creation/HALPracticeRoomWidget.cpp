@@ -73,9 +73,7 @@ bool UHALPracticeRoomWidget::CanStart() const
 	const auto* PS = PC ? PC->GetPlayerState<AHALPlayerState>() : nullptr;
 	if (!PC || !PS || !R || PC->IsRoomRequestPending() || R->GetData().Host != PS || R->GetData().Phase != EHALRoomPhase::Open
 		|| R->GetData().Members.Num() < R->GetData().Rules.MinimumPlayers()) { return false; }
-	for (const auto& M : R->GetData().Members)
-	{ if (!M || M->GetRoomData().Phase != EHALRoomPlayerPhase::Ready || !M->GetRoomData().ReadyAvatar) { return false; } }
-	return true;
+	return PC->HasAuthority() && R->CheckStart(PC)==EHALRoomResult::Accepted;
 }
 void UHALPracticeRoomWidget::CycleVehicle(int32 Direction)
 {
@@ -90,6 +88,7 @@ void UHALPracticeRoomWidget::CycleVehicle(int32 Direction)
 }
 FText UHALPracticeRoomWidget::VehicleText() const
 {
+	if (const auto* R=Room(this); R && R->GetData().Phase==EHALRoomPhase::Results) { return FText::FromString(TEXT("MATCH COMPLETE")); }
 	const auto* PS = GetOwningPlayerState<AHALPlayerState>(); const auto* R = Room(this);
 	const FName Id = PS ? PS->GetRoomData().VehicleId : NAME_None;
 	const auto* C = R ? LoadedCatalog.Get() : nullptr;
@@ -127,6 +126,11 @@ FText UHALPracticeRoomWidget::StatusText() const
 	const auto* R = Room(this); const auto* PC = GetOwningPlayer<AHALPlayerController>();
 	const auto* PS = PC ? PC->GetPlayerState<AHALPlayerState>() : nullptr;
 	if (!R || !PS) { return FText::FromString(TEXT("Connecting to room...")); }
+	if (R->GetData().Phase==EHALRoomPhase::Results)
+	{
+		const auto* S=GetWorld()->GetGameState<AHALMatchGameState>();
+		return FText::FromString(FString::Printf(TEXT("Returning to the room in %d..."),FMath::CeilToInt(FMath::Max(0.0,R->GetData().Match.ReturnServerTime-S->GetServerWorldTimeSeconds()))));
+	}
 	if (R->GetData().Phase==EHALRoomPhase::Loading)
 	{
 		int32 Loaded=0; for (const auto& P:R->GetData().Members) { if (P && P->GetRoomData().bClientLoaded) { ++Loaded; } }
@@ -137,7 +141,7 @@ FText UHALPracticeRoomWidget::StatusText() const
 		const auto* S=GetWorld()->GetGameState<AHALMatchGameState>();
 		return FText::FromString(FString::Printf(TEXT("Match starts in %d"),FMath::CeilToInt(FMath::Max(0.0,R->GetData().CountdownEndServerTime-S->GetServerWorldTimeSeconds()))));
 	}
-	if (R->GetData().Phase == EHALRoomPhase::Playing) { return FText::FromString(TEXT("Match in progress.")); }
+	if (R->GetData().Phase == EHALRoomPhase::Playing) { return DrivingText(); }
 	if (R->GetData().Phase == EHALRoomPhase::Returning) { return FText::FromString(TEXT("Leaving this arena...")); }
 	if (R->GetData().Phase != EHALRoomPhase::Open) { return FText::FromString(TEXT("Preparing the match. New players and vehicle changes are closed.")); }
 	if (PC->IsRoomRequestPending()) { return FText::FromString(TEXT("Updating selection...")); }
@@ -147,6 +151,31 @@ FText UHALPracticeRoomWidget::StatusText() const
 	if (Result != EHALRoomResult::Accepted) { return FText::FromString(ResultText(Result)); }
 	if (!R->GetData().FlowMessage.IsEmpty()) { return FText::FromString(R->GetData().FlowMessage); }
 	return FText::FromString(FString::Printf(TEXT("Practice: no HP damage. Start needs %d confirmed player(s)."),R->GetData().Rules.MinimumPlayers()));
+}
+FText UHALPracticeRoomWidget::MatchResultText() const
+{
+	const auto* R=Room(this); if (!R || !R->GetData().Match.bComplete) { return FText::GetEmpty(); }
+	const auto& Match=R->GetData().Match;
+	if (Match.Reason==EHALMatchEndReason::Aborted) { return FText::FromString(TEXT("MATCH CANCELLED")); }
+	FString Winners,Rows; int32 Count=0;
+	for (const auto& P:Match.Players)
+	{
+		if (P.bWinner) { if (Count++) { Winners+=TEXT(" / "); } Winners+=FString::Printf(TEXT("P%d"),P.Number); }
+		const TCHAR* State=P.Life==EHALRoundLife::Forfeited?TEXT("LEFT"):P.Life==EHALRoundLife::Eliminated?TEXT("OUT"):P.bWinner?TEXT("WINNER"):TEXT("SURVIVED");
+		Rows+=FString::Printf(TEXT("\nP%d  %s  |  %.1f / %.1f HP  |  %s"),P.Number,*P.PlayerName.Left(24),P.HP,P.MaxHP,State);
+	}
+	const TCHAR* Why=Match.Reason==EHALMatchEndReason::TimeExpired?TEXT("TIME UP"):Match.Reason==EHALMatchEndReason::NoSurvivors?TEXT("NO SURVIVORS"):TEXT("LAST DRIVER STANDING");
+	return FText::FromString((Count?FString(Count>1?TEXT("WINNERS: "):TEXT("WINNER: "))+Winners:FString(TEXT("DRAW")))+TEXT("\n")+Why+TEXT("\n")+Rows);
+}
+FText UHALPracticeRoomWidget::DrivingText() const
+{
+	const auto* R=Room(this); const auto* PS=GetOwningPlayerState<AHALPlayerState>(); const auto* PC=GetOwningPlayer<AHALPlayerController>();
+	if (!R || !R->GetData().Match.bActive) { return FText::FromString(FString::Printf(TEXT("P%d / PRACTICE     TAB / ESC / START : MENU"),PS?PS->GetRoomData().Number:0)); }
+	const auto& M=R->GetData().Match; int32 Alive=0; for (const auto& P:M.Players) { if (P.Life==EHALRoundLife::Alive) { ++Alive; } }
+	const int32 Seconds=FMath::CeilToInt(FMath::Max(0.0,M.EndServerTime-GetWorld()->GetGameState<AHALMatchGameState>()->GetServerWorldTimeSeconds()));
+	FString Who=FString::Printf(TEXT("P%d"),PS?PS->GetRoomData().Number:0);
+	if (PC && PC->IsRoundSpectating()) { Who=PC->GetSpectatedPlayerNumber()?FString::Printf(TEXT("SPECTATING P%d"),PC->GetSpectatedPlayerNumber()):TEXT("SPECTATING ARENA"); }
+	return FText::FromString(FString::Printf(TEXT("%s   |   %02d:%02d   |   ALIVE %d/%d   |   TAB / ESC : MENU"),*Who,Seconds/60,Seconds%60,Alive,M.Players.Num()));
 }
 int32 UHALPracticeRoomWidget::NativePaint(const FPaintArgs& Args, const FGeometry& G, const FSlateRect& Culling,
 	FSlateWindowElementList& Elements, int32 Layer, const FWidgetStyle& Style, bool bParentEnabled) const

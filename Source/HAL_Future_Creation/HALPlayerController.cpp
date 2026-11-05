@@ -42,6 +42,7 @@ void AHALPlayerController::SetupInputComponent()
 }
 bool AHALPlayerController::WantsRoomMenu() const
 {
+	if (IsRoundSpectating()) { return bRoomMenuOpen; }
 	const auto* PS = GetPlayerState<AHALPlayerState>();
 	return !PS || PS->GetRoomData().Phase != EHALRoomPlayerPhase::Ready || !PS->GetRoomData().ReadyAvatar || bRoomMenuOpen;
 }
@@ -96,6 +97,7 @@ void AHALPlayerController::CreateLocalDebugWidgets()
 
 void AHALPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	ClearRoundSpectator();
 	GetWorldTimerManager().ClearTimer(RoundReadyTimer);
 	if (auto* State = GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr)
 	{ State->GetRoom()->OnRoomChanged.RemoveDynamic(this,&ThisClass::RefreshRoomUI); }
@@ -227,7 +229,7 @@ void AHALPlayerController::HALMatchStatus()
 {
 	const AHALMatchGameState* MatchState = GetWorld()->GetGameState<AHALMatchGameState>();
 	const TCHAR* PhaseName = !MatchState ? TEXT("Unavailable")
-		: MatchState->GetMatchPhase() == EHALMatchPhase::Playing ? TEXT("Playing") : TEXT("WaitingForPlayers");
+		: MatchState->GetMatchPhase() == EHALMatchPhase::Playing ? TEXT("Playing") : MatchState->GetMatchPhase() == EHALMatchPhase::Finished ? TEXT("Finished") : TEXT("WaitingForPlayers");
 	const FString Status = FString::Printf(
 		TEXT("HAL Match: Local=%d Authority=%d Pawn=%s PlayerId=%d Phase=%s"),
 		IsLocalController() ? 1 : 0,

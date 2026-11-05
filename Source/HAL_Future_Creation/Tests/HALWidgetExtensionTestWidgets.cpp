@@ -38,10 +38,10 @@ void UHALContractRoomWidget::NativeOnInitialized()
 }
 void UHALContractRoomWidget::ReceiveRoomView_Implementation(const FHALRoomView& V)
 {
-	++Updates; if (!Panel) { return; }
-	Panel->SetVisibility(V.bMenuVisible?ESlateVisibility::Visible:ESlateVisibility::Collapsed);
-	StateText->SetText(FText::FromString(GetClass()->GetName()+TEXT(" | ")+V.Status.ToString()));
-	NextButton->SetIsEnabled(V.bCanSelect && V.bCatalogLoaded); ConfirmButton->SetIsEnabled(V.bCanConfirm);
+	++Updates; LastMatch=V.Match; LastWasResults=V.bShowResults; if (!Panel) { return; }
+	Panel->SetVisibility((V.bMenuVisible || V.bSpectating || V.bShowResults)?ESlateVisibility::Visible:ESlateVisibility::Collapsed);
+	StateText->SetText(FText::FromString(GetClass()->GetName()+TEXT(" | ")+(V.bShowResults?V.ResultSummary:V.Status).ToString()));
+	NextButton->SetIsEnabled(V.bCanCycleSpectator || (V.bCanSelect && V.bCatalogLoaded)); ConfirmButton->SetIsEnabled(V.bCanConfirm);
 	CancelButton->SetIsEnabled(V.bCanCancel); StartButton->SetIsEnabled(V.bCanStart); ResumeButton->SetIsEnabled(V.bCanResume);
 	ReturnButton->SetIsEnabled(V.bCanReturnToRoom); LeaveButton->SetIsEnabled(V.bCanLeave);
 }

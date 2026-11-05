@@ -26,6 +26,7 @@ struct HAL_FUTURE_CREATION_API FHALRoundTravel
 	UPROPERTY() FString Reason;
 	UPROPERTY() TObjectPtr<UHALRoomConfig> Config;
 	UPROPERTY() TArray<FHALTravelPlayer> Players;
+	UPROPERTY() FHALRoundMatchData PreviousMatch;
 	double StartedAt=0;
 	bool IsValid() const;
 };

@@ -40,8 +40,10 @@ public:
 	UPROPERTY(Transient) TObjectPtr<UButton> ReturnButton;
 	UPROPERTY(Transient) TObjectPtr<UButton> LeaveButton;
 	int32 Updates=0;
+	bool LastWasResults=false;
+	FHALRoundMatchData LastMatch;
 private:
-	UFUNCTION() void ClickNext() { CycleVehicle(1); }
+	UFUNCTION() void ClickNext() { if (GetRoomView().bCanCycleSpectator) { CycleSpectator(1); } else { CycleVehicle(1); } }
 	UFUNCTION() void ClickConfirm() { ConfirmSelection(); }
 	UFUNCTION() void ClickCancel() { CancelSelection(); }
 	UFUNCTION() void ClickStart() { StartRoomMatch(); }

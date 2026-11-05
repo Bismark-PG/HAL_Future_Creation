@@ -153,7 +153,7 @@ EHALRoomResult AHALPracticeRoomGameMode::HandleRoomAction(AHALPlayerController* 
 	if (!HasAuthority() || bReturningToEntry || bTravelDeparting) { return EHALRoomResult::WrongPhase; }
 	if (Action==EHALRoomAction::ReturnToRoom)
 	{
-		if (!CanRequestRoundReturn()) { return EHALRoomResult::WrongPhase; }
+		if (bEvaluatingMatch || !CanRequestRoundReturn()) { return EHALRoomResult::WrongPhase; }
 		auto* Room=GetGameState<AHALMatchGameState>()->GetRoom();
 		if (!PC || Room->GetData().Host!=PC->GetPlayerState<AHALPlayerState>() || !PC->IsLocalController()) { return EHALRoomResult::NotHost; }
 		if (!Id.IsNone()) { return EHALRoomResult::InvalidRequest; }
@@ -177,7 +177,8 @@ bool AHALPracticeRoomGameMode::CanRequestRoundReturn() const
 {
 	const auto* S=GetGameState<AHALMatchGameState>(); const auto* Room=S?S->GetRoom():nullptr;
 	if (!HasAuthority() || bReturningToEntry || bTravelDeparting || !bRoundWorld || !Room || !Room->IsEnabled()
-		|| Room->GetData().Phase!=EHALRoomPhase::Playing) { return false; }
+		|| (Room->GetData().Phase!=EHALRoomPhase::Playing && Room->GetData().Phase!=EHALRoomPhase::Results)) { return false; }
+	if (Room->GetData().Phase==EHALRoomPhase::Results) { return true; }
 	if (Room->GetData().Rules.Profile==EHALRoomProfile::Development) { return true; }
 #if !UE_BUILD_SHIPPING
 	return bAllowTestRoundEnd && Room->GetData().Rules.Profile==EHALRoomProfile::Exhibition;
@@ -190,7 +191,7 @@ EHALRoomResult AHALPracticeRoomGameMode::ReturnActiveRoundToRoom()
 	if (!HasAuthority()) { return EHALRoomResult::NotAuthority; }
 	const auto* S=GetGameState<AHALMatchGameState>(); const auto* Room=S?S->GetRoom():nullptr;
 	if (bReturningToEntry || bTravelDeparting || !bRoundWorld || !Room || !Room->IsEnabled()
-		|| Room->GetData().Phase!=EHALRoomPhase::Playing) { return EHALRoomResult::WrongPhase; }
+		|| (Room->GetData().Phase!=EHALRoomPhase::Playing && Room->GetData().Phase!=EHALRoomPhase::Results)) { return EHALRoomResult::WrongPhase; }
 	const uint32 Round=Room->GetData().RoundId;
 	if (!StartRoundTravel(true,TEXT("Round ended. Please confirm your vehicle again."))) { return EHALRoomResult::InvalidConfiguration; }
 	UE_LOG(LogTemp,Display,TEXT("GF6 round return accepted: Round=%u"),Round);
@@ -219,9 +220,14 @@ void AHALPracticeRoomGameMode::Logout(AController* Exiting)
 {
 	auto* PC = Cast<AHALPlayerController>(Exiting);
 	auto* S = GetGameState<AHALMatchGameState>();
+	const bool KeepRound=S && S->GetRoom()->GetData().Match.bActive
+		&& (S->GetRoom()->GetData().Phase==EHALRoomPhase::Playing || S->GetRoom()->GetData().Phase==EHALRoomPhase::Results);
+	if (KeepRound && S->GetRoom()->GetData().Host!=(PC?PC->GetPlayerState<AHALPlayerState>():nullptr))
+	{ ForfeitMatchPlayer(PC?PC->GetPlayerState<AHALPlayerState>():nullptr); }
 	if (S && S->GetRoom()->GetData().Host == (PC ? PC->GetPlayerState<AHALPlayerState>() : nullptr)) { ReturnRoomToEntry(PC); }
-	if (auto* Pawn = PC ? Cast<ATestVehiclePawn>(PC->GetPawn()) : nullptr) { Pawn->RetireForVehicleTransition(); }
+	if (auto* Pawn = PC ? Cast<ATestVehiclePawn>(PC->GetPawn()) : nullptr)
+	{ Pawn->RetireForVehicleTransition(); PC->UnPossess(); Pawn->Destroy(); }
 	Super::Logout(Exiting);
-	if (bRoundWorld && !bTravelDeparting && !bReturningToEntry && !GetWorld()->bIsTearingDown)
+	if (bRoundWorld && !KeepRound && !bTravelDeparting && !bReturningToEntry && !GetWorld()->bIsTearingDown)
 	{ StartRoundTravel(true,TEXT("A participant left. Please confirm again.")); }
 }

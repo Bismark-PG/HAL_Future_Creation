@@ -36,6 +36,15 @@ bool AHALPracticeRoomGameMode::StartRoundTravel(bool ToPractice,const FString& R
 	T.HostKey=Room->GetData().Host ? Room->GetData().Host->GetRoomData().PlayerKey : Travel.HostKey;
 	T.Config=DuplicateObject<UHALRoomConfig>(RoomConfig,GI); T.Config->SetFlags(RF_Transient); T.Config->ClearFlags(RF_Standalone|RF_Public);
 	T.Config->Rules=Room->GetData().Rules;
+	if (ToPractice)
+	{
+		T.PreviousMatch=Room->GetData().Match;
+		if (T.PreviousMatch.bActive && !T.PreviousMatch.bComplete)
+		{
+			T.PreviousMatch.bComplete=true; T.PreviousMatch.Reason=EHALMatchEndReason::Aborted;
+			for (auto& P:T.PreviousMatch.Players) { P.bWinner=false; }
+		}
+	}
 	T.PracticeMap=bRoundWorld?Travel.PracticeMap:UWorld::RemovePIEPrefix(GetWorld()->GetOutermost()->GetName());
 	T.Destination=ToPractice?T.PracticeMap:RoomConfig->MatchMap.GetLongPackageName(); T.StartedAt=FPlatformTime::Seconds(); T.Reason=Reason;
 	for (auto It=GetWorld()->GetPlayerControllerIterator(); It; ++It)
@@ -47,7 +56,7 @@ bool AHALPracticeRoomGameMode::StartRoundTravel(bool ToPractice,const FString& R
 		T.Players.Add(P);
 	}
 	if (!T.IsValid() || !FPackageName::DoesPackageExist(T.Destination)) { return false; }
-	bTravelDeparting=true; GetWorldTimerManager().ClearTimer(RoundBarrierTimer);
+	bTravelDeparting=true; GetWorldTimerManager().ClearTimer(RoundBarrierTimer); StopMatchRules();
 	if (ToPractice) { Room->CloseForReturn(); }
 	GI->StoreRoundTravel(T);
 	for (auto It=GetWorld()->GetPlayerControllerIterator(); It; ++It)
@@ -100,6 +109,7 @@ void AHALPracticeRoomGameMode::PollRoundBarrier()
 	{
 		Room->AdvanceRound(D.RoundId,EHALRoomPhase::Playing); S->SetMatchPhase(EHALMatchPhase::Playing);
 		GetWorldTimerManager().ClearTimer(RoundBarrierTimer);
+		BeginMatchRules();
 		UE_LOG(LogTemp,Display,TEXT("GF4 Playing: Round=%u Players=%d"),D.RoundId,D.Members.Num());
 	}
 }

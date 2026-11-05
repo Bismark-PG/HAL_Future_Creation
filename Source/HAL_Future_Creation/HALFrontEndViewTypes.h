@@ -74,6 +74,14 @@ struct HAL_FUTURE_CREATION_API FHALRoomView
 	UPROPERTY(BlueprintReadOnly, Category="UI") int64 RoundId=0;
 	/** Display only, derived from the shared server deadline; never starts the match. */
 	UPROPERTY(BlueprintReadOnly, Category="UI") float CountdownRemaining=0;
+	UPROPERTY(BlueprintReadOnly, Category="Match") FHALRoundMatchData Match;
+	UPROPERTY(BlueprintReadOnly, Category="Match") float MatchRemaining=0;
+	UPROPERTY(BlueprintReadOnly, Category="Match") float ResultsRemaining=0;
+	UPROPERTY(BlueprintReadOnly, Category="Match") bool bShowResults=false;
+	UPROPERTY(BlueprintReadOnly, Category="Match") bool bSpectating=false;
+	UPROPERTY(BlueprintReadOnly, Category="Match") bool bCanCycleSpectator=false;
+	UPROPERTY(BlueprintReadOnly, Category="Match") int32 SpectatedNumber=0;
+	UPROPERTY(BlueprintReadOnly, Category="Match") FText ResultSummary;
 	UPROPERTY(BlueprintReadOnly, Category="UI") TArray<FHALRoomSeatView> Seats;
 	UPROPERTY(BlueprintReadOnly, Category="UI") TArray<FHALVehicleDisplayView> Vehicles;
 };

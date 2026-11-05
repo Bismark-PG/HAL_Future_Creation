@@ -3,6 +3,7 @@
 #include "HALMatchGameMode.h"
 #include "HALRoundTravelTypes.h"
 #include "HALPracticeRoomGameMode.generated.h"
+class AHALPlayerState;
 
 /** Server room/round orchestration; Avatars and physics are rebuilt across seamless map travel. */
 UCLASS()
@@ -15,6 +16,7 @@ public:
 	virtual void InitGameState() override;
 	virtual void PostLogin(APlayerController* Player) override;
 	virtual void Logout(AController* Exiting) override;
+	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& Id, FString& Error) override;
 	virtual void HandleStartingNewPlayer_Implementation(APlayerController* Player) override;
 	virtual EHALRoomResult HandleRoomAction(AHALPlayerController* Player, EHALRoomAction Action, FName VehicleId, uint32 Revision) override;
@@ -26,6 +28,7 @@ public:
 	EHALRoomResult ReturnActiveRoundToRoom();
 private:
 	friend struct FHALPracticeRoomTestAccess;
+	friend struct FHALMatchLoopTestAccess;
 	void RemovePracticeAvatar(AHALPlayerController* Player);
 	void SetSelectionView(AHALPlayerController* Player);
 	EHALRoomResult SpawnSelectedVehicle(AHALPlayerController* Player, uint32 Revision, uint32 Round=0);
@@ -37,4 +40,23 @@ private:
 	FTimerHandle RoundBarrierTimer;
 	bool bReturningToEntry = false;
 	bool bAllowTestRoundEnd = false;
+	void BeginMatchRules();
+	void PollMatchRules();
+	void ScheduleMatchEvaluation();
+	void MatchHealthChanged(FGuid PlayerKey);
+	void ForfeitMatchPlayer(AHALPlayerState* Player);
+	void StopMatchRules();
+	struct FMatchWatch
+	{
+		FGuid Key;
+		TWeakObjectPtr<AHALPlayerState> Player;
+		TWeakObjectPtr<class ATestVehiclePawn> Pawn;
+		TWeakObjectPtr<class UHALAbilitySystemComponent> ASC;
+		FDelegateHandle HP,MaxHP;
+	};
+	TArray<FMatchWatch> MatchWatches;
+	FHALRoundMatchData ActiveMatch;
+	FGuid MatchFlow;
+	FTimerHandle MatchPollTimer,MatchEvaluateTimer;
+	bool bEvaluatingMatch=false;
 };

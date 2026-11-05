@@ -21,11 +21,13 @@ void AHALPlayerController::TickActor(float DeltaSeconds,ELevelTick TickType,FAct
 	// Seamless replacement can retain AutonomousProxy briefly before its owning connection is attached.
 	if (GetNetMode()==NM_Client && GetLocalRole()==ROLE_AutonomousProxy && (!GetLocalPlayer() || !GetNetConnection())) { return; }
 	Super::TickActor(DeltaSeconds,TickType,ThisTickFunction);
+	UpdateRoundSpectator(DeltaSeconds);
 }
 void AHALPlayerController::PreClientTravel(const FString& URL,ETravelType Type,bool Seamless)
 {
 	if (IsLocalController())
 	{
+		ClearRoundSpectator();
 		if (auto* Vehicle=Cast<ATestVehiclePawn>(GetPawn())) { Vehicle->NeutralizeInputForMenu(); }
 		if (auto* GI=GetGameInstance<UHALNetworkGameInstance>()) { GI->HideTravelWidgets(); }
 		if (DebugHUD) { DebugHUD->RemoveFromParent(); DebugHUD=nullptr; }

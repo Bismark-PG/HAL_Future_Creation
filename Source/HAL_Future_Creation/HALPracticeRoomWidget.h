@@ -26,6 +26,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="UI|Room") void ResumeDriving();
 	UFUNCTION(BlueprintCallable, Category="UI|Room") void LeaveCurrentRoom();
 	UFUNCTION(BlueprintCallable, Category="UI|Room") void ReturnToRoom();
+	UFUNCTION(BlueprintCallable, Category="UI|Match") void CycleSpectator(int32 Direction);
 	UFUNCTION(BlueprintNativeEvent, Category="UI|Room") void ReceiveRoomView(const FHALRoomView& View);
 	virtual void ReceiveRoomView_Implementation(const FHALRoomView& View) {}
 	virtual int32 NativePaint(const FPaintArgs& Args, const FGeometry& Geometry, const FSlateRect& Culling,
@@ -40,6 +41,8 @@ private:
 	FText VehicleText() const;
 	FText DescriptionText() const;
 	FText StatusText() const;
+	FText MatchResultText() const;
+	FText DrivingText() const;
 	FText SeatText(int32 Seat) const;
 	FSlateColor SeatColor(int32 Seat) const;
 	bool CanSelect() const;

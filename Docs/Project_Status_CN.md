@@ -1,5 +1,11 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-05 GF-7基础比赛闭环完成代码、构建及本机程序验证，待团队真人／发布包验收。** 用户已确认并列／全灭、退场观战、8秒结算返房及Client弃权继续四组规则。正式Playing默认300秒，权威批次淘汰／绝对HP超时判定、值快照、独立本地观战、自动返房／Host提前返房已接入；全部UI保持原生回退＋Widget Blueprint可替换。Room DA新增Match Rules，现有资产读取默认值，无必建UI／输入／GA资产。见[已确认规格](Networking/GF7_Match_Loop_Plan_CN_v0.1.md)、[配置／UI接线与验收](Networking/GF7_Match_Loop_Implementation_CN_v0.1.md)及[验证保护清单](Networking/GF7_Match_Loop_Verification_20261105.json)。
+
+本机UE5.8.3最终Editor／Game成功，**138/138原生、真实双端三局／四端Exhibition／旧GF4双端两局各角色1/1**，共9份最终自动化报告均0测试警告／失败／未运行／进行中。四端验证Host淘汰后继续服务、目标弃权后自动切换、其余继续、两人超时并列及Host通过Widget提前返房；双端覆盖最后存活／超时并列／同批全灭和自动返回。D3D12检查原生结果及内存UMG替换接口；切观战截图含移动模糊，不作最终镜头手感验收。GF7 Host出站80ms为同机注入，非实测RTT／校园四机。首轮旧世界NetGUID错误与夹具接入时序失败保留，补远端车辆接管确认屏障后严格复验。**1183保存资产逐份全同、295最终构建输入留档，Config／uproject／Build.cs保持**；专用进程已退出。保留开工前草案／状态／白名单修改，未代改BP／DA／地图，未提交／Push；下一步按实现第4节短时局真人验收，再重新打包／校园四机及原MVP-B集中收尾。以下旧“待确认／未施工”均保留各时点，当前以本段与第2／6节为准。
+
+**2026-11-05 GF-7基础比赛闭环进入方案讨论，尚未施工。** 从干净`main/726b804`核对，临时血条已提交；现有手动返房／连续两局基础可复用，计时、HP归零淘汰、观战、胜负与Results／自动返房均未实现。用户提出纳入下一步，已留[待确认草案](Networking/GF7_Match_Loop_Plan_CN_v0.1.md)：沿既定300秒／最后存活／超时剩余绝对HP规则，建议补统一服务器裁决、只读结果与WBP接口；并列／全灭、退场观战、8秒结算返房、Client弃权继续四组默认待用户确认。当前Playing中有人退出仍会全员返房，现有返回接口只接受Playing，需在实施中按阶段明确调整；Host淘汰与Host进程退出分开。没有据此启动C++修改，本轮仅方案／状态／Git白名单，无新编译或测试结论，未提交／Push。
+
 **2026-11-04临时车顶血条完成代码、构建及相关回归，待正式场地真人扣血／双端画面验收。** 从干净`main/93f18e6`接续，此前车型技能接口与留档已提交，旧“未提交”按原时点阅读。按用户要求在原生车顶P1／P2绘制下增加68×10 Slate单位血条，文字水平居中并上移字体高度＋6单位；读取当前Pawn的Health组件／GAS CurrentHP与MaxHP，绿／黄／红分档，未就绪隐藏、0血空框，不新增复制字段／RPC／Tick或Widget资产。保留菜单及Designer布局排除规则，无需BP／DA接线。见[使用与验收](Presentation/MVPB_Temporary_Overhead_HealthBar_CN_v0.1.md)及[验证记录](Presentation/MVPB_Temporary_Overhead_HealthBar_Verification_20261104.json)。
 
 本机UE5.8.3最终Editor／Game成功，现有Health回归2/2、D3D12原生UI流程1/1，均0测试警告／失败／未运行；不沿用此前134项或联机作为本次复测。旧UI夹具PracticeHUD截图实际为同帧打开的菜单，不冒充血条外观验收；历史7图逐份还原。本轮1183保存资产全同、289构建输入留档，唯一源码修改NativePaint所在文件，Config／Build.cs／uproject保持；未改BP／DA／地图，未提交／Push。下一步重开Editor看默认HUD，进入Playing再用球／机关扣血测试，练习房间仍抑制伤害；重新打包后再分发给组员。原技能DA迁移、手感参数与学校局域网／四机验收保持独立。
@@ -268,9 +274,9 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
-| 开发阶段 | GF-6工程收尾、打包前手感／车型技能及临时车顶血条已完成各自代码与程序检查；下一步团队DA迁移、正式场地血条／技能手测，再回学校局域网打包及四机验收 |
-| 当前本机分支／代码提交 | `main / 93f18e6`已含车型技能接口／留档；本轮起始干净，临时车顶血条源码／文档尚未提交／Push，保存资产未改 |
-| 引擎基线 | 本机 **5.8.3-58210709**；本轮血条Editor／Game成功、Health2项和D3D12原生UI1项通过。此前车型技能134项／两套双端两局保持原时点，不冒充本轮全量或联机复测 |
+| 开发阶段 | GF-7计时／淘汰观战／胜负／结果返房代码及本机验证完成；团队真人与发布包／校园四机待验收。原GF-6、手感／技能／血条与MVP-B收尾边界保持 |
+| 当前本机分支／代码提交 | `main / 726b804`已含临时血条及此前技能接口；开工保留GF-7前轮方案文档改动，本轮源码／文档未提交／Push，1183保存资产不变 |
+| 引擎基线 | 本机 **5.8.3-58210709**；本轮Editor／Game成功，138普通、GF7双端三局／四端及GF4双端两局均通过，细节见GF7验证JSON；不代替真实发布包／四机 |
 | 本机运行前置 | 验证进程已退出，可重开完整编译Editor；新WBP分别继承HALArcadeEntryWidget／HALPracticeRoomWidget，在GI Front End→Screens指派Entry／Room／Pause Screen Class；全部留空继续原生回退 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
 | GAS 当前实现 | Definition.Abilities显式V1按当前Pawn授予唯一Primary并加入Ready；旧DefaultAbilities只用于Legacy。换车／新局清理沿GF-2，普通重绑保留计时；两份保存DA仍Legacy，待团队迁移Car01加速／Car02免疫 |
@@ -290,6 +296,7 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 | 环节 | 已有结果 | 证据边界 |
 |---|---|---|
+| GF-7基础比赛闭环 | Playing计时、HP批次淘汰／弃权、最后存活／超时并列／全灭、独立观战、结果及自动／Host提前返房完成；两Target、138原生和8份联机角色报告通过 | 原生回退与Designer接口有D3D12证据；1183资产全同，无代改BP／DA。团队真人、发布包／四机待验收，见[配置与步骤](Networking/GF7_Match_Loop_Implementation_CN_v0.1.md) |
 | 临时车顶血条 | 编号居中上移、按真实HP／MaxHP绘制绿黄红血条；Editor／Game、Health2项与原生UI1项通过 | 原生默认HUD，无资产接线；真实双端受击／血条外观及重新打包待团队，见[说明](Presentation/MVPB_Temporary_Overhead_HealthBar_CN_v0.1.md) |
 | 车型主技能配置 | V1／Legacy、当前Pawn来源授予、整体校验及Ready、显式换车与迟到清理完成；两Target、134普通、V1／Legacy双端两局均通过 | 1183资产全同；保存DA仍Legacy，团队迁移并真人复测，见[配置步骤](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)及[验证](Combat/MVPB_Vehicle_Ability_Loadout_Verification_20261104.json) |
 | 打包前车辆手感调整 | 共享车辆Gravity Scale／有效重力翻滚、普通墙独立脱球门槛、XZ侧面圆角生成与兼容完成；两Target、132普通、5工具、2UI及1.5倍双端／两局均通过 | 1183资产全同，286源码／配置；DA仍1、新代理未生成／引用，待团队手感；见[配置与引用](Movement/MVPB_Prepackage_Gameplay_Polish_CN_v0.1.md)及[验证](Movement/MVPB_Prepackage_Gameplay_Polish_Verification_20261104.json) |
@@ -379,6 +386,8 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 ## 6. 下一环节和待确定项
 
+2026-11-05最新入口：GF-7四组规则已确认且完成代码／本机验证，重开完整编译Editor，按[实现第4节](Networking/GF7_Match_Loop_Implementation_CN_v0.1.md#4-团队配置与快速验收)在实际Room DA临时设15秒／3秒做真人淘汰、计时／并列、观战、Client退出、自动／提前返房及下一局验收，随后恢复300／8。新增UI继续原生回退＋WBP可替换，配置已有Screen Class并接只读Room View即可。实际打包／校园四机、F4／VP-4C等仍待集中验收，不把同机程序通过写成完整MVP-B验收。
+
 2026-11-04临时血条入口：重开完整编译的Editor，确认驾驶时编号与血条；正式Playing用球／机关扣血，双端核对比例与换车／两局。原生HUD无需额外配置，练习房间不扣血；打包分发前重新生成包。见[验收步骤](Presentation/MVPB_Temporary_Overhead_HealthBar_CN_v0.1.md#2-团队快速验收)。
 
 2026-11-04车型技能入口：重开已完整编译的Editor，按[第2节](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md#2-editor逐步配置)将Car01／Car02真实Definition设V1、各填唯一Primary／Level1及加速／免疫GA，保存／Validate后新开房间，做不同车型、同车型、取消换车及两局真人测试。无需新按键或新GA／GE；旧PlayerState列表仅Legacy使用，正式车型迁移后可清旧Primary。此步不代替下列重力／代理调参或MVP-B集中验收。
@@ -395,6 +404,8 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 ### 6.1 MVP-B剩余功能与验收边界（2026-10-28核对）
 
+本节保留10月28日阶段核对；后续动态相机／房间选车与GF-7正式比赛已有新增交付，当前状态以顶部及第2／3节为准。四点物理悬挂与自然落地辅助仍按party game实测需要讨论，未自动施工或写作已完成。
+
 依据[MVP-A→MVP-B已确认目标第5.4／6节](MVP_A_to_MVP_B_Handoff_CN_v1.0.md#54-模型基础-rig物理辅助与摄像机)，不把Listen Server阶段1～10全部写完等同整个MVP-B开发结束：
 
 | 剩余事项 | 实际缺口／范围 |
@@ -405,7 +416,7 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 | 小型场景功能与分工 | 共用Stun已实现，指定机关的正式命中接入仍待团队决定。原计划固定危险区若继续要求独立地面区域扣血＋冲击形态，现无独立伤害区Actor；现有拳／炸弹已贯通机关伤害链路，但不能未经确认把无伤害的减速／打滑区记作该项交付，也不自动新建伤害区 |
 | F4／VP-4C及四机 | 属于未完成的集成／验收工作，主要是诊断、组合测试、必要缺陷修复、实际网络工况及四台有线PC，沿既定后置排期，不列为已经通过 |
 
-`HALMatchGameState`实际只有WaitingForPlayers／Playing，GameMode只有登录／出生／开始等最小规则；未实现五分钟计时、HP归零淘汰、观战、胜负／结算与完整重开。它们属于完整游戏仍缺的大块，但[Listen Server v0.2第21节](MVP_B_Listen_Server_Plan_CN_v0.2.md#21-本阶段不包含)及交接第6节明确不列为当前最小必做。道具拾取／库存／施放、车型选择／完整技能库、大量动态机关调度、多球／属性球正式扩展也不能从现有炸弹、第二车型素材或调试补球推定已实现；不在本轮扩范围。
+10月28日的最小规则只有WaitingForPlayers／Playing，正式计时／淘汰／观战／结算当时尚缺；11月5日GF-7已经授权并实现上述基础闭环，增加Finished／Results及返房，旧[Listen Server v0.2第21节](MVP_B_Listen_Server_Plan_CN_v0.2.md#21-本阶段不包含)是历史范围，不能再作为未开发结论。房间车型选择也已由GF-1～6完成。道具拾取／库存／施放、完整技能库、大量动态机关调度、多球／属性球正式扩展仍不能从现有炸弹或调试补球推定已实现，不在GF-7扩范围。
 
 当前先完成已施工动态相机0.1的手工接线／参数初测；物理辅助必要性按后续实测再讨论，最后合并F4／VP-4C及四机收尾。未自行创建新阶段编号或将原物理辅助承诺写成已取消。
 
@@ -464,6 +475,9 @@ MVP-B收尾时使用届时冻结的同一提交／构建／资产，统一覆盖
 > 这是同一 Unreal 项目的接续开发。请完整读取根目录 AGENTS.md、Docs/Project_Status_CN.md 和当前环节规格，再核对 Git、实际引擎版本与相关源码／配置。先汇报已完成、未验收及差异，再执行我本次指定的环节。涉及蓝图／Data Asset 编辑，请提供 Unreal Editor 操作步骤，不直接修改资产。
 
 ## 8. 本次更新记录
+
+- 2026-11-05：用户确认GF-7四组规则后完成比赛闭环、Room DA及原生／WBP接口；Editor／Game、138原生及双端三局／四端Exhibition／旧双端两局全部通过。1183保存资产全同、295输入冻结；详见GF7实现与验证JSON，真人／发布包／校园四机待验收，未提交／Push。
+- 2026-11-05：从干净main/726b804核查正式比赛缺口并留[GF-7待确认草案](Networking/GF7_Match_Loop_Plan_CN_v0.1.md)；计时／淘汰／观战／结果自动返房未施工，四组推荐规则待用户确认。本轮仅文档／白名单，无新构建／测试。
 
 - 2026-11-04：用户确认Car01加速／Car02免疫，完成车型V1／Legacy来源授予与校验、直接Avatar替换清理及Ready，Editor／Game成功、134/134和V1／Legacy真实双端连续两局各端1/1。1183资产全同、289构建输入冻结；保存DA迁移／真人验收待团队。详见[实现](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)与[证据](Combat/MVPB_Vehicle_Ability_Loadout_Verification_20261104.json)，未提交／Push。
 

@@ -22,5 +22,8 @@ FHALFlowPermissions HALGameFlow::Permissions(const UWorld* World, const APawn* P
 	P.bWorldInteractions = Phase == EHALRoomPhase::Open || Phase == EHALRoomPhase::Playing;
 	P.bDamage = Phase == EHALRoomPhase::Playing;
 	P.bObserve = Pawn && Pawn->GetController() && Phase != EHALRoomPhase::Returning;
+	const auto& M=Room->GetData().Match;
+	if (M.bActive && (M.bComplete || Match->GetServerWorldTimeSeconds()>=M.EndServerTime))
+	{ P.bDrive=P.bBallControl=P.bAbilities=P.bRecovery=P.bObserve=P.bWorldInteractions=P.bDamage=false; }
 	return P;
 }

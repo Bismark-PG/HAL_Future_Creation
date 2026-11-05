@@ -34,6 +34,7 @@ namespace
 }
 FText UHALPracticeRoomWidget::DescriptionText() const
 {
+	if (const auto* R=PresentationRoom(this); R && R->GetData().Phase==EHALRoomPhase::Results) { return MatchResultText(); }
 	if (AwaitingStart(this)) { return FText::FromString(TEXT("The arena opens when every driver is ready. Get ready for the countdown.")); }
 	const auto* PS=GetOwningPlayerState<AHALPlayerState>();
 	const auto* E=PS && LoadedCatalog ? LoadedCatalog->Vehicles.FindByPredicate([PS](const FHALVehicleCatalogEntry& V){ return V.VehicleId==PS->GetRoomData().VehicleId; }):nullptr;
@@ -67,7 +68,8 @@ void UHALPracticeRoomWidget::RefreshPresentation()
 	{ ImageLoad=UAssetManager::GetStreamableManager().RequestAsyncLoad(Wanted,FStreamableDelegate::CreateWeakLambda(this,[this,Wanted]
 		{ if (ImagePath==Wanted) { LoadedPreview=Cast<UTexture2D>(Wanted.ResolveObject()); PreviewBrush.SetResourceObject(LoadedPreview); if (LoadedPreview) { PreviewBrush.ImageSize=FVector2D(LoadedPreview->GetSizeX(),LoadedPreview->GetSizeY()); } } })); }
 }
-bool UHALPracticeRoomWidget::HorizontalMenu(int32 Direction) { CycleVehicle(Direction); return true; }
+bool UHALPracticeRoomWidget::HorizontalMenu(int32 Direction)
+{ if (const auto* PC=GetOwningPlayer<AHALPlayerController>(); PC && PC->IsRoundSpectating()) { CycleSpectator(Direction); } else { CycleVehicle(Direction); } return true; }
 void UHALPracticeRoomWidget::BackMenu()
 {
 	if (auto* PC=GetOwningPlayer<AHALPlayerController>()) { PC->ToggleRoomMenu(); }
@@ -131,21 +133,29 @@ TSharedRef<SWidget> UHALPracticeRoomWidget::RebuildWidget()
 	auto Actions=SNew(SVerticalBox);
 	auto AddAction=[this,Actions](const TCHAR* Label,FSimpleDelegate Action,TAttribute<bool> Enabled,TAttribute<EVisibility> ControlVisibility=TAttribute<EVisibility>(EVisibility::Visible))
 	{
-		auto B=HALArcade::Button(Label,Action); B->SetEnabled(Enabled); B->SetVisibility(ControlVisibility); RegisterMenuControl(B,Action);
+		auto B=HALArcade::Button(Label,Action); B->SetEnabled(TAttribute<bool>::CreateLambda([this,Enabled]{ return MenuVisible() && Enabled.Get(); })); B->SetVisibility(ControlVisibility); RegisterMenuControl(B,Action);
 		Actions->AddSlot().AutoHeight().Padding(0,4)[B];
 	};
 	auto Previous=FSimpleDelegate::CreateWeakLambda(this,[this]{ CycleVehicle(-1); });
 	auto Next=FSimpleDelegate::CreateWeakLambda(this,[this]{ CycleVehicle(1); });
-	auto PrevButton=HALArcade::Button(TEXT("< PREVIOUS"),Previous); PrevButton->SetEnabled(TAttribute<bool>::CreateLambda([this]{ return CanSelect(); })); RegisterMenuControl(PrevButton,Previous);
-	auto NextButton=HALArcade::Button(TEXT("NEXT >"),Next); NextButton->SetEnabled(TAttribute<bool>::CreateLambda([this]{ return CanSelect(); })); RegisterMenuControl(NextButton,Next);
+	auto PrevButton=HALArcade::Button(TEXT("< PREVIOUS"),Previous); PrevButton->SetEnabled(TAttribute<bool>::CreateLambda([this]{ return MenuVisible() && CanSelect(); })); RegisterMenuControl(PrevButton,Previous);
+	auto NextButton=HALArcade::Button(TEXT("NEXT >"),Next); NextButton->SetEnabled(TAttribute<bool>::CreateLambda([this]{ return MenuVisible() && CanSelect(); })); RegisterMenuControl(NextButton,Next);
 	Actions->AddSlot().AutoHeight().Padding(0,4)[SNew(SHorizontalBox)+SHorizontalBox::Slot().FillWidth(1).Padding(0,0,4,0)[PrevButton]+SHorizontalBox::Slot().FillWidth(1)[NextButton]];
 	AddAction(TEXT("CONFIRM & PRACTICE"),FSimpleDelegate::CreateUObject(this,&ThisClass::ConfirmSelection),TAttribute<bool>::CreateLambda([this]{ return CanConfirm(); }));
 	AddAction(TEXT("CHANGE VEHICLE"),FSimpleDelegate::CreateUObject(this,&ThisClass::CancelSelection),TAttribute<bool>::CreateLambda([this]{ return CanCancel(); }));
 	AddAction(TEXT("HOST: START MATCH"),FSimpleDelegate::CreateUObject(this,&ThisClass::StartRoomMatch),TAttribute<bool>::CreateLambda([this]{ return CanStart(); }));
-	AddAction(TEXT("RESUME DRIVING"),FSimpleDelegate::CreateUObject(this,&ThisClass::ResumeDriving),TAttribute<bool>::CreateLambda([this]{ return CanResume(); }));
+	AddAction(TEXT("RESUME"),FSimpleDelegate::CreateUObject(this,&ThisClass::ResumeDriving),TAttribute<bool>::CreateLambda([this]{ return CanResume(); }));
 	AddAction(TEXT("RETURN TO ROOM"),FSimpleDelegate::CreateUObject(this,&ThisClass::ReturnToRoom),TAttribute<bool>::CreateLambda([this]{ return CanReturnToRoom(); }),TAttribute<EVisibility>::CreateLambda([this]
 	{ return CanReturnToRoom()?EVisibility::Visible:EVisibility::Collapsed; }));
 	AddAction(TEXT("LEAVE ROOM"),FSimpleDelegate::CreateUObject(this,&ThisClass::LeaveCurrentRoom),true);
+	auto SpectatorControls=SNew(SHorizontalBox);
+	for (const int32 Direction:{-1,1})
+	{
+		auto Action=FSimpleDelegate::CreateWeakLambda(this,[this,Direction]{ CycleSpectator(Direction); });
+		auto Button=HALArcade::Button(Direction<0?TEXT("< PREVIOUS DRIVER"):TEXT("NEXT DRIVER >"),Action);
+		Button->SetEnabled(TAttribute<bool>::CreateLambda([this]{ return !MenuVisible() && GetRoomView().bCanCycleSpectator; }));
+		RegisterMenuControl(Button,Action); SpectatorControls->AddSlot().AutoWidth().Padding(8)[Button];
+	}
 	auto Seats=SNew(SHorizontalBox);
 	for (int32 I=0;I<4;++I)
 	{
@@ -159,7 +169,7 @@ TSharedRef<SWidget> UHALPracticeRoomWidget::RebuildWidget()
 		[SNew(SVerticalBox)
 		+SVerticalBox::Slot().AutoHeight().Padding(38,20,38,14)[SNew(SHorizontalBox)
 		+SHorizontalBox::Slot().FillWidth(1)[SNew(STextBlock).Font(FCoreStyle::GetDefaultFontStyle("Bold",28)).ColorAndOpacity(Config->Accent).Text_Lambda([this]
-		{ const auto* R=PresentationRoom(this); return FText::FromString(!R?TEXT("CONNECTING"):AwaitingStart(this)?TEXT("GET READY"):R->GetData().Phase==EHALRoomPhase::Playing?TEXT("ARENA MENU"):TEXT("DRIVER SELECTION")); })]
+		{ const auto* R=PresentationRoom(this); return FText::FromString(!R?TEXT("CONNECTING"):R->GetData().Phase==EHALRoomPhase::Results?TEXT("MATCH RESULTS"):AwaitingStart(this)?TEXT("GET READY"):R->GetData().Phase==EHALRoomPhase::Playing?TEXT("ARENA MENU"):TEXT("DRIVER SELECTION")); })]
 		+SHorizontalBox::Slot().AutoWidth()[HALArcade::Text(TEXT("YOUR COLOUR. YOUR NUMBER. YOUR RIDE."),12,HALArcade::Muted())]]
 		+SVerticalBox::Slot().AutoHeight().Padding(32,0)[SNew(SBox).HeightOverride(96)[Seats]]
 		+SVerticalBox::Slot().FillHeight(1).Padding(38,18)[SNew(SHorizontalBox)
@@ -168,9 +178,9 @@ TSharedRef<SWidget> UHALPracticeRoomWidget::RebuildWidget()
 		[SNew(SVerticalBox)
 		+SVerticalBox::Slot().AutoHeight()[SNew(STextBlock).Text_UObject(this,&ThisClass::VehicleText).Font(FCoreStyle::GetDefaultFontStyle("Bold",27))]
 		+SVerticalBox::Slot().FillHeight(1).Padding(0,14)[SNew(SOverlay)
-		+SOverlay::Slot()[SNew(SScaleBox).Stretch(EStretch::ScaleToFit)[SNew(SImage).Image(&PreviewBrush).Visibility_Lambda([this]{ return LoadedPreview && !AwaitingStart(this)?EVisibility::HitTestInvisible:EVisibility::Collapsed; })]]
-		+SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center)[SNew(SVerticalBox).Visibility_Lambda([this]{ return LoadedPreview && !AwaitingStart(this)?EVisibility::Collapsed:EVisibility::HitTestInvisible; })
-		+SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)[SNew(STextBlock).Font(FCoreStyle::GetDefaultFontStyle("Bold",32)).ColorAndOpacity(Config->Accent).Text_Lambda([this]{ return AwaitingStart(this)?StatusText():FText::FromString(TEXT("[  VEHICLE  ]")); })]
+		+SOverlay::Slot()[SNew(SScaleBox).Stretch(EStretch::ScaleToFit)[SNew(SImage).Image(&PreviewBrush).Visibility_Lambda([this]{ return LoadedPreview && !AwaitingStart(this) && GetRoomView().Phase!=EHALRoomPhase::Results?EVisibility::HitTestInvisible:EVisibility::Collapsed; })]]
+		+SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center)[SNew(SVerticalBox).Visibility_Lambda([this]{ return GetRoomView().Phase==EHALRoomPhase::Results || (LoadedPreview && !AwaitingStart(this))?EVisibility::Collapsed:EVisibility::HitTestInvisible; })
+		+SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)[SNew(STextBlock).Font(FCoreStyle::GetDefaultFontStyle("Bold",32)).ColorAndOpacity(Config->Accent).Text_Lambda([this]{ return GetRoomView().Phase==EHALRoomPhase::Results?FText::GetEmpty():AwaitingStart(this)?StatusText():FText::FromString(TEXT("[  VEHICLE  ]")); })]
 		+SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0,10)[HALArcade::Text(TEXT("READY TO MAKE AN IMPACT"),13,HALArcade::Muted())]]]
 		+SVerticalBox::Slot().AutoHeight()[SNew(STextBlock).Text_UObject(this,&ThisClass::DescriptionText).AutoWrapText(true).Font(FCoreStyle::GetDefaultFontStyle("Regular",17)).ColorAndOpacity(HALArcade::Muted())]]]
 		+SHorizontalBox::Slot().FillWidth(.39f)[Actions]]
@@ -179,5 +189,7 @@ TSharedRef<SWidget> UHALPracticeRoomWidget::RebuildWidget()
 		+SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Top).Padding(12)
 		[SNew(SBorder).Visibility_Lambda([this]{ return MenuVisible()?EVisibility::Collapsed:EVisibility::HitTestInvisible; }).BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")).BorderBackgroundColor(HALArcade::Panel()).Padding(FMargin(20,8))
 		[SNew(STextBlock).Text_Lambda([this]
-		{ const auto* R=PresentationRoom(this); const auto* PS=GetOwningPlayerState<AHALPlayerState>(); return FText::FromString(FString::Printf(TEXT("P%d  /  %s       TAB / ESC / START : MENU"),PS?PS->GetRoomData().Number:0,R && R->GetData().Phase==EHALRoomPhase::Playing?TEXT("MATCH"):TEXT("PRACTICE"))); }).ColorAndOpacity_Lambda([this]{ const auto* PS=GetOwningPlayerState<AHALPlayerState>(); return PS?PS->GetRoomData().Color:FLinearColor::White; }).Font(FCoreStyle::GetDefaultFontStyle("Bold",15))]];
+		{ return DrivingText(); }).ColorAndOpacity_Lambda([this]{ const auto* PS=GetOwningPlayerState<AHALPlayerState>(); return PS?PS->GetRoomData().Color:FLinearColor::White; }).Font(FCoreStyle::GetDefaultFontStyle("Bold",15))]]
+		+SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Bottom).Padding(12)
+		[SNew(SBox).Visibility_Lambda([this]{ return !MenuVisible() && GetRoomView().bCanCycleSpectator?EVisibility::Visible:EVisibility::Collapsed; })[SpectatorControls]];
 }

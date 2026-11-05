@@ -12,7 +12,8 @@ UENUM(BlueprintType)
 enum class EHALMatchPhase : uint8
 {
 	WaitingForPlayers,
-	Playing
+	Playing,
+	Finished
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHALMatchPhaseChanged, EHALMatchPhase, NewPhase);
