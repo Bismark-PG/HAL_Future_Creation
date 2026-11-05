@@ -1,0 +1,129 @@
+{
+  "date": "2026-11-05",
+  "branch": "main",
+  "initial_head": "10f19ed788d3d15e763b1d0a3b98c6c166b67fe6",
+  "head_at_analysis": "ee17c2beb9619459f15a0467a3c865e0afec426d",
+  "working_tree_clean_at_start": true,
+  "engine": "5.8.2-56702186",
+  "scope": "Diagnosis only; no C++/config/asset changes, build, live repeated-contact reproduction or new gameplay acceptance.",
+  "user_observation": [
+    "Client repeated electric-wall contacts cause brief zoom-in then recovery; Host does not show it.",
+    "User explicitly reports no obvious concurrent hitch.",
+    "User reproduces through Entry room/practice/match flow."
+  ],
+  "facts": [
+    "Room Widget refreshes every0.1s and uses MovementStatus.bReady in its input-mode readiness.",
+    "MovementStatus.bReady excludes movement recovery and invalid/unassigned snapshots; clients can enter this path during authority timeline reconciliation. Stun itself is not synonymous with Ready=false.",
+    "Stun gain/loss publishes a movement snapshot revision. Room readiness false/true can invoke SetMenuInputActive, which always calls NeutralizeInputForMenu and ResetCamera.",
+    "Camera reseeding directly assigns BaseCamera.TargetArmLength and Step0, bypassing zoom interpolation for that frame.",
+    "Normal zoom-in follows ZoomInResponseSeconds and a dead zone. Direct resets bypass that response.",
+    "Dynamic mode uses fixed configured FOV. Valid profile disallows spring-arm collision. Stun is not directly used to disable camera observation.",
+    "Niagara default collision is NoCollision in local UE5.8.2; camera GetActorBounds(true) excludes non-colliding primitives. No evidence of Niagara directly changing FOV or camera distance."
+  ],
+  "saved_parameters": {
+    "local": "/Game/Data/MVP_B/DA_Local_TestBaseline_v1.DA_Local_TestBaseline_v1",
+    "profile": "/Game/Data/Camera/DA_Camera_Default.DA_Camera_Default",
+    "car01_local": "/Game/Data/MVP_B/DA_Local_TestBaseline_v1.DA_Local_TestBaseline_v1",
+    "car02_local": "/Game/Data/MVP_B/DA_Local_TestBaseline_v1.DA_Local_TestBaseline_v1",
+    "dynamic_base_distance_cm": 1600.0,
+    "legacy_distance_cm": 1200.0,
+    "dynamic_fov_degrees": 90.0,
+    "legacy_fov_degrees": 90.0,
+    "maximum_sample_delta_seconds": 0.25,
+    "teleport_reset_distance_cm": 1000.0,
+    "zoom_out_response_seconds": 0.15000000596046448,
+    "zoom_in_response_seconds": 0.699999988079071,
+    "spring_arm_collision": false
+  },
+  "hypotheses": [
+    {
+      "priority": 1,
+      "path": "Client movement recovery/readiness -> Room Widget input-mode transition -> full camera reset -> distance reseed -> zoom-out recovery",
+      "confidence": "High-priority source-supported candidate matching Entry-only/no-hitch details; not frame-correlated or live reproduced.",
+      "condition": "For a real distance reduction on reseed, current dynamic distance must exceed1600cm; no actual incident Distance measurement yet."
+    },
+    {
+      "priority": 2,
+      "path": "Camera automatic reset on sample DeltaTime>0.25s or anchor jump>1000cm",
+      "confidence": "Confirmed code path, lower priority because user saw no hitch and no incident anchor-jump trace exists."
+    },
+    {
+      "priority": 3,
+      "path": "Dynamic view failure -> legacy1200cm fallback -> dynamic1600cm/framing recovery",
+      "confidence": "Secondary possibility; requires invalid/legacy camera frame. Local recent logs have no camera profile disabled evidence; not proven for reported session."
+    }
+  ],
+  "not_proven": [
+    "Movement Ready actually went false on the reported frame.",
+    "Camera reset vs legacy fallback vs normal desired-distance change on that frame.",
+    "A camera-frame hitch or1000cm anchor jump during the reported event.",
+    "The newer electric visual changes caused this issue."
+  ],
+  "recommended_fix_order": [
+    "First correlate only transition logs: reset reason, frame, current/goal distance, movement Ready/Recovery/Replay, UI-mode transition and fallback.",
+    "Separate initial Avatar/room readiness and real menu input ownership from temporary physics recovery. Keep Loading barriers and authority safety; physics recovery may block driving without rebuilding menu mode or resetting camera zoom.",
+    "Split observation-input cleanup from full camera reseed; preserve valid distance through transient gates/hitches, retaining explicit owner/map/real-teleport reset semantics.",
+    "Add Entry-flow repeated-electric-contact Host/Client regression and distance continuity assertions, plus real menu/repossess/teleport tests. Do not weaken wall/Stun rules or replace saved camera tuning."
+  ],
+  "existing_test_gap": "Camera tests assert manual cleanup on hitch/teleport and local ownership/framing; they do not assert distance continuity under Room Widget movement readiness fluctuations or repeated electric contacts.",
+  "asset_protection": {
+    "Before": 1183,
+    "After": 1183,
+    "Changed": 0,
+    "Paths": []
+  },
+  "source_hashes": [
+    {
+      "path": "Source/HAL_Future_Creation/HALCameraMath.cpp",
+      "sha256": "6198C6460A3F3369461B5A12AEDA4A3798E60E1A71863D90382A4B87321B969A"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDynamicCameraComponent.cpp",
+      "sha256": "6781480170E3CE69D631B16939C740527D52DDF8035CF3AFBC69D44A53027957"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPracticeRoomPresentation.cpp",
+      "sha256": "FD0CE3CC818E9ECDF4B86DBB910673B0C9097E3A902A01B073E749DBD3A12127"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+      "sha256": "4B3E8CB43DA80156638B092F6243A43020232C7666A089DEE34E57F6B8D79D1B"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementEffects.cpp",
+      "sha256": "91C861E8FFD38C0AEF879A901D5EE1E46677135DF53F87AA6BB11B6F12CF6C39"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementEffectBridge.cpp",
+      "sha256": "E66B2F0DFA9B9F57CA04DB800E69700D173711A49CB6CAC24605E6D0DDE5B267"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerControllerRound.cpp",
+      "sha256": "31B41E358DE8419BFF5FC4AB87A598420E131572BC727560BF68B4C372D288A0"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameFlowPermissions.cpp",
+      "sha256": "100336571CB0515A4FCF47555D725A033F7DA70E8DF9F8B822A72F83DF6AD701"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "Saved/Camera/Diagnosis_20261105_171110/CameraSettings_R2.json",
+      "sha256": "3A3B45FEA389BC00688711D981DA8B28AE098FD47D337B4891F94F3BA85B3419"
+    },
+    {
+      "path": "Saved/Camera/Diagnosis_20261105_171110/ReadCamera_R2.log",
+      "sha256": "200CB444082AEDD30A2B612A2974D23BD6BA07608F92D406D39A9E104D8E94A6"
+    },
+    {
+      "path": "Saved/Camera/Diagnosis_20261105_171110/AssetsBefore.json",
+      "sha256": "3DC8CBDD5750D9209EA8746CAD2904FA072A6DEC349F878FE2D1E349C0A6A69B"
+    },
+    {
+      "path": "Saved/Camera/Diagnosis_20261105_171110/AssetProtection.json",
+      "sha256": "51F33F588383F7A1035A1C33F0FECAAE474D49EC1AC0F3AE16189817DAA59147"
+    }
+  ],
+  "read_export_boundary": "Read-only Python commandlet loaded saved camera/local/Definition data with existing compiled reflection; camera/config source unchanged between inspected commits. This is not a rebuild or execution of current electric gameplay. First probe assumed wrong Car02 asset folder; its partial export/log retained, corrected R2 exits0 with0errors/0warnings.",
+  "git_boundary": "HEAD advanced locally to ee17c2b during analysis with electric visual/doc changes; inspected camera/UI/movement source paths did not change from10f19ed. No reset, checkout, merge, commit or push performed."
+}

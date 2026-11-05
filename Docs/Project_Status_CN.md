@@ -1,5 +1,9 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-05 Client反复撞电墙后镜头短暂缩近：完成初步定位，尚未修复。** 团队确认经Entry房间／练习或比赛触发，无明显同时卡顿，Host不出现。源码首要候选为移动物理恢复使Ready短暂波动，房间HUD将其当输入模式变化，`SetMenuInputActive`经NeutralizeInputForMenu全量ResetCamera；相机下帧把距离直接种回当前DA的1600cm，再恢复动态拉远。已确认这条代码耦合存在，但没有事故当帧Ready／Reset日志，不能写成实际触发原因已证实；此前距离须大于1600cm才直接产生缩近。次候选为长帧／大跳变重种或旧1200cm相机fallback。两车型共享Camera DA、FOV均90°、Spring Arm碰撞关、阈值0.25秒／1000cm已只读核对。
+
+本轮从干净`main/10f19ed`检查，团队期间更新至`ee17c2b`，相关相机／HUD／移动路径未变。本机UE5.8.2，仅源码与只读资产导出，1183保存资产逐份未变，**未改C++／配置／资产，未构建／实际联机复现或修复，未提交／Push**。后续先记录Reset原因、距离与Ready／Recovery／UI切换关联，再分离运行中物理恢复、菜单输入切换与相机全量重置；初次Avatar／Loading保护保持。见[定位、方案与辅助观察](Presentation/MVPB_Dynamic_Camera_Implementation_CN_v0.1.md#10-client反复撞电墙后短暂缩近2026-11-05仅诊断)及[配置／源码证据](Presentation/MVPB_Client_ElectricWall_Camera_Diagnosis_20261105.json)。此前电墙轨迹／特效验证不等于本次相机组合场景通过。
+
 **2026-11-05 電牆三條電弧與車身電流去重。** 本機 main/2213239、UE5.8.2-56702186。自控與觀察車輛從回彈立即起效，權威 shocked 標籤可接續原播放。兩者間的連續空窗以 1.5 秒為上限，逾時則淡出。電牆執行時沿用已配置的 Niagara，中央線兩側各加一條，碰撞區仍為單一電牆。Editor／Game 構建成功。D3D12 離屏雙端重跑及 NullRHI 否決均各 1/1，驗證單次啟動及三條分離路徑。早期短接續造成兩次啟動，以及調整後一次觀察標記漏取的失敗報告保留。Car_02 去重以元件狀態驗證，正式地圖攝影機畫面待真人複測。見[修正與驗證第11節](Combat/MVPB_Electric_Wall_CN_v0.1.md#11-車身電流去重與電牆三條電弧2026-11-05)。
 
 **2026-11-05 Client 自車及觀察車輛車身電流起點修正。** 本輪基點為乾淨 main/b3aa5bf，本機 UE5.8.2-56702186。同 ASC 重新綁定時更新本機控制權，觀察車輛從收集移動時同步的回彈標記開始表現，Niagara 在啟動前填入首批電弧資料。Editor／Game 構建通過。兩輪高速雙端都通過新增特效斷言，Client 仍觸發既有的初始反向速度波動斷言，沒有額外反向脈衝。D3D12 離屏 Accept 各 1/1，夾具 Car_02 日誌無材質及 Ribbon，僅核對觸發。卡頓原因與正式地圖畫面同步仍待複測。見[車身電流同步第10節](Combat/MVPB_Electric_Wall_CN_v0.1.md#10-client-自車與觀察車輛的電流起點2026-11-05)。

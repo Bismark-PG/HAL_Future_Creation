@@ -151,3 +151,26 @@ Debug 显示蓝色软框、橙色硬框、有效目标及权重、Goal／Auto／
 本修复不修改运行时取景／物理／网络协议或资产。原第8节的UE5.8.3、93项与真实视口双端结果保留历史含义；本设备实际UE5.8.2-56702186，新修复构建／回归及资产保护另见[本次记录](MVPB_Dynamic_Camera_Primary_Edit_Verification_20261029.json)。真人勾选与保存、鼠标／手柄及驾驶／双端画面仍由团队确认。
 
 本次实际完成Editor Target构建（166.95秒）及`HAL.FutureCreation` **94/94**，相机6项，报告0警告／失败／未运行；新增主球编辑回归通过。1172份资产相对用户保存关闭后的基线逐份SHA-256一致，原Local／IMC修改和新Camera DA／IA保留。生产改动仅编辑器保护，未另构建Game或重跑双端；没有把原生属性检查写成实际点击／保存地图已验收。本次C++／测试／文档未提交／Push。
+
+## 10. Client反复撞电墙后短暂缩近（2026-11-05，仅诊断）
+
+团队确认：经Entry创建／加入房间，在练习或比赛中反复撞电墙，Client镜头容易突然zoom-in再恢复；Host没有相同现象，缩近没有明显伴随卡顿。当前检查从干净`main/10f19ed`开始，期间团队本地更新至`ee17c2b`，后者仅电流／电墙表现与留档改动，本文引用的相机、输入切换和移动桥接代码未变。见[本轮诊断证据](MVPB_Client_ElectricWall_Camera_Diagnosis_20261105.json)。
+
+只读UE5.8.2导出确认两车型都引用同一Local／`DA_Camera_Default`：动态基础距离1600cm，旧Local相机1200cm，两者FOV均90°，Profile有效且Dynamic开启，Spring Arm碰撞关闭。长帧阈值0.25s，位置跳变阈值1000cm，拉远／拉近响应0.15／0.7s。以上是当前保存值，不以第1节历史迁移1200cm覆盖。
+
+**首要候选是房间输入切换与相机完整重置的耦合，尚未取得事故当帧证据：**
+
+1. 电墙Stun增减触发Movement Bridge发布新规则快照。Client需要合并权威时间线／回滚，`MovementStatus.bReady`还依赖有效快照、物理帧偏移和非Recovery；不能把Stun本身直接等同于Ready=false，也不是每次回滚都会失去Ready。
+2. 房间Widget每0.1秒刷新，将该临时`bReady`作为输入模式就绪条件。若它短暂变false，`Menu = MenuVisible() || !Ready`使其切入UIOnly；恢复true时再切回GameOnly，即使玩家没有打开菜单。
+3. 两次切换都调用`SetMenuInputActive → NeutralizeInputForMenu → DynamicCamera.ResetCamera`，清除的不仅是观察输入，还包括当前取景距离／焦点。
+4. 下次相机求解直接把距离设为基础1600cm，当帧Step=0，绕过缩放响应；再按动态目标拉远。**仅当此前实际距离大于1600cm时，这条路径才直接产生距离缩近。** 即使没有长帧或10米位置校正也能发生，符合已报告的Entry流程、Client特有恢复与无明显卡顿，但本轮未证明实际那一帧Ready确实翻转。
+
+另有两条保留候选：长帧超过0.25秒／锚点跳变超过1000cm也会执行相同全量重种；动态视图无效时`CalcCamera`回退旧1200cm相机，恢复后再回动态取景。后者要看到调试HUD的legacy fallback或相机无效记录才能确认。普通目标权重变化则应走0.7s拉近平滑，不能仅凭画面说是FOV变化。电墙／shocked代码没有直接改相机FOV或距离；Niagara默认NoCollision，本车相机采集的是碰撞组件Bounds，不能在无证据时把电弧包围盒判为根因。
+
+**建议后续修复顺序：** 先在现有回调／求解入口记录状态变化：Reset原因、Frame、重置前后Distance／GoalDistance、Ready／Recovery／Replay、UI切换及fallback，取得一次完整关联；随后分离初始Avatar／Loading就绪保护与运行中的临时物理恢复，保留驾驶与载入安全检查，临时恢复不重建菜单模式；把观察输入清理与完整相机重置分开，短暂状态波动保持有效缩放，真正换车／跨图／瞬移仍有明确重种策略。保持已调DA、眩晕／回弹／服务器规则不变。
+
+回归必须经Entry流程：低延迟及受控延迟下反复撞电墙，检查Host／Client的距离连续性、UI输入不乱切；再验证真实开关菜单、失焦／回焦、重新Possess、换图及真实瞬移。现有相机测试检查长帧后清手动偏移，但没有断言距离连续性，也未覆盖房间HUD＋反复电墙＋移动恢复组合，旧通过不代表本场景通过。
+
+无需改资产即可先辅助观察：Client执行`hal.CameraDebug 1`、`hal.MovementEffectLog 1`、`hal.ElectricWallLog 1`，关注缩近时D是否直落1600、Goal仍更远，或出现legacy fallback；后两项会增加日志，可在复现后关闭。`hal.CameraStatic 1`固定在Profile基础距离作A/B，完成后`hal.CameraStatic 0`恢复；A/B消失只能缩小范围，不能单独证明Ready链路。调大Zoom In Response Seconds不能阻止直接赋值重置，不建议先改阈值遮蔽问题。
+
+本轮仅源码／引擎实现核对与只读配置导出，**没有修改C++、配置或资产，没有新构建或真实联机复现，不宣称根因已动态确认／修复。** 1183份保存资产前后逐份SHA256全同，第二轮正确路径导出退出0、0错误／警告；第一轮Car02路径假设错误的部分导出／日志保留，不当作工程资源缺失。原始记录位于`Saved/Camera/Diagnosis_20261105_171110/`，不提交Saved，必要事实与哈希已存上述JSON。
