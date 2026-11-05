@@ -19,6 +19,8 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& Id, FString& Error) override;
 	virtual void HandleStartingNewPlayer_Implementation(APlayerController* Player) override;
+	virtual void HandleSeamlessTravelPlayer(AController*& Player) override;
+	virtual void PostSeamlessTravel() override;
 	virtual EHALRoomResult HandleRoomAction(AHALPlayerController* Player, EHALRoomAction Action, FName VehicleId, uint32 Revision) override;
 	void ReturnRoomToEntry(AHALPlayerController* Host);
 	bool IsRoundWorld() const { return bRoundWorld; }
@@ -29,6 +31,7 @@ public:
 private:
 	friend struct FHALPracticeRoomTestAccess;
 	friend struct FHALMatchLoopTestAccess;
+	friend struct FHALRejoinTestAccess;
 	void RemovePracticeAvatar(AHALPlayerController* Player);
 	void SetSelectionView(AHALPlayerController* Player);
 	EHALRoomResult SpawnSelectedVehicle(AHALPlayerController* Player, uint32 Revision, uint32 Round=0);
@@ -37,6 +40,8 @@ private:
 	void PollRoundBarrier();
 	UPROPERTY(Transient) FHALRoundTravel Travel;
 	bool bRestoringTravel=false, bRoundWorld=false, bTravelDeparting=false;
+	/** Scoped to UE's actual seamless callback, never inferred from the World lifetime. */
+	bool bHandlingSeamlessPlayer=false;
 	FTimerHandle RoundBarrierTimer;
 	bool bReturningToEntry = false;
 	bool bAllowTestRoundEnd = false;

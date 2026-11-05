@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-05",
+  "timezone": "Asia/Tokyo",
+  "branch": "main",
+  "head": "3a8af5713dc2262c5992dbf4bfd0f5f5e7b99365",
+  "status": "Diagnosed bug, C++ fix and new runtime tests not performed",
+  "expected": "An Open returned practice room with capacity accepts an ordinary new connection, including a player who previously left; no old-round identity restoration promised.",
+  "reported": "Client leaves Results, Host returns to preparation, same Client joins again and briefly appears then returns to Entry.",
+  "evidence": {
+    "client_log": "Saved/Logs/HAL_Future_Creation-backup-2026.11.05-05.55.26.log",
+    "client_log_sha256": "C064244DA749B140421564408CA4ADA55A50EA7716DA175667F596D29825937E",
+    "identity_restore_error_lines": [
+      2225,
+      2295,
+      2366,
+      2432
+    ],
+    "example_welcomed_line": 2344,
+    "example_rejection_line": 2366,
+    "host_log_checked": false
+  },
+  "source_trace": [
+    "HALPracticeRoomGameMode::InitGame consumes TakeRoundTravel and sets bRestoringTravel=true.",
+    "HALPracticeRoomGameMode::HandleStartingNewPlayer treats bRestoringTravel as a per-player restore context and rejects missing Travel.Players identity.",
+    "UE5.8.2 GameModeBase::PostLogin calls HandleStartingNewPlayer before the subclass HALMatchGameMode::PostLogin reaches Room.AddMember.",
+    "New connection lacks imported old PlayerKey; the exact error text is sent by the restore branch."
+  ],
+  "fix_direction": "Separate normal login from genuine seamless-player restoration; normal admission only in Open. Preserve restore identity checks and delayed old clients; do not merely clear the global flag on first arrival.",
+  "regression_needed": [
+    "Results client leave, host return, same client fresh join and next round.",
+    "Brand-new third player joins the returned room.",
+    "Remaining delayed seamless client restores correctly.",
+    "Full/Loading/Playing admission remains rejected."
+  ],
+  "workaround": "Host closes and recreates room, then Client joins.",
+  "mutation_scope": "Existing documentation updated and this evidence added only. Source/config/assets unchanged; no commit or push."
+}

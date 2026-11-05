@@ -15,6 +15,7 @@ AHALPracticeRoomGameMode::AHALPracticeRoomGameMode() { bUseSeamlessTravel=true; 
 void AHALPracticeRoomGameMode::PreLogin(const FString& O,const FString& A,const FUniqueNetIdRepl& Id,FString& Error)
 {
 	if (bRoundWorld || bTravelDeparting) { Error=TEXT("The participant list is locked."); return; }
+	if (auto* S=GetGameState<AHALMatchGameState>()) { S->GetRoom()->PruneTravelReservations(); }
 	Super::PreLogin(O,A,Id,Error);
 }
 bool AHALPracticeRoomGameMode::PreflightRound() const
@@ -75,9 +76,21 @@ bool AHALPracticeRoomGameMode::StartRoundTravel(bool ToPractice,const FString& R
 	}));
 	return true;
 }
+void AHALPracticeRoomGameMode::HandleSeamlessTravelPlayer(AController*& Player)
+{
+	// UE also calls HandleStartingNewPlayer from ordinary PostLogin, before AddMember.
+	// Only carried players may use the old identity envelope, including late arrivals.
+	TGuardValue<bool> RestoreContext(bHandlingSeamlessPlayer,true);
+	Super::HandleSeamlessTravelPlayer(Player);
+}
+void AHALPracticeRoomGameMode::PostSeamlessTravel()
+{
+	Super::PostSeamlessTravel();
+	if (auto* S=GetGameState<AHALMatchGameState>()) { S->GetRoom()->PruneTravelReservations(); }
+}
 void AHALPracticeRoomGameMode::HandleStartingNewPlayer_Implementation(APlayerController* Player)
 {
-	if (!bRestoringTravel) { Super::HandleStartingNewPlayer_Implementation(Player); return; }
+	if (!bRestoringTravel || !bHandlingSeamlessPlayer) { Super::HandleStartingNewPlayer_Implementation(Player); return; }
 	auto* PC=Cast<AHALPlayerController>(Player); auto* PS=PC?PC->GetPlayerState<AHALPlayerState>():nullptr;
 	if (!PS || bTravelDeparting) { return; }
 	const auto* P=Travel.Players.FindByPredicate([PS](const FHALTravelPlayer& E){ return E.Identity.PlayerKey==PS->GetRoomData().PlayerKey; });

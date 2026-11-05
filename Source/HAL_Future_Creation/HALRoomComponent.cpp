@@ -17,7 +17,7 @@ void UHALRoomComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 void UHALRoomComponent::OnRep_Data() { OnRoomChanged.Broadcast(); }
 void UHALRoomComponent::Publish() { ++Data.Revision; OnRep_Data(); GetOwner()->ForceNetUpdate(); }
 bool UHALRoomComponent::CanAdmitPlayer() const
-{ return Data.Phase == EHALRoomPhase::Open && Data.Members.Num() < Data.Rules.MaximumPlayers(); }
+{ return Data.Phase == EHALRoomPhase::Open && Data.Members.Num()+PendingTravelSeats.Num() < Data.Rules.MaximumPlayers(); }
 EHALRoomResult UHALRoomComponent::Initialize(UHALRoomConfig* Config)
 {
 	if (!GetOwner()->HasAuthority()) { return EHALRoomResult::NotAuthority; }
@@ -60,6 +60,7 @@ EHALRoomResult UHALRoomComponent::AddMember(AHALPlayerController* PC)
 	if (!PS || PS->GetOwner() != PC || PS->IsActorBeingDestroyed()) { return EHALRoomResult::NotMember; }
 	if (!Data.Host && !PC->IsLocalController()) { return EHALRoomResult::NotHost; }
 	bool Used[4] = {};
+	for (const auto& Pending:PendingTravelSeats) { if (Pending.Value>=0 && Pending.Value<4) { Used[Pending.Value]=true; } }
 	for (const auto& P : Data.Members) { if (P && P->GetRoomData().Seat >= 0 && P->GetRoomData().Seat < 4) { Used[P->GetRoomData().Seat] = true; } }
 	int32 Seat = 0; while (Seat < 4 && Used[Seat]) { ++Seat; }
 	if (Seat == 4) { return EHALRoomResult::Full; }
@@ -74,7 +75,9 @@ void UHALRoomComponent::RemoveMember(AHALPlayerController* PC)
 	if (!GetOwner()->HasAuthority()) { return; }
 	// Cleanup must still remove the seat when PlayerState has already entered EndPlay.
 	auto* PS = PC && PC->GetWorld() == GetWorld() ? PC->GetPlayerState<AHALPlayerState>() : nullptr;
-	if (!PS || !Data.Members.Contains(PS)) { return; }
+	if (!PS) { return; }
+	const bool ReleasedPending=PendingTravelSeats.Remove(PS->GetRoomData().PlayerKey)>0;
+	if (!Data.Members.Contains(PS)) { if (ReleasedPending) { Publish(); } return; }
 	const bool SettledRound=Data.Match.bActive && (Data.Phase==EHALRoomPhase::Playing || Data.Phase==EHALRoomPhase::Results);
 	if (PS == Data.Host || (Data.Phase != EHALRoomPhase::Open && !SettledRound)) { Data.Phase = EHALRoomPhase::Returning; }
 	Data.Members.Remove(PS); if (!PS->IsActorBeingDestroyed()) { PS->SetRoomData({}); } Publish();
@@ -131,6 +134,8 @@ void UHALRoomComponent::RestoreTravel(const FHALRoundTravel& T)
 	if (!GetOwner()->HasAuthority() || !T.IsValid()) { return; }
 	ServerConfig=T.Config; Data={}; Data.Rules=T.Config->Rules; Data.FlowId=T.FlowId; Data.RoundId=T.RoundId;
 	Data.bPracticeRoom=true; Data.Catalog=T.Config->Catalog; Data.ExpectedPlayers=T.Players.Num(); Data.FlowMessage=T.Reason;
+	PendingTravelSeats.Reset();
+	for (const auto& P:T.Players) { PendingTravelSeats.Add(P.Identity.PlayerKey,P.Identity.Seat); }
 	Data.Phase=T.bToPractice?EHALRoomPhase::Open:EHALRoomPhase::Loading; Publish();
 	if (T.bToPractice) { Data.Match=T.PreviousMatch; Data.Match.bActive=false; Publish(); }
 }
@@ -147,9 +152,25 @@ bool UHALRoomComponent::ImportTravelMember(AHALPlayerController* PC, const FHALT
 	if (P.Phase==EHALRoomPlayerPhase::Selecting) { ++P.SelectionRevision; }
 	PS->RestoreTravelCounters(T.ChangeSerial,T.LifecycleRevision,T.PreviousRound); PS->SetRoomData(P);
 	Data.Members.Add(PS); if (P.PlayerKey==Host) { Data.Host=PS; }
+	PendingTravelSeats.Remove(P.PlayerKey);
 	if (Data.Phase==EHALRoomPhase::Loading)
 	{ FHALRoomRosterEntry R; R.Player=PS; R.Seat=P.Seat; R.VehicleId=P.VehicleId; R.SelectionRevision=P.SelectionRevision; Data.LockedRoster.Add(R); }
 	Publish(); return true;
+}
+void UHALRoomComponent::PruneTravelReservations()
+{
+	if (!GetOwner()->HasAuthority() || PendingTravelSeats.IsEmpty()) { return; }
+	TSet<FGuid> Present;
+	for (auto It=GetWorld()->GetPlayerControllerIterator();It;++It)
+	{
+		const auto* PC=It->Get(); const auto* PS=PC?PC->GetPlayerState<AHALPlayerState>():nullptr;
+		if (PC && !PC->IsActorBeingDestroyed() && PS && !PS->IsActorBeingDestroyed() && PS->GetOwner()==PC)
+		{ Present.Add(PS->GetRoomData().PlayerKey); }
+	}
+	bool Changed=false;
+	for (auto It=PendingTravelSeats.CreateIterator();It;++It)
+	{ if (!Present.Contains(It.Key())) { It.RemoveCurrent(); Changed=true; } }
+	if (Changed) { Publish(); }
 }
 EHALRoomResult UHALRoomComponent::AcknowledgeLoaded(AHALPlayerController* PC, FGuid Flow, uint32 Round, FGuid Token, APawn* Pawn)
 {
@@ -175,7 +196,7 @@ EHALRoomResult UHALRoomComponent::CheckStart(const AHALPlayerController* PC) con
 	if (!IsEnabled()) { return EHALRoomResult::Inactive; }
 	if (Data.Phase != EHALRoomPhase::Open) { return EHALRoomResult::WrongPhase; }
 	if (!Member(PC) || Member(PC) != Data.Host || !PC->IsLocalController()) { return EHALRoomResult::NotHost; }
-	if (Data.Members.Num() < Data.Rules.MinimumPlayers()) { return EHALRoomResult::NotReady; }
+	if (!PendingTravelSeats.IsEmpty() || Data.Members.Num() < Data.Rules.MinimumPlayers()) { return EHALRoomResult::NotReady; }
 	for (const auto& PS : Data.Members)
 	{
 		const auto* P = PS ? Cast<AHALPlayerController>(PS->GetOwner()) : nullptr;

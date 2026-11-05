@@ -26,6 +26,8 @@ public:
 	void CloseForReturn();
 	void RestoreTravel(const FHALRoundTravel& Travel);
 	bool ImportTravelMember(AHALPlayerController* Controller, const FHALTravelPlayer& Player, FGuid HostKey);
+	/** Drop handoff seats whose server Controller no longer exists; loading peers retain theirs. */
+	void PruneTravelReservations();
 	EHALRoomResult AcknowledgeLoaded(AHALPlayerController* Controller, FGuid Flow, uint32 Round, FGuid Token, APawn* Pawn);
 	bool AllClientsLoaded() const;
 	void SetCountdown(double EndTime);
@@ -53,4 +55,6 @@ private:
 	UFUNCTION() void OnRep_Data();
 	UPROPERTY(ReplicatedUsing=OnRep_Data) FHALRoomData Data;
 	UPROPERTY(Transient) TObjectPtr<UHALRoomConfig> ServerConfig;
+	/** Server-only seats of carried players not imported yet. Never a reconnect reservation. */
+	TMap<FGuid,int32> PendingTravelSeats;
 };
