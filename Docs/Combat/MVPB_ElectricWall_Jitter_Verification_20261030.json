@@ -1,0 +1,363 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Asia/Tokyo",
+  "branch": "main",
+  "base_commit": "0486607c31fec2b48c2127534ff6ba539fe8ccfd",
+  "engine": "5.8.2-56702186",
+  "scope": "Owning client second bounce/jitter at middle electric field. Pillars remain ordinary solid walls.",
+  "implementation": [
+    "Scan explicit physics-thread published pose and velocity, scene overlap and full swept entry even if currently overlapping; ignore blocking floor/pillars in query-only field scan.",
+    "Carry swept entry center anchor to actual physics action consumption; compensate penetration with total return distance capped at 1000cm. No teleport; retain Z/angular motion.",
+    "Separate persistent prediction resolution from rejection: confirmed token may replay before authority action; rejected token cannot resurrect on rewind. Epoch reset retires old tokens.",
+    "One unresolved candidate per vehicle; real received authority frames only, rejection horizon includes uncovered frame lead and bounce duration. Authority retains independent contact/GAS/ball decisions."
+  ],
+  "compatibility": "History serialization unchanged, Bounce action payload changed; rebuild both peers from same code. No engine global equivalence window or CVar changes.",
+  "builds": {
+    "Editor": {
+      "result": "Succeeded",
+      "log": "Saved\\ElectricWall\\Jitter_20261030\\EditorFinalBuild.log",
+      "sha256": "2a877a3e79c70d48d187ace57b18f1e95c0c00decb32998118ebdc2c07ddfb85"
+    },
+    "Game": {
+      "result": "Succeeded",
+      "log": "Saved\\ElectricWall\\Jitter_20261030\\GameFinalBuild.log",
+      "sha256": "8008a1725593e28fa1d08e20827603129dd14275de674dd9eaa45a194556ff03"
+    },
+    "warnings": "Existing camera C4305 retained; zero test warnings is not zero compiler/startup warnings."
+  },
+  "final_reports": [
+    "ConfirmedRegression",
+    "ConfirmedHighSpeedHost",
+    "ConfirmedHighSpeedClient",
+    "ConfirmedRejectHost",
+    "ConfirmedRejectClient"
+  ],
+  "reports": {
+    "BaselineClient": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/BaselineClient/index.json",
+      "sha256": "03e9514216f5d87e334cc87c3227ae405782d11f07d00dae1c93cf90400c0866"
+    },
+    "BaselineHost": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/BaselineHost/index.json",
+      "sha256": "e4c16603f82ffcc1801d6054d9930693e8c13555f198ca82eb07721c6913da4e"
+    },
+    "ConfirmedHighSpeedClient": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/ConfirmedHighSpeedClient/index.json",
+      "sha256": "1e4df5568b158b5b20f787444bce3c648b27551923f654a38aebc1736068c4ea"
+    },
+    "ConfirmedHighSpeedHost": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/ConfirmedHighSpeedHost/index.json",
+      "sha256": "d403a052f57407f165a93a344d80c69fa96531e676dc43c6660be6d74b3e1cb0"
+    },
+    "ConfirmedRegression": {
+      "succeeded": 109,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/ConfirmedRegression/index.json",
+      "sha256": "0813e3a01995486365269636370baa85d8b7d790cd46197ac4700f2e18fc7904"
+    },
+    "ConfirmedRejectClient": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/ConfirmedRejectClient/index.json",
+      "sha256": "cf3a739e45e137edd1978ede4fb49b3dc0fa12dc9b7bec5625ff03862bdafa7b"
+    },
+    "ConfirmedRejectHost": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/ConfirmedRejectHost/index.json",
+      "sha256": "766f29db63bd7ef892aa093d73ca7d26cb656c859349d14f92602a71008a34f8"
+    },
+    "DrivingBaselineClient": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/DrivingBaselineClient/index.json",
+      "sha256": "1f5f6264150dec5f6bcf9ca278b6fa94c190b030f1cba4f3ec94e662fab69270"
+    },
+    "DrivingBaselineHost": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/DrivingBaselineHost/index.json",
+      "sha256": "8af272b02ab9b2aeb57464b5875bd0eb84f7feba45f6c77c12eea4d05d2b6843"
+    },
+    "DrivingFixed2Client": {
+      "succeeded": 0,
+      "succeededWithWarnings": 0,
+      "failed": 1,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/DrivingFixed2Client/index.json",
+      "sha256": "27fc9a2cb3033496b352939b5a9c9e08cf11a0f6dd0d469ef407afcf16d53280"
+    },
+    "DrivingFixed2Host": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/DrivingFixed2Host/index.json",
+      "sha256": "0ae811566752105a049687ebb6bbfb5916bc2679f91f99074c5ffc316b1116eb"
+    },
+    "DrivingFixed3Client": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/DrivingFixed3Client/index.json",
+      "sha256": "51ab69742fe732bbc0718c256e401ce20b85a70cc11e6b37c1c811d6d94f73f8"
+    },
+    "DrivingFixed3Host": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/DrivingFixed3Host/index.json",
+      "sha256": "3ce7cee922686615e3b8706a8c697d7ad9717d7cc3b16bbcd859af29293f1732"
+    },
+    "DrivingFixedClient": {
+      "succeeded": 0,
+      "succeededWithWarnings": 0,
+      "failed": 1,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/DrivingFixedClient/index.json",
+      "sha256": "c06f72f20b81dcfdc08f54254fe22a2aad67587c704a33dd8f051de51a9189a5"
+    },
+    "DrivingFixedHost": {
+      "succeeded": 0,
+      "succeededWithWarnings": 0,
+      "failed": 1,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/DrivingFixedHost/index.json",
+      "sha256": "5fe3a949366143ce90448234ecf8a0e6214cac6b08164d32d7b7c184344cd507"
+    },
+    "DrivingHighSpeedClient": {
+      "succeeded": 0,
+      "succeededWithWarnings": 0,
+      "failed": 1,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/DrivingHighSpeedClient/index.json",
+      "sha256": "71a4fbec0f55c77edcaaa183b329f93d187b8e50730cf136c0ca1faa00b74e24"
+    },
+    "DrivingHighSpeedHost": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/DrivingHighSpeedHost/index.json",
+      "sha256": "226369e14c9912f261f191744b4b14f6709a1cd65485122139f4dc28722c3ea2"
+    },
+    "FinalAcceptClient": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/FinalAcceptClient/index.json",
+      "sha256": "36315b74a1570c11e2529ecc86f9aafbdc380a4ec5ce15d799aa551f13406d1b"
+    },
+    "FinalAcceptHost": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/FinalAcceptHost/index.json",
+      "sha256": "7ade70ccbeccc2b28cf439658d3a02823dbd7b2a9971379636073ea3cc54900e"
+    },
+    "FinalRejectClient": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/FinalRejectClient/index.json",
+      "sha256": "6f66b80ea3209f4c9c0b6c7b612fc9be086d7c2f52ac18d17c2bb95d0bded98e"
+    },
+    "FinalRejectHost": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/FinalRejectHost/index.json",
+      "sha256": "bfc5eb3161d843c38720f02e139fb85e089dd034c3a7050e09e3ef7e186df4c6"
+    },
+    "Regression": {
+      "succeeded": 109,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/Regression/index.json",
+      "sha256": "57206b83fe7c0265efc7cf6a74ef604aba5c4ca2b34812408b194ff40a3b7f5a"
+    },
+    "RegressionFinal": {
+      "succeeded": 109,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/RegressionFinal/index.json",
+      "sha256": "9d619524eda18141c9c7dc9785b4bf75514900968a5b293688f868eb5657c95c"
+    },
+    "ResumeHighSpeedClient": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/ResumeHighSpeedClient/index.json",
+      "sha256": "5bca90b3f53a784d9768ac26b67355b36d49432a62f0840bb1ac130ea2e01aaa"
+    },
+    "ResumeHighSpeedHost": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/ResumeHighSpeedHost/index.json",
+      "sha256": "b08cde9adfab05e826b5a667cc8aedb366b82b539f24ffdeac48740d29a1ab1a"
+    },
+    "RetiredClient": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/RetiredClient/index.json",
+      "sha256": "91891ecbfd949a1217fe596d26f2fc57ed5f1ef13ee05454384a6a69b51f1108"
+    },
+    "RetiredHost": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/RetiredHost/index.json",
+      "sha256": "6786fe3171bc972aa3e11f0e82bde1db0b9e746a244ac9bd279a6f63ead1c8de"
+    },
+    "Solver": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "path": "Saved/ElectricWall/Jitter_20261030/Solver/index.json",
+      "sha256": "c3ea59e71f647127a5882ecdae0a7774b0906f9d1a48ddab8a4dd3f6c933c901"
+    }
+  },
+  "motion_metrics": {
+    "DrivingHighSpeed": {
+      "max_single_frame_position_residual_cm": 57.332,
+      "max_renewed_reverse_acceleration_cm_s_per_sample": 222.818,
+      "extra_reverse_starts": 1.0,
+      "forward_correction_cm": 0.0,
+      "peak_incoming_cm_s": 2391.437
+    },
+    "ResumeHighSpeed": {
+      "max_single_frame_position_residual_cm": 0.697,
+      "max_renewed_reverse_acceleration_cm_s_per_sample": 0.0,
+      "extra_reverse_starts": 0.0,
+      "forward_correction_cm": 0.003,
+      "peak_incoming_cm_s": 2399.206
+    },
+    "ConfirmedHighSpeed": {
+      "max_single_frame_position_residual_cm": 0.445,
+      "max_renewed_reverse_acceleration_cm_s_per_sample": 0.0,
+      "extra_reverse_starts": 0.0,
+      "forward_correction_cm": 0.007,
+      "peak_incoming_cm_s": 2389.902
+    },
+    "ConfirmedReject": {
+      "max_single_frame_position_residual_cm": 4.043,
+      "max_renewed_reverse_acceleration_cm_s_per_sample": 0.0,
+      "extra_reverse_starts": 0.0,
+      "forward_correction_cm": 3.15,
+      "peak_incoming_cm_s": 0.0
+    },
+    "DrivingFixed3": {
+      "max_single_frame_position_residual_cm": 0.808,
+      "max_renewed_reverse_acceleration_cm_s_per_sample": 0.0,
+      "extra_reverse_starts": 0.0,
+      "forward_correction_cm": 0.012,
+      "peak_incoming_cm_s": 1532.539
+    },
+    "FinalAccept": {
+      "max_single_frame_position_residual_cm": 66.625,
+      "max_renewed_reverse_acceleration_cm_s_per_sample": 1716.179,
+      "extra_reverse_starts": 1.0,
+      "forward_correction_cm": 0.0,
+      "peak_incoming_cm_s": 4000.0
+    }
+  },
+  "traces": {
+    "DrivingHighSpeed": {
+      "path": "Saved/ElectricWall/Motion_Driving_AE8D48DB4D712E45C2246EB29360C793.csv",
+      "sha256": "3b26711200e73ad661ab6eb64f6a0ea24cd407046eba63b5e6a2b77bf2b788e4"
+    },
+    "ResumeHighSpeed": {
+      "path": "Saved/ElectricWall/Motion_Driving_68CABFBA4AECA48581B8A6BCF0061231.csv",
+      "sha256": "c12d8c5ea9ac92320dbb22175c04800447d80e832c390c7c10b006d56b44ac5b"
+    },
+    "ConfirmedHighSpeed": {
+      "path": "Saved/ElectricWall/Motion_Driving_0AC97F31469D3C865BEE1AB52A9E13EB.csv",
+      "sha256": "efa56793a2eaf8bee36c6bf3735260da22ba55517d028c2af85a4c5c0246bfe3"
+    },
+    "ConfirmedReject": {
+      "path": "Saved/ElectricWall/Motion_Reject_2006B28B4D6F9312B8EE7FA3D0396036.csv",
+      "sha256": "302648e1f5e9a3b5f1705ab6e6a8682cf87304991a50270006ab6bd51a291d50"
+    },
+    "DrivingFixed3": {
+      "path": "Saved/ElectricWall/Motion_Driving_EBDA0C234214FE05CCCAA889F0E0283D.csv",
+      "sha256": "e83b4f5bee37a0e05ab6b42bf3f97301dc8a31c2dc2abcdb675a18b9baa4d127"
+    },
+    "FinalAccept": {
+      "path": "Saved/ElectricWall/Motion_Accept_DE9C865141A63AEA31A5E896557B34FA.csv",
+      "sha256": "449a12f00bc450262e13725acb9848cf36de1ed851ca4fa4db34cd3199380cb0"
+    }
+  },
+  "conditions": {
+    "mode": "Listen Server and owning client, NullRHI, 60 FPS cap",
+    "network": "Host outbound 150ms lag, +/-40ms variance, 10% loss; not measured RTT",
+    "driving": "Actual throttle through normal history; gravity and mirrored floor; 6000cm approach. No manual velocity assignment.",
+    "criteria": "incoming >1000cm/s, zero extra reverse starts, renewed reverse acceleration <100cm/s/sample, position residual <20cm/frame, forward correction <20cm; assertions unchanged after high-speed failure."
+  },
+  "failures_and_limits": [
+    "DrivingHighSpeed intermediate client failed 3 continuity assertions at 2391cm/s; confirmed speculative action was prematurely suppressed after rewind. Resume and final high-speed pairs passed after separation.",
+    "Earlier Retired acceptance showed a large correction due premature retirement/rejection; adaptive lead and confirmed replay were corrected.",
+    "DrivingFixed pairwise-overlap runs timed out during setup; switched to explicit-pose scene query. No proven lock-deadlock diagnosis. DrivingFixed2 was interrupted, not passed.",
+    "One intermediate compile failed on const physics handle; corrected and final targets passed.",
+    "FinalAccept belongs to previous intermediate code and uses intentionally conflicting manually assigned client/host velocity timing (4000cm/s, client .2s earlier). Functional acceptance passed but continuity did not; not used as a smooth real-input benchmark.",
+    "Finite deterministic automated scenarios, not proof of zero corrections for arbitrary networks. Formal map, camera presentation, low/high/side/reverse/corner/airborne/continuous/multiple-wall human tests and four-peer acceptance remain pending."
+  ],
+  "assets": {
+    "baseline_count": 1172,
+    "current_count": 1172,
+    "changed_or_missing": []
+  },
+  "source_sha256": {
+    "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp": "09ee758a524b277a34669c2f15e07c228db2a41e495c0fae6fd5b2365425b59e",
+    "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h": "07b779581de002dd66a4913eff5dafab2dad0948ecf719eeaa72495eaa94db39",
+    "Source/HAL_Future_Creation/ArcadeVehicleMovementEffects.cpp": "91c861e8ffd38c0aef879a901d5ee1e46677135df53f87aa6bb11b6f12cf6c39",
+    "Source/HAL_Future_Creation/HALElectricWallGimmick.cpp": "b120f83268cd47800abba437b824ee208bdb7193ed74851d1c15bb1ead2f02ce",
+    "Source/HAL_Future_Creation/HALElectricWallGimmick.h": "e65c6e38840989aa5ef1566c046e3c172a679e83721a2ef65b01970b9c2b681e",
+    "Source/HAL_Future_Creation/Tests/HALElectricPredictionNetworkTests.cpp": "d86e9507a20b33e391194d3c58ecc9009f4bba3f9230fe6833e24fa0965ee93c",
+    "Source/HAL_Future_Creation/Tests/HALElectricWallTests.cpp": "1ee71a5b2ff2d8df91e13b39291a1272cb83a3d4879fd49ebfae218b4a69e076",
+    "Source/HAL_Future_Creation/Tests/HALImpactPhysicsThreadTests.cpp": "6c62c59e20a8f92568f172dadfe22f300806cfe49d7a93823a204b02e822747d",
+    "Source/HAL_Future_Creation/VehicleBounceBackTypes.h": "35a8ae3511d92d9add6261464b17f02e3e3c4c1a88ff6877f62684cc170b9450",
+    "Source/HAL_Future_Creation/VehicleNetPhysicsData.h": "d6c9538471de0c8024c584099012de8cd7dbedb51a2766c5019726a89f95142c"
+  },
+  "submission": "Not committed or pushed; raw reports/logs remain locally under ignored Saved, this summary is a normal Docs file."
+}

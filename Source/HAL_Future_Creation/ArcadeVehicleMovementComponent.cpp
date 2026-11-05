@@ -14,6 +14,7 @@
 #include "PhysicsProxy/SingleParticlePhysicsProxy.h"
 #include "Physics/Experimental/PhysScene_Chaos.h"
 #include "PhysicsEngine/BodyInstance.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 #include "GameFramework/Pawn.h"
 #include "VehicleWallEscapeMath.h"
 #include "Chaos/SimCallbackObject.h"
@@ -245,7 +246,13 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	{
 		FScopeLock Lock(&PendingPhysicsDataLock);
 		if (bPendingRecovery) { RecoveryPhysics = PendingRecovery; bPendingRecovery = false; }
-		if (bPendingBounceBack) { BounceBackPhysics=PendingBounceBack; bPendingBounceBack=false; }
+		if (bPendingBounceBack)
+		{
+			BounceBackPhysics=PendingBounceBack;
+			if (bPendingBounceHasEntry) { BounceBackPhysics.Distance=FVehicleBounceBackState::DistanceFromEntry(
+				BounceBackPhysics.Distance,BodyTransform.GetLocation(),PendingBounceEntry,BounceBackPhysics.Direction); }
+			bPendingBounceBack=false;
+		}
 	}
 
 	// Replace horizontal motion on the Internal body at its center. No angular impulse,
@@ -323,6 +330,10 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		PublishedStability.AngularSpeed = PhysicsHandle->W().Size();
 		PublishedStability.Recovery = RecoveryPhysics;
 		PublishedBounceBack = BounceBackPhysics;
+		PublishedContact.bValid=true;
+		PublishedContact.Position=BodyTransform.GetLocation();
+		PublishedContact.Rotation=BodyTransform.GetRotation();
+		PublishedContact.Velocity=PhysicsHandle->V();
 		PublishedStability.PoseStableSeconds = PoseStableSeconds;
 	}
 
@@ -499,9 +510,29 @@ void UArcadeVehicleMovementComponent::ApplyAction_Internal(
 {
 	if (const auto* Bounce = ActionInstance.GetPtr<FVehicleBounceBackAction>())
 	{
+		// Confirmed speculation must still replay before the later authority action frame.
+		// Only rejected tokens are suppressed independently of rewound state.
+		if (Bounce->PredictionToken)
+		{
+			FScopeLock Lock(&PendingPhysicsDataLock);
+			if (!FVehicleNetInputData::IsNewerSequence(Bounce->PredictionToken,RetiredBouncePredictionToken)
+				|| RejectedBouncePredictionTokens.Contains(Bounce->PredictionToken)) { return; }
+		}
 		if (bShouldRunPhysics.Load() && Bounce->Value.IsValid() && Bounce->Value.bActive
 			&& FVehicleNetInputData::IsNewerSequence(Bounce->Value.Sequence,BounceBackPhysics.Sequence))
-		{ BounceBackPhysics = Bounce->Value; }
+		{
+			BounceBackPhysics = Bounce->Value;
+			if (Bounce->bHasEntryOrigin && !Bounce->EntryOrigin.ContainsNaN() && UpdatedPrimitive)
+			{
+				const auto* Body=UpdatedPrimitive->GetBodyInstance();
+				auto Handle=Body ? Body->GetBodyInstanceAsyncPhysicsTickHandle() : FBodyInstanceAsyncPhysicsTickHandle();
+				if (Handle.IsValid())
+				{
+					BounceBackPhysics.Distance=FVehicleBounceBackState::DistanceFromEntry(
+						Bounce->Value.Distance,Handle->X(),Bounce->EntryOrigin,Bounce->Value.Direction);
+				}
+			}
+		}
 		return;
 	}
 	if (const auto* Recovery = ActionInstance.GetPtr<FVehicleRecoveryAction>())
@@ -560,39 +591,76 @@ void UArcadeVehicleMovementComponent::ApplyAction_Internal(
 	}
 }
 
+FVehicleContactObservation UArcadeVehicleMovementComponent::GetContactObservation() const
+{
+	FScopeLock Lock(&PendingPhysicsDataLock);
+	return PublishedContact;
+}
+
 void UArcadeVehicleMovementComponent::ObserveBounceAuthority(int32 LocalFrame, uint32 Sequence)
 {
-	// Called only for received authoritative history, never for locally built replay states.
+	FScopeLock Lock(&PendingPhysicsDataLock);
 	if (LocalFrame <= BounceAuthorityFrame.Load()) { return; }
 	BounceAuthoritySequence.Store(Sequence);
 	BounceAuthorityFrame.Store(LocalFrame);
+	if (PendingBouncePredictionToken && LocalFrame >= PendingBouncePredictionFrame.Load())
+	{
+		const bool Confirmed = Sequence == PendingBouncePredictionSequence
+			|| FVehicleNetInputData::IsNewerSequence(Sequence,PendingBouncePredictionSequence);
+		// An authority checkpoint beyond the whole speculative pulse without its sequence
+		// also resolves it. It must remain rejected if an older frame is replayed later.
+		if (Confirmed || LocalFrame >= PendingBouncePredictionExpiry)
+		{
+			if (!Confirmed) { RejectedBouncePredictionTokens.Add(PendingBouncePredictionToken); }
+			ResolvedBouncePredictionToken.Store(PendingBouncePredictionToken);
+		}
+	}
 }
 
-bool UArcadeVehicleMovementComponent::PredictBounceBack(const FVector& Direction, float Distance, float Duration, uint32 SourceId)
+bool UArcadeVehicleMovementComponent::PredictBounceBack(const FVector& Direction, float Distance, float Duration, uint32 SourceId, const FVector* EntryOrigin)
 {
 	const auto* Pawn = Cast<APawn>(GetOwner());
 	auto* History = GetOwner()->FindComponentByClass<UNetworkPhysicsComponent>();
 	if (GetNetMode()!=NM_Client || !Pawn || !Pawn->IsLocallyControlled() || !SourceId
 		|| !bUseNetworkPhysicsHistory.Load() || !History || !History->IsNetworkPhysicsTickOffsetAssigned()
 		|| !UpdatedPrimitive || !UpdatedPrimitive->IsSimulatingPhysics() || GetLastPhysicsFrame()<0) { return false; }
-	// At most one unresolved speculative contact per vehicle, across all walls.
-	if (PendingBouncePredictionFrame.Load()>=0 && BounceAuthorityFrame.Load()<PendingBouncePredictionFrame.Load()) { return false; }
 	FVehicleBounceBackAction Action;
-	Action.Value.Direction=Direction; Action.Value.Distance=Distance; Action.Value.Duration=Duration;
-	Action.Value.Sequence=BounceAuthoritySequence.Load()+1;
-	if (!Action.Value.Sequence) { Action.Value.Sequence=1; }
-	Action.Value.bActive=true;
-	if (!Action.Value.IsValid()) { return false; }
-	PendingBouncePredictionFrame=GetLastPhysicsFrame()+1;
-	History->EnqueueScheduledActionAtFrame_External(Action,SourceId,PendingBouncePredictionFrame.Load(),false);
+	if (EntryOrigin && EntryOrigin->ContainsNaN()) { return false; }
+	Action.bHasEntryOrigin=EntryOrigin!=nullptr;
+	if (EntryOrigin) { Action.EntryOrigin=*EntryOrigin; }
+	int32 Frame;
+	{
+		FScopeLock Lock(&PendingPhysicsDataLock);
+		if (bMovementResetPending || FVehicleNetInputData::IsNewerSequence(
+			PendingBouncePredictionToken,ResolvedBouncePredictionToken.Load())) { return false; }
+		Action.Value.Direction=Direction; Action.Value.Distance=Distance; Action.Value.Duration=Duration;
+		Action.Value.Sequence=BounceAuthoritySequence.Load()+1;
+		if (!Action.Value.Sequence) { Action.Value.Sequence=1; }
+		Action.Value.bActive=true;
+		if (!Action.Value.IsValid()) { return false; }
+		Action.PredictionToken=++NextBouncePredictionToken;
+		if (!Action.PredictionToken) { Action.PredictionToken=++NextBouncePredictionToken; }
+		Frame=GetLastPhysicsFrame()+1;
+		PendingBouncePredictionFrame.Store(Frame);
+		PendingBouncePredictionSequence=Action.Value.Sequence;
+		const int32 KnownFrame=BounceAuthorityFrame.Load();
+		const int32 UnknownLead=KnownFrame>=0 ? FMath::Max(0,Frame-KnownFrame) : 0;
+		PendingBouncePredictionExpiry=Frame+UnknownLead
+			+FMath::CeilToInt(Duration/GetDefault<UPhysicsSettings>()->AsyncFixedTimeStepSize);
+		PendingBouncePredictionToken=Action.PredictionToken;
+	}
+	History->EnqueueScheduledActionAtFrame_External(Action,SourceId,Frame,false);
 	++PredictedBounceCount;
 	return true;
 }
 
-bool UArcadeVehicleMovementComponent::QueueBounceBack(const FVector& Direction, float Distance, float Duration, uint32 SourceId)
+bool UArcadeVehicleMovementComponent::QueueBounceBack(const FVector& Direction, float Distance, float Duration, uint32 SourceId, const FVector* EntryOrigin)
 {
 	if (!GetOwner()->HasAuthority() || !UpdatedPrimitive || !UpdatedPrimitive->IsSimulatingPhysics()) { return false; }
 	FVehicleBounceBackAction Action;
+	if (EntryOrigin && EntryOrigin->ContainsNaN()) { return false; }
+	Action.bHasEntryOrigin=EntryOrigin!=nullptr;
+	if (EntryOrigin) { Action.EntryOrigin=*EntryOrigin; }
 	Action.Value.Direction=Direction; Action.Value.Distance=Distance; Action.Value.Duration=Duration;
 	Action.Value.Sequence=++NextBounceBackSequence;
 	if (!Action.Value.Sequence) { Action.Value.Sequence=++NextBounceBackSequence; }
@@ -607,7 +675,10 @@ bool UArcadeVehicleMovementComponent::QueueBounceBack(const FVector& Direction, 
 	else
 	{
 		FScopeLock Lock(&PendingPhysicsDataLock);
-		PendingBounceBack=Action.Value; bPendingBounceBack=true;
+		PendingBounceBack=Action.Value;
+		bPendingBounceHasEntry=EntryOrigin!=nullptr;
+		if (EntryOrigin) { PendingBounceEntry=*EntryOrigin; }
+		bPendingBounceBack=true;
 	}
 	return true;
 }

@@ -35,6 +35,11 @@ bool FHALElectricWallConfig::Validate(FString& Error) const
 	return true;
 }
 
+float FHALElectricWallConfig::BounceDistanceFromEntry(const FVector& Current,const FVector& Entry,const FVector& Direction) const
+{
+	return FVehicleBounceBackState::DistanceFromEntry(BounceBackDistance,Current,Entry,Direction);
+}
+
 AHALElectricWallGimmick::AHALElectricWallGimmick()
 {
 	PrimaryActorTick.bCanEverTick = false; bReplicates = true; SetReplicateMovement(true);
@@ -153,7 +158,8 @@ bool AHALElectricWallGimmick::ApplyContact(ATestVehiclePawn* Target,UPrimitiveCo
 		? Record.IncomingPushDirection : GetPushDirection(Surface,Body->GetComponentLocation(),Previous,Body->GetPhysicsLinearVelocity());
 	if (Direction.IsNearlyZero()) { return false; }
 	auto* Movement=Target->FindComponentByClass<UArcadeVehicleMovementComponent>();
-	if (!Movement || !Movement->QueueBounceBack(Direction,Config.BounceBackDistance,Config.BounceBackSeconds,PhysicsSourceId)) { return false; }
+	if (!Movement || !Movement->QueueBounceBack(Direction,Config.BounceBackDistance,Config.BounceBackSeconds,PhysicsSourceId,
+		Record.bHasEntryLocation ? &Record.EntryLocation : nullptr)) { return false; }
 	if (!ASC->ApplyStun(Config.StunSeconds,this)) { return false; }
 	const bool bShocked = ASC->MarkShockedForCurrentStun(this);
 	Record.bTriggered = true; Record.BounceEndsAt=GetWorld()->GetTimeSeconds()+Config.BounceBackSeconds+Config.ScanInterval; ++AcceptedContactCount; ForceNetUpdate();
@@ -171,52 +177,65 @@ void AHALElectricWallGimmick::ScanContacts()
 	const auto* Match = GetWorld()->GetGameState<AHALMatchGameState>();
 	const auto Flow = HALGameFlow::Permissions(GetWorld());
 	if (Flow.bRoomEnabled ? !Flow.bWorldInteractions : Match && Match->GetMatchPhase()!=EHALMatchPhase::Playing) { Contacts.Reset(); return; }
-	TMap<TWeakObjectPtr<ATestVehiclePawn>,UPrimitiveComponent*> Touches;
-	const FCollisionObjectQueryParams Objects(ECC_PhysicsBody);
-	FCollisionQueryParams Query(SCENE_QUERY_STAT(ElectricWallContacts),false,this);
-	for (UPrimitiveComponent* Surface : TArray<UPrimitiveComponent*>{ElectricField.Get()})
-	{
-		TArray<FOverlapResult> Hits;
-		const auto Shape = FCollisionShape::MakeBox(ElectricField->GetScaledBoxExtent());
-		GetWorld()->OverlapMultiByObjectType(Hits,Surface->GetComponentLocation(),Surface->GetComponentQuat(),Objects,Shape,Query);
-		for (const auto& Hit : Hits)
-		{ if (auto* V = Cast<ATestVehiclePawn>(Hit.GetActor()); V && !Touches.Contains(V)) { Touches.Add(V,Surface); } }
-		if (bDrawDebug)
-		{
-			DrawDebugBox(GetWorld(),Surface->GetComponentLocation(),ElectricField->GetScaledBoxExtent(),Surface->GetComponentQuat(),FColor::Cyan,false,Config.ScanInterval,0,2);
-		}
-	}
+	if (bDrawDebug) { DrawDebugBox(GetWorld(),ElectricField->GetComponentLocation(),ElectricField->GetScaledBoxExtent(),
+		ElectricField->GetComponentQuat(),FColor::Cyan,false,Config.ScanInterval,0,2); }
 	for (TActorIterator<ATestVehiclePawn> It(GetWorld()); It; ++It)
 	{
 		auto* V = *It;
 		if (GetNetMode()==NM_Client && !V->IsLocallyControlled()) { continue; }
 		auto* Body = Cast<UPrimitiveComponent>(V->GetRootComponent()); if (!Body) { continue; }
-		const FVector Current = Body->GetComponentLocation();
+		auto* Movement=V->FindComponentByClass<UArcadeVehicleMovementComponent>();
+		const auto Pose=Movement ? Movement->GetContactObservation() : FVehicleContactObservation();
+		const FVector Current = Pose.bValid ? Pose.Position : Body->GetComponentLocation();
+		const FQuat Rotation = Pose.bValid ? Pose.Rotation : Body->GetComponentQuat();
 		const auto* Old = Contacts.Find(V); const FVector Previous = Old && Old->SampledAt>=0 ? Old->PreviousLocation : Current;
-		UPrimitiveComponent* Surface = Touches.FindRef(V);
+		// Query the scene using an explicit physics pose. Avoid pairwise body locks
+		// while the async solver is updating those same bodies.
+		TArray<FOverlapResult> Overlaps;
+		FComponentQueryParams OverlapQuery(SCENE_QUERY_STAT(ElectricWallPhysicsOverlap),V);
+		OverlapQuery.bIgnoreBlocks=true;
+		GetWorld()->ComponentOverlapMulti(Overlaps,Body,Current,Rotation,OverlapQuery);
+		UPrimitiveComponent* Surface=nullptr;
+		for (const auto& Overlap : Overlaps)
+		{ if (Overlap.GetComponent()==ElectricField) { Surface=ElectricField; break; } }
 		const bool bOverlapping = Surface!=nullptr;
-		if (!Surface && !Current.Equals(Previous,.01))
+		FVector Entry=Current;
+		bool HasEntry=false;
+		if (!Current.Equals(Previous,.01))
 		{
 			// Sweep the actual vehicle collision shape. No overlap-event flags or per-frame Tick required.
 			TArray<FHitResult> Swept; FComponentQueryParams SweepQuery(SCENE_QUERY_STAT(ElectricWallVehicleSweep),V);
 			SweepQuery.bFindInitialOverlaps = true;
-			GetWorld()->ComponentSweepMulti(Swept,Body,Previous,Current,Body->GetComponentQuat(),SweepQuery);
+			SweepQuery.bIgnoreBlocks = true; // Only the query-only field, never floor/pillar support.
+			GetWorld()->ComponentSweepMulti(Swept,Body,Previous,Current,Rotation,SweepQuery);
 			for (const auto& Hit : Swept)
-			{ if (Hit.GetActor()==this && Hit.GetComponent()==ElectricField) { Surface = Hit.GetComponent(); break; } }
+			{
+				if (Hit.GetActor()==this && Hit.GetComponent()==ElectricField)
+				{
+					Surface=ElectricField;
+					if (!Hit.bStartPenetrating) { Entry=FMath::Lerp(Previous,Current,Hit.Time); HasEntry=true; }
+					break;
+				}
+			}
 		}
 		auto& Record = Contacts.FindOrAdd(V);
 		if (Surface)
 		{
-			if (!Record.bInContact) { Record.IncomingPushDirection = GetPushDirection(Surface,Current,Previous,Body->GetPhysicsLinearVelocity()); }
+			if (!Record.bInContact)
+			{
+				Record.IncomingPushDirection = GetPushDirection(Surface,Current,Previous,Pose.bValid ? Pose.Velocity : Body->GetPhysicsLinearVelocity());
+				Record.EntryLocation=Entry; Record.bHasEntryLocation=HasEntry;
+			}
 			Record.bInContact = true;
 			if (GetNetMode()!=NM_Client) { ApplyContact(V,Surface,Previous); }
 			else if (!Record.bTriggered)
 			{
 				auto* Health=V->FindComponentByClass<UVehicleHealthComponent>();
-				auto* Movement=V->FindComponentByClass<UArcadeVehicleMovementComponent>();
 				if (V->IsConfigurationValid() && Health && Health->IsHealthReady() && Health->GetCurrentHP()>0
 					&& !UHALAbilitySystemComponent::IsActorStunned(V) && Movement
-					&& Movement->PredictBounceBack(Record.IncomingPushDirection,Config.BounceBackDistance,Config.BounceBackSeconds,PhysicsSourceId))
+					&& Movement->PredictBounceBack(Record.IncomingPushDirection,
+						Config.BounceBackDistance,Config.BounceBackSeconds,PhysicsSourceId,
+						Record.bHasEntryLocation ? &Record.EntryLocation : nullptr))
 				{
 					Record.bTriggered=true;
 					// A rewind can move the owner out and back through the field before the

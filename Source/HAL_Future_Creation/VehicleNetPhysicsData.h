@@ -144,9 +144,14 @@ struct HAL_FUTURE_CREATION_API FVehicleBounceBackAction : public FNetworkPhysics
 {
 	GENERATED_BODY()
 	UPROPERTY() FVehicleBounceBackState Value;
+	/** Local speculative identity; authority actions keep zero. */
+	UPROPERTY() uint32 PredictionToken = 0;
+	UPROPERTY() bool bHasEntryOrigin = false;
+	UPROPERTY() FVector EntryOrigin = FVector::ZeroVector;
 	virtual const EActionAuthorStyle GetAuthorStyle() const override { return EActionAuthorStyle::PredictedAutonomousOnly; }
 	virtual bool IsNearlyEqual(const FNetworkPhysicsActionPayload& Other) const override
-	{ return Value.Equals(static_cast<const FVehicleBounceBackAction&>(Other).Value); }
+	{ const auto& B=static_cast<const FVehicleBounceBackAction&>(Other);
+		return Value.Equals(B.Value) && bHasEntryOrigin==B.bHasEntryOrigin && (!bHasEntryOrigin || EntryOrigin.Equals(B.EntryOrigin,.01)); }
 };
 
 /** An absolute parameter change. Server authoring only; replay never consults GAS. */

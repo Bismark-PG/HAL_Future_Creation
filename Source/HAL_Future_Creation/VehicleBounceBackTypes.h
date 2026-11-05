@@ -2,6 +2,14 @@
 #include "CoreMinimal.h"
 #include "VehicleBounceBackTypes.generated.h"
 
+/** Immutable GT observation of the consumed Internal pose, never a render-interpolated transform. */
+struct FVehicleContactObservation
+{
+	bool bValid=false;
+	FVector Position=FVector::ZeroVector, Velocity=FVector::ZeroVector;
+	FQuat Rotation=FQuat::Identity;
+};
+
 /** Physics-owned, rewindable horizontal bounce. Never changes Z or angular velocity. */
 USTRUCT()
 struct HAL_FUTURE_CREATION_API FVehicleBounceBackState
@@ -13,6 +21,10 @@ struct HAL_FUTURE_CREATION_API FVehicleBounceBackState
 	UPROPERTY() float Duration = 0;
 	UPROPERTY() float Elapsed = 0;
 	UPROPERTY() bool bActive = false;
+	static float DistanceFromEntry(float BaseDistance,const FVector& Current,const FVector& Entry,const FVector& Direction)
+	{
+		return FMath::Min(1000.f,BaseDistance+FMath::Max(0.f,float(FVector::DotProduct(Current-Entry,-Direction))));
+	}
 	bool IsValid() const
 	{
 		return !Direction.ContainsNaN() && FMath::IsFinite(Distance) && Distance >= 0 && Distance <= 1000

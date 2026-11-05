@@ -29,6 +29,8 @@ struct HAL_FUTURE_CREATION_API FHALElectricWallConfig
 	UPROPERTY(EditAnywhere, Category="Bounce Back", meta=(ClampMin="0.05",ClampMax="2",Units="s")) float BounceBackSeconds = .3f;
 	UPROPERTY(EditAnywhere, Category="Contact", meta=(ClampMin="0.01",Units="s")) float StunSeconds = 1;
 	bool Validate(FString& Error) const;
+	/** Return to the configured distance behind the swept entry, not behind a late scan position. */
+	float BounceDistanceFromEntry(const FVector& Current,const FVector& Entry,const FVector& Direction) const;
 };
 
 /** Only the middle electrical field owns the per-vehicle electric entry latch.
@@ -70,6 +72,8 @@ private:
 	{
 		FVector PreviousLocation = FVector::ZeroVector;
 		FVector IncomingPushDirection = FVector::ZeroVector;
+		FVector EntryLocation = FVector::ZeroVector;
+		bool bHasEntryLocation = false;
 		double SampledAt = -1;
 		bool bTriggered = false;
 		double BounceEndsAt = 0;

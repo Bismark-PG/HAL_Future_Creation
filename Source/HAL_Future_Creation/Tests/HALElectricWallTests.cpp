@@ -196,6 +196,22 @@ bool FHALElectricWallPillarScanTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Pure pillar scan never marks shocked"),F.Pawn->FindComponentByClass<UHALShockedPresentationComponent>()->IsShocked());
 	return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALElectricEntryAnchorTest,"HAL.FutureCreation.ElectricWall.SharedSweptEntryAnchor",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALElectricEntryAnchorTest::RunTest(const FString& Parameters)
+{
+	FHALElectricWallConfig C;
+	const FVector Entry(-150,0,0), Direction(-1,0,0);
+	for (const FVector Current : {FVector(-100,0,0),FVector(0,0,0),FVector(200,0,0)})
+	{
+		const float Distance=C.BounceDistanceFromEntry(Current,Entry,Direction);
+		TestTrue(TEXT("Different late scan positions reach the same unobstructed goal"),
+			(Current+Direction*Distance).Equals(Entry+Direction*C.BounceBackDistance,.01));
+	}
+	TestEqual(TEXT("No overshoot keeps configured distance"),C.BounceDistanceFromEntry(Entry,Entry,Direction),100.f);
+	TestEqual(TEXT("Physical safety bound remains finite"),C.BounceDistanceFromEntry(FVector(10000,0,0),Entry,Direction),1000.f);
+	return true;
+}
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALElectricWallRetriggerTest,"HAL.FutureCreation.ElectricWall.OneBouncePerEntry",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FHALElectricWallRetriggerTest::RunTest(const FString& Parameters)

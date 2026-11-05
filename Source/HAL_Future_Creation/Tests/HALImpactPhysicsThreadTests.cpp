@@ -194,6 +194,19 @@ bool FHALImpactPhysicsThreadTest::RunTest(const FString& Parameters)
 	RunCase(TEXT("Bounce cancels high horizontal speed and preserves Z/W"),Bounce,FVector(6000,400,-30),FVector(.2,.3,.7),FVector(-Speed,0,-30),FVector(.2,.3,.7));
 	RunCase(TEXT("Bounce replay from restored state"),Bounce,FVector(6000,400,-30),FVector(.2,.3,.7),FVector(-Speed,0,-30),FVector(.2,.3,.7));
 	RunCase(TEXT("Bounce distance and stop"),Bounce,FVector(6000,400,-30),FVector::ZeroVector,FVector(0,0,-30),FVector::ZeroVector,20,FVector(-100,0,0));
+	Bounce.PredictionToken=1;
+	Movement->ResolvedBouncePredictionToken.Store(1);
+	RunCase(TEXT("Confirmed prediction replays before the later authority action"),Bounce,FVector(6000,400,-30),FVector::ZeroVector,
+		FVector(-Speed,0,-30),FVector::ZeroVector);
+	Movement->RejectedBouncePredictionTokens.Add(1);
+	RunCase(TEXT("Rejected prediction stays retired after restoring old bounce state"),Bounce,FVector(6000,400,-30),FVector::ZeroVector,
+		FVector(6000,400,-30),FVector::ZeroVector);
+	Movement->RejectedBouncePredictionTokens.Add(2);
+	RunCase(TEXT("Rejected older prediction cannot resurrect on later replay"),Bounce,FVector(100,0,0),FVector::ZeroVector,
+		FVector(100,0,0),FVector::ZeroVector);
+	Bounce.PredictionToken=0;
+	RunCase(TEXT("Authority action still applies after speculation retires"),Bounce,FVector(6000,400,-30),FVector::ZeroVector,
+		FVector(-Speed,0,-30),FVector::ZeroVector);
 	TestTrue(TEXT("Solver exercised production handler on an actual worker thread"), bObservedWorker);
 	Solver->UnregisterAndFreeSimCallbackObject_External(Probe);
 	Step();

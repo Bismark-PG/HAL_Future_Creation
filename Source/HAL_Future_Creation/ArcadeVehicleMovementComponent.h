@@ -62,8 +62,8 @@ public:
 	void ResetInputCommand();
 	void QueueRecoil(const FVector& DeltaVelocity);
 	bool QueueImpact(FVehicleImpactAction& Action);
-	bool QueueBounceBack(const FVector& Direction, float Distance, float Duration, uint32 SourceId = 0);
-	bool PredictBounceBack(const FVector& Direction, float Distance, float Duration, uint32 SourceId);
+	bool QueueBounceBack(const FVector& Direction, float Distance, float Duration, uint32 SourceId = 0, const FVector* EntryOrigin = nullptr);
+	bool PredictBounceBack(const FVector& Direction, float Distance, float Duration, uint32 SourceId, const FVector* EntryOrigin = nullptr);
 	void ObserveBounceAuthority(int32 LocalFrame, uint32 Sequence);
 	int32 GetPredictedBounceCount() const { return PredictedBounceCount.Load(); }
 	int32 GetLastPredictedBounceFrame() const { return PendingBouncePredictionFrame.Load(); }
@@ -80,6 +80,7 @@ public:
 	/** Thread-safe copy of the last actually consumed input; for cosmetic observers only. */
 	FHALVehiclePresentationInput GetPresentationInput() const;
 	FVehicleStabilityObservation GetStabilityObservation() const;
+	FVehicleContactObservation GetContactObservation() const;
 	bool QueueRecovery(const FVehicleRecoveryPhysicsState& Value);
 
 	UFUNCTION(BlueprintPure, Category = "Arcade Vehicle|Debug")
@@ -116,13 +117,22 @@ private:
 	bool bPoseDriveAllowed = false;
 	float PoseStableSeconds = 0;
 	FVehicleBounceBackState BounceBackPhysics, PendingBounceBack;
+	FVehicleContactObservation PublishedContact;
 	FVehicleBounceBackState PublishedBounceBack; // Protected by PendingPhysicsDataLock.
 	bool bPendingBounceBack = false;
+	bool bPendingBounceHasEntry = false;
+	FVector PendingBounceEntry = FVector::ZeroVector;
 	uint32 NextBounceBackSequence = 0;
 	TAtomic<int32> BounceAuthorityFrame { INDEX_NONE };
 	TAtomic<uint32> BounceAuthoritySequence { 0 };
 	TAtomic<int32> PendingBouncePredictionFrame { INDEX_NONE };
 	TAtomic<int32> PredictedBounceCount { 0 };
+	// Protected by PendingPhysicsDataLock. Tokens never rewind or repeat within a component lifetime.
+	uint32 NextBouncePredictionToken = 0, PendingBouncePredictionToken = 0, PendingBouncePredictionSequence = 0;
+	int32 PendingBouncePredictionExpiry = INDEX_NONE;
+	TAtomic<uint32> ResolvedBouncePredictionToken { 0 };
+	uint32 RetiredBouncePredictionToken = 0; // Previous movement epochs only; protected by the same lock.
+	TSet<uint32> RejectedBouncePredictionTokens;
 	FVehicleRecoveryPhysicsState RecoveryPhysics;
 	FVehicleRecoveryPhysicsState PendingRecovery;
 	bool bPendingRecovery = false;
