@@ -7,6 +7,7 @@
 #include "HALShockedPresentationComponent.generated.h"
 
 class UHALAbilitySystemComponent;
+class UArcadeVehicleMovementComponent;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
 class UMeshComponent;
@@ -120,6 +121,8 @@ private:
 	float ComputeFlicker() const;
 	void TagChanged(FGameplayTag Tag, int32 Count);
 	void SetShocked(bool bActive);
+	void RefreshShocked();
+	TWeakObjectPtr<UArcadeVehicleMovementComponent> LocalBounceMovement;
 	UPROPERTY(Transient) TObjectPtr<UHALAbilitySystemComponent> ASC;
 	UPROPERTY(Transient) TObjectPtr<UNiagaraComponent> ArcComponent;
 	UPROPERTY(Transient) TObjectPtr<UPointLightComponent> ShockLight;

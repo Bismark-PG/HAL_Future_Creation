@@ -1,5 +1,6 @@
 #include "HALShockedPresentationComponent.h"
 #include "HALAbilitySystemComponent.h"
+#include "ArcadeVehicleMovementComponent.h"
 #include "HALGameplayTags.h"
 #include "Components/MeshComponent.h"
 #include "Components/PointLightComponent.h"
@@ -56,7 +57,8 @@ namespace HALShockedOverlay
 
 UHALShockedPresentationComponent::UHALShockedPresentationComponent()
 {
-	// Ticks only while the shock timeline is running; idle vehicles cost nothing.
+	// The autonomous owner samples completed physics before the frame is drawn.
+	PrimaryComponentTick.TickGroup = TG_PostPhysics;
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 	if (FRichCurve* Curve = BrightnessCurve.GetRichCurve())
@@ -71,16 +73,22 @@ UHALShockedPresentationComponent::UHALShockedPresentationComponent()
 void UHALShockedPresentationComponent::Bind(UHALAbilitySystemComponent* InASC)
 {
 	if (!InASC || InASC->GetAvatarActor() != GetOwner()) { Unbind(); return; }
-	if (ASC == InASC && TagHandle.IsValid()) { SetShocked(ASC->HasMatchingGameplayTag(HALGameplayTags::State_Visual_Shocked)); return; }
+	if (ASC == InASC && TagHandle.IsValid()) { RefreshShocked(); return; }
 	Unbind(); ASC = InASC;
+	if (GetOwner()->GetLocalRole() == ROLE_AutonomousProxy)
+	{
+		LocalBounceMovement = GetOwner()->FindComponentByClass<UArcadeVehicleMovementComponent>();
+		SetComponentTickEnabled(LocalBounceMovement.IsValid());
+	}
 	TagHandle = ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Visual_Shocked,EGameplayTagEventType::NewOrRemoved)
 		.AddUObject(this,&ThisClass::TagChanged);
-	SetShocked(ASC->HasMatchingGameplayTag(HALGameplayTags::State_Visual_Shocked));
+	RefreshShocked();
 }
 void UHALShockedPresentationComponent::Unbind()
 {
 	if (ASC) { ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Visual_Shocked,EGameplayTagEventType::NewOrRemoved).Remove(TagHandle); }
-	TagHandle.Reset(); ASC = nullptr; SetShocked(false);
+	TagHandle.Reset(); ASC = nullptr; LocalBounceMovement.Reset(); SetShocked(false);
+	if (Phase == EHALShockPhase::Idle) { SetComponentTickEnabled(false); }
 }
 void UHALShockedPresentationComponent::NotifyShockOrigin(const FVector& WorldLocation)
 {
@@ -286,7 +294,7 @@ void UHALShockedPresentationComponent::ClearTimeline()
 	// Deactivate rather than destroy, so ribbons already on screen finish their own lifetime.
 	if (IsValid(RibbonComponent)) { RibbonComponent->Deactivate(); }
 	Phase = EHALShockPhase::Idle; PhaseSeconds = 0.f; HeldSeconds = 0.f; ScorchPeak = 0.f; LastArcStep = -1; LastArcRetract = -1.f;
-	SetComponentTickEnabled(false);
+	SetComponentTickEnabled(LocalBounceMovement.IsValid());
 }
 float UHALShockedPresentationComponent::ScorchRamp() const
 {
@@ -333,7 +341,12 @@ void UHALShockedPresentationComponent::ApplyTimeline(float FilamentAlpha, float 
 void UHALShockedPresentationComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* TickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, TickFunction);
-	if (Phase == EHALShockPhase::Idle) { SetComponentTickEnabled(false); return; }
+	if (LocalBounceMovement.IsValid()) { RefreshShocked(); }
+	if (Phase == EHALShockPhase::Idle)
+	{
+		SetComponentTickEnabled(LocalBounceMovement.IsValid());
+		return;
+	}
 	PhaseSeconds += DeltaTime;
 	if (Phase == EHALShockPhase::Active)
 	{
@@ -352,7 +365,15 @@ void UHALShockedPresentationComponent::TickComponent(float DeltaTime, ELevelTick
 	if (Cooling <= 0.f) { ClearTimeline(); return; }
 	ApplyTimeline(0.f, ScorchPeak * Cooling);
 }
-void UHALShockedPresentationComponent::TagChanged(FGameplayTag Tag,int32 Count) { SetShocked(Count > 0); }
+void UHALShockedPresentationComponent::RefreshShocked()
+{
+	const auto* Movement = LocalBounceMovement.Get();
+	const bool bLocalBounce = Movement && Movement->IsBounceBackActive();
+	const bool bAuthorityShocked = ASC && ASC->HasMatchingGameplayTag(HALGameplayTags::State_Visual_Shocked);
+	SetShocked(bLocalBounce || bAuthorityShocked);
+}
+
+void UHALShockedPresentationComponent::TagChanged(FGameplayTag Tag,int32 Count) { RefreshShocked(); }
 void UHALShockedPresentationComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Unbind();

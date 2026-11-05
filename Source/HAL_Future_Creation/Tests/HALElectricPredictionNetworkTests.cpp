@@ -26,6 +26,7 @@ class FRun : public IAutomationLatentCommand
     FAutomationTestBase* Test;
     bool Reject;
     bool Driving=false,Stopped=false;
+    bool SawEarlyShockVisual=false;
     bool Prepared=false,ReadySent=false,Aligned=false,Started=false,SawEarly=false,SawPredictedVelocity=false;
     double Deadline=FPlatformTime::Seconds()+100, StartAt=-1, Complete=-1;
     FString Diagnostic;
@@ -154,8 +155,13 @@ public:
             TraceReversed |= VX<-1;
             TraceTime=T; TraceX=X; TraceVX=VX;
         }
+        auto* ShockVisual=Own->FindComponentByClass<UHALShockedPresentationComponent>();
         if (!Host && Started && Movement->GetPredictedBounceCount()>0 && Body->GetPhysicsLinearVelocity().X < -1)
-        { SawPredictedVelocity=true; SawEarly |= !ASC->IsStunned(); }
+        {
+            SawPredictedVelocity=true;
+            SawEarly |= !ASC->IsStunned();
+            SawEarlyShockVisual |= State.BounceBack.bActive && !ASC->IsStunned() && ShockVisual && ShockVisual->IsShocked();
+        }
         Diagnostic=FString::Printf(TEXT("Host=%d Reject=%d Start=%d Count=%d Early=%d Velocity=%d Contacts=%u Seq=%u Active=%d Ack=%d PredFrame=%d Now=%.2f StartAt=%.2f"),
             Host,Reject,Started,Movement->GetPredictedBounceCount(),SawEarly,SawPredictedVelocity,Wall->GetAcceptedContactCount(),State.BounceBack.Sequence,State.BounceBack.bActive,
             Movement->GetBounceAuthorityFrame(),Movement->GetLastPredictedBounceFrame(),Now,StartAt);
@@ -173,6 +179,8 @@ public:
                 Test->TestTrue(TEXT("No large single-frame pose correction"),MaxPositionJump<20);
                 Test->TestTrue(TEXT("No large pull back toward the wall after rebound"),ForwardCorrection<20);
             }
+            Test->TestTrue(TEXT("Shock visual starts during predicted rebound before authority stun"),SawEarlyShockVisual);
+            Test->TestTrue(TEXT("Shock visual clears when rebound and stun have ended"),ShockVisual && !ShockVisual->IsShocked());
             Test->TestEqual(TEXT("Exactly one speculative local contact"),Movement->GetPredictedBounceCount(),1);
             Test->TestTrue(TEXT("Local reverse velocity precedes authoritative stun"),SawEarly);
             Test->TestTrue(TEXT("Owning history restores the authority bounce state"),Movement->GetBounceAuthorityFrame()>=Movement->GetLastPredictedBounceFrame());

@@ -81,6 +81,7 @@ public:
 	FHALVehiclePresentationInput GetPresentationInput() const;
 	FVehicleStabilityObservation GetStabilityObservation() const;
 	FVehicleContactObservation GetContactObservation() const;
+	bool IsBounceBackActive() const;
 	bool QueueRecovery(const FVehicleRecoveryPhysicsState& Value);
 
 	UFUNCTION(BlueprintPure, Category = "Arcade Vehicle|Debug")

@@ -597,6 +597,12 @@ FVehicleContactObservation UArcadeVehicleMovementComponent::GetContactObservatio
 	return PublishedContact;
 }
 
+bool UArcadeVehicleMovementComponent::IsBounceBackActive() const
+{
+	FScopeLock Lock(&PendingPhysicsDataLock);
+	return PublishedBounceBack.bActive;
+}
+
 void UArcadeVehicleMovementComponent::ObserveBounceAuthority(int32 LocalFrame, uint32 Sequence)
 {
 	FScopeLock Lock(&PendingPhysicsDataLock);
