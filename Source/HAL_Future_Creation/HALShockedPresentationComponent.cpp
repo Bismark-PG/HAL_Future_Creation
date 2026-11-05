@@ -17,6 +17,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "NiagaraFunctionLibrary.h"
+#include "TimerManager.h"
 
 #include "HAL/IConsoleManager.h"
 
@@ -96,6 +97,8 @@ void UHALShockedPresentationComponent::Bind(UHALAbilitySystemComponent* InASC)
 void UHALShockedPresentationComponent::Unbind()
 {
 	if (ASC) { ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Visual_Shocked,EGameplayTagEventType::NewOrRemoved).Remove(TagHandle); }
+	if (UWorld* World = GetWorld()) { World->GetTimerManager().ClearTimer(ShockHandoffTimer); }
+	bAwaitingAuthorityShock = false;
 	TagHandle.Reset(); ASC = nullptr; LocalBounceMovement.Reset(); SetShocked(false);
 	if (Phase == EHALShockPhase::Idle) { SetComponentTickEnabled(false); }
 }
@@ -386,7 +389,37 @@ void UHALShockedPresentationComponent::RefreshShocked()
 	const auto* Pawn = Cast<ATestVehiclePawn>(GetOwner());
 	const bool bObservedBounce = ASC && Pawn && Pawn->GetLocalRole() == ROLE_SimulatedProxy
 		&& Pawn->IsReplicatedElectricBounceActive();
-	SetShocked(bLocalBounce || bObservedBounce || bAuthorityShocked);
+	const bool bBounce = bLocalBounce || bObservedBounce;
+	UWorld* World = GetWorld();
+	if (bAuthorityShocked || bBounce)
+	{
+		if (World) { World->GetTimerManager().ClearTimer(ShockHandoffTimer); }
+		if (bAuthorityShocked) { bAwaitingAuthorityShock = false; }
+		else if (!bShocked) { bAwaitingAuthorityShock = true; }
+		SetShocked(true);
+		return;
+	}
+
+	// Keep the same visual episode through a rewind or the gap before the GAS tag arrives.
+	if (World && bAwaitingAuthorityShock)
+	{
+		// A long packet gap can outlast the bounce itself. Cap the visual hold so
+		// an unconfirmed contact still clears without an authority tag.
+		constexpr float ShockHandoffSeconds = 1.5f;
+		auto& Timers = World->GetTimerManager();
+		if (!Timers.TimerExists(ShockHandoffTimer))
+		{
+			Timers.SetTimer(ShockHandoffTimer, this, &ThisClass::ExpireShockHandoff, ShockHandoffSeconds, false);
+		}
+		return;
+	}
+	SetShocked(false);
+}
+
+void UHALShockedPresentationComponent::ExpireShockHandoff()
+{
+	bAwaitingAuthorityShock = false;
+	RefreshShocked();
 }
 
 void UHALShockedPresentationComponent::TagChanged(FGameplayTag Tag,int32 Count) { RefreshShocked(); }

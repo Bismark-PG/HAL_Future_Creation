@@ -18,6 +18,8 @@
 #include "DrawDebugHelpers.h"
 #include "HAL/IConsoleManager.h"
 #include "Net/UnrealNetwork.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "TimerManager.h"
 
 static TAutoConsoleVariable<int32> CVarHALElectricWallLog(TEXT("hal.ElectricWallLog"),0,
@@ -93,6 +95,7 @@ void AHALElectricWallGimmick::OnRep_Config() { UpdateGeometry(); }
 void AHALElectricWallGimmick::BeginPlay()
 {
 	Super::BeginPlay(); UpdateGeometry();
+	AddWallArcStrands();
 	if (HasAuthority())
 	{
 		// Legacy replication has no Iris NetRefHandle for runtime actors.
@@ -109,6 +112,39 @@ void AHALElectricWallGimmick::BeginPlay()
 	if (!bReady) { UE_LOG(LogTemp,Error,TEXT("Electric wall %s disabled: invalid geometry/timing. %s"),*GetName(),*Error); return; }
 	GetWorldTimerManager().SetTimer(ScanTimer,this,&ThisClass::ScanContacts,Config.ScanInterval,true,0.f);
 }
+void AHALElectricWallGimmick::AddWallArcStrands()
+{
+	if (GetNetMode() == NM_DedicatedServer || !GetWorld()->FXSystem.IsValid()) { return; }
+
+	static const FName StartParameter(TEXT("User.BeamStart"));
+	static const FName EndParameter(TEXT("User.BeamEnd"));
+	TInlineComponentArray<UNiagaraComponent*> Components(this);
+	for (UNiagaraComponent* Source : Components)
+	{
+		if (!Source->GetAsset()) { continue; }
+		bool bStartValid = false;
+		bool bEndValid = false;
+		const FVector Start = Source->GetVariablePosition(StartParameter, bStartValid);
+		const FVector End = Source->GetVariablePosition(EndParameter, bEndValid);
+		if (!bStartValid || !bEndValid || Start.Equals(End)) { continue; }
+
+		// Separate the three local-space paths in both the top-down view and height.
+		const FVector Separation = Source->GetComponentTransform().InverseTransformVector(
+			GetActorTransform().TransformVector(FVector(0.f, 22.f, 30.f)));
+		for (const float Side : {-1.f, 1.f})
+		{
+			UNiagaraComponent* Strand = UNiagaraFunctionLibrary::SpawnSystemAttached(
+				Source->GetAsset(), Source, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator,
+				EAttachLocation::KeepRelativeOffset, false, false, ENCPoolMethod::None, false);
+			if (!Strand) { continue; }
+			Strand->SetVariablePosition(StartParameter, Start + Separation * Side);
+			Strand->SetVariablePosition(EndParameter, End + Separation * Side);
+			Strand->Activate(true);
+		}
+		return;
+	}
+}
+
 void AHALElectricWallGimmick::EndPlay(const EEndPlayReason::Type Reason)
 {
 	GetWorldTimerManager().ClearTimer(ScanTimer); Contacts.Reset(); bReady = false; Super::EndPlay(Reason);

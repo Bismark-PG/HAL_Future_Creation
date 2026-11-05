@@ -65,6 +65,7 @@ private:
 	friend struct FHALElectricWallTestAccess;
 	UFUNCTION() void OnRep_Config();
 	void UpdateGeometry();
+	void AddWallArcStrands();
 	void ScanContacts();
 	bool ApplyContact(ATestVehiclePawn* Target,UPrimitiveComponent* Surface,const FVector& PreviousLocation);
 	FVector GetPushDirection(UPrimitiveComponent* Surface,const FVector& Current,const FVector& Previous,const FVector& Velocity) const;

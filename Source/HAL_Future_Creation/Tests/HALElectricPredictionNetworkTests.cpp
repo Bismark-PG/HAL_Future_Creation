@@ -2,6 +2,9 @@
 #include "Misc/AutomationTest.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
+#include "NiagaraComponent.h"
 #include "../HALElectricWallGimmick.h"
 #include "../HALAbilitySystemComponent.h"
 #include "../HALShockedPresentationComponent.h"
@@ -27,6 +30,8 @@ class FRun : public IAutomationLatentCommand
     bool Reject;
     bool Driving=false,Stopped=false;
     bool SawEarlyShockVisual=false;
+    bool WasShockVisualActive=false;
+    int32 ShockVisualStarts=0;
     bool SawObservedBounceVisual=false, MissedObservedBounceVisual=false;
     bool Prepared=false,ReadySent=false,Aligned=false,Started=false,SawEarly=false,SawPredictedVelocity=false;
     double Deadline=FPlatformTime::Seconds()+100, StartAt=-1, Complete=-1;
@@ -157,6 +162,12 @@ public:
             TraceTime=T; TraceX=X; TraceVX=VX;
         }
         auto* ShockVisual=Own->FindComponentByClass<UHALShockedPresentationComponent>();
+        if (!Host && Started && ShockVisual)
+        {
+            const bool bActive=ShockVisual->IsShocked();
+            if (bActive && !WasShockVisualActive) { ++ShockVisualStarts; }
+            WasShockVisualActive=bActive;
+        }
         if (!Host && Started && Other->IsReplicatedElectricBounceActive())
         {
             const auto* ObservedVisual=Other->FindComponentByClass<UHALShockedPresentationComponent>();
@@ -193,11 +204,35 @@ public:
                 Test->TestTrue(TEXT("No large pull back toward the wall after rebound"),ForwardCorrection<20);
             }
             Test->TestTrue(TEXT("Shock visual starts during predicted rebound before authority stun"),SawEarlyShockVisual);
+            Test->TestEqual(TEXT("One contact plays one shock visual episode"),ShockVisualStarts,1);
             Test->TestTrue(TEXT("Shock visual clears when rebound and stun have ended"),ShockVisual && !ShockVisual->IsShocked());
             Test->TestEqual(TEXT("Exactly one speculative local contact"),Movement->GetPredictedBounceCount(),1);
             Test->TestTrue(TEXT("Local reverse velocity precedes authoritative stun"),SawEarly);
             Test->TestTrue(TEXT("Owning history restores the authority bounce state"),Movement->GetBounceAuthorityFrame()>=Movement->GetLastPredictedBounceFrame());
             PC->SetName(TEXT("HAL_PredDone"));
+        }
+        if (FParse::Param(FCommandLine::Get(),TEXT("HALVerifyWallStrands")))
+        {
+            bool bFoundThreeStrands=false;
+            for (TActorIterator<AHALElectricWallGimmick> It(World); It; ++It)
+            {
+                TInlineComponentArray<UNiagaraComponent*> Components(*It);
+                TSet<FVector> Starts;
+                int32 StrandCount=0;
+                for (const auto* Strand : Components)
+                {
+                    bool bStartValid=false, bEndValid=false;
+                    const FVector Start=Strand->GetVariablePosition(TEXT("User.BeamStart"),bStartValid);
+                    const FVector End=Strand->GetVariablePosition(TEXT("User.BeamEnd"),bEndValid);
+                    if (bStartValid && bEndValid && !Start.Equals(End))
+                    {
+                        ++StrandCount;
+                        Starts.Add(Start);
+                    }
+                }
+                bFoundThreeStrands |= StrandCount==3 && Starts.Num()==3;
+            }
+            Test->TestTrue(TEXT("Placed electric wall has three separated Niagara paths"),bFoundThreeStrands);
         }
         Test->TestEqual(TEXT("No HP damage"),ASC->GetNumericAttribute(UHALHealthAttributeSet::GetCurrentHPAttribute()),100.f);
         Test->TestEqual(TEXT("Authority determines final bounce sequence"),State.BounceBack.Sequence,uint32(Reject ? 0 : 1));

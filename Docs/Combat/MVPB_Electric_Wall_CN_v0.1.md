@@ -196,3 +196,12 @@ Client 原本先執行本機回彈，車身電流則等 Host 複製 shocked 標�
 Editor／Game 構建成功。兩輪 150ms±40ms Host 出站、10% 丟包的高速 NullRHI 雙端都通過自車及觀察車輛的電流狀態檢查，Host 各 1/1。兩輪 Client 都觸發既有速度斷言，原斷言保留。額外反向脈衝都是 0，但初次變號後相鄰兩筆反向速度仍有 942.171 及 207.035 cm/s 差異，位置殘差為 7.851 及 1.724cm。現有軌跡只量測車體取樣，尚不足以把用戶所見卡頓歸因於網路位置校正、第一幀插值或畫面負載。原始報告保存在本機 Saved/ElectricWall/Jitter_20261030 下的 ShockBothDriving 和 ShockBothDrivingRetry。
 
 D3D12 離屏雙端 Accept 各 1/1，兩端的 Car_02 觸發日誌顯示 overlays=0、ribbon=0、material=NONE，因此此夾具僅能核對觸發。若用 Car_02 驗收車身電流，先在 BP_VehiclePawn_Car_02 的 ShockedPresentation 元件核對 Ribbon System 與 Overlay Material，可參考 BP_RoundedVehiclePawn 的 NS_VehicleShockRibbon 及 M_FX_VehicleShock_Overlay 配置，由團隊在 Editor 手動設定與保存。再在正式地圖讓 Host 和 Client 分別撞中間電牆，從 Client 確認兩車畫面上的電流首幀及回彈連續性。離屏報告為 ShockBothRendered。
+
+
+## 11 車身電流去重與電牆三條電弧（2026-11-05）
+
+本輪以乾淨 main/2213239、UE5.8.2-56702186 為基線。自車與觀察車輛都保留第一次回彈觸發。當回彈狀態短暫消失且 Host 尚未送來 shocked 標籤，表現最多接續 1.5 秒。收到標籤時接續原播放，沒有收到時則進入原淡出。此等待只影響電流畫面。首輪 0.75 秒在離屏人工提前速度夾具中仍觸發兩次，已保留失敗報告並重測較長接續。
+
+電牆保留 Blueprint 掛載的中間電弧，執行時從同一 Niagara System 和已設定的 BeamStart／BeamEnd 補出兩條本地路徑。兩側相對中央各偏移 22cm 橫向與 30cm 高度，以便從俯視角分辨。這三條路徑共用原電弧素材，碰撞仍由原本的單一電牆區域處理。Editor 藍圖資產繼續使用原本一個 Niagara 元件。
+
+Editor／Game 構建通過。D3D12 離屏的 Accept 重跑 Host／Client 各 1/1，地圖上機關有三條不同起點的 Niagara 路徑，自控 Client 的單次接觸只啟動一次。第一次 1.5 秒測試也通過單次啟動與三條路徑，但 Client 漏取一次遠端回彈標記，整體報告保留失敗。NullRHI Reject 各 1/1，否決後可清除表現。條件為 Host 出站 150ms±40ms、10% 丟包。Car_02 仍缺車身 Ribbon／Overlay，因此去重檢查的是狀態起點。三條路徑檢查讀取 Niagara 元件端點，正式攝影機畫面間距待真人確認。原始報告在本機 Saved/ElectricWall/Jitter_20261030 的 ShockThreeArcs、ShockThreeArcsFinal、ShockThreeArcsRetry 及 ShockThreeArcsReject。

@@ -122,6 +122,9 @@ private:
 	float ComputeFlicker() const;
 	void TagChanged(FGameplayTag Tag, int32 Count);
 	void SetShocked(bool bActive);
+	void ExpireShockHandoff();
+	FTimerHandle ShockHandoffTimer;
+	bool bAwaitingAuthorityShock = false;
 	TWeakObjectPtr<UArcadeVehicleMovementComponent> LocalBounceMovement;
 	UPROPERTY(Transient) TObjectPtr<UHALAbilitySystemComponent> ASC;
 	UPROPERTY(Transient) TObjectPtr<UNiagaraComponent> ArcComponent;
