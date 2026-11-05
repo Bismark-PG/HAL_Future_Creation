@@ -3,6 +3,10 @@
 #include "Camera/CameraTypes.h"
 
 class UHALCameraConfig;
+enum class EHALCameraResetReason : uint8
+{
+	None, Explicit, Configuration, ControllerChanged, OwnerExit, Travel, InvalidProfile, InvalidView, InitialSample, Teleport
+};
 struct FHALCameraTarget
 {
 	FVector Position = FVector::ZeroVector;
@@ -28,9 +32,17 @@ struct FHALCameraFrame
 	uint8 InputDevice = 0;
 	bool bHardLimited = false, bManualLimited = false, bReturning = false, bDynamic = false, bValid = false;
 	int32 MainBallCandidates = 0;
+	EHALCameraResetReason ResetReason = EHALCameraResetReason::None;
+	bool bLongSample = false;
 };
 namespace HALCamera
 {
+	HAL_FUTURE_CREATION_API bool IsLoggingEnabled();
+	HAL_FUTURE_CREATION_API const TCHAR* ResetReasonName(EHALCameraResetReason Reason);
+	/** Clear observation intent without discarding automatic framing history. */
+	HAL_FUTURE_CREATION_API void ClearObservationInput(FHALCameraState& State);
+	HAL_FUTURE_CREATION_API EHALCameraResetReason GetReseedReason(const UHALCameraConfig& Config,
+		const FVector& Own, const FHALCameraState& State);
 	HAL_FUTURE_CREATION_API FMinimalViewInfo View(const UHALCameraConfig& Config, const FVector& Focus, float Distance, float Aspect);
 	HAL_FUTURE_CREATION_API bool Project(const FMinimalViewInfo& View, const FVector& Point, FVector2D& Screen);
 	HAL_FUTURE_CREATION_API FVector ClampOwn(const UHALCameraConfig& Config, const FVector& Focus, float Distance,

@@ -1,4 +1,5 @@
 #include "HALPlayerController.h"
+#include "HALDynamicCameraComponent.h"
 #include "HALNetworkGameInstance.h"
 #include "HALPlayerState.h"
 #include "HALRoomComponent.h"
@@ -28,7 +29,8 @@ void AHALPlayerController::PreClientTravel(const FString& URL,ETravelType Type,b
 	if (IsLocalController())
 	{
 		ClearRoundSpectator();
-		if (auto* Vehicle=Cast<ATestVehiclePawn>(GetPawn())) { Vehicle->NeutralizeInputForMenu(); }
+		if (auto* Vehicle=Cast<ATestVehiclePawn>(GetPawn()))
+		{ Vehicle->NeutralizeInputForMenu(); Vehicle->FindComponentByClass<UHALDynamicCameraComponent>()->ResetCamera(EHALCameraResetReason::Travel); }
 		if (auto* GI=GetGameInstance<UHALNetworkGameInstance>()) { GI->HideTravelWidgets(); }
 		if (DebugHUD) { DebugHUD->RemoveFromParent(); DebugHUD=nullptr; }
 		if (CameraDebugHUD) { CameraDebugHUD->RemoveFromParent(); CameraDebugHUD=nullptr; }

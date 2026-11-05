@@ -177,7 +177,7 @@ void ATestVehiclePawn::BeginPlay()
 void ATestVehiclePawn::PawnClientRestart()
 {
 	Super::PawnClientRestart();
-	DynamicCamera->ResetCamera();
+	ResetLocalInputReadiness(); DynamicCamera->ResetCamera(EHALCameraResetReason::ControllerChanged);
 	InitializeAbilitySystem();
 
 	if (ArcadeMovement) { ArcadeMovement->SetHistoryInputBlocked(false); }
@@ -208,7 +208,7 @@ void ATestVehiclePawn::PossessedBy(AController* NewController)
 
 void ATestVehiclePawn::UnPossessed()
 {
-	DynamicCamera->ResetCamera();
+	ResetLocalInputReadiness(); DynamicCamera->ResetCamera(EHALCameraResetReason::OwnerExit);
 	if (VehicleRecovery) { VehicleRecovery->CancelForOwnerExit(); }
 	UninitializeAbilitySystem();
 	if (ArcadeMovement) { ArcadeMovement->SetHistoryInputBlocked(true); }
@@ -298,6 +298,7 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 
 void ATestVehiclePawn::UninitializeAbilitySystem()
 {
+	ResetLocalInputReadiness();
 	ShockedPresentation->Unbind();
 	MovementAreaReceiver->Unbind();
 	MovementEffectBridge->Unbind();
@@ -317,7 +318,7 @@ bool ATestVehiclePawn::GetLifecycleSeed(FHALVehicleLifecycleSeed& Out) const
 void ATestVehiclePawn::NeutralizeInputForMenu()
 {
 	if (!IsLocallyControlled()) { return; }
-	ResetInputCommand(); DynamicCamera->ResetCamera();
+	ResetInputCommand(); DynamicCamera->ClearObservationInput();
 	if (!HasAuthority() && !bNetworkPhysicsHistoryActive) { SendInputSnapshot(); }
 }
 void ATestVehiclePawn::SetMenuInputActive(bool bMenu)
@@ -326,6 +327,33 @@ void ATestVehiclePawn::SetMenuInputActive(bool bMenu)
 	NeutralizeInputForMenu();
 	if (bMenu) { RemoveDefaultInputContext(); }
 	else { AddDefaultInputContext(); }
+}
+void ATestVehiclePawn::ResetLocalInputReadiness()
+{
+	bLocalInputInitialized=false; LocalInputController.Reset(); LocalInputPlayer.Reset(); LocalInputEpoch.Invalidate();
+}
+bool ATestVehiclePawn::IsLocalInputAvatarLinked() const
+{
+	const auto* Player=GetPlayerState<AHALPlayerState>(); const auto* ASC=Player?Player->GetHALAbilitySystemComponent():nullptr;
+	return IsLocallyControlled() && IsConfigurationValid() && GetController() && GetController()->GetPawn()==this
+		&& Player && Player->GetRoomData().Phase==EHALRoomPlayerPhase::Ready && Player->GetRoomData().ReadyAvatar==this
+		&& ASC && ASC->GetOwnerActor()==Player && ASC->GetAvatarActor()==this && GetAbilitySystemComponent()==ASC
+		&& ASC->IsHealthInitialized() && ASC->IsCombatInitialized() && ASC->IsImpactInitialized()
+		&& Player->AreVehicleAbilitiesReady(this);
+}
+bool ATestVehiclePawn::IsLocalInputInitialized()
+{
+	const bool Linked=IsLocalInputAvatarLinked(); auto* Player=GetPlayerState<AHALPlayerState>();
+	const auto Epoch=MovementEffectBridge->GetBindingEpoch(); const bool WasReady=bLocalInputInitialized;
+	if (!Linked || LocalInputController.Get()!=GetController() || LocalInputPlayer.Get()!=Player || LocalInputEpoch!=Epoch)
+	{
+		bLocalInputInitialized=false; LocalInputController=GetController(); LocalInputPlayer=Player; LocalInputEpoch=Epoch;
+	}
+	const auto Physics=ArcadeMovement->GetMovementEffectStatus();
+	if (Linked && Epoch.IsValid() && Physics.bReady && Physics.Value.Epoch==Epoch) { bLocalInputInitialized=true; }
+	if (HALCamera::IsLoggingEnabled() && WasReady!=bLocalInputInitialized)
+	{ UE_LOG(LogTemp,Log,TEXT("CameraAvatarReady %s Frame=%llu Linked=%d Initialized=%d PhysicsReady=%d Recovery=%d Epoch=%s"),*GetName(),GFrameCounter,Linked,bLocalInputInitialized,Physics.bReady,Physics.bRecovery,*Epoch.ToString()); }
+	return bLocalInputInitialized;
 }
 void ATestVehiclePawn::RetireForVehicleTransition()
 {
@@ -336,7 +364,7 @@ void ATestVehiclePawn::RetireForVehicleTransition()
 	VehicleRecovery->CancelForOwnerExit(); MovementAreaReceiver->ClearForOwnerExit();
 	UninitializeAbilitySystem(); ArcadeMovement->SetHistoryInputBlocked(true); ResetInputCommand();
 	GetWorldTimerManager().ClearTimer(InputSendTimerHandle); GetWorldTimerManager().ClearTimer(RemoteInputTimeoutHandle);
-	RemoveDefaultInputContext(); DynamicCamera->ResetCamera();
+	RemoveDefaultInputContext(); DynamicCamera->ResetCamera(EHALCameraResetReason::OwnerExit);
 }
 
 void ATestVehiclePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

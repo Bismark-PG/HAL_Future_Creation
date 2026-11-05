@@ -102,6 +102,7 @@ private:
 	friend struct FHALVehicleStabilityTestAccess;
 	friend struct FHALRecoveryTestAccess;
 	friend struct FHALPresentationTestAccess;
+	friend struct FHALCameraTestAccess;
 #endif
 	void ApplyPendingMovementConfiguration();
 	void ApplyMovementAction(const FVehicleMovementParameterAction& Action);

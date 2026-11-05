@@ -37,6 +37,8 @@ private:
 	bool CanResume() const;
 	bool CanReturnToRoom() const;
 	void RefreshInput();
+	/** UI ownership depends on lifecycle initialization, not a transient physics recovery. */
+	bool ShouldUseMenuInput();
 	void RefreshPresentation();
 	FText VehicleText() const;
 	FText DescriptionText() const;
@@ -52,6 +54,7 @@ private:
 	bool bInputModeKnown = false, bUsingMenu = false;
 	bool bRefreshingView=false;
 	bool bHasPublishedView=false;
+	uint8 LastInputDiagnostic=MAX_uint8;
 	UPROPERTY(Transient) FHALRoomView PublishedView;
 	TWeakObjectPtr<APawn> InputAvatar;
 	UPROPERTY(Transient) TObjectPtr<class UHALVehicleCatalog> LoadedCatalog;

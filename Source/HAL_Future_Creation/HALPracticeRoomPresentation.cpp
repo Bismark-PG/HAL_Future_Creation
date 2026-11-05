@@ -1,4 +1,5 @@
 #include "HALPracticeRoomWidget.h"
+#include "HALCameraMath.h"
 #include "HALArcadeStyle.h"
 #include "HALPlayerController.h"
 #include "HALPlayerState.h"
@@ -104,17 +105,27 @@ void UHALPracticeRoomWidget::RefreshFromRoomState()
 {
 	if (IsInViewport() && GetCachedWidget().IsValid() && GetWorld() && !GetWorld()->bIsTearingDown) { RefreshInput(); }
 }
+bool UHALPracticeRoomWidget::ShouldUseMenuInput()
+{
+	auto* PC=GetOwningPlayer<AHALPlayerController>(); auto* Vehicle=PC?Cast<ATestVehiclePawn>(PC->GetPawn()):nullptr;
+	// Evaluate initialization even during Loading/menu; the server's Loading barrier is unchanged.
+	const bool Initialized=Vehicle && Vehicle->IsLocalInputInitialized();
+	return MenuVisible() || !Initialized;
+}
 void UHALPracticeRoomWidget::RefreshInput()
 {
 	if (bRefreshingView) { return; }
 	TGuardValue<bool> RefreshGuard(bRefreshingView,true);
 	RefreshPresentation();
 	auto* PC=GetOwningPlayer<AHALPlayerController>(); if (!PC || !PC->GetLocalPlayer()) { return; }
-	const auto* PS=PC->GetPlayerState<AHALPlayerState>(); auto* Vehicle=Cast<ATestVehiclePawn>(PC->GetPawn());
-	const auto* ASC=PS?PS->GetHALAbilitySystemComponent():nullptr;
+	auto* Vehicle=Cast<ATestVehiclePawn>(PC->GetPawn());
 	const auto* M=Vehicle?Vehicle->FindComponentByClass<UArcadeVehicleMovementComponent>():nullptr;
-	const bool Ready=PS && Vehicle && PS->GetRoomData().ReadyAvatar==Vehicle && ASC && ASC->GetAvatarActor()==Vehicle && Vehicle->GetPlayerState()==PS && M && M->GetMovementEffectStatus().bReady;
-	const bool Menu=MenuVisible() || !Ready;
+	const bool Menu=ShouldUseMenuInput();
+	const auto Physics=M?M->GetMovementEffectStatus():FHALMovementStatus{};
+	const uint8 Diagnostic=uint8(Menu)|(uint8(Physics.bReady)<<1)|(uint8(Physics.bRecovery)<<2)|(uint8(Physics.bReplay)<<3);
+	if (HALCamera::IsLoggingEnabled() && Diagnostic!=LastInputDiagnostic)
+	{ UE_LOG(LogTemp,Log,TEXT("CameraUIInput %s Frame=%llu Menu=%d PhysicsReady=%d Recovery=%d Replay=%d"),*GetNameSafe(Vehicle),GFrameCounter,Menu,Physics.bReady,Physics.bRecovery,Physics.bReplay); }
+	LastInputDiagnostic=Diagnostic;
 	if (bInputModeKnown && bUsingMenu==Menu && InputAvatar.Get()==Vehicle)
 	{ PublishRoomView(); if (Menu && !IsMenuControlFocused()) { FocusMenu(); } return; }
 	bInputModeKnown=true; bUsingMenu=Menu; InputAvatar=Vehicle; PC->bShowMouseCursor=Menu;

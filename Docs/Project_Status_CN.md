@@ -1,5 +1,11 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-05相机输入／恢复／生命周期边界拆分完成代码、构建与程序验证，待原场景真人复测。** 按用户授权，首次Avatar就绪按Controller／PS／Movement Epoch检查；同一绑定临时Recovery保留首次就绪，不重建菜单输入。菜单／失焦清理驾驶和观察输入，保留自动距离／聚焦历史；长帧限步长，换配置／重新接管／退场／跨图与真实位置跳变明确处理。新增默认关闭`hal.CameraLog`，全部UI仍原生回退＋WBP替换。无需重建或修改DA／BP。见[实施／日志／复测](Presentation/MVPB_Camera_Input_Boundaries_CN_v0.1.md)及[验证保护清单](Presentation/MVPB_Camera_Input_Boundaries_Verification_20261105.json)。
+
+本机UE5.8.3最终Editor／Game成功，**144/144原生、无注入双端／80ms出站注入＋替换UI双端／旧GF4两局／GF7三局各角色1/1**，共9份最终报告均0测试警告／失败／未运行／进行中。相机双端实际从Entry进入练习／Playing，各阶段两车合计6次电墙接触并开关菜单；Client实测`Menu=0 PhysicsReady=0 Recovery=1`且取景距离连续。两端D3D12离屏、瞬态测试Profile，不冒充保存DA画面／真实手柄或校园四机；原事故仍待团队复测。缺include、原生夹具未BeginPlay及未迁移测试球导致的失败全部保留，严格修正重验。原生最终报告后仅修联机夹具球类，生产／原生测试源码不变。**1190保存资产逐份全同、299最终输入冻结、Config／Build.cs／uproject保持**；专用进程已退出。基点main/e4f0b09，保留此前进度文档修改，未代改资产，未提交／Push。以下旧“尚未修复／仅诊断”保留当时时点，当前以本段及第2／6节为准。
+
+**2026-11-05进度接续复核：当前优先入口是Client电墙后的镜头短暂缩近，仍处于诊断完成、尚未修复。** 当前工作区开工干净，`main/e4f0b09`已包含GF-7提交`86f513e`、返房再加入修正`10f19ed`、电墙后续更新及Car_03素材／动画BP。对照相机诊断时`ee17c2b`核查，所列8份相关源码内容均一致；4份原始哈希差异仅来自LF／CRLF，不能误记为新修复。当前1190份保存资产仅作数量核对，不把历史1183份保护清单扩写为本次完整资产验证。本机引擎为UE5.8.3-58210709，原诊断的UE5.8.2保留原时点。本轮仅同步本文件，未改代码／配置／资产，未构建、复现或重跑测试，未提交／Push。
+
 **2026-11-05 Client反复撞电墙后镜头短暂缩近：完成初步定位，尚未修复。** 团队确认经Entry房间／练习或比赛触发，无明显同时卡顿，Host不出现。源码首要候选为移动物理恢复使Ready短暂波动，房间HUD将其当输入模式变化，`SetMenuInputActive`经NeutralizeInputForMenu全量ResetCamera；相机下帧把距离直接种回当前DA的1600cm，再恢复动态拉远。已确认这条代码耦合存在，但没有事故当帧Ready／Reset日志，不能写成实际触发原因已证实；此前距离须大于1600cm才直接产生缩近。次候选为长帧／大跳变重种或旧1200cm相机fallback。两车型共享Camera DA、FOV均90°、Spring Arm碰撞关、阈值0.25秒／1000cm已只读核对。
 
 本轮从干净`main/10f19ed`检查，团队期间更新至`ee17c2b`，相关相机／HUD／移动路径未变。本机UE5.8.2，仅源码与只读资产导出，1183保存资产逐份未变，**未改C++／配置／资产，未构建／实际联机复现或修复，未提交／Push**。后续先记录Reset原因、距离与Ready／Recovery／UI切换关联，再分离运行中物理恢复、菜单输入切换与相机全量重置；初次Avatar／Loading保护保持。见[定位、方案与辅助观察](Presentation/MVPB_Dynamic_Camera_Implementation_CN_v0.1.md#10-client反复撞电墙后短暂缩近2026-11-05仅诊断)及[配置／源码证据](Presentation/MVPB_Client_ElectricWall_Camera_Diagnosis_20261105.json)。此前电墙轨迹／特效验证不等于本次相机组合场景通过。
@@ -289,10 +295,10 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|
-| 开发阶段 | GF-7计时／淘汰观战／胜负／结果返房代码及本机验证完成；团队真人与发布包／校园四机待验收。原GF-6、手感／技能／血条与MVP-B收尾边界保持 |
-| 当前本机分支／代码提交 | `main / 726b804`已含临时血条及此前技能接口；开工保留GF-7前轮方案文档改动，本轮源码／文档未提交／Push，1183保存资产不变 |
-| 引擎基线 | 本机 **5.8.3-58210709**；本轮Editor／Game成功，138普通、GF7双端三局／四端及GF4双端两局均通过，细节见GF7验证JSON；不代替真实发布包／四机 |
-| 本机运行前置 | 验证进程已退出，可重开完整编译Editor；新WBP分别继承HALArcadeEntryWidget／HALPracticeRoomWidget，在GI Front End→Screens指派Entry／Room／Pause Screen Class；全部留空继续原生回退 |
+| 开发阶段 | GF-7及后续维护保持；相机输入／临时恢复／全量重置拆分完成代码及本机验证，下一步原事故真人双端复测，发布包／校园四机及MVP-B收尾仍待验收 |
+| 当前本机分支／代码提交 | `main / e4f0b09`；保留开工前进度文档修改，本轮相机源码／测试／文档未提交／Push，1190保存资产全同 |
+| 引擎基线 | 本机 **5.8.3-58210709**，本轮Editor／Game、144原生与8份联机角色报告通过；原诊断UE5.8.2与旧141项等证据保留各自时点，不混作本次结果 |
+| 本机运行前置 | 可重开本次完整编译Editor／同版双端，按相机边界文档第3节用原DA复测并开hal.CameraLog；不用重建BP／DA／输入或Widget，UI继续原生回退＋WBP替换 |
 | 工程绑定 | `.uproject` 的 `EngineAssociation="5.8"`，不代表所有电脑的补丁版本相同 |
 | GAS 当前实现 | Definition.Abilities显式V1按当前Pawn授予唯一Primary并加入Ready；旧DefaultAbilities只用于Legacy。换车／新局清理沿GF-2，普通重绑保留计时；两份保存DA仍Legacy，待团队迁移Car01加速／Car02免疫 |
 | 场地持续运动效果 | 原生区域无ASC／GA，服务器按来源逐参数选最强并施加两类内部GE；加速度／上限／抓地与普通Buff增量合并，合并版3物理历史保存恢复曲线、实际消费值与Stun权限，DA不改；无需修改PlayerState.DefaultAbilities |
@@ -311,6 +317,7 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 | 环节 | 已有结果 | 证据边界 |
 |---|---|---|
+| Client电墙后镜头缩近 | 已拆分首次就绪、运行恢复、输入清理及全量重置；两Target、144原生及Entry无注入／80ms＋替换UI双端等通过，实测Recovery时Menu=0且距离连续 | 1190资产保持；瞬态夹具并非原DA画面验收，团队需复测原场景／硬件。见[实施与复测](Presentation/MVPB_Camera_Input_Boundaries_CN_v0.1.md) |
 | GF-7基础比赛闭环 | Playing计时、HP批次淘汰／弃权、最后存活／超时并列／全灭、独立观战、结果及自动／Host提前返房完成；两Target、138原生和8份联机角色报告通过 | 原生回退与Designer接口有D3D12证据；1183资产全同，无代改BP／DA。团队真人、发布包／四机待验收，见[配置与步骤](Networking/GF7_Match_Loop_Implementation_CN_v0.1.md) |
 | 临时车顶血条 | 编号居中上移、按真实HP／MaxHP绘制绿黄红血条；Editor／Game、Health2项与原生UI1项通过 | 原生默认HUD，无资产接线；真实双端受击／血条外观及重新打包待团队，见[说明](Presentation/MVPB_Temporary_Overhead_HealthBar_CN_v0.1.md) |
 | 车型主技能配置 | V1／Legacy、当前Pawn来源授予、整体校验及Ready、显式换车与迟到清理完成；两Target、134普通、V1／Legacy双端两局均通过 | 1183资产全同；保存DA仍Legacy，团队迁移并真人复测，见[配置步骤](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)及[验证](Combat/MVPB_Vehicle_Ability_Loadout_Verification_20261104.json) |
@@ -400,6 +407,8 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 7. `ApplyAction_Internal`线程缺陷已修复，用户本轮确认击飞效果恢复并接受当前档位响应暂用。仍保留水平补足，不再把恢复旧完整追加作为当前待办；后续力度按配置调参另记。原第8节为历史诊断，最新结论见[10-D第10节](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md#10-团队击飞回归与10-e接续2026-10-16)。
 
 ## 6. 下一环节和待确定项
+
+2026-11-05当前优先入口：相机边界已修正并通过本机验证，按[实施第3节](Presentation/MVPB_Camera_Input_Boundaries_CN_v0.1.md#3-配置与团队复测)重开完整编译Editor，沿Entry→练习／比赛用实际保存DA反复撞墙，复测镜头、真实开关菜单、Alt-Tab、鼠标／手柄、换车／跨图／新局；需要时Client开`hal.CameraLog 1`，完成以0关闭。保持现有调参，无需重建资产。原事故画面／发布包与校园四机、独立电墙高速轨迹问题及F4／VP-4C仍单独验收；不要把本机离屏夹具通过扩大为这些项目已完成。
 
 2026-11-05最新入口：GF-7四组规则已确认且完成代码／本机验证，重开完整编译Editor，按[实现第4节](Networking/GF7_Match_Loop_Implementation_CN_v0.1.md#4-团队配置与快速验收)在实际Room DA临时设15秒／3秒做真人淘汰、计时／并列、观战、Client退出、自动／提前返房及下一局验收，随后恢复300／8。新增UI继续原生回退＋WBP可替换，配置已有Screen Class并接只读Room View即可。实际打包／校园四机、F4／VP-4C等仍待集中验收，不把同机程序通过写成完整MVP-B验收。
 
@@ -491,6 +500,8 @@ MVP-B收尾时使用届时冻结的同一提交／构建／资产，统一覆盖
 
 ## 8. 本次更新记录
 
+- 2026-11-05：按授权完成相机输入、首次就绪、临时恢复与全量重置拆分；Editor／Game、144原生和8份联机角色报告通过，Client Recovery实际保持Menu=0／距离连续。1190资产全同、299输入冻结；失败迭代留档，待原场景真人／发布包／四机，未提交／Push。
+- 2026-11-05：接续核对干净main/e4f0b09／UE5.8.3，相机诊断引用的8份源码内容未变（4份仅换行差异）；当前仍为Client电墙镜头缩近的诊断／待修复阶段。同步第2／3／6节，未改代码／资产、未构建或重跑测试。
 - 2026-11-05：用户确认GF-7四组规则后完成比赛闭环、Room DA及原生／WBP接口；Editor／Game、138原生及双端三局／四端Exhibition／旧双端两局全部通过。1183保存资产全同、295输入冻结；详见GF7实现与验证JSON，真人／发布包／校园四机待验收，未提交／Push。
 - 2026-11-05：从干净main/726b804核查正式比赛缺口并留[GF-7待确认草案](Networking/GF7_Match_Loop_Plan_CN_v0.1.md)；计时／淘汰／观战／结果自动返房未施工，四组推荐规则待用户确认。本轮仅文档／白名单，无新构建／测试。
 

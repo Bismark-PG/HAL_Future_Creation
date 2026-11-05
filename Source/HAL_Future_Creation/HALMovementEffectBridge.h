@@ -20,6 +20,8 @@ public:
 	UHALMovementEffectBridge();
 	void Bind(UHALAbilitySystemComponent* InASC, int32 PlayerId);
 	void Unbind();
+	/** Binding identity, independent of temporary physics Ready/Recovery. GT-only. */
+	FGuid GetBindingEpoch() const { return Epoch; }
 	/** GT-only. Preserve all changed-channel recovery requests until one paired snapshot is queued. */
 	void SetAreaRecoverySeconds(const FVector& Seconds);
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
@@ -27,6 +29,7 @@ public:
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALRoomTestAccess;
+	friend struct FHALCameraTestAccess;
 #endif
 	void ConfigurePhysics();
 	void AttributeChanged(const FOnAttributeChangeData& Data);

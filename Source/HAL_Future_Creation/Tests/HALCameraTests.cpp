@@ -4,6 +4,7 @@
 #include "HALLegacyCombatTestRules.h"
 #include "../BasicBallActor.h"
 #include "../HALPlayerState.h"
+#include "../HALAbilitySystemComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
@@ -220,6 +221,79 @@ bool FHALCameraLocalTest::RunTest(const FString&)
 	TestFalse(TEXT("No viewport safely uses legacy"),CA->CalculateView(.02,VA));
 	Cast<APlayerController>(A->GetController())->UnPossess();
 	TestFalse(TEXT("Unpossessed view not evaluated"),FHALCameraTestAccess::Compute(CA,.02,VA));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALCameraCleanupTest,"HAL.FutureCreation.Camera.InputCleanupPreservesFraming",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALCameraCleanupTest::RunTest(const FString&)
+{
+	FCameraWorld F; auto* V=F.Vehicle(FVector(0,0,80)); auto* C=V->FindComponentByClass<UHALDynamicCameraComponent>();
+	auto* Profile=FHALCameraTestAccess::Enable(V,60,1600);
+	Profile->MainBall.FullWeightDistance=10000; Profile->MainBall.ZeroWeightDistance=20000;
+	F.Ball(FVector(0,4000,80))->SetPrimaryCameraTarget(true);
+	FMinimalViewInfo View; for (int32 I=0;I<180;++I) { FHALCameraTestAccess::Compute(C,.02f,View); }
+	TestTrue(TEXT("Fixture has actually zoomed beyond base"),C->GetDebugFrame().Distance>1700);
+	C->AddMouseDelta(FVector2D(40,0)); FHALCameraTestAccess::Compute(C,.02f,View); C->SetStickInput(FVector2D(.8,0));
+	const auto Before=FHALCameraTestAccess::State(C); const auto Serial=C->GetResetSerial();
+	FHALCameraTestAccess::DrivingIntent(V); V->NeutralizeInputForMenu();
+	const auto After=FHALCameraTestAccess::State(C);
+	TestEqual(TEXT("Driving intent neutralized"),V->GetCurrentInputCommand().Throttle,0.f);
+	TestEqual(TEXT("Steering intent neutralized"),V->GetCurrentInputCommand().Steering,0.f);
+	TestEqual(TEXT("Menu cleanup keeps zoom"),After.Distance,Before.Distance);
+	TestTrue(TEXT("Menu cleanup keeps automatic focus and seed"),After.AutoFocus==Before.AutoFocus && After.bSeeded);
+	TestTrue(TEXT("Observation intent is cleared separately"),After.ManualOffset.IsNearlyZero() && After.InputDevice==0);
+	V->SetMenuInputActive(true); V->SetMenuInputActive(false);
+	TestEqual(TEXT("Both menu transitions preserve reset serial"),C->GetResetSerial(),Serial);
+	FHALCameraTestAccess::Compute(C,0,View);
+	TestTrue(TEXT("No pending mouse or stick leaks after cleanup"),C->GetDebugFrame().ManualOffset.IsNearlyZero());
+	TestEqual(TEXT("Next frame has no base-distance reseed"),C->GetDebugFrame().Distance,Before.Distance);
+	FHALCameraTestAccess::ViewController(C,Cast<APlayerController>(V->GetController()));
+	const FVector LastView=View.Location;
+	TestTrue(TEXT("Transient zero viewport retains the same owner's valid view"),C->CalculateView(.02f,View));
+	TestTrue(TEXT("Zero viewport does not change view or reset history"),View.Location==LastView && C->GetResetSerial()==Serial);
+	Cast<APlayerController>(V->GetController())->UnPossess();
+	TestTrue(TEXT("Real owner exit still discards framing"),!FHALCameraTestAccess::State(C).bSeeded && C->GetResetSerial()>Serial);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALCameraReadinessTest,"HAL.FutureCreation.Camera.AvatarInitializationAndTransientRecovery",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALCameraReadinessTest::RunTest(const FString&)
+{
+	FCameraWorld F; auto* V=F.Vehicle(FVector(0,0,80)); V->DispatchBeginPlay();
+	TestTrue(TEXT("Fixture completes real health initialization"),V->GetPlayerState<AHALPlayerState>()->GetHALAbilitySystemComponent()->IsHealthInitialized());
+	TestFalse(TEXT("Unconfirmed Avatar cannot initialize input"),V->IsLocalInputInitialized());
+	FHALCameraTestAccess::InputIdentity(V,true); FHALCameraTestAccess::MovementReady(V,false,true);
+	TestTrue(TEXT("Stable Avatar binding recognized independently"),V->IsLocalInputAvatarLinked());
+	TestFalse(TEXT("Initial physics readiness remains required"),V->IsLocalInputInitialized());
+	FHALCameraTestAccess::MovementReady(V,true); TestTrue(TEXT("First ready sample initializes this binding"),V->IsLocalInputInitialized());
+	FHALCameraTestAccess::MovementReady(V,false,true);
+	TestTrue(TEXT("Recovery cannot revoke lifecycle initialization"),V->IsLocalInputInitialized());
+	FHALCameraTestAccess::InputIdentity(V,false); TestFalse(TEXT("Actual room Avatar unlink revokes initialization"),V->IsLocalInputInitialized());
+	FHALCameraTestAccess::InputIdentity(V,true); TestFalse(TEXT("Relink needs its own initial ready sample"),V->IsLocalInputInitialized());
+	FHALCameraTestAccess::MovementReady(V,true); TestTrue(TEXT("Relink becomes ready"),V->IsLocalInputInitialized());
+	FHALCameraTestAccess::NewBindingEpoch(V); TestFalse(TEXT("New binding cannot reuse old epoch's sample"),V->IsLocalInputInitialized());
+	FHALCameraTestAccess::MovementReady(V,true); TestTrue(TEXT("Matching new epoch initializes"),V->IsLocalInputInitialized());
+	Cast<APlayerController>(V->GetController())->UnPossess(); TestFalse(TEXT("Ownership exit is independent from temporary recovery"),V->IsLocalInputInitialized());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALCameraContinuityTest,"HAL.FutureCreation.Camera.LongSampleAndTeleportPolicies",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALCameraContinuityTest::RunTest(const FString&)
+{
+	auto* C=CameraConfig(); C->BaseCamera.TargetArmLength=1600; FHALCameraState S;
+	Step(*C,S); S.Distance=2400; S.ManualOffset=FVector2D(.1,0);
+	const auto Long=Step(*C,S,1.f);
+	TestTrue(TEXT("Hitch is diagnosed without an Avatar reseed"),Long.bLongSample && Long.ResetReason==EHALCameraResetReason::None);
+	const float Expected=FMath::Lerp(2400.f,1600.f,1-FMath::Exp(-C->MaximumSampleDelta/C->ZoomInResponseSeconds));
+	TestTrue(TEXT("Hitch bounds integration instead of snapping to base"),FMath::IsNearlyEqual(Long.Distance,Expected,.01f));
+	TestTrue(TEXT("Hitch still clears stale observation"),Long.ManualOffset.IsNearlyZero());
+	const auto Teleport=HALCamera::Advance(*C,FVector(10000,0,0),{},FVector2D(960,540),.02f,{}, {},true,true,S);
+	TestEqual(TEXT("True teleport has an explicit reset reason"),Teleport.ResetReason,EHALCameraResetReason::Teleport);
+	TestEqual(TEXT("True teleport starts from configured base"),Teleport.Distance,1600.f);
+	TestTrue(TEXT("Teleported driver stays within hard frame"),Inside(Teleport,*C));
 	return true;
 }
 #endif

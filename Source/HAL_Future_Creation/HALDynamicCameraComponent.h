@@ -18,7 +18,9 @@ public:
 	void Configure(UVehicleLocalConfig* InLocal);
 	void AddMouseDelta(const FVector2D& Delta);
 	void SetStickInput(const FVector2D& Value);
-	void ResetCamera();
+	void ClearObservationInput();
+	void ResetCamera(EHALCameraResetReason Reason=EHALCameraResetReason::Explicit);
+	uint32 GetResetSerial() const { return ResetSerial; }
 	bool CalculateView(float DeltaSeconds, FMinimalViewInfo& Out);
 	const FHALCameraFrame& GetDebugFrame() const { return Frame; }
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
@@ -38,4 +40,6 @@ private:
 	FString LastError;
 	uint64 CalculatedFrame = MAX_uint64;
 	bool bPreviousDynamic = false;
+	uint32 ResetSerial=0;
+	EHALCameraResetReason LastResetReason=EHALCameraResetReason::None;
 };

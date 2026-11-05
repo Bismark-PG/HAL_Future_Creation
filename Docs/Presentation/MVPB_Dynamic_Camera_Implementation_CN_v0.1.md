@@ -174,3 +174,7 @@ Debug 显示蓝色软框、橙色硬框、有效目标及权重、Goal／Auto／
 无需改资产即可先辅助观察：Client执行`hal.CameraDebug 1`、`hal.MovementEffectLog 1`、`hal.ElectricWallLog 1`，关注缩近时D是否直落1600、Goal仍更远，或出现legacy fallback；后两项会增加日志，可在复现后关闭。`hal.CameraStatic 1`固定在Profile基础距离作A/B，完成后`hal.CameraStatic 0`恢复；A/B消失只能缩小范围，不能单独证明Ready链路。调大Zoom In Response Seconds不能阻止直接赋值重置，不建议先改阈值遮蔽问题。
 
 本轮仅源码／引擎实现核对与只读配置导出，**没有修改C++、配置或资产，没有新构建或真实联机复现，不宣称根因已动态确认／修复。** 1183份保存资产前后逐份SHA256全同，第二轮正确路径导出退出0、0错误／警告；第一轮Car02路径假设错误的部分导出／日志保留，不当作工程资源缺失。原始记录位于`Saved/Camera/Diagnosis_20261105_171110/`，不提交Saved，必要事实与哈希已存上述JSON。
+
+## 11. 输入清理与全量重置拆分（2026-11-05）
+
+用户确认独立边界后已从main/e4f0b09完成修正：首次Avatar就绪按本地绑定／Epoch单独检查，临时物理恢复不切UI；观察输入清理保留自动距离／聚焦历史，长帧限步长，真实重新接管／跨图／位置跳变继续明确重置。全部UI保持原生回退＋WBP替换。UE5.8.3 Editor／Game、144原生及无注入／80ms注入的Entry双端、旧两局及GF7三局均通过；Client实测Ready=0／Recovery=1时Menu=0且距离连续。1190保存资产全同，无需改DA。第10节保留诊断当时的结论，当前实现、日志与真人复测入口见[边界实施](MVPB_Camera_Input_Boundaries_CN_v0.1.md)及[本轮证据](MVPB_Camera_Input_Boundaries_Verification_20261105.json)。这不代替原事故实际画面／硬件或发布包与校园四机验收。

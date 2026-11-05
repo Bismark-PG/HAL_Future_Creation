@@ -1,8 +1,10 @@
 #include "HALCameraMath.h"
 #include "HALCameraConfig.h"
+#include "HAL/IConsoleManager.h"
 
 namespace
 {
+	TAutoConsoleVariable<int32> CVarCameraLog(TEXT("hal.CameraLog"),0,TEXT("Local camera reset/seed, long sample and input-readiness transitions: 0=off,1=on."));
 	double CameraAlpha(double Seconds, double Dt) { return Seconds > UE_SMALL_NUMBER ? 1-FMath::Exp(-Dt/Seconds) : 1; }
 	bool CameraPlanePoint(const FMinimalViewInfo& View, const FVector2D& Screen, double Z, FVector& Point)
 	{
@@ -15,6 +17,32 @@ namespace
 		if (!FMath::IsFinite(T) || T <= 0) { return false; }
 		Point = View.Location + Ray*T; return !Point.ContainsNaN();
 	}
+}
+bool HALCamera::IsLoggingEnabled() { return CVarCameraLog.GetValueOnGameThread()!=0; }
+const TCHAR* HALCamera::ResetReasonName(EHALCameraResetReason Reason)
+{
+	switch (Reason)
+	{
+	case EHALCameraResetReason::None: return TEXT("None");
+	case EHALCameraResetReason::Explicit: return TEXT("Explicit");
+	case EHALCameraResetReason::Configuration: return TEXT("Configuration");
+	case EHALCameraResetReason::ControllerChanged: return TEXT("ControllerChanged");
+	case EHALCameraResetReason::OwnerExit: return TEXT("OwnerExit");
+	case EHALCameraResetReason::Travel: return TEXT("Travel");
+	case EHALCameraResetReason::InvalidProfile: return TEXT("InvalidProfile");
+	case EHALCameraResetReason::InvalidView: return TEXT("InvalidView");
+	case EHALCameraResetReason::InitialSample: return TEXT("InitialSample");
+	case EHALCameraResetReason::Teleport: return TEXT("Teleport");
+	}
+	return TEXT("Unknown");
+}
+void HALCamera::ClearObservationInput(FHALCameraState& S)
+{ S.ManualOffset=FVector2D::ZeroVector; S.IdleSeconds=0; S.InputDevice=0; }
+EHALCameraResetReason HALCamera::GetReseedReason(const UHALCameraConfig& C,const FVector& Own,const FHALCameraState& S)
+{
+	if (!S.bSeeded) { return EHALCameraResetReason::InitialSample; }
+	return FVector::DistSquared(Own,S.PreviousOwn)>FMath::Square(C.TeleportResetDistance)
+		?EHALCameraResetReason::Teleport:EHALCameraResetReason::None;
 }
 FMinimalViewInfo HALCamera::View(const UHALCameraConfig& C, const FVector& Focus, float Distance, float Aspect)
 {
@@ -86,13 +114,16 @@ FHALCameraFrame HALCamera::Advance(const UHALCameraConfig& C, const FVector& Own
 	FHALCameraFrame F;
 	if (Own.ContainsNaN() || Viewport.ContainsNaN() || Viewport.GetMin() < 1 || !FMath::IsFinite(Dt) || Dt < 0) { S = {}; return F; }
 	const float Aspect = C.BaseCamera.bConstrainAspectRatio ? C.BaseCamera.AspectRatio : float(Viewport.X/Viewport.Y);
-	const bool bReset = !S.bSeeded || Dt > C.MaximumSampleDelta || FVector::DistSquared(Own,S.PreviousOwn) > FMath::Square(C.TeleportResetDistance);
+	F.ResetReason=GetReseedReason(C,Own,S);
+	const bool bReset=F.ResetReason!=EHALCameraResetReason::None;
+	F.bLongSample=Dt>C.MaximumSampleDelta;
 	if (bReset)
 	{
 		S = {}; S.bSeeded = true; S.AutoFocus = Own; S.Distance = C.BaseCamera.TargetArmLength;
 	}
 	S.PreviousOwn = Own;
-	const double Step = bReset ? 0 : Dt;
+	// A render hitch is not a new Avatar or teleport. Keep zoom/focus history and bound integration.
+	const double Step = bReset ? 0 : FMath::Min(Dt,C.MaximumSampleDelta);
 	const FVector OldFocus = S.AutoFocus;
 	const float StaticResponse = C.BaseCamera.bEnableCameraLag && C.BaseCamera.CameraLagSpeed > 0 ? 1/C.BaseCamera.CameraLagSpeed : 0;
 	S.AutoFocus.Z = FMath::Lerp(S.AutoFocus.Z,Own.Z,CameraAlpha(bDynamic ? C.HeightResponseSeconds : StaticResponse,Step));
@@ -132,7 +163,7 @@ FHALCameraFrame HALCamera::Advance(const UHALCameraConfig& C, const FVector& Own
 	const double FocusAlpha = CameraAlpha(bDynamic ? C.FocusResponseSeconds : StaticResponse,Step);
 	S.AutoFocus.X = FMath::Lerp(OldFocus.X,F.AutoGoal.X,FocusAlpha); S.AutoFocus.Y = FMath::Lerp(OldFocus.Y,F.AutoGoal.Y,FocusAlpha);
 	S.AutoFocus = ClampOwn(C,S.AutoFocus,S.Distance,Aspect,Own,C.SoftFrameSize,bSoftLimited);
-	if (!bAccept || !bDynamic || bReset) { S.ManualOffset = FVector2D::ZeroVector; S.IdleSeconds = 0; S.InputDevice = 0; }
+	if (!bAccept || !bDynamic || bReset || F.bLongSample) { ClearObservationInput(S); }
 	else
 	{
 		const bool bMouse = !Mouse.ContainsNaN() && Mouse.GetAbsMax() > C.MouseNoiseThreshold;

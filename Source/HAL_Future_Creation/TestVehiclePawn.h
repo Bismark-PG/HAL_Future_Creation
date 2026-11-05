@@ -14,6 +14,7 @@
 
 class UArcadeVehicleMovementComponent;
 class UHALShockedPresentationComponent;
+class AHALPlayerState;
 class UArrowComponent;
 class UBallControlComponent;
 class UCameraComponent;
@@ -46,6 +47,7 @@ class HAL_FUTURE_CREATION_API ATestVehiclePawn : public APawn, public IAbilitySy
 	GENERATED_BODY()
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALVehicleAbilityTestAccess;
+	friend struct FHALCameraTestAccess;
 #endif
 
 public:
@@ -66,6 +68,10 @@ public:
 	void NeutralizeInputForMenu();
 	/** Remove only this vehicle's IMC while a local menu owns input. Re-add ignores held keys until release. */
 	void SetMenuInputActive(bool bMenu);
+	/** Stable Avatar/ASC/room ownership, separate from the physics step's ability to drive. */
+	bool IsLocalInputAvatarLinked() const;
+	/** Requires one ready movement sample per binding; temporary recovery cannot undo that initialization. */
+	bool IsLocalInputInitialized();
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* Property) const override;
 #endif
@@ -201,6 +207,11 @@ private:
 
 
 	bool bLifecycleRetired = false;
+	void ResetLocalInputReadiness();
+	TWeakObjectPtr<AController> LocalInputController;
+	TWeakObjectPtr<AHALPlayerState> LocalInputPlayer;
+	FGuid LocalInputEpoch;
+	bool bLocalInputInitialized=false;
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALPresentationTestAccess;
 #endif
