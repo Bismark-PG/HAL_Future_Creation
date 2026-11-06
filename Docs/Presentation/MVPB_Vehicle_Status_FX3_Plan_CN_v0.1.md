@@ -2,7 +2,7 @@
 
 日期：2026-11-06。原讨论核对基点为干净 `main/62d5a35`、UE5.8.2-56702186。方案接续核对为`main/06eb9ab`、UE5.8.3-58210709；方案同步后，用户已授权从A施工。A现已独立完成构建／原生验证，详见下方实施留档。
 
-**状态：FX-3A纯C++实例／来源模型完成代码、Editor／Game及原生验证；下一环节为FX-3B，B／C尚未施工。** 最终R2两Target、新增八项及全量161/161通过，含定义晚到的初始时钟补偿，见[A实施](MVPB_Vehicle_Status_FX3A_Implementation_CN_v0.1.md)与[保护记录](MVPB_Vehicle_Status_FX3A_Verification_20261106.json)。已有FX-1外观快照、FX-2配置／异步缓存及旧电击ASC／回弹接续。团队已创建两份状态FX DA，DefaultGame.ini已指向DA_VehicleStatusFX_Default；先前“默认仍None”是FX-2交付时点。车辆资源组件和ASC观察仍分属B／C，A尚未挂车，不将目录引用存在等同于Ready／Cook／画面验收。
+**状态：FX-3A／B完成各自代码、两Target与程序验证；下一环节FX-3C，C尚未施工。** B由车辆基类组装运行组件，接FX-1／2、准备本车资源和借用式请求，覆盖等待／Mesh代次／重绑／实际释放；最终R5两Target、167原生及双端三回合回归通过，见[B实施](MVPB_Vehicle_Status_FX3B_Implementation_CN_v0.1.md)与[保护记录](MVPB_Vehicle_Status_FX3B_Verification_20261106.json)。A的161原生等历史证据保留在[A实施](MVPB_Vehicle_Status_FX3A_Implementation_CN_v0.1.md)。新组件不写Overlay、不激活粒子，现有电击仍由旧组件显示。团队两份FX DA及DefaultGame.ini引用保持；目录引用、对象准备与GPU／Cook／真人验收分开。
 
 ## 1. 目的与分工
 

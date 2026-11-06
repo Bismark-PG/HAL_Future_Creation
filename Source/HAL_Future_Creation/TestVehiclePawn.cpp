@@ -14,6 +14,7 @@
 #include "HALMovementAreaReceiver.h"
 #include "HALVehiclePresentationComponent.h"
 #include "HALVehicleStatusFXSubsystem.h"
+#include "HALVehicleStatusFXComponent.h"
 #include "Engine/GameInstance.h"
 #include "HALDynamicCameraComponent.h"
 #include "HALGameFlowPermissions.h"
@@ -90,6 +91,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	SkeletalVisual->SetVisibility(false);
 	SkeletalVisual->SetHiddenInGame(true);
 	VehiclePresentation = CreateDefaultSubobject<UHALVehiclePresentationComponent>(TEXT("VehiclePresentation"));
+	StatusFXPresentation = CreateDefaultSubobject<UHALVehicleStatusFXComponent>(TEXT("StatusFXPresentation"));
 
 	ForwardArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("ForwardArrow"));
 	ForwardArrow->SetupAttachment(CollisionRoot);
@@ -165,10 +167,7 @@ void ATestVehiclePawn::BeginPlay()
 	}
 
 	Super::BeginPlay();
-	if (auto* GI = GetGameInstance())
-	{
-		if (auto* StatusFX = GI->GetSubsystem<UHALVehicleStatusFXSubsystem>()) { StatusFX->PrepareForVehicle(Definition); }
-	}
+	RefreshStatusFXBinding();
 	// Existing saved Blueprints may override the component's constructor default.
 	// Enable queries on the real body at runtime; never change its collision profile or simulation.
 	if (HasAuthority() && bConfigurationValid) { CollisionRoot->SetGenerateOverlapEvents(true); }
@@ -292,6 +291,7 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 	ASC->InitAbilityActorInfo(State, this);
 	Health->BindToAbilitySystem(ASC);
 	ShockedPresentation->Bind(ASC);
+	RefreshStatusFXBinding();
 	MovementEffectBridge->Bind(ASC, State->GetPlayerId());
 	MovementAreaReceiver->Bind(ASC);
 	if (HasAuthority() && bConfigurationValid)
@@ -305,12 +305,21 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 void ATestVehiclePawn::UninitializeAbilitySystem()
 {
 	ResetLocalInputReadiness();
+	StatusFXPresentation->Unbind();
 	ShockedPresentation->Unbind();
 	MovementAreaReceiver->Unbind();
 	MovementEffectBridge->Unbind();
 	UHALAbilitySystemComponent* ASC = Health->GetBoundAbilitySystem();
 	Health->UnbindFromAbilitySystem();
 	if (ASC) { ASC->ClearAvatarIfCurrent(this); }
+}
+
+void ATestVehiclePawn::RefreshStatusFXBinding()
+{
+	if (bLifecycleRetired) { StatusFXPresentation->Unbind(); return; }
+	auto* GI = GetGameInstance();
+	StatusFXPresentation->Bind(VehiclePresentation, GI ? GI->GetSubsystem<UHALVehicleStatusFXSubsystem>() : nullptr,
+		Definition, GetAbilitySystemComponent());
 }
 
 bool ATestVehiclePawn::GetLifecycleSeed(FHALVehicleLifecycleSeed& Out) const

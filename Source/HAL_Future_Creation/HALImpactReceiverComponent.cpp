@@ -96,8 +96,10 @@ void UHALImpactReceiverComponent::BeginPlay()
 
 void UHALImpactReceiverComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
-	GetWorld()->GetTimerManager().ClearTimer(ContactTimer);
-	if (UPrimitiveComponent* Root = Cast<UPrimitiveComponent>(GetOwner()->GetRootComponent()))
+	if (UWorld* World = GetWorld()) { World->GetTimerManager().ClearTimer(ContactTimer); }
+	else { ContactTimer.Invalidate(); }
+	AActor* Owner = GetOwner();
+	if (UPrimitiveComponent* Root = Owner ? Cast<UPrimitiveComponent>(Owner->GetRootComponent()) : nullptr)
 	{
 		Root->OnComponentHit.RemoveDynamic(this, &ThisClass::HandleContact);
 	}

@@ -32,6 +32,7 @@ class UHALImpactReceiverComponent;
 class UHALMovementEffectBridge;
 class UHALMovementAreaReceiver;
 class UHALVehiclePresentationComponent;
+class UHALVehicleStatusFXComponent;
 class UVehicleRecoveryComponent;
 class USkeletalMeshComponent;
 class UHALDynamicCameraComponent;
@@ -121,6 +122,8 @@ protected:
 	TObjectPtr<USkeletalMeshComponent> SkeletalVisual;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
 	TObjectPtr<UHALVehiclePresentationComponent> VehiclePresentation;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vehicle|Components")
+	TObjectPtr<UHALVehicleStatusFXComponent> StatusFXPresentation;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vehicle|Components")
 	TObjectPtr<UHALShockedPresentationComponent> ShockedPresentation;
 
@@ -216,6 +219,7 @@ private:
 	friend struct FHALPresentationTestAccess;
 #endif
 	void InitializeAbilitySystem();
+	void RefreshStatusFXBinding();
 	FVehicleCombatConfig RuntimeCombatConfig;
 	UPROPERTY(Transient) FHALVehicleAbilityConfig RuntimeAbilities;
 	void UninitializeAbilitySystem();

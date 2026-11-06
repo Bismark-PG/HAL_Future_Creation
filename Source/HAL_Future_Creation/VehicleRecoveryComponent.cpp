@@ -38,7 +38,9 @@ void UVehicleRecoveryComponent::BeginPlay()
 }
 void UVehicleRecoveryComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
-	GetWorld()->GetTimerManager().ClearTimer(Timer);
+	// GC can finish a component after its world has already been torn down.
+	if (UWorld* World = GetWorld()) { World->GetTimerManager().ClearTimer(Timer); }
+	else { Timer.Invalidate(); }
 	Super::EndPlay(Reason);
 }
 void UVehicleRecoveryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
