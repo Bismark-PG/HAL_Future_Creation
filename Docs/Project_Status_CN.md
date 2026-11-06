@@ -1,5 +1,13 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-06 Game Flow UI团队定制交接说明已整理。** 用户将界面定制交由团队；新增[Game Flow UI定制开发交接说明 v1.0](Networking/GameFlow_UI_Customization_Handoff_CN_v1.0.md)，按当前`main/328b78e`核对入口、选车、练习／比赛HUD、菜单、载入／倒计时、观战、结算与返房用途。明确GI的Entry／Room／Pause三个Screens槽、各自HAL父类、Receive View／按钮／焦点接口、品牌与Catalog配置，以及原生跨World加载幕没有WBP配置槽。补GF7数据和相机输入边界，提供Editor操作、分工与验收清单；UI素材／布局由团队手工制作，未代理创建或编辑资产。
+
+本轮仅新增说明、加入Markdown Git白名单并更新本入口，保留原有NetTest地图修改和前轮相机接续文档／JSON。没有C++／配置／BP／DA／地图修改、构建或新引擎界面验收，未提交／Push。下一步团队先制作Entry与Room最小可用WBP，经Entry验证完整流程，再制作可选Pause、比赛／观战／结果表现；原相机真人复测、独立电墙高速／发布包／校园四机及其他MVP-B欠项保持。
+
+**2026-11-06接续核对：相机边界修复已随`main/328b78e`提交，当前进入原场景真人复测。** 已核对实际源码：临时Movement Recovery不撤销同一Controller／PS／Epoch的首次输入就绪；房间HUD不因此切入菜单；菜单／失焦只清观察输入，保留自动取景距离；长帧限步长而不全量重种，换车／跨图／真实跳变仍有明确重置与`hal.CameraLog`。保留Loading就绪屏障与物理／GAS规则。原施工文件中的“未提交／尚未修复”是历史时点，当前以本段、[实现说明](Presentation/MVPB_Camera_Input_Boundaries_CN_v0.1.md)与[本次接续核对](Presentation/MVPB_Camera_ProgressSync_20261106.json)为准。
+
+对照已提交验证清单，299份Source／Config／uproject中155份字节相同、144份仅换行符差异，无实质源码差异。留档为另一设备UE5.8.3的两Target、144原生与9份干净报告，包含Entry练习／Playing重复电墙、无注入／Host出站80ms＋替换UI、旧GF4两局及GF7三局；这些是原施工证据，**本设备D盘实际UE5.8.2-56702186，原始Saved报告不在此设备，本轮没有重编、重跑或新增真人验收**。当前1190份资产与清单相比，仅已有未提交`Content/Maps/MVPB_NetTest.umap`不同，保持该团队修改，不当作地图仍与原验证版本完全一致。本轮只更新接续留档；下一步双方同版构建后，经Entry在实际保存DA／当前地图重复原事故，开启`hal.CameraLog 1`并配合CameraDebug检查。真实鼠标／手柄、校园四机／发布包及独立电墙高速轨迹欠项继续分开验收。
+
 **2026-11-05相机输入／恢复／生命周期边界拆分完成代码、构建与程序验证，待原场景真人复测。** 按用户授权，首次Avatar就绪按Controller／PS／Movement Epoch检查；同一绑定临时Recovery保留首次就绪，不重建菜单输入。菜单／失焦清理驾驶和观察输入，保留自动距离／聚焦历史；长帧限步长，换配置／重新接管／退场／跨图与真实位置跳变明确处理。新增默认关闭`hal.CameraLog`，全部UI仍原生回退＋WBP替换。无需重建或修改DA／BP。见[实施／日志／复测](Presentation/MVPB_Camera_Input_Boundaries_CN_v0.1.md)及[验证保护清单](Presentation/MVPB_Camera_Input_Boundaries_Verification_20261105.json)。
 
 本机UE5.8.3最终Editor／Game成功，**144/144原生、无注入双端／80ms出站注入＋替换UI双端／旧GF4两局／GF7三局各角色1/1**，共9份最终报告均0测试警告／失败／未运行／进行中。相机双端实际从Entry进入练习／Playing，各阶段两车合计6次电墙接触并开关菜单；Client实测`Menu=0 PhysicsReady=0 Recovery=1`且取景距离连续。两端D3D12离屏、瞬态测试Profile，不冒充保存DA画面／真实手柄或校园四机；原事故仍待团队复测。缺include、原生夹具未BeginPlay及未迁移测试球导致的失败全部保留，严格修正重验。原生最终报告后仅修联机夹具球类，生产／原生测试源码不变。**1190保存资产逐份全同、299最终输入冻结、Config／Build.cs／uproject保持**；专用进程已退出。基点main/e4f0b09，保留此前进度文档修改，未代改资产，未提交／Push。以下旧“尚未修复／仅诊断”保留当时时点，当前以本段及第2／6节为准。
