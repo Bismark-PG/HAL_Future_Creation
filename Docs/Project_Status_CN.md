@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-06 FX-3进入方案讨论，尚未施工。** 当前干净基点`main/62d5a35`，已包含FX-2提交及团队创建的两份状态FX DA，`Config/DefaultGame.ini`已配置默认目录；下方“默认仍None／待创建DA”是此前交付时点。本轮核对引用及源码，未重新导出资产或运行Ready／Cook／画面验证。新增[FX-3讨论稿](Presentation/MVPB_Vehicle_Status_FX3_Plan_CN_v0.1.md)，建议拆为A实例／来源、B本车资源／生命周期、C观察入口／诊断，默认同Tag一份持续实例、多源仅维持存在、刷新不重启、淡出重入复用；这些默认规则待用户确认。材质协调／表面采样和电击接管继续归FX-4／FX-5，FX-3先旁路／受控调试，不让新旧系统同时写电击表面。仅更新讨论稿／状态／白名单，无C++／Config／资产改动、构建或新增测试结论，未提交／Push。
+
 **2026-11-06 FX-2共用状态FX配置、资源准备与Cook入口完成代码／构建／程序验证，待团队创建并指定DA。** 从干净`main/4e5d586`接续已提交FX-1，本机UE5.8.2-56702186。新增效果定义、精确视觉Tag目录、Project Settings → Game → Vehicle Status FX的Default Catalog；普通车型None继承，少量例外按Tag覆盖，其余继续继承公共目录。GameInstance子系统异步准备、缓存只读资源、去重请求及取消退出回调；Pawn仅请求准备，不新增驾驶／开局就绪门槛。项目模块收集默认目录Cook根，硬引用保留定义／材质／Niagara／曲线及车型例外依赖。没有新增Tick／复制字段／RPC／插件，现有电击尚未迁移。见[Editor接线／结构／验证](Presentation/MVPB_Vehicle_Status_FX2_Implementation_CN_v0.1.md)及[完整保护记录](Presentation/MVPB_Vehicle_Status_FX2_Verification_20261106.json)。
 
 最终Editor R3／Game R1成功；新增FX-2测试5/5、全量原生153/153，原GF7同机NullRHI双进程三局Host／Client各1/1，四份最终报告均0测试警告／失败／未运行／进行中。两端确认新子系统Unconfigured且流程正常；没有把它记成新保存DA已Ready或实际打包通过。首轮重复Tag夹具TArray自引用断言已修成独立副本，失败日志保留；完整Editor构建原有相机测试C4305警告另记。**1190保存资产逐份全同、312最终输入冻结一致，Config／Build.cs／uproject保持**；未代建／改BP、DA、地图，未提交／Push，专用进程已退出。团队按实现第3节手动建两份DA并指定一次默认，重启后用`hal.StatusFXStatus`检查Ready；目前默认仍None，不阻塞后续施工。下一独立环节为**FX-3每车运行实例、来源聚合及生命周期**；FX-4～FX-6、实际Cook／GPU／画面／校园四机及其他MVP-B真人欠项保持。下方FX-1及此前咨询记录保留各自历史时点，当前以本段为准。
