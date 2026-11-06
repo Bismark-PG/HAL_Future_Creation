@@ -12,6 +12,7 @@
 #include "Engine/SkeletalMesh.h"
 #include "Engine/World.h"
 #include "Net/UnrealNetwork.h"
+#include "Misc/ScopeExit.h"
 
 UHALVehiclePresentationComponent::UHALVehiclePresentationComponent()
 {
@@ -35,6 +36,13 @@ void UHALVehiclePresentationComponent::Configure(UHALVehiclePresentationConfig* 
 	check(IsInGameThread());
 	StopPresentation();
 	Body = InBody; Fallback = InFallback; Mesh = InMesh;
+	// Even an absent/invalid optional rig retains the configured static fallback path.
+	ON_SCOPE_EXIT
+	{
+		bStatusFXBound = IsValid(Body) && Body->GetOwner() == GetOwner();
+		++StatusFXBindingRevision;
+		StatusFXBindingsChanged.Broadcast();
+	};
 	if (!InConfig || !Body || !Fallback || !Mesh) { return; }
 	FString Error;
 	if (!InConfig->Validate(Error))
@@ -86,6 +94,7 @@ void UHALVehiclePresentationComponent::EndPlay(const EEndPlayReason::Type Reason
 
 void UHALVehiclePresentationComponent::StopPresentation()
 {
+	ClearStatusFXBindings();
 	ClearTireSkids();
 	bTireSkidReady = false;
 	SetComponentTickEnabled(false);

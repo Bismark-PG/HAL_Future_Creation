@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "HALVehiclePresentationTypes.h"
+#include "HALVehicleFXTargets.h"
 #include "HALVehiclePresentationComponent.generated.h"
 
 class UHALVehiclePresentationConfig;
@@ -33,6 +34,16 @@ public:
 	FHALVehiclePresentationFrame GetPresentationFrame() const { return Frame; }
 	bool IsUsingSkeletalPresentation() const { return bConfigured; }
 	const USkeletalMeshComponent* GetPresentationMesh() const { return Mesh; }
+	/** Read-only cosmetic targets, game thread only. Includes the actual active visual path. */
+	void CaptureStatusFXTargets(FHALVehicleFXTargetSnapshot& Out) const;
+	/** Assembly-time multipart registration; same owner, unique semantic Id, never the physics body. */
+	bool RegisterStatusFXPart(FName Id, UMeshComponent* Part);
+	void UnregisterStatusFXPart(FName Id);
+	/** Explicit invalidation on retirement/reconfiguration. Weak bindings never keep old meshes alive. */
+	void ClearStatusFXBindings();
+	/** Tests binding identity/visibility/assets, not transform freshness. Always re-query for geometry. */
+	bool AreStatusFXBindingsCurrent(const FHALVehicleFXTargetSnapshot& Snapshot) const;
+	FSimpleMulticastDelegate& OnStatusFXBindingsChanged() { return StatusFXBindingsChanged; }
 	float GetObserverSteering() const { return float(ObserverSteering) / 127.f; }
 	uint8 GetObserverTireSkidInputs() const { return ObserverTireSkidInputs; }
 	/** Owning-client input edge only; no force or authority request is performed here. */
@@ -47,6 +58,10 @@ private:
 	friend struct FHALPresentationTestAccess;
 #endif
 	void StopPresentation();
+	FSimpleMulticastDelegate StatusFXBindingsChanged;
+	TMap<FName, TWeakObjectPtr<UMeshComponent>> StatusFXParts;
+	uint32 StatusFXBindingRevision = 0;
+	bool bStatusFXBound = false;
 	void ResetPose();
 	float ReadSteering(float DeltaTime, bool bDrivingLeanAllowed);
 	bool ReadDrivingLeanAllowed() const;

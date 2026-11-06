@@ -17,6 +17,7 @@ class UInputMappingContext;
 class UInputAction;
 class UHALVehiclePresentationConfig;
 class UHALCameraConfig;
+class UHALVehicleStatusFXCatalog;
 
 UENUM(BlueprintType)
 enum class EVehicleCollisionShape : uint8 { ConvexMesh, Box };
@@ -204,6 +205,10 @@ public:
 	/** Visual-only rig. An invalid/unready rig requires a valid static Visual fallback. */
 	UPROPERTY(EditAnywhere, Category = "Visual")
 	TObjectPtr<UHALVehiclePresentationConfig> Presentation;
+	/** None inherits project Vehicle Status FX settings. Rare cosmetic-only overrides for listed tags;
+	 * unlisted tags inherit the default. Never gates driving. Hard reference preserves cook reachability. */
+	UPROPERTY(EditAnywhere, Category="Visual|Status FX")
+	TObjectPtr<UHALVehicleStatusFXCatalog> StatusFXCatalogOverride;
 	UPROPERTY(EditAnywhere, Category = "Local")
 	TObjectPtr<UVehicleLocalConfig> LocalConfig;
 	UPROPERTY(EditAnywhere, Category = "Marker")

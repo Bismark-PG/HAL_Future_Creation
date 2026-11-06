@@ -13,6 +13,8 @@
 #include "HALMovementEffectBridge.h"
 #include "HALMovementAreaReceiver.h"
 #include "HALVehiclePresentationComponent.h"
+#include "HALVehicleStatusFXSubsystem.h"
+#include "Engine/GameInstance.h"
 #include "HALDynamicCameraComponent.h"
 #include "HALGameFlowPermissions.h"
 #include "HALVehicleLifecycleTypes.h"
@@ -163,6 +165,10 @@ void ATestVehiclePawn::BeginPlay()
 	}
 
 	Super::BeginPlay();
+	if (auto* GI = GetGameInstance())
+	{
+		if (auto* StatusFX = GI->GetSubsystem<UHALVehicleStatusFXSubsystem>()) { StatusFX->PrepareForVehicle(Definition); }
+	}
 	// Existing saved Blueprints may override the component's constructor default.
 	// Enable queries on the real body at runtime; never change its collision profile or simulation.
 	if (HasAuthority() && bConfigurationValid) { CollisionRoot->SetGenerateOverlapEvents(true); }
@@ -359,6 +365,7 @@ void ATestVehiclePawn::RetireForVehicleTransition()
 {
 	if (!HasAuthority() || bLifecycleRetired) { return; }
 	bLifecycleRetired = true;
+	VehiclePresentation->ClearStatusFXBindings();
 	BallControl->PrepareForOwnerExit();
 	for (TActorIterator<ABasicBallActor> It(GetWorld()); It; ++It) { It->HandleVehicleExit(this); }
 	VehicleRecovery->CancelForOwnerExit(); MovementAreaReceiver->ClearForOwnerExit();

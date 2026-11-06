@@ -13,6 +13,8 @@ namespace HALVehicleAssets
 {
 	/** Project-approved shared input/camera asset. Only this editor tool resolves its path. */
 	inline constexpr TCHAR SharedLocalConfigPath[] = TEXT("/Game/Data/MVP_B/DA_Local_TestBaseline_v1.DA_Local_TestBaseline_v1");
+	inline constexpr TCHAR DefaultCollisionMeshPath[] = TEXT("/Game/Meshes/Collision/SM_Car01_Collision.SM_Car01_Collision");
+	inline constexpr TCHAR DefaultVisualMeshPath[] = TEXT("/Game/Meshes/SM_Car_Proxy.SM_Car_Proxy");
 
 	struct FOutputPaths
 	{

@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS && !UE_BUILD_SHIPPING
 #include "Misc/AutomationTest.h"
 #include "../SpringPunchGimmick.h"
+#include "../BasicBallActor.h"
 #include "../TestVehiclePawn.h"
 #include "../HALPlayerController.h"
 #include "../HALMatchGameState.h"
@@ -23,6 +24,7 @@ class FHALSpringPunchLiveTest : public IAutomationLatentCommand
 	TMap<TWeakObjectPtr<ASpringPunchGimmick>, TSet<int64>> CycleExtensions, CycleReturns;
 	double Deadline = FPlatformTime::Seconds() + 70;
 	double SpawnedAt = -1, CompletedAt = -1;
+	TWeakObjectPtr<ABasicBallActor> CollisionBall, MovingFistBall;
 	bool bSawExtend = false, bSawRetract = false;
 	bool bCheckedMissingExtendNotify = false, bCheckedMissingReturnNotify = false;
 	TSet<int32> MediumTargets;
@@ -47,6 +49,35 @@ public:
 		{
 			auto* Candidate = Cast<AHALPlayerController>(It->Get());
 			if (Candidate && Candidate->IsLocalController()) { PC = Candidate; break; }
+		}
+		// The live map can point to a vehicle whose authored migration is still pending.
+		// Use a ready saved vehicle in this test session without editing the map or Blueprint.
+		if (bHost)
+		{
+			for (auto It = World->GetPlayerControllerIterator(); It; ++It)
+			{
+				auto* Controller = It->Get();
+				auto* Current = Controller ? Cast<ATestVehiclePawn>(Controller->GetPawn()) : nullptr;
+				if (!Current || Current->IsConfigurationValid()) { continue; }
+				UClass* ReadyClass = LoadClass<ATestVehiclePawn>(nullptr,
+					TEXT("/Game/Blueprints/Vehicles/BP_VehiclePawn_Car_02.BP_VehiclePawn_Car_02_C"));
+				if (!ReadyClass || Current->GetClass() == ReadyClass)
+				{
+					Test->AddError(TEXT("Spring punch needs a ready vehicle fixture"));
+					return true;
+				}
+				FActorSpawnParameters Params;
+				Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+				auto* Replacement = World->SpawnActor<ATestVehiclePawn>(ReadyClass, Current->GetActorTransform(), Params);
+				if (!Replacement || !Replacement->IsConfigurationValid())
+				{
+					Test->AddError(TEXT("Replacement vehicle fixture is invalid"));
+					return true;
+				}
+				Controller->UnPossess();
+				Current->Destroy();
+				Controller->Possess(Replacement);
+			}
 		}
 		TArray<ATestVehiclePawn*> Vehicles;
 		for (TActorIterator<ATestVehiclePawn> It(World); It; ++It)
@@ -100,6 +131,45 @@ public:
 				Punch->RetractDuration = .7f;
 				Punch->CooldownDuration = bCycleTest ? .35f : 60.f;
 				Punch->FinishSpawning(Transform);
+			}
+			if (!bCycleTest)
+			{
+				const FTransform RestingFist(FRotator::ZeroRotator, FVector(0, 0, 10000));
+				auto* Barrier = World->SpawnActorDeferred<ASpringPunchGimmick>(ASpringPunchGimmick::StaticClass(), RestingFist);
+				Barrier->InitialDelay = 60.f;
+				Barrier->FinishSpawning(RestingFist);
+				UClass* BallClass = LoadClass<ABasicBallActor>(nullptr,
+					TEXT("/Game/Blueprints/Balls/BP_BasicBall.BP_BasicBall_C"));
+				auto* Ball = BallClass ? World->SpawnActor<ABasicBallActor>(
+					BallClass, FVector(-300, 0, 10000), FRotator::ZeroRotator) : nullptr;
+				auto* BallBody = Ball ? Cast<UPrimitiveComponent>(Ball->GetRootComponent()) : nullptr;
+				if (!BallBody || !Ball->IsConfigurationValid() || !BallBody->IsSimulatingPhysics())
+				{
+					Test->AddError(TEXT("Spring punch needs a configured, simulated free ball"));
+					return true;
+				}
+				BallBody->SetEnableGravity(false);
+				BallBody->SetPhysicsLinearVelocity(FVector(1000, 0, 0));
+				CollisionBall = Ball;
+
+				const FTransform MovingFist(FRotator::ZeroRotator, FVector(0, 0, 12000));
+				auto* Striker = World->SpawnActorDeferred<ASpringPunchGimmick>(ASpringPunchGimmick::StaticClass(), MovingFist);
+				Striker->InitialDelay = .1f;
+				Striker->WindupDuration = .1f;
+				Striker->PunchDistance = 400.f;
+				Striker->ExtendDuration = .15f;
+				Striker->CooldownDuration = 60.f;
+				Striker->FinishSpawning(MovingFist);
+				auto* StationaryBall = World->SpawnActor<ABasicBallActor>(
+					BallClass, FVector(250, 0, 12000), FRotator::ZeroRotator);
+				auto* StationaryBody = StationaryBall ? Cast<UPrimitiveComponent>(StationaryBall->GetRootComponent()) : nullptr;
+				if (!StationaryBody || !StationaryBody->IsSimulatingPhysics())
+				{
+					Test->AddError(TEXT("Moving fist test needs a simulated stationary ball"));
+					return true;
+				}
+				StationaryBody->SetEnableGravity(false);
+				MovingFistBall = StationaryBall;
 			}
 			SpawnedAt = World->GetTimeSeconds();
 		}
@@ -200,6 +270,12 @@ public:
 			bool bAcknowledged = false;
 			for (auto* V : Vehicles) { bAcknowledged |= V->GetPlayerState()->GetPlayerName() == TEXT("HAL_PunchDone"); }
 			if (!bAcknowledged) { return false; }
+			const auto* Ball = CollisionBall.Get();
+			Test->TestTrue(TEXT("Free ball physically stops or rebounds against the resting fist"),
+				Ball && Ball->GetActorLocation().X < -75
+				&& CastChecked<UPrimitiveComponent>(Ball->GetRootComponent())->GetPhysicsLinearVelocity().X < 100);
+			Test->TestTrue(TEXT("Extending fist physically displaces the stationary ball"),
+				MovingFistBall.IsValid() && MovingFistBall->GetActorLocation().X > 450.f);
 		}
 		for (auto* V : Vehicles)
 		{

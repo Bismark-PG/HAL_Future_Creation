@@ -74,6 +74,7 @@ bool FHALVehicleGeneratedInputInitializationTest::RunTest(const FString&)
 	Definition->CollisionMesh = Baseline->CollisionMesh;
 	Definition->Visual.Mesh = Baseline->CollisionMesh;
 	Definition->Presentation = nullptr; // This input-only fixture explicitly selects the static presentation path.
+	Definition->Impact.Version = EHALImpactVersion::Legacy; // Match this input-only world's explicit legacy rules.
 	Definition->bReadyForUse = true;
 	if (!TestTrue(TEXT("Only the transient fixture is made gameplay-ready"), Definition->Validate(Error))) { AddError(Error); return false; }
 	FGeneratorRuntimeWorld Fixture;
@@ -141,11 +142,42 @@ bool FHALVehicleAssetGenerationTest::RunTest(const FString&)
 	TestTrue(TEXT("Presentation bound and not ready"), Definition->Presentation == Presentation && !Presentation->bReadyForUse && !Definition->bReadyForUse);
 	TestTrue(TEXT("Exact shared Local configuration bound"), Definition->LocalConfig == F.SharedLocal.Get());
 	TestEqual(TEXT("Project Local configuration path"), Definition->LocalConfig->GetPathName(), FString(TEXT("/Game/Data/MVP_B/DA_Local_TestBaseline_v1.DA_Local_TestBaseline_v1")));
-	TestNull(TEXT("Collision mesh awaits model-specific configuration"), Definition->CollisionMesh.Get());
-	TestNull(TEXT("Fallback visual awaits model-specific configuration"), Definition->Visual.Mesh.Get());
+	TestTrue(TEXT("Default collision mesh bound"), Definition->CollisionMesh && Definition->CollisionMesh->GetPathName() == HALVehicleAssets::DefaultCollisionMeshPath);
+	TestTrue(TEXT("Default static fallback bound"), Definition->Visual.Mesh && Definition->Visual.Mesh->GetPathName() == HALVehicleAssets::DefaultVisualMeshPath);
+	TestTrue(TEXT("Generated impact uses TieredV1"), Definition->Impact.Version == EHALImpactVersion::TieredV1);
+	TestTrue(TEXT("Generated combat uses AttackSnapshotV1"), Definition->Combat.Version == EHALCombatConfigVersion::AttackSnapshotV1);
+	TStrongObjectPtr<UVehicleDefinition> ExpectedDefinition(NewObject<UVehicleDefinition>());
+	ExpectedDefinition->CollisionMesh = Definition->CollisionMesh;
+	ExpectedDefinition->Visual.Mesh = Definition->Visual.Mesh;
+	ExpectedDefinition->Impact.Version = EHALImpactVersion::TieredV1;
+	ExpectedDefinition->Combat.Version = EHALCombatConfigVersion::AttackSnapshotV1;
+	ExpectedDefinition->LocalConfig = F.SharedLocal.Get();
+	ExpectedDefinition->Presentation = Presentation;
+	for (TFieldIterator<FProperty> It(UVehicleDefinition::StaticClass(), EFieldIterationFlags::None); It; ++It)
+	{
+		TestTrue(*FString::Printf(TEXT("Only requested Definition defaults change: %s"), *It->GetName()),
+			It->Identical_InContainer(Definition, ExpectedDefinition.Get()));
+	}
+	TStrongObjectPtr<UHALVehiclePresentationConfig> ExpectedPresentation(NewObject<UHALVehiclePresentationConfig>());
+	ExpectedPresentation->Mesh = F.Mesh.Get();
+	ExpectedPresentation->AnimClass = Anim->GeneratedClass;
+	for (auto& Wheel : ExpectedPresentation->Wheels)
+	{
+		Wheel.RadiusCm = 47.5f;
+		if (Wheel.Wheel == EHALVehicleWheel::FL || Wheel.Wheel == EHALVehicleWheel::FR)
+		{
+			Wheel.SteeringAxis = EHALBoneAxis::Y;
+			Wheel.SteeringSign = -1.0f;
+		}
+	}
+	for (TFieldIterator<FProperty> It(UHALVehiclePresentationConfig::StaticClass(), EFieldIterationFlags::None); It; ++It)
+	{
+		TestTrue(*FString::Printf(TEXT("Only requested Presentation defaults change: %s"), *It->GetName()),
+			It->Identical_InContainer(Presentation, ExpectedPresentation.Get()));
+	}
 	const auto* NativeDefinition = GetDefault<UVehicleDefinition>();
 	for (const FName Field : { TEXT("Physics"), TEXT("Movement"), TEXT("BallControl"), TEXT("BallControlPoint"),
-		TEXT("Health"), TEXT("Combat"), TEXT("Impact"), TEXT("Visual") })
+		TEXT("Health"), TEXT("Abilities") })
 	{
 		const auto* Property = FindFProperty<FProperty>(UVehicleDefinition::StaticClass(), Field);
 		TestTrue(*FString::Printf(TEXT("%s uses native initial values"), *Field.ToString()),

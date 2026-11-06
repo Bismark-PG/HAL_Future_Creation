@@ -119,6 +119,7 @@ DerivedDataCache/*
 !Docs/Networking/GF4_Round_Travel_Implementation_CN_v0.1.md
 !Docs/Networking/GF5_Arcade_FrontEnd_Implementation_CN_v0.1.md
 !Docs/Networking/GF5_Widget_Blueprint_Interfaces_CN_v0.1.md
+!Docs/Networking/GameFlow_UI_Customization_Handoff_CN_v1.0.md
 !Docs/Combat/MVPB_Phase10A_GAS_Impact_Spec_CN_v0.1.md
 !Docs/Combat/MVPB_GAS_Architecture_Overview_CN_v0.1.md
 !Docs/Project_Status_CN.md
@@ -171,6 +172,9 @@ DerivedDataCache/*
 !Docs/Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md
 !Docs/Presentation/MVPB_Temporary_Overhead_HealthBar_CN_v0.1.md
 !Docs/Presentation/MVPB_Camera_Input_Boundaries_CN_v0.1.md
+!Docs/Presentation/MVPB_Vehicle_Status_FX_Discussion_CN_v0.1.md
+!Docs/Presentation/MVPB_Vehicle_Status_FX1_Implementation_CN_v0.1.md
+!Docs/Presentation/MVPB_Vehicle_Status_FX2_Implementation_CN_v0.1.md
 !Docs/Networking/GF7_Match_Loop_Plan_CN_v0.1.md
 !Docs/Networking/GF7_Match_Loop_Implementation_CN_v0.1.md
 

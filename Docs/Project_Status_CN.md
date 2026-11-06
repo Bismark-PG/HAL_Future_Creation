@@ -1,5 +1,29 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-06 FX-2共用状态FX配置、资源准备与Cook入口完成代码／构建／程序验证，待团队创建并指定DA。** 从干净`main/4e5d586`接续已提交FX-1，本机UE5.8.2-56702186。新增效果定义、精确视觉Tag目录、Project Settings → Game → Vehicle Status FX的Default Catalog；普通车型None继承，少量例外按Tag覆盖，其余继续继承公共目录。GameInstance子系统异步准备、缓存只读资源、去重请求及取消退出回调；Pawn仅请求准备，不新增驾驶／开局就绪门槛。项目模块收集默认目录Cook根，硬引用保留定义／材质／Niagara／曲线及车型例外依赖。没有新增Tick／复制字段／RPC／插件，现有电击尚未迁移。见[Editor接线／结构／验证](Presentation/MVPB_Vehicle_Status_FX2_Implementation_CN_v0.1.md)及[完整保护记录](Presentation/MVPB_Vehicle_Status_FX2_Verification_20261106.json)。
+
+最终Editor R3／Game R1成功；新增FX-2测试5/5、全量原生153/153，原GF7同机NullRHI双进程三局Host／Client各1/1，四份最终报告均0测试警告／失败／未运行／进行中。两端确认新子系统Unconfigured且流程正常；没有把它记成新保存DA已Ready或实际打包通过。首轮重复Tag夹具TArray自引用断言已修成独立副本，失败日志保留；完整Editor构建原有相机测试C4305警告另记。**1190保存资产逐份全同、312最终输入冻结一致，Config／Build.cs／uproject保持**；未代建／改BP、DA、地图，未提交／Push，专用进程已退出。团队按实现第3节手动建两份DA并指定一次默认，重启后用`hal.StatusFXStatus`检查Ready；目前默认仍None，不阻塞后续施工。下一独立环节为**FX-3每车运行实例、来源聚合及生命周期**；FX-4～FX-6、实际Cook／GPU／画面／校园四机及其他MVP-B真人欠项保持。下方FX-1及此前咨询记录保留各自历史时点，当前以本段为准。
+
+**2026-11-06 FX-1统一外观目标完成代码、构建和原生回归，待团队可见画面检查。** 从干净`main/1f046a8`接续，已保留最新弹簧拳／Car_03更新，本机实际UE5.8.2-56702186。复用VehiclePresentation按实际骨骼／静态路径选择主外观，额外部件明确注册、确定排序；快照提供Bounds中心／半尺寸、完整Mesh变换及物理根空间合并包围体，处理非零偏移／旋转／非均匀／镜像缩放。重配置、部件变更、退场及EndPlay有绑定失效边界；新增一次性`hal.VehicleFXTargets`日志与10秒包围框。没有新增Tick、复制字段／RPC或插件，现有电击播放尚未迁移。见[实现／团队操作](Presentation/MVPB_Vehicle_Status_FX1_Implementation_CN_v0.1.md)及[验证保护记录](Presentation/MVPB_Vehicle_Status_FX1_Verification_20261106.json)。
+
+本机Editor／Game首轮成功，新增FX-1测试4/4、全量原生148/148，两报告均0测试警告／失败／未运行／进行中；原有相机测试C4305编译警告单独记录。**1190保存资产逐份全同、303最终构建输入冻结一致，Config／Build.cs／uproject保持**；没有代改BP／DA／地图，未提交／Push。NullRHI验证不代替屏幕画面、真实表面采样或校园四机；本轮没有新Listen Server／四机测试。团队可按实现第3节检查三车型绑定，无需新DA或蓝图接线。下一独立环节为**FX-2共用效果定义／Tag目录／项目默认引用与资源校验**；FX-2～FX-6未施工，原有MVP-B真人与发布包欠项保持。下方“尚未开工／main/7c7ede7”等为之前咨询时点，当前以本段为准。
+
+**2026-11-06车辆通用状态FX总体方案已获用户确认，已拆为六环节，尚未开工。** 施工顺序为FX-1统一外观目标／空间尺寸、FX-2共用目录／效果定义／项目默认、FX-3每车运行组件与生命周期、FX-4材质共存／通用粒子适配、FX-5迁移现有电击并保留即时反馈／权威接续、FX-6第二占位视觉状态组合回归与交接。框架建设包含公共能力、电击迁移及共存验证；中毒／着火完整玩法与正式美术为后续独立制作。团队手动创建／接线DA、材质、Niagara并做视觉验收，代码代理维护C++和操作文档。工作量及每步完成标准见[方案第6节](Presentation/MVPB_Vehicle_Status_FX_Discussion_CN_v0.1.md#6-建议施工顺序与验收)。
+
+当前仍为`main/7c7ede7`，本轮仅维护方案与状态，保留前轮文档／白名单改动；没有C++、配置或资产修改，也没有新构建／测试，未提交／Push。下一步入口为FX-1的独立施工，先完成一环节再推进；下方“尚待确认”是前次咨询时点。
+
+**2026-11-06车辆通用状态FX方案咨询完成初步检查，尚未施工。** 当前`main/7c7ede7`开工干净。现有Shocked元件自动给可见非物理根的Mesh加Overlay，但资源／曲线仍配在各BP组件；主电弧读首个Mesh尺寸构造椭球并挂物理根，并非真实表面采样，完整坐标／体型适配不足；状态结束直接清Overlay也不支持多状态共同拥有。建议项目默认状态FX目录＋每效果共享定义＋每车本地运行组件，复用VehiclePresentation取得有效Mesh／变换，统一材质合成与生命周期；正常新车继承项目默认，例外才覆盖。GAS仍管规则，保留当前电击回弹提前表现和权威接续。见[检查结果、建议结构与施工顺序](Presentation/MVPB_Vehicle_Status_FX_Discussion_CN_v0.1.md)。
+
+本轮仅源码／引擎接口和Epic主文档核对、建议留档及Git白名单更新，**没有C++／配置／资产修改、重编或新引擎实测**，通用FX施工尚待确认。现有BP资源值未重新全量导出，不据旧Car_02缺资源日志断言当前保存配置；本轮未提交／Push。相机原场景复测、团队UI制作、独立电墙高速／发布包／校园四机等安排保持。
+
+**2026-11-06 Game Flow UI团队定制交接说明已整理。** 用户将界面定制交由团队；新增[Game Flow UI定制开发交接说明 v1.0](Networking/GameFlow_UI_Customization_Handoff_CN_v1.0.md)，按当前`main/328b78e`核对入口、选车、练习／比赛HUD、菜单、载入／倒计时、观战、结算与返房用途。明确GI的Entry／Room／Pause三个Screens槽、各自HAL父类、Receive View／按钮／焦点接口、品牌与Catalog配置，以及原生跨World加载幕没有WBP配置槽。补GF7数据和相机输入边界，提供Editor操作、分工与验收清单；UI素材／布局由团队手工制作，未代理创建或编辑资产。
+
+本轮仅新增说明、加入Markdown Git白名单并更新本入口，保留原有NetTest地图修改和前轮相机接续文档／JSON。没有C++／配置／BP／DA／地图修改、构建或新引擎界面验收，未提交／Push。下一步团队先制作Entry与Room最小可用WBP，经Entry验证完整流程，再制作可选Pause、比赛／观战／结果表现；原相机真人复测、独立电墙高速／发布包／校园四机及其他MVP-B欠项保持。
+
+**2026-11-06接续核对：相机边界修复已随`main/328b78e`提交，当前进入原场景真人复测。** 已核对实际源码：临时Movement Recovery不撤销同一Controller／PS／Epoch的首次输入就绪；房间HUD不因此切入菜单；菜单／失焦只清观察输入，保留自动取景距离；长帧限步长而不全量重种，换车／跨图／真实跳变仍有明确重置与`hal.CameraLog`。保留Loading就绪屏障与物理／GAS规则。原施工文件中的“未提交／尚未修复”是历史时点，当前以本段、[实现说明](Presentation/MVPB_Camera_Input_Boundaries_CN_v0.1.md)与[本次接续核对](Presentation/MVPB_Camera_ProgressSync_20261106.json)为准。
+
+对照已提交验证清单，299份Source／Config／uproject中155份字节相同、144份仅换行符差异，无实质源码差异。留档为另一设备UE5.8.3的两Target、144原生与9份干净报告，包含Entry练习／Playing重复电墙、无注入／Host出站80ms＋替换UI、旧GF4两局及GF7三局；这些是原施工证据，**本设备D盘实际UE5.8.2-56702186，原始Saved报告不在此设备，本轮没有重编、重跑或新增真人验收**。当前1190份资产与清单相比，仅已有未提交`Content/Maps/MVPB_NetTest.umap`不同，保持该团队修改，不当作地图仍与原验证版本完全一致。本轮只更新接续留档；下一步双方同版构建后，经Entry在实际保存DA／当前地图重复原事故，开启`hal.CameraLog 1`并配合CameraDebug检查。真实鼠标／手柄、校园四机／发布包及独立电墙高速轨迹欠项继续分开验收。
+
 **2026-11-05相机输入／恢复／生命周期边界拆分完成代码、构建与程序验证，待原场景真人复测。** 按用户授权，首次Avatar就绪按Controller／PS／Movement Epoch检查；同一绑定临时Recovery保留首次就绪，不重建菜单输入。菜单／失焦清理驾驶和观察输入，保留自动距离／聚焦历史；长帧限步长，换配置／重新接管／退场／跨图与真实位置跳变明确处理。新增默认关闭`hal.CameraLog`，全部UI仍原生回退＋WBP替换。无需重建或修改DA／BP。见[实施／日志／复测](Presentation/MVPB_Camera_Input_Boundaries_CN_v0.1.md)及[验证保护清单](Presentation/MVPB_Camera_Input_Boundaries_Verification_20261105.json)。
 
 本机UE5.8.3最终Editor／Game成功，**144/144原生、无注入双端／80ms出站注入＋替换UI双端／旧GF4两局／GF7三局各角色1/1**，共9份最终报告均0测试警告／失败／未运行／进行中。相机双端实际从Entry进入练习／Playing，各阶段两车合计6次电墙接触并开关菜单；Client实测`Menu=0 PhysicsReady=0 Recovery=1`且取景距离连续。两端D3D12离屏、瞬态测试Profile，不冒充保存DA画面／真实手柄或校园四机；原事故仍待团队复测。缺include、原生夹具未BeginPlay及未迁移测试球导致的失败全部保留，严格修正重验。原生最终报告后仅修联机夹具球类，生产／原生测试源码不变。**1190保存资产逐份全同、299最终输入冻结、Config／Build.cs／uproject保持**；专用进程已退出。基点main/e4f0b09，保留此前进度文档修改，未代改资产，未提交／Push。以下旧“尚未修复／仅诊断”保留当时时点，当前以本段及第2／6节为准。

@@ -1,0 +1,147 @@
+{
+  "date": "2026-11-06",
+  "branch": "main",
+  "head": "328b78edf4999717360295e1b75ce366dd81ae00",
+  "local_engine": "5.8.2-56702186",
+  "historical_verification_engine": "5.8.3-58210709",
+  "verification_file": "Docs/Presentation/MVPB_Camera_Input_Boundaries_Verification_20261105.json",
+  "verification_file_sha256": "4E1272FE55EA620DA0C55EB8D90E998A7E1A3303CA86FC38BF2C4113D14E8276",
+  "comparison": {
+    "inputs": 299,
+    "byte_identical": 155,
+    "line_ending_only": 144,
+    "substantive_or_missing": [],
+    "asset_count": 1190,
+    "asset_differences_from_historical_manifest": [
+      "Content/Maps/MVPB_NetTest.umap"
+    ]
+  },
+  "historical_native_counts": {
+    "succeeded": 144,
+    "succeededWithWarnings": 0,
+    "failed": 0,
+    "notRun": 0,
+    "inProcess": 0
+  },
+  "historical_clean_reports": 9,
+  "new_build_or_gameplay_tests_run": false,
+  "working_tree_before": [
+    " M Content/Maps/MVPB_NetTest.umap"
+  ],
+  "raw_native_report_exists": false,
+  "next": "Human original Entry/practice/Playing repeated-wall replay with hal.CameraLog 1; full same-version local compile as needed. Keep user map edits. No new implementation authorized by progress-sync request.",
+  "historical_network_reports": [
+    {
+      "run": "Room_NoLag_R2",
+      "role": "Host",
+      "exit_code": 0,
+      "exit_code_source_field": "Exit",
+      "counts": {
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0
+      },
+      "raw_report_present_on_this_device": false
+    },
+    {
+      "run": "Room_NoLag_R2",
+      "role": "Client",
+      "exit_code": 0,
+      "exit_code_source_field": "Exit",
+      "counts": {
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0
+      },
+      "raw_report_present_on_this_device": false
+    },
+    {
+      "run": "Room_Lag80_Custom_R1",
+      "role": "Host",
+      "exit_code": 0,
+      "exit_code_source_field": "Exit",
+      "counts": {
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0
+      },
+      "raw_report_present_on_this_device": false
+    },
+    {
+      "run": "Room_Lag80_Custom_R1",
+      "role": "Client",
+      "exit_code": 0,
+      "exit_code_source_field": "Exit",
+      "counts": {
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0
+      },
+      "raw_report_present_on_this_device": false
+    },
+    {
+      "run": "LegacyTwoRounds_R1",
+      "role": "Host",
+      "exit_code": 0,
+      "exit_code_source_field": "ExitCode",
+      "counts": {
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0
+      },
+      "raw_report_present_on_this_device": false
+    },
+    {
+      "run": "LegacyTwoRounds_R1",
+      "role": "Client1",
+      "exit_code": 0,
+      "exit_code_source_field": "ExitCode",
+      "counts": {
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0
+      },
+      "raw_report_present_on_this_device": false
+    },
+    {
+      "run": "GF7ThreeRounds_R1",
+      "role": "Host",
+      "exit_code": 0,
+      "exit_code_source_field": "Exit",
+      "counts": {
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0
+      },
+      "raw_report_present_on_this_device": false
+    },
+    {
+      "run": "GF7ThreeRounds_R1",
+      "role": "Client1",
+      "exit_code": 0,
+      "exit_code_source_field": "Exit",
+      "counts": {
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0
+      },
+      "raw_report_present_on_this_device": false
+    }
+  ]
+}

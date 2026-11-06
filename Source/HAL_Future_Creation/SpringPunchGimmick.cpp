@@ -1,4 +1,6 @@
 #include "SpringPunchGimmick.h"
+#include "BasicBallActor.h"
+#include "Components/SphereComponent.h"
 
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -88,6 +90,19 @@ void ASpringPunchGimmick::OnRep_Cycle()
 	UpdatePunchVisual();
 }
 
+namespace
+{
+	void ConfigureFistCollision(UBoxComponent& Box)
+	{
+		Box.SetSimulatePhysics(false);
+		Box.SetCollisionObjectType(ECC_WorldDynamic);
+		Box.SetCollisionResponseToAllChannels(ECR_Ignore);
+		Box.SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Block);
+		Box.SetGenerateOverlapEvents(false);
+		Box.SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+	}
+}
+
 ASpringPunchGimmick::ASpringPunchGimmick()
 {
 	// Tick は使用可能にするが、初期状態では停止しておく。
@@ -117,12 +132,11 @@ ASpringPunchGimmick::ASpringPunchGimmick()
 	FistMesh->SetGenerateOverlapEvents(false);
 	FistMesh->SetSimulatePhysics(false);
 
-	// 後で攻撃判定に使用するボックス。現段階では衝突を無効にする。
+	// The same fitted box follows the fist for physics contact and the explicit attack sweep.
 	HitBox = CreateDefaultSubobject<UBoxComponent>(TEXT("HitBox"));
 	HitBox->SetupAttachment(PunchPivot);
 	HitBox->SetBoxExtent(FVector(50.0f, 50.0f, 50.0f));
-	HitBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	HitBox->SetGenerateOverlapEvents(false);
+	ConfigureFistCollision(*HitBox);
 
 	// ローカル X 軸の正方向をパンチの方向として表示する。
 	DirectionArrow = CreateDefaultSubobject<UArrowComponent>(
@@ -134,8 +148,16 @@ ASpringPunchGimmick::ASpringPunchGimmick()
 void ASpringPunchGimmick::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
+
+	// Reapply to existing Blueprint instances that saved the old disabled collision.
+	ConfigureFistCollision(*HitBox);
 	// Existing Blueprint defaults may still contain the old nonreplicated flag.
 	if (GetNetMode() != NM_Client && HasAuthority() && !GetIsReplicated()) { SetReplicates(true); }
+}
+
+bool ASpringPunchGimmick::IsFistCollision(const UPrimitiveComponent* Component) const
+{
+	return Component == HitBox;
 }
 
 void ASpringPunchGimmick::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -263,7 +285,7 @@ void ASpringPunchGimmick::EnterState(ESpringPunchState NewState)
 		HitActorsThisPunch.Reset();
 
 		// 拳を初期位置にそろえてから、攻撃ボックスの位置を記録する。
-		PunchPivot->SetRelativeLocation(RetractedRelativeLocation);
+		MovePunchPivot(RetractedRelativeLocation);
 		PreviousHitBoxWorldLocation = HitBox->GetComponentLocation();
 		BeginPunchAttack();
 	}
@@ -354,7 +376,7 @@ void ASpringPunchGimmick::AdvanceState()
 
 	case ESpringPunchState::Extending:
 		// 描画フレームの間隔に関係なく、伸び切った位置を確定する。
-		PunchPivot->SetRelativeLocation(
+		MovePunchPivot(
 			RetractedRelativeLocation +
 			FVector(Phase.Distance, 0.0f, 0.0f));
 
@@ -365,7 +387,7 @@ void ASpringPunchGimmick::AdvanceState()
 
 	case ESpringPunchState::Retracting:
 		// Tick を止める前に、拳を正確な初期位置へ戻す。
-		PunchPivot->SetRelativeLocation(RetractedRelativeLocation);
+		MovePunchPivot(RetractedRelativeLocation);
 
 		EnterState(ESpringPunchState::Cooldown);
 		break;
@@ -376,6 +398,50 @@ void ASpringPunchGimmick::AdvanceState()
 
 	default:
 		break;
+	}
+}
+
+void ASpringPunchGimmick::MovePunchPivot(const FVector& Location)
+{
+	const FVector Start = HitBox->GetComponentLocation();
+	PunchPivot->SetRelativeLocation(Location);
+	if (!HasAuthority() || GetNetMode() == NM_Client
+		|| (CurrentState != ESpringPunchState::Extending && CurrentState != ESpringPunchState::Retracting))
+	{
+		return;
+	}
+
+	const FVector End = HitBox->GetComponentLocation();
+	const FVector Travel = End - Start;
+	if (Travel.IsNearlyZero()) { return; }
+
+	// A moving kinematic child can advance past a ball between Chaos samples.
+	// Sweep the same box across that interval and supply only the missing contact velocity.
+	UWorld* World = GetWorld();
+	const FVector FistVelocity = Travel / FMath::Max(World->GetDeltaSeconds(), 1.f / 60.f);
+	const FCollisionObjectQueryParams Objects(ECC_PhysicsBody);
+	FCollisionQueryParams Query(SCENE_QUERY_STAT(SpringPunchBallContact), false, this);
+	Query.bFindInitialOverlaps = false;
+	TArray<FHitResult> Hits;
+	World->SweepMultiByObjectType(Hits, Start, End, HitBox->GetComponentQuat(), Objects,
+		FCollisionShape::MakeBox(HitBox->GetScaledBoxExtent()), Query);
+	for (const FHitResult& Hit : Hits)
+	{
+		auto* Ball = Cast<ABasicBallActor>(Hit.GetActor());
+		if (!Ball || Ball->GetBallState() == EBasicBallState::Controlled) { continue; }
+		auto* Body = Ball->GetPhysicsRoot();
+		if (Hit.GetComponent() != Body || !Body->IsSimulatingPhysics()
+			|| Body->GetCollisionResponseToChannel(HitBox->GetCollisionObjectType()) != ECR_Block)
+		{
+			continue;
+		}
+
+		const FVector PushNormal = -Hit.ImpactNormal;
+		const float MissingSpeed = FVector::DotProduct(FistVelocity - Body->GetPhysicsLinearVelocity(), PushNormal);
+		if (MissingSpeed > 0.f && FVector::DotProduct(Travel, PushNormal) > 0.f)
+		{
+			Body->AddImpulse(PushNormal * MissingSpeed, NAME_None, true);
+		}
 	}
 }
 
@@ -390,12 +456,12 @@ void ASpringPunchGimmick::UpdatePunchVisual()
 	if (GetNetMode() == NM_Client && Cycle.bValid)
 	{
 		CurrentState = Cycle.EvaluateState(GetPhaseTime());
-		PunchPivot->SetRelativeLocation(Cycle.Origin + FVector(Cycle.EvaluateOffset(GetPhaseTime()), 0, 0));
+		MovePunchPivot(Cycle.Origin + FVector(Cycle.EvaluateOffset(GetPhaseTime()), 0, 0));
 		return;
 	}
 	if (GetNetMode() == NM_Client && Phase.Motion.bValid)
 	{
-		PunchPivot->SetRelativeLocation(RetractedRelativeLocation
+		MovePunchPivot(RetractedRelativeLocation
 			+ FVector(Phase.Motion.EvaluateOffset(GetPhaseTime(), Phase.Distance), 0, 0));
 		return;
 	}
@@ -421,7 +487,7 @@ void ASpringPunchGimmick::UpdatePunchVisual()
 			0.0f,
 			1.0f);
 
-		PunchPivot->SetRelativeLocation(
+		MovePunchPivot(
 			FMath::Lerp(
 				RetractedRelativeLocation,
 				ExtendedRelativeLocation,
@@ -438,7 +504,7 @@ void ASpringPunchGimmick::UpdatePunchVisual()
 			0.0f,
 			1.0f);
 
-		PunchPivot->SetRelativeLocation(
+		MovePunchPivot(
 			FMath::Lerp(
 				ExtendedRelativeLocation,
 				RetractedRelativeLocation,
@@ -448,7 +514,7 @@ void ASpringPunchGimmick::UpdatePunchVisual()
 
 	default:
 		// 待機・予告・クールダウン中は初期位置を維持する。
-		PunchPivot->SetRelativeLocation(RetractedRelativeLocation);
+		MovePunchPivot(RetractedRelativeLocation);
 		break;
 	}
 }
