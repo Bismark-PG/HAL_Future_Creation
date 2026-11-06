@@ -12,6 +12,27 @@ class UHALVehicleStatusFXDefinition;
 class UVehicleDefinition;
 class UMaterialInstanceDynamic;
 class UNiagaraComponent;
+class UAbilitySystemComponent;
+
+struct FHALStatusFXSourceDiagnostic
+{
+	FGameplayTag Tag;
+	FName Kind, Name;
+	double AgeSeconds = 0;
+	bool bSubmitted = false;
+};
+
+/** Local preparation counters, not gameplay stacks or proof of rendered/GPU-ready effects. */
+struct FHALStatusFXDiagnostics
+{
+	FGuid Binding;
+	uint64 MeshGeneration = 0;
+	bool bBound = false, bObservingASC = false, bTickEnabled = false;
+	int32 Leases = 0, ActiveSources = 0, ASCSources = 0, DebugSources = 0, PendingRecipes = 0;
+	int32 Targets = 0, Materials = 0, Particles = 0, RegisteredParticles = 0, ActiveParticles = 0;
+	TArray<FHALStatusFXSourceDiagnostic> Sources;
+	TArray<FHALStatusFXInstanceSnapshot> Instances;
+};
 
 /** Prepared, inactive particle channel. Sampling/activation belongs to the FX-4 renderer. */
 struct FHALStatusFXParticleRequest
@@ -68,6 +89,15 @@ public:
 	void Bind(UHALVehiclePresentationComponent* Provider, UHALVehicleStatusFXSubsystem* Cache,
 		const UVehicleDefinition* Vehicle, const UObject* AvatarIdentity);
 	void Unbind();
+	/** Attach only to the ASC identity of this binding and this Avatar. Reads current explicit tags first. */
+	bool ObserveAbilitySystem(UAbilitySystemComponent* InASC);
+	FHALStatusFXDiagnostics CaptureDiagnostics();
+	void LogDiagnostics();
+#if !UE_BUILD_SHIPPING
+	/** Local cosmetic leases only. Never adds a GAS tag, GE, RPC, or gameplay force. */
+	bool SetDebugSource(FName Name, FGameplayTag Tag, bool bActive);
+	void ClearDebugSources();
+#endif
 	FHALStatusFXSourceToken AcquireSource();
 	/** Cache-only: retains demand if the recipe is still loading; no synchronous loads at state time. */
 	bool Submit(FHALStatusFXSourceToken Source, FGameplayTag Tag);
@@ -86,6 +116,14 @@ private:
 	void Refresh();
 	void ReleaseResources();
 	void PrepareRequests(double Time);
+	void ReconcileObservedTags();
+	void DetachObserver();
+	void LogStateChange(const TCHAR* Reason);
+	bool HasValidObserver() const;
+	TWeakObjectPtr<UAbilitySystemComponent> ObservedASC;
+	FDelegateHandle TagsChanged;
+	TMap<FGameplayTag, FHALStatusFXSourceToken> ObservedSources;
+	TMap<FName, FHALStatusFXSourceToken> DebugSources;
 	TWeakObjectPtr<UHALVehiclePresentationComponent> Provider;
 	TWeakObjectPtr<UHALVehicleStatusFXSubsystem> Cache;
 	TWeakObjectPtr<const UVehicleDefinition> Vehicle;
@@ -101,5 +139,5 @@ private:
 
 	double Epoch = 0;
 	uint64 MeshGeneration = 0;
-	bool bBound = false, bRefreshing = false, bHasAvatarIdentity = false;
+	bool bBound = false, bRefreshing = false, bHasAvatarIdentity = false, bObservingASC = false, bReconcilingTags = false;
 };

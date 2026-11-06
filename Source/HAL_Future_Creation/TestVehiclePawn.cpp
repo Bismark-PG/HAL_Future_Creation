@@ -320,6 +320,7 @@ void ATestVehiclePawn::RefreshStatusFXBinding()
 	auto* GI = GetGameInstance();
 	StatusFXPresentation->Bind(VehiclePresentation, GI ? GI->GetSubsystem<UHALVehicleStatusFXSubsystem>() : nullptr,
 		Definition, GetAbilitySystemComponent());
+	if (auto* ASC = GetAbilitySystemComponent()) { StatusFXPresentation->ObserveAbilitySystem(ASC); }
 }
 
 bool ATestVehiclePawn::GetLifecycleSeed(FHALVehicleLifecycleSeed& Out) const

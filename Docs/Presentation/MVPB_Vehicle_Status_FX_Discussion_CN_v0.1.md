@@ -2,7 +2,7 @@
 
 日期：2026-11-06；检查基点 `main/7c7ede7`，本机 UE5.8.2-56702186。
 
-**状态：用户已确认总体架构及六环节顺序；2026-11-06 FX-1／FX-2及FX-3A／B完成各自C++与程序验证，下一FX-3C。** FX-1提供统一外观目标，见[FX-1留档](MVPB_Vehicle_Status_FX1_Implementation_CN_v0.1.md)；FX-2提供只读定义、精确Tag目录、默认／局部覆盖、异步缓存和Cook收集，见[FX-2留档](MVPB_Vehicle_Status_FX2_Implementation_CN_v0.1.md)。[A模型](MVPB_Vehicle_Status_FX3A_Implementation_CN_v0.1.md)已由[B本车组件](MVPB_Vehicle_Status_FX3B_Implementation_CN_v0.1.md)持有，B仅准备资源／渲染请求并管理生命周期，不写Overlay、不激活粒子；当前电击仍使用下述旧播放路径。C观察／诊断及FX-4～6仍后续，画面与团队验收按环节分别记录。
+**状态：用户已确认总体架构及六环节顺序；2026-11-06 FX-1／FX-2及FX-3 A／B／C完成各自C++与程序验证，下一FX-4。** FX-1提供统一外观目标，见[FX-1留档](MVPB_Vehicle_Status_FX1_Implementation_CN_v0.1.md)；FX-2提供只读定义／精确Tag目录／默认局部覆盖／异步缓存／Cook收集，见[FX-2留档](MVPB_Vehicle_Status_FX2_Implementation_CN_v0.1.md)。[A模型](MVPB_Vehicle_Status_FX3A_Implementation_CN_v0.1.md)由[B本车组件](MVPB_Vehicle_Status_FX3B_Implementation_CN_v0.1.md)持有，[C](MVPB_Vehicle_Status_FX3C_Implementation_CN_v0.1.md)接入ASC观察、本地调试与诊断。新路径只准备资源／请求，不写Overlay、不激活粒子；当前电击仍使用下述旧播放路径。FX-4～6后续，画面与团队验收按环节分别记录。
 
 ## 1. 当前电击表现是什么
 

@@ -2,6 +2,7 @@
 #include "HALVehicleStatusFXCatalog.h"
 #include "HALVehicleStatusFXDefinition.h"
 #include "HALVehicleStatusFXSettings.h"
+#include "HALVehicleStatusFXComponent.h"
 #include "VehicleDefinition.h"
 #include "TestVehiclePawn.h"
 #include "Engine/AssetManager.h"
@@ -10,6 +11,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "HAL/IConsoleManager.h"
+#include "GameFramework/PlayerState.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHALStatusFX, Log, All);
 
@@ -134,20 +136,58 @@ void UHALVehicleStatusFXSubsystem::LogStatus() const
 #if !UE_BUILD_SHIPPING
 namespace
 {
-	FAutoConsoleCommandWithWorld GHALStatusFXStatus(TEXT("hal.StatusFXStatus"), TEXT("Print shared status-FX catalog readiness and each live vehicle's effective catalog."),
-		FConsoleCommandWithWorldDelegate::CreateLambda([](UWorld* World)
+	TArray<ATestVehiclePawn*> SelectFXVehicles(UWorld* World, const FString& Selector)
+	{
+		TArray<ATestVehiclePawn*> Result;
+		if (!World || !World->IsGameWorld()) { return Result; }
+		int32 Id = INDEX_NONE;
+		const bool bId = LexTryParseString(Id, *Selector) && Id >= 0;
+		for (TActorIterator<ATestVehiclePawn> It(World); It; ++It)
 		{
+			const auto* PS = It->GetPlayerState();
+			if (Selector == TEXT("all") || (Selector == TEXT("local") && It->IsLocallyControlled()) || (bId && PS && PS->GetPlayerId() == Id))
+			{ Result.Add(*It); }
+		}
+		return Result;
+	}
+	FAutoConsoleCommandWithWorldAndArgs GHALStatusFXStatus(TEXT("hal.StatusFXStatus"), TEXT("hal.StatusFXStatus [all|local|PlayerId]: catalog, source, instance and dormant-resource diagnostics."),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (Args.Num() > 1) { UE_LOG(LogHALStatusFX, Display, TEXT("Usage: hal.StatusFXStatus [all|local|PlayerId]")); return; }
 			auto* GI = World ? World->GetGameInstance() : nullptr;
 			auto* FX = GI ? GI->GetSubsystem<UHALVehicleStatusFXSubsystem>() : nullptr;
-			if (!FX) { UE_LOG(LogHALStatusFX, Display, TEXT("StatusFX: no local GameInstance subsystem (run in a game window).")); return; }
-			FX->LogStatus();
-			for (TActorIterator<ATestVehiclePawn> It(World); It; ++It)
+			if (FX) { FX->LogStatus(); }
+			const auto Cars = SelectFXVehicles(World, Args.IsEmpty() ? TEXT("all") : Args[0]);
+			if (Cars.IsEmpty()) { UE_LOG(LogHALStatusFX, Display, TEXT("StatusFX: no matching live vehicle; run in a game window. PlayerId is printed by hal.StatusFXStatus.")); }
+			for (auto* Car : Cars)
 			{
-				const auto Catalog = UHALVehicleStatusFXSubsystem::SelectCatalog(It->GetVehicleDefinition());
-				FString Error;
-				const auto State = FX->GetCatalogState(Catalog, Error);
-				UE_LOG(LogHALStatusFX, Display, TEXT("StatusFX Vehicle=%s Catalog=%s State=%s Error=%s"), *It->GetName(), *Catalog.ToString(),
-					*StaticEnum<EHALStatusFXLoadState>()->GetNameStringByValue(int64(State)), *Error);
+				if (auto* Component = Car->FindComponentByClass<UHALVehicleStatusFXComponent>()) { Component->LogDiagnostics(); }
+			}
+		}));
+	FAutoConsoleCommandWithWorldAndArgs GHALStatusFXDebug(TEXT("hal.StatusFXDebug"), TEXT("hal.StatusFXDebug <local|PlayerId> <State.Visual.Tag> <SourceName> <0|1>: local cosmetic source only; no RPC/GAS writes."),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (Args.Num() != 4 || (Args[3] != TEXT("0") && Args[3] != TEXT("1")) || Args[2].Len() > 64 || Args[2].IsEmpty())
+			{ UE_LOG(LogHALStatusFX, Display, TEXT("Usage: hal.StatusFXDebug <local|PlayerId> <State.Visual.Tag> <SourceName> <0|1>")); return; }
+			const auto Cars = SelectFXVehicles(World, Args[0]);
+			if (Cars.IsEmpty()) { UE_LOG(LogHALStatusFX, Display, TEXT("StatusFX debug: no matching vehicle.")); return; }
+			const auto Tag = FGameplayTag::RequestGameplayTag(FName(*Args[1]), false);
+			for (auto* Car : Cars)
+			{
+				auto* Component = Car->FindComponentByClass<UHALVehicleStatusFXComponent>();
+				const bool bAccepted = Component && Component->SetDebugSource(FName(*Args[2]), Tag, Args[3] == TEXT("1"));
+				UE_LOG(LogHALStatusFX, Display, TEXT("StatusFX debug Vehicle=%s Source=%s Tag=%s Active=%s Accepted=%d LocalOnly=1"),
+					*Car->GetName(), *Args[2], *Args[1], *Args[3], bAccepted);
+			}
+		}));
+	FAutoConsoleCommandWithWorldAndArgs GHALStatusFXDebugClear(TEXT("hal.StatusFXDebugClear"), TEXT("hal.StatusFXDebugClear [local|PlayerId|all]: remove local debug sources; preserve ASC/external sources."),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (Args.Num() > 1) { UE_LOG(LogHALStatusFX, Display, TEXT("Usage: hal.StatusFXDebugClear [local|PlayerId|all]")); return; }
+			for (auto* Car : SelectFXVehicles(World, Args.IsEmpty() ? TEXT("local") : Args[0]))
+			{
+				if (auto* Component = Car->FindComponentByClass<UHALVehicleStatusFXComponent>()) { Component->ClearDebugSources(); }
+				UE_LOG(LogHALStatusFX, Display, TEXT("StatusFX debug cleared Vehicle=%s LocalOnly=1"), *Car->GetName());
 			}
 		}));
 }

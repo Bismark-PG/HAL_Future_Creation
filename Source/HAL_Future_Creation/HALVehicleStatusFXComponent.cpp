@@ -63,6 +63,8 @@ void UHALVehicleStatusFXComponent::ReleaseResources()
 void UHALVehicleStatusFXComponent::Unbind()
 {
 	check(IsInGameThread());
+	if (bBound) { LogStateChange(TEXT("Unbind")); }
+	DetachObserver(); DebugSources.Reset();
 	bBound = false;
 	if (Provider.IsValid())
 	{
@@ -80,12 +82,14 @@ void UHALVehicleStatusFXComponent::Unbind()
 FHALStatusFXSourceToken UHALVehicleStatusFXComponent::AcquireSource()
 {
 	check(IsInGameThread());
+	if (bBound && bObservingASC && !HasValidObserver()) { Unbind(); }
 	return bBound ? Runtime.AcquireSource() : FHALStatusFXSourceToken();
 }
 
 bool UHALVehicleStatusFXComponent::Submit(FHALStatusFXSourceToken Source, FGameplayTag Tag)
 {
 	check(IsInGameThread());
+	if (bBound && bObservingASC && !HasValidObserver()) { Unbind(); return false; }
 	const auto Root = FGameplayTag::RequestGameplayTag(TEXT("State.Visual"), false);
 	if (!bBound || !Runtime.HasSource(Source) || !Tag.IsValid() || Tag == Root || !Tag.MatchesTag(Root)) { return false; }
 	if (const auto* Existing = Demands.FindByPredicate([&](const auto& D) { return D.Source == Source; }))
@@ -107,10 +111,14 @@ bool UHALVehicleStatusFXComponent::RemoveSource(FHALStatusFXSourceToken Source)
 void UHALVehicleStatusFXComponent::Refresh()
 {
 	check(IsInGameThread());
-	if (!bBound || bRefreshing) { return; }
+	if (!bBound || bRefreshing || bReconcilingTags) { return; }
 	if (!Provider.IsValid() || !IsValid(GetOwner()) || GetOwner()->IsActorBeingDestroyed()
-		|| (bHasAvatarIdentity && !AvatarIdentity.IsValid())) { Unbind(); return; }
+		|| (bHasAvatarIdentity && !AvatarIdentity.IsValid()) || (bObservingASC && !HasValidObserver())) { Unbind(); return; }
 	TGuardValue<bool> Guard(bRefreshing, true);
+	// UE 5.8 single loose-tag partial removal can omit deferred delegates. Recheck before
+	// preparing late resources and on the existing active spatial update, without an idle poll.
+	ReconcileObservedTags();
+	if (!bBound) { return; }
 	const double Time = Now();
 	Runtime.Advance(Time);
 	if (!Provider->AreStatusFXBindingsCurrent(Targets)) { ReleaseResources(); }

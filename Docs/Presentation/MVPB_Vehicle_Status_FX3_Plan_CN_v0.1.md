@@ -2,7 +2,7 @@
 
 日期：2026-11-06。原讨论核对基点为干净 `main/62d5a35`、UE5.8.2-56702186。方案接续核对为`main/06eb9ab`、UE5.8.3-58210709；方案同步后，用户已授权从A施工。A现已独立完成构建／原生验证，详见下方实施留档。
 
-**状态：FX-3A／B完成各自代码、两Target与程序验证；下一环节FX-3C，C尚未施工。** B由车辆基类组装运行组件，接FX-1／2、准备本车资源和借用式请求，覆盖等待／Mesh代次／重绑／实际释放；最终R5两Target、167原生及双端三回合回归通过，见[B实施](MVPB_Vehicle_Status_FX3B_Implementation_CN_v0.1.md)与[保护记录](MVPB_Vehicle_Status_FX3B_Verification_20261106.json)。A的161原生等历史证据保留在[A实施](MVPB_Vehicle_Status_FX3A_Implementation_CN_v0.1.md)。新组件不写Overlay、不激活粒子，现有电击仍由旧组件显示。团队两份FX DA及DefaultGame.ini引用保持；目录引用、对象准备与GPU／Cook／真人验收分开。
+**状态：FX-3A／B／C均完成各自代码、两Target与程序验证；下一环节FX-4。** [A模型](MVPB_Vehicle_Status_FX3A_Implementation_CN_v0.1.md)、[B本车资源](MVPB_Vehicle_Status_FX3B_Implementation_CN_v0.1.md)及[C观察／命令／诊断](MVPB_Vehicle_Status_FX3C_Implementation_CN_v0.1.md)已接续完成。C最终R4两Target、172原生、专项观察与三回合双端各角色1/1通过，详见[C保护记录](MVPB_Vehicle_Status_FX3C_Verification_20261106.json)。新组件不写Overlay、不激活粒子，现有电击仍由旧组件显示。目录Ready、本车资源准备和实际绘制／GPU／Cook／真人验收分开；FX-4～6仍后续。
 
 ## 1. 目的与分工
 

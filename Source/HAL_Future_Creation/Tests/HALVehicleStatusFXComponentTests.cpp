@@ -19,12 +19,15 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
+#include "AbilitySystemComponent.h"
 #include "NativeGameplayTags.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
 #include "UObject/GarbageCollection.h"
 
 UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_StatusFXComponentSecond, "State.Visual.StatusFXComponentSecond");
+UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_StatusFXObservedParent, "State.Visual.StatusFXObservedParent");
+UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_StatusFXObservedChild, "State.Visual.StatusFXObservedParent.Child");
 
 struct FHALStatusFXComponentTestAccess
 {
@@ -265,6 +268,162 @@ bool FHALStatusFXTemplateSelectionTest::RunTest(const FString&)
 	TestTrue(TEXT("Skeletal template prepared without triangle sampling yet"), Requests[0].Particles[1].Component->GetAsset() == Layer.SkeletalSurfaceSystem);
 	TestTrue(TEXT("Kind switch preserves logical instance"), Requests[0].State.InstanceId == Static.State.InstanceId);
 	TestFalse(TEXT("Old static request revoked"), A.FX->IsRequestCurrent(Static));
+	return true;
+}
+static UAbilitySystemComponent* AttachStatusFXASC(FStatusFXWorld& F, FStatusFXCar& Car)
+{
+	auto* ASC = NewObject<UAbilitySystemComponent>(Car.Owner); ASC->RegisterComponent();
+	ASC->InitAbilityActorInfo(Car.Owner, Car.Owner);
+	Car.FX->Bind(Car.Presentation, F.Cache.Get(), nullptr, ASC);
+	return ASC;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALStatusFXInitialObservationTest, "HAL.FutureCreation.StatusFX.Observation.InitialAndAggregateCounts",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALStatusFXInitialObservationTest::RunTest(const FString&)
+{
+	FStatusFXWorld F; FStatusFXCar A(F); auto* ASC = AttachStatusFXASC(F, A);
+	ASC->AddLooseGameplayTag(HALGameplayTags::State_Visual_Shocked, 2);
+	TestTrue(TEXT("Bind reads an already existing state"), A.FX->ObserveAbilitySystem(ASC));
+	auto D = A.FX->CaptureDiagnostics();
+	if (!TestEqual(TEXT("One visual instance despite two GAS counts"), D.Instances.Num(), 1)) { return false; }
+	TestEqual(TEXT("ASC supplies existence, not inferred GE identities"), D.ASCSources, 1);
+	TestEqual(TEXT("One visual source"), D.Instances[0].SourceCount, 1);
+	const auto First = A.Requests()[0]; FHALStatusFXComponentTestAccess::Age(A.FX, 1);
+	TestTrue(TEXT("Repeated observe is idempotent"), A.FX->ObserveAbilitySystem(ASC));
+	ASC->AddLooseGameplayTag(HALGameplayTags::State_Visual_Shocked);
+	const auto Refreshed = A.Requests()[0];
+	TestTrue(TEXT("Count refresh retains instance, material and clock"), Refreshed.State.InstanceId == First.State.InstanceId
+		&& Refreshed.Surface == First.Surface && Refreshed.State.ClockSeconds >= 1);
+	ASC->RemoveLooseGameplayTag(HALGameplayTags::State_Visual_Shocked, 2);
+	TestEqual(TEXT("Partial GAS count removal retains visual source"), A.FX->CaptureDiagnostics().ASCSources, 1);
+	ASC->RemoveLooseGameplayTag(HALGameplayTags::State_Visual_Shocked);
+	D = A.FX->CaptureDiagnostics();
+	TestEqual(TEXT("Final GAS removal revokes source"), D.ASCSources, 0);
+	TestEqual(TEXT("Last source uses configured fade"), D.Instances[0].Phase, EHALStatusFXPhase::Fading);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALStatusFXHierarchyTest, "HAL.FutureCreation.StatusFX.Observation.ExactHierarchyAndDebugAggregation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALStatusFXHierarchyTest::RunTest(const FString&)
+{
+	FStatusFXWorld F;
+	for (auto Tag : {FGameplayTag(TAG_StatusFXObservedParent), FGameplayTag(TAG_StatusFXObservedChild)})
+	{ FHALStatusFXCatalogEntry E; E.Tag = Tag; E.Definition = F.Catalog->Effects[0].Definition; F.Catalog->Effects.Add(E); }
+	FStatusFXCar A(F); auto* ASC = AttachStatusFXASC(F, A); A.FX->ObserveAbilitySystem(ASC);
+	ASC->AddLooseGameplayTag(TAG_StatusFXObservedChild);
+	TestEqual(TEXT("Implied parent is not fabricated as a source"), A.FX->CaptureDiagnostics().ASCSources, 1);
+	ASC->AddLooseGameplayTag(TAG_StatusFXObservedParent);
+	TestEqual(TEXT("Explicit parent entry is seen while child keeps aggregate count positive"), A.FX->CaptureDiagnostics().ASCSources, 2);
+	ASC->RemoveLooseGameplayTag(TAG_StatusFXObservedParent);
+	TestEqual(TEXT("Explicit parent exit is seen while child persists"), A.FX->CaptureDiagnostics().ASCSources, 1);
+	ASC->AddLooseGameplayTag(HALGameplayTags::State_Stun);
+	TestEqual(TEXT("Nonvisual state is ignored"), A.FX->CaptureDiagnostics().ASCSources, 1);
+	ASC->AddLooseGameplayTag(HALGameplayTags::State_Visual_Shocked);
+	const int32 ParticlesBeforeDebug = A.FX->CaptureDiagnostics().Particles;
+	A.FX->SetDebugSource(TEXT("A"), HALGameplayTags::State_Visual_Shocked, true);
+	A.FX->SetDebugSource(TEXT("B"), HALGameplayTags::State_Visual_Shocked, true);
+	auto D = A.FX->CaptureDiagnostics();
+	const auto* Shock = D.Instances.FindByPredicate([](const auto& I) { return I.Tag == HALGameplayTags::State_Visual_Shocked; });
+	if (!TestNotNull(TEXT("Shock is prepared"), Shock)) { return false; }
+	TestEqual(TEXT("ASC plus two debug sources share one instance"), Shock->SourceCount, 3);
+	TestEqual(TEXT("Sources do not multiply active or fading particle instances"), D.Particles, ParticlesBeforeDebug);
+	const uint64 Id = Shock->InstanceId;
+	ASC->RemoveLooseGameplayTag(HALGameplayTags::State_Visual_Shocked); A.FX->ClearDebugSources();
+	D = A.FX->CaptureDiagnostics();
+	TestEqual(TEXT("Debug clear preserves independent ASC state"), D.ASCSources, 1);
+	TestEqual(TEXT("Debug clear removes only debug leases"), D.DebugSources, 0);
+	Shock = D.Instances.FindByPredicate([](const auto& I) { return I.Tag == HALGameplayTags::State_Visual_Shocked; });
+	TestTrue(TEXT("All shock inputs exit through the same fading instance"), Shock && Shock->InstanceId == Id && Shock->Phase == EHALStatusFXPhase::Fading);
+	TestTrue(TEXT("Debug clear does not remove gameplay stun"), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Stun));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALStatusFXObserverReplacementTest, "HAL.FutureCreation.StatusFX.Observation.ReplacementAndStaleCallbacks",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALStatusFXObserverReplacementTest::RunTest(const FString&)
+{
+	FStatusFXWorld F; FStatusFXCar A(F); auto* Old = AttachStatusFXASC(F, A);
+	A.FX->ObserveAbilitySystem(Old); Old->AddLooseGameplayTag(HALGameplayTags::State_Visual_Shocked);
+	const auto First = A.Requests()[0];
+	const auto Root = FGameplayTag::RequestGameplayTag(TEXT("State.Visual"));
+	auto OldCallbacks = Old->RegisterGameplayTagEvent(Root, EGameplayTagEventType::AnyCountChange);
+	auto* Current = AttachStatusFXASC(F, A); Current->AddLooseGameplayTag(HALGameplayTags::State_Visual_Shocked);
+	A.FX->ObserveAbilitySystem(Current); const auto Next = A.Requests()[0];
+	TestFalse(TEXT("Rebinding invalidates old resource generation"), A.FX->IsRequestCurrent(First));
+	TestTrue(TEXT("Replacing ASC recreates resources"), Next.Surface != First.Surface && Next.State.Binding != First.State.Binding);
+	Old->RemoveLooseGameplayTag(HALGameplayTags::State_Visual_Shocked); OldCallbacks.Broadcast(Root, 0);
+	TestEqual(TEXT("Old callback cannot revoke current source"), A.FX->CaptureDiagnostics().ASCSources, 1);
+	TestTrue(TEXT("Old callback cannot replace current resource"), A.Requests()[0].Surface == Next.Surface);
+	TestFalse(TEXT("Foreign ASC is rejected without replacing current observer"), A.FX->ObserveAbilitySystem(Old));
+	Current->InitAbilityActorInfo(A.Owner, F.World->SpawnActor<AActor>());
+	TestFalse(TEXT("Avatar replacement invalidates even between ticks"), A.FX->IsRequestCurrent(Next));
+	TestFalse(TEXT("Stale observer binding fully clears"), A.FX->CaptureDiagnostics().bBound);
+	TestTrue(TEXT("Old particle actually destroyed"), !Next.Particles[0].Component.IsValid() || Next.Particles[0].Component->IsBeingDestroyed());
+	Current = AttachStatusFXASC(F, A); A.FX->ObserveAbilitySystem(Current);
+	Current->AddLooseGameplayTag(HALGameplayTags::State_Visual_Shocked); const auto BeforeDestroy = A.Requests()[0];
+	Current->DestroyComponent();
+	TestFalse(TEXT("Weak ASC destruction clears observation"), A.FX->CaptureDiagnostics().bBound);
+	TestFalse(TEXT("Destroyed ASC request is invalid"), A.FX->IsRequestCurrent(BeforeDestroy));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALStatusFXObserverPendingTest, "HAL.FutureCreation.StatusFX.Observation.PendingRecipeAndUnconfigured",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALStatusFXObserverPendingTest::RunTest(const FString&)
+{
+	FStatusFXWorld F;
+	for (auto Tag : {FGameplayTag(TAG_StatusFXObservedParent), FGameplayTag(TAG_StatusFXObservedChild)})
+	{ FHALStatusFXCatalogEntry E; E.Tag = Tag; E.Definition = F.Catalog->Effects[0].Definition; F.Catalog->Effects.Add(E); }
+	const FSoftObjectPath Path(F.Catalog.Get());
+	auto& Record = FHALStatusFXComponentTestAccess::Records(F.Cache.Get()).Add(Path); Record.State = EHALStatusFXLoadState::Loading;
+	FStatusFXCar A(F), B(F); auto* Active = AttachStatusFXASC(F, A); auto* Ended = AttachStatusFXASC(F, B);
+	for (auto* ASC : {Active, Ended}) { ASC->AddLooseGameplayTag(HALGameplayTags::State_Visual_Shocked); }
+	A.FX->ObserveAbilitySystem(Active); B.FX->ObserveAbilitySystem(Ended);
+	TestEqual(TEXT("ASC demand waits without a fake instance"), A.FX->CaptureDiagnostics().PendingRecipes, 1);
+	TestFalse(TEXT("Recipe wait does not poll"), A.FX->IsComponentTickEnabled());
+	Ended->RemoveLooseGameplayTag(HALGameplayTags::State_Visual_Shocked);
+	FStatusFXCar C(F); auto* Hierarchy = AttachStatusFXASC(F, C); C.FX->ObserveAbilitySystem(Hierarchy);
+	Hierarchy->AddLooseGameplayTag(TAG_StatusFXObservedChild); Hierarchy->AddLooseGameplayTag(TAG_StatusFXObservedParent);
+	Hierarchy->RemoveLooseGameplayTag(TAG_StatusFXObservedParent); // UE can omit the root callback; do not query/refresh before readiness.
+	FHALStatusFXComponentTestAccess::Age(A.FX, 3);
+	Record.Catalog = F.Catalog.Get(); Record.State = EHALStatusFXLoadState::Ready; F.Cache->OnCatalogChanged().Broadcast(Path, Record.State);
+	TestTrue(TEXT("Still-active ASC demand retains observation age"), A.Requests()[0].State.ClockSeconds >= 3);
+	TestTrue(TEXT("Ended ASC demand does not replay after load"), B.Requests().IsEmpty());
+	const auto LateHierarchy = C.Requests();
+	TestTrue(TEXT("Readiness rechecks missed removals before preparing any expired parent or tail"), LateHierarchy.Num() == 1
+		&& LateHierarchy[0].State.Tag == TAG_StatusFXObservedChild && C.FX->CaptureDiagnostics().ASCSources == 1);
+	B.FX->Bind(B.Presentation, nullptr, nullptr, Ended); B.FX->ObserveAbilitySystem(Ended);
+	Ended->AddLooseGameplayTag(HALGameplayTags::State_Visual_Shocked);
+	const auto D = B.FX->CaptureDiagnostics();
+	TestTrue(TEXT("Unconfigured presentation observes without blocking gameplay"), D.bObservingASC && D.ASCSources == 1 && D.PendingRecipes == 1 && D.Instances.IsEmpty());
+	TestTrue(TEXT("Presentation never removes gameplay tag"), Ended->HasMatchingGameplayTag(HALGameplayTags::State_Visual_Shocked));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALStatusFXDebugGuardTest, "HAL.FutureCreation.StatusFX.Observation.DebugGuardsAndDiagnostics",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALStatusFXDebugGuardTest::RunTest(const FString&)
+{
+	FStatusFXWorld F; FStatusFXCar A(F); auto* ASC = AttachStatusFXASC(F, A); A.FX->ObserveAbilitySystem(ASC);
+	TestFalse(TEXT("Debug rejects nonvisual gameplay tag"), A.FX->SetDebugSource(TEXT("A"), HALGameplayTags::State_Stun, true));
+	TestFalse(TEXT("Empty name rejected"), A.FX->SetDebugSource(NAME_None, HALGameplayTags::State_Visual_Shocked, true));
+	for (int32 I = 0; I < 16; ++I)
+	{ TestTrue(TEXT("Bounded named source accepted"), A.FX->SetDebugSource(FName(*FString::FromInt(I)), HALGameplayTags::State_Visual_Shocked, true)); }
+	TestFalse(TEXT("New source beyond cap rejected"), A.FX->SetDebugSource(TEXT("Overflow"), HALGameplayTags::State_Visual_Shocked, true));
+	TestTrue(TEXT("Source refresh allowed at cap"), A.FX->SetDebugSource(TEXT("0"), HALGameplayTags::State_Visual_Shocked, true));
+	TestFalse(TEXT("Source cannot silently switch tag"), A.FX->SetDebugSource(TEXT("0"), TAG_StatusFXComponentSecond, true));
+	const auto D = A.FX->CaptureDiagnostics();
+	TestEqual(TEXT("Diagnostics identify debug sources"), D.DebugSources, 16);
+	TestEqual(TEXT("No fabricated ASC sources"), D.ASCSources, 0);
+	TestEqual(TEXT("Sources do not multiply material candidates"), D.Materials, 1);
+	TestEqual(TEXT("Sources do not multiply particles"), D.Particles, 1);
+	TestTrue(TEXT("Resources remain dormant"), D.RegisteredParticles == 0 && D.ActiveParticles == 0);
+	TestFalse(TEXT("Debug never writes GAS tags"), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Visual_Shocked));
+	A.FX->ClearDebugSources();
+	TestEqual(TEXT("Clear revokes named leases"), A.FX->CaptureDiagnostics().DebugSources, 0);
+	TestTrue(TEXT("Repeated off is idempotent"), A.FX->SetDebugSource(TEXT("0"), HALGameplayTags::State_Visual_Shocked, false));
 	return true;
 }
 #endif
