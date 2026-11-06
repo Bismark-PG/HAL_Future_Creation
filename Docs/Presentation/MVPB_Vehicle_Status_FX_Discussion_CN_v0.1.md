@@ -2,7 +2,7 @@
 
 日期：2026-11-06；检查基点 `main/7c7ede7`，本机 UE5.8.2-56702186。
 
-**状态：用户已确认总体架构及六环节顺序；2026-11-06 FX-1／FX-2完成C++与程序验证，团队配置／画面检查待做。** 用户希望电击、中毒、着火等通用车身特效不再逐车型制作／重复配置。FX-1复用VehiclePresentation提供统一外观目标，见[FX-1留档](MVPB_Vehicle_Status_FX1_Implementation_CN_v0.1.md)；FX-2实现效果定义／精确Tag目录、项目默认及少量车型按Tag局部覆盖、异步缓存和Cook收集，见[FX-2配置与验证](MVPB_Vehicle_Status_FX2_Implementation_CN_v0.1.md)。FX-3～FX-6尚未施工，当前电击仍使用下述旧播放路径。
+**状态：用户已确认总体架构及六环节顺序；2026-11-06 FX-1／FX-2及FX-3A完成各自C++与程序验证，团队配置／画面检查仍按环节验收。** 用户希望电击、中毒、着火等通用车身特效不再逐车型制作／重复配置。FX-1复用VehiclePresentation提供统一外观目标，见[FX-1留档](MVPB_Vehicle_Status_FX1_Implementation_CN_v0.1.md)；FX-2实现效果定义／精确Tag目录、项目默认及少量车型按Tag局部覆盖、异步缓存和Cook收集，见[FX-2配置与验证](MVPB_Vehicle_Status_FX2_Implementation_CN_v0.1.md)。FX-3A交付纯实例／来源／阶段模型，见[A实施](MVPB_Vehicle_Status_FX3A_Implementation_CN_v0.1.md)；下一步FX-3B资源与生命周期，C观察及FX-4～FX-6后续。A尚未挂车，当前电击仍使用下述旧播放路径。
 
 ## 1. 当前电击表现是什么
 
