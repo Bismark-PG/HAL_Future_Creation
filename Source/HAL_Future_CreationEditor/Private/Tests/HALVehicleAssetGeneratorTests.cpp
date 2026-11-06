@@ -16,6 +16,7 @@
 #include "HALVehicleInputDetails.h"
 #include "Misc/AutomationTest.h"
 #include "Misc/PackageName.h"
+#include "NiagaraSystem.h"
 #include "Physics/NetworkPhysicsSettingsComponent.h"
 #include "TestVehiclePawn.h"
 #include "Tests/HALLegacyCombatTestRules.h"
@@ -161,6 +162,10 @@ bool FHALVehicleAssetGenerationTest::RunTest(const FString&)
 	TStrongObjectPtr<UHALVehiclePresentationConfig> ExpectedPresentation(NewObject<UHALVehiclePresentationConfig>());
 	ExpectedPresentation->Mesh = F.Mesh.Get();
 	ExpectedPresentation->AnimClass = Anim->GeneratedClass;
+	ExpectedPresentation->TireSkid.bEnabled = true;
+	ExpectedPresentation->TireSkid.System = LoadObject<UNiagaraSystem>(nullptr, HALVehicleAssets::DefaultTireSkidSystemPath);
+	TestTrue(TEXT("Tire skid enabled with the project default system"), Presentation->TireSkid.bEnabled
+		&& Presentation->TireSkid.System && Presentation->TireSkid.System->GetPathName() == HALVehicleAssets::DefaultTireSkidSystemPath);
 	for (auto& Wheel : ExpectedPresentation->Wheels)
 	{
 		Wheel.RadiusCm = 47.5f;

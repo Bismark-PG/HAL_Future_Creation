@@ -17,6 +17,7 @@
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
+#include "NiagaraSystem.h"
 #include "Physics/NetworkPhysicsSettingsComponent.h"
 #include "TestVehiclePawn.h"
 #include "UObject/Package.h"
@@ -107,6 +108,10 @@ bool HALVehicleAssets::Validate(USkeletalMesh* Mesh, UNetworkPhysicsSettingsData
 	FString ConfigError;
 	if (!Local->Validate(ConfigError)) { return Fail(Error, TEXT("Shared LocalConfig: ") + ConfigError); }
 	if (!IsValid(SharedNetworkPhysics)) { return Fail(Error, TEXT("Select the existing shared vehicle Network Physics DA.")); }
+	if (!IsValid(LoadObject<UNiagaraSystem>(nullptr, DefaultTireSkidSystemPath)))
+	{
+		return Fail(Error, FString(TEXT("The default tire skid system is missing: ")) + DefaultTireSkidSystemPath);
+	}
 	for (const TCHAR* Path : { DefaultCollisionMeshPath, DefaultVisualMeshPath })
 	{
 		if (!IsValid(LoadObject<UStaticMesh>(nullptr, Path)))
@@ -151,6 +156,8 @@ bool HALVehicleAssets::Create(USkeletalMesh* Mesh, UNetworkPhysicsSettingsDataAs
 	Presentation->Mesh = Mesh;
 	Presentation->AnimClass = Anim->GeneratedClass;
 	Presentation->bReadyForUse = false;
+	Presentation->TireSkid.bEnabled = true;
+	Presentation->TireSkid.System = LoadObject<UNiagaraSystem>(nullptr, DefaultTireSkidSystemPath);
 	for (auto& Wheel : Presentation->Wheels)
 	{
 		Wheel.RadiusCm = 47.5f;
