@@ -11,6 +11,7 @@
 #include "ArcadeVehicleMovementComponent.h"
 #include "BallControlComponent.h"
 #include "BasicBallActor.h"
+#include "SpringPunchGimmick.h"
 #include "AbilitySystemGlobals.h"
 #include "Components/PrimitiveComponent.h"
 #include "Engine/World.h"
@@ -141,6 +142,11 @@ void UHALImpactReceiverComponent::HandleContact(UPrimitiveComponent* Body, AActo
 	FHALCollisionImpactRules Rules;
 	if (!GetDefault<UVehicleKnockbackSettings>()->GetCollisionImpactRules(Rules)
 		|| Rules.Version != EHALImpactVersion::TieredV1 || Config.Version != Rules.Version) { return; }
+	// The fist still blocks in Chaos. The explicit punch sweep owns its gameplay impact.
+	if (const auto* Punch = Cast<ASpringPunchGimmick>(Other); Punch && Punch->IsFistCollision(OtherBody))
+	{
+		return;
+	}
 	// Active attack owns its one response. Controlled balls cannot attack through their constraints.
 	if (const ABasicBallActor* Ball = Cast<ABasicBallActor>(Other))
 	{

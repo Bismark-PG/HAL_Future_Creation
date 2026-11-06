@@ -518,6 +518,9 @@ bool FHALSpringPunchCombatTest::RunTest(const FString& Parameters)
 {
 	FImpactWorld F;
 	auto* Punch = F.World->SpawnActor<ASpringPunchGimmick>();
+	TestEqual(TEXT("Fist participates in rigid-body contact"), Punch->HitBox->GetCollisionEnabled(), ECollisionEnabled::PhysicsOnly);
+	TestEqual(TEXT("Fist blocks the shared ball and vehicle channel"), Punch->HitBox->GetCollisionResponseToChannel(ECC_PhysicsBody), ECR_Block);
+	TestEqual(TEXT("Fist ignores the arena geometry channel"), Punch->HitBox->GetCollisionResponseToChannel(ECC_WorldStatic), ECR_Ignore);
 	auto* A = F.Target();
 	auto* B = F.Target();
 	A->SetActorLocation(FVector(200, 0, 0));

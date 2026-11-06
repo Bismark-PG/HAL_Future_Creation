@@ -158,3 +158,19 @@ Tick如保留，只在需要运动／扫掠的阶段启用；不在Blueprint Tic
 6. 交付源码、配置／资产操作步骤、编译／测试结果和限制；人手保存的新蓝图与接线正常提交。若负责者为代码代理，遵循AGENTS不直接修改uasset／umap。不要提交Saved／Binaries／Intermediate或重置其他模块改动。
 
 完整网络扰动、长时压力与四机并入MVP-B末尾[F4统一验收](MVPB_Phase10F4_Integration_Plan_CN_v0.1.md)，不影响本模块的最小验证要求。公共CombatResolver／Movement协议如确需改动，先说明缺口与影响，采用窄改动并补原回归；不要另开一条机关专用扣血／推车路径。
+
+
+## 拳頭實體碰撞（2026-11-06）
+
+拳頭沿用跟隨 PunchPivot 的 HitBox。它在收回、伸出和縮回時都會用 Chaos 阻擋 PhysicsBody，因此球和車可接觸拳頭。舊 Blueprint 存檔可能保有停用碰撞的預設，遊戲初始化會套用拳頭的碰撞規則並讀取已設定的盒體大小和位置。需要貼合模型時，在既有 Blueprint 的 HitBox 調整 Box Extent 與相對位置。
+
+車輛的通用碰撞結算略過拳頭盒體，出拳階段繼續由原有伺服器 Sweep 處理傷害和招式衝擊。這保留 Chaos 實體接觸，並避免碰到拳頭又進入普通撞擊的規則。球的接觸是物理阻擋，可被擋停或推動。
+
+本機 UE5.8.2-56702186 的最終 Editor／Game 構建成功，最終普通專項 2/2。沿用相同執行時設定的雙端 ContactFinal，Host／Client 各 1/1，兩車各由 100 扣至 75，Host 的獨立自由球以 1000cm/s 撞向待機拳頭並被擋住。測試地圖原預設 Car_03 缺 Impact 遷移，第一輪逾時，第二輪換 Car_02 後使用未遷移原生球也失敗。正式通過的夾具僅在執行中換車與生成保存球型。普通初測發現未初始化世界仍使用不同的元件預設，已讓建構與 PostInitializeComponents 共用設定後通過 NativeChecked。報告在本機 Saved/SpringPunch/FistCollision_20261106。NullRHI 證據涵蓋直向接觸與單次扣血，正式地圖的側撞、收拳手感與高延遲複測仍待真人驗收。
+
+
+### 移動拳頭與球的連續接觸
+
+用戶實測前版只有收回位置能可靠碰到球。保留全階段 Chaos 阻擋，伺服器在伸出、收回和兩個端點的移動段用拳頭盒體掃過球。碰到模擬物理的 Free／Launched 球時，補到接觸法線所需的拳頭速度，保留球原有的切向速度及攻擊歸屬。Controlled 球繼續跟隨持有者。雙端回歸同時覆蓋待機拳頭擋住 1000cm/s 自由球，以及伸拳把靜止球推過原拳頭終點。MovingContact Host／Client 各 1/1，原兩台車各只扣一次 25 HP。獨立收拳撞球與正式地圖的模型貼合仍待手測。
+
+本次移動接觸版 Editor／Game 均構建成功，MovingNative 專項 2/2，MovingContact Host／Client 各 1/1。

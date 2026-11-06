@@ -81,6 +81,7 @@ public:
 	ASpringPunchGimmick();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostInitializeComponents() override;
+	bool IsFistCollision(const UPrimitiveComponent* Component) const;
 
 protected:
 	/** Test baseline, damage per accepted target per punch. Zero still allows impact. */
@@ -210,6 +211,7 @@ private:
 
 	// 現在の動作段階と経過時間から拳の表示位置を更新する。
 	void UpdatePunchVisual();
+	void MovePunchPivot(const FVector& Location);
 
 	// 前回位置から現在位置まで攻撃ボックスを掃引し、対象を検出する。
 	void ScanPunchHits();
