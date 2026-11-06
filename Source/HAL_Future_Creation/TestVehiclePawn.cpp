@@ -359,6 +359,7 @@ void ATestVehiclePawn::RetireForVehicleTransition()
 {
 	if (!HasAuthority() || bLifecycleRetired) { return; }
 	bLifecycleRetired = true;
+	VehiclePresentation->ClearStatusFXBindings();
 	BallControl->PrepareForOwnerExit();
 	for (TActorIterator<ABasicBallActor> It(GetWorld()); It; ++It) { It->HandleVehicleExit(this); }
 	VehicleRecovery->CancelForOwnerExit(); MovementAreaReceiver->ClearForOwnerExit();
