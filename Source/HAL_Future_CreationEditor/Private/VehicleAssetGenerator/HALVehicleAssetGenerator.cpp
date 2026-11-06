@@ -6,6 +6,7 @@
 #include "Engine/Blueprint.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
 #include "Factories/AnimBlueprintFactory.h"
 #include "HALVehicleAnimInstance.h"
 #include "HALVehiclePresentationConfig.h"
@@ -106,6 +107,13 @@ bool HALVehicleAssets::Validate(USkeletalMesh* Mesh, UNetworkPhysicsSettingsData
 	FString ConfigError;
 	if (!Local->Validate(ConfigError)) { return Fail(Error, TEXT("Shared LocalConfig: ") + ConfigError); }
 	if (!IsValid(SharedNetworkPhysics)) { return Fail(Error, TEXT("Select the existing shared vehicle Network Physics DA.")); }
+	for (const TCHAR* Path : { DefaultCollisionMeshPath, DefaultVisualMeshPath })
+	{
+		if (!IsValid(LoadObject<UStaticMesh>(nullptr, Path)))
+		{
+			return Fail(Error, FString(TEXT("The default vehicle mesh is missing: ")) + Path);
+		}
+	}
 	for (const FString& Package : Out.Packages())
 	{
 		if (IsOccupied(Package)) { return Fail(Error, TEXT("Output already exists; the complete generation is blocked: ") + Package); }
@@ -143,6 +151,15 @@ bool HALVehicleAssets::Create(USkeletalMesh* Mesh, UNetworkPhysicsSettingsDataAs
 	Presentation->Mesh = Mesh;
 	Presentation->AnimClass = Anim->GeneratedClass;
 	Presentation->bReadyForUse = false;
+	for (auto& Wheel : Presentation->Wheels)
+	{
+		Wheel.RadiusCm = 47.5f;
+		if (Wheel.Wheel == EHALVehicleWheel::FL || Wheel.Wheel == EHALVehicleWheel::FR)
+		{
+			Wheel.SteeringAxis = EHALBoneAxis::Y;
+			Wheel.SteeringSign = -1.0f;
+		}
+	}
 
 	// Each model owns a fresh Definition with native defaults, not a copy of another vehicle's tuning.
 	auto* Definition = NewObject<UVehicleDefinition>(MakePackage(Paths.VehicleDefinition), NameOf(Paths.VehicleDefinition),
@@ -151,6 +168,10 @@ bool HALVehicleAssets::Create(USkeletalMesh* Mesh, UNetworkPhysicsSettingsDataAs
 	Definition->LocalConfig = LoadObject<UVehicleLocalConfig>(nullptr, SharedLocalConfigPath);
 	Definition->Presentation = Presentation;
 	Definition->bReadyForUse = false;
+	Definition->CollisionMesh = LoadObject<UStaticMesh>(nullptr, DefaultCollisionMeshPath);
+	Definition->Visual.Mesh = LoadObject<UStaticMesh>(nullptr, DefaultVisualMeshPath);
+	Definition->Impact.Version = EHALImpactVersion::TieredV1;
+	Definition->Combat.Version = EHALCombatConfigVersion::AttackSnapshotV1;
 
 	// Native constructor supplies the same complete player components/logic as BP_RoundedVehiclePawn.
 	// No existing vehicle Blueprint is loaded or inherited by this generator.

@@ -1,6 +1,8 @@
 # 车辆资产生成工具
 
-更新：2026-10-23。工具属于现有 `HAL_Future_CreationEditor` 模块，通过 Editor 的 **Tools → HAL Tools → HAL Vehicle Asset Generator** 启动。公开接口位于 `Source/HAL_Future_CreationEditor/Public/VehicleAssetGenerator`，实现位于对应 Private 目录。
+2026-11-06默认值调整只作用于之后通过工具创建的新资产；已有保存DA、原生运行时类默认值、共享Local／Network和两份DA的Ready=false保持不变。验证进度见项目状态入口。
+
+更新：2026-11-06。工具属于现有 `HAL_Future_CreationEditor` 模块，通过 Editor 的 **Tools → HAL Tools → HAL Vehicle Asset Generator** 启动。公开接口位于 `Source/HAL_Future_CreationEditor/Public/VehicleAssetGenerator`，实现位于对应 Private 目录。
 
 2026-10-30输入引用显示补充：已在现有Editor模块加入车辆Details只读预览，生成蓝图及已有Car_02的Input直接显示当前Definition.LocalConfig中的十项输入引用和来源。共享Local不变，显示不复制Pawn旧默认值；构建统一由BuildAndLaunch.cmd负责。具体读取位置、运行初始化及验证边界见[输入引用显示](Vehicle_Input_Preview_CN_v0.1.md)。
 
@@ -15,8 +17,8 @@
 | 资产 | Content 路径 | 初始设置 |
 |---|---|---|
 | `ABP_Car_02` | `Blueprints/AnimBP` | ParentClass 为 `HALVehicleAnimInstance`，TargetSkeleton 为所选 Mesh 的实际 Skeleton，PreviewSkeletalMesh 为所选 Mesh |
-| `DA_Car_02_Presentation` | `Data/Car_Presentation` | 引用所选 Mesh 和新 AnimBP 的生成类；其余表现字段使用原生初始值，Ready For Use=false |
-| `DA_Vehicle_Car_02` | `Data/MVP_B` | 独立新建 VehicleDefinition，使用 C++ 初始参数；LocalConfig 引用共享 DA_Local_TestBaseline_v1，Presentation 引用本次新表现 DA，Ready For Use=false |
+| `DA_Car_02_Presentation` | `Data/Car_Presentation` | 引用所选 Mesh 和新 AnimBP 的生成类；四轮半径47.5cm，FL／FR转向轴Y、方向-1；其余表现字段使用原生初始值，Ready For Use=false |
+| `DA_Vehicle_Car_02` | `Data/MVP_B` | 独立新建 VehicleDefinition，采用下述生成器指定默认值，其余使用 C++ 初始参数；LocalConfig 引用共享 DA_Local_TestBaseline_v1，Presentation 引用本次新表现 DA，Ready For Use=false |
 | `BP_VehiclePawn_Car_02` | `Blueprints/Vehicles` | 直接继承原生 TestVehiclePawn，ConfigurationSource=Definition，Definition 引用新车辆 DA，网络组件引用所选共享 Network Physics DA |
 
 车型取 Mesh 名称中 `SKM_` 后的完整内容，保留下划线和大小写。工具使用 `/Game` 虚拟包路径，输出目录固定。任一目标名称已存在，包括尚未保存的内存包，整组创建都会被阻止；没有覆盖或自动编号。
@@ -44,7 +46,7 @@ PIE 或 Simulate 期间禁止创建与保存。关闭工具面板不会自动保
 | 选择输入 | Mesh 选择新车型，Shared Vehicle Network Physics选择现有车辆网络DA；共享Local自动连接 |
 | 创建并保存 | 核对输出路径，Create Asset Set → Save Generated Assets；结果应为4/4，Locate Generated Assets可再次定位 |
 | 配置动画 | 新 ABP 的父类和 Skeleton 已设置；团队手动配置轮转／转向及需要的 Chassis 节点，生成器保持 AnimGraph 默认内容 |
-| 校准车型 | 新表现 DA 的四轮骨骼、轴向、方向、实际半径及模型变换由团队配置；新车辆 DA 的Collision Mesh必须配置，骨骼Presentation有效时Visual.Mesh为可选静态回退，物理、驾驶、控球点等初值需要校准 |
+| 校准车型 | 新表现 DA 的四轮骨骼、轴向、方向、实际半径及模型变换由团队配置；新车辆 DA 的默认Collision Mesh需按车型核对，骨骼Presentation有效时Visual.Mesh为可选静态回退，物理、驾驶、控球点等初值需要校准 |
 | 高度校准 | 完成表现数据后，Content Browser选中新 VehicleDefinition，使用现有 HAL Vehicle Visual Alignment；具体限制与保存流程见[校准工具说明](Vehicle_Visual_Alignment_Tool_CN_v0.1.md) |
 | 启用配置 | 校准完成后，两份新 DA 分别设置 Ready For Use，保存并执行 Validate Assets；输入和摄像机仍使用原 LocalConfig |
 | 接入测试 | 新 BP 的 Definition 已绑定。团队在测试关卡或 GameMode 中手动选用新 BP，重新 Play，检查驾驶、动画、持球与发射；主机和客户端需要同一套已保存资产 |
@@ -66,13 +68,13 @@ PIE 或 Simulate 期间禁止创建与保存。关闭工具面板不会自动保
 
 Network Physics 保持原引用方式并配置 Resimulation。Combat 与 Stability 继续由项目设置提供；Local／Network／Combat／Stability 均不新建或复制。工具不修改 GameMode、PlayerState、地图或输入映射。
 
-驾驶、控球、战斗、物理和 Marker 使用 `UVehicleDefinition` 的 C++ 初始值，各车型独立持有配置。碰撞 Static Mesh、回退 Visual.Mesh 和车型材质没有从 Car01 复制，也不根据 Skeletal Mesh 推断玩法碰撞；Collision Mesh初始未指定，仍须配置。2026-10-29起驾驶车按可用表现路径校验：有完整有效且Ready的骨骼Presentation时，Visual.Mesh可以保留None；否则必须配置有效静态Visual。生成器继续保持空静态引用，不自动创建占位网格。两份车型 DA 的后续参数编辑互不影响，共享 Local／Network 的调整则继续影响引用它们的车型。
+各车型独立持有配置。2026-11-06起，生成器指定 Collision Mesh 为 `/Game/Meshes/Collision/SM_Car01_Collision`、Visual.Mesh 为 `/Game/Meshes/SM_Car_Proxy`、Impact.Version 为 TieredV1、Combat.Version 为 AttackSnapshotV1，其余字段保持 `UVehicleDefinition` 的 C++ 初始值。仅引用两个现有网格，不复制任何车型DA参数，也不根据 Skeletal Mesh 推断玩法碰撞。2026-10-29起驾驶车按可用表现路径校验：有完整有效且Ready的骨骼Presentation时，Visual.Mesh可以保留None；否则必须配置有效静态Visual。生成器引用现有静态代理，不新建网格。两个默认网格缺失时，创建前检查会阻止整组生成并提示路径。两份车型 DA 的后续参数编辑互不影响，共享 Local／Network 的调整则继续影响引用它们的车型。
 
 新Pawn与 `BP_RoundedVehiclePawn` 共享同一个原生父类。物理根、Static/Skeletal外观、移动、姿态与自救、网络物理Settings／History、运动效果桥接、控球点／约束／控球、Health／ImpactReceiver、方向标记及相机共17个组件由原生构造函数创建，组件连接及输入／GAS Avatar／控球／发射逻辑沿用原生实现。新Pawn没有对 `BP_RoundedVehiclePawn` 资产的继承或引用；选择的模型经新Definition／Presentation接入。ASC仍由PlayerState持有，GameMode的PlayerState／Controller配置继续使用项目现有设置。
 
-新表现 DA 不继承 Car01 的轮轴、半径、模型缩放和俯仰调参。其 Root／Chassis 和四轮名称来自当前 C++ 默认约定，半径初值为0。缺少控制骨骼不会阻止创建配置草稿，但会阻止表现配置通过运行时校验。
+新表现 DA 不继承 Car01 的轮轴、半径、模型缩放和俯仰调参。其 Root／Chassis 和四轮名称来自当前 C++ 默认约定，四轮半径初值为47.5cm；按Wheel枚举标签识别FL／FR，将其Steering Axis设为Y、Steering Sign设为-1，不依赖数组下标。后轮及其余字段保持原生默认值。缺少控制骨骼不会阻止创建配置草稿，但会阻止表现配置通过运行时校验。
 
-两份新 DA 均保持 Ready For Use=false。团队在 AnimBP 完成所需骨骼接线，填写Collision Mesh，校准四轮轴向、方向、实际半径、模型对齐、物理与控球点后，再启用Ready并执行资产校验及单机／双端基本测试；需要静态回退时另填Visual.Mesh。车辆DA未Ready或两条表现路径都不可用时会拒绝参与玩法，此状态不能作为可直接驾驶的交付。具体路径规则与手工步骤见[DA说明第5～6节](MVPB_DataAsset_QuickGuide_CN_v1.0.md#5-骨骼车型仍需填写-visual-吗2026-10-29源码核对)。当前工具只负责四份资产的创建与连接。
+两份新 DA 均保持 Ready For Use=false。团队在 AnimBP 完成所需骨骼接线，核对默认Collision Mesh适配性，校准四轮轴向、方向、实际半径、模型对齐、物理与控球点后，再启用Ready并执行资产校验及单机／双端基本测试；需要静态回退时另填Visual.Mesh。车辆DA未Ready或两条表现路径都不可用时会拒绝参与玩法，此状态不能作为可直接驾驶的交付。具体路径规则与手工步骤见[DA说明第5～6节](MVPB_DataAsset_QuickGuide_CN_v1.0.md#5-骨骼车型仍需填写-visual-吗2026-10-29源码核对)。当前工具只负责四份资产的创建与连接。
 
 ## 4. 首次实现验证记录
 
@@ -121,3 +123,9 @@ UE5.8.3 Editor Win64 Development最终编译成功，日志 `Saved/VehicleAssetG
 本轮667份 `.uasset`／`.umap` 和151份运行时源码／配置逐文件SHA-256全同；未生成或保存Content资产，没有增加模块或修改菜单入口。详细见[本轮验证摘要](Vehicle_Asset_Generator_IndependentDefinition_Verification_20261023.json)。
 
 团队验收范围为：Editor Automation中的三项核心测试，以及面板选择新车型Mesh／共享Network DA后生成并保存4/4；重启后核对第3节全部引用，确认两个车型DA分别独立、Local／Network继续共享，ABP只有默认输出节点。车型必填模型、动画与参数校准完成后，再进行驾驶、控球、发射及Listen Server测试。现有Car01和共享DA保持原有内容。
+
+## 8. 2026-11-06默认值调整验证
+
+UE5.8.3-58210709 Editor Win64 Development构建成功；生成器Naming、Preflight、ReferenceChain、RuntimeInputInitialization共4/4成功，0测试警告／失败。ReferenceChain对两份新DA的全部自有字段进行对照，验证指定覆盖值及其余字段保持原生初值；仍检查引用链、两车型参数隔离和不保存资产。输入专用测试显式使用Legacy冲击规则夹具，不将其等同TieredV1玩法实测。自动化前后1190份Content资产哈希全同。日志见项目状态入口列出的Saved路径。
+
+此前构建因Editor／Live Coding运行而中止，用户关闭后完成上述验证。未操作实际生成面板、保存新车型或执行画面／联机验收；团队可重开Editor，生成一个未占用名称的车型，核对本说明第1～3节默认值后保存并重开检查。
