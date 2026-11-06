@@ -213,11 +213,13 @@ public:
         }
         if (FParse::Param(FCommandLine::Get(),TEXT("HALVerifyWallStrands")))
         {
-            bool bFoundThreeStrands=false;
+            // Arc layers are authored on the Blueprint, one NiagaraComponent per layer.
+            // Layers share the same local endpoints, so separation lives in the component transform.
+            bool bFoundSeparatedStrands=false;
             for (TActorIterator<AHALElectricWallGimmick> It(World); It; ++It)
             {
                 TInlineComponentArray<UNiagaraComponent*> Components(*It);
-                TSet<FVector> Starts;
+                TSet<FVector> WorldStarts;
                 int32 StrandCount=0;
                 for (const auto* Strand : Components)
                 {
@@ -227,12 +229,12 @@ public:
                     if (bStartValid && bEndValid && !Start.Equals(End))
                     {
                         ++StrandCount;
-                        Starts.Add(Start);
+                        WorldStarts.Add(Strand->GetComponentTransform().TransformPosition(Start));
                     }
                 }
-                bFoundThreeStrands |= StrandCount==3 && Starts.Num()==3;
+                bFoundSeparatedStrands |= StrandCount>=3 && WorldStarts.Num()==StrandCount;
             }
-            Test->TestTrue(TEXT("Placed electric wall has three separated Niagara paths"),bFoundThreeStrands);
+            Test->TestTrue(TEXT("Placed electric wall has separated Niagara paths"),bFoundSeparatedStrands);
         }
         Test->TestEqual(TEXT("No HP damage"),ASC->GetNumericAttribute(UHALHealthAttributeSet::GetCurrentHPAttribute()),100.f);
         Test->TestEqual(TEXT("Authority determines final bounce sequence"),State.BounceBack.Sequence,uint32(Reject ? 0 : 1));
