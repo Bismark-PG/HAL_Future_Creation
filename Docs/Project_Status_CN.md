@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-07 车辆特效团队交接已整理。** 从 `main/e43e1fa`（已含 FX-5 提交）只读核对三车型、选车目录、表现 DA 与电击／拖尾／持球资源。当前共享电击仍未启用，默认选车目录只有 Car01、Car02；Car03 的 BP／Definition／Presentation 齐备，需在测试分支临时登记后做第三车型的联机验收。本轮只新增交接文档和入口，无新构建或画面验收。见[特效团队交接](Presentation/MVPB_Vehicle_FX_Team_Handoff_CN_v0.1.md)。
+
 **2026-11-07 FX-5 程序与自动化完成，保存配方接线和团队画面验收待做。** 已从保存的车辆 BP 和状态 FX DA 导出 27 个旧配置字段。Car01 有现用电击材质和丝带，Car02／Car03 的旧组件未配置这两个引用。共享配方以 Car01 的实值为接线基准；保存 DA 仍关闭渲染，配置好后由团队显式启用。现有回弹提前显示、远端观察、权威确认接续、去重和 1.5 秒未确认收尾条件保持原实现。共享路径使用同一通用实例和 Overlay 协调器，保留专用闪光、丝带、淡出与焦痕时间轴。下步团队按[FX-5接线与验收](Presentation/MVPB_Vehicle_Status_FX5_Implementation_CN_v0.1.md)保存、比对实际画面，随后进入 FX-6 组合回归。
 
 基点 `main/7dbe29c`，UE 5.8.3-58210709 Editor／Game 均编译通过，全量原生 **183/183**，共享电击 D3D12 离屏夹具 **1/1**，双端预测确认、否决及练习房至比赛电击测试各角色 **1/1**。离屏夹具用保存的电击着色器和临时配方，双端回归用现有保存配置。**1193 份保存资产校验值一致**，Config／uproject 保持，未提交。实际保存共享配方的三车丝带／材质、Cook 和性能未验收。详见[保存基线](Presentation/MVPB_Vehicle_Status_FX5_Saved_Baseline_20261107.json)和[构建／测试记录](Presentation/MVPB_Vehicle_Status_FX5_Implementation_CN_v0.1.md#5-本轮构建与验证)。
