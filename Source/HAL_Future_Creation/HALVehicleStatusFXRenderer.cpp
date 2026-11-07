@@ -6,7 +6,7 @@
 #include "HALGameplayTags.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
-bool HALStatusFXRender::IsLegacyTag(FGameplayTag Tag) { return Tag.MatchesTag(HALGameplayTags::State_Visual_Shocked); }
+bool HALStatusFXRender::UsesShockDriver(FGameplayTag Tag) { return Tag.MatchesTag(HALGameplayTags::State_Visual_Shocked); }
 float HALStatusFXRender::ResidueWeight(const FHALStatusFXRenderRequest& R)
 {
 	const auto* D = R.Recipe.Get();
@@ -16,6 +16,12 @@ float HALStatusFXRender::ResidueWeight(const FHALStatusFXRenderRequest& R)
 
 namespace
 {
+	bool IsPreferredSurface(FGameplayTag A, int32 APriority, bool bAResidue, FGameplayTag B, int32 BPriority, bool bBResidue)
+	{
+		if (bAResidue != bBResidue) { return !bAResidue; }
+		if (APriority != BPriority) { return APriority > BPriority; }
+		return A.ToString() < B.ToString();
+	}
 	FName Param(const UHALVehicleStatusFXDefinition* D, FName Name)
 	{
 		if (D->SurfaceLayout)
@@ -60,7 +66,7 @@ void UHALVehicleStatusFXRenderer::RenderSurfaces(const TArray<FHALStatusFXRender
 	for (const auto& R : Requests)
 	{
 		const auto* D = R.Recipe.Get();
-		if (!D || !D->bEnableRendering || HALStatusFXRender::IsLegacyTag(R.State.Tag) || !R.Target.Mesh.IsValid() || !R.Surface.IsValid()
+		if (!D || !D->bEnableRendering || HALStatusFXRender::UsesShockDriver(R.State.Tag) || !R.Target.Mesh.IsValid() || !R.Surface.IsValid()
 			|| !R.State.bAvailable || FMath::Max(R.State.Intensity, HALStatusFXRender::ResidueWeight(R)) <= KINDA_SMALL_NUMBER) { continue; }
 		const TWeakObjectPtr<const UHALVehicleStatusFXDefinition> Key(D);
 		auto* Error = Contracts.Find(Key);
@@ -75,10 +81,8 @@ void UHALVehicleStatusFXRenderer::RenderSurfaces(const TArray<FHALStatusFXRender
 	}
 	Candidates.Sort([](const FHALStatusFXRenderRequest& A, const FHALStatusFXRenderRequest& B)
 	{
-		const bool AR = A.State.Phase == EHALStatusFXPhase::Residue, BR = B.State.Phase == EHALStatusFXPhase::Residue;
-		if (AR != BR) { return !AR; }
-		if (A.Recipe->SurfacePriority != B.Recipe->SurfacePriority) { return A.Recipe->SurfacePriority > B.Recipe->SurfacePriority; }
-		return A.State.Tag.ToString() < B.State.Tag.ToString();
+		return IsPreferredSurface(A.State.Tag, A.Recipe->SurfacePriority, A.State.Phase == EHALStatusFXPhase::Residue,
+			B.State.Tag, B.Recipe->SurfacePriority, B.State.Phase == EHALStatusFXPhase::Residue);
 	});
 	TSet<UMeshComponent*> Visited;
 	for (const auto* Lead : Candidates)
@@ -122,6 +126,9 @@ void UHALVehicleStatusFXRenderer::RenderSurfaces(const TArray<FHALStatusFXRender
 			}
 		}
 		Owner.Generic = MID;
+		Owner.GenericTag = Lead->State.Tag;
+		Owner.GenericPriority = Lead->Recipe->SurfacePriority;
+		Owner.bGenericResidue = Lead->State.Phase == EHALStatusFXPhase::Residue;
 	}
 	ApplyAndPrune();
 }
@@ -141,11 +148,38 @@ void UHALVehicleStatusFXRenderer::ApplyAndPrune()
 		if (!O.Mesh.IsValid()) { continue; }
 		// Vehicle assembly can seed a new base overlay before it broadcasts a mesh rebind.
 		if (O.Mesh->GetOverlayMaterial() != O.Applied) { O.Original = O.Mesh->GetOverlayMaterial(); }
-		auto* Desired = O.Legacy ? O.Legacy.Get() : O.Generic ? O.Generic.Get() : O.Original.Get();
+		UMaterialInterface* Desired = O.Original;
+		if (O.Legacy) { Desired = O.Legacy; }
+		else if (ShouldUseShock(O)) { Desired = O.Shock; }
+		else if (O.Generic) { Desired = O.Generic; }
 		if (O.Mesh->GetOverlayMaterial() != Desired) { O.Mesh->SetOverlayMaterial(Desired); }
 		O.Applied = Desired;
 	}
-	Owners.RemoveAll([](const auto& O) { return !O.Mesh.IsValid() || (!O.Legacy && !O.Generic); });
+	Owners.RemoveAll([](const auto& O) { return !O.Mesh.IsValid() || (!O.Legacy && !O.Shock && !O.Generic); });
+}
+
+bool UHALVehicleStatusFXRenderer::ShouldUseShock(const FHALStatusFXSurfaceOwner& O)
+{
+	return O.Shock && (!O.Generic || IsPreferredSurface(HALGameplayTags::State_Visual_Shocked, O.ShockPriority, O.bShockResidue,
+		O.GenericTag, O.GenericPriority, O.bGenericResidue));
+}
+
+void UHALVehicleStatusFXRenderer::SetShockSurface(UMeshComponent* Mesh, UMaterialInterface* Material, int32 Priority, bool bResidue)
+{
+	check(IsInGameThread());
+	if (!IsValid(Mesh)) { return; }
+	if (Material)
+	{
+		auto& Owner = FindOrAdd(Mesh);
+		if (Owner.Shock == Material && Owner.ShockPriority == Priority && Owner.bShockResidue == bResidue) { return; }
+		Owner.Shock = Material;
+		Owner.ShockPriority = Priority;
+		Owner.bShockResidue = bResidue;
+	}
+	else if (auto* Owner = Owners.FindByPredicate([&](const auto& O) { return O.Mesh == Mesh && O.Shock; }))
+	{ Owner->Shock = nullptr; }
+	else { return; }
+	ApplyAndPrune();
 }
 
 void UHALVehicleStatusFXRenderer::SetLegacy(UMeshComponent* Mesh, UMaterialInterface* Material)
@@ -167,13 +201,13 @@ void UHALVehicleStatusFXRenderer::ClearGeneric()
 void UHALVehicleStatusFXRenderer::ClearAll()
 {
 	Contracts.Reset(); RejectedSurfaces = 0; LastError.Reset();
-	for (auto& O : Owners) { O.Legacy = nullptr; O.Generic = nullptr; }
+	for (auto& O : Owners) { O.Legacy = nullptr; O.Shock = nullptr; O.Generic = nullptr; }
 	ApplyAndPrune();
 }
 
 int32 UHALVehicleStatusFXRenderer::GetGenericChannelCount() const
 {
 	int32 Count = 0;
-	for (const auto& O : Owners) { if (O.Generic && !O.Legacy) { Count += O.Contributors.Num(); } }
+	for (const auto& O : Owners) { if (O.Generic && !O.Legacy && !ShouldUseShock(O)) { Count += O.Contributors.Num(); } }
 	return Count;
 }

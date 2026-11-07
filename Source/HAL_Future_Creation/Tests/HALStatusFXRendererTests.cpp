@@ -179,10 +179,35 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALFXInvalidContractTest,"HAL.FutureCreation.S
 bool FHALFXInvalidContractTest::RunTest(const FString&)
 {
 	FRenderWorld F; auto A=F.Request(HALGameplayTags::State_Visual_Shocked,TEXT("Primary"));
-	F.Renderer->RenderSurfaces({A}); TestNull(TEXT("Shocked stays shadow-only until FX5"),F.Mesh->GetOverlayMaterial());
+	F.Renderer->RenderSurfaces({A}); TestNull(TEXT("Shock observation alone cannot start the dedicated surface"),F.Mesh->GetOverlayMaterial());
 	A.State.Tag=HALGameplayTags::State_Visual_DebugA; A.Recipe->Scalars.Add({TEXT("NoSuchParameter"),1});
 	F.Renderer->RenderSurfaces({A}); TestEqual(TEXT("Missing contract is diagnosed per surface"),F.Renderer->RejectedSurfaces,1);
 	TestNull(TEXT("Invalid style never replaces original"),F.Mesh->GetOverlayMaterial());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALFXDrivenShockPriorityTest,"HAL.FutureCreation.StatusFX.Renderer.DrivenShockPriorityAndRestore",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALFXDrivenShockPriorityTest::RunTest(const FString&)
+{
+	FRenderWorld F;
+	auto Other = F.Request(HALGameplayTags::State_Visual_DebugA, TEXT("Primary"), 3);
+	auto* Original = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/EngineMaterials/DefaultMaterial.DefaultMaterial"));
+	F.Mesh->SetOverlayMaterial(Original);
+	auto* Shock = UMaterialInstanceDynamic::Create(Original, F.Car);
+	F.Renderer->RenderSurfaces({Other});
+	F.Renderer->SetShockSurface(F.Mesh, Shock, 10);
+	TestTrue(TEXT("Active shock can win incompatible surface priority"), F.Mesh->GetOverlayMaterial() == Shock);
+	F.Renderer->SetShockSurface(F.Mesh, Shock, 1);
+	TestTrue(TEXT("Higher priority active channel can override shock"), F.Mesh->GetOverlayMaterial() == Other.Surface.Get());
+	Other.State.ClockSeconds = 5;
+	F.Renderer->RenderSurfaces({Other});
+	F.Renderer->SetShockSurface(F.Mesh, Shock, 10, true);
+	TestTrue(TEXT("Other active effect beats residual soot"), F.Mesh->GetOverlayMaterial() == Other.Surface.Get());
+	TestEqual(TEXT("Suppression preserves other style's clock"), Scalar(Other.Surface.Get(), TEXT("FX0_Age")), 5.f);
+	F.Renderer->RenderSurfaces({});
+	TestTrue(TEXT("Still-live scorch reappears on other effect expiry"), F.Mesh->GetOverlayMaterial() == Shock);
+	F.Renderer->SetShockSurface(F.Mesh, nullptr);
+	TestTrue(TEXT("Final expiry restores the original overlay"), F.Mesh->GetOverlayMaterial() == Original);
 	return true;
 }
 

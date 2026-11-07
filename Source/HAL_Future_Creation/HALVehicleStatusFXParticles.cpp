@@ -18,7 +18,7 @@ void UHALVehicleStatusFXComponent::RenderParticles()
 		if (!IsValid(P.Component)) { continue; }
 		const auto* R = Requests.FindByPredicate([&](const auto& Q) { return Q.State.Tag == P.Instance.Tag && Q.State.InstanceId == P.Instance.Id && Q.Target.Id == P.TargetId; });
 		const auto* D = R ? R->Recipe.Get() : nullptr;
-		if (!D || !D->bEnableRendering || HALStatusFXRender::IsLegacyTag(P.Instance.Tag))
+		if (!D || !D->bEnableRendering || HALStatusFXRender::UsesShockDriver(P.Instance.Tag))
 		{ if (P.Component->IsActive()) { P.Component->DeactivateImmediate(); } P.RenderState = TEXT("ObservationOnly"); continue; }
 		const auto* L = D->NiagaraLayers.FindByPredicate([&](const auto& Q) { return Q.LayerId == P.LayerId; });
 		if (!L) { continue; }

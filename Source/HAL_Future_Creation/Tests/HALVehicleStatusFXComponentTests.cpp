@@ -9,6 +9,8 @@
 #include "../HALVehiclePresentationComponent.h"
 #include "../HALVehiclePresentationConfig.h"
 #include "../HALGameplayTags.h"
+#include "../HALAbilitySystemComponent.h"
+#include "../HALShockedPresentationComponent.h"
 #include "../TestVehiclePawn.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -37,6 +39,14 @@ struct FHALStatusFXComponentTestAccess
 		return *FindFProperty<FMapProperty>(Cache->GetClass(), TEXT("Catalogs"))
 			->ContainerPtrToValuePtr<TMap<FSoftObjectPath,FHALStatusFXCatalogRecord>>(Cache);
 	}
+};
+
+struct FHALShockFXTestAccess
+{
+	static void EarlyContact(UHALShockedPresentationComponent* Component) { Component->SetShocked(true); }
+	static float Held(const UHALShockedPresentationComponent* Component) { return Component->HeldSeconds; }
+	static EHALShockPhase Phase(const UHALShockedPresentationComponent* Component) { return Component->Phase; }
+	static const UHALVehicleStatusFXDefinition* Recipe(const UHALShockedPresentationComponent* Component) { return Component->SharedRecipe; }
 };
 
 namespace
@@ -100,6 +110,77 @@ namespace
 		FHALStatusFXSourceToken Start(FGameplayTag Tag = HALGameplayTags::State_Visual_Shocked)
 		{ const auto Source = FX->AcquireSource(); FX->Submit(Source, Tag); return Source; }
 	};
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSharedShockFXTest, "HAL.FutureCreation.StatusFX.Component.SharedShockHandoffAndCleanup",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALSharedShockFXTest::RunTest(const FString&)
+{
+	FStatusFXWorld F;
+	auto* Recipe = F.Catalog->Effects[0].Definition.Get();
+	F.Catalog->Effects.SetNum(1);
+	Recipe->OverlayMaterial = LoadObject<UMaterialInterface>(nullptr,
+		TEXT("/Game/Assets/FX/Materials/M_FX_VehicleShock_Overlay.M_FX_VehicleShock_Overlay"));
+	Recipe->Scalars.Reset();
+	Recipe->NiagaraLayers.Reset();
+	Recipe->bEnableRendering = true;
+	Recipe->bUseSharedShockLook = true;
+	Recipe->FadeOutSeconds = .6f;
+	Recipe->ResidueSeconds = 4.f;
+	FString Error;
+	const bool bValid = F.Catalog->Validate(Error);
+	if (!TestTrue(FString::Printf(TEXT("Saved electric material satisfies the shared contract: %s"), *Error), bValid)) { return false; }
+	FStatusFXCar A(F), B(F);
+	auto* ASC = NewObject<UHALAbilitySystemComponent>(A.Owner);
+	ASC->RegisterComponent();
+	ASC->InitAbilityActorInfo(A.Owner, A.Owner);
+	A.FX->Bind(A.Presentation, F.Cache.Get(), nullptr, ASC);
+	A.FX->ObserveAbilitySystem(ASC);
+	auto* Shock = NewObject<UHALShockedPresentationComponent>(A.Owner);
+	Shock->RegisterComponent();
+	Shock->Bind(ASC);
+	auto* Original = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/EngineMaterials/DefaultMaterial.DefaultMaterial"));
+	A.Visual->SetOverlayMaterial(Original);
+
+	FHALShockFXTestAccess::EarlyContact(Shock);
+	auto Initial = A.Requests();
+	if (!TestEqual(TEXT("Early local source starts exactly one common request"), Initial.Num(), 1)) { return false; }
+	TestEqual(TEXT("Common request has one early source"), Initial[0].State.SourceCount, 1);
+	TestTrue(TEXT("Selected shared recipe"), FHALShockFXTestAccess::Recipe(Shock) == Recipe);
+	TestTrue(TEXT("Generic renderer prepares no second MID"), !Initial[0].Surface.IsValid());
+	TestTrue(TEXT("Other car did not start"), B.Requests().IsEmpty());
+	Shock->TickComponent(.2f, LEVELTICK_All, nullptr);
+	auto* MID = Cast<UMaterialInstanceDynamic>(A.Visual->GetOverlayMaterial());
+	ASC->AddLooseGameplayTag(HALGameplayTags::State_Visual_Shocked);
+	auto Confirmed = A.Requests();
+	if (!TestEqual(TEXT("Authority contributes to the same single request"), Confirmed.Num(), 1)) { return false; }
+	TestEqual(TEXT("Confirmation reuses the instance"), Confirmed[0].State.InstanceId, Initial[0].State.InstanceId);
+	TestEqual(TEXT("Local and ASC are separate leases for the same instance"), Confirmed[0].State.SourceCount, 2);
+	if (FApp::CanEverRender())
+	{
+		TestNotNull(TEXT("Shared driver mounts one actual MID"), MID);
+		TestTrue(TEXT("Authority did not reset the clock or swap the MID"),
+			FHALShockFXTestAccess::Held(Shock) >= .2f && A.Visual->GetOverlayMaterial() == MID);
+	}
+	ASC->RemoveLooseGameplayTag(HALGameplayTags::State_Visual_Shocked);
+	TestFalse(TEXT("Shock is inactive on removal even while its tail can display"), Shock->IsShocked());
+	if (FApp::CanEverRender())
+	{
+		Shock->TickComponent(.7f, LEVELTICK_All, nullptr);
+		TestTrue(TEXT("Scorch still owns the visible mesh after the electric fade"),
+			FHALShockFXTestAccess::Phase(Shock) == EHALShockPhase::Cooling && A.Visual->GetOverlayMaterial() == MID);
+		auto* NewVisual = F.Mesh(A.Owner, A.Body);
+		A.Presentation->Configure(nullptr, A.Body, NewVisual, nullptr, true);
+		Shock->TickComponent(.1f, LEVELTICK_All, nullptr);
+		TestTrue(TEXT("Rebind restores old mesh and remounts the live tail on the replacement"),
+			A.Visual->GetOverlayMaterial() == Original && NewVisual->GetOverlayMaterial() != nullptr);
+		Shock->TickComponent(5.f, LEVELTICK_All, nullptr);
+		TestNull(TEXT("Scorch expiry restores the new original"), NewVisual->GetOverlayMaterial());
+	}
+	Shock->Unbind();
+	A.FX->Unbind();
+	TestTrue(TEXT("Avatar teardown revokes all requests"), A.Requests().IsEmpty());
+	return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALStatusFXOwnershipTest, "HAL.FutureCreation.StatusFX.Component.IndependentDormantResources",

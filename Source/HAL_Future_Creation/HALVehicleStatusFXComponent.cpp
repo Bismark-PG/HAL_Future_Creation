@@ -3,6 +3,7 @@
 #include "HALVehicleStatusFXSubsystem.h"
 #include "HALVehicleStatusFXDefinition.h"
 #include "HALVehicleStatusFXRenderer.h"
+#include "HALGameplayTags.h"
 #include "VehicleDefinition.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "NiagaraComponent.h"
@@ -22,6 +23,18 @@ UHALVehicleStatusFXRenderer* UHALVehicleStatusFXComponent::GetSurfaceRenderer()
 {
 	if (!Renderer) { Renderer = NewObject<UHALVehicleStatusFXRenderer>(this); }
 	return Renderer;
+}
+
+const UHALVehicleStatusFXDefinition* UHALVehicleStatusFXComponent::FindSharedShockRecipe() const
+{
+	const auto* Recipe = bBound && Cache.IsValid() ? Cache->FindEffect(HALGameplayTags::State_Visual_Shocked, Vehicle.Get()) : nullptr;
+	return Recipe && Recipe->bEnableRendering && Recipe->bUseSharedShockLook ? Recipe : nullptr;
+}
+
+void UHALVehicleStatusFXComponent::CaptureShockTargets(FHALVehicleFXTargetSnapshot& Out) const
+{
+	if (bBound && Provider.IsValid()) { Provider->CaptureStatusFXTargets(Out); }
+	else { Out = {}; }
 }
 
 void UHALVehicleStatusFXComponent::Bind(UHALVehiclePresentationComponent* InProvider, UHALVehicleStatusFXSubsystem* InCache,
@@ -165,7 +178,7 @@ void UHALVehicleStatusFXComponent::PrepareRequests(double Time)
 		{
 			FHALStatusFXRenderRequest Request;
 			Request.MeshGeneration = MeshGeneration; Request.Target = Target; Request.Recipe = Recipe;
-			if (Recipe->GetSurfaceMaterial())
+			if (!Recipe->bUseSharedShockLook && Recipe->GetSurfaceMaterial())
 			{
 				auto* Surface = Surfaces.FindByPredicate([&](const auto& S)
 				{ return S.TargetId == Target.Id && IsValid(S.Material) && S.Material->Parent == Recipe->GetSurfaceMaterial(); });

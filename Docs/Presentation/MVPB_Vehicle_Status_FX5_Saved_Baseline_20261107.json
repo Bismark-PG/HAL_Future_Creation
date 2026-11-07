@@ -1,0 +1,255 @@
+{
+  "base": "7dbe29c",
+  "engine": "5.8.3-58210709",
+  "method": "Unreal Editor Python commandlet reads saved Blueprint class default components and DA. Never saves assets.",
+  "vehicles": {
+    "BP_RoundedVehiclePawn": {
+      "path": "/Game/Blueprints/Vehicles/BP_RoundedVehiclePawn.Default__BP_RoundedVehiclePawn_C:ShockedPresentation",
+      "properties": {
+        "ArcSystem": null,
+        "ArcOffsetCm": {
+          "struct_type": "Vector",
+          "export_text": "(X=0.000000,Y=0.000000,Z=20.000000)"
+        },
+        "ArcScale": 1.0,
+        "OverlayMaterial": {
+          "object_path": "/Game/Assets/FX/Materials/M_FX_VehicleShock_Overlay.M_FX_VehicleShock_Overlay",
+          "class": "/Script/Engine.Material"
+        },
+        "FlashSeconds": 0.05999999865889549,
+        "WipeSeconds": 0.11999999731779099,
+        "WipeRadiusCm": 400.0,
+        "FadeOutSeconds": 0.6000000238418579,
+        "BaseBrightness": 8.0,
+        "FadeFilamentGain": 40.0,
+        "FlickerSteps": 14.0,
+        "BrightnessCurve": {
+          "struct_type": "RuntimeFloatCurve",
+          "export_text": "(EditorCurveData=(Keys=((Value=1.600000),(Time=0.400000,Value=1.000000),(Time=1.000000,Value=0.550000),(Time=1.600000,Value=0.400000)),DefaultValue=340282346638528859811704183484516925440.000000,PreInfinityExtrap=RCCE_Constant,PostInfinityExtrap=RCCE_Constant),ExternalCurve=None)"
+        },
+        "FilamentPowerCurve": {
+          "struct_type": "RuntimeFloatCurve",
+          "export_text": "(EditorCurveData=(Keys=((Value=34.000000),(Time=0.400000,Value=48.000000),(Time=1.600000,Value=70.000000)),DefaultValue=340282346638528859811704183484516925440.000000,PreInfinityExtrap=RCCE_Constant,PostInfinityExtrap=RCCE_Constant),ExternalCurve=None)"
+        },
+        "RibbonSystem": {
+          "object_path": "/Game/Assets/FX/NS_VehicleShockRibbon.NS_VehicleShockRibbon",
+          "class": "/Script/Niagara.NiagaraSystem"
+        },
+        "ArcSettings": {
+          "struct_type": "HALShockArcSettings",
+          "export_text": "(ArcCount=4,Subdivisions=4,Roughness=0.320000,LiftFraction=0.070000,BranchChance=0.550000,BranchLength=0.300000,WidthCm=10.000000)"
+        },
+        "ArcColor": {
+          "struct_type": "LinearColor",
+          "export_text": "(R=0.220000,G=0.520000,B=1.000000,A=1.000000)"
+        },
+        "bRetractArcsOnRelease": true,
+        "ArcRetractFeather": 0.25,
+        "ScorchRiseSeconds": 0.25,
+        "ScorchFadeSeconds": 4.0,
+        "bEnableLight": false,
+        "LightColor": {
+          "struct_type": "LinearColor",
+          "export_text": "(R=0.550000,G=0.880000,B=1.000000,A=1.000000)"
+        },
+        "LightPeakIntensity": 2200.0,
+        "LightRadiusCm": 280.0,
+        "LightOffsetCm": {
+          "struct_type": "Vector",
+          "export_text": "(X=0.000000,Y=0.000000,Z=40.000000)"
+        },
+        "LightFlickerFloor": 0.6000000238418579,
+        "LightFlashBoost": 0.6000000238418579
+      }
+    },
+    "BP_VehiclePawn_Car_02": {
+      "path": "/Game/Blueprints/Vehicles/BP_VehiclePawn_Car_02.Default__BP_VehiclePawn_Car_02_C:ShockedPresentation",
+      "properties": {
+        "ArcSystem": null,
+        "ArcOffsetCm": {
+          "struct_type": "Vector",
+          "export_text": "(X=0.000000,Y=0.000000,Z=0.000000)"
+        },
+        "ArcScale": 1.0,
+        "OverlayMaterial": null,
+        "FlashSeconds": 0.05999999865889549,
+        "WipeSeconds": 0.11999999731779099,
+        "WipeRadiusCm": 400.0,
+        "FadeOutSeconds": 0.6000000238418579,
+        "BaseBrightness": 8.0,
+        "FadeFilamentGain": 40.0,
+        "FlickerSteps": 14.0,
+        "BrightnessCurve": {
+          "struct_type": "RuntimeFloatCurve",
+          "export_text": "(EditorCurveData=(Keys=((Value=1.600000),(Time=0.400000,Value=1.000000),(Time=1.000000,Value=0.550000),(Time=1.600000,Value=0.400000)),DefaultValue=340282346638528859811704183484516925440.000000,PreInfinityExtrap=RCCE_Constant,PostInfinityExtrap=RCCE_Constant),ExternalCurve=None)"
+        },
+        "FilamentPowerCurve": {
+          "struct_type": "RuntimeFloatCurve",
+          "export_text": "(EditorCurveData=(Keys=((Value=34.000000),(Time=0.400000,Value=48.000000),(Time=1.600000,Value=70.000000)),DefaultValue=340282346638528859811704183484516925440.000000,PreInfinityExtrap=RCCE_Constant,PostInfinityExtrap=RCCE_Constant),ExternalCurve=None)"
+        },
+        "RibbonSystem": null,
+        "ArcSettings": {
+          "struct_type": "HALShockArcSettings",
+          "export_text": "(ArcCount=4,Subdivisions=4,Roughness=0.320000,LiftFraction=0.070000,BranchChance=0.550000,BranchLength=0.300000,WidthCm=2.600000)"
+        },
+        "ArcColor": {
+          "struct_type": "LinearColor",
+          "export_text": "(R=0.220000,G=0.520000,B=1.000000,A=1.000000)"
+        },
+        "bRetractArcsOnRelease": true,
+        "ArcRetractFeather": 0.25,
+        "ScorchRiseSeconds": 0.25,
+        "ScorchFadeSeconds": 4.0,
+        "bEnableLight": false,
+        "LightColor": {
+          "struct_type": "LinearColor",
+          "export_text": "(R=0.550000,G=0.880000,B=1.000000,A=1.000000)"
+        },
+        "LightPeakIntensity": 2200.0,
+        "LightRadiusCm": 280.0,
+        "LightOffsetCm": {
+          "struct_type": "Vector",
+          "export_text": "(X=0.000000,Y=0.000000,Z=40.000000)"
+        },
+        "LightFlickerFloor": 0.6000000238418579,
+        "LightFlashBoost": 0.6000000238418579
+      }
+    },
+    "BP_VehiclePawn_Car_03": {
+      "path": "/Game/Blueprints/Vehicles/BP_VehiclePawn_Car_03.Default__BP_VehiclePawn_Car_03_C:ShockedPresentation",
+      "properties": {
+        "ArcSystem": null,
+        "ArcOffsetCm": {
+          "struct_type": "Vector",
+          "export_text": "(X=0.000000,Y=0.000000,Z=0.000000)"
+        },
+        "ArcScale": 1.0,
+        "OverlayMaterial": null,
+        "FlashSeconds": 0.05999999865889549,
+        "WipeSeconds": 0.11999999731779099,
+        "WipeRadiusCm": 400.0,
+        "FadeOutSeconds": 0.6000000238418579,
+        "BaseBrightness": 8.0,
+        "FadeFilamentGain": 40.0,
+        "FlickerSteps": 14.0,
+        "BrightnessCurve": {
+          "struct_type": "RuntimeFloatCurve",
+          "export_text": "(EditorCurveData=(Keys=((Value=1.600000),(Time=0.400000,Value=1.000000),(Time=1.000000,Value=0.550000),(Time=1.600000,Value=0.400000)),DefaultValue=340282346638528859811704183484516925440.000000,PreInfinityExtrap=RCCE_Constant,PostInfinityExtrap=RCCE_Constant),ExternalCurve=None)"
+        },
+        "FilamentPowerCurve": {
+          "struct_type": "RuntimeFloatCurve",
+          "export_text": "(EditorCurveData=(Keys=((Value=34.000000),(Time=0.400000,Value=48.000000),(Time=1.600000,Value=70.000000)),DefaultValue=340282346638528859811704183484516925440.000000,PreInfinityExtrap=RCCE_Constant,PostInfinityExtrap=RCCE_Constant),ExternalCurve=None)"
+        },
+        "RibbonSystem": null,
+        "ArcSettings": {
+          "struct_type": "HALShockArcSettings",
+          "export_text": "(ArcCount=4,Subdivisions=4,Roughness=0.320000,LiftFraction=0.070000,BranchChance=0.550000,BranchLength=0.300000,WidthCm=2.600000)"
+        },
+        "ArcColor": {
+          "struct_type": "LinearColor",
+          "export_text": "(R=0.220000,G=0.520000,B=1.000000,A=1.000000)"
+        },
+        "bRetractArcsOnRelease": true,
+        "ArcRetractFeather": 0.25,
+        "ScorchRiseSeconds": 0.25,
+        "ScorchFadeSeconds": 4.0,
+        "bEnableLight": false,
+        "LightColor": {
+          "struct_type": "LinearColor",
+          "export_text": "(R=0.550000,G=0.880000,B=1.000000,A=1.000000)"
+        },
+        "LightPeakIntensity": 2200.0,
+        "LightRadiusCm": 280.0,
+        "LightOffsetCm": {
+          "struct_type": "Vector",
+          "export_text": "(X=0.000000,Y=0.000000,Z=40.000000)"
+        },
+        "LightFlickerFloor": 0.6000000238418579,
+        "LightFlashBoost": 0.6000000238418579
+      }
+    },
+    "BP_TestVehiclePawn": {
+      "path": "/Game/Blueprints/Vehicles/BP_TestVehiclePawn.Default__BP_TestVehiclePawn_C:ShockedPresentation",
+      "properties": {
+        "ArcSystem": null,
+        "ArcOffsetCm": {
+          "struct_type": "Vector",
+          "export_text": "(X=0.000000,Y=0.000000,Z=0.000000)"
+        },
+        "ArcScale": 1.0,
+        "OverlayMaterial": null,
+        "FlashSeconds": 0.05999999865889549,
+        "WipeSeconds": 0.11999999731779099,
+        "WipeRadiusCm": 400.0,
+        "FadeOutSeconds": 0.6000000238418579,
+        "BaseBrightness": 8.0,
+        "FadeFilamentGain": 40.0,
+        "FlickerSteps": 14.0,
+        "BrightnessCurve": {
+          "struct_type": "RuntimeFloatCurve",
+          "export_text": "(EditorCurveData=(Keys=((Value=1.600000),(Time=0.400000,Value=1.000000),(Time=1.000000,Value=0.550000),(Time=1.600000,Value=0.400000)),DefaultValue=340282346638528859811704183484516925440.000000,PreInfinityExtrap=RCCE_Constant,PostInfinityExtrap=RCCE_Constant),ExternalCurve=None)"
+        },
+        "FilamentPowerCurve": {
+          "struct_type": "RuntimeFloatCurve",
+          "export_text": "(EditorCurveData=(Keys=((Value=34.000000),(Time=0.400000,Value=48.000000),(Time=1.600000,Value=70.000000)),DefaultValue=340282346638528859811704183484516925440.000000,PreInfinityExtrap=RCCE_Constant,PostInfinityExtrap=RCCE_Constant),ExternalCurve=None)"
+        },
+        "RibbonSystem": null,
+        "ArcSettings": {
+          "struct_type": "HALShockArcSettings",
+          "export_text": "(ArcCount=4,Subdivisions=4,Roughness=0.320000,LiftFraction=0.070000,BranchChance=0.550000,BranchLength=0.300000,WidthCm=2.600000)"
+        },
+        "ArcColor": {
+          "struct_type": "LinearColor",
+          "export_text": "(R=0.220000,G=0.520000,B=1.000000,A=1.000000)"
+        },
+        "bRetractArcsOnRelease": true,
+        "ArcRetractFeather": 0.25,
+        "ScorchRiseSeconds": 0.25,
+        "ScorchFadeSeconds": 4.0,
+        "bEnableLight": false,
+        "LightColor": {
+          "struct_type": "LinearColor",
+          "export_text": "(R=0.550000,G=0.880000,B=1.000000,A=1.000000)"
+        },
+        "LightPeakIntensity": 2200.0,
+        "LightRadiusCm": 280.0,
+        "LightOffsetCm": {
+          "struct_type": "Vector",
+          "export_text": "(X=0.000000,Y=0.000000,Z=40.000000)"
+        },
+        "LightFlickerFloor": 0.6000000238418579,
+        "LightFlashBoost": 0.6000000238418579
+      }
+    }
+  },
+  "assets": {
+    "DA_StatusFX_Shocked": {
+      "path": "/Game/Data/StatusFX/DA_StatusFX_Shocked.DA_StatusFX_Shocked",
+      "properties": {
+        "bEnableRendering": false,
+        "OverlayMaterial": {
+          "object_path": "/Game/Assets/FX/Materials/M_FX_VehicleShock_Overlay.M_FX_VehicleShock_Overlay",
+          "class": "/Script/Engine.Material"
+        },
+        "SurfaceLayout": null,
+        "SurfacePriority": 0,
+        "FadeInSeconds": 0.10000000149011612,
+        "FadeOutSeconds": 0.30000001192092896,
+        "ResidueSeconds": 0.0,
+        "NiagaraLayers": []
+      }
+    },
+    "DA_VehicleStatusFX_Default": {
+      "path": "/Game/Data/StatusFX/DA_VehicleStatusFX_Default.DA_VehicleStatusFX_Default",
+      "properties": {
+        "Effects": [
+          {
+            "struct_type": "HALStatusFXCatalogEntry",
+            "export_text": "(Tag=(TagName=\"State.Visual.Shocked\"),Definition=\"/Script/HAL_Future_Creation.HALVehicleStatusFXDefinition'/Game/Data/StatusFX/DA_StatusFX_Shocked.DA_StatusFX_Shocked'\")"
+          }
+        ]
+      }
+    }
+  },
+  "saved_asset_count": 1193
+}

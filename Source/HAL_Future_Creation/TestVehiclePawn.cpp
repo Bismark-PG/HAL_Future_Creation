@@ -290,8 +290,8 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 	}
 	ASC->InitAbilityActorInfo(State, this);
 	Health->BindToAbilitySystem(ASC);
-	ShockedPresentation->Bind(ASC);
 	RefreshStatusFXBinding();
+	ShockedPresentation->Bind(ASC);
 	MovementEffectBridge->Bind(ASC, State->GetPlayerId());
 	MovementAreaReceiver->Bind(ASC);
 	if (HasAuthority() && bConfigurationValid)
@@ -305,8 +305,8 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 void ATestVehiclePawn::UninitializeAbilitySystem()
 {
 	ResetLocalInputReadiness();
-	StatusFXPresentation->Unbind();
 	ShockedPresentation->Unbind();
+	StatusFXPresentation->Unbind();
 	MovementAreaReceiver->Unbind();
 	MovementEffectBridge->Unbind();
 	UHALAbilitySystemComponent* ASC = Health->GetBoundAbilitySystem();

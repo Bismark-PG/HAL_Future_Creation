@@ -1,5 +1,6 @@
 #include "HALVehicleStatusFXCatalog.h"
 #include "HALVehicleStatusFXDefinition.h"
+#include "HALGameplayTags.h"
 #include "Misc/DataValidation.h"
 
 bool UHALVehicleStatusFXCatalog::Validate(FString& Error) const
@@ -17,6 +18,8 @@ bool UHALVehicleStatusFXCatalog::Validate(FString& Error) const
 		FString Detail;
 		if (!IsValid(Entry.Definition) || !Entry.Definition->Validate(Detail))
 		{ Error = FString::Printf(TEXT("Entry %d [%s], definition %s: %s"), Index, *Entry.Tag.ToString(), *GetPathNameSafe(Entry.Definition), Detail.IsEmpty() ? TEXT("missing definition") : *Detail); return false; }
+		if (Entry.Definition->bUseSharedShockLook && Entry.Tag != HALGameplayTags::State_Visual_Shocked)
+		{ Error = TEXT("Shared Shock Look belongs to the exact State.Visual.Shocked entry."); return false; }
 	}
 	return true;
 }

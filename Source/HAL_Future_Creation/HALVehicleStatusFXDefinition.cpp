@@ -14,6 +14,24 @@ bool UHALVehicleStatusFXDefinition::Validate(FString& Error) const
 	if (!InRange(FadeInSeconds,10) || !InRange(FadeOutSeconds,10) || !InRange(ResidueSeconds,30)
 		|| SurfacePriority < -1000 || SurfacePriority > 1000)
 	{ Error = TEXT("Timing must be finite: fades 0..10s, residue 0..30s; surface priority -1000..1000."); return false; }
+	if (bUseSharedShockLook)
+	{
+		if (!OverlayMaterial || SurfaceLayout || !NiagaraLayers.IsEmpty() || !Scalars.IsEmpty() || !Colors.IsEmpty() || !Curves.IsEmpty())
+		{
+			Error = TEXT("Shared Shock Look needs the dedicated electric Overlay Material. Configure ribbons and arcs in Shock Look, without generic surface or particle layers.");
+			return false;
+		}
+		for (const TCHAR* Name : {TEXT("Brightness"), TEXT("FilamentPower"), TEXT("Flash"), TEXT("WipeRadius"), TEXT("FlickerSteps"), TEXT("ScorchAmount")})
+		{
+			float Value;
+			if (!OverlayMaterial->GetScalarParameterValue(FMaterialParameterInfo(FName(Name)), Value))
+			{ Error = FString::Printf(TEXT("Shared Shock Look overlay needs scalar %s."), Name); return false; }
+		}
+		FLinearColor Origin;
+		if (!OverlayMaterial->GetVectorParameterValue(FMaterialParameterInfo(TEXT("HitLocationLocal")), Origin))
+		{ Error = TEXT("Shared Shock Look overlay needs vector HitLocationLocal."); return false; }
+		return ShockLook.Validate(Error);
+	}
 	if (SurfaceLayout)
 	{
 		if (!SurfaceLayout->Validate(Error)) { return false; }

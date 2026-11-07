@@ -3,7 +3,8 @@
 #include "Components/ActorComponent.h"
 #include "Curves/CurveFloat.h"
 #include "GameplayTagContainer.h"
-#include "HALShockArcGeometry.h"
+#include "HALShockVisualSettings.h"
+#include "HALVehicleStatusFXRuntime.h"
 #include "HALShockedPresentationComponent.generated.h"
 
 class UHALAbilitySystemComponent;
@@ -15,6 +16,8 @@ class UNiagaraComponent;
 class UNiagaraSystem;
 class UPointLightComponent;
 class UHALVehicleStatusFXRenderer;
+class UHALVehicleStatusFXComponent;
+class UHALVehicleStatusFXDefinition;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHALShockedChanged, bool, bActive);
 
 /**
@@ -105,6 +108,14 @@ protected:
 	/** Extra punch while the whole-body flash is up. */
 	UPROPERTY(EditDefaultsOnly, Category="Shocked|Light", meta=(ClampMin="0", ClampMax="10")) float LightFlashBoost = 0.6f;
 private:
+#if WITH_DEV_AUTOMATION_TESTS
+	friend struct FHALShockFXTestAccess;
+#endif
+	void SelectLook();
+	void SyncSharedSource();
+	void ReleaseSharedSource();
+	void DestroyVisualComponents();
+	void SyncSharedOverlay(bool bResidue);
 	void StartArc();
 	void StopArc();
 	void BeginTimeline();
@@ -136,6 +147,13 @@ private:
 	/** One instance per visible mesh, so a vehicle with several body parts stays consistent. */
 	UPROPERTY(Transient) TArray<TObjectPtr<UMeshComponent>> OverlayMeshes;
 	UPROPERTY(Transient) TArray<TObjectPtr<UMaterialInstanceDynamic>> OverlayInstances;
+	/** Pinned across the current/release/cooling episode, so catalog readiness never restarts it. */
+	UPROPERTY(Transient) TObjectPtr<const UHALVehicleStatusFXDefinition> SharedRecipe;
+	UPROPERTY(Transient) FHALShockVisualSettings Look;
+	TWeakObjectPtr<UHALVehicleStatusFXComponent> SharedStatus;
+	FHALStatusFXSourceToken SharedSource;
+	float LookFadeOutSeconds = 0.f;
+	float LookScorchFadeSeconds = 0.f;
 	FDelegateHandle TagHandle;
 	EHALShockPhase Phase = EHALShockPhase::Idle;
 	float PhaseSeconds = 0.f;

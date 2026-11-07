@@ -95,8 +95,11 @@ public:
 	void Bind(UHALVehiclePresentationComponent* Provider, UHALVehicleStatusFXSubsystem* Cache,
 		const UVehicleDefinition* Vehicle, const UObject* AvatarIdentity);
 	void Unbind();
-	/** Shared legacy/new overlay owner; does not itself start a generic effect. */
+	/** Sole owner of the final mesh overlay, including the dedicated shock surface. */
 	UHALVehicleStatusFXRenderer* GetSurfaceRenderer();
+	const UHALVehicleStatusFXDefinition* FindSharedShockRecipe() const;
+	void CaptureShockTargets(FHALVehicleFXTargetSnapshot& Out) const;
+	bool OwnsSource(FHALStatusFXSourceToken Source) const { return Runtime.HasSource(Source); }
 	/** Attach only to the ASC identity of this binding and this Avatar. Reads current explicit tags first. */
 	bool ObserveAbilitySystem(UAbilitySystemComponent* InASC);
 	FHALStatusFXDiagnostics CaptureDiagnostics();

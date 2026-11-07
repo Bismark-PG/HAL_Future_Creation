@@ -16,6 +16,7 @@
 #include "Misc/App.h"
 #include "NiagaraComponent.h"
 #include "HALVehicleStatusFXComponent.h"
+#include "HALVehicleStatusFXDefinition.h"
 #include "HALVehicleStatusFXRenderer.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "NiagaraFunctionLibrary.h"
@@ -65,14 +66,9 @@ UHALShockedPresentationComponent::UHALShockedPresentationComponent()
 	PrimaryComponentTick.TickGroup = TG_PostPhysics;
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
-	if (FRichCurve* Curve = BrightnessCurve.GetRichCurve())
-	{
-		Curve->AddKey(0.f, 1.6f); Curve->AddKey(0.4f, 1.f); Curve->AddKey(1.f, 0.55f); Curve->AddKey(1.6f, 0.4f);
-	}
-	if (FRichCurve* Curve = FilamentPowerCurve.GetRichCurve())
-	{
-		Curve->AddKey(0.f, 34.f); Curve->AddKey(0.4f, 48.f); Curve->AddKey(1.6f, 70.f);
-	}
+	const FHALShockVisualSettings Defaults;
+	BrightnessCurve = Defaults.BrightnessCurve;
+	FilamentPowerCurve = Defaults.FilamentPowerCurve;
 }
 void UHALShockedPresentationComponent::Bind(UHALAbilitySystemComponent* InASC)
 {
@@ -102,6 +98,13 @@ void UHALShockedPresentationComponent::Unbind()
 	if (UWorld* World = GetWorld()) { World->GetTimerManager().ClearTimer(ShockHandoffTimer); }
 	bAwaitingAuthorityShock = false;
 	TagHandle.Reset(); ASC = nullptr; LocalBounceMovement.Reset(); SetShocked(false);
+	if (SharedRecipe)
+	{
+		ClearTimeline();
+		DestroyVisualComponents();
+		SharedRecipe = nullptr;
+		SharedStatus.Reset();
+	}
 	if (Phase == EHALShockPhase::Idle) { SetComponentTickEnabled(false); }
 }
 void UHALShockedPresentationComponent::NotifyShockOrigin(const FVector& WorldLocation)
@@ -114,21 +117,99 @@ void UHALShockedPresentationComponent::SetShocked(bool bActive)
 {
 	if (bShocked == bActive) { return; }
 	bShocked = bActive;
-	if (bShocked) { StartArc(); BeginTimeline(); } else { StopArc(); ReleaseTimeline(); }
+	if (bShocked)
+	{
+		if (Phase == EHALShockPhase::Idle) { SelectLook(); }
+		SyncSharedSource();
+		StartArc();
+		BeginTimeline();
+	}
+	else
+	{
+		ReleaseSharedSource();
+		StopArc();
+		ReleaseTimeline();
+	}
 	OnShockedChanged.Broadcast(bShocked);
+}
+
+void UHALShockedPresentationComponent::SelectLook()
+{
+	SharedStatus = GetOwner() ? GetOwner()->FindComponentByClass<UHALVehicleStatusFXComponent>() : nullptr;
+	const auto* NextRecipe = SharedStatus.IsValid() ? SharedStatus->FindSharedShockRecipe() : nullptr;
+	// The legacy look keeps its existing idle Niagara components. A shared recipe can change by binding.
+	if (NextRecipe != SharedRecipe.Get())
+	{
+		OverlayMeshes.Reset();
+		OverlayInstances.Reset();
+		DestroyVisualComponents();
+	}
+	SharedRecipe = NextRecipe;
+	if (SharedRecipe)
+	{
+		Look = SharedRecipe->ShockLook;
+		LookFadeOutSeconds = SharedRecipe->FadeOutSeconds;
+		LookScorchFadeSeconds = SharedRecipe->ResidueSeconds;
+	}
+	else
+	{
+		Look.ArcSystem = ArcSystem;
+		Look.ArcOffsetCm = ArcOffsetCm;
+		Look.ArcScale = ArcScale;
+		Look.FlashSeconds = FlashSeconds;
+		Look.WipeSeconds = WipeSeconds;
+		Look.WipeRadiusCm = WipeRadiusCm;
+		Look.BaseBrightness = BaseBrightness;
+		Look.FadeFilamentGain = FadeFilamentGain;
+		Look.FlickerSteps = FlickerSteps;
+		Look.BrightnessCurve = BrightnessCurve;
+		Look.FilamentPowerCurve = FilamentPowerCurve;
+		Look.RibbonSystem = RibbonSystem;
+		Look.ArcSettings = ArcSettings;
+		Look.ArcColor = ArcColor;
+		Look.bRetractArcsOnRelease = bRetractArcsOnRelease;
+		Look.ArcRetractFeather = ArcRetractFeather;
+		Look.ScorchRiseSeconds = ScorchRiseSeconds;
+		Look.bEnableLight = bEnableLight;
+		Look.LightColor = LightColor;
+		Look.LightPeakIntensity = LightPeakIntensity;
+		Look.LightRadiusCm = LightRadiusCm;
+		Look.LightOffsetCm = LightOffsetCm;
+		Look.LightFlickerFloor = LightFlickerFloor;
+		Look.LightFlashBoost = LightFlashBoost;
+		LookFadeOutSeconds = FadeOutSeconds;
+		LookScorchFadeSeconds = ScorchFadeSeconds;
+	}
+}
+
+void UHALShockedPresentationComponent::SyncSharedSource()
+{
+	auto* Status = SharedStatus.Get();
+	if (!SharedRecipe || !bShocked || !Status || Status->OwnsSource(SharedSource)) { return; }
+	SharedSource = Status->AcquireSource();
+	if (SharedSource.IsValid() && !Status->Submit(SharedSource, HALGameplayTags::State_Visual_Shocked))
+	{
+		ReleaseSharedSource();
+	}
+}
+
+void UHALShockedPresentationComponent::ReleaseSharedSource()
+{
+	if (SharedSource.IsValid() && SharedStatus.IsValid()) { SharedStatus->RemoveSource(SharedSource); }
+	SharedSource = {};
 }
 void UHALShockedPresentationComponent::StartArc()
 {
 	AActor* Owner = GetOwner();
 	USceneComponent* Attach = Owner ? Owner->GetRootComponent() : nullptr;
 	// Headless servers, NullRHI and automation have no FX system; the shocked state itself stays inspectable.
-	if (!ArcSystem || !Attach || !GetWorld() || !GetWorld()->FXSystem.IsValid() || !FApp::CanEverRender()) { return; }
+	if (!Look.ArcSystem || !Attach || !GetWorld() || !GetWorld()->FXSystem.IsValid() || !FApp::CanEverRender()) { return; }
 	if (!IsValid(ArcComponent))
 	{
-		ArcComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(ArcSystem, Attach, NAME_None, ArcOffsetCm,
+		ArcComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(Look.ArcSystem, Attach, NAME_None, Look.ArcOffsetCm,
 			FRotator::ZeroRotator, EAttachLocation::KeepRelativeOffset, false, false, ENCPoolMethod::None, false);
 		if (!ArcComponent) { return; }
-		ArcComponent->SetRelativeScale3D(FVector(ArcScale));
+		ArcComponent->SetRelativeScale3D(FVector(Look.ArcScale));
 	}
 	ArcComponent->Activate(true);
 }
@@ -146,6 +227,7 @@ UHALVehicleStatusFXRenderer* UHALShockedPresentationComponent::OverlayOwner()
 }
 void UHALShockedPresentationComponent::EnsureOverlay()
 {
+	if (SharedRecipe) { SyncSharedOverlay(false); return; }
 	AActor* Owner = GetOwner();
 	if (!OverlayMaterial || !Owner) { return; }
 	if (!OverlayInstances.IsEmpty())
@@ -182,21 +264,59 @@ void UHALShockedPresentationComponent::EnsureOverlay()
 		}
 	}
 }
+
+void UHALShockedPresentationComponent::SyncSharedOverlay(bool bResidue)
+{
+	auto* Status = SharedStatus.Get();
+	if (!Status) { return; }
+	FHALVehicleFXTargetSnapshot Targets;
+	Status->CaptureShockTargets(Targets);
+	auto* Renderer = Status->GetSurfaceRenderer();
+	for (int32 Index = OverlayMeshes.Num() - 1; Index >= 0; --Index)
+	{
+		auto* Mesh = OverlayMeshes[Index].Get();
+		if (Targets.Targets.ContainsByPredicate([Mesh](const auto& Target) { return Target.Mesh.Get() == Mesh; })) { continue; }
+		Renderer->SetShockSurface(Mesh, nullptr);
+		OverlayMeshes.RemoveAtSwap(Index);
+		OverlayInstances.RemoveAtSwap(Index);
+	}
+	for (const auto& Target : Targets.Targets)
+	{
+		auto* Mesh = Target.Mesh.Get();
+		if (!Mesh) { continue; }
+		int32 Index = OverlayMeshes.IndexOfByKey(Mesh);
+		if (Index == INDEX_NONE)
+		{
+			auto* Instance = UMaterialInstanceDynamic::Create(SharedRecipe->OverlayMaterial, this);
+			if (!Instance) { continue; }
+			Index = OverlayMeshes.Add(Mesh);
+			OverlayInstances.Add(Instance);
+		}
+		Renderer->SetShockSurface(Mesh, OverlayInstances[Index], SharedRecipe->SurfacePriority, bResidue);
+	}
+	// Preserve the original body-local ribbon envelope, with the FX target provider selecting the body.
+	const FVector Extent = Targets.Targets.IsEmpty() ? FVector(100.f) : Targets.Targets[0].LocalBounds.GetExtent();
+	if (!BodyExtentCm.Equals(Extent))
+	{
+		BodyExtentCm = Extent;
+		LastArcStep = -1;
+	}
+}
 void UHALShockedPresentationComponent::EnsureLight()
 {
 	AActor* Owner = GetOwner();
 	USceneComponent* Attach = Owner ? Owner->GetRootComponent() : nullptr;
-	if (!bEnableLight || !Attach || IsValid(ShockLight)) { return; }
+	if (!Look.bEnableLight || !Attach || IsValid(ShockLight)) { return; }
 	ShockLight = NewObject<UPointLightComponent>(Owner, NAME_None, RF_Transient);
 	if (!ShockLight) { return; }
 	ShockLight->SetupAttachment(Attach);
-	ShockLight->SetRelativeLocation(LightOffsetCm);
+	ShockLight->SetRelativeLocation(Look.LightOffsetCm);
 	ShockLight->SetMobility(EComponentMobility::Movable);
 	// Four vehicles can be shocked at once; flickering shadows are not worth the cost and hurt readability.
 	ShockLight->SetCastShadows(false);
 	ShockLight->SetIntensityUnits(ELightUnits::Candelas);
-	ShockLight->SetAttenuationRadius(LightRadiusCm);
-	ShockLight->SetLightColor(LightColor);
+	ShockLight->SetAttenuationRadius(Look.LightRadiusCm);
+	ShockLight->SetLightColor(Look.LightColor);
 	ShockLight->SetIntensity(0.f);
 	ShockLight->SetVisibility(false);
 	ShockLight->RegisterComponent();
@@ -205,34 +325,34 @@ void UHALShockedPresentationComponent::EnsureRibbon()
 {
 	AActor* Owner = GetOwner();
 	USceneComponent* Attach = Owner ? Owner->GetRootComponent() : nullptr;
-	if (!RibbonSystem || !Attach || !GetWorld() || !GetWorld()->FXSystem.IsValid()) { return; }
+	if (!Look.RibbonSystem || !Attach || !GetWorld() || !GetWorld()->FXSystem.IsValid()) { return; }
 	// Body extent drives arc scale, so a bigger vehicle gets proportionally bigger arcs.
 	for (const TObjectPtr<UMeshComponent>& Mesh : OverlayMeshes)
 	{
-		if (Mesh) { BodyExtentCm = Mesh->GetLocalBounds().BoxExtent; break; }
+		if (!SharedRecipe && Mesh) { BodyExtentCm = Mesh->GetLocalBounds().BoxExtent; break; }
 	}
 	if (!IsValid(RibbonComponent))
 	{
-		RibbonComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(RibbonSystem, Attach, NAME_None,
+		RibbonComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(Look.RibbonSystem, Attach, NAME_None,
 			FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::KeepRelativeOffset,
 			false, false, ENCPoolMethod::None, false);
 		if (!RibbonComponent) { return; }
 	}
 	// Layout is fixed for the session, so the asset can size its spawn burst from these.
-	RibbonComponent->SetVariableInt(HALShockedOverlay::ArcPointsPerRibbonParam, HALShockArcGeometry::PointsPerRibbon(ArcSettings));
-	RibbonComponent->SetVariableInt(HALShockedOverlay::ArcRibbonCountParam, HALShockArcGeometry::RibbonCount(ArcSettings));
-	RibbonComponent->SetVariableLinearColor(HALShockedOverlay::ArcColorParam, ArcColor);
+	RibbonComponent->SetVariableInt(HALShockedOverlay::ArcPointsPerRibbonParam, HALShockArcGeometry::PointsPerRibbon(Look.ArcSettings));
+	RibbonComponent->SetVariableInt(HALShockedOverlay::ArcRibbonCountParam, HALShockArcGeometry::RibbonCount(Look.ArcSettings));
+	RibbonComponent->SetVariableLinearColor(HALShockedOverlay::ArcColorParam, Look.ArcColor);
 }
 void UHALShockedPresentationComponent::PushArcs(float FilamentAlpha)
 {
 	if (!IsValid(RibbonComponent)) { return; }
 	// Rebuild only when the jump clock steps: the arcs snap to new shapes instead of sliding.
-	const int32 Step = FMath::FloorToInt(HeldSeconds * FMath::Max(1.f, FlickerSteps));
+	const int32 Step = FMath::FloorToInt(HeldSeconds * FMath::Max(1.f, Look.FlickerSteps));
 	bool bRebuilt = false;
 	if (Step != LastArcStep)
 	{
 		LastArcStep = Step;
-		HALShockArcGeometry::Build(BodyExtentCm, ArcSettings,
+		HALShockArcGeometry::Build(BodyExtentCm, Look.ArcSettings,
 			uint32(Step) * 2654435761u ^ FlickerSeed, ArcPositions, ArcBaseWidths);
 		UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayPosition(RibbonComponent,
 			HALShockedOverlay::ArcPositionsParam, ArcPositions);
@@ -240,12 +360,12 @@ void UHALShockedPresentationComponent::PushArcs(float FilamentAlpha)
 	}
 	// Withdraw the arc from its tail rather than dimming the whole ribbon. Widths are already
 	// per point, so the retracting front is just a mask over them and Niagara needs no change.
-	const float Retract = bRetractArcsOnRelease ? 1.f - FMath::Clamp(FilamentAlpha, 0.f, 1.f) : 0.f;
+	const float Retract = Look.bRetractArcsOnRelease ? 1.f - FMath::Clamp(FilamentAlpha, 0.f, 1.f) : 0.f;
 	if (bRebuilt || !FMath::IsNearlyEqual(Retract, LastArcRetract))
 	{
 		LastArcRetract = Retract;
-		const int32 PerRibbon = FMath::Max(2, HALShockArcGeometry::PointsPerRibbon(ArcSettings));
-		const float Feather = FMath::Max(0.01f, ArcRetractFeather);
+		const int32 PerRibbon = FMath::Max(2, HALShockArcGeometry::PointsPerRibbon(Look.ArcSettings));
+		const float Feather = FMath::Max(0.01f, Look.ArcRetractFeather);
 		// Front starts behind the tail and ends past the head, so Retract 0 and 1 are
 		// exactly "whole arc" and "nothing left" instead of clipping either end early.
 		const float Front = Retract * (1.f + Feather) - Feather;
@@ -262,7 +382,7 @@ void UHALShockedPresentationComponent::PushArcs(float FilamentAlpha)
 	// Retraction already removes the arc, so holding alpha up keeps the surviving part
 	// at full heat instead of fading twice over.
 	RibbonComponent->SetVariableFloat(HALShockedOverlay::ArcAlphaParam,
-		bRetractArcsOnRelease ? 1.f : FilamentAlpha);
+		Look.bRetractArcsOnRelease ? 1.f : FilamentAlpha);
 }
 void UHALShockedPresentationComponent::BeginTimeline()
 {
@@ -277,14 +397,14 @@ void UHALShockedPresentationComponent::BeginTimeline()
 		UE_LOG(LogTemp, Log, TEXT("ShockedPresentation: begin on %s overlays=%d light=%d ribbon=%d material=%s"),
 			GetOwner() ? *GetOwner()->GetName() : TEXT("?"), OverlayInstances.Num(),
 			IsValid(ShockLight) ? 1 : 0, IsValid(RibbonComponent) ? 1 : 0,
-			OverlayMaterial ? *OverlayMaterial->GetName() : TEXT("NONE"));
+			*GetNameSafe(SharedRecipe ? SharedRecipe->OverlayMaterial.Get() : OverlayMaterial.Get()));
 	}
-	if (OverlayInstances.IsEmpty() && !IsValid(ShockLight) && !IsValid(RibbonComponent)) { return; }
+	if (!SharedRecipe && OverlayInstances.IsEmpty() && !IsValid(ShockLight) && !IsValid(RibbonComponent)) { return; }
 	LastArcStep = -1; LastArcRetract = -1.f;
 	// A second shock during the burn-off keeps the soot already on the body.
 	const float Carried = (Phase == EHALShockPhase::Cooling || Phase == EHALShockPhase::Release) ? ScorchPeak : 0.f;
 	Phase = EHALShockPhase::Active; PhaseSeconds = 0.f;
-	HeldSeconds = (ScorchRiseSeconds > 0.f) ? Carried * ScorchRiseSeconds : 0.f;
+	HeldSeconds = (Look.ScorchRiseSeconds > 0.f) ? Carried * Look.ScorchRiseSeconds : 0.f;
 	if (IsValid(ShockLight)) { ShockLight->SetVisibility(true); }
 	// Populate the initial points, widths and alpha before Niagara's first spawn.
 	ApplyTimeline(1.f, ScorchRamp());
@@ -299,12 +419,12 @@ void UHALShockedPresentationComponent::ReleaseTimeline()
 	if (Phase != EHALShockPhase::Active) { return; }
 	ScorchPeak = ScorchRamp();
 	Phase = EHALShockPhase::Release; PhaseSeconds = 0.f;
-	if (FadeOutSeconds <= 0.f) { BeginCooling(); }
+	if (LookFadeOutSeconds <= 0.f) { BeginCooling(); }
 }
 void UHALShockedPresentationComponent::BeginCooling()
 {
 	Phase = EHALShockPhase::Cooling; PhaseSeconds = 0.f;
-	if (ScorchFadeSeconds <= 0.f || ScorchPeak <= 0.f) { ClearTimeline(); return; }
+	if (LookScorchFadeSeconds <= 0.f || ScorchPeak <= 0.f) { ClearTimeline(); return; }
 	// Current is gone from here on; only the soot is still on the body.
 	if (IsValid(ShockLight)) { ShockLight->SetIntensity(0.f); ShockLight->SetVisibility(false); }
 	ApplyTimeline(0.f, ScorchPeak);
@@ -313,45 +433,54 @@ void UHALShockedPresentationComponent::ClearTimeline()
 {
 	for (int32 Index = 0; Index < OverlayMeshes.Num(); ++Index)
 	{
-		if (OverlayMeshes[Index]) { OverlayOwner()->SetLegacy(OverlayMeshes[Index], nullptr); }
+		if (!OverlayMeshes[Index]) { continue; }
+		if (SharedRecipe) { OverlayOwner()->SetShockSurface(OverlayMeshes[Index], nullptr); }
+		else { OverlayOwner()->SetLegacy(OverlayMeshes[Index], nullptr); }
 	}
 	if (IsValid(ShockLight)) { ShockLight->SetIntensity(0.f); ShockLight->SetVisibility(false); }
 	// Deactivate rather than destroy, so ribbons already on screen finish their own lifetime.
 	if (IsValid(RibbonComponent)) { RibbonComponent->Deactivate(); }
 	Phase = EHALShockPhase::Idle; PhaseSeconds = 0.f; HeldSeconds = 0.f; ScorchPeak = 0.f; LastArcStep = -1; LastArcRetract = -1.f;
+	if (SharedRecipe)
+	{
+		OverlayMeshes.Reset();
+		OverlayInstances.Reset();
+		// Shared assets can change at the next episode. Keep retiring Niagara alive until then or teardown.
+	}
 	SetComponentTickEnabled(LocalBounceMovement.IsValid());
 }
 float UHALShockedPresentationComponent::ScorchRamp() const
 {
-	return ScorchRiseSeconds > 0.f ? FMath::Min(1.f, HeldSeconds / ScorchRiseSeconds) : 1.f;
+	return Look.ScorchRiseSeconds > 0.f ? FMath::Min(1.f, HeldSeconds / Look.ScorchRiseSeconds) : 1.f;
 }
 float UHALShockedPresentationComponent::ComputeFlicker() const
 {
 	// Same jump clock as the material, so the light steps in lockstep with the filaments.
-	const int32 Step = FMath::FloorToInt(HeldSeconds * FMath::Max(1.f, FlickerSteps));
+	const int32 Step = FMath::FloorToInt(HeldSeconds * FMath::Max(1.f, Look.FlickerSteps));
 	FRandomStream Stream(int32(uint32(Step) * 73856093u ^ FlickerSeed));
-	return FMath::Lerp(FMath::Clamp(LightFlickerFloor, 0.f, 1.f), 1.f, Stream.GetFraction());
+	return FMath::Lerp(FMath::Clamp(Look.LightFlickerFloor, 0.f, 1.f), 1.f, Stream.GetFraction());
 }
 void UHALShockedPresentationComponent::ApplyTimeline(float FilamentAlpha, float ScorchAlpha)
 {
-	const float Flash = (Phase == EHALShockPhase::Active && FlashSeconds > 0.f)
-		? FMath::Max(0.f, 1.f - PhaseSeconds / FlashSeconds) : 0.f;
-	const float Envelope = BrightnessCurve.GetRichCurveConst()->Eval(HeldSeconds);
-	const float Filament = FilamentPowerCurve.GetRichCurveConst()->Eval(HeldSeconds)
-		+ (1.f - FilamentAlpha) * FadeFilamentGain;
-	const float Wipe = (Phase == EHALShockPhase::Active && WipeSeconds > 0.f)
-		? FMath::Min(1.f, PhaseSeconds / WipeSeconds) * WipeRadiusCm : WipeRadiusCm;
+	if (SharedRecipe) { SyncSharedOverlay(Phase == EHALShockPhase::Cooling); }
+	const float Flash = (Phase == EHALShockPhase::Active && Look.FlashSeconds > 0.f)
+		? FMath::Max(0.f, 1.f - PhaseSeconds / Look.FlashSeconds) : 0.f;
+	const float Envelope = Look.BrightnessCurve.GetRichCurveConst()->Eval(HeldSeconds);
+	const float Filament = Look.FilamentPowerCurve.GetRichCurveConst()->Eval(HeldSeconds)
+		+ (1.f - FilamentAlpha) * Look.FadeFilamentGain;
+	const float Wipe = (Phase == EHALShockPhase::Active && Look.WipeSeconds > 0.f)
+		? FMath::Min(1.f, PhaseSeconds / Look.WipeSeconds) * Look.WipeRadiusCm : Look.WipeRadiusCm;
 
 	for (int32 Index = 0; Index < OverlayInstances.Num(); ++Index)
 	{
 		UMaterialInstanceDynamic* Instance = OverlayInstances[Index];
 		const UMeshComponent* Mesh = OverlayMeshes[Index];
 		if (!Instance || !Mesh) { continue; }
-		Instance->SetScalarParameterValue(HALShockedOverlay::BrightnessParam, BaseBrightness * Envelope * FilamentAlpha);
+		Instance->SetScalarParameterValue(HALShockedOverlay::BrightnessParam, Look.BaseBrightness * Envelope * FilamentAlpha);
 		Instance->SetScalarParameterValue(HALShockedOverlay::FilamentPowerParam, Filament);
 		Instance->SetScalarParameterValue(HALShockedOverlay::FlashParam, Flash);
 		Instance->SetScalarParameterValue(HALShockedOverlay::WipeRadiusParam, Wipe);
-		Instance->SetScalarParameterValue(HALShockedOverlay::FlickerStepsParam, FlickerSteps);
+		Instance->SetScalarParameterValue(HALShockedOverlay::FlickerStepsParam, Look.FlickerSteps);
 		Instance->SetScalarParameterValue(HALShockedOverlay::ScorchAmountParam, FMath::Clamp(ScorchAlpha, 0.f, 1.f));
 		// The material measures the wipe in the mesh's local space, so the origin follows the body as it moves.
 		const FVector Local = bHasShockOrigin ? Mesh->GetComponentTransform().InverseTransformPosition(ShockOriginWS) : FVector::ZeroVector;
@@ -359,7 +488,7 @@ void UHALShockedPresentationComponent::ApplyTimeline(float FilamentAlpha, float 
 	}
 	if (IsValid(ShockLight))
 	{
-		ShockLight->SetIntensity(LightPeakIntensity * Envelope * ComputeFlicker() * (1.f + Flash * LightFlashBoost) * FilamentAlpha);
+		ShockLight->SetIntensity(Look.LightPeakIntensity * Envelope * ComputeFlicker() * (1.f + Flash * Look.LightFlashBoost) * FilamentAlpha);
 	}
 	PushArcs(FilamentAlpha);
 }
@@ -367,6 +496,7 @@ void UHALShockedPresentationComponent::TickComponent(float DeltaTime, ELevelTick
 {
 	Super::TickComponent(DeltaTime, TickType, TickFunction);
 	if (LocalBounceMovement.IsValid()) { RefreshShocked(); }
+	SyncSharedSource();
 	if (Phase == EHALShockPhase::Idle)
 	{
 		SetComponentTickEnabled(LocalBounceMovement.IsValid());
@@ -381,12 +511,12 @@ void UHALShockedPresentationComponent::TickComponent(float DeltaTime, ELevelTick
 	}
 	if (Phase == EHALShockPhase::Release)
 	{
-		const float Remaining = FadeOutSeconds > 0.f ? FMath::Max(0.f, 1.f - PhaseSeconds / FadeOutSeconds) : 0.f;
+		const float Remaining = LookFadeOutSeconds > 0.f ? FMath::Max(0.f, 1.f - PhaseSeconds / LookFadeOutSeconds) : 0.f;
 		if (Remaining <= 0.f) { BeginCooling(); return; }
 		ApplyTimeline(Remaining, ScorchPeak);
 		return;
 	}
-	const float Cooling = ScorchFadeSeconds > 0.f ? FMath::Max(0.f, 1.f - PhaseSeconds / ScorchFadeSeconds) : 0.f;
+	const float Cooling = LookScorchFadeSeconds > 0.f ? FMath::Max(0.f, 1.f - PhaseSeconds / LookScorchFadeSeconds) : 0.f;
 	if (Cooling <= 0.f) { ClearTimeline(); return; }
 	ApplyTimeline(0.f, ScorchPeak * Cooling);
 }
@@ -437,11 +567,16 @@ void UHALShockedPresentationComponent::EndPlay(const EEndPlayReason::Type Reason
 	Unbind();
 	ClearTimeline();
 	OverlayMeshes.Reset(); OverlayInstances.Reset();
+	DestroyVisualComponents();
+	Super::EndPlay(Reason);
+}
+
+void UHALShockedPresentationComponent::DestroyVisualComponents()
+{
 	if (IsValid(ShockLight)) { ShockLight->DestroyComponent(); }
 	ShockLight = nullptr;
 	if (IsValid(RibbonComponent)) { RibbonComponent->DestroyComponent(); }
 	RibbonComponent = nullptr;
 	if (IsValid(ArcComponent)) { ArcComponent->DestroyComponent(); }
 	ArcComponent = nullptr;
-	Super::EndPlay(Reason);
 }

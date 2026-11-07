@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Curves/CurveFloat.h"
+#include "HALShockVisualSettings.h"
 #include "HALVehicleStatusFXDefinition.generated.h"
 
 class UMaterialInterface;
@@ -78,6 +79,11 @@ class HAL_FUTURE_CREATION_API UHALVehicleStatusFXDefinition : public UDataAsset
 public:
 	/** Opt in after the shared material/Niagara contract is configured. Existing assets remain observation-only. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Rendering") bool bEnableRendering = false;
+	/** Use the existing electric bounce/authority driver with this recipe's shared visual settings. */
+	UPROPERTY(EditAnywhere, Category="Shocked", meta=(EditCondition="bEnableRendering"))
+	bool bUseSharedShockLook = false;
+	UPROPERTY(EditAnywhere, Category="Shocked", meta=(EditCondition="bUseSharedShockLook", EditConditionHides))
+	FHALShockVisualSettings ShockLook;
 	/** Optional compatible material family. Leave Overlay Material empty, or use the same material. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Surface") TObjectPtr<UHALStatusFXSurfaceLayout> SurfaceLayout;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Surface") FName SurfaceChannel = TEXT("Primary");
