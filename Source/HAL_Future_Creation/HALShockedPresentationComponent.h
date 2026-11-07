@@ -14,6 +14,7 @@ class UMeshComponent;
 class UNiagaraComponent;
 class UNiagaraSystem;
 class UPointLightComponent;
+class UHALVehicleStatusFXRenderer;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHALShockedChanged, bool, bActive);
 
 /**
@@ -111,6 +112,8 @@ private:
 	void BeginCooling();
 	void ClearTimeline();
 	void EnsureOverlay();
+	UHALVehicleStatusFXRenderer* OverlayOwner();
+	UPROPERTY(Transient) TObjectPtr<UHALVehicleStatusFXRenderer> FallbackOverlayOwner;
 	void EnsureLight();
 	void EnsureRibbon();
 	/** Rebuilds the arcs when the flicker clock steps, then pushes the current fade alpha. */

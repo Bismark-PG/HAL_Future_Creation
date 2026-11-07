@@ -11,6 +11,8 @@ public class HAL_Future_Creation : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "DeveloperSettings", "PhysicsCore", "UMG", "GameplayAbilities", "GameplayTags", "GameplayTasks" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "Chaos", "Networking", "Slate", "SlateCore", "Niagara" });
+		// Editor automation constructs transient render LODs and reads back the real RHI fixture.
+		if (Target.bBuildEditor) { PrivateDependencyModuleNames.AddRange(new string[] { "RHI", "RenderCore" }); }
 		
 		// Uncomment if you are using online features
 		// PrivateDependencyModuleNames.Add("OnlineSubsystem");

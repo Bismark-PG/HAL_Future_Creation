@@ -15,6 +15,8 @@
 #include "Math/RandomStream.h"
 #include "Misc/App.h"
 #include "NiagaraComponent.h"
+#include "HALVehicleStatusFXComponent.h"
+#include "HALVehicleStatusFXRenderer.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "NiagaraFunctionLibrary.h"
 #include "TimerManager.h"
@@ -135,6 +137,13 @@ void UHALShockedPresentationComponent::StopArc()
 	// Deactivate instead of destroying so already spawned particles finish their own lifetime.
 	if (IsValid(ArcComponent)) { ArcComponent->Deactivate(); }
 }
+UHALVehicleStatusFXRenderer* UHALShockedPresentationComponent::OverlayOwner()
+{
+	if (auto* Status = GetOwner() ? GetOwner()->FindComponentByClass<UHALVehicleStatusFXComponent>() : nullptr)
+	{ return Status->GetSurfaceRenderer(); }
+	if (!FallbackOverlayOwner) { FallbackOverlayOwner = NewObject<UHALVehicleStatusFXRenderer>(this); }
+	return FallbackOverlayOwner;
+}
 void UHALShockedPresentationComponent::EnsureOverlay()
 {
 	AActor* Owner = GetOwner();
@@ -144,7 +153,7 @@ void UHALShockedPresentationComponent::EnsureOverlay()
 		// Re-shocked during the fade: the shell is still mounted, just remount what is still valid.
 		for (int32 Index = 0; Index < OverlayInstances.Num(); ++Index)
 		{
-			if (OverlayMeshes[Index] && OverlayInstances[Index]) { OverlayMeshes[Index]->SetOverlayMaterial(OverlayInstances[Index]); }
+			if (OverlayMeshes[Index] && OverlayInstances[Index]) { OverlayOwner()->SetLegacy(OverlayMeshes[Index], OverlayInstances[Index]); }
 		}
 		return;
 	}
@@ -165,7 +174,7 @@ void UHALShockedPresentationComponent::EnsureOverlay()
 		}
 		UMaterialInstanceDynamic* Instance = UMaterialInstanceDynamic::Create(OverlayMaterial, this);
 		if (!Instance) { continue; }
-		Mesh->SetOverlayMaterial(Instance);
+		OverlayOwner()->SetLegacy(Mesh, Instance);
 		OverlayMeshes.Add(Mesh); OverlayInstances.Add(Instance);
 		if (HALShockedOverlay::WantsLog())
 		{
@@ -304,7 +313,7 @@ void UHALShockedPresentationComponent::ClearTimeline()
 {
 	for (int32 Index = 0; Index < OverlayMeshes.Num(); ++Index)
 	{
-		if (OverlayMeshes[Index]) { OverlayMeshes[Index]->SetOverlayMaterial(nullptr); }
+		if (OverlayMeshes[Index]) { OverlayOwner()->SetLegacy(OverlayMeshes[Index], nullptr); }
 	}
 	if (IsValid(ShockLight)) { ShockLight->SetIntensity(0.f); ShockLight->SetVisibility(false); }
 	// Deactivate rather than destroy, so ribbons already on screen finish their own lifetime.

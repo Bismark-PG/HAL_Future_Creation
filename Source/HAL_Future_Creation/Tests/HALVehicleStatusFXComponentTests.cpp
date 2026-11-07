@@ -426,4 +426,34 @@ bool FHALStatusFXDebugGuardTest::RunTest(const FString&)
 	TestTrue(TEXT("Repeated off is idempotent"), A.FX->SetDebugSource(TEXT("0"), HALGameplayTags::State_Visual_Shocked, false));
 	return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALFXParticleBudgetTest,"HAL.FutureCreation.StatusFX.Renderer.BoundsBudgetAndExplicitFallback",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALFXParticleBudgetTest::RunTest(const FString&)
+{
+	FStatusFXWorld F; auto* D=F.Catalog->Effects[0].Definition.Get(); F.Catalog->Effects[0].Tag=HALGameplayTags::State_Visual_DebugA;
+	D->bEnableRendering=true; D->OverlayMaterial=nullptr; D->Scalars.Reset(); D->NiagaraLayers.Reset();
+	auto* Bounds=NewObject<UNiagaraSystem>(D);
+	for (const TCHAR* N : {TEXT("User.FX_Intensity"),TEXT("User.FX_Age"),TEXT("User.FX_Residue"),TEXT("User.FX_SpawnRate")})
+	{ Bounds->GetExposedParameters().AddParameter(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(),FName(N))); }
+	for (const TCHAR* N : {TEXT("User.FX_BoundsCenter"),TEXT("User.FX_BoundsExtent")})
+	{ Bounds->GetExposedParameters().AddParameter(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(),FName(N))); }
+	const FNiagaraVariable Max(FNiagaraTypeDefinition::GetIntDef(),TEXT("User.FX_MaxParticles")); Bounds->GetExposedParameters().AddParameter(Max);
+	FHALStatusFXNiagaraLayer A; A.LayerId=TEXT("Envelope"); A.BoundsSystem=Bounds; A.MaximumParticles=80; D->NiagaraLayers.Add(A);
+	FHALStatusFXNiagaraLayer B; B.LayerId=TEXT("ExplicitFallback"); B.Binding=EHALStatusFXBinding::MeshSurface; B.MaximumParticles=80;
+	B.StaticSurfaceSystem=NewObject<UNiagaraSystem>(D); B.SkeletalSurfaceSystem=NewObject<UNiagaraSystem>(D); B.SurfaceFallbackBoundsSystem=Bounds;
+	D->NiagaraLayers.Add(B); B.LayerId=TEXT("NoFallback"); B.SurfaceFallbackBoundsSystem=nullptr; D->NiagaraLayers.Add(B);
+	const TGuardValue<int32> Budget(GetMutableDefault<UHALVehicleStatusFXSettings>()->MaximumParticlesPerVehicle,100);
+	FStatusFXCar Car(F); Car.Visual->SetRelativeTransform(FTransform(FRotator(0,35,0),FVector(40,10,4),FVector(-2,.5,1)));
+	const auto Source=Car.Start(HALGameplayTags::State_Visual_DebugA); const auto Requests=Car.Requests();
+	if (!TestEqual(TEXT("One visual target has three independent prepared layers"),Requests.Num(),1)
+		|| !TestEqual(TEXT("All layer identities retained"),Requests[0].Particles.Num(),3)) { return false; }
+	auto* First=Requests[0].Particles[0].Component.Get(); auto* Fallback=Requests[0].Particles[1].Component.Get();
+	TestTrue(TEXT("Explicit fallback selects only the configured substitute"),Fallback->GetAsset()==Bounds && Fallback->GetAttachParent()==Car.Visual);
+	TestEqual(TEXT("Valid first layer has configured budget"),First->GetOverrideParameters().GetParameterValue<int32>(Max),80);
+	TestEqual(TEXT("Second layer receives remaining vehicle budget"),Fallback->GetOverrideParameters().GetParameterValue<int32>(Max),20);
+	TestTrue(TEXT("Full mirrored/rotated transform follows real visual target"),First->GetComponentTransform().Equals(Car.Visual->GetComponentTransform()));
+	TestEqual(TEXT("Layer without explicit fallback remains rejected"),Car.FX->CaptureDiagnostics().RejectedParticles,1);
+	Car.FX->RemoveSource(Source); FHALStatusFXComponentTestAccess::Age(Car.FX,1);
+	TestTrue(TEXT("Last tail expiry drops real particle objects"),Car.Requests().IsEmpty() && !Requests[0].Particles[0].Component.IsValid());
+	return true;
+}
 #endif

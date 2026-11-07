@@ -2,6 +2,8 @@
 
 namespace HALGameplayTags
 {
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Visual_DebugA, "State.Visual.DebugA", "Cosmetic test input only; no gameplay effect or skill.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Visual_DebugB, "State.Visual.DebugB", "Second cosmetic input for surface composition validation.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_ElectricWall,"Combat.Source.ElectricWall","Paired pillars and electric wall contact; no damage or ball enhancement.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Visual_Shocked,"State.Visual.Shocked","Presentation-only shock marker following the current Stun lifetime.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Visual_Shocked,"Effect.Visual.Shocked","Avatar-scoped presentation effect removed when Stun ends.");

@@ -7,6 +7,7 @@
 
 class UMaterialInterface;
 class UNiagaraSystem;
+class UHALStatusFXSurfaceLayout;
 
 USTRUCT(BlueprintType)
 struct HAL_FUTURE_CREATION_API FHALStatusFXScalar
@@ -54,8 +55,19 @@ struct HAL_FUTURE_CREATION_API FHALStatusFXNiagaraLayer
 	TObjectPtr<UNiagaraSystem> StaticSurfaceSystem;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layer", meta=(EditCondition="Binding == EHALStatusFXBinding::MeshSurface", EditConditionHides))
 	TObjectPtr<UNiagaraSystem> SkeletalSurfaceSystem;
+	/** Optional, explicitly configured Bounds substitute if the surface binding is unsupported. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layer", meta=(EditCondition="Binding == EHALStatusFXBinding::MeshSurface", EditConditionHides))
+	TObjectPtr<UNiagaraSystem> SurfaceFallbackBoundsSystem;
 	/** Envelope growth relative to each mesh extent. Not a collision/body scale. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Bounds", meta=(ClampMin="0", ClampMax="1")) float PaddingFraction = 0.07f;
+	/** CPU triangle sampling path; source mesh must retain CPU data for this LOD. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Sampling", meta=(ClampMin="0", ClampMax="8")) int32 SamplingLOD = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Budget", meta=(ClampMin="1", ClampMax="4096")) int32 MaximumParticles = 128;
+	/** Particles per second before size scaling and visual envelope. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Budget", meta=(ClampMin="0", ClampMax="2000")) float SpawnRate = 20;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Budget") bool bScaleRateBySize = true;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Budget", meta=(ClampMin="100", ClampMax="10000000")) float ReferenceAreaCm2 = 60000;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Timing") bool bEmitDuringResidue = false;
 };
 
 /** Immutable shared visual recipe. No HP, force, GE duration, MID or per-vehicle clock. */
@@ -64,6 +76,16 @@ class HAL_FUTURE_CREATION_API UHALVehicleStatusFXDefinition : public UDataAsset
 {
 	GENERATED_BODY()
 public:
+	/** Opt in after the shared material/Niagara contract is configured. Existing assets remain observation-only. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Rendering") bool bEnableRendering = false;
+	/** Optional compatible material family. Leave Overlay Material empty, or use the same material. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Surface") TObjectPtr<UHALStatusFXSurfaceLayout> SurfaceLayout;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Surface") FName SurfaceChannel = TEXT("Primary");
+	/** Standalone material standard parameters; layout recipes instead use Prefix+Intensity/Age/Residue. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Surface") FName IntensityParameter = TEXT("FX_Intensity");
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Surface") FName AgeParameter = TEXT("FX_Age");
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Surface") FName ResidueParameter = TEXT("FX_Residue");
+	UMaterialInterface* GetSurfaceMaterial() const;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Surface") TObjectPtr<UMaterialInterface> OverlayMaterial;
 	/** Higher wins when surface styles cannot coexist; ties will use the catalog tag ordering. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Surface", meta=(ClampMin="-1000", ClampMax="1000")) int32 SurfacePriority = 0;

@@ -13,6 +13,7 @@ class UVehicleDefinition;
 class UMaterialInstanceDynamic;
 class UNiagaraComponent;
 class UAbilitySystemComponent;
+class UHALVehicleStatusFXRenderer;
 
 struct FHALStatusFXSourceDiagnostic
 {
@@ -30,6 +31,8 @@ struct FHALStatusFXDiagnostics
 	bool bBound = false, bObservingASC = false, bTickEnabled = false;
 	int32 Leases = 0, ActiveSources = 0, ASCSources = 0, DebugSources = 0, PendingRecipes = 0;
 	int32 Targets = 0, Materials = 0, Particles = 0, RegisteredParticles = 0, ActiveParticles = 0;
+	int32 OverlayTargets = 0, SurfaceChannels = 0, RejectedSurfaces = 0, RejectedParticles = 0;
+	FString RenderError;
 	TArray<FHALStatusFXSourceDiagnostic> Sources;
 	TArray<FHALStatusFXInstanceSnapshot> Instances;
 };
@@ -68,6 +71,9 @@ struct FHALStatusFXPreparedParticle
 	FHALStatusFXInstanceHandle Instance;
 	FName TargetId, LayerId;
 	UPROPERTY(Transient) TObjectPtr<UNiagaraComponent> Component;
+	bool bConfigured = false, bAttemptedConfiguration = false, bBoundsFallback = false;
+	FString RenderState;
+	FString FallbackReason;
 };
 
 struct FHALStatusFXDemand
@@ -89,6 +95,8 @@ public:
 	void Bind(UHALVehiclePresentationComponent* Provider, UHALVehicleStatusFXSubsystem* Cache,
 		const UVehicleDefinition* Vehicle, const UObject* AvatarIdentity);
 	void Unbind();
+	/** Shared legacy/new overlay owner; does not itself start a generic effect. */
+	UHALVehicleStatusFXRenderer* GetSurfaceRenderer();
 	/** Attach only to the ASC identity of this binding and this Avatar. Reads current explicit tags first. */
 	bool ObserveAbilitySystem(UAbilitySystemComponent* InASC);
 	FHALStatusFXDiagnostics CaptureDiagnostics();
@@ -116,6 +124,7 @@ private:
 	void Refresh();
 	void ReleaseResources();
 	void PrepareRequests(double Time);
+	void RenderParticles();
 	void ReconcileObservedTags();
 	void DetachObserver();
 	void LogStateChange(const TCHAR* Reason);
@@ -136,6 +145,7 @@ private:
 	UPROPERTY(Transient) TMap<FGameplayTag, TObjectPtr<UHALVehicleStatusFXDefinition>> Recipes;
 	UPROPERTY(Transient) TArray<FHALStatusFXPreparedSurface> Surfaces;
 	UPROPERTY(Transient) TArray<FHALStatusFXPreparedParticle> Particles;
+	UPROPERTY(Transient) TObjectPtr<UHALVehicleStatusFXRenderer> Renderer;
 
 	double Epoch = 0;
 	uint64 MeshGeneration = 0;

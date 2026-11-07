@@ -1,7 +1,11 @@
 #include "HALVehicleStatusFXDefinition.h"
 #include "Materials/MaterialInterface.h"
 #include "NiagaraSystem.h"
+#include "HALStatusFXSurfaceLayout.h"
 #include "Misc/DataValidation.h"
+
+UMaterialInterface* UHALVehicleStatusFXDefinition::GetSurfaceMaterial() const
+{ return SurfaceLayout ? SurfaceLayout->Material.Get() : OverlayMaterial.Get(); }
 
 bool UHALVehicleStatusFXDefinition::Validate(FString& Error) const
 {
@@ -10,9 +14,16 @@ bool UHALVehicleStatusFXDefinition::Validate(FString& Error) const
 	if (!InRange(FadeInSeconds,10) || !InRange(FadeOutSeconds,10) || !InRange(ResidueSeconds,30)
 		|| SurfacePriority < -1000 || SurfacePriority > 1000)
 	{ Error = TEXT("Timing must be finite: fades 0..10s, residue 0..30s; surface priority -1000..1000."); return false; }
-	if (!OverlayMaterial && NiagaraLayers.IsEmpty())
+	if (SurfaceLayout)
+	{
+		if (!SurfaceLayout->Validate(Error)) { return false; }
+		if (OverlayMaterial && OverlayMaterial != SurfaceLayout->Material) { Error = TEXT("Overlay and layout material must agree."); return false; }
+		if (!SurfaceLayout->Channels.ContainsByPredicate([&](const auto& C) { return C.Id == SurfaceChannel; }))
+		{ Error = TEXT("Recipe channel is not in its surface layout."); return false; }
+	}
+	if (!GetSurfaceMaterial() && NiagaraLayers.IsEmpty())
 	{ Error = TEXT("Provide an Overlay Material or at least one valid Niagara layer."); return false; }
-	if (!OverlayMaterial && (!Scalars.IsEmpty() || !Colors.IsEmpty() || !Curves.IsEmpty()))
+	if (!GetSurfaceMaterial() && (!Scalars.IsEmpty() || !Colors.IsEmpty() || !Curves.IsEmpty()))
 	{ Error = TEXT("Surface parameters require an Overlay Material."); return false; }
 	TSet<FName> Parameters;
 	const auto AddParameter = [&Parameters, &Error](FName Name)
@@ -21,6 +32,12 @@ bool UHALVehicleStatusFXDefinition::Validate(FString& Error) const
 		{ Error = FString::Printf(TEXT("Surface parameter '%s' is empty or duplicated across scalar/color/curve lists."), *Name.ToString()); return false; }
 		Parameters.Add(Name); return true;
 	};
+	if (bEnableRendering && GetSurfaceMaterial())
+	{
+		if (SurfaceLayout)
+		{ Parameters.Add(TEXT("Intensity")); Parameters.Add(TEXT("Age")); Parameters.Add(TEXT("Residue")); }
+		else if (!AddParameter(IntensityParameter) || !AddParameter(AgeParameter) || !AddParameter(ResidueParameter)) { return false; }
+	}
 	for (const auto& P : Scalars)
 	{
 		if (!AddParameter(P.Parameter)) { return false; }
@@ -52,7 +69,10 @@ bool UHALVehicleStatusFXDefinition::Validate(FString& Error) const
 		if (L.LayerId.IsNone() || LayerIds.Contains(L.LayerId) || !InRange(L.PaddingFraction,1))
 		{ Error = FString::Printf(TEXT("Niagara layer %d needs a unique nonempty Id and padding 0..1."), Index); return false; }
 		LayerIds.Add(L.LayerId);
-		const bool bBounds = L.Binding == EHALStatusFXBinding::Bounds && L.BoundsSystem && !L.StaticSurfaceSystem && !L.SkeletalSurfaceSystem;
+		if (L.SamplingLOD < 0 || L.SamplingLOD > 8 || L.MaximumParticles < 1 || L.MaximumParticles > 4096
+			|| !InRange(L.SpawnRate, 2000) || !FMath::IsFinite(L.ReferenceAreaCm2) || L.ReferenceAreaCm2 < 100 || L.ReferenceAreaCm2 > 10000000)
+		{ Error = TEXT("Particle layer sampling LOD/budget/rate/reference area is out of range."); return false; }
+		const bool bBounds = L.Binding == EHALStatusFXBinding::Bounds && L.BoundsSystem && !L.StaticSurfaceSystem && !L.SkeletalSurfaceSystem && !L.SurfaceFallbackBoundsSystem;
 		const bool bSurface = L.Binding == EHALStatusFXBinding::MeshSurface && !L.BoundsSystem && L.StaticSurfaceSystem && L.SkeletalSurfaceSystem;
 		if (!bBounds && !bSurface)
 		{ Error = FString::Printf(TEXT("Layer '%s': Bounds needs only Bounds System; Mesh Surface needs both Static/Skeletal templates and no Bounds System."), *L.LayerId.ToString()); return false; }

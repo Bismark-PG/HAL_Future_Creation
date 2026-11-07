@@ -2,6 +2,7 @@
 #include "HALVehiclePresentationComponent.h"
 #include "HALVehicleStatusFXSubsystem.h"
 #include "HALVehicleStatusFXDefinition.h"
+#include "HALVehicleStatusFXRenderer.h"
 #include "VehicleDefinition.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "NiagaraComponent.h"
@@ -16,6 +17,12 @@ UHALVehicleStatusFXComponent::UHALVehicleStatusFXComponent()
 }
 
 double UHALVehicleStatusFXComponent::Now() const { return FMath::Max(0.0, FPlatformTime::Seconds() - Epoch); }
+
+UHALVehicleStatusFXRenderer* UHALVehicleStatusFXComponent::GetSurfaceRenderer()
+{
+	if (!Renderer) { Renderer = NewObject<UHALVehicleStatusFXRenderer>(this); }
+	return Renderer;
+}
 
 void UHALVehicleStatusFXComponent::Bind(UHALVehiclePresentationComponent* InProvider, UHALVehicleStatusFXSubsystem* InCache,
 	const UVehicleDefinition* InVehicle, const UObject* InAvatarIdentity)
@@ -49,6 +56,7 @@ void UHALVehicleStatusFXComponent::Bind(UHALVehiclePresentationComponent* InProv
 
 void UHALVehicleStatusFXComponent::ReleaseResources()
 {
+	if (Renderer) { Renderer->ClearGeneric(); }
 	Requests.Reset();
 	for (auto& Particle : Particles)
 	{
@@ -157,14 +165,14 @@ void UHALVehicleStatusFXComponent::PrepareRequests(double Time)
 		{
 			FHALStatusFXRenderRequest Request;
 			Request.MeshGeneration = MeshGeneration; Request.Target = Target; Request.Recipe = Recipe;
-			if (Recipe->OverlayMaterial)
+			if (Recipe->GetSurfaceMaterial())
 			{
 				auto* Surface = Surfaces.FindByPredicate([&](const auto& S)
-				{ return S.TargetId == Target.Id && IsValid(S.Material) && S.Material->Parent == Recipe->OverlayMaterial; });
+				{ return S.TargetId == Target.Id && IsValid(S.Material) && S.Material->Parent == Recipe->GetSurfaceMaterial(); });
 				if (!Surface)
 				{
 					FHALStatusFXPreparedSurface New; New.TargetId = Target.Id;
-					New.Material = UMaterialInstanceDynamic::Create(Recipe->OverlayMaterial, this);
+					New.Material = UMaterialInstanceDynamic::Create(Recipe->GetSurfaceMaterial(), this);
 					Surface = &Surfaces.Add_GetRef(MoveTemp(New));
 				}
 				Request.Surface = Surface->Material; UsedSurfaces.Add(Surface->Material);
@@ -197,6 +205,8 @@ void UHALVehicleStatusFXComponent::PrepareRequests(double Time)
 		return true;
 	});
 	for (auto It = Recipes.CreateIterator(); It; ++It) { if (!LiveTags.Contains(It.Key())) { It.RemoveCurrent(); } }
+	GetSurfaceRenderer()->RenderSurfaces(Requests);
+	RenderParticles();
 }
 
 void UHALVehicleStatusFXComponent::CaptureRenderRequests(TArray<FHALStatusFXRenderRequest>& Out)
@@ -225,5 +235,7 @@ void UHALVehicleStatusFXComponent::TickComponent(float DeltaTime, ELevelTick Tic
 	Super::TickComponent(DeltaTime, TickType, TickFunction); Refresh();
 }
 
-void UHALVehicleStatusFXComponent::EndPlay(const EEndPlayReason::Type Reason) { Unbind(); Super::EndPlay(Reason); }
-void UHALVehicleStatusFXComponent::OnUnregister() { Unbind(); Super::OnUnregister(); }
+void UHALVehicleStatusFXComponent::EndPlay(const EEndPlayReason::Type Reason)
+{ Unbind(); if (Renderer) { Renderer->ClearAll(); } Super::EndPlay(Reason); }
+void UHALVehicleStatusFXComponent::OnUnregister()
+{ Unbind(); if (Renderer) { Renderer->ClearAll(); } Super::OnUnregister(); }

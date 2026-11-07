@@ -2,6 +2,7 @@
 #include "AbilitySystemComponent.h"
 #include "HALVehicleStatusFXSubsystem.h"
 #include "HALVehicleStatusFXDefinition.h"
+#include "HALVehicleStatusFXRenderer.h"
 #include "NiagaraComponent.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerState.h"
@@ -143,12 +144,19 @@ FHALStatusFXDiagnostics UHALVehicleStatusFXComponent::CaptureDiagnostics()
 	D.Leases = Runtime.GetSourceLeaseCount(); D.ActiveSources = Runtime.GetActiveSourceCount();
 	D.ASCSources = ObservedSources.Num(); D.DebugSources = DebugSources.Num();
 	D.Targets = Targets.Targets.Num(); D.Materials = Surfaces.Num(); D.Particles = Particles.Num();
+	if (Renderer)
+	{
+		D.OverlayTargets = Renderer->GetSurfaceCount(); D.SurfaceChannels = Renderer->GetGenericChannelCount();
+		D.RejectedSurfaces = Renderer->RejectedSurfaces; D.RenderError = Renderer->LastError;
+	}
 	D.Instances = Runtime.GetSnapshots();
 	for (const auto& P : Particles)
 	{
 		if (!IsValid(P.Component)) { continue; }
 		D.RegisteredParticles += P.Component->IsRegistered() ? 1 : 0;
 		D.ActiveParticles += P.Component->IsActive() ? 1 : 0;
+		if (!P.RenderState.IsEmpty() && P.RenderState != TEXT("ObservationOnly") && P.RenderState != TEXT("Rendered") && P.RenderState != TEXT("PreparedHeadless"))
+		{ ++D.RejectedParticles; D.RenderError = P.RenderState; }
 	}
 	const double Time = Now();
 	for (const auto& Demand : Demands)
@@ -187,9 +195,14 @@ void UHALVehicleStatusFXComponent::LogDiagnostics()
 		Pawn && Pawn->IsLocallyControlled(), D.bBound, D.bObservingASC, *GetNameSafe(ObservedASC.Get()),
 		*GetNameSafe(ObservedASC.IsValid() ? ObservedASC->GetAvatarActor() : nullptr), *D.Binding.ToString(), D.MeshGeneration,
 		D.bTickEnabled, *Catalog.ToString(), *StaticEnum<EHALStatusFXLoadState>()->GetNameStringByValue(int64(Load)), *Error);
-	UE_LOG(LogHALStatusFXRuntime, Display, TEXT("StatusFX Counts Leases=%d SubmittedSources=%d ASC=%d Debug=%d PendingRecipes=%d Instances=%d Targets=%d MID=%d Niagara=%d Registered=%d Active=%d Rendering=PreparedDormant"),
+	UE_LOG(LogHALStatusFXRuntime, Display, TEXT("StatusFX Counts Leases=%d SubmittedSources=%d ASC=%d Debug=%d PendingRecipes=%d Instances=%d Targets=%d MID=%d Niagara=%d Registered=%d Active=%d"),
 		D.Leases, D.ActiveSources, D.ASCSources, D.DebugSources, D.PendingRecipes, D.Instances.Num(), D.Targets,
 		D.Materials, D.Particles, D.RegisteredParticles, D.ActiveParticles);
+	UE_LOG(LogHALStatusFXRuntime, Display, TEXT("StatusFX Render OverlayTargets=%d SurfaceChannels=%d RejectedSurfaces=%d RejectedParticles=%d Error=%s (legacy Shocked remains reserved)"),
+		D.OverlayTargets, D.SurfaceChannels, D.RejectedSurfaces, D.RejectedParticles, *D.RenderError);
+	for (const auto& P : Particles)
+	{ UE_LOG(LogHALStatusFXRuntime, Display, TEXT("StatusFX Particle Tag=%s Target=%s Layer=%s State=%s BoundsFallback=%d FallbackReason=%s"),
+		*P.Instance.Tag.ToString(), *P.TargetId.ToString(), *P.LayerId.ToString(), *P.RenderState, P.bBoundsFallback, *P.FallbackReason); }
 	for (const auto& S : D.Sources)
 	{
 		UE_LOG(LogHALStatusFXRuntime, Display, TEXT("StatusFX Source Tag=%s Kind=%s Name=%s Age=%.3f RecipeSubmitted=%d"),
