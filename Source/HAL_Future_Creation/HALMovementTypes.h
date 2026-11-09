@@ -34,6 +34,7 @@ struct HAL_FUTURE_CREATION_API FHALMovementSnapshot
 	UPROPERTY() float AccelerationScale = 1;
 	UPROPERTY() float SpeedScale = 1;
 	UPROPERTY() bool bControlsBlocked = false;
+	UPROPERTY() bool bHandbrakeBlocked = false;
 	UPROPERTY() float GripScale = 1;
 	/** Legacy/native callers may supply constant scales. The GAS bridge supplies all three channels. */
 	UPROPERTY() bool bHasAreaState = false;
@@ -56,8 +57,9 @@ struct HAL_FUTURE_CREATION_API FHALMovementTimeline
 {
 	GENERATED_BODY()
 	static constexpr int32 MaximumEntries = 256;
-	/** Version 3 combines Stun permission and the regional recovery curves; neither independent v2 is compatible. */
-	UPROPERTY() uint8 FormatVersion = 3;
+	/** Version 4 adds the replayable handbrake restriction. */
+	static constexpr uint8 CurrentFormat = 4;
+	UPROPERTY() uint8 FormatVersion = CurrentFormat;
 	UPROPERTY() FGuid Epoch;
 	UPROPERTY() int32 StartFrame = INDEX_NONE;
 	UPROPERTY() int32 EndFrame = INDEX_NONE;

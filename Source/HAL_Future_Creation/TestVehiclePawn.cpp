@@ -10,6 +10,7 @@
 #include "VehicleKnockbackSettings.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALShockedPresentationComponent.h"
+#include "HALBattleTopComponent.h"
 #include "HALMovementEffectBridge.h"
 #include "HALMovementAreaReceiver.h"
 #include "HALVehiclePresentationComponent.h"
@@ -108,6 +109,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	NetworkPhysicsHistory->SetAutoActivate(false);
 	MovementEffectBridge = CreateDefaultSubobject<UHALMovementEffectBridge>(TEXT("MovementEffectBridge"));
 	ShockedPresentation = CreateDefaultSubobject<UHALShockedPresentationComponent>(TEXT("ShockedPresentation"));
+	BattleTop = CreateDefaultSubobject<UHALBattleTopComponent>(TEXT("BattleTop"));
 	MovementAreaReceiver = CreateDefaultSubobject<UHALMovementAreaReceiver>(TEXT("MovementAreaReceiver"));
 
 	BallControlPoint = CreateDefaultSubobject<USceneComponent>(TEXT("BallControlPoint"));
@@ -305,6 +307,7 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 void ATestVehiclePawn::UninitializeAbilitySystem()
 {
 	ResetLocalInputReadiness();
+	if (HasAuthority()) { BattleTop->Stop(); }
 	ShockedPresentation->Unbind();
 	StatusFXPresentation->Unbind();
 	MovementAreaReceiver->Unbind();

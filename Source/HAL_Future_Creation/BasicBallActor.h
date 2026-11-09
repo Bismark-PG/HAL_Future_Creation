@@ -106,6 +106,7 @@ public:
 	bool CanBeControlledBy(const AActor* CandidateVehicle) const;
 	bool BeginControl(AActor* NewHolder);
 	bool LaunchFromControl(AActor* ExpectedHolder, AActor* NewLauncher, const FVector& InitialVelocity);
+	bool LaunchFreeFromBattleTop(AActor* NewLauncher, const FVector& InitialVelocity);
 	bool ReleaseFromControl(AActor* ExpectedHolder, float ReacquireLockDuration);
 	void AddReleaseImpulse(const FVector& Impulse);
 	/** Server cleanup before a vehicle Pawn is destroyed; preserves a launched ball's stable PlayerId. */
@@ -182,6 +183,8 @@ private:
 	void OnRep_BallRepState();
 
 	void CommitRepState(const FBallRepState& NewState, const AActor* PhysicsFrameSource);
+	bool CommitLaunch(AActor* NewLauncher, const FVector& InitialVelocity, const AActor* FrameSource);
+	bool PassesPickupLocks(const AActor* CandidateVehicle) const;
 	void ApplyReplicatedPresentation();
 	void StopControlledPresentation();
 	void StartLowSpeedMonitor();
@@ -211,6 +214,7 @@ private:
 	FTimerHandle LowSpeedTimerHandle;
 	bool bResolvingDamageHit = false;
 	uint32 LastResolvedHitEventSequence = 0;
+	uint64 LastBecameFreeGameFrame = MAX_uint64;
 	FBallDamageConfig RuntimeDamageConfig;
 	FHALAuthoredImpactConfig RuntimeImpactConfig;
 	FHALCombatAction LaunchAction;

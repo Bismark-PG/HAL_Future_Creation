@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BallControlComponent.h"
+#include "HALBattleTopComponent.h"
 #include "HALGameFlowPermissions.h"
 #include "GameFramework/Pawn.h"
 #include "HALAbilitySystemComponent.h"
@@ -110,6 +111,22 @@ bool UBallControlComponent::GetControlTargetWorldTransform(FTransform& OutTransf
 bool UBallControlComponent::LaunchHeldBall(FVector& OutRecoilDeltaVelocity)
 {
 	OutRecoilDeltaVelocity = FVector::ZeroVector;
+	if (!VehicleBody || UHALBattleTopComponent::IsActiveOn(GetOwner())) { return false; }
+	const FVector Direction = VehicleBody->GetForwardVector().GetSafeNormal();
+	if (!LaunchHeldBallWithVelocity(VehicleBody->GetPhysicsLinearVelocity() + Direction * LaunchSpeedIncrement)) { return false; }
+	OutRecoilDeltaVelocity = CalculateRecoilDeltaVelocity();
+	return true;
+}
+
+bool UBallControlComponent::LaunchBattleTopHeldBall(float LaunchSpeed)
+{
+	if (!VehicleBody || !UHALBattleTopComponent::IsActiveOn(GetOwner())
+		|| !FMath::IsFinite(LaunchSpeed) || LaunchSpeed <= 0.f) { return false; }
+	return LaunchHeldBallWithVelocity(VehicleBody->GetForwardVector().GetSafeNormal() * LaunchSpeed);
+}
+
+bool UBallControlComponent::LaunchHeldBallWithVelocity(const FVector& InitialVelocity)
+{
 	AActor* Owner = GetOwner();
 	if (UHALAbilitySystemComponent::IsActorStunned(Owner)) { return false; }
 	if (const auto* Recovery = Owner ? Owner->FindComponentByClass<UVehicleRecoveryComponent>() : nullptr;
@@ -125,10 +142,6 @@ bool UBallControlComponent::LaunchHeldBall(FVector& OutRecoilDeltaVelocity)
 	}
 
 	ABasicBallActor* BallToLaunch = HeldBall;
-	const FVector LaunchDirection = VehicleBody->GetForwardVector().GetSafeNormal();
-	const FVector InitialVelocity =
-		VehicleBody->GetPhysicsLinearVelocity() + (LaunchDirection * LaunchSpeedIncrement);
-
 	ReleaseConstraint();
 	if (!BallToLaunch->LaunchFromControl(Owner, Owner, InitialVelocity))
 	{
@@ -138,7 +151,6 @@ bool UBallControlComponent::LaunchHeldBall(FVector& OutRecoilDeltaVelocity)
 
 	HeldBall = nullptr;
 
-	OutRecoilDeltaVelocity = CalculateRecoilDeltaVelocity();
 	return true;
 }
 
@@ -233,7 +245,7 @@ void UBallControlComponent::EvaluateBallControl()
 	}
 
 	ABasicBallActor* BestCandidate = nullptr;
-	if (!IsValid(HeldBall))
+	if (!IsValid(HeldBall) && !UHALBattleTopComponent::IsActiveOn(GetOwner()))
 	{
 		BestCandidate = FindBestCandidate();
 		if (BestCandidate)

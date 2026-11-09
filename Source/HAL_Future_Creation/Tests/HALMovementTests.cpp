@@ -74,7 +74,9 @@ bool FHALMovementSerializationTest::RunTest(const FString& Parameters)
 	Low.State.MovementTimeline.Append(MakeMovement(Epoch, 1, 10, 1), 64);
 	Low.State.MovementSnapshot = Low.State.MovementTimeline.Anchor;
 	High = Low; High.LocalFrame = High.ServerFrame = 31;
-	High.State.MovementTimeline.Append(MakeMovement(Epoch, 2, 15, 1.5f), 64);
+	auto Restricted = MakeMovement(Epoch, 2, 15, 1.5f);
+	Restricted.bHandbrakeBlocked = true;
+	High.State.MovementTimeline.Append(Restricted, 64);
 	High.State.MovementTimeline.Append(MakeMovement(Epoch, 3, 25, 1), 64);
 	High.State.MovementTimeline.ExtendTo(30, 64);
 	High.State.MovementTimeline.Query(30, High.State.MovementSnapshot);
@@ -89,6 +91,11 @@ bool FHALMovementSerializationTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("State with timeline deserializes"), bSuccess);
 	FHALMovementSnapshot Value; Read.State.MovementTimeline.Query(16, Value);
 	TestEqual(TEXT("Old boosted frame survives wire round trip"), Value.AccelerationScale, 1.5f);
+	TestTrue(TEXT("Past handbrake restriction survives wire round trip"), Value.bHandbrakeBlocked);
+	TestFalse(TEXT("Current frame has restored handbrake"), Read.State.MovementSnapshot.bHandbrakeBlocked);
+	Read.State.MovementTimeline.Changes[0].bHandbrakeBlocked = false;
+	TestFalse(TEXT("Missing historical handbrake restriction requests correction"), High.CompareData(Read));
+	Read.State.MovementTimeline = High.State.MovementTimeline;
 	Read.State.MovementTimeline.Changes[0].AccelerationScale = 1.25f;
 	TestFalse(TEXT("Missed old boost differs even after both current values expired"), High.CompareData(Read));
 	Read.State.MovementTimeline = High.State.MovementTimeline;

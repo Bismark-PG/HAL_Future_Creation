@@ -60,6 +60,7 @@ struct FVehicleStabilityObservation
 {
 	int32 PhysicsFrame = INDEX_NONE;
 	bool bValid = false, bNearGround = false, bDrivingAllowed = false, bRecoveryHeld = false;
+	bool bGrounded = false;
 	FVector Up = FVector::UpVector, Forward = FVector::ForwardVector, GroundNormal = FVector::UpVector;
 	float Speed = 0, AngularSpeed = 0, PoseStableSeconds = 0;
 	FVehicleRecoveryPhysicsState Recovery;

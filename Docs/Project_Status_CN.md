@@ -1,5 +1,11 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-09 Car03 自转速度移入技能 DA，编译与复测通过。** `DA_Ability_Car03_BattleTop → Presentation → Spin Rate` 默认 900°/s。发动时服务器将速度与开始时间一起复制给拥有者和观察者。关闭 Editor 后重链接成功，Game 和 Editor Target 均通过。原生 **185/185**，双端用 540°/s 配方验证各 **1/1**。只读确认最新保存的 Car03 主技能指向 `GA_Car03_BattleTop`，GA 引用已配置的技能 DA，新字段读取 900°/s。以关闭 Editor 后的资产校验值为基准，本次验证期间四份相关资产保持一致。见[配置步骤](Combat/Car03_Battle_Top_Ability_Design_CN_v0.1.md#7-editor-接线与首测)。
+
+**2026-11-09 MVP-B 暂时收官，量产首个主动技能 Car03「战斗陀螺」程序和自动化验证完成。** 已接通固定时长 GE、独立技能 DA、物理手刹限制、受击水平推送、车辆／墙面／球接触、自转及 Avatar 清理。眩晕保留接触能力，自救翻身暂停陀螺接触，技能计时继续。下步由团队保存 Car03 技能 DA／GA 引用并验收实际反弹、出球和外观。MVP-B 特效验收结果另由队友回填。见[战斗陀螺设计与 Editor 接线](Combat/Car03_Battle_Top_Ability_Design_CN_v0.1.md#7-editor-接线与首测)。
+
+基点 `main/2644859`，UE 5.8.3-58210709 R7 两 Target 编译通过，原生 **185/185**。相同生产代码的 R6 Car03 专项及 GF7 三回合均双端各 **1/1**；Car03 专项用临时配置，包含 Host D3D12 外观变换和手刹状态起止，未替代团队实际保存配置验收。1193 份保存资产与 FX-5 基线一致，Config 和 uproject 保持。联机使用同版构建，运动历史为格式 4。见[验证记录](Combat/Car03_Battle_Top_Ability_Design_CN_v0.1.md#8-本轮验证)。
+
 **2026-11-07 车辆特效团队交接已整理。** 从 `main/e43e1fa`（已含 FX-5 提交）只读核对三车型、选车目录、表现 DA 与电击／拖尾／持球资源。当前共享电击仍未启用，默认选车目录只有 Car01、Car02；Car03 的 BP／Definition／Presentation 齐备，需在测试分支临时登记后做第三车型的联机验收。本轮只新增交接文档和入口，无新构建或画面验收。见[特效团队交接](Presentation/MVPB_Vehicle_FX_Team_Handoff_CN_v0.1.md)。
 
 **2026-11-07 FX-5 程序与自动化完成，保存配方接线和团队画面验收待做。** 已从保存的车辆 BP 和状态 FX DA 导出 27 个旧配置字段。Car01 有现用电击材质和丝带，Car02／Car03 的旧组件未配置这两个引用。共享配方以 Car01 的实值为接线基准；保存 DA 仍关闭渲染，配置好后由团队显式启用。现有回弹提前显示、远端观察、权威确认接续、去重和 1.5 秒未确认收尾条件保持原实现。共享路径使用同一通用实例和 Overlay 协调器，保留专用闪光、丝带、淡出与焦痕时间轴。下步团队按[FX-5接线与验收](Presentation/MVPB_Vehicle_Status_FX5_Implementation_CN_v0.1.md)保存、比对实际画面，随后进入 FX-6 组合回归。

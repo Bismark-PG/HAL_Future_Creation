@@ -52,6 +52,8 @@ void UHALMovementEffectBridge::Bind(UHALAbilitySystemComponent* InASC, int32 Pla
 		bDirty = true;
 		StunHandle = ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Stun, EGameplayTagEventType::NewOrRemoved)
 			.AddUObject(this, &ThisClass::StunChanged);
+		BattleTopHandle = ASC->RegisterGameplayTagEvent(HALGameplayTags::State_BattleTop, EGameplayTagEventType::NewOrRemoved)
+			.AddUObject(this, &ThisClass::StunChanged);
 		GetOwner()->ForceNetUpdate();
 	}
 	WorldHandle = FWorldDelegates::OnWorldPostActorTick.AddUObject(this, &ThisClass::Flush);
@@ -62,10 +64,11 @@ void UHALMovementEffectBridge::Unbind()
 	if (ASC)
 	{
 		ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Stun, EGameplayTagEventType::NewOrRemoved).Remove(StunHandle);
+		ASC->RegisterGameplayTagEvent(HALGameplayTags::State_BattleTop, EGameplayTagEventType::NewOrRemoved).Remove(BattleTopHandle);
 		for (const auto& Pair : AttributeHandles) { ASC->GetGameplayAttributeValueChangeDelegate(Pair.Key).Remove(Pair.Value); }
 	}
 	FWorldDelegates::OnWorldPostActorTick.Remove(WorldHandle);
-	WorldHandle.Reset(); AttributeHandles.Reset(); StunHandle.Reset();
+	WorldHandle.Reset(); AttributeHandles.Reset(); StunHandle.Reset(); BattleTopHandle.Reset();
 	ASC = nullptr;
 	bDirty = false;
 	LastPublished = {};
@@ -88,6 +91,7 @@ void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float D
 	FHALMovementSnapshot Snapshot;
 	Snapshot.Epoch = Epoch;
 	Snapshot.bControlsBlocked = ASC->IsStunned() || bFlowBlocked;
+	Snapshot.bHandbrakeBlocked = ASC->HasMatchingGameplayTag(HALGameplayTags::State_BattleTop);
 	if (!Values) { return; }
 	Snapshot.bHasAreaState = true;
 	Snapshot.AreaAcceleration.OrdinaryDelta = Values->GetAccelerationMultiplierDelta();
@@ -106,6 +110,7 @@ void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float D
 	{ return A.OrdinaryDelta == B.OrdinaryDelta && A.Target == B.Target; };
 	bDirty = false;
 	if (LastPublished.IsValidValues() && LastPublished.bControlsBlocked == Snapshot.bControlsBlocked
+		&& LastPublished.bHandbrakeBlocked == Snapshot.bHandbrakeBlocked
 		&& SameTarget(LastPublished.AreaAcceleration, Snapshot.AreaAcceleration)
 		&& SameTarget(LastPublished.AreaSpeed, Snapshot.AreaSpeed) && SameTarget(LastPublished.AreaGrip, Snapshot.AreaGrip))
 	{ AreaRecoverySeconds = FVector::ZeroVector; return; }

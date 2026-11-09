@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BasicBallActor.h"
+#include "CoreGlobals.h"
+#include "HALBattleTopComponent.h"
 #include "HALGameFlowPermissions.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALBallPresentationComponent.h"
@@ -109,7 +111,11 @@ bool ABasicBallActor::CanBeControlledBy(const AActor* CandidateVehicle) const
 	{
 		return false;
 	}
+	return PassesPickupLocks(CandidateVehicle);
+}
 
+bool ABasicBallActor::PassesPickupLocks(const AActor* CandidateVehicle) const
+{
 	const UWorld* World = GetWorld();
 	const double CurrentTime = World ? World->GetTimeSeconds() : 0.0;
 	if (CurrentTime < RepState.GlobalPickupLockEndServerTime)
@@ -179,7 +185,21 @@ bool ABasicBallActor::LaunchFromControl(
 	{
 		return false;
 	}
+	return CommitLaunch(NewLauncher, InitialVelocity, ExpectedHolder);
+}
 
+bool ABasicBallActor::LaunchFreeFromBattleTop(AActor* NewLauncher, const FVector& InitialVelocity)
+{
+	if (!HasAuthority() || !bConfigurationValid || RepState.State != EBasicBallState::Free
+		|| LastBecameFreeGameFrame == GFrameCounter || !VehicleConfiguration::IsReadyForGameplay(NewLauncher)
+		|| !UHALBattleTopComponent::IsActiveOn(NewLauncher)
+		|| !HALGameFlow::Permissions(GetWorld(), Cast<APawn>(NewLauncher)).bBallControl
+		|| !PassesPickupLocks(NewLauncher) || InitialVelocity.ContainsNaN() || InitialVelocity.IsNearlyZero()) { return false; }
+	return CommitLaunch(NewLauncher, InitialVelocity, NewLauncher);
+}
+
+bool ABasicBallActor::CommitLaunch(AActor* NewLauncher, const FVector& InitialVelocity, const AActor* FrameSource)
+{
 	FHALAttackSourceSnapshot Attack;
 	FHALCollisionImpactRules ImpactRules;
 	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules()
@@ -221,7 +241,7 @@ bool ABasicBallActor::LaunchFromControl(
 			Next.LastLauncherPlayerId = PlayerState->GetPlayerId();
 		}
 	}
-	CommitRepState(Next, ExpectedHolder);
+	CommitRepState(Next, FrameSource);
 
 	PhysicsRoot->WakeAllRigidBodies();
 	PhysicsRoot->SetPhysicsLinearVelocity(InitialVelocity);
@@ -394,6 +414,8 @@ void ABasicBallActor::CommitRepState(const FBallRepState& NewState, const AActor
 	check(HasAuthority());
 	const EBasicBallState PreviousState = RepState.State;
 	FBallRepState Committed = NewState;
+	if (NewState.State == EBasicBallState::Free && RepState.State != EBasicBallState::Free)
+	{ LastBecameFreeGameFrame = GFrameCounter; }
 	if (NewState.State != EBasicBallState::Launched) { LaunchAction.Close(); }
 	Committed.StateSequence = RepState.StateSequence + 1;
 	if (const UArcadeVehicleMovementComponent* Movement = IsValid(PhysicsFrameSource)

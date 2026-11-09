@@ -41,7 +41,7 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UArcadeVehicleMovementComponent> Movement;
 	UPROPERTY(Transient) TObjectPtr<UNetworkPhysicsComponent> History;
 	TArray<TPair<FGameplayAttribute, FDelegateHandle>> AttributeHandles;
-	FDelegateHandle StunHandle, WorldHandle;
+	FDelegateHandle StunHandle, BattleTopHandle, WorldHandle;
 	FVector AreaRecoverySeconds = FVector::ZeroVector;
 	FHALMovementSnapshot LastPublished;
 	int32 BoundPlayerId = INDEX_NONE;

@@ -85,7 +85,7 @@ void UHALVehiclePresentationComponent::UpdateSuspension(float DeltaTime)
 	}
 	const FVector Up = Body->GetUpVector();
 	const auto* Recovery = GetOwner()->FindComponentByClass<UVehicleRecoveryComponent>();
-	const FTransform MeshWorld = Mesh->GetComponentTransform();
+	const FTransform MeshWorld = GetWheelSampleTransform();
 	const FVector Scale = MeshWorld.GetScale3D();
 	const bool bCanProbe = Up.Z >= Config->Suspension.MinimumVehicleUpZ && !(Recovery && Recovery->IsExecuting())
 		&& !MeshWorld.ContainsNaN() && Scale.GetMin() > 0 && FMath::IsNearlyEqual(Scale.X, Scale.Y) && FMath::IsNearlyEqual(Scale.X, Scale.Z);

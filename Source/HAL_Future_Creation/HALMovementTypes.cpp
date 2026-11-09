@@ -57,7 +57,7 @@ bool FHALMovementSnapshot::IsValid() const
 bool FHALMovementSnapshot::IsUnset() const
 {
 	return !Epoch.IsValid() && Revision == 0 && EffectiveServerFrame == INDEX_NONE
-		&& AccelerationScale == 1 && SpeedScale == 1 && GripScale == 1 && !bHasAreaState && !bControlsBlocked;
+		&& AccelerationScale == 1 && SpeedScale == 1 && GripScale == 1 && !bHasAreaState && !bControlsBlocked && !bHandbrakeBlocked;
 }
 bool FHALMovementSnapshot::Equals(const FHALMovementSnapshot& Other) const
 {
@@ -65,13 +65,14 @@ bool FHALMovementSnapshot::Equals(const FHALMovementSnapshot& Other) const
 		&& FMath::IsNearlyEqual(AccelerationScale, Other.AccelerationScale, 1.e-4f)
 		&& FMath::IsNearlyEqual(SpeedScale, Other.SpeedScale, 1.e-4f)
 		&& FMath::IsNearlyEqual(GripScale, Other.GripScale, 1.e-4f) && bHasAreaState == Other.bHasAreaState
-		&& bControlsBlocked == Other.bControlsBlocked
+		&& bControlsBlocked == Other.bControlsBlocked && bHandbrakeBlocked == Other.bHandbrakeBlocked
 		&& (!bHasAreaState || (AreaAcceleration.Equals(Other.AreaAcceleration)
 			&& AreaSpeed.Equals(Other.AreaSpeed) && AreaGrip.Equals(Other.AreaGrip)));
 }
 void FHALMovementSnapshot::Serialize(FArchive& Ar)
 {
 	Ar << Epoch << Revision << EffectiveServerFrame << AccelerationScale << SpeedScale << bControlsBlocked << GripScale << bHasAreaState;
+	Ar << bHandbrakeBlocked;
 	if (bHasAreaState) { AreaAcceleration.Serialize(Ar); AreaSpeed.Serialize(Ar); AreaGrip.Serialize(Ar); }
 	else if (Ar.IsLoading()) { AreaAcceleration = {}; AreaSpeed = {}; AreaGrip = {}; }
 }
@@ -98,7 +99,7 @@ bool FHALMovementSnapshot::CalculateScales(float AccelerationDelta, float SpeedD
 }
 bool FHALMovementTimeline::Validate() const
 {
-	if (FormatVersion != 3 || Changes.Num() >= MaximumEntries) { return false; }
+	if (FormatVersion != CurrentFormat || Changes.Num() >= MaximumEntries) { return false; }
 	if (IsEmpty()) { return EndFrame == INDEX_NONE && !Epoch.IsValid() && Anchor.IsUnset() && Changes.IsEmpty(); }
 	if (StartFrame < 0 || EndFrame < StartFrame || EndFrame - StartFrame >= MaximumEntries
 		|| !Anchor.IsValid() || Epoch != Anchor.Epoch || Anchor.EffectiveServerFrame > StartFrame) { return false; }
@@ -209,7 +210,7 @@ bool FHALMovementTimeline::Serialize(FArchive& Ar)
 {
 	if (Ar.IsSaving() && !Validate()) { Ar.SetError(); return false; }
 	Ar << FormatVersion;
-	if (FormatVersion != 3) { Ar.SetError(); return false; }
+	if (FormatVersion != CurrentFormat) { Ar.SetError(); return false; }
 	uint8 Present = IsEmpty() ? 0 : 1;
 	Ar << Present;
 	if (Ar.IsLoading() && Present == 0) { *this = {}; return !Ar.IsError(); }

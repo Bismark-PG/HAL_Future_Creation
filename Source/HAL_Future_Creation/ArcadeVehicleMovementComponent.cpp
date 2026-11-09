@@ -214,6 +214,7 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	InputCommand = StepInput.Cmd;
 	// Use this physics frame's authority state, including during resimulation. Never read GAS here.
 	if (CurrentMovement.bControlsBlocked) { InputCommand.Reset(); }
+	if (CurrentMovement.bHandbrakeBlocked) { InputCommand.bHandbrake = false; }
 
 	if (!UpdatedPrimitive || !UpdatedPrimitive->IsSimulatingPhysics() || DeltaTime <= 0.0f)
 	{
@@ -320,6 +321,7 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 			? HALVehiclePresentation::TireSkidInputs(InputCommand.Brake, InputCommand.Throttle, InputCommand.bHandbrake) : 0;
 		PublishedStability.PhysicsFrame = StepInput.PhysicsFrame;
 		PublishedStability.bValid = true;
+		PublishedStability.bGrounded = bGrounded;
 		PublishedStability.bNearGround = bRecoveryGrounded;
 		PublishedStability.bDrivingAllowed = bPoseDriveAllowed;
 		PublishedStability.bRecoveryHeld = InputCommand.bSelfRight;

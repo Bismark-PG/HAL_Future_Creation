@@ -100,6 +100,7 @@ private:
 	friend class FHALMovementSolverTest;
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALVehicleStabilityTestAccess;
+	friend struct FHALBattleTopTestAccess;
 	friend struct FHALRecoveryTestAccess;
 	friend struct FHALPresentationTestAccess;
 	friend struct FHALCameraTestAccess;

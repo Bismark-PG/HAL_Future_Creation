@@ -2,6 +2,11 @@
 
 namespace HALGameplayTags
 {
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_BattleTop, "Ability.Vehicle.BattleTop", "Car03 primary ability.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_BattleTop, "State.Vehicle.BattleTop", "Avatar battle top is active.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Visual_BattleTop, "State.Visual.BattleTop", "Optional vehicle status FX for battle top.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_BattleTop, "Cooldown.Vehicle.BattleTop", "Battle top cooldown.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_BattleTop, "Combat.Source.BattleTop", "Battle top vehicle contact.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Visual_DebugA, "State.Visual.DebugA", "Cosmetic test input only; no gameplay effect or skill.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Visual_DebugB, "State.Visual.DebugB", "Second cosmetic input for surface composition validation.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_ElectricWall,"Combat.Source.ElectricWall","Paired pillars and electric wall contact; no damage or ball enhancement.");

@@ -1,0 +1,76 @@
+#pragma once
+
+#include "Components/ActorComponent.h"
+#include "GameplayEffectTypes.h"
+#include "HALCombatTypes.h"
+#include "HALBattleTopComponent.generated.h"
+
+class ABasicBallActor;
+class UHALAbilitySystemComponent;
+class UHALBattleTopConfig;
+class UMeshComponent;
+class UPrimitiveComponent;
+struct FOnAttributeChangeData;
+struct FVehicleContactStabilityRules;
+
+/** Replicate the activation time and speed together so observers use the same rotation. */
+USTRUCT()
+struct FHALBattleTopVisualState
+{
+	GENERATED_BODY()
+
+	UPROPERTY() double StartServerTime = -1.0;
+	UPROPERTY() float SpinRate = 0.f;
+	bool NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess);
+};
+
+template<>
+struct TStructOpsTypeTraits<FHALBattleTopVisualState> : TStructOpsTypeTraitsBase2<FHALBattleTopVisualState>
+{
+	enum { WithNetSerializer = true };
+};
+
+/** Owns one Avatar's authoritative contact action and replicated cosmetic activation. */
+UCLASS()
+class HAL_FUTURE_CREATION_API UHALBattleTopComponent : public UActorComponent
+{
+	GENERATED_BODY()
+public:
+	UHALBattleTopComponent();
+	bool CanStart() const;
+	bool Start(UHALAbilitySystemComponent& ASC, UHALBattleTopConfig& Config, FActiveGameplayEffectHandle Effect);
+	void Stop();
+	bool IsActive() const { return VisualState.StartServerTime >= 0.0; }
+	float GetVisualSpinRate() const { return VisualState.SpinRate; }
+	bool GetUnspunMeshTransform(const UMeshComponent& Mesh, FTransform& Out) const;
+	static bool IsActiveOn(const AActor* Actor);
+	/** Evaluates both attack directions before either hit can eliminate an Avatar. */
+	static bool HandleVehiclePair(UPrimitiveComponent& Body, UPrimitiveComponent& OtherBody,
+		const FVector& NormalImpulse, const FHitResult& Hit);
+	bool HandleFreeBall(ABasicBallActor& Ball);
+	/** True for a qualifying ordinary wall even when this contact needs no supplemental rebound. */
+	bool ResolveWallContact(UPrimitiveComponent& Body, UPrimitiveComponent& Wall,
+		const FVector& NormalImpulse, const FHitResult& Hit, const FVehicleContactStabilityRules& Rules, FVector& OutDeltaVelocity);
+	static FVector CalculateWallDelta(const UHALBattleTopConfig& Config, const FVector& Normal,
+		const FVector& AfterVelocity, const FVector& NaturalDelta);
+	virtual void EndPlay(EEndPlayReason::Type Reason) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* TickFunction) override;
+private:
+	bool CanResolveContacts() const;
+	void ActiveTagChanged(FGameplayTag Tag, int32 Count);
+	void HealthChanged(const FOnAttributeChangeData& Change);
+	UFUNCTION() void OnRep_VisualState();
+	void RestoreVisual();
+	UPROPERTY(ReplicatedUsing=OnRep_VisualState) FHALBattleTopVisualState VisualState;
+	UPROPERTY(Transient) TObjectPtr<UHALBattleTopConfig> Config;
+	TWeakObjectPtr<UHALAbilitySystemComponent> BoundASC;
+	FActiveGameplayEffectHandle ActiveEffect;
+	FDelegateHandle TagChangedHandle;
+	FDelegateHandle HealthChangedHandle;
+	TSharedPtr<FHALCombatAction> Action;
+	double LastWallContact = -1.0;
+	TWeakObjectPtr<UMeshComponent> RotatingMesh;
+	FTransform VisualBase = FTransform::Identity;
+	FTransform LastVisualTransform = FTransform::Identity;
+};

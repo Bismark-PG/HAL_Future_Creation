@@ -4,6 +4,7 @@
 
 #include "HALImpactAttributeSet.h"
 #include "HALImpactSourceComponent.h"
+#include "HALBattleTopComponent.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALGameplayTags.h"
 #include "CombatResolver.h"
@@ -154,6 +155,33 @@ void UHALImpactReceiverComponent::HandleContact(UPrimitiveComponent* Body, AActo
 	{
 		if (Ball->GetBallState() != EBasicBallState::Free) { return; }
 	}
+	if (UHALBattleTopComponent::HandleVehiclePair(*Body, *OtherBody, NormalImpulse, Hit))
+	{
+		SuppressContact(OtherBody);
+		if (auto* Receiver = Other->FindComponentByClass<UHALImpactReceiverComponent>()) { Receiver->SuppressContact(Body); }
+		return;
+	}
+	if (auto* Top = GetOwner()->FindComponentByClass<UHALBattleTopComponent>(); Top && Top->IsActive())
+	{
+		if (auto* Ball = Cast<ABasicBallActor>(Other); Ball && Top->HandleFreeBall(*Ball)) { return; }
+		FVector Delta;
+		if (Top->ResolveWallContact(*Body, *OtherBody, NormalImpulse, Hit, StabilityRules, Delta))
+		{
+			SuppressContact(OtherBody);
+			if (!Delta.IsNearlyZero())
+			{
+				if (auto* Movement = GetOwner()->FindComponentByClass<UArcadeVehicleMovementComponent>())
+				{
+					FVehicleImpactAction Rebound;
+					Rebound.EventSequence = ++NextEvent;
+					if (NextEvent == 0) { Rebound.EventSequence = ++NextEvent; }
+					Rebound.DeltaVelocity = Delta;
+					Movement->QueueImpact(Rebound);
+				}
+			}
+			return;
+		}
+	}
 	if (!Contacts.Contains(OtherBody) && Contacts.Num() >= 128) { ExpireContacts(); }
 	if (!Contacts.Contains(OtherBody) && Contacts.Num() >= 128) { return; }
 	FContact& Contact = Contacts.FindOrAdd(OtherBody);
@@ -287,7 +315,8 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 		if (NextEvent == 0) { PhysicsAction.EventSequence = ++NextEvent; }
 		PhysicsAction.DeltaVelocity = Direction * Supplement;
 		// Natural contacts never reuse a projectile's launch/flip profile.
-		if (!bPhysical && Tier.TargetVerticalSpeed > KINDA_SMALL_NUMBER)
+		if (!bPhysical && Tier.TargetVerticalSpeed > KINDA_SMALL_NUMBER
+			&& !UHALBattleTopComponent::IsActiveOn(GetOwner()))
 		{
 			PhysicsAction.bMinimumUpwardSpeed = true;
 			PhysicsAction.MinimumUpwardSpeed = Tier.TargetVerticalSpeed;
