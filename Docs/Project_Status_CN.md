@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-09 量产主动技能「扩散打滑带」程序与联机专项验证完成。** 从 `main/0d50d76` 接续。独立技能 DA 管铺设、扩散、共同消失、抓地、随车速缩放的摆动、冷却和青色调试线。服务器使用车尾地面轨迹和地面扫掠判定，沿用现有区域 GE 与抓地恢复，运动历史格式升至 5 以支持摆动重演。UE 5.8.3-58210709 Editor 与 Game Target 编译通过，原生 **187/187**，本机双端新技能专项和旧移动区域回归均各 **1/1**。正式车型模型尚待导入，保存配方、画面与真人手感待验收。见[规则、参数与 Editor 接线](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md)。
+
 **2026-11-09 Car03 自转速度移入技能 DA，编译与复测通过。** `DA_Ability_Car03_BattleTop → Presentation → Spin Rate` 默认 900°/s。发动时服务器将速度与开始时间一起复制给拥有者和观察者。关闭 Editor 后重链接成功，Game 和 Editor Target 均通过。原生 **185/185**，双端用 540°/s 配方验证各 **1/1**。只读确认最新保存的 Car03 主技能指向 `GA_Car03_BattleTop`，GA 引用已配置的技能 DA，新字段读取 900°/s。以关闭 Editor 后的资产校验值为基准，本次验证期间四份相关资产保持一致。见[配置步骤](Combat/Car03_Battle_Top_Ability_Design_CN_v0.1.md#7-editor-接线与首测)。
 
 **2026-11-09 MVP-B 暂时收官，量产首个主动技能 Car03「战斗陀螺」程序和自动化验证完成。** 已接通固定时长 GE、独立技能 DA、物理手刹限制、受击水平推送、车辆／墙面／球接触、自转及 Avatar 清理。眩晕保留接触能力，自救翻身暂停陀螺接触，技能计时继续。下步由团队保存 Car03 技能 DA／GA 引用并验收实际反弹、出球和外观。MVP-B 特效验收结果另由队友回填。见[战斗陀螺设计与 Editor 接线](Combat/Car03_Battle_Top_Ability_Design_CN_v0.1.md#7-editor-接线与首测)。
@@ -341,7 +343,7 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 ## 1. 先读什么、先检查什么
 
-本环节优先读[车型技能实现与DA迁移](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)及[本轮验证](Combat/MVPB_Vehicle_Ability_Loadout_Verification_20261104.json)，再按下列通用入口接续。
+量产技能当前先读[扩散打滑带规则、配置与验收](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md)，车型技能授予见[车型技能实现与DA迁移](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)。
 
 1. 完整阅读根目录 [AGENTS.md](../AGENTS.md) 和本文件。
 2. 按用户当前指定的后续功能读取相关规格；涉及GAS／运动时先读[加速GA及团队反馈](Combat/MVPB_Phase10F3_Movement_Ability_CN_v0.1.md)、[手动日志](Combat/MVPB_Phase10F3Ability_ManualLogReview_20261019.json)、[施工验证](Combat/MVPB_Phase10F3Ability_Verification_20261019.json)、[F2桥接](Combat/MVPB_Phase10F2_Implementation_CN_v0.1.md)、[F1规格](Combat/MVPB_Phase10F1_Spec_CN_v0.1.md)与[保存基线](Combat/MVPB_Phase10F1_Baseline_20261017.json)。F1～F3及团队接线／基础反馈完成，331资产已提交；[F4方案](Combat/MVPB_Phase10F4_Integration_Plan_CN_v0.1.md)与[总计划](Combat/MVPB_Phase10F_Movement_Effects_Plan_CN_v0.1.md)保留，但A～D整体按用户决定后置至MVP-B收尾，不能沿旧入口自动开工。10-D／10-E欠项见各自[施工记录](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)、[实施](Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)及[手动日志](Combat/MVPB_Phase10E_ManualLogReview_20261016.json)。规则背景见[GAS总体方案](Combat/MVPB_GAS_Architecture_Overview_CN_v0.1.md)，双端启动见[操作说明](Configuration/MVPB_DebugHUD_And_GAS_Test_CN_v0.1.md)，DA职责见[速查](Configuration/MVPB_DataAsset_QuickGuide_CN_v1.0.md)。
@@ -357,7 +359,9 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 该次检查指出HP／Combat／Impact均有一次初始化保护，换车型／开启新局须补正式重置契约，不能只重复Possess；练习权限也不能只把Waiting改成Playing。10月30日仅只读核对及草案／入口留档，无C++／Config／资产修改或新构建／测试；本段恢复历史依据，不代表本次重新检查或完成了相应功能。
 
-## 2. 当前工程位置和开发阶段
+## 2. MVP-B 工程位置与阶段留档
+
+量产阶段当前状态以页首日期记录为准。下表保留 MVP-B 接续时的工程快照。
 
 | 项目 | 最新接续核对结果与既有团队反馈 |
 |---|---|

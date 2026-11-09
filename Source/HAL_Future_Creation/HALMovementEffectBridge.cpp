@@ -59,6 +59,13 @@ void UHALMovementEffectBridge::Bind(UHALAbilitySystemComponent* InASC, int32 Pla
 	WorldHandle = FWorldDelegates::OnWorldPostActorTick.AddUObject(this, &ThisClass::Flush);
 	ConfigurePhysics();
 }
+void UHALMovementEffectBridge::SetAreaSway(const FHALMovementAreaSway& Sway)
+{
+	if (AreaSway == Sway) { return; }
+	AreaSway = Sway;
+	bDirty = true;
+}
+
 void UHALMovementEffectBridge::Unbind()
 {
 	if (ASC)
@@ -73,6 +80,7 @@ void UHALMovementEffectBridge::Unbind()
 	bDirty = false;
 	LastPublished = {};
 	AreaRecoverySeconds = FVector::ZeroVector;
+	AreaSway = {};
 	if (GetOwner()->HasAuthority() && Epoch.IsValid()) { Epoch.Invalidate(); GetOwner()->ForceNetUpdate(); }
 	if (Movement) { Movement->ConfigureMovementEffects({}, History, GetOwner()->HasAuthority(), BoundPlayerId); }
 }
@@ -94,6 +102,7 @@ void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float D
 	Snapshot.bHandbrakeBlocked = ASC->HasMatchingGameplayTag(HALGameplayTags::State_BattleTop);
 	if (!Values) { return; }
 	Snapshot.bHasAreaState = true;
+	Snapshot.AreaSway = AreaSway;
 	Snapshot.AreaAcceleration.OrdinaryDelta = Values->GetAccelerationMultiplierDelta();
 	Snapshot.AreaSpeed.OrdinaryDelta = Values->GetSpeedLimitMultiplierDelta();
 	Snapshot.AreaGrip.OrdinaryDelta = Values->GetLateralGripMultiplierDelta();
@@ -111,6 +120,7 @@ void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float D
 	bDirty = false;
 	if (LastPublished.IsValidValues() && LastPublished.bControlsBlocked == Snapshot.bControlsBlocked
 		&& LastPublished.bHandbrakeBlocked == Snapshot.bHandbrakeBlocked
+		&& LastPublished.AreaSway == Snapshot.AreaSway
 		&& SameTarget(LastPublished.AreaAcceleration, Snapshot.AreaAcceleration)
 		&& SameTarget(LastPublished.AreaSpeed, Snapshot.AreaSpeed) && SameTarget(LastPublished.AreaGrip, Snapshot.AreaGrip))
 	{ AreaRecoverySeconds = FVector::ZeroVector; return; }

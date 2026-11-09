@@ -146,7 +146,7 @@ private:
 	void ApplyLongitudinalForces(FBodyInstance& Body, const FVector& ForwardDirection, float CurrentForwardSpeed);
 	void ApplyLateralGrip(FBodyInstance& Body, const FVector& RightDirection, float CurrentLateralSpeed);
 	void ApplySteering(FBodyInstance& Body, const FVector& GroundNormal, float CurrentForwardSpeed,
-		float CurrentYawRate, float DeltaTime);
+		float CurrentYawRate, float DeltaTime, float AreaSwayAcceleration);
 
 	UPROPERTY(Transient)
 	TObjectPtr<UPrimitiveComponent> UpdatedPrimitive;
@@ -181,6 +181,7 @@ private:
 	FHALMovementTimeline MovementAuthorityTimeline;
 	TArray<FHALMovementSnapshot> MovementActions;
 	FHALMovementSnapshot CurrentMovement;
+	int32 CurrentMovementServerFrame = INDEX_NONE;
 	FVector CurrentMovementScales = FVector::OneVector;
 	struct FUsedMovementFrame
 	{

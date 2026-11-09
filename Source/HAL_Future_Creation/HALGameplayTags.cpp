@@ -3,6 +3,8 @@
 namespace HALGameplayTags
 {
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_BattleTop, "Ability.Vehicle.BattleTop", "Car03 primary ability.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_SlipperyTrail, "Ability.Vehicle.SlipperyTrail", "Vehicle slippery trail primary ability.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_SlipperyTrail, "Cooldown.Vehicle.SlipperyTrail", "Slippery trail cooldown.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_BattleTop, "State.Vehicle.BattleTop", "Avatar battle top is active.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Visual_BattleTop, "State.Visual.BattleTop", "Optional vehicle status FX for battle top.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_BattleTop, "Cooldown.Vehicle.BattleTop", "Battle top cooldown.");

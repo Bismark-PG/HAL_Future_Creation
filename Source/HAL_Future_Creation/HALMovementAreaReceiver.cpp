@@ -25,6 +25,7 @@ void UHALMovementAreaReceiver::Unbind()
 		ASC->RemoveActiveGameplayEffect(SlowHandle); ASC->RemoveActiveGameplayEffect(SlipperyHandle);
 	}
 	ASC = nullptr; SlowHandle = {}; SlipperyHandle = {}; AppliedScales = FVector::OneVector;
+	if (auto* Bridge = GetOwner()->FindComponentByClass<UHALMovementEffectBridge>()) { Bridge->SetAreaSway({}); }
 	Selection = {};
 }
 bool UHALMovementAreaReceiver::RegisterArea(AActor* Source, const FHALMovementAreaConfig& Config)
@@ -56,14 +57,18 @@ void UHALMovementAreaReceiver::Rebuild()
 		if (Selection.Scales[Index] != Next.Scales[Index])
 		{ Recovery[Index] = FMath::Max(Selection.RecoverySeconds[Index], Next.RecoverySeconds[Index]); }
 	}
-	if (auto* Bridge = GetOwner()->FindComponentByClass<UHALMovementEffectBridge>()) { Bridge->SetAreaRecoverySeconds(Recovery); }
+	if (auto* Bridge = GetOwner()->FindComponentByClass<UHALMovementEffectBridge>())
+	{
+		Bridge->SetAreaRecoverySeconds(Recovery);
+		Bridge->SetAreaSway(Next.Sway);
+	}
 	Selection = Next;
 	UpdateEffects();
 	if (CVarHALMovementAreaLog.GetValueOnGameThread())
 	{
-		UE_LOG(LogTemp, Log, TEXT("Movement areas: Vehicle=%s Sources=%d TargetAccel=%.3f TargetSpeed=%.3f TargetGrip=%.3f Recovery=%.3f/%.3f/%.3f Bound=%d"),
+		UE_LOG(LogTemp, Log, TEXT("Movement areas: Vehicle=%s Sources=%d TargetAccel=%.3f TargetSpeed=%.3f TargetGrip=%.3f Sway=%.2f Recovery=%.3f/%.3f/%.3f Bound=%d"),
 			*GetNameSafe(GetOwner()), Sources.Num(), Selection.Scales.X, Selection.Scales.Y, Selection.Scales.Z,
-			Recovery.X, Recovery.Y, Recovery.Z, ASC != nullptr);
+			Selection.Sway.Amplitude, Recovery.X, Recovery.Y, Recovery.Z, ASC != nullptr);
 	}
 }
 void UHALMovementAreaReceiver::UpdateEffects()

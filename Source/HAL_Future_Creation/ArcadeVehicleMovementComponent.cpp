@@ -350,8 +350,10 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 
 	ApplyLongitudinalForces(*Body, ForwardDirection, ForwardSpeed);
 	ApplyLateralGrip(*Body, RightDirection, LateralSpeed);
+	const float AreaSway = bMovementDriveAllowed && !RecoveryPhysics.bActive
+		? CurrentMovement.EvaluateSway(CurrentMovementServerFrame, FMath::Sqrt(FMath::Square(ForwardSpeed) + FMath::Square(LateralSpeed))) : 0;
 	ApplySteering(*Body, GroundNormal, ForwardSpeed,
-		FVector::DotProduct(PhysicsHandle->W(), GroundNormal), DeltaTime);
+		FVector::DotProduct(PhysicsHandle->W(), GroundNormal), DeltaTime, AreaSway);
 }
 
 void UArcadeVehicleMovementComponent::SetUpdatedPrimitive(UPrimitiveComponent* InPrimitive)
@@ -1038,7 +1040,8 @@ void UArcadeVehicleMovementComponent::ApplySteering(
 	const FVector& GroundNormal,
 	float CurrentForwardSpeed,
 	float CurrentYawRate,
-	float DeltaTime)
+	float DeltaTime,
+	float AreaSwayAcceleration)
 {
 	const float AbsoluteSpeed = FMath::Abs(CurrentForwardSpeed);
 	float SteeringAuthority = FMath::Clamp(AbsoluteSpeed / FMath::Max(FullSteeringSpeed, 1.0f), 0.0f, 1.0f);
@@ -1079,7 +1082,7 @@ void UArcadeVehicleMovementComponent::ApplySteering(
 		InputCommand.Steering * FMath::Max(0.0f, WallEscapeTargetYawRate), CurrentYawRate,
 		WallEscapeYawResponseRate, WallEscapeMaxYawAcceleration, DeltaTime);
 	const float YawAcceleration = FMath::Lerp(
-		SteeringAcceleration + DampingAcceleration, EscapeAcceleration, WallEscapeBlend);
+		SteeringAcceleration + DampingAcceleration + AreaSwayAcceleration, EscapeAcceleration, WallEscapeBlend);
 
 	FPhysicsInterface::AddTorque_AssumesLocked(Body.GetPhysicsActor(),
 		GroundNormal * YawAcceleration, false, true, true);

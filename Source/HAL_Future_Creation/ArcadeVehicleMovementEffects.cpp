@@ -208,6 +208,7 @@ void UArcadeVehicleMovementComponent::PrepareMovementFrame(Chaos::FPBDRigidsSolv
 	ApplyPendingMovementConfiguration();
 	const int32 Offset = Solver ? UE::NetworkPhysicsUtils::GetNetworkPhysicsTickOffset_Internal(Solver) : 0;
 	const int32 ServerFrame = LocalFrame >= 0 ? LocalFrame + Offset : INDEX_NONE;
+	CurrentMovementServerFrame = ServerFrame;
 	if (MovementHistory && bUseNetworkPhysicsHistory.Load())
 	{
 		const auto& History = MovementHistory->GetStateHistory_Internal();
