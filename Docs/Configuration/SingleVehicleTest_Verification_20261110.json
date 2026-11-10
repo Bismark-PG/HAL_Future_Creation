@@ -1,9 +1,9 @@
 {
-  "date": "2026-11-10",
-  "base_commit": "987a12965cd05c209137e0c0d87c118b70ab6a5c",
+  "date": "2026-11-11",
+  "base_commit": "19b5bf5d0d6bfb749b99f462ab666f68a3cf47d8",
   "branch": "main",
   "engine": "5.8.3-58210709",
-  "scope": "Dedicated local SingleVehicleTest GameMode, GAS lifecycle vehicle switching, native top-left panel, vehicle/side/free-flight camera, local input readiness without room acknowledgement",
+  "scope": "Dedicated local SingleVehicleTest, GAS switching and native panel; observation camera uses Alt+LMB orbit, Alt+MMB zoom, Alt+RMB pan, unmodified wheel zoom",
   "new_classes": [
     "AHALVehicleTestGameMode",
     "AHALVehicleTestPlayerController"
@@ -32,7 +32,7 @@
     "swap": "Fresh configured Pawn at PlayerStart -> validate real body -> HALPlayerState.ChangeVehicleAvatar -> destroy outgoing/copied test vehicles",
     "camera": "ViewTarget switch; same possessed vehicle and GAS avatar",
     "side_view_distance_cm": 650,
-    "free_camera": "RMB + mouse/WASD/QE, Shift speed multiplier 3; release restores vehicle mapping",
+    "free_camera": "Observation: Alt+LMB orbit, Alt+MMB dolly zoom, Alt+RMB view-plane pan, wheel zoom without Alt; vehicle RMB look retained",
     "network_room_readiness_bypassed_only_for_dedicated_controller": true,
     "configuration_GAS_and_physics_readiness_preserved": true,
     "cursor_does_not_disable_gamepad_camera": true,
@@ -41,16 +41,11 @@
   "final_builds": [
     {
       "target": "HAL_Future_CreationEditor Win64 Development",
-      "log": "Saved/VehicleTest/20261110/ControllerIsolation/Build_Editor_R3.log",
+      "log": "Saved/VehicleTest/20261111/AltMouseNavigation/Build_Editor_R3.log",
       "result": "Succeeded",
       "exit": 0,
-      "main_runtime_DLL_written": true
-    },
-    {
-      "target": "HAL_Future_Creation Win64 Development",
-      "log": "Saved/VehicleTest/20261110/ControllerIsolation/Build_Game_R1.log",
-      "result": "Succeeded",
-      "exit": 0
+      "main_runtime_DLL_written": true,
+      "editor_tools_DLL_written": true
     }
   ],
   "earlier_attempts": [
@@ -62,28 +57,23 @@
     "Game R2 launcher exited -532462766 before build work; fresh Game R3 command succeeded"
   ],
   "automation": {
-    "filter": "HAL.FutureCreation.VehicleTest+HAL.FutureCreation.Camera",
-    "compiled_vehicle_test_count": 4,
-    "requested_vehicle_test_count": 4,
-    "requested_camera_test_count": 9,
+    "filter": "HAL.FutureCreation.VehicleTest",
+    "compiled_test_count": 4,
     "executed_and_verified": false,
-    "result": "Unverified: both UnrealEditor-Cmd.exe and UnrealEditor.exe exited 0 without UE logs or reports; wrapper correctly returned 3",
-    "attempts": [
-      {
-        "result_file": "Saved/VehicleTest/20261110/ControllerIsolation/Automation_R1_Result.json",
-        "process_exit": 0,
-        "UE_log_created": false,
-        "report_created": false
-      },
-      {
-        "result_file": "Saved/VehicleTest/20261110/ControllerIsolation/Automation_R2_Result.json",
-        "process_exit": 0,
-        "UE_log_created": false,
-        "report_created": false
-      }
-    ],
+    "process_exit": 0,
+    "wrapper_exit": 3,
+    "UE_log_created": false,
+    "report_created": false,
+    "result": "Unverified: process exited 0 without UE log or report after final linked build",
+    "attempt": "Saved/VehicleTest/20261111/AltMouseNavigation/Automation_R1_Result.json",
     "UI_render_or_click_test_run": false,
-    "team_driving_skill_free_camera_and_long_duration_acceptance": false
+    "team_driving_skill_free_camera_and_long_duration_acceptance": false,
+    "test_scenarios": [
+      "Existing Playing/GAS/readiness and ordinary Controller behavior",
+      "Existing GAS lifecycle vehicle swapping",
+      "Alt mouse/wheel bindings plus orbit radius, pan focus, dolly distance/limits, side refocus and possession/cooldown retention",
+      "Existing invalid/blocked replacement handling"
+    ]
   },
   "protection": {
     "baseline_files": 1566,
@@ -98,7 +88,9 @@
     "committed_or_pushed": false,
     "panel_merge_changed_asset_config_files": [],
     "controller_isolation_checked_files": 1235,
-    "controller_isolation_changed_files": []
+    "controller_isolation_changed_files": [],
+    "alt_mouse_navigation_checked_files": 1245,
+    "alt_mouse_navigation_changed_files": []
   },
   "source_fingerprints": [
     {
@@ -135,15 +127,15 @@
     },
     {
       "path": "Source/HAL_Future_Creation/HALVehicleTestPlayerController.cpp",
-      "sha256": "2CF182DD64FC38F9B2E79F4660C4B30961A117F9F8DEAB280631E2EF5327005C"
+      "sha256": "F7B1023E0AF9FE8E658E50A537CF119D110A5374B14299B2A7340F53C8F444F4"
     },
     {
       "path": "Source/HAL_Future_Creation/HALVehicleTestPlayerController.h",
-      "sha256": "C325A29A2F146B85B4B2C23CA39F1F60AA502FCDB15EBD42FE50C279C3102975"
+      "sha256": "7ECE54F2D148F3366B3E3889EF4AB95918BA98A0719E7745BE6666150DA43BDC"
     },
     {
       "path": "Source/HAL_Future_Creation/Tests/HALVehicleTestModeTests.cpp",
-      "sha256": "4E40FEE734C2932DEE7920FFAB04A6A4B8C7A555B0959692CF38D057608B0A76"
+      "sha256": "A61094633326E49BCB28DFA747E785752FA8819053A639274CC108205E0C8CD1"
     },
     {
       "path": "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
@@ -250,9 +242,34 @@
       "path": "Saved/VehicleTest/20261110/ControllerIsolation/Automation_R2_Result.json",
       "bytes": 80,
       "sha256": "10476307F56E318AC499CB6F07969F783CE92BB0CC723E891693B6B577D535C0"
+    },
+    {
+      "path": "Saved/VehicleTest/20261111/AltMouseNavigation/Baseline.json",
+      "bytes": 233403,
+      "sha256": "37A8AB92D57B76C0F454091E9FC9BCDA960A91E5591C3E616ED2857214E27E59"
+    },
+    {
+      "path": "Saved/VehicleTest/20261111/AltMouseNavigation/Compile_Editor_NoLink_R1.log",
+      "bytes": 10388,
+      "sha256": "C444ED8BAC50A12CCDA1A7D893041B039B6D7673940B2080715EEB27AF21EAF9"
+    },
+    {
+      "path": "Saved/VehicleTest/20261111/AltMouseNavigation/Compile_Editor_NoLink_R2.log",
+      "bytes": 2176,
+      "sha256": "506114180015089C12A6C3063ECC59AE4E7CF105D64D853870F8BD5ACE467280"
+    },
+    {
+      "path": "Saved/VehicleTest/20261111/AltMouseNavigation/Build_Editor_R3.log",
+      "bytes": 3260,
+      "sha256": "87F6BC47490A6C0E89D90D785383D90F3846B9AA8672BEBD2DFF7BE9DED7CBB2"
+    },
+    {
+      "path": "Saved/VehicleTest/20261111/AltMouseNavigation/Automation_R1_Result.json",
+      "bytes": 80,
+      "sha256": "10476307F56E318AC499CB6F07969F783CE92BB0CC723E891693B6B577D535C0"
     }
   ],
-  "next": "Team confirm existing BP wiring, then run VehicleTest and Camera filters in a working Editor automation environment and manually verify panel/camera/GAS/long-duration behavior. No additional Blueprint wiring is introduced by controller isolation.",
+  "next": "Reopen Editor and verify Alt+LMB orbit, Alt+MMB zoom, Alt+RMB pan, wheel zoom, UI exclusion, drag release/focus loss recovery, camera toggles and GAS vehicle swapping; run native filter in a working automation environment. Blueprint wiring is unchanged.",
   "pre_panel_merge_builds": [
     {
       "target": "HAL_Future_CreationEditor Win64 Development",
@@ -359,5 +376,90 @@
       "Editor R2 interrupted after UBA could not write its default ProgramData cache; process-specific UBA_ROOT fixed it",
       "Editor R3 and Game R1 both compiled and linked successfully; existing camera-test float-conversion warnings and UBA result-store warnings retained in logs"
     ]
+  },
+  "pre_alt_mouse_navigation_builds": [
+    {
+      "target": "HAL_Future_CreationEditor Win64 Development",
+      "log": "Saved/VehicleTest/20261110/ControllerIsolation/Build_Editor_R3.log",
+      "result": "Succeeded",
+      "exit": 0,
+      "main_runtime_DLL_written": true
+    },
+    {
+      "target": "HAL_Future_Creation Win64 Development",
+      "log": "Saved/VehicleTest/20261110/ControllerIsolation/Build_Game_R1.log",
+      "result": "Succeeded",
+      "exit": 0
+    }
+  ],
+  "pre_alt_mouse_navigation_automation": {
+    "filter": "HAL.FutureCreation.VehicleTest+HAL.FutureCreation.Camera",
+    "compiled_vehicle_test_count": 4,
+    "requested_vehicle_test_count": 4,
+    "requested_camera_test_count": 9,
+    "executed_and_verified": false,
+    "result": "Unverified: both UnrealEditor-Cmd.exe and UnrealEditor.exe exited 0 without UE logs or reports; wrapper correctly returned 3",
+    "attempts": [
+      {
+        "result_file": "Saved/VehicleTest/20261110/ControllerIsolation/Automation_R1_Result.json",
+        "process_exit": 0,
+        "UE_log_created": false,
+        "report_created": false
+      },
+      {
+        "result_file": "Saved/VehicleTest/20261110/ControllerIsolation/Automation_R2_Result.json",
+        "process_exit": 0,
+        "UE_log_created": false,
+        "report_created": false
+      }
+    ],
+    "UI_render_or_click_test_run": false,
+    "team_driving_skill_free_camera_and_long_duration_acceptance": false
+  },
+  "alt_mouse_navigation": {
+    "code_complete": true,
+    "validation_status": "Editor full build and link passed; automation unverified because no UE log/report was produced",
+    "source_files": [
+      "HALVehicleTestPlayerController.h",
+      "HALVehicleTestPlayerController.cpp",
+      "Tests/HALVehicleTestModeTests.cpp"
+    ],
+    "new_source_files": 0,
+    "public_controller_or_flow_interfaces_changed": false,
+    "gesture_mapping": {
+      "alt_left_mouse": "Orbit",
+      "alt_middle_mouse": "Dolly zoom",
+      "alt_right_mouse": "Pan",
+      "wheel": "Dolly zoom, no modifier required"
+    },
+    "pivot": "Initially vehicle bounds center; pan moves camera and pivot together; focus restores vehicle center",
+    "distance_limits_cm": [
+      25,
+      50000
+    ],
+    "pitch_limits_degrees": [
+      -89,
+      89
+    ],
+    "wheel_over_panel_ignored": true,
+    "drag_requires_focused_viewport": true,
+    "vehicle_input": "Neutralized only during an observation drag, restored on release/Alt release/focus loss/camera change/vehicle change",
+    "vehicle_camera_RMB_look_preserved": true,
+    "old_observation_RMB_WASD_flight_removed": true,
+    "baseline": "Saved/VehicleTest/20261111/AltMouseNavigation/Baseline.json",
+    "initial_compile_issue": "R1: local Player variable shadowed APlayerController.Player; renamed LocalPlayerRef",
+    "compile_checks": [
+      {
+        "log": "Saved/VehicleTest/20261111/AltMouseNavigation/Compile_Editor_NoLink_R1.log",
+        "result": "Failed: C4458 Player member shadowing",
+        "exit": 6
+      },
+      {
+        "log": "Saved/VehicleTest/20261111/AltMouseNavigation/Compile_Editor_NoLink_R2.log",
+        "result": "Succeeded",
+        "exit": 0
+      }
+    ],
+    "editor_lock_released_during_work": true
   }
 }

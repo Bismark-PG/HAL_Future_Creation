@@ -16,6 +16,7 @@
 #include "HALCameraTestSupport.h"
 #include "Camera/CameraActor.h"
 #include "Components/BoxComponent.h"
+#include "Components/InputComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Engine/GameInstance.h"
@@ -26,6 +27,18 @@ struct FHALVehicleTestAccess
 	static void Configure(AHALVehicleTestGameMode* Mode,UClass* Initial,UClass* Other)
 	{ Mode->DefaultPawnClass=Initial; Mode->TestVehicleClasses={Initial,Other}; }
 	static void BeginCameraNavigation(AHALVehicleTestPlayerController* PC) { PC->BeginCameraNavigation(); }
+	static FVector Pivot(const AHALVehicleTestPlayerController* PC) { return PC->ObservationPivot; }
+	static void Orbit(AHALVehicleTestPlayerController* PC,float X,float Y)
+	{ PC->ObservationDrag=AHALVehicleTestPlayerController::EObservationDrag::Orbit; PC->ApplyObservationDrag(X,Y); PC->ObservationDrag=AHALVehicleTestPlayerController::EObservationDrag::None; }
+	static void Pan(AHALVehicleTestPlayerController* PC,float X,float Y)
+	{ PC->ObservationDrag=AHALVehicleTestPlayerController::EObservationDrag::Pan; PC->ApplyObservationDrag(X,Y); PC->ObservationDrag=AHALVehicleTestPlayerController::EObservationDrag::None; }
+	static void ZoomDrag(AHALVehicleTestPlayerController* PC,float X,float Y)
+	{ PC->ObservationDrag=AHALVehicleTestPlayerController::EObservationDrag::Zoom; PC->ApplyObservationDrag(X,Y); PC->ObservationDrag=AHALVehicleTestPlayerController::EObservationDrag::None; }
+	static void Zoom(AHALVehicleTestPlayerController* PC,float Amount) { PC->ZoomObservationCamera(Amount); }
+	static bool HasAltBinding(const AHALVehicleTestPlayerController* PC,FKey Key)
+	{ return PC->InputComponent && PC->InputComponent->KeyBindings.ContainsByPredicate([Key](const FInputKeyBinding& B){ return B.Chord.Key==Key && B.Chord.bAlt && B.KeyEvent==IE_Pressed; }); }
+	static bool HasWheelBinding(const AHALVehicleTestPlayerController* PC)
+	{ return PC->InputComponent && PC->InputComponent->AxisKeyBindings.ContainsByPredicate([](const FInputAxisKeyBinding& B){ return B.AxisKey==EKeys::MouseWheelAxis; }); }
 };
 
 namespace
@@ -131,6 +144,10 @@ bool FHALVehicleTestCamera::RunTest(const FString&)
 	FVehicleTestWorld F;
 	if (!TestNotNull(TEXT("Initial car"),F.Vehicle())) { return false; }
 	auto* Pawn=F.Vehicle(); auto* ASC=F.ASC(); const auto Serial=F.State()->GetVehicleLifecycle().ChangeSerial;
+	F.PC->SetupInputComponent();
+	TestTrue(TEXT("Alt mouse buttons and unmodified wheel are registered"),FHALVehicleTestAccess::HasAltBinding(F.PC,EKeys::LeftMouseButton)
+		&& FHALVehicleTestAccess::HasAltBinding(F.PC,EKeys::MiddleMouseButton) && FHALVehicleTestAccess::HasAltBinding(F.PC,EKeys::RightMouseButton)
+		&& FHALVehicleTestAccess::HasWheelBinding(F.PC));
 	TestFalse(TEXT("Panel mouse movement does not rotate the vehicle camera"),AHALVehicleTestPlayerController::AllowsVehicleCameraMouseInput(F.PC));
 	FHALVehicleTestAccess::BeginCameraNavigation(F.PC);
 	TestTrue(TEXT("RMB navigation enables vehicle mouse look"),AHALVehicleTestPlayerController::AllowsVehicleCameraMouseInput(F.PC));
@@ -144,6 +161,32 @@ bool FHALVehicleTestCamera::RunTest(const FString&)
 	TestFalse(TEXT("Observation view does not feed mouse input to the vehicle camera"),AHALVehicleTestPlayerController::AllowsVehicleCameraMouseInput(F.PC));
 	TestTrue(TEXT("Side view rather than top view"),FMath::Abs(Camera->GetActorRotation().Pitch)<30.f);
 	TestTrue(TEXT("Camera focus is beside the car"),FMath::Abs(FVector::DotProduct(Camera->GetActorLocation()-Pawn->GetActorLocation(),Pawn->GetActorRightVector()))>500.f);
+	const FVector FirstPivot=FHALVehicleTestAccess::Pivot(F.PC),FirstLocation=Camera->GetActorLocation();
+	const double FirstDistance=FVector::Distance(FirstLocation,FirstPivot);
+	FHALVehicleTestAccess::Orbit(F.PC,120,30);
+	TestTrue(TEXT("Orbit moves the camera around its focus with a constant radius"),!Camera->GetActorLocation().Equals(FirstLocation,0.01)
+		&& FMath::IsNearlyEqual(FVector::Distance(Camera->GetActorLocation(),FirstPivot),FirstDistance,0.01)
+		&& FVector::DotProduct(Camera->GetActorForwardVector(),(FirstPivot-Camera->GetActorLocation()).GetSafeNormal())>0.999);
+	const FVector BeforePan=Camera->GetActorLocation(); const FRotator BeforePanRotation=Camera->GetActorRotation();
+	FHALVehicleTestAccess::Pan(F.PC,25,-10);
+	TestTrue(TEXT("Pan translates the focus and camera together without changing angle"),!Camera->GetActorLocation().Equals(BeforePan,0.01)
+		&& (Camera->GetActorLocation()-BeforePan).Equals(FHALVehicleTestAccess::Pivot(F.PC)-FirstPivot,0.01)
+		&& Camera->GetActorRotation().Equals(BeforePanRotation,0.01));
+	const FVector PanPivot=FHALVehicleTestAccess::Pivot(F.PC);
+	FHALVehicleTestAccess::ZoomDrag(F.PC,40,20);
+	TestTrue(TEXT("Zoom drag reduces the focus distance while retaining the focus"),FVector::Distance(Camera->GetActorLocation(),PanPivot)<FirstDistance
+		&& FHALVehicleTestAccess::Pivot(F.PC).Equals(PanPivot));
+	FHALVehicleTestAccess::ZoomDrag(F.PC,-40,-20);
+	TestTrue(TEXT("Opposite zoom drag restores distance"),FMath::IsNearlyEqual(FVector::Distance(Camera->GetActorLocation(),PanPivot),FirstDistance,0.01));
+	FHALVehicleTestAccess::Zoom(F.PC,1000);
+	TestTrue(TEXT("Large zoom keeps the camera on the viewing side of its focus"),FVector::Distance(Camera->GetActorLocation(),PanPivot)>0
+		&& FVector::DotProduct(PanPivot-Camera->GetActorLocation(),Camera->GetActorForwardVector())>0);
+	FHALVehicleTestAccess::Zoom(F.PC,-1000); FHALVehicleTestAccess::Zoom(F.PC,-1000);
+	const FVector FarLocation=Camera->GetActorLocation(); FHALVehicleTestAccess::Zoom(F.PC,-1000);
+	TestTrue(TEXT("Zoom-out reaches a finite distance limit"),!FarLocation.ContainsNaN() && Camera->GetActorLocation().Equals(FarLocation,0.01));
+	F.PC->FocusObservationCamera();
+	TestTrue(TEXT("Side focus recenters the orbit after pan and zoom"),FHALVehicleTestAccess::Pivot(F.PC).Equals(FirstPivot,0.01)
+		&& Camera->GetActorLocation().Equals(FirstLocation,0.01));
 	TestTrue(TEXT("Controller possesses same car"),F.PC->GetPawn()==Pawn);
 	TestEqual(TEXT("ASC avatar unaffected"),ASC->GetAvatarActor(),static_cast<AActor*>(Pawn));
 	TestTrue(TEXT("Vehicle inputs still available from side view"),Pawn->IsLocalInputAvatarLinked() && HALGameFlow::Permissions(F.World,Pawn).bAbilities);

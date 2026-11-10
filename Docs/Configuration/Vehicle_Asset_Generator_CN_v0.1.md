@@ -4,7 +4,7 @@
 
 更新：2026-11-11。新生成的Vehicle Definition默认引用`/Game/Meshes/Collision/SM_Car_01_Collision.SM_Car_01_Collision`。已有资产的引用保持。工具属于现有 `HAL_Future_CreationEditor` 模块，通过 Editor 的 **Tools → HAL Tools → HAL Vehicle Asset Generator** 启动。公开接口位于 `Source/HAL_Future_CreationEditor/Public/VehicleAssetGenerator`，实现位于对应 Private 目录。
 
-本次路径更新已通过UE5.8.3的Editor模块`-NoLink`编译检查，包含现有生成器测试源码。当前Editor占用工具DLL，完整链接及实际生成尚未验证；关闭Editor后通过`BuildAndLaunch.cmd`重新构建加载更新。日志为`Saved/VehicleAssetGenerator/DefaultCollision_20261111/Compile_Editor_NoLink.log`。
+本次路径更新已通过UE5.8.3的Editor模块`-NoLink`编译检查，包含现有生成器测试源码。随后测试摄像机调整的完整Editor构建也已成功链接工具DLL，重新打开Editor即可加载；实际生成尚未验证。原编译日志为`Saved/VehicleAssetGenerator/DefaultCollision_20261111/Compile_Editor_NoLink.log`，完整链接日志为`Saved/VehicleTest/20261111/AltMouseNavigation/Build_Editor_R3.log`。
 
 2026-10-30输入引用显示补充：已在现有Editor模块加入车辆Details只读预览，生成蓝图及已有Car_02的Input直接显示当前Definition.LocalConfig中的十项输入引用和来源。共享Local不变，显示不复制Pawn旧默认值；构建统一由BuildAndLaunch.cmd负责。具体读取位置、运行初始化及验证边界见[输入引用显示](Vehicle_Input_Preview_CN_v0.1.md)。
 

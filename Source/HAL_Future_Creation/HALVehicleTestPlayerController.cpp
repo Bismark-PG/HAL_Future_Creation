@@ -14,6 +14,7 @@
 #include "Engine/GameViewportClient.h"
 #include "Engine/LocalPlayer.h"
 #include "InputCoreTypes.h"
+#include "Framework/Commands/InputChord.h"
 #include "UnrealClient.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/SOverlay.h"
@@ -26,6 +27,9 @@
 
 namespace
 {
+	constexpr float MinimumObservationDistance=25.f;
+	constexpr float MaximumObservationDistance=50000.f;
+
 	/** Private Slate implementation owned by the test controller; no separate UObject/widget asset. */
 	class SHALVehicleTestPanel final : public SCompoundWidget
 	{
@@ -80,7 +84,7 @@ namespace
 								return FText::FromString(FString::Printf(TEXT("%s\nPawn: %s\nGAS: %s  HP: %.0f / %.0f"),Mode?*Mode->GetTestStatus():TEXT("Vehicle Test GameMode required"),*GetNameSafe(PC?PC->GetPawn():nullptr),ASC && PC && ASC->GetAvatarActor()==PC->GetPawn() && ASC->IsHealthInitialized()?TEXT("Ready"):TEXT("Waiting"),HP?HP->GetCurrentHP():0.f,HP?HP->GetMaxHP():0.f));
 							})]
 							+SVerticalBox::Slot().AutoHeight()
-							[SNew(STextBlock).AutoWrapText(true).Text(FText::FromString(TEXT("Vehicle controls stay active with either camera.\nHold RMB: mouse look. In observation view: RMB + WASD, Q/E, Shift to fly. Release RMB to drive.")))]
+							[SNew(STextBlock).AutoWrapText(true).Text(FText::FromString(TEXT("Observation: Alt + LMB orbit, Alt + MMB zoom, Alt + RMB pan. Wheel: zoom. Release the gesture to drive.\nVehicle camera: hold RMB for mouse look.")))]
 						]
 					]
 				]
@@ -129,6 +133,10 @@ void AHALVehicleTestPlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::F2,IE_Pressed,this,&ThisClass::ToggleTestCamera);
 	InputComponent->BindKey(EKeys::RightMouseButton,IE_Pressed,this,&ThisClass::BeginCameraNavigation).bConsumeInput=false;
 	InputComponent->BindKey(EKeys::RightMouseButton,IE_Released,this,&ThisClass::FinishCameraNavigation).bConsumeInput=false;
+	InputComponent->BindKey(FInputChord(EKeys::LeftMouseButton,false,false,true,false),IE_Pressed,this,&ThisClass::BeginObservationOrbit);
+	InputComponent->BindKey(FInputChord(EKeys::MiddleMouseButton,false,false,true,false),IE_Pressed,this,&ThisClass::BeginObservationZoom);
+	InputComponent->BindKey(FInputChord(EKeys::RightMouseButton,false,false,true,false),IE_Pressed,this,&ThisClass::BeginObservationPan);
+	InputComponent->BindAxisKey(EKeys::MouseWheelAxis,this,&ThisClass::OnObservationWheel).bConsumeInput=false;
 }
 
 bool AHALVehicleTestPlayerController::IsPointerOnPanel() const
@@ -179,10 +187,33 @@ void AHALVehicleTestPlayerController::ApplyTestInputMode()
 
 void AHALVehicleTestPlayerController::BeginCameraNavigation()
 {
-	if (IsPointerOnPanel()) { return; }
+	// Vehicle camera retains its existing RMB look. Observation uses only Alt mouse gestures.
+	if (bObservationView || IsPointerOnPanel()) { return; }
 	bCameraNavigation=true;
-	if (bObservationView)
-	{ if (auto* Vehicle=Cast<ATestVehiclePawn>(GetPawn())) { Vehicle->SetMenuInputActive(true); } }
+	ApplyTestInputMode();
+}
+
+bool AHALVehicleTestPlayerController::IsAltHeld() const
+{ return IsInputKeyDown(EKeys::LeftAlt) || IsInputKeyDown(EKeys::RightAlt); }
+
+bool AHALVehicleTestPlayerController::IsCameraViewportFocused() const
+{
+	const auto* LocalPlayerRef=GetLocalPlayer();
+	const auto* Viewport=LocalPlayerRef && LocalPlayerRef->ViewportClient?LocalPlayerRef->ViewportClient->Viewport:nullptr;
+	return Viewport && Viewport->HasFocus() && Viewport->IsForegroundWindow();
+}
+
+void AHALVehicleTestPlayerController::BeginObservationOrbit() { BeginObservationDrag(EObservationDrag::Orbit); }
+void AHALVehicleTestPlayerController::BeginObservationZoom() { BeginObservationDrag(EObservationDrag::Zoom); }
+void AHALVehicleTestPlayerController::BeginObservationPan() { BeginObservationDrag(EObservationDrag::Pan); }
+
+void AHALVehicleTestPlayerController::BeginObservationDrag(EObservationDrag Drag)
+{
+	if (!bObservationView || !ObservationCamera || !IsAltHeld() || IsPointerOnPanel() || !IsCameraViewportFocused()) { return; }
+	ObservationDrag=Drag;
+	if (bCameraNavigation) { return; }
+	bCameraNavigation=true;
+	if (auto* Vehicle=Cast<ATestVehiclePawn>(GetPawn())) { Vehicle->SetMenuInputActive(true); }
 	ApplyTestInputMode();
 }
 
@@ -190,6 +221,7 @@ void AHALVehicleTestPlayerController::FinishCameraNavigation()
 {
 	if (!bCameraNavigation) { return; }
 	bCameraNavigation=false;
+	ObservationDrag=EObservationDrag::None;
 	if (bObservationView)
 	{ if (auto* Vehicle=Cast<ATestVehiclePawn>(GetPawn())) { Vehicle->SetMenuInputActive(false); } }
 	ApplyTestInputMode();
@@ -220,8 +252,10 @@ void AHALVehicleTestPlayerController::FocusObservationCamera()
 {
 	const APawn* ControlledVehicle=GetPawn();
 	if (!ControlledVehicle || !ObservationCamera) { return; }
+	FinishCameraNavigation();
 	const auto* Body=Cast<UPrimitiveComponent>(ControlledVehicle->GetRootComponent());
 	const FVector Focus=Body?Body->Bounds.Origin:ControlledVehicle->GetActorLocation();
+	ObservationPivot=Focus;
 	FVector Right=FVector::VectorPlaneProject(ControlledVehicle->GetActorRightVector(),FVector::UpVector).GetSafeNormal();
 	if (Right.IsNearlyZero()) { Right=FVector::RightVector; }
 	const FVector Location=Focus+Right*ObservationDistance+FVector::UpVector*FMath::Max(60.f,ObservationDistance*0.18f);
@@ -251,19 +285,54 @@ void AHALVehicleTestPlayerController::ApplyTestVehicle(TSubclassOf<ATestVehicleP
 void AHALVehicleTestPlayerController::PlayerTick(float Dt)
 {
 	Super::PlayerTick(Dt);
-	if (!bCameraNavigation || !IsInputKeyDown(EKeys::RightMouseButton)
-		|| !GetWorld()->GetGameViewport() || !GetWorld()->GetGameViewport()->Viewport
-		|| !GetWorld()->GetGameViewport()->Viewport->HasFocus()) { FinishCameraNavigation(); return; }
-	if (!bObservationView || !ObservationCamera) { return; }
+	if (!bCameraNavigation) { return; }
+	if (!IsCameraViewportFocused()) { FinishCameraNavigation(); return; }
+	if (!bObservationView)
+	{ if (!IsInputKeyDown(EKeys::RightMouseButton)) { FinishCameraNavigation(); } return; }
+	const FKey Button=ObservationDrag==EObservationDrag::Orbit?EKeys::LeftMouseButton:
+		ObservationDrag==EObservationDrag::Zoom?EKeys::MiddleMouseButton:EKeys::RightMouseButton;
+	if (!IsAltHeld() || !IsInputKeyDown(Button) || ObservationDrag==EObservationDrag::None)
+	{ FinishCameraNavigation(); return; }
 	float MouseX=0,MouseY=0; GetInputMouseDelta(MouseX,MouseY);
+	ApplyObservationDrag(MouseX,MouseY);
+}
+
+void AHALVehicleTestPlayerController::ApplyObservationDrag(float MouseX,float MouseY)
+{
+	if (!bObservationView || !ObservationCamera || !FMath::IsFinite(MouseX) || !FMath::IsFinite(MouseY)) { return; }
+	if (ObservationDrag==EObservationDrag::Zoom)
+	{ ZoomObservationCamera((MouseX+MouseY)*ObservationZoomSensitivity); return; }
+	const float Distance=FMath::Clamp(float((ObservationCamera->GetActorLocation()-ObservationPivot).Size()),MinimumObservationDistance,MaximumObservationDistance);
 	FRotator Rotation=ObservationCamera->GetActorRotation();
-	Rotation.Yaw+=MouseX*ObservationLookSensitivity;
-	Rotation.Pitch=FMath::Clamp(Rotation.Pitch-MouseY*ObservationLookSensitivity,-89.f,89.f);
-	const auto Axis=[this](FKey Positive,FKey Negative) { return float(IsInputKeyDown(Positive))-float(IsInputKeyDown(Negative)); };
-	const FVector Direction=Rotation.Vector()*Axis(EKeys::W,EKeys::S)
-		+FRotationMatrix(Rotation).GetUnitAxis(EAxis::Y)*Axis(EKeys::D,EKeys::A)+FVector::UpVector*Axis(EKeys::E,EKeys::Q);
-	const float Speed=ObservationMoveSpeed*(IsInputKeyDown(EKeys::LeftShift)?3.f:1.f);
-	ObservationCamera->SetActorLocationAndRotation(ObservationCamera->GetActorLocation()+Direction.GetClampedToMaxSize(1)*Speed*FMath::Clamp(Dt,0.f,0.1f),Rotation);
+	if (ObservationDrag==EObservationDrag::Orbit)
+	{
+		Rotation.Yaw+=MouseX*ObservationLookSensitivity;
+		Rotation.Pitch=FMath::Clamp(Rotation.Pitch-MouseY*ObservationLookSensitivity,-89.f,89.f);
+		ObservationCamera->SetActorLocationAndRotation(ObservationPivot-Rotation.Vector()*Distance,Rotation);
+	}
+	else if (ObservationDrag==EObservationDrag::Pan)
+	{
+		int32 Width=0,Height=0; GetViewportSize(Width,Height);
+		const float CmPerPixel=2.f*Distance*FMath::Tan(FMath::DegreesToRadians(ObservationCamera->GetCameraComponent()->FieldOfView*0.5f))/(Width>0?Width:1280);
+		const FRotationMatrix Basis(Rotation);
+		const FVector Offset=(-Basis.GetUnitAxis(EAxis::Y)*MouseX+Basis.GetUnitAxis(EAxis::Z)*MouseY)*CmPerPixel*ObservationPanSensitivity;
+		ObservationPivot+=Offset;
+		ObservationCamera->AddActorWorldOffset(Offset);
+	}
+}
+
+void AHALVehicleTestPlayerController::ZoomObservationCamera(float Amount)
+{
+	if (!bObservationView || !ObservationCamera || !FMath::IsFinite(Amount)) { return; }
+	const float Distance=FMath::Max(float((ObservationCamera->GetActorLocation()-ObservationPivot).Size()),MinimumObservationDistance);
+	const float NextDistance=FMath::Clamp(Distance*FMath::Exp(-FMath::Clamp(Amount,-5.f,5.f)),MinimumObservationDistance,MaximumObservationDistance);
+	ObservationCamera->SetActorLocation(ObservationPivot-ObservationCamera->GetActorForwardVector()*NextDistance);
+}
+
+void AHALVehicleTestPlayerController::OnObservationWheel(float Steps)
+{
+	if (FMath::IsNearlyZero(Steps) || IsPointerOnPanel() || !IsCameraViewportFocused()) { return; }
+	ZoomObservationCamera(Steps*ObservationZoomSensitivity*30.f);
 }
 
 void AHALVehicleTestPlayerController::EndPlay(const EEndPlayReason::Type Reason)

@@ -37,13 +37,24 @@ public:
 
 protected:
 	virtual void OnPossess(APawn* NewPawn) override;
-	UPROPERTY(EditDefaultsOnly,Category="Vehicle Test|Camera",meta=(Units="cm/s",ClampMin="10",ClampMax="10000")) float ObservationMoveSpeed=600;
+	UPROPERTY(EditDefaultsOnly,Category="Vehicle Test|Camera",meta=(ClampMin="0.01",ClampMax="10")) float ObservationPanSensitivity=1.f;
 	UPROPERTY(EditDefaultsOnly,Category="Vehicle Test|Camera",meta=(Units="cm",ClampMin="100",ClampMax="10000")) float ObservationDistance=650;
 	UPROPERTY(EditDefaultsOnly,Category="Vehicle Test|Camera",meta=(ClampMin="0.01",ClampMax="5")) float ObservationLookSensitivity=0.15f;
+	UPROPERTY(EditDefaultsOnly,Category="Vehicle Test|Camera",meta=(ClampMin="0.0001",ClampMax="0.1")) float ObservationZoomSensitivity=0.005f;
 
 private:
 	friend struct FHALVehicleTestAccess;
+	enum class EObservationDrag : uint8 { None, Orbit, Zoom, Pan };
 	void BeginCameraNavigation();
+	void BeginObservationOrbit();
+	void BeginObservationZoom();
+	void BeginObservationPan();
+	void BeginObservationDrag(EObservationDrag Drag);
+	void ApplyObservationDrag(float MouseX,float MouseY);
+	void ZoomObservationCamera(float Amount);
+	void OnObservationWheel(float Steps);
+	bool IsAltHeld() const;
+	bool IsCameraViewportFocused() const;
 	void ApplyTestInputMode();
 	bool IsPointerOnPanel() const;
 	TSharedPtr<SWidget> TestPanel;
@@ -52,4 +63,6 @@ private:
 	UPROPERTY(Transient) TObjectPtr<ACameraActor> ObservationCamera;
 	bool bObservationView=false;
 	bool bCameraNavigation=false;
+	EObservationDrag ObservationDrag=EObservationDrag::None;
+	FVector ObservationPivot=FVector::ZeroVector;
 };
