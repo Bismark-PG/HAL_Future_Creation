@@ -9,18 +9,23 @@
 #include "../HALSlipperyTrailAbility.h"
 #include "../TestVehiclePawn.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/DynamicMeshComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/NetDriver.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerState.h"
+#include "Materials/Material.h"
+#include "Misc/CommandLine.h"
 
 struct FHALSlipperyTrailNetworkAccess
 {
 	static bool HasReplicatedPatch(const AHALSlipperyTrail& Trail)
 	{
 		return Trail.StartTime >= 0 && Trail.Shape.InitialHalfWidth == 750 && Trail.Points.Num() == 1
-			&& FMath::IsNearlyEqual(Trail.Points[0].Ground.Z, 10000., .2);
+			&& FMath::IsNearlyEqual(Trail.Points[0].Ground.Z, 10000., .2)
+			&& FMath::IsNearlyEqual(Trail.Points[0].GroundNormal.Z, 1., .001);
 	}
+	static UDynamicMeshComponent* GetGroundMesh(const AHALSlipperyTrail& Trail) { return Trail.GroundMesh; }
 };
 
 namespace
@@ -111,6 +116,22 @@ namespace
 			}
 			TActorIterator<AHALSlipperyTrail> Trails(World);
 			auto* Trail = Trails ? *Trails : nullptr;
+			if (bCheckGround && Trail)
+			{
+				if (auto* Mesh = FHALSlipperyTrailNetworkAccess::GetGroundMesh(*Trail); Mesh && Mesh->IsRegistered() && Mesh->IsVisible())
+				{
+					if (!bSawGround)
+					{
+						bSawGround = true;
+						GroundMesh = Mesh;
+						Test.TestTrue(TEXT("Local ground mesh uses the replicated material"),
+							Mesh->GetMaterial(0) == UMaterial::GetDefaultMaterial(MD_Surface));
+						Test.TestEqual(TEXT("Ground rendering cannot affect queries or physics"),
+							Mesh->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
+					}
+					bSawFullWidth |= FMath::IsNearlyEqual(Mesh->Bounds.BoxExtent.Y, 900., .1);
+				}
+			}
 			const bool bReadySway = Status.bReady && Status.Definition.AreaSway.Amplitude == 5.f && Status.Definition.SwayPeriodFrames > 0
 				&& FMath::IsNearlyEqual(Status.Value.GripScale, .3f, .01f);
 			if (bHost && Stage == 3 && Trail && bAffected && bReadySway)
@@ -133,6 +154,13 @@ namespace
 			if (!Trail && !bAffected && Status.bReady && FMath::IsNearlyEqual(Status.Value.GripScale, 1.f, .001f))
 			{
 				if (bHost && OtherName != TEXT("HAL_Trail_Done")) { return false; }
+				if (bCheckGround)
+				{
+					Test.TestTrue(TEXT("Ground mesh appeared and expanded to full width"), bSawGround && bSawFullWidth);
+					Test.TestTrue(TEXT("Expired trail no longer renders a ground mesh"), !GroundMesh.IsValid() || !GroundMesh->IsRegistered());
+					UE_LOG(LogTemp, Display, TEXT("SlipperyTrail ground: Role=%s Mesh=%d FullWidth=%d"),
+						bHost ? TEXT("Host") : TEXT("Client"), bSawGround, bSawFullWidth);
+				}
 				Test.TestTrue(TEXT("Grip recovers after sway stops"), bSawGripRecovery);
 				Test.TestEqual(TEXT("No active sway at expiry"), Status.Definition.AreaSway.Amplitude, 0.f);
 				if (bHost)
@@ -154,6 +182,10 @@ namespace
 		double CastAfter = 0;
 		int32 Stage = 0;
 		bool bSawGripRecovery = false;
+		const bool bCheckGround = FParse::Param(FCommandLine::Get(), TEXT("HALSlipperyTrailGroundFixture"));
+		bool bSawGround = false;
+		bool bSawFullWidth = false;
+		TWeakObjectPtr<UDynamicMeshComponent> GroundMesh;
 	};
 }
 

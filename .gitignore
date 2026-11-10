@@ -64,6 +64,7 @@ Tools/UnrealBridge/
 # Precompiled Assets
 SourceArt/**/*.png
 SourceArt/**/*.tga
+!SourceArt/SlipperyTrail/T_SlipperyTrail_OilSheen_Mask.png
 
 # Binary Files
 Binaries/*

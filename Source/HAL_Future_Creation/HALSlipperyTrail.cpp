@@ -24,7 +24,7 @@ namespace
 	}
 
 	bool ProjectGround(const ATestVehiclePawn& Vehicle, const FHALSlipperyTrailEmission& Rules,
-		const FVector& Probe, FVector& Out)
+		const FVector& Probe, FVector& Out, FVector* OutNormal = nullptr)
 	{
 		FCollisionObjectQueryParams Objects;
 		Objects.AddObjectTypesToQuery(ECC_WorldStatic);
@@ -44,6 +44,7 @@ namespace
 			// Do not project through a solid but too-steep surface to a lower floor.
 			if (Hit.bStartPenetrating || Hit.ImpactNormal.Z < Rules.MinimumGroundNormalZ) { return false; }
 			Out = Hit.ImpactPoint;
+			if (OutNormal) { *OutNormal = Hit.ImpactNormal; }
 			return true;
 		}
 		return false;
@@ -114,7 +115,8 @@ AHALSlipperyTrail::AHALSlipperyTrail()
 {
 	bReplicates = true;
 	bAlwaysRelevant = true;
-	PrimaryActorTick.bCanEverTick = ENABLE_DRAW_DEBUG && FApp::CanEverRender();
+	PrimaryActorTick.bCanEverTick = FApp::CanEverRender();
+	PrimaryActorTick.bStartWithTickEnabled = false;
 	PrimaryActorTick.bAllowTickOnDedicatedServer = false;
 	SetNetUpdateFrequency(25);
 }
@@ -130,7 +132,7 @@ bool AHALSlipperyTrail::CanLay(const ATestVehiclePawn& Vehicle)
 }
 
 bool AHALSlipperyTrail::FindTailGround(const ATestVehiclePawn& Vehicle, const FHALSlipperyTrailEmission& Rules,
-	const FHALSlipperyTrailShape& InShape, FVector& Out)
+	const FHALSlipperyTrailShape& InShape, FVector& Out, FVector* OutNormal)
 {
 	const auto* Body = Cast<UPrimitiveComponent>(Vehicle.GetRootComponent());
 	if (!Body || !CanLay(Vehicle)) { return false; }
@@ -140,7 +142,7 @@ bool AHALSlipperyTrail::FindTailGround(const ATestVehiclePawn& Vehicle, const FH
 		- Body->GetForwardVector() * Rules.TailOffset;
 	FVector CenterGround;
 	if (!ProjectGround(Vehicle, Rules, Body->Bounds.Origin, CenterGround)) { return false; }
-	if (!ProjectGround(Vehicle, Rules, Rear, Out)) { return false; }
+	if (!ProjectGround(Vehicle, Rules, Rear, Out, OutNormal)) { return false; }
 	// A rear point may follow a slope, but should not snap through a ledge to another level.
 	const double ExpectedRise = (Rear - Body->Bounds.Origin).Z;
 	return FMath::Abs(Out.Z - CenterGround.Z - ExpectedRise) <= InShape.GroundHeightTolerance;
@@ -153,18 +155,20 @@ double AHALSlipperyTrail::ServerTime() const
 }
 
 bool AHALSlipperyTrail::Start(const FHALSlipperyTrailShape& InShape, const FHALSlipperyTrailEmission& InEmission,
-	const FHALSlipperyTrailHandling& Handling, const FVector& FirstPoint)
+	const FHALSlipperyTrailHandling& Handling, const FVector& FirstPoint, const FVector& FirstNormal,
+	const FHALSlipperyTrailPresentation& InPresentation)
 {
 	const auto* Vehicle = Cast<ATestVehiclePawn>(GetOwner());
 	if (!HasAuthority() || !Vehicle || !IsActiveVehicle(*Vehicle) || StartTime >= 0) { return false; }
 	Shape = InShape;
+	Presentation = InPresentation;
 	Emission = InEmission;
 	Area.Kind = EHALMovementAreaKind::Slippery;
 	Area.LateralGripMultiplier = Handling.LateralGripMultiplier;
 	Area.RecoverySeconds = Handling.RecoverySeconds;
 	Area.Sway = Handling.Sway;
 	StartTime = ServerTime();
-	AddPoint(FirstPoint, 0);
+	AddPoint(FirstPoint, FirstNormal, 0);
 	UpdateReceivers(0);
 	SetLifeSpan(Shape.LifetimeSeconds);
 	FTimerManagerTimerParameters Timer;
@@ -174,7 +178,7 @@ bool AHALSlipperyTrail::Start(const FHALSlipperyTrailShape& InShape, const FHALS
 	return true;
 }
 
-void AHALSlipperyTrail::AddPoint(const FVector& Ground, float Age)
+void AHALSlipperyTrail::AddPoint(const FVector& Ground, const FVector& Normal, float Age)
 {
 	const double Distance = Points.IsEmpty() ? 0 : FVector::Dist2D(Points.Last().Ground, Ground);
 	const bool bLinked = bLinkNext && Distance <= Emission.MaximumLinkDistance
@@ -182,9 +186,11 @@ void AHALSlipperyTrail::AddPoint(const FVector& Ground, float Age)
 	if (bLinked && Distance < Emission.SampleSpacing) { return; }
 	auto& Point = Points.AddDefaulted_GetRef();
 	Point.Ground = Ground;
+	Point.GroundNormal = Normal;
 	Point.EmissionAge = Age;
 	Point.bLinked = bLinked;
 	bLinkNext = true;
+	OnRep_PresentationInput();
 	ForceNetUpdate();
 }
 
@@ -201,7 +207,8 @@ void AHALSlipperyTrail::UpdateTrail()
 	if (Age < Emission.EmissionSeconds && Points.Num() < Emission.MaximumPoints)
 	{
 		FVector Ground;
-		if (FindTailGround(*Vehicle, Emission, Shape, Ground)) { AddPoint(Ground, Age); }
+		FVector Normal;
+		if (FindTailGround(*Vehicle, Emission, Shape, Ground, &Normal)) { AddPoint(Ground, Normal, Age); }
 		else { bLinkNext = false; }
 	}
 	UpdateReceivers(Age);
@@ -261,17 +268,26 @@ void AHALSlipperyTrail::UpdateReceivers(float Age)
 void AHALSlipperyTrail::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-#if ENABLE_DRAW_DEBUG
-	if (!Shape.bDrawOutline || StartTime < 0 || Points.IsEmpty()) { return; }
+	if (StartTime < 0 || Points.IsEmpty()) { return; }
 	const float Age = float(ServerTime() - StartTime);
-	if (Age < 0 || Age >= Shape.LifetimeSeconds) { return; }
+	if (Age >= Shape.LifetimeSeconds)
+	{
+		HideGroundMesh();
+		SetActorTickEnabled(false);
+		return;
+	}
+	if (Age < 0) { return; }
+	UpdateGroundMesh(Age);
+#if ENABLE_DRAW_DEBUG
+	if (!Shape.bDrawOutline) { return; }
 	const FVector Lift = FVector::UpVector * Shape.OutlineLift;
 	for (int32 Index = 0; Index < Points.Num(); ++Index)
 	{
 		const auto& Point = Points[Index];
+		if (Age < Point.EmissionAge) { break; }
 		const float Width = Shape.HalfWidthAt(Age - Point.EmissionAge);
 		const FVector Center = Point.Ground + Lift;
-		const bool bHasNext = Points.IsValidIndex(Index + 1) && Points[Index + 1].bLinked;
+		const bool bHasNext = Points.IsValidIndex(Index + 1) && Points[Index + 1].bLinked && Age >= Points[Index + 1].EmissionAge;
 		if (!Point.bLinked || !bHasNext)
 		{
 			DrawDebugCircle(GetWorld(), Center, Width, 20, Shape.OutlineColor, false, 0, 0, Shape.OutlineThickness,
@@ -310,4 +326,5 @@ void AHALSlipperyTrail::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(AHALSlipperyTrail, Shape);
 	DOREPLIFETIME(AHALSlipperyTrail, StartTime);
 	DOREPLIFETIME(AHALSlipperyTrail, Points);
+	DOREPLIFETIME(AHALSlipperyTrail, Presentation);
 }

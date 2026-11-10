@@ -48,9 +48,17 @@ bool UHALSlipperyTrailConfig::Validate(FString& Error) const
 EDataValidationResult UHALSlipperyTrailConfig::IsDataValid(FDataValidationContext& Context) const
 {
 	FString Error;
-	if (Validate(Error)) { return EDataValidationResult::Valid; }
-	Context.AddError(FText::FromString(Error));
-	return EDataValidationResult::Invalid;
+	if (!Validate(Error))
+	{
+		Context.AddError(FText::FromString(Error));
+		return EDataValidationResult::Invalid;
+	}
+	if (Presentation.GroundMaterial && !Presentation.HasUsableMaterial())
+	{
+		Context.AddError(FText::FromString(TEXT("Trail Ground Material must use the Surface domain. Use a Ground Lift of 0.1–20 cm and Texture Tile Size of 20–2000 cm.")));
+		return EDataValidationResult::Invalid;
+	}
+	return EDataValidationResult::Valid;
 }
 #endif
 
@@ -79,7 +87,7 @@ const UHALSlipperyTrailConfig* UHALSlipperyTrailAbility::GetSkillConfig() const
 }
 
 bool UHALSlipperyTrailAbility::ResolveStart(const FGameplayAbilityActorInfo* ActorInfo,
-	const UHALSlipperyTrailConfig* Config, FVector& Ground) const
+	const UHALSlipperyTrailConfig* Config, FVector& Ground, FVector* GroundNormal) const
 {
 	const auto* Vehicle = ActorInfo ? Cast<ATestVehiclePawn>(ActorInfo->AvatarActor.Get()) : nullptr;
 	const auto* ASC = ActorInfo ? Cast<UHALAbilitySystemComponent>(ActorInfo->AbilitySystemComponent.Get()) : nullptr;
@@ -95,7 +103,7 @@ bool UHALSlipperyTrailAbility::ResolveStart(const FGameplayAbilityActorInfo* Act
 		&& Vehicle->IsConfigurationValid() && Vehicle->GetController() && Vehicle->GetController()->GetPawn() == Vehicle
 		&& Health && Health->IsHealthReady() && Health->GetCurrentHP() > 0
 		&& HALGameFlow::Permissions(Vehicle->GetWorld(), Vehicle).bAbilities
-		&& AHALSlipperyTrail::FindTailGround(*Vehicle, Config->Emission, Config->Shape, Ground);
+		&& AHALSlipperyTrail::FindTailGround(*Vehicle, Config->Emission, Config->Shape, Ground, GroundNormal);
 }
 
 bool UHALSlipperyTrailAbility::CanActivateAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
@@ -126,8 +134,9 @@ void UHALSlipperyTrailAbility::ActivateAbility(FGameplayAbilitySpecHandle Handle
 {
 	const auto* Config = GetSkillConfig();
 	FVector Ground;
+	FVector GroundNormal;
 	CommittedCooldown.Invalidate();
-	if (!ActorInfo || !ActorInfo->IsNetAuthority() || ActiveTrail.IsValid() || !ResolveStart(ActorInfo, Config, Ground)
+	if (!ActorInfo || !ActorInfo->IsNetAuthority() || ActiveTrail.IsValid() || !ResolveStart(ActorInfo, Config, Ground, &GroundNormal)
 		|| !CommitAbility(Handle, ActorInfo, ActivationInfo))
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
@@ -142,7 +151,7 @@ void UHALSlipperyTrailAbility::ActivateAbility(FGameplayAbilitySpecHandle Handle
 		Params.Owner = Vehicle;
 		Trail = Vehicle->GetWorld()->SpawnActor<AHALSlipperyTrail>(Params);
 	}
-	if (!Trail || !Trail->Start(Config->Shape, Config->Emission, Config->Handling, Ground))
+	if (!Trail || !Trail->Start(Config->Shape, Config->Emission, Config->Handling, Ground, GroundNormal, Config->Presentation))
 	{
 		if (Trail) { Trail->Destroy(); }
 		if (CommittedCooldown.IsValid()) { ASC->RemoveActiveGameplayEffect(CommittedCooldown); }

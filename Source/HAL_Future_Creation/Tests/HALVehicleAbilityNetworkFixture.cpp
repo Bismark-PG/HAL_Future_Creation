@@ -3,6 +3,7 @@
 #include "../HALBattleTopAbility.h"
 #include "../HALSlipperyTrailAbility.h"
 #include "Engine/World.h"
+#include "Materials/Material.h"
 #include "Misc/CommandLine.h"
 
 namespace
@@ -27,6 +28,11 @@ namespace
 					Config->Shape.MaximumHalfWidth = 900;
 					Config->Shape.LifetimeSeconds = 4;
 					Config->Emission.EmissionSeconds = 1.5f;
+					if (FParse::Param(FCommandLine::Get(), TEXT("HALSlipperyTrailGroundFixture")))
+					{
+						Config->Presentation.GroundMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+						Config->Shape.bDrawOutline = false;
+					}
 					Property->SetObjectPropertyValue_InContainer(Ability, Config);
 				}
 				if (bBattleTop)

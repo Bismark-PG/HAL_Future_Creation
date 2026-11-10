@@ -1,8 +1,64 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
 #include "../HALSlipperyTrailAbility.h"
+#include "DynamicMesh/DynamicMesh3.h"
+#include "DynamicMesh/DynamicMeshAttributeSet.h"
 #include "Serialization/MemoryReader.h"
 #include "Serialization/MemoryWriter.h"
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSlipperyTrailGroundMeshTest, "HAL.FutureCreation.SlipperyTrail.GroundMesh",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALSlipperyTrailGroundMeshTest::RunTest(const FString&)
+{
+	FHALSlipperyTrailShape Shape;
+	Shape.InitialHalfWidth = 30;
+	Shape.MaximumHalfWidth = 90;
+	Shape.ExpansionSeconds = 2;
+	FHALSlipperyTrailPresentation Look;
+	TArray<FHALSlipperyTrailPoint> Path;
+	Path.SetNum(3);
+	Path[0].Ground = FVector(1000, 2000, 100);
+	Path[0].GroundNormal = FVector(0, -.25, 1).GetSafeNormal();
+	Path[1].Ground = Path[0].Ground + FVector(300, 0, 0);
+	Path[1].GroundNormal = Path[0].GroundNormal;
+	Path[1].EmissionAge = 1;
+	Path[1].bLinked = true;
+	Path[2].Ground = Path[0].Ground + FVector(650, 0, 0);
+	Path[2].EmissionAge = 1.5f;
+
+	const auto First = AHALSlipperyTrail::BuildGroundMesh(Path, Shape, Look, 0);
+	TestEqual(TEXT("Stationary cast makes a single rounded patch"), First.TriangleCount(), 24);
+	TestTrue(TEXT("Future samples do not draw ahead of the synchronized clock"),
+		FMath::IsNearlyEqual(First.GetBounds().Max.X, 30., .001));
+
+	const auto Mesh = AHALSlipperyTrail::BuildGroundMesh(Path, Shape, Look, 1.5f);
+	TestEqual(TEXT("A linked strip and a disconnected patch form two regions"), Mesh.TriangleCount(), 50);
+	const auto* UV = Mesh.Attributes()->PrimaryUV();
+	for (const int32 Triangle : Mesh.TriangleIndicesItr())
+	{
+		const auto Vertices = Mesh.GetTriangle(Triangle);
+		const auto Elements = UV->GetTriangle(Triangle);
+		TestTrue(TEXT("Face points up for the top-down view"), Mesh.GetTriNormal(Triangle).Z > 0);
+		for (int32 Corner = 0; Corner < 3; ++Corner)
+		{
+			const FVector P = Mesh.GetVertex(Vertices[Corner]);
+			TestTrue(TEXT("UV0 is fixed in ground units as the shape expands"),
+				UV->GetElement(Elements[Corner]).Equals(FVector2f(P.X / Look.TextureTileSize, P.Y / Look.TextureTileSize), .0001f));
+			TestTrue(TEXT("No triangles bridge the airborne gap"), P.X <= 345.001 || P.X >= 619.999);
+			if (P.X <= 345.001)
+			{
+				TestTrue(TEXT("Mesh follows the sampled cross-slope"), FMath::IsNearlyEqual(P.Z, P.Y * .25 + Look.GroundLift, .001));
+			}
+		}
+	}
+	TestTrue(TEXT("Older point reaches a larger width than newer point"),
+		FMath::IsNearlyEqual(Mesh.GetVertex(1).Y, 75., .001));
+	const auto Full = AHALSlipperyTrail::BuildGroundMesh(Path, Shape, Look, 4);
+	TestTrue(TEXT("Width clamps at the authored maximum"), FMath::IsNearlyEqual(Full.GetBounds().Max.Y, 90., .001));
+	TestEqual(TEXT("Whole mesh expires on the area's clock"),
+		AHALSlipperyTrail::BuildGroundMesh(Path, Shape, Look, Shape.LifetimeSeconds).TriangleCount(), 0);
+	return true;
+}
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSlipperyTrailFootprintTest, "HAL.FutureCreation.SlipperyTrail.FootprintAndSweep",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)

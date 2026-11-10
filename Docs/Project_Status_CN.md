@@ -1,5 +1,9 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-10 扩散打滑带已接入地面网格和材质槽。** 基点 `main/0e017ce` 已含技能 DA 和 GA。运行时按复制的轨迹、地面法线与时间生成地面带，支持逐段扩宽、圆端、断段和到期清理。`DA_Ability_SlipperyTrail → Slippery Trail → Presentation → Ground Material` 已可配置，源 PNG 已生成。团队下一步导入灰度纹路，制作暗绿材质实例，独立调底色、反光、纹路强度和透明度。见[纹理导入与材质接线](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md#暗绿油墨地面材质)。
+
+本机 UE 5.8.2 Editor／Game 构建通过，D3D12 离屏双端专项各 1/1。全量原生在当前玩家打滑带授权下为 177 通过／11 失败，旧测试依赖免疫／加速主技能。以相同构建和提交版资产隔离复测为 188/188。1215 份已保存资产校验一致，开工时两份本地测试资产改动已保留。正式油墨材质仍待团队导入接线和画面验收。见[验证记录](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md#2026-11-10-地面表现验证)。
+
 **2026-11-10 扩散打滑带代码已同步，进入 Editor 配置和车型实测。** 本机 `main` 与 GitHub `main` 均为 `e12a1d9`，核对前工作区干净。技能代码和自动化已随 `b60b2a0` 提交。此后 Car04 的模型、动画 BP、车辆 BP、Definition、表现 DA 和自定义碰撞体已入库，监听 GameMode BP 已引用 Car04，比赛图另更新了场地墙体。默认房间选车目录目前仍列 Car01／Car02。
 
 仓库现有技能资产中尚未找到打滑带配置 DA、派生 GA 或车型授权引用。按[Editor 接线](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md#editor-接线)创建 `HALSlipperyTrailConfig` DA，将其赋给 `HALSlipperyTrailAbility` 子蓝图的 `Skill Config`，再把目标车型 Definition 的 `Input.Ability.Primary` 授权指向该 GA。通过房间测试 Car04 时，先把它登记进测试用 Vehicle Catalog。接线后用保存资产验收区域轮廓、车辆摆动、离区恢复与双端清理。

@@ -16,6 +16,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="Slippery Trail") FHALSlipperyTrailEmission Emission;
 	UPROPERTY(EditAnywhere, Category="Slippery Trail") FHALSlipperyTrailShape Shape;
 	UPROPERTY(EditAnywhere, Category="Slippery Trail") FHALSlipperyTrailHandling Handling;
+	UPROPERTY(EditAnywhere, Category="Slippery Trail") FHALSlipperyTrailPresentation Presentation;
 	bool Validate(FString& Error) const;
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
@@ -49,7 +50,8 @@ protected:
 		FGameplayAbilityActivationInfo ActivationInfo) const override;
 private:
 	const UHALSlipperyTrailConfig* GetSkillConfig() const;
-	bool ResolveStart(const FGameplayAbilityActorInfo* ActorInfo, const UHALSlipperyTrailConfig* Config, FVector& Ground) const;
+	bool ResolveStart(const FGameplayAbilityActorInfo* ActorInfo, const UHALSlipperyTrailConfig* Config,
+		FVector& Ground, FVector* GroundNormal = nullptr) const;
 	UFUNCTION() void TrailDestroyed(AActor* Actor);
 	TWeakObjectPtr<AHALSlipperyTrail> ActiveTrail;
 	mutable FActiveGameplayEffectHandle CommittedCooldown;

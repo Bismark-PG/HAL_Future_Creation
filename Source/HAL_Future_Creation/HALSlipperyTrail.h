@@ -6,7 +6,10 @@
 #include "HALSlipperyTrail.generated.h"
 
 class ATestVehiclePawn;
+class UDynamicMeshComponent;
 class UHALMovementAreaReceiver;
+class UMaterialInterface;
+namespace UE::Geometry { class FDynamicMesh3; }
 
 USTRUCT(BlueprintType)
 struct FHALSlipperyTrailShape
@@ -48,11 +51,31 @@ struct FHALSlipperyTrailHandling
 	UPROPERTY(EditAnywhere, Category="Sway") FHALMovementAreaSway Sway;
 };
 
+USTRUCT(BlueprintType)
+struct FHALSlipperyTrailPresentation
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category="Ground")
+	TObjectPtr<UMaterialInterface> GroundMaterial;
+
+	/** Render-only offset above the sampled surface. */
+	UPROPERTY(EditAnywhere, Category="Ground", meta=(ClampMin="0.1", ClampMax="20", Units="cm"))
+	float GroundLift = 2.f;
+
+	/** World-space distance covered by one texture repeat on UV0. */
+	UPROPERTY(EditAnywhere, Category="Ground", meta=(ClampMin="20", ClampMax="2000", Units="cm"))
+	float TextureTileSize = 320.f;
+
+	bool HasUsableMaterial() const;
+};
+
 USTRUCT()
 struct FHALSlipperyTrailPoint
 {
 	GENERATED_BODY()
 	UPROPERTY() FVector_NetQuantize10 Ground = FVector::ZeroVector;
+	UPROPERTY() FVector_NetQuantizeNormal GroundNormal = FVector::UpVector;
 	UPROPERTY() float EmissionAge = 0;
 	UPROPERTY() bool bLinked = false;
 };
@@ -66,9 +89,10 @@ public:
 	AHALSlipperyTrail();
 	static bool CanLay(const ATestVehiclePawn& Vehicle);
 	static bool FindTailGround(const ATestVehiclePawn& Vehicle, const FHALSlipperyTrailEmission& Rules,
-		const FHALSlipperyTrailShape& InShape, FVector& Out);
+		const FHALSlipperyTrailShape& InShape, FVector& Out, FVector* OutNormal = nullptr);
 	bool Start(const FHALSlipperyTrailShape& InShape, const FHALSlipperyTrailEmission& InEmission,
-		const FHALSlipperyTrailHandling& Handling, const FVector& FirstPoint);
+		const FHALSlipperyTrailHandling& Handling, const FVector& FirstPoint, const FVector& FirstNormal,
+		const FHALSlipperyTrailPresentation& InPresentation);
 	static bool Intersects(TConstArrayView<FHALSlipperyTrailPoint> Path, const FHALSlipperyTrailShape& InShape,
 		float TrailAge, const FVector& From, const FVector& To);
 	virtual void Tick(float DeltaSeconds) override;
@@ -77,15 +101,25 @@ public:
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALSlipperyTrailNetworkAccess;
+	friend class FHALSlipperyTrailGroundMeshTest;
 #endif
 	double ServerTime() const;
 	void UpdateTrail();
-	void AddPoint(const FVector& Ground, float Age);
+	void AddPoint(const FVector& Ground, const FVector& Normal, float Age);
 	void UpdateReceivers(float Age);
+	UFUNCTION() void OnRep_PresentationInput();
+	void UpdateGroundMesh(float Age);
+	void HideGroundMesh();
+	static UE::Geometry::FDynamicMesh3 BuildGroundMesh(TConstArrayView<FHALSlipperyTrailPoint> Path,
+		const FHALSlipperyTrailShape& Shape, const FHALSlipperyTrailPresentation& Presentation, float Age);
 
-	UPROPERTY(Replicated) FHALSlipperyTrailShape Shape;
-	UPROPERTY(Replicated) double StartTime = -1;
-	UPROPERTY(Replicated) TArray<FHALSlipperyTrailPoint> Points;
+	UPROPERTY(ReplicatedUsing=OnRep_PresentationInput) FHALSlipperyTrailShape Shape;
+	UPROPERTY(ReplicatedUsing=OnRep_PresentationInput) double StartTime = -1;
+	UPROPERTY(ReplicatedUsing=OnRep_PresentationInput) TArray<FHALSlipperyTrailPoint> Points;
+	UPROPERTY(ReplicatedUsing=OnRep_PresentationInput) FHALSlipperyTrailPresentation Presentation;
+	UPROPERTY(Transient) TObjectPtr<UDynamicMeshComponent> GroundMesh;
+	float LastMeshAge = -1.f;
+	bool bGroundMeshDirty = true;
 	FHALSlipperyTrailEmission Emission;
 	FHALMovementAreaConfig Area;
 	FTimerHandle UpdateHandle;

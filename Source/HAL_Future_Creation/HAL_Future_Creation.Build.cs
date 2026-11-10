@@ -10,7 +10,7 @@ public class HAL_Future_Creation : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "DeveloperSettings", "PhysicsCore", "UMG", "GameplayAbilities", "GameplayTags", "GameplayTasks" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "Chaos", "Networking", "Slate", "SlateCore", "Niagara" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Chaos", "Networking", "Slate", "SlateCore", "Niagara", "GeometryCore", "GeometryFramework" });
 		// Editor automation constructs transient render LODs and reads back the real RHI fixture.
 		if (Target.bBuildEditor) { PrivateDependencyModuleNames.AddRange(new string[] { "RHI", "RenderCore" }); }
 		
