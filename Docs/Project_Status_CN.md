@@ -367,6 +367,8 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 量产技能当前先读[扩散打滑带规则、配置与验收](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md)，车型技能授予见[车型技能实现与DA迁移](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)。
 
+**2026-11-10 扩散打滑带油膜已完成本地接线。** 当前工作区已有遮罩、母材质和实例，技能 DA 的保存包包含该实例引用。用户已在游戏中看到油膜，后续完成了独立底纹流动与变色高光接线。最后一版接线按截图核对，最新观感和双端画面待团队复测。见[油膜特效速查](Presentation/Slippery_Trail_OilSheen_QuickGuide_CN.md)。
+
 1. 完整阅读根目录 [AGENTS.md](../AGENTS.md) 和本文件。
 2. 按用户当前指定的后续功能读取相关规格；涉及GAS／运动时先读[加速GA及团队反馈](Combat/MVPB_Phase10F3_Movement_Ability_CN_v0.1.md)、[手动日志](Combat/MVPB_Phase10F3Ability_ManualLogReview_20261019.json)、[施工验证](Combat/MVPB_Phase10F3Ability_Verification_20261019.json)、[F2桥接](Combat/MVPB_Phase10F2_Implementation_CN_v0.1.md)、[F1规格](Combat/MVPB_Phase10F1_Spec_CN_v0.1.md)与[保存基线](Combat/MVPB_Phase10F1_Baseline_20261017.json)。F1～F3及团队接线／基础反馈完成，331资产已提交；[F4方案](Combat/MVPB_Phase10F4_Integration_Plan_CN_v0.1.md)与[总计划](Combat/MVPB_Phase10F_Movement_Effects_Plan_CN_v0.1.md)保留，但A～D整体按用户决定后置至MVP-B收尾，不能沿旧入口自动开工。10-D／10-E欠项见各自[施工记录](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md)、[实施](Combat/MVPB_Phase10E_Implementation_CN_v0.1.md)及[手动日志](Combat/MVPB_Phase10E_ManualLogReview_20261016.json)。规则背景见[GAS总体方案](Combat/MVPB_GAS_Architecture_Overview_CN_v0.1.md)，双端启动见[操作说明](Configuration/MVPB_DebugHUD_And_GAS_Test_CN_v0.1.md)，DA职责见[速查](Configuration/MVPB_DataAsset_QuickGuide_CN_v1.0.md)。
 3. 以 [MVP-B Listen Server v0.2 计划](MVP_B_Listen_Server_Plan_CN_v0.2.md)和对应 `Docs/Networking/` 实施记录确认已存在的网络边界。早期 [MVP-A→MVP-B 交接](MVP_A_to_MVP_B_Handoff_CN_v1.0.md)用于追踪背景，不能把旧参数当成当前 DA。
