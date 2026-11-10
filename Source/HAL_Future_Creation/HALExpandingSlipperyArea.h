@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "HALSlipperyTrail.h"
 #include "HALExpandingSlipperyArea.generated.h"
 
 class UHALMovementAreaReceiver;
@@ -10,20 +11,21 @@ USTRUCT(BlueprintType)
 struct HAL_FUTURE_CREATION_API FHALExpandingSlipperyAreaConfig
 {
 	GENERATED_BODY()
+	FHALExpandingSlipperyAreaConfig();
 	UPROPERTY(EditAnywhere, Category="Timing", meta=(ClampMin="0", ClampMax="60", Units="s")) float ExpansionSeconds = 2.f;
 	/** Hold time after expansion has finished. */
 	UPROPERTY(EditAnywhere, Category="Timing", meta=(ClampMin="0.01", ClampMax="120", Units="s")) float DurationSeconds = 5.f;
 	/** World-space radius; actor scale does not change gameplay size. */
 	UPROPERTY(EditAnywhere, Category="Shape", meta=(ClampMin="1", ClampMax="10000", Units="cm")) float MaximumRadius = 500.f;
 	UPROPERTY(EditAnywhere, Category="Shape", meta=(ClampMin="1", ClampMax="1000", Units="cm")) float HalfHeight = 200.f;
-	UPROPERTY(EditAnywhere, Category="Handling", meta=(ClampMin="0", ClampMax="1")) float LateralGripMultiplier = .2f;
-	UPROPERTY(EditAnywhere, Category="Handling", meta=(ClampMin="0", ClampMax="10", Units="s")) float RecoverySeconds = .4f;
+	/** Same handling recipe as Slippery Trail; does not grant caster immunity. */
+	UPROPERTY(EditAnywhere, Category="Handling") FHALSlipperyTrailHandling Handling;
 	bool IsValid() const;
 	float RadiusAt(double Age) const;
 	bool IsExpired(double Age) const { return Age >= double(ExpansionSeconds) + DurationSeconds; }
 };
 
-/** Server-owned, query-only circular area. Expansion is already damaging to grip, with no sway. */
+/** Server-owned circular area with trail handling. Expansion is already effective; nobody is immune. */
 UCLASS()
 class HAL_FUTURE_CREATION_API AHALExpandingSlipperyArea : public AActor
 {

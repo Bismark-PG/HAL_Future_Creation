@@ -2,6 +2,7 @@
 #include "Misc/AutomationTest.h"
 #include "../HALMovementArea.h"
 #include "../HALExpandingSlipperyArea.h"
+#include "../HALSlipperyTrailAbility.h"
 #include "../HALMovementAreaReceiver.h"
 #include "../HALMovementTypes.h"
 #include "../VehicleNetPhysicsData.h"
@@ -234,6 +235,18 @@ bool FHALExpandingAreaTest::RunTest(const FString& Parameters)
 {
 	FHALExpandingSlipperyAreaConfig Config;
 	TestTrue(TEXT("Defaults valid"), Config.IsValid());
+	const auto* Trail = LoadObject<UHALSlipperyTrailConfig>(nullptr, TEXT("/Game/Data/Abilities/DA_Ability_SlipperyTrail.DA_Ability_SlipperyTrail"));
+	if (!TestNotNull(TEXT("Saved trail config loads read-only"), Trail)) { return false; }
+	TestEqual(TEXT("Grip matches saved trail"), Config.Handling.LateralGripMultiplier, Trail->Handling.LateralGripMultiplier);
+	TestEqual(TEXT("Recovery matches saved trail"), Config.Handling.RecoverySeconds, Trail->Handling.RecoverySeconds);
+	TestTrue(TEXT("Sway matches saved trail"), Config.Handling.Sway == Trail->Handling.Sway);
+	const auto* AreaClass = LoadClass<AHALExpandingSlipperyArea>(nullptr,
+		TEXT("/Game/Blueprints/MapMechanic/BP_ExpandingSlipperyArea.BP_ExpandingSlipperyArea_C"));
+	if (!TestNotNull(TEXT("Saved area BP loads without modification"), AreaClass)) { return false; }
+	const auto& SavedHandling = AreaClass->GetDefaultObject<AHALExpandingSlipperyArea>()->GetAreaConfig().Handling;
+	TestEqual(TEXT("Existing BP adopts trail grip"), SavedHandling.LateralGripMultiplier, Trail->Handling.LateralGripMultiplier);
+	TestEqual(TEXT("Existing BP adopts trail recovery"), SavedHandling.RecoverySeconds, Trail->Handling.RecoverySeconds);
+	TestTrue(TEXT("Existing BP adopts trail sway"), SavedHandling.Sway == Trail->Handling.Sway);
 	TestEqual(TEXT("Effective seed exists immediately"), Config.RadiusAt(0), 1.f);
 	TestEqual(TEXT("Expansion reaches maximum"), Config.RadiusAt(2), 500.f);
 	TestEqual(TEXT("Hold does not expand further"), Config.RadiusAt(6), 500.f);
@@ -257,12 +270,15 @@ bool FHALExpandingAreaTest::RunTest(const FString& Parameters)
 	if (!TestNotNull(TEXT("Vehicle has its regional receiver"), Receiver)) { return false; }
 	auto* Area = F.World->SpawnActor<AHALExpandingSlipperyArea>(FVector(0,0,10000), FRotator::ZeroRotator, Spawn);
 	TestTrue(TEXT("Configure before play"), Area->ConfigureArea(Config));
+	Area->SetOwner(Vehicle); Area->SetInstigator(Vehicle);
 	Area->DispatchBeginPlay();
 	TestEqual(TEXT("Center vehicle affected on spawn"), Receiver->GetAreaCount(), 1);
-	TestEqual(TEXT("Uses ordinary slippery grip"), Receiver->GetSelection().Scales.Z, double(.2f));
+	TestEqual(TEXT("Caster also receives trail grip"), Receiver->GetSelection().Scales.Z, double(Config.Handling.LateralGripMultiplier));
+	TestTrue(TEXT("Caster receives the full trail sway"), Receiver->GetSelection().Sway == Config.Handling.Sway);
 	Vehicle->SetActorLocation(FVector(250,0,10000));
 	Area->UpdateArea();
 	TestEqual(TEXT("Outside seed exits"), Receiver->GetAreaCount(), 0);
+	TestEqual(TEXT("Leaving removes sway"), Receiver->GetSelection().Sway.Amplitude, 0.f);
 	Area->Settings.ExpansionSeconds = 0;
 	Area->UpdateArea();
 	TestEqual(TEXT("Expansion reaches stationary vehicle"), Receiver->GetAreaCount(), 1);

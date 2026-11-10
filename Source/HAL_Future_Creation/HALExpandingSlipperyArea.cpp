@@ -6,17 +6,24 @@
 #include "EngineUtils.h"
 #include "GameFramework/GameStateBase.h"
 #include "HALMovementAreaReceiver.h"
+#include "HALSlipperyTrailAbility.h"
 #include "Misc/App.h"
 #include "Net/UnrealNetwork.h"
 #include "TestVehiclePawn.h"
 #include "TimerManager.h"
+
+FHALExpandingSlipperyAreaConfig::FHALExpandingSlipperyAreaConfig()
+{
+	Handling = GetDefault<UHALSlipperyTrailConfig>()->Handling;
+}
 
 bool FHALExpandingSlipperyAreaConfig::IsValid() const
 {
 	const auto Range = [](float V, float Min, float Max) { return FMath::IsFinite(V) && V >= Min && V <= Max; };
 	return Range(ExpansionSeconds, 0, 60) && Range(DurationSeconds, .01f, 120)
 		&& Range(MaximumRadius, 1, 10000) && Range(HalfHeight, 1, 1000)
-		&& Range(LateralGripMultiplier, 0, 1) && Range(RecoverySeconds, 0, 10);
+		&& Range(Handling.LateralGripMultiplier, 0, 1) && Range(Handling.RecoverySeconds, 0, 10)
+		&& Handling.Sway.IsValid();
 }
 
 float FHALExpandingSlipperyAreaConfig::RadiusAt(double Age) const
@@ -74,8 +81,9 @@ void AHALExpandingSlipperyArea::UpdateArea()
 	if (Settings.IsExpired(Elapsed)) { Destroy(); return; }
 	FHALMovementAreaConfig Effect;
 	Effect.Kind = EHALMovementAreaKind::Slippery;
-	Effect.LateralGripMultiplier = Settings.LateralGripMultiplier;
-	Effect.RecoverySeconds = Settings.RecoverySeconds;
+	Effect.LateralGripMultiplier = Settings.Handling.LateralGripMultiplier;
+	Effect.RecoverySeconds = Settings.Handling.RecoverySeconds;
+	Effect.Sway = Settings.Handling.Sway;
 	const double RadiusSquared = FMath::Square(double(Settings.RadiusAt(Elapsed)));
 	TSet<TWeakObjectPtr<UHALMovementAreaReceiver>> Inside;
 	for (TActorIterator<ATestVehiclePawn> It(GetWorld()); It; ++It)

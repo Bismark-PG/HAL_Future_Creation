@@ -8,9 +8,11 @@
 - `Duration Seconds`：默认 5 秒，**从扩张完成后起算**。总寿命是扩张时间加持续时间，到期销毁。
 - `Maximum Radius`：默认 500 cm，指半径。
 - `Half Height`：默认 200 cm，中心上下的高度容差，避免无限高度影响。
-- 抓地倍率默认 0.2、恢复时间默认 0.4 秒，与普通 Slippery 区域一致。
+- `Handling` 使用与 Slippery Trail 相同的结构和原生默认配方：抓地倍率 0.30、恢复 0.35 秒；Sway 幅值 5 rad/s²、周期 0.9 秒、700 cm/s 满幅、渐入 0.2 秒。
 
-通过 `UHALMovementAreaReceiver::RegisterArea/UnregisterArea` 复用原生 `UHALSlipperyAreaEffect`。不添加左右摆动，不降低加速度或速度上限，不造成伤害，不豁免生成者。多来源取最低抓地倍率，离开、销毁时重算剩余来源，并沿用已有恢复曲线。
+通过 `UHALMovementAreaReceiver::RegisterArea/UnregisterArea` 复用原生 `UHALSlipperyAreaEffect` 及运动桥接，和 Trail 一样有随车速缩放的左右摆动。静止时没有摆动力，离区停止摆动、抓地按既有曲线恢复。不降低加速度或速度上限，不造成伤害；**按用户明确要求，生成者也受影响，不添加免疫**。多来源取最低抓地倍率和单个最强摆动，不叠加摆动。
+
+旧的平铺抓地／恢复字段改为共享 `Handling` 分组，使已有 BP 不继续沿用原来的 0.2／0.4 默认值。范围、时间与 Debug Draw 字段保持。团队无需修改 Event Graph；需要调参时在 BP 的 Settings → Handling 展开 Grip／Sway。默认值取原生 Trail Config；以后若单独改 Trail DA，圆形 BP 的 Handling 不会自动追随，须保持两份配方一致。
 
 权威 C++ 可以直接生成默认 Actor；自定义参数用 deferred spawn，在 `FinishSpawning` 前调用 `ConfigureArea`。客户端不自行生成权威区域。范围参数和开始时间复制，客户端用服务器时钟显示阶段。
 
@@ -29,6 +31,12 @@
 默认类为原生 `HALExpandingSlipperyArea`，不需先建 BP。显式清空类或配置非法时拒绝生成，不静默回退。只接受当前拥有有效车辆的控制器请求；客户端请求经可靠 RPC 交由服务器生成并复制结果。成功／失败反馈显示在屏幕与日志。Shipping 构建禁用该命令。不需要修改技能授权或 Event Graph。
 
 ## 验证与边界
+
+### 2026-11-10 操控效果对齐
+
+基点 `main/ae389ba`；UE5.8.2 Editor／Game Development 均成功。Debug＋MovementAreas＋SlipperyTrail **11/11**，0 测试警告／失败／未运行／进行中。新增断言只读加载保存的 Trail DA 和圆形 BP，抓地、恢复及完整 Sway 参数均一致；将区域 Owner／Instigator 设为目标车辆，确认仍登记来源、收到摆动且离区移除。两份保存资产前后 SHA256 全同。
+
+报告 `Saved/ExpandingSlipperyArea/TrailParity/index.json`，日志 `TrailParity.log`。NullRHI 单进程，不冒充新双端或真人验收。未改保存 BP／DA／Config，未提交／Push。团队重开 Editor 后用原 HALSpawnSlipperyArea 测试，BP 的 Settings → Handling 可看到新抓地／恢复和 Sway 分组。
 
 新增 `HAL.FutureCreation.MovementAreas.ExpandingLifecycle`，检查默认参数、时间边界、零扩张、非法参数、中心立即注册、离区、扩张覆盖与销毁清理。既有 MovementAreas 测试覆盖共享 GE、重叠选择与恢复。
 
