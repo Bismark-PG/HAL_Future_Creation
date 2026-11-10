@@ -1,5 +1,11 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-10 扩散打滑带代码已同步，进入 Editor 配置和车型实测。** 本机 `main` 与 GitHub `main` 均为 `e12a1d9`，核对前工作区干净。技能代码和自动化已随 `b60b2a0` 提交。此后 Car04 的模型、动画 BP、车辆 BP、Definition、表现 DA 和自定义碰撞体已入库，监听 GameMode BP 已引用 Car04，比赛图另更新了场地墙体。默认房间选车目录目前仍列 Car01／Car02。
+
+仓库现有技能资产中尚未找到打滑带配置 DA、派生 GA 或车型授权引用。按[Editor 接线](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md#editor-接线)创建 `HALSlipperyTrailConfig` DA，将其赋给 `HALSlipperyTrailAbility` 子蓝图的 `Skill Config`，再把目标车型 Definition 的 `Input.Ability.Primary` 授权指向该 GA。通过房间测试 Car04 时，先把它登记进测试用 Vehicle Catalog。接线后用保存资产验收区域轮廓、车辆摆动、离区恢复与双端清理。
+
+11-09 的 UE 5.8.3 构建、原生 187/187 及双端专项来自当时的临时配方。当前源码、Config 与 uproject 对照技能提交一致，后续车型和地图资产已变化。本机安装 UE 5.8.2-56702186，本次进度核对的范围为 Git、源码与保存包引用。本机重编、保存配方、实际画面和手感仍待验证。
+
 **2026-11-09 量产主动技能「扩散打滑带」程序与联机专项验证完成。** 从 `main/0d50d76` 接续。独立技能 DA 管铺设、扩散、共同消失、抓地、随车速缩放的摆动、冷却和青色调试线。服务器使用车尾地面轨迹和地面扫掠判定，沿用现有区域 GE 与抓地恢复，运动历史格式升至 5 以支持摆动重演。UE 5.8.3-58210709 Editor 与 Game Target 编译通过，原生 **187/187**，本机双端新技能专项和旧移动区域回归均各 **1/1**。正式车型模型尚待导入，保存配方、画面与真人手感待验收。见[规则、参数与 Editor 接线](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md)。
 
 **2026-11-09 Car03 自转速度移入技能 DA，编译与复测通过。** `DA_Ability_Car03_BattleTop → Presentation → Spin Rate` 默认 900°/s。发动时服务器将速度与开始时间一起复制给拥有者和观察者。关闭 Editor 后重链接成功，Game 和 Editor Target 均通过。原生 **185/185**，双端用 540°/s 配方验证各 **1/1**。只读确认最新保存的 Car03 主技能指向 `GA_Car03_BattleTop`，GA 引用已配置的技能 DA，新字段读取 900°/s。以关闭 Editor 后的资产校验值为基准，本次验证期间四份相关资产保持一致。见[配置步骤](Combat/Car03_Battle_Top_Ability_Design_CN_v0.1.md#7-editor-接线与首测)。
@@ -480,6 +486,8 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 7. `ApplyAction_Internal`线程缺陷已修复，用户本轮确认击飞效果恢复并接受当前档位响应暂用。仍保留水平补足，不再把恢复旧完整追加作为当前待办；后续力度按配置调参另记。原第8节为历史诊断，最新结论见[10-D第10节](Combat/MVPB_Phase10D_Implementation_CN_v0.1.md#10-团队击飞回归与10-e接续2026-10-16)。
 
 ## 6. 下一环节和待确定项
+
+**2026-11-10 量产技能入口为扩散打滑带配置。** 依次完成技能 DA、GA 的 `Skill Config`、目标车型 `Primary` 授权，再验证保存配方与本机双端手感。通过房间验证 Car04 时，先补测试选车目录。双端使用相同构建，运动历史格式为 5。见[技能配置与验收](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md#editor-接线)。
 
 2026-11-07当前入口：FX-4A～4D与FX-5程序验证通过。团队按[FX-4 Editor配置](Presentation/MVPB_Vehicle_Status_FX4_Implementation_CN_v0.1.md#2-测试表面先做两种颜色)验收实际模板，同时按[FX-5接线](Presentation/MVPB_Vehicle_Status_FX5_Implementation_CN_v0.1.md#3-editor-配置)保存共享电击配方并核对三车型效果。FX-6 进入第二视觉状态组合、退出次序和压力验收。
 
