@@ -7,6 +7,8 @@
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include "Editor.h"
+#include "Materials/Material.h"
 #include "HAL/FileManager.h"
 #include "Misc/AutomationTest.h"
 #include "Misc/PackageName.h"
@@ -19,6 +21,7 @@
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
 #include "UObject/StrongObjectPtr.h"
+#include "VehicleDefinition.h"
 #include <limits>
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALCollisionSideRadiusTest,"HAL.Editor.CollisionGenerator.SideRoundedConvexAndLegacyRecipe",
@@ -276,6 +279,16 @@ bool FHALCollisionAssetTest::RunTest(const FString&)
 	UStaticMesh* Second = HALVehicleCollision::CreateAsset(*Settings, Error); Cleanup.Assets.Add(Second);
 	if (!TestNotNull(TEXT("Second new asset"), Second)) { AddError(Error); return false; }
 	TestTrue(TEXT("Repeated generation never overwrites"), First->GetPathName() != Second->GetPathName());
+	const FString OriginalPath = First->GetPathName();
+	Settings->Shape.LengthCm = 402;
+	Settings->Shape.HeightCm = 96;
+	Settings->Shape.FrontSideRadiusCm = 35;
+	Settings->Shape.RearSideRadiusCm = 18;
+	if (!TestTrue(TEXT("Update original asset before saving"), HALVehicleCollision::UpdateAsset(*First, Settings->Shape, Error))) { AddError(Error); return false; }
+	TestEqual(TEXT("Update retains original object path"), First->GetPathName(), OriginalPath);
+	FHALVehicleCollisionParameters Untouched;
+	TestTrue(TEXT("Other generated version stays readable"), HALVehicleCollision::ReadRecipe(*Second, Untouched, Error));
+	TestEqual(TEXT("Other version dimensions untouched"), Untouched.LengthCm, 321.f);
 	FHALVehicleCollisionParameters Recipe;
 	if (!TestTrue(TEXT("Recipe exists before serialization"), HALVehicleCollision::ReadRecipe(*First, Recipe, Error))) { AddError(Error); return false; }
 	const FString SavedAssetName = First->GetName();
@@ -298,6 +311,9 @@ bool FHALCollisionAssetTest::RunTest(const FString&)
 	TestEqual(TEXT("Saved length"), Recipe.LengthCm, Settings->Shape.LengthCm);
 	TestEqual(TEXT("Saved independent front radius"), Recipe.FrontRadiusCm, 35.f);
 	TestEqual(TEXT("Saved independent rear radius"), Recipe.RearRadiusCm, 12.f);
+	TestEqual(TEXT("Updated side radius persisted"), Recipe.FrontSideRadiusCm, 35.f);
+	TestEqual(TEXT("Updated rear side radius persisted"), Recipe.RearSideRadiusCm, 18.f);
+	TestTrue(TEXT("Updated render bounds persisted"), Copy->GetBounds().BoxExtent.Equals(FVector(201,70,48), 0.01));
 	TestNotNull(TEXT("Reloaded editable source"), Copy->GetMeshDescription(0));
 	TestEqual(TEXT("Reloaded single convex"), Copy->GetBodySetup()->AggGeom.ConvexElems.Num(), 1);
 	TestTrue(TEXT("Reloaded physics volume"), Copy->GetBodySetup()->AggGeom.GetScaledVolume(FVector::OneVector) > 0);
@@ -305,6 +321,109 @@ bool FHALCollisionAssetTest::RunTest(const FString&)
 	Recipe.LengthCm = 777;
 	TestFalse(TEXT("Unknown future recipe rejected"), HALVehicleCollision::ReadRecipe(*Copy, Recipe, Error));
 	TestEqual(TEXT("Failed read preserves panel values"), Recipe.LengthCm, 777.f);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALCollisionUpdateTest, "HAL.Editor.CollisionGenerator.UpdateInPlaceAndRefreshPhysics",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALCollisionUpdateTest::RunTest(const FString&)
+{
+	const FString PackageName = TEXT("/Game/__HALCollisionUpdate_") + FGuid::NewGuid().ToString(EGuidFormats::Digits);
+	UPackage* Package = CreatePackage(*PackageName);
+	TStrongObjectPtr<UStaticMesh> Mesh(NewObject<UStaticMesh>(Package, TEXT("SM_Update"), RF_Public | RF_Standalone));
+	struct FCleanup { UStaticMesh* Mesh; ~FCleanup() { Mesh->ClearFlags(RF_Public | RF_Standalone); Mesh->GetOutermost()->SetDirtyFlag(false); } } Cleanup { Mesh.Get() };
+	FString Error;
+	FHALVehicleCollisionParameters P;
+	if (!TestTrue(TEXT("Generated fixture"), HALVehicleCollision::BuildMesh(*Mesh, P, Error))) { AddError(Error); return false; }
+	UBodySetup* OriginalSetup = Mesh->GetBodySetup();
+	const FString OriginalPath = Mesh->GetPathName();
+	const FGuid OriginalGuid = OriginalSetup->BodySetupGuid;
+	Mesh->GetStaticMaterials()[0].MaterialSlotName = TEXT("CustomProxySlot");
+	Mesh->GetStaticMaterials()[0].ImportedMaterialSlotName = TEXT("CustomProxySlot");
+	UMaterialInterface* OriginalMaterial = Mesh->GetStaticMaterials()[0].MaterialInterface;
+	OriginalSetup->DefaultInstance.SetMassOverride(910, true);
+	Package->GetMetaData().SetValue(Mesh.Get(), TEXT("User.Note"), TEXT("preserve me"));
+	TStrongObjectPtr<UVehicleDefinition> FirstVehicle(NewObject<UVehicleDefinition>());
+	TStrongObjectPtr<UVehicleDefinition> SecondVehicle(NewObject<UVehicleDefinition>());
+	FirstVehicle->CollisionMesh = Mesh.Get(); SecondVehicle->CollisionMesh = Mesh.Get();
+	const auto Options = UWorld::InitializationValues().AllowAudioPlayback(false).RequiresHitProxies(false)
+		.CreatePhysicsScene(true).CreateNavigation(false).CreateAISystem(false).CreateFXSystem(false)
+		.ShouldSimulatePhysics(false).SetTransactional(false);
+	UWorld* World = UWorld::CreateWorld(EWorldType::Game, false, NAME_None, nullptr, true, ERHIFeatureLevel::Num, &Options);
+	struct FWorldCleanup { UWorld* World; ~FWorldCleanup() { World->DestroyWorld(false); } } WorldCleanup { World };
+	AActor* Actor = World->SpawnActor<AActor>();
+	UStaticMeshComponent* Body = NewObject<UStaticMeshComponent>(Actor);
+	Actor->SetRootComponent(Body); Body->SetMobility(EComponentMobility::Movable);
+	Body->SetStaticMesh(Mesh.Get()); Body->SetCollisionProfileName(TEXT("PhysicsActor"));
+	Body->SetSimulatePhysics(true); Body->BodyInstance.SetMassOverride(800, true); Body->RegisterComponent();
+	TestTrue(TEXT("Original body exists"), Body->BodyInstance.IsValidBodyInstance());
+	TestFalse(TEXT("Original shape misses trace beyond its front"), World->LineTraceTestByChannel(FVector(160,0,100), FVector(160,0,-100), ECC_Visibility));
+	P.LengthCm = 400; P.HeightCm = 90; P.FrontSideRadiusCm = 30; P.RearSideRadiusCm = 15;
+	if (!TestTrue(TEXT("Update same mesh"), HALVehicleCollision::UpdateAsset(*Mesh, P, Error))) { AddError(Error); return false; }
+	TestEqual(TEXT("Object path retained"), Mesh->GetPathName(), OriginalPath);
+	TestTrue(TEXT("Both vehicle definitions retain identical mesh reference"), FirstVehicle->CollisionMesh == Mesh.Get() && SecondVehicle->CollisionMesh == Mesh.Get());
+	TestTrue(TEXT("BodySetup object and component mesh references retained"), Mesh->GetBodySetup() == OriginalSetup && Body->GetStaticMesh() == Mesh.Get());
+	TestTrue(TEXT("Changed physics GUID prevents old cook reuse"), OriginalSetup->BodySetupGuid != OriginalGuid);
+	TestTrue(TEXT("Render bounds rebuilt"), Mesh->GetBounds().BoxExtent.Equals(FVector(200,70,45), 0.01));
+	TestTrue(TEXT("Existing component bounds refreshed"), Body->Bounds.BoxExtent.Equals(FVector(200,70,45), 0.01));
+	TestTrue(TEXT("Registered component physics recreated"), Body->IsRegistered() && Body->BodyInstance.IsValidBodyInstance());
+	TestTrue(TEXT("Actual new collision reaches the extended front"), World->LineTraceTestByChannel(FVector(160,0,100), FVector(160,0,-100), ECC_Visibility));
+	TestEqual(TEXT("Component mass override retained"), Body->GetMass(), 800.f, 0.1f);
+	TestEqual(TEXT("Body defaults retained"), OriginalSetup->DefaultInstance.GetMassOverride(), 910.f);
+	TestTrue(TEXT("Material assignment retained"), Mesh->GetStaticMaterials()[0].MaterialInterface == OriginalMaterial);
+	TestEqual(TEXT("Custom material slot retained"), Mesh->GetStaticMaterials()[0].MaterialSlotName, FName(TEXT("CustomProxySlot")));
+	TestEqual(TEXT("One convex retained"), OriginalSetup->AggGeom.GetElementCount(), 1);
+	TestEqual(TEXT("Unrelated metadata retained"), Package->GetMetaData().GetValue(Mesh.Get(), TEXT("User.Note")), FString(TEXT("preserve me")));
+	TestTrue(TEXT("Update is unsaved and marked dirty"), Package->IsDirty());
+	P.LengthCm = 240; P.HeightCm = 70; P.FrontSideRadiusCm = P.RearSideRadiusCm = 0;
+	TestTrue(TEXT("Repeated update returns to flat-side profile"), HALVehicleCollision::UpdateAsset(*Mesh, P, Error));
+	TestFalse(TEXT("Recreated physics loses removed front volume"), World->LineTraceTestByChannel(FVector(160,0,100), FVector(160,0,-100), ECC_Visibility));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALCollisionUpdateValidationTest, "HAL.Editor.CollisionGenerator.UpdateRejectsInvalidWithoutMutation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALCollisionUpdateValidationTest::RunTest(const FString&)
+{
+	UPackage* Package = CreatePackage(*(TEXT("/Game/__HALCollisionInvalid_") + FGuid::NewGuid().ToString(EGuidFormats::Digits)));
+	TStrongObjectPtr<UStaticMesh> Mesh(NewObject<UStaticMesh>(Package, TEXT("SM_Update"), RF_Public | RF_Standalone));
+	struct FCleanup { UStaticMesh* Mesh; ~FCleanup() { Mesh->ClearFlags(RF_Public | RF_Standalone); Mesh->GetOutermost()->SetDirtyFlag(false); } } Cleanup { Mesh.Get() };
+	FString Error; FHALVehicleCollisionParameters P;
+	if (!TestTrue(TEXT("Generated validation fixture"), HALVehicleCollision::BuildMesh(*Mesh, P, Error))) { return false; }
+	const FGuid OriginalGuid = Mesh->GetBodySetup()->BodySetupGuid;
+	const FBoxSphereBounds OriginalBounds = Mesh->GetBounds();
+	Package->SetDirtyFlag(false);
+	P.WidthCm = 10;
+	TestFalse(TEXT("Invalid corner dimensions rejected"), HALVehicleCollision::UpdateAsset(*Mesh, P, Error));
+	TestTrue(TEXT("Failure has explanation"), !Error.IsEmpty());
+	TestFalse(TEXT("Failed update does not dirty package"), Package->IsDirty());
+	TestEqual(TEXT("Failed update preserves physics cook"), Mesh->GetBodySetup()->BodySetupGuid, OriginalGuid);
+	TestTrue(TEXT("Failed update preserves render bounds"), Mesh->GetBounds().BoxExtent.Equals(OriginalBounds.BoxExtent));
+	FHALVehicleCollisionParameters Recipe;
+	TestTrue(TEXT("Failed update retains readable recipe"), HALVehicleCollision::ReadRecipe(*Mesh, Recipe, Error));
+	TestEqual(TEXT("Failed update preserves recipe dimensions"), Recipe.WidthCm, 140.f);
+	P = {};
+	Package->GetMetaData().SetValue(Mesh.Get(), TEXT("HALCollision.Version"), TEXT("999"));
+	TestFalse(TEXT("Unknown recipe cannot overwrite mesh"), HALVehicleCollision::UpdateAsset(*Mesh, P, Error));
+	Package->GetMetaData().RemoveValue(Mesh.Get(), TEXT("HALCollision.Version"));
+	TestFalse(TEXT("Non-generator mesh cannot be overwritten"), HALVehicleCollision::UpdateAsset(*Mesh, P, Error));
+	Package->GetMetaData().SetValue(Mesh.Get(), TEXT("HALCollision.Version"), TEXT("1"));
+	TestTrue(TEXT("Legacy recipe remains updateable"), HALVehicleCollision::CanUpdateAsset(*Mesh, Error));
+	Mesh->SetFlags(RF_Transient);
+	TestFalse(TEXT("Transient meshes rejected"), HALVehicleCollision::CanUpdateAsset(*Mesh, Error));
+	Mesh->ClearFlags(RF_Transient);
+	Package->SetPackageFlags(PKG_Cooked);
+	TestFalse(TEXT("Cooked assets rejected"), HALVehicleCollision::CanUpdateAsset(*Mesh, Error));
+	Package->ClearPackageFlags(PKG_Cooked);
+	if (GEditor)
+	{
+		const bool bPreviousSimulation = GEditor->bIsSimulatingInEditor;
+		GEditor->bIsSimulatingInEditor = true;
+		TestFalse(TEXT("Simulation cannot update assets"), HALVehicleCollision::UpdateAsset(*Mesh, P, Error));
+		GEditor->bIsSimulatingInEditor = bPreviousSimulation;
+	}
+	TestEqual(TEXT("All rejected updates preserve collision"), Mesh->GetBodySetup()->BodySetupGuid, OriginalGuid);
+	TestFalse(TEXT("All rejected updates preserve clean package state"), Package->IsDirty());
 	return true;
 }
 

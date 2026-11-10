@@ -88,7 +88,7 @@ namespace
 				[
 					SNew(SVerticalBox)
 					+ SVerticalBox::Slot().AutoHeight().Padding(0,0,0,8)
-					[ SNew(STextBlock).AutoWrapText(true).Text(LOCTEXT("Intro", "Dimensions are in cm. +X is forward; pivot is centered. Corner radii shape XY; Side radii round XZ ends. Create makes a new asset; save it before using it.")) ]
+					[ SNew(STextBlock).AutoWrapText(true).Text(LOCTEXT("Intro", "Dimensions are in cm. +X is forward; pivot is centered. Create makes a new asset. Load a generated mesh to update it in place, then save the mesh.")) ]
 					+ SVerticalBox::Slot().FillHeight(1)
 					[
 						SNew(SSplitter)
@@ -105,13 +105,25 @@ namespace
 					[
 						SNew(SHorizontalBox)
 						+ SHorizontalBox::Slot().AutoWidth().Padding(0,0,8,0)
-						[ SNew(SButton).Text(LOCTEXT("Create", "Create New Mesh"))
+						[ SNew(SButton).Tag(TEXT("HALCollision.Create")).Text(LOCTEXT("Create", "Create New Mesh"))
 							.IsEnabled_Lambda([this] { FString Error; return GEditor && !GEditor->PlayWorld && Validate(Error); })
 							.OnClicked(this, &SHALCollisionGenerator::Create) ]
-						+ SHorizontalBox::Slot().AutoWidth()
-						[ SNew(SButton).Text(LOCTEXT("Read", "Load Selected Mesh Recipe"))
+						+ SHorizontalBox::Slot().AutoWidth().Padding(0,0,8,0)
+						[ SNew(SButton).Tag(TEXT("HALCollision.Load")).Text(LOCTEXT("Read", "Load Selected Mesh Recipe"))
 							.OnClicked(this, &SHALCollisionGenerator::LoadSelected) ]
+						+ SHorizontalBox::Slot().AutoWidth()
+						[ SNew(SButton).Tag(TEXT("HALCollision.Update")).Text(LOCTEXT("Update", "Update Loaded Mesh"))
+							.ToolTipText(LOCTEXT("UpdateTip", "Rebuild the loaded asset in place. All references use the updated shape. Manual vertex edits are replaced. Save the mesh after updating."))
+							.IsEnabled_Lambda([this] { FString Error; return LoadedMesh.IsValid() && GEditor && !GEditor->PlayWorld
+								&& !GEditor->bIsSimulatingInEditor && Settings->Shape.Validate(Error); })
+							.OnClicked(this, &SHALCollisionGenerator::UpdateLoaded) ]
 					]
+					+ SVerticalBox::Slot().AutoHeight().Padding(0,8,0,0)
+					[ SNew(STextBlock).AutoWrapText(true).Text_Lambda([this] {
+						return LoadedMesh.IsValid()
+							? FText::Format(LOCTEXT("Target", "Update target: {0}\nAll references to this mesh will use the updated shape."), FText::FromString(LoadedMesh->GetPathName()))
+							: LOCTEXT("NoTarget", "Update target: none. Load one generated mesh from the Content Browser.");
+					}) ]
 					+ SVerticalBox::Slot().AutoHeight().Padding(0,8,0,0)
 					[ SNew(STextBlock).AutoWrapText(true).Text_Lambda([this] { return Status; }) ]
 				]
@@ -128,6 +140,7 @@ namespace
 			FString Error;
 			UStaticMesh* Mesh = HALVehicleCollision::CreateAsset(*Settings, Error);
 			if (!Mesh) { Status = FText::FromString(Error); return FReply::Handled(); }
+			LoadedMesh.Reset();
 			FModuleManager::LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser")).Get().SyncBrowserToAssets(TArray<UObject*>{ Mesh });
 			GEditor->GetEditorSubsystem<UAssetEditorSubsystem>()->OpenEditorForAsset(Mesh);
 			Status = FText::Format(LOCTEXT("Created", "Created {0}. Save the mesh (Ctrl+S), then set Vehicle Definition > Physics > Collision Mesh."), FText::FromString(Mesh->GetPathName()));
@@ -135,23 +148,39 @@ namespace
 		}
 		FReply LoadSelected()
 		{
+			LoadedMesh.Reset();
 			TArray<FAssetData> Selected;
 			FModuleManager::LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser")).Get().GetSelectedAssets(Selected);
 			UStaticMesh* Mesh = Selected.Num() == 1 ? Cast<UStaticMesh>(Selected[0].GetAsset()) : nullptr;
 			FString Error;
-			if (!Mesh || !HALVehicleCollision::ReadRecipe(*Mesh, Settings->Shape, Error))
+			if (!Mesh || !HALVehicleCollision::CanUpdateAsset(*Mesh, Error)
+				|| !HALVehicleCollision::ReadRecipe(*Mesh, Settings->Shape, Error))
 			{
 				Status = FText::FromString(Mesh ? Error : TEXT("Select exactly one generated Static Mesh in the Content Browser."));
 				return FReply::Handled();
 			}
 			Settings->AssetName = Mesh->GetName();
+			LoadedMesh = Mesh;
 			Settings->OutputFolder = FPackageName::GetLongPackagePath(Mesh->GetOutermost()->GetName());
 			Details->ForceRefresh();
 			Preview->Invalidate(EInvalidateWidgetReason::Paint);
-			Status = LOCTEXT("Loaded", "Recipe loaded. Create New Mesh will make a new version with a unique name; the selected asset is preserved.");
+			Status = LOCTEXT("Loaded", "Recipe loaded. Update Loaded Mesh rebuilds the target shown above. Create New Mesh creates a separate asset. Output name/folder only affect creation.");
+			return FReply::Handled();
+		}
+		FReply UpdateLoaded()
+		{
+			FString Error;
+			UStaticMesh* Mesh = LoadedMesh.Get();
+			if (!Mesh || !HALVehicleCollision::UpdateAsset(*Mesh, Settings->Shape, Error))
+			{
+				Status = FText::FromString(Mesh ? Error : TEXT("Load a generated mesh before updating."));
+				return FReply::Handled();
+			}
+			Status = FText::Format(LOCTEXT("Updated", "Updated {0} in place, including its simple collision and recipe. Save the mesh (Ctrl+S). Existing references are retained; restart Play to test."), FText::FromString(Mesh->GetPathName()));
 			return FReply::Handled();
 		}
 		TStrongObjectPtr<UHALVehicleCollisionGeneratorSettings> Settings;
+		TWeakObjectPtr<UStaticMesh> LoadedMesh;
 		TSharedPtr<IDetailsView> Details;
 		TSharedPtr<SHALCollisionPreview> Preview;
 		FText Status;

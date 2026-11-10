@@ -6,13 +6,15 @@
 
 2026-11-04扩展：新增独立的 **Front Side Radius／Rear Side Radius**，可对XZ侧视前后端上、下边缘做圆角；Side Radius=0保留旧形状。配方v2兼容读取v1，侧视预览同步更新，仍生成新资产并由团队手工保存／引用。完整参数、`Vehicle Definition → Physics → Collision Mesh`引用步骤和验收见[打包前手感调整说明](../Movement/MVPB_Prepackage_Gameplay_Polish_CN_v0.1.md#2-生成带侧面圆角的新碰撞体)。下方旧截图与2026-10-20记录保持原时点。
 
+2026-11-10扩展：增加 **Update Loaded Mesh**，加载已有生成配方后，可以在原Static Mesh资产内更新网格、简单碰撞和配方。原路径与车辆引用保留，更新后由团队保存。11月4日及更早记录中“只能创建新资产”的限制已由本次扩展解除，本次验证见[更新功能验证记录](Vehicle_Collision_Generator_Update_Verification_20261110.json)。
+
 ## 1. 用途与边界
 
 输入长、宽、高、前后圆角，生成独立的 Static Mesh 代理和一个简单凸包。俯视前后圆润；侧视可配置独立圆角，默认0保持上下平整的旧挤出形状；沿用现有 `VehiclePhysicsBody` 单 Chaos 刚体、驾驶和网络物理。
 
 生成工具不自动修改车辆 Blueprint、Vehicle Definition、表现 DA、地图、质量、驾驶参数或球控制点。资产生成后由团队检查、保存，再手工分配给车型。
 
-每次创建新资产，重名自动追加编号；不提供覆盖现有资产按钮。修改旧形状时读取旧配方、创建新版本、对比后切换引用，可继续保留旧版用于回退。
+**Create New Mesh** 每次创建独立的新资产，重名自动追加编号。**Update Loaded Mesh** 更新最近成功加载的原资产；也可以继续创建新版本，对比后手工切换引用。
 
 ## 2. 首次安装／换电脑
 
@@ -79,10 +81,37 @@
 
 1. 在 Content Browser 中**只选中一个**本工具生成并保存过的 Static Mesh。
 2. 切回生成器，点击 **Load Selected Mesh Recipe**。
-3. 面板恢复原尺寸、圆角、分段数和输出位置。它读取的是该资产的生成配方，不从后来手工编辑过的顶点反推参数。
-4. 调整数值，再点击 **Create New Mesh**，保存新版本，检查后手工切换车辆 DA 的 Collision Mesh。
+3. 面板恢复原尺寸、圆角、分段数和输出位置，并在 **Update target** 显示实际目标路径。读取内容来自生成配方，手工编辑过的顶点不会反推出新参数。
+4. 调整数值后，点击 **Update Loaded Mesh**，原资产内的网格、单个简单凸包和配方一起更新。名称和路径保留，Vehicle Definition 的 Collision Mesh 引用继续使用。
+5. 原资产在内存中标记为待保存；在该资产的Static Mesh Editor中保存后，磁盘文件才更新。重新开始Play可验证新形状。
 
-原资产、原配方和原引用保留。普通手工碰撞网格、缺失配方或未知配方版本会明确拒绝读取，并保留面板原参数。若手工修改了已生成网格，原配方不会随之自动更新；需要新的确定形状时应再次生成新版本。
+需要保留旧版时，**Create New Mesh** 继续创建独立版本，再由团队保存并切换引用。创建成功会清除更新目标，再次更新需要重新加载目标资产。
+
+### 6.1 更新目标与影响范围
+
+- 更新始终绑定 **Update target** 显示的资产。加载之后单独切换Content Browser选择，目标保持原资产。Output Folder与Asset Name只影响创建功能。
+- 读取失败会清除旧更新目标，并禁用更新按钮，避免继续覆盖之前加载的资产；面板已有参数保留。
+- 多个车型共用同一Mesh时，所有引用都使用更新后的形状。仅调整某一车型时可创建独立版本，再切换该车型Definition引用。
+- 原有材质引用／材质槽、BodySetup对象与非几何物理配置保留。组件重新注册后刷新实际碰撞与包围盒，组件上的质量和位置等覆盖值保持。
+- 手工编辑过的顶点或简单碰撞会被生成参数重建的形状替换，原配方不会追踪这些手工调整。
+- 普通手工网格、未知／缺失配方、Engine资产、Cooked资产、缺失源LOD或非单位Build Scale均拒绝更新。旧v1配方仍可更新，更新后使用v2保存侧面圆角。
+- PIE／Simulate期间禁止更新。工具不在比赛运行期间改变车辆碰撞体。
+
+### 6.2 更新失败与保存
+
+工具先在临时网格中完成生成与Chaos烹制，成功后才写入目标。写入阶段保留旧源网格及碰撞几何，用于恢复失败更新。若更新与恢复均失败，状态栏要求从磁盘重新加载该资产；此时应保留原磁盘文件。
+
+当前没有新增工具专用的Undo／Redo事务。保存前可以通过Editor的资产重载恢复磁盘版本，保存后可通过Git恢复旧版。需要保留可对照版本时仍可使用Create New Mesh。
+
+### 6.3 本次验证与接续
+
+2026-11-10，本机UE5.8.3-58210709：四份受影响C++实现／测试源码均已通过编译。用户保存并关闭Editor后，主工程 **HAL_Future_CreationEditor Win64 Development构建成功**，R6日志为`Result: Succeeded`、退出码0，新模块DLL已写入主工程Binaries。此前被占用导致的LNK1104及独立验证目录链接保留为早期记录，当前构建结果以R6为准。
+
+独立Editor-Cmd两次启动、主工程Editor-Cmd及隐藏Editor各一次启动，均未产生UE日志或自动化报告，退出码0不能作为测试通过证据。新增两项原生测试及一项实际Slate交互测试已经编译，运行结果仍待验证。本次没有Game Target构建、真人操作或新形状驾驶验收，也没有保存任何现有Mesh／DA／BP／地图。用户关闭Editor后重新采集的1213份保存资产及四份Config均与验证结束时一致。
+
+后续入口：重新打开Editor及 **Tools → HAL Tools → HAL Vehicle Collision Generator** 即可装载本次构建的工具。在Session Frontend的Automation中分别运行 **HAL.Editor.CollisionGenerator** 与 **HAL.EditorUI.CollisionGenerator**；后一组需要可渲染Editor。前者覆盖七项参数、几何、单物理体、保存重载与原资产更新测试，后者覆盖三项面板、缩略图与更新目标交互测试。
+
+手工验收可在生成的临时测试网格上完成：加载后调整长宽高与两类圆角，更新并核对原路径、Simple Collision和视口包围盒；切换Content Browser选择后更新应仍作用于Update target。保存并重载后应读回新参数；PIE期间更新按钮应禁用。最终由团队核对实际车型的接地、墙角、控球和碰撞表现。
 
 ## 7. 测试与 Git 交接
 
@@ -93,8 +122,8 @@
 ## 8. 实现与验证入口
 
 - `Source/HAL_Future_CreationEditor/` 是独立 Editor 模块；Runtime 模块和 Game Target 不依赖它。
-- `HALVehicleCollisionGenerator.cpp` 负责参数校验、确定性圆角轮廓、封闭挤出网格、单凸包烹制、版本化文本元数据及唯一新资产创建。
-- `SHALVehicleCollisionGenerator.cpp` 负责原生 Slate 面板、预览、读取配方及显式创建；没有工具蓝图或运行时 Tick。
+- `HALVehicleCollisionGenerator.cpp` 负责参数校验、确定性圆角轮廓、封闭网格、单凸包烹制、版本化文本元数据、唯一新资产创建和原资产更新。
+- `SHALVehicleCollisionGenerator.cpp` 负责原生Slate面板、预览、读取配方、显式创建及绑定已加载目标的更新；没有工具蓝图或运行时Tick。
 - 正常保存的结果是标准 `UStaticMesh`＋`UBodySetup`，配方写在包元数据中，没有序列化 Editor 模块的自定义类引用。
 - 自动化 `HAL.Editor.CollisionGenerator` 覆盖参数／几何、真实动态刚体、唯一新资产及 Saved 目录下的保存／重新加载；渲染面板探针为 `HAL.EditorUI.CollisionGenerator.Panel`，二者分别运行。
 

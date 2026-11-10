@@ -2,6 +2,9 @@
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetToolsModule.h"
+#include "ComponentReregisterContext.h"
+#include "Components/StaticMeshComponent.h"
+#include "Editor.h"
 #include "Engine/StaticMesh.h"
 #include "IAssetTools.h"
 #include "Materials/Material.h"
@@ -10,8 +13,11 @@
 #include "Modules/ModuleManager.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "StaticMeshAttributes.h"
+#include "StaticMeshCompiler.h"
 #include "UObject/MetaData.h"
 #include "UObject/Package.h"
+#include "UObject/StrongObjectPtr.h"
+#include "UObject/UObjectIterator.h"
 #include "CompGeom/ConvexHull3.h"
 
 namespace
@@ -293,6 +299,97 @@ bool HALVehicleCollision::ReadRecipe(UStaticMesh& Mesh, FHALVehicleCollisionPara
 	{ return Fail(Error,TEXT("The saved side-radius recipe is incomplete.")); }
 	if (!P.Validate(Error)) { return false; }
 	Out = P;
+	Error.Reset();
+	return true;
+}
+
+bool HALVehicleCollision::CanUpdateAsset(UStaticMesh& Mesh, FString& Error)
+{
+	if (GEditor && (GEditor->PlayWorld || GEditor->bIsSimulatingInEditor))
+	{
+		return Fail(Error, TEXT("Stop PIE / simulation before updating collision assets."));
+	}
+	if (!Mesh.GetOutermost()->GetName().StartsWith(TEXT("/Game/")) || Mesh.HasAnyFlags(RF_Transient)
+		|| !Mesh.HasAllFlags(RF_Public | RF_Standalone) || Mesh.GetOutermost()->HasAnyPackageFlags(PKG_Cooked))
+	{
+		return Fail(Error, TEXT("Update requires an editable generated Static Mesh asset under /Game/."));
+	}
+	FHALVehicleCollisionParameters Recipe;
+	if (!ReadRecipe(Mesh, Recipe, Error)) { return false; }
+	if (Mesh.GetNumSourceModels() != 1 || !Mesh.GetMeshDescription(0) || !Mesh.GetBodySetup()
+		|| Mesh.GetStaticMaterials().IsEmpty())
+	{
+		return Fail(Error, TEXT("Update requires the generated mesh's editable source LOD, material slot and collision body."));
+	}
+	if (!Mesh.GetSourceModel(0).BuildSettings.BuildScale3D.Equals(FVector::OneVector))
+	{
+		return Fail(Error, TEXT("Reset the mesh Build Scale to (1,1,1) before updating dimensions in cm."));
+	}
+	return true;
+}
+
+bool HALVehicleCollision::UpdateAsset(UStaticMesh& Mesh, const FHALVehicleCollisionParameters& P, FString& Error)
+{
+	if (!CanUpdateAsset(Mesh, Error) || !P.Validate(Error)) { return false; }
+	// All predictable generation/cooking failures happen before touching the target.
+	TStrongObjectPtr<UStaticMesh> Candidate(NewObject<UStaticMesh>(GetTransientPackage(), NAME_None, RF_Transient));
+	if (!BuildMesh(*Candidate, P, Error)) { return false; }
+	FStaticMeshCompilingManager::Get().FinishCompilation({ &Mesh, Candidate.Get() });
+	FMeshDescription Description(*Candidate->GetMeshDescription(0));
+	// Retain the asset's material assignment, including a user-renamed slot.
+	FStaticMeshAttributes Attributes(Description);
+	const FStaticMaterial& Material = Mesh.GetStaticMaterials()[0];
+	for (const FPolygonGroupID Group : Description.PolygonGroups().GetElementIDs())
+	{
+		Attributes.GetPolygonGroupMaterialSlotNames()[Group] = Material.ImportedMaterialSlotName.IsNone()
+			? Material.MaterialSlotName : Material.ImportedMaterialSlotName;
+	}
+	const FMeshDescription PreviousDescription(*Mesh.GetMeshDescription(0));
+	UBodySetup* Setup = Mesh.GetBodySetup();
+	const FKAggregateGeom PreviousGeometry = Setup->AggGeom;
+	const auto PreviousTraceFlag = Setup->CollisionTraceFlag;
+	const bool bWasDirty = Mesh.GetOutermost()->IsDirty();
+	const bool bWasCustomized = Mesh.GetCustomizedCollision();
+	const bool bWasNeverStream = Mesh.NeverStream;
+	const FMeshSectionInfoMap PreviousSections = Mesh.GetSectionInfoMap();
+
+	// Detach live editor components until BOTH rendering and Chaos have the new data.
+	// Their object references, transforms, overrides and package dirty flags stay unchanged.
+	TArray<TUniquePtr<FComponentReregisterContext>> ComponentContexts;
+	for (TObjectIterator<UStaticMeshComponent> It; It; ++It)
+	{
+		if (It->GetStaticMesh() == &Mesh && It->IsRegistered())
+		{
+			ComponentContexts.Add(MakeUnique<FComponentReregisterContext>(*It));
+		}
+	}
+	const auto Apply = [&](const FMeshDescription& Source, const FKAggregateGeom& Geometry, ECollisionTraceFlag TraceFlag)
+	{
+		Setup->InvalidatePhysicsData();
+		Setup->AggGeom = Geometry;
+		Setup->CollisionTraceFlag = TraceFlag;
+		UStaticMesh::FBuildMeshDescriptionsParams Params;
+		Params.bMarkPackageDirty = false;
+		const bool bBuilt = Mesh.BuildFromMeshDescriptions({ &Source }, Params);
+		FStaticMeshCompilingManager::Get().FinishCompilation({ &Mesh });
+		Setup->CreatePhysicsMeshes();
+		return bBuilt && !Setup->bFailedToCreatePhysicsMeshes && Setup->AggGeom.GetScaledVolume(FVector::OneVector) > 0;
+	};
+	if (!Apply(Description, Candidate->GetBodySetup()->AggGeom, CTF_UseSimpleAndComplex))
+	{
+		const bool bRestored = Apply(PreviousDescription, PreviousGeometry, PreviousTraceFlag);
+		Mesh.NeverStream = bWasNeverStream;
+		Mesh.GetSectionInfoMap() = PreviousSections;
+		Mesh.SetCustomizedCollision(bWasCustomized);
+		Mesh.GetOutermost()->SetDirtyFlag(bWasDirty);
+		Mesh.GetOnMeshChanged().Broadcast();
+		return Fail(Error, bRestored ? TEXT("Update failed; the previous mesh and collision were restored. See Output Log.")
+			: TEXT("Update and restoration failed. Reload this asset from disk before use. See Output Log."));
+	}
+	Mesh.SetCustomizedCollision(true);
+	WriteRecipe(Mesh, P);
+	Mesh.MarkPackageDirty();
+	Mesh.GetOnMeshChanged().Broadcast();
 	Error.Reset();
 	return true;
 }
