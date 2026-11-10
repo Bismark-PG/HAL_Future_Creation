@@ -7,6 +7,7 @@
 class ABasicBallActor;
 class UHALMovementBoostEffect;
 class AHALBombActor;
+class AHALExpandingSlipperyArea;
 
 /** Development helpers reference authored content; they never replace its tuned values. */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "HAL Debug"))
@@ -16,6 +17,9 @@ class HAL_FUTURE_CREATION_API UHALDebugSettings : public UDeveloperSettings
 
 public:
 	UHALDebugSettings();
+	/** Authority-selected native area or authored Blueprint child; its defaults are preserved. */
+	UPROPERTY(Config, EditAnywhere, Category="Slippery Area") TSoftClassPtr<AHALExpandingSlipperyArea> DefaultSlipperyAreaClass;
+	UPROPERTY(Config, EditAnywhere, Category="Slippery Area", meta=(ClampMin="0", ClampMax="5000", Units="cm")) float SlipperyAreaForwardDistance = 350.f;
 
 	/** Authority-selected GE. Native five-second default; an optional authored child can tune it. */
 	UPROPERTY(Config, EditAnywhere, Category = "Movement")

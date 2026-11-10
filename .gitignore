@@ -198,3 +198,7 @@ Plugins/Monolith/
 !Source/HAL_Future_Creation/HALElectricSphereGimmick.h
 !Source/HAL_Future_Creation/HALElectricSphereGimmick.cpp
 !Docs/Combat/Electric_Sphere_CN_v0.1.md
+!Source/HAL_Future_Creation/HALExpandingSlipperyArea.h
+!Source/HAL_Future_Creation/HALExpandingSlipperyArea.cpp
+!Source/HAL_Future_Creation/HALPlayerControllerSlipperyDebug.cpp
+!Docs/Combat/Expanding_Slippery_Area_CN_v0.1.md

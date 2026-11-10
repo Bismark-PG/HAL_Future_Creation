@@ -1,5 +1,15 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-10 地面 Debug Draw 更新已完成编译和专项复测。** 用户保存关闭 Editor 后，UE 5.8.2 Editor 链接成功；Game 构建已通过。Debug＋MovementAreas 本次 **8/8**，0 测试警告／失败／未运行／进行中，含新地面网格勾选、红蓝颜色、地面高度和到期隐藏检查。NullRHI 单进程，不代替团队实际画面或双端验收。报告 `Saved/ExpandingSlipperyArea/GroundDebug/index.json`，日志 `GroundDebug.log`。团队现在重开 Editor，在自建 BP 的 Class Defaults → Slippery Area → Debug 勾选 **Debug Draw**，Compile／Save 后进游戏输入 `HALSpawnSlipperyArea`。无需旧显示命令。下方“待关闭／未运行”保留上轮历史时点，现已解除；未提交／Push。
+
+**2026-11-10 圆形打滑区改为 BP 勾选的地面 debug 网格，Editor 更新待关闭后继续。** 按用户反馈新增 **Class Defaults → Slippery Area → Debug → Debug Draw**（默认关闭，服务器复制）；扩张红色、维持蓝色，填充圆盘＋内部网格＋圆边界。取当前生效半径，在中心地面切平面上方 3 cm 显示。原 `hal.SlipperyAreaDebug` 开关已移除，生成仍用 `HALSpawnSlipperyArea`。代码已完成，Game Development 构建通过；Editor 的 C++ 编译完成，但最终链接被正在运行的 UnrealEditor（PID 21456）锁定 DLL 阻止，已请用户保存并关闭。新增显示自动化尚未运行，旧 7/7 不算本次复测。下一入口：关闭 Editor 后重新构建 Editor，运行 Debug＋MovementAreas（含新网格勾选／颜色／地面高度测试），团队在 BP 勾选 Compile／Save 后实测。保留用户新 BP、地图和 DefaultGame.ini 修改，代理未编辑资产或配置，未提交／Push。详见[当前用法](Combat/Expanding_Slippery_Area_CN_v0.1.md#调试显示与下一步)。
+
+**2026-11-10 扩散打滑区域 debug 生成命令已完成。** `HALSpawnSlipperyArea` 默认在当前车辆前方 350 cm 生成；Project Settings → HAL Debug → Slippery Area 可选择自建 BP 与距离，保留该类默认范围／时间／抓地。服务器自行选择类与位置，客户端只发无参数请求；Shipping 禁用。显示开关为 `hal.SlipperyAreaDebug 1`，每个窗口独立开启。UE 5.8.2 Editor／Game Development 构建通过，debug 与区域专项 **7/7**，0 测试警告／失败；未做真实客户端 RPC、保存 BP 画面或真人验收。报告在 `Saved/ExpandingSlipperyArea/DebugCommand`；[用法、验证与手测](Combat/Expanding_Slippery_Area_CN_v0.1.md#debug-生成命令)。本轮保留前轮未提交改动，未改保存资产／Config，未提交／Push。下方“下一步命令”保留此前时点。
+
+**2026-11-10 新增可生成的圆形扩散打滑区域，下一步接 debug 生成命令。** 从干净 `main/b11f305` 接续，新增 `AHALExpandingSlipperyArea`：生成时立即检查，默认从 1 cm 半径在 2 秒内扩至 500 cm，扩张完成后维持 5 秒再销毁。用户确认持续时间从扩张完成后计算。复用原 Slippery GE／Receiver 和离区恢复，不加摆动或生成者免疫。`hal.SlipperyAreaDebug 1` 显示扩张红色、维持蓝色圆柱；生成命令尚未实现。中心／高度判定与 0.02 秒采样边界见[说明与下一入口](Combat/Expanding_Slippery_Area_CN_v0.1.md)。
+
+本机 UE **5.8.2-56702186** Editor／Game Development 构建通过；最终区域专项 **5/5**，0 测试警告／失败。首轮编译的复制宏参数名错误已修复；第一次专项 4/5，新增夹具未开启世界生命周期导致销毁断言失败，补齐后 R2 通过。日志／报告保留于 `Saved/ExpandingSlipperyArea/Tests*`，不将其作为跨设备提交证据；详细结果已记入上述文档。本轮未修改保存资产、现有驾驶或 GE 实现，未执行新双端、画面、真人或全量原生验收，未提交／Push。
+
 **2026-11-10 扩散打滑带已接入地面网格和材质槽。** 基点 `main/0e017ce` 已含技能 DA 和 GA。运行时按复制的轨迹、地面法线与时间生成地面带，支持逐段扩宽、圆端、断段和到期清理。`DA_Ability_SlipperyTrail → Slippery Trail → Presentation → Ground Material` 已可配置，源 PNG 已生成。团队下一步导入灰度纹路，制作暗绿材质实例，独立调底色、反光、纹路强度和透明度。见[纹理导入与材质接线](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md#暗绿油墨地面材质)。
 
 本机 UE 5.8.2 Editor／Game 构建通过，D3D12 离屏双端专项各 1/1。全量原生在当前玩家打滑带授权下为 177 通过／11 失败，旧测试依赖免疫／加速主技能。以相同构建和提交版资产隔离复测为 188/188。1215 份已保存资产校验一致，开工时两份本地测试资产改动已保留。正式油墨材质仍待团队导入接线和画面验收。见[验证记录](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md#2026-11-10-地面表现验证)。

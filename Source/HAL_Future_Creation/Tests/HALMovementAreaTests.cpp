@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
 #include "../HALMovementArea.h"
+#include "../HALExpandingSlipperyArea.h"
 #include "../HALMovementAreaReceiver.h"
 #include "../HALMovementTypes.h"
 #include "../VehicleNetPhysicsData.h"
@@ -11,6 +12,7 @@
 #include "../HALGameplayTags.h"
 #include "../TestVehiclePawn.h"
 #include "Components/BoxComponent.h"
+#include "Components/LineBatchComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Serialization/MemoryReader.h"
@@ -224,6 +226,96 @@ bool FHALAreaOverlapTest::RunTest(const FString& Parameters)
 	Area->SetAreaEnabled(false); TestEqual(TEXT("Disable clears existing occupants"),Receiver->GetAreaCount(),0);
 	Area->SetAreaEnabled(true); TestEqual(TEXT("Enable scans stationary occupant"),Receiver->GetAreaCount(),1);
 	Area->Destroy(); TestEqual(TEXT("Destroy clears occupant without needing EndOverlap"),Receiver->GetAreaCount(),0);
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALExpandingAreaTest, "HAL.FutureCreation.MovementAreas.ExpandingLifecycle",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALExpandingAreaTest::RunTest(const FString& Parameters)
+{
+	FHALExpandingSlipperyAreaConfig Config;
+	TestTrue(TEXT("Defaults valid"), Config.IsValid());
+	TestEqual(TEXT("Effective seed exists immediately"), Config.RadiusAt(0), 1.f);
+	TestEqual(TEXT("Expansion reaches maximum"), Config.RadiusAt(2), 500.f);
+	TestEqual(TEXT("Hold does not expand further"), Config.RadiusAt(6), 500.f);
+	TestFalse(TEXT("Duration starts after expansion"), Config.IsExpired(5));
+	TestTrue(TEXT("Expires after expansion plus hold"), Config.IsExpired(7));
+	Config.ExpansionSeconds = 0;
+	TestEqual(TEXT("Zero expansion applies full size immediately"), Config.RadiusAt(0), 500.f);
+	Config.MaximumRadius = std::numeric_limits<float>::quiet_NaN();
+	TestFalse(TEXT("Nonfinite radius rejected"), Config.IsValid());
+	Config = {};
+	FAreaTestWorld F;
+	FActorSpawnParameters Spawn;
+	Spawn.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	auto* VehicleClass = LoadClass<ATestVehiclePawn>(nullptr, TEXT("/Game/Blueprints/Vehicles/BP_RoundedVehiclePawn.BP_RoundedVehiclePawn_C"));
+	if (!TestNotNull(TEXT("Authored vehicle class loads"), VehicleClass)) { return false; }
+	auto* Vehicle = F.World->SpawnActor<ATestVehiclePawn>(VehicleClass, FVector(0,0,10000), FRotator::ZeroRotator, Spawn);
+	Vehicle->PreInitializeComponents(); Vehicle->InitializeComponents(); Vehicle->PostInitializeComponents();
+	Vehicle->DispatchBeginPlay();
+	CastChecked<UPrimitiveComponent>(Vehicle->GetRootComponent())->SetSimulatePhysics(false);
+	auto* Receiver = Vehicle->FindComponentByClass<UHALMovementAreaReceiver>();
+	if (!TestNotNull(TEXT("Vehicle has its regional receiver"), Receiver)) { return false; }
+	auto* Area = F.World->SpawnActor<AHALExpandingSlipperyArea>(FVector(0,0,10000), FRotator::ZeroRotator, Spawn);
+	TestTrue(TEXT("Configure before play"), Area->ConfigureArea(Config));
+	Area->DispatchBeginPlay();
+	TestEqual(TEXT("Center vehicle affected on spawn"), Receiver->GetAreaCount(), 1);
+	TestEqual(TEXT("Uses ordinary slippery grip"), Receiver->GetSelection().Scales.Z, double(.2f));
+	Vehicle->SetActorLocation(FVector(250,0,10000));
+	Area->UpdateArea();
+	TestEqual(TEXT("Outside seed exits"), Receiver->GetAreaCount(), 0);
+	Area->Settings.ExpansionSeconds = 0;
+	Area->UpdateArea();
+	TestEqual(TEXT("Expansion reaches stationary vehicle"), Receiver->GetAreaCount(), 1);
+	F.World->InitializeActorsForPlay(FURL());
+	F.World->SetBegunPlay(true);
+	Area->Destroy();
+	TestEqual(TEXT("Destruction clears regional source"), Receiver->GetAreaCount(), 0);
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSlipperyGroundDebugTest, "HAL.FutureCreation.MovementAreas.DebugGroundMeshCheckboxAndColors",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALSlipperyGroundDebugTest::RunTest(const FString& Parameters)
+{
+#if ENABLE_DRAW_DEBUG
+	FAreaTestWorld F;
+	auto* Floor = F.World->SpawnActor<AActor>();
+	auto* Body = NewObject<UBoxComponent>(Floor);
+	Floor->AddInstanceComponent(Body); Floor->SetRootComponent(Body);
+	Body->SetBoxExtent(FVector(2000,2000,10));
+	Body->SetCollisionProfileName(TEXT("BlockAll"));
+	Body->SetWorldLocation(FVector(0,0,-10)); Body->RegisterComponent();
+	auto* Area = F.World->SpawnActor<AHALExpandingSlipperyArea>(FVector(0,0,100), FRotator::ZeroRotator);
+	Area->DispatchBeginPlay();
+	auto* Batch = F.World->GetLineBatcher(UWorld::ELineBatcherType::World);
+	if (!TestNotNull(TEXT("Debug batcher available"), Batch)) { return false; }
+	Batch->Flush();
+	Area->Tick(0);
+	TestEqual(TEXT("Unchecked creates no mesh"), Batch->BatchedMeshes.Num(), 0);
+	TestEqual(TEXT("Unchecked creates no grid"), Batch->BatchedLines.Num(), 0);
+	Area->bDebugDraw = true;
+	Area->Tick(0);
+	if (!TestEqual(TEXT("Checked emits a filled ground mesh"), Batch->BatchedMeshes.Num(), 1)) { return false; }
+	const auto& Red = Batch->BatchedMeshes[0];
+	TestTrue(TEXT("Expansion is red"), Red.Color.R == 255 && Red.Color.B == 0);
+	TestTrue(TEXT("Mesh sits above floor rather than at car height"), FMath::IsNearlyEqual(Red.MeshVerts[0].Z, 3., .01));
+	TestTrue(TEXT("Mesh has actual triangles"), Red.MeshIndices.Num() == 64 * 3);
+	TestTrue(TEXT("Grid and boundary are present"), Batch->BatchedLines.Num() > 64);
+	Batch->Flush();
+	Area->Settings.ExpansionSeconds = 0;
+	Area->Tick(0);
+	if (!TestEqual(TEXT("Hold emits mesh"), Batch->BatchedMeshes.Num(), 1)) { return false; }
+	TestTrue(TEXT("Hold is blue"), Batch->BatchedMeshes[0].Color.B == 255 && Batch->BatchedMeshes[0].Color.R == 0);
+	TestTrue(TEXT("Full mesh matches gameplay radius"), FMath::IsNearlyEqual(
+		FVector::Dist2D(Batch->BatchedMeshes[0].MeshVerts[0], Batch->BatchedMeshes[0].MeshVerts[1]), 500., .01));
+	Batch->Flush();
+	Area->bDebugDraw = false;
+	Area->Tick(0);
+	TestEqual(TEXT("Unchecking stops mesh submission"), Batch->BatchedMeshes.Num(), 0);
+	Area->bDebugDraw = true;
+	Area->Settings.DurationSeconds = 0;
+	Area->Tick(0);
+	TestEqual(TEXT("Expired area submits no mesh"), Batch->BatchedMeshes.Num(), 0);
+#endif
 	return true;
 }
 #endif
