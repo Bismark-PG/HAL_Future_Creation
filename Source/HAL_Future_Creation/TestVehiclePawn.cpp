@@ -22,6 +22,8 @@
 #include "HALVehicleLifecycleTypes.h"
 #include "EngineUtils.h"
 #include "HALPlayerState.h"
+#include "HALVehicleTestPlayerController.h"
+#include "HALVehicleTestGameMode.h"
 #include "HALGameplayTags.h"
 
 #include "ArcadeVehicleMovementComponent.h"
@@ -354,8 +356,10 @@ void ATestVehiclePawn::ResetLocalInputReadiness()
 bool ATestVehiclePawn::IsLocalInputAvatarLinked() const
 {
 	const auto* Player=GetPlayerState<AHALPlayerState>(); const auto* ASC=Player?Player->GetHALAbilitySystemComponent():nullptr;
+	const bool bRoomReady=Player && (AHALVehicleTestPlayerController::BypassesRoomReadiness(this)
+		|| (Player->GetRoomData().Phase==EHALRoomPlayerPhase::Ready && Player->GetRoomData().ReadyAvatar==this));
 	return IsLocallyControlled() && IsConfigurationValid() && GetController() && GetController()->GetPawn()==this
-		&& Player && Player->GetRoomData().Phase==EHALRoomPlayerPhase::Ready && Player->GetRoomData().ReadyAvatar==this
+		&& bRoomReady
 		&& ASC && ASC->GetOwnerActor()==Player && ASC->GetAvatarActor()==this && GetAbilitySystemComponent()==ASC
 		&& ASC->IsHealthInitialized() && ASC->IsCombatInitialized() && ASC->IsImpactInitialized()
 		&& Player->AreVehicleAbilitiesReady(this);
@@ -561,7 +565,10 @@ void ATestVehiclePawn::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 {
 	if (!DynamicCamera->CalculateView(DeltaTime,OutResult)) { Super::CalcCamera(DeltaTime,OutResult); }
 }
-void ATestVehiclePawn::OnCameraMouse(const FInputActionValue& Value) { DynamicCamera->AddMouseDelta(Value.Get<FVector2D>()); }
+void ATestVehiclePawn::OnCameraMouse(const FInputActionValue& Value)
+{
+	if (AHALVehicleTestPlayerController::AllowsVehicleCameraMouseInput(GetController())) { DynamicCamera->AddMouseDelta(Value.Get<FVector2D>()); }
+}
 void ATestVehiclePawn::OnCameraStick(const FInputActionValue& Value) { DynamicCamera->SetStickInput(Value.Get<FVector2D>()); }
 void ATestVehiclePawn::OnCameraStickCompleted(const FInputActionValue& Value) { DynamicCamera->SetStickInput(FVector2D::ZeroVector); }
 
@@ -891,7 +898,7 @@ void ATestVehiclePawn::PreInitializeComponents()
 		return;
 	}
 	const bool bWantsNetworkHistory = NetworkPhysicsSettings && NetworkPhysicsSettings->SettingsDataAsset
-		&& GetNetMode() != NM_Standalone && UPhysicsSettings::Get()->PhysicsPrediction.bEnablePhysicsPrediction;
+		&& GetNetMode() != NM_Standalone && !AHALVehicleTestGameMode::IsTestWorld(GetWorld()) && UPhysicsSettings::Get()->PhysicsPrediction.bEnablePhysicsPrediction;
 	if (NetworkPhysicsHistory) { NetworkPhysicsHistory->SetIsReplicated(bWantsNetworkHistory); }
 	if (bWantsNetworkHistory)
 	{
@@ -919,7 +926,7 @@ void ATestVehiclePawn::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 	const bool bHasSettings = NetworkPhysicsSettings && NetworkPhysicsSettings->SettingsDataAsset
-		&& GetNetMode() != NM_Standalone;
+		&& GetNetMode() != NM_Standalone && !AHALVehicleTestGameMode::IsTestWorld(GetWorld());
 	if (bHasSettings && !UPhysicsSettings::Get()->PhysicsPrediction.bEnablePhysicsPrediction)
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s: Network Physics asset assigned, but Physics Prediction is disabled in project settings."), *GetNameSafe(this));

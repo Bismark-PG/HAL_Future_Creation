@@ -1,0 +1,363 @@
+{
+  "date": "2026-11-10",
+  "base_commit": "987a12965cd05c209137e0c0d87c118b70ab6a5c",
+  "branch": "main",
+  "engine": "5.8.3-58210709",
+  "scope": "Dedicated local SingleVehicleTest GameMode, GAS lifecycle vehicle switching, native top-left panel, vehicle/side/free-flight camera, local input readiness without room acknowledgement",
+  "new_classes": [
+    "AHALVehicleTestGameMode",
+    "AHALVehicleTestPlayerController"
+  ],
+  "saved_asset_wiring": {
+    "blueprint": "/Game/Blueprints/Gamemode/BP_VehicleTestGameMode",
+    "map": "/Game/Maps/SingleVehicleTest/SingleVehicleTest",
+    "parent_class": "HALVehicleTestGameMode",
+    "controller_class": "HALVehicleTestPlayerController",
+    "player_state_class": "HALPlayerState",
+    "game_state_class": "HALMatchGameState",
+    "initial_default_pawn_class": "BP_VehiclePawn_Car_02",
+    "additional_classes_property": "Vehicle Test / Test Vehicle Classes",
+    "requires_team_editor_configuration": true,
+    "blueprint_or_map_edited_by_agent": false
+  },
+  "behavior": {
+    "phase": "Playing immediately",
+    "room_initialization": false,
+    "host_join_or_auto_travel": false,
+    "match_deadline_or_auto_end": false,
+    "vehicle_network_physics_history": false,
+    "game_instance_project_setting_changed": false,
+    "native_GI_network_failure_delegate_hooks_preserved": true,
+    "PIE_recommended": "1 player, Play Standalone",
+    "swap": "Fresh configured Pawn at PlayerStart -> validate real body -> HALPlayerState.ChangeVehicleAvatar -> destroy outgoing/copied test vehicles",
+    "camera": "ViewTarget switch; same possessed vehicle and GAS avatar",
+    "side_view_distance_cm": 650,
+    "free_camera": "RMB + mouse/WASD/QE, Shift speed multiplier 3; release restores vehicle mapping",
+    "network_room_readiness_bypassed_only_for_dedicated_controller": true,
+    "configuration_GAS_and_physics_readiness_preserved": true,
+    "cursor_does_not_disable_gamepad_camera": true,
+    "normal_GAS_cooldown_stun_rules_preserved": true
+  },
+  "final_builds": [
+    {
+      "target": "HAL_Future_CreationEditor Win64 Development",
+      "log": "Saved/VehicleTest/20261110/ControllerIsolation/Build_Editor_R3.log",
+      "result": "Succeeded",
+      "exit": 0,
+      "main_runtime_DLL_written": true
+    },
+    {
+      "target": "HAL_Future_Creation Win64 Development",
+      "log": "Saved/VehicleTest/20261110/ControllerIsolation/Build_Game_R1.log",
+      "result": "Succeeded",
+      "exit": 0
+    }
+  ],
+  "earlier_attempts": [
+    "Editor R1 stopped after UHT generated-line drift from a header edit and compile errors in pointer comparison/member shadowing; fixed in R2",
+    "Editor R2 all source/tests compiled, final link LNK1104 because runtime DLL was in use",
+    "Isolated Runtime DLL linked successfully using same UBT response with output/PDB redirected; before final cursor/stick adjustment",
+    "Game R1 succeeded before final one-line cursor/stick adjustment",
+    "Editor R3 final source compiled/linked successfully after DLL became available",
+    "Game R2 launcher exited -532462766 before build work; fresh Game R3 command succeeded"
+  ],
+  "automation": {
+    "filter": "HAL.FutureCreation.VehicleTest+HAL.FutureCreation.Camera",
+    "compiled_vehicle_test_count": 4,
+    "requested_vehicle_test_count": 4,
+    "requested_camera_test_count": 9,
+    "executed_and_verified": false,
+    "result": "Unverified: both UnrealEditor-Cmd.exe and UnrealEditor.exe exited 0 without UE logs or reports; wrapper correctly returned 3",
+    "attempts": [
+      {
+        "result_file": "Saved/VehicleTest/20261110/ControllerIsolation/Automation_R1_Result.json",
+        "process_exit": 0,
+        "UE_log_created": false,
+        "report_created": false
+      },
+      {
+        "result_file": "Saved/VehicleTest/20261110/ControllerIsolation/Automation_R2_Result.json",
+        "process_exit": 0,
+        "UE_log_created": false,
+        "report_created": false
+      }
+    ],
+    "UI_render_or_click_test_run": false,
+    "team_driving_skill_free_camera_and_long_duration_acceptance": false
+  },
+  "protection": {
+    "baseline_files": 1566,
+    "saved_asset_count": 1224,
+    "config_count": 4,
+    "changed_asset_config_files": [],
+    "preexisting_untracked_assets_preserved": [
+      "Content/Blueprints/Gamemode/BP_VehicleTestGameMode.uasset",
+      "Content/Maps/SingleVehicleTest/"
+    ],
+    "build_cs_and_uproject_unchanged": true,
+    "committed_or_pushed": false,
+    "panel_merge_changed_asset_config_files": [],
+    "controller_isolation_checked_files": 1235,
+    "controller_isolation_changed_files": []
+  },
+  "source_fingerprints": [
+    {
+      "path": "Source/HAL_Future_Creation/HALDynamicCameraComponent.cpp",
+      "sha256": "E0B9BDDEF9C3B6070DE280C64EC44DBED9273738932206E83A7FA6A4F57DFE23"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameFlowPermissions.cpp",
+      "sha256": "100336571CB0515A4FCF47555D725A033F7DA70E8DF9F8B822A72F83DF6AD701"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameFlowPermissions.h",
+      "sha256": "DA0599225EE4E40823F0177F1537DBEE84001EF33976986B84C94061EE18B0BC"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerController.cpp",
+      "sha256": "FAE782EAAAD4FC3F022168E4CC556047E3C676E9D749CF1FFB1DAE7407685C2E"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerController.h",
+      "sha256": "4DA2A9DE1D0981C57DA325B7DF78EF1A2B9241946BE8EAA890A816076EE42B1A"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerControllerRound.cpp",
+      "sha256": "3A09D21F83FA73DA26F00F8CD362C853DA620810C07E9F72F49BF3BF829B8CC8"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleTestGameMode.cpp",
+      "sha256": "70834723A7D319538A74C2EA8212D9A2C824E3A62618FB68FB0D20594EF4639D"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleTestGameMode.h",
+      "sha256": "5E4BBDE58D194D09F859747353BDD14AD80599B9EFD2A68EDB702E081610081E"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleTestPlayerController.cpp",
+      "sha256": "2CF182DD64FC38F9B2E79F4660C4B30961A117F9F8DEAB280631E2EF5327005C"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleTestPlayerController.h",
+      "sha256": "C325A29A2F146B85B4B2C23CA39F1F60AA502FCDB15EBD42FE50C279C3102975"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleTestModeTests.cpp",
+      "sha256": "4E40FEE734C2932DEE7920FFAB04A6A4B8C7A555B0959692CF38D057608B0A76"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+      "sha256": "870F9E62EDA842704F90FEB96124BB217AF60928118577AC67EFAE1D68B2DE2C"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "Saved/VehicleTest/20261110/Build_Editor_R1.log",
+      "bytes": 55010,
+      "sha256": "93DA05F77F823F8576D1B482AF602E238B7D04D43F44604312EAF9A267D8495B"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/Build_Editor_R2.log",
+      "bytes": 11206,
+      "sha256": "AB32A8653062104FD85207E269845446CF6E44E13B30EC2712B2A00C964143B9"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/Build_Editor_R3.log",
+      "bytes": 3181,
+      "sha256": "1AE267153637CE932764151726247DB780DD65BED65B789F8A870A52BC5D8176"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/Build_Game_R1.log",
+      "bytes": 4538,
+      "sha256": "B4BC338DCE77ABA0A9E10282E340F0069A0B6F61E91FA8EFE2555687895745EC"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/Build_Game_R2.log",
+      "bytes": 325,
+      "sha256": "6517A9CD486D98A0680ACB947A6D6DDF1CC78B98408ED83AA17C1246752F16F5"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/Build_Game_R3.log",
+      "bytes": 2940,
+      "sha256": "A11D669D593C9DF10B1CD1E1E462D336445E94D7482A74C796D53055F10DBD6F"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/Link_Runtime_Isolated_R1.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/Link_Runtime_Isolated.rsp",
+      "bytes": 7029,
+      "sha256": "7F957E29E1F39411BD89B7620FAEB98789721752E82200FC99CAF56E89C388FF"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/Baseline.json",
+      "bytes": 282506,
+      "sha256": "A494AAB82D71D1C307F8863B50B99349E3CBB334BCB8FBB73EAFE2D75F88B04A"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/PanelMerge/Baseline.json",
+      "bytes": 225732,
+      "sha256": "4DBB5DD2E43D3E2E90FABBABFE0EABAE350668B84CF23E41A28235045AB730E2"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/PanelMerge/Build_Editor_R1.log",
+      "bytes": 3660,
+      "sha256": "FFD4E23319AABFF81E3C91F0C15E16AFAEA70B756262DCB23CC87347B57B6A65"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/PanelMerge/Build_Editor_R2.log",
+      "bytes": 1258,
+      "sha256": "82124F3D6B58C70B62C2BFC8C8F575E16E4478E6FCD6F33A649F961872E2DEFA"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/PanelMerge/Build_Game_R1.log",
+      "bytes": 3117,
+      "sha256": "DFED980D583811515CAA1DAC847BB812A857DDBB61E51CF9AA9C406394C40055"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/ControllerIsolation/Baseline.json",
+      "bytes": 231715,
+      "sha256": "4893FC35D6409D413EFB4817192B2C2F7A54E07DDD4890428CC61338331D7B97"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/ControllerIsolation/Build_Editor_R1.log",
+      "bytes": 75,
+      "sha256": "A2DAA0EADF0ECF88DD1AAF6988F8FAB55D841D3C2D2ABAB5DC3F99160ED8B21B"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/ControllerIsolation/Build_Editor_R2.log",
+      "bytes": 8354066,
+      "sha256": "E96E73B1244E50FB8F2D607F72F99031CF592A26B0FFA3FCD02D8C709C8FDFD7"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/ControllerIsolation/Build_Editor_R3.log",
+      "bytes": 10561,
+      "sha256": "A01832A05DE924ECE702689CDB72F2FD3FEEA0E7E8FE59899A232E839E8D03F3"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/ControllerIsolation/Build_Game_R1.log",
+      "bytes": 3266,
+      "sha256": "B21FB9CFB0BF41756EAB697B85FB08EFE63FFF41D6334514AAF27407589C4E6A"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/ControllerIsolation/Automation_R1_Result.json",
+      "bytes": 80,
+      "sha256": "10476307F56E318AC499CB6F07969F783CE92BB0CC723E891693B6B577D535C0"
+    },
+    {
+      "path": "Saved/VehicleTest/20261110/ControllerIsolation/Automation_R2_Result.json",
+      "bytes": 80,
+      "sha256": "10476307F56E318AC499CB6F07969F783CE92BB0CC723E891693B6B577D535C0"
+    }
+  ],
+  "next": "Team confirm existing BP wiring, then run VehicleTest and Camera filters in a working Editor automation environment and manually verify panel/camera/GAS/long-duration behavior. No additional Blueprint wiring is introduced by controller isolation.",
+  "pre_panel_merge_builds": [
+    {
+      "target": "HAL_Future_CreationEditor Win64 Development",
+      "log": "Saved/VehicleTest/20261110/Build_Editor_R3.log",
+      "result": "Succeeded",
+      "exit": 0,
+      "main_runtime_DLL_written": true
+    },
+    {
+      "target": "HAL_Future_Creation Win64 Development",
+      "log": "Saved/VehicleTest/20261110/Build_Game_R3.log",
+      "result": "Succeeded",
+      "exit": 0
+    }
+  ],
+  "panel_merge": {
+    "implementation": "Private SHALVehicleTestPanel in HALVehicleTestPlayerController.cpp",
+    "removed_files": [
+      "Source/HAL_Future_Creation/HALVehicleTestWidget.h",
+      "Source/HAL_Future_Creation/HALVehicleTestWidget.cpp"
+    ],
+    "new_files_added": 0,
+    "runtime_source_file_count": 4,
+    "viewport_lifecycle": "AddViewportWidgetForPlayer / RemoveViewportWidgetForPlayer, original viewport/player weak references retained for teardown",
+    "ownership": "Controller holds panel shared pointer; panel holds controller weak pointer",
+    "DPI": "Existing SGameLayerManager player layer retains viewport DPI handling",
+    "build_note": "UBA retried one compiler process after a low-memory kill; full Editor build succeeded, then a single-action up-to-date check and single-action Game build succeeded",
+    "new_tests_written": false,
+    "post_merge_automation_or_UI_run": false,
+    "prior_no_report_limitation_retained": true,
+    "old_widget_active_source_or_link_dependencies": false
+  },
+  "pre_controller_isolation_builds": [
+    {
+      "target": "HAL_Future_CreationEditor Win64 Development",
+      "log": "Saved/VehicleTest/20261110/PanelMerge/Build_Editor_R1.log",
+      "result": "Succeeded",
+      "exit": 0,
+      "main_runtime_DLL_written": true
+    },
+    {
+      "target": "HAL_Future_CreationEditor Win64 Development",
+      "log": "Saved/VehicleTest/20261110/PanelMerge/Build_Editor_R2.log",
+      "result": "Succeeded / up to date",
+      "exit": 0
+    },
+    {
+      "target": "HAL_Future_Creation Win64 Development",
+      "log": "Saved/VehicleTest/20261110/PanelMerge/Build_Game_R1.log",
+      "result": "Succeeded",
+      "exit": 0
+    }
+  ],
+  "pre_controller_isolation_automation": {
+    "filter": "HAL.FutureCreation.VehicleTest",
+    "compiled_test_count": 4,
+    "engine_process_exit": 0,
+    "wrapper_exit_missing_report": 3,
+    "UE_log_created": false,
+    "report_created": false,
+    "executed_and_verified": false,
+    "result": "Unverified: no UE log or automation report; process exit 0 does not establish test execution or success",
+    "test_scenarios": [
+      "Standalone Playing, initial Car_02, GAS and all flow input permissions without room Ready",
+      "Runtime model swaps retain PlayerState/ASC and clear old Avatar/cooldown",
+      "Side camera preserves possession/GAS/cooldown and returns to vehicle view",
+      "Unlisted/blocked candidate preserves old vehicle and lifecycle serial"
+    ],
+    "UI_render_or_click_test_run": false,
+    "team_driving_skill_free_camera_and_long_duration_acceptance": false,
+    "attempt_stage": "Before panel merge; no post-merge runtime test was performed"
+  },
+  "controller_isolation": {
+    "code_complete": true,
+    "validation_status": "Editor and Game builds passed; runtime automation unverified",
+    "new_source_files": 0,
+    "public_controller_virtual_hooks_added": 0,
+    "unchanged_shared_files": [
+      "HALPlayerController.h",
+      "HALPlayerController.cpp",
+      "HALPlayerControllerRound.cpp",
+      "HALGameFlowPermissions.h",
+      "HALGameFlowPermissions.cpp"
+    ],
+    "lifecycle": "Retain HAL inheritance for GAS/debug commands; test overrides call APlayerController BeginPlay/SetupInputComponent/TickActor/PostSeamlessTravel; inherited EndPlay still cleans up",
+    "test_world_policy": "HALVehicleTestGameMode.IsTestWorld",
+    "local_input_policy": "HALVehicleTestPlayerController.BypassesRoomReadiness requires local test controller and dedicated test GameMode",
+    "camera_policy": "HALVehicleTestPlayerController static helpers preserve ordinary controller cursor and mouse behavior",
+    "shared_integration_files": [
+      "HALDynamicCameraComponent.cpp",
+      "TestVehiclePawn.cpp"
+    ],
+    "additional_existing_test_coverage": [
+      "Test BeginPlay/travel leaves room UI delegates unbound",
+      "Ordinary HAL controller retains room UI delegates and Room Ready",
+      "Ordinary visible/hidden cursor rules preserved",
+      "RMB enables and releases vehicle mouse look",
+      "Observation camera does not forward vehicle mouse input"
+    ],
+    "baseline": "Saved/VehicleTest/20261110/ControllerIsolation/Baseline.json",
+    "build_environment": "Per-process TMP/TEMP and UBA_ROOT under project Saved; no engine/global configuration changed",
+    "build_attempt_notes": [
+      "Editor R1 interrupted while the batch lock path could not be opened under the sandbox temporary directory; process-specific TMP/TEMP fixed it",
+      "Editor R2 interrupted after UBA could not write its default ProgramData cache; process-specific UBA_ROOT fixed it",
+      "Editor R3 and Game R1 both compiled and linked successfully; existing camera-test float-conversion warnings and UBA result-store warnings retained in logs"
+    ]
+  }
+}
