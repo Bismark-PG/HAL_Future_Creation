@@ -2,7 +2,9 @@
 
 2026-11-06默认值调整只作用于之后通过工具创建的新资产；已有保存DA、原生运行时类默认值、共享Local／Network和两份DA的Ready=false保持不变。验证进度见项目状态入口。
 
-更新：2026-11-06。工具属于现有 `HAL_Future_CreationEditor` 模块，通过 Editor 的 **Tools → HAL Tools → HAL Vehicle Asset Generator** 启动。公开接口位于 `Source/HAL_Future_CreationEditor/Public/VehicleAssetGenerator`，实现位于对应 Private 目录。
+更新：2026-11-11。新生成的Vehicle Definition默认引用`/Game/Meshes/Collision/SM_Car_01_Collision.SM_Car_01_Collision`。已有资产的引用保持。工具属于现有 `HAL_Future_CreationEditor` 模块，通过 Editor 的 **Tools → HAL Tools → HAL Vehicle Asset Generator** 启动。公开接口位于 `Source/HAL_Future_CreationEditor/Public/VehicleAssetGenerator`，实现位于对应 Private 目录。
+
+本次路径更新已通过UE5.8.3的Editor模块`-NoLink`编译检查，包含现有生成器测试源码。当前Editor占用工具DLL，完整链接及实际生成尚未验证；关闭Editor后通过`BuildAndLaunch.cmd`重新构建加载更新。日志为`Saved/VehicleAssetGenerator/DefaultCollision_20261111/Compile_Editor_NoLink.log`。
 
 2026-10-30输入引用显示补充：已在现有Editor模块加入车辆Details只读预览，生成蓝图及已有Car_02的Input直接显示当前Definition.LocalConfig中的十项输入引用和来源。共享Local不变，显示不复制Pawn旧默认值；构建统一由BuildAndLaunch.cmd负责。具体读取位置、运行初始化及验证边界见[输入引用显示](Vehicle_Input_Preview_CN_v0.1.md)。
 
@@ -68,7 +70,7 @@ PIE 或 Simulate 期间禁止创建与保存。关闭工具面板不会自动保
 
 Network Physics 保持原引用方式并配置 Resimulation。Combat 与 Stability 继续由项目设置提供；Local／Network／Combat／Stability 均不新建或复制。工具不修改 GameMode、PlayerState、地图或输入映射。
 
-各车型独立持有配置。2026-11-06起，生成器指定 Collision Mesh 为 `/Game/Meshes/Collision/SM_Car01_Collision`、Visual.Mesh 为 `/Game/Meshes/SM_Car_Proxy`、Impact.Version 为 TieredV1、Combat.Version 为 AttackSnapshotV1，其余字段保持 `UVehicleDefinition` 的 C++ 初始值。仅引用两个现有网格，不复制任何车型DA参数，也不根据 Skeletal Mesh 推断玩法碰撞。2026-10-29起驾驶车按可用表现路径校验：有完整有效且Ready的骨骼Presentation时，Visual.Mesh可以保留None；否则必须配置有效静态Visual。生成器引用现有静态代理，不新建网格。两个默认网格缺失时，创建前检查会阻止整组生成并提示路径。两份车型 DA 的后续参数编辑互不影响，共享 Local／Network 的调整则继续影响引用它们的车型。
+各车型独立持有配置。生成器指定 Collision Mesh 为 `/Game/Meshes/Collision/SM_Car_01_Collision`，此路径于2026-11-11更新；Visual.Mesh 为 `/Game/Meshes/SM_Car_Proxy`、Impact.Version 为 TieredV1、Combat.Version 为 AttackSnapshotV1，沿用2026-11-06的默认值，其余字段保持 `UVehicleDefinition` 的 C++ 初始值。仅引用两个现有网格，不复制任何车型DA参数，也不根据 Skeletal Mesh 推断玩法碰撞。2026-10-29起驾驶车按可用表现路径校验：有完整有效且Ready的骨骼Presentation时，Visual.Mesh可以保留None；否则必须配置有效静态Visual。生成器引用现有静态代理，不新建网格。两个默认网格缺失时，创建前检查会阻止整组生成并提示路径。两份车型 DA 的后续参数编辑互不影响，共享 Local／Network 的调整则继续影响引用它们的车型。
 
 新Pawn与 `BP_RoundedVehiclePawn` 共享同一个原生父类。物理根、Static/Skeletal外观、移动、姿态与自救、网络物理Settings／History、运动效果桥接、控球点／约束／控球、Health／ImpactReceiver、方向标记及相机共17个组件由原生构造函数创建，组件连接及输入／GAS Avatar／控球／发射逻辑沿用原生实现。新Pawn没有对 `BP_RoundedVehiclePawn` 资产的继承或引用；选择的模型经新Definition／Presentation接入。ASC仍由PlayerState持有，GameMode的PlayerState／Controller配置继续使用项目现有设置。
 
