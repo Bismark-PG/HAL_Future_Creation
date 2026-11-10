@@ -1,6 +1,8 @@
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
 #include "Misc/AutomationTest.h"
 #include "../HALElectricWallGimmick.h"
+#include "../HALElectricSphereGimmick.h"
+#include "Components/SphereComponent.h"
 #include "../HALShockedPresentationComponent.h"
 #include "../HALAbilitySystemComponent.h"
 #include "../HALGameplayTags.h"
@@ -276,5 +278,70 @@ bool FHALBounceHistoryTest::RunTest(const FString& Parameters)
  B.State.BounceBack.Direction.Z=1;
  TestFalse(TEXT("Nonhorizontal bounce rejected"),B.State.BounceBack.IsValid());
  return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALElectricSphereLifecycleTest,"HAL.FutureCreation.ElectricSphere.LifecycleAndContact",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALElectricSphereLifecycleTest::RunTest(const FString& Parameters)
+{
+	FHALElectricSphereConfig C; TestTrue(TEXT("Defaults valid"),C.Validate());
+	TestTrue(TEXT("Begin"),C.StageAt(0)==EHALElectricSphereStage::Begin);
+	TestTrue(TEXT("Exact activation"),C.StageAt(1)==EHALElectricSphereStage::Loop);
+	TestTrue(TEXT("Exact expiry"),C.StageAt(6)==EHALElectricSphereStage::Over);
+	C.BeginSeconds=0; TestTrue(TEXT("Zero preview"),C.StageAt(0)==EHALElectricSphereStage::Loop);
+	C.Radius=std::numeric_limits<float>::quiet_NaN(); TestFalse(TEXT("Reject NaN"),C.Validate());
+	auto F=MakeShared<HALElectricWallTests::FWorld>();
+	if (!F->Pawn) { AddError(TEXT("Vehicle fixture missing")); return false; }
+	F->Wall->Destroy();
+	auto* Sphere=F->World->SpawnActor<AHALElectricSphereGimmick>();
+	C={}; C.BeginSeconds=.1f; C.LoopSeconds=.5f; C.OverSeconds=.1f;
+	TestTrue(TEXT("Deferred configuration"),Sphere->ConfigureSphere(C));
+	Sphere->SetActorLocation(F->Pawn->GetActorLocation()); Sphere->DispatchBeginPlay();
+	FHALElectricWallTestAccess::Scan(Sphere);
+	TestEqual(TEXT("Preview no contact"),Sphere->GetAcceptedContactCount(),0u);
+	for (auto* Capsule : TArray<UCapsuleComponent*>{Sphere->FindComponentByClass<UCapsuleComponent>()})
+	{ TestTrue(TEXT("No solid pillars"),Capsule && Capsule->GetCollisionEnabled()==ECollisionEnabled::NoCollision); }
+	// TimerManager advances once per engine frame. Use the established latent world fixture.
+	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<HALElectricWallTests::FWait>(F,this,.12f,[this,F,Sphere]()
+	{
+		FHALElectricWallTestAccess::Scan(Sphere);
+		TestTrue(TEXT("Loop reached"),Sphere->GetStage()==EHALElectricSphereStage::Loop);
+		TestEqual(TEXT("Already inside hits on activation"),Sphere->GetAcceptedContactCount(),1u);
+		FHALElectricWallTestAccess::Scan(Sphere);
+		TestEqual(TEXT("Continuous contact deduplicated"),Sphere->GetAcceptedContactCount(),1u);
+		TestTrue(TEXT("Shared stun"),F->ASC->HasMatchingGameplayTag(HALGameplayTags::State_Stun));
+	}));
+	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<HALElectricWallTests::FWait>(F,this,.62f,[this,F,Sphere]()
+	{
+		FHALElectricWallTestAccess::Scan(Sphere);
+		TestTrue(TEXT("Over reached"),Sphere->GetStage()==EHALElectricSphereStage::Over);
+		TestTrue(TEXT("Over disables collision"),Sphere->FindComponentByClass<USphereComponent>()->GetCollisionEnabled()==ECollisionEnabled::NoCollision);
+		TestFalse(TEXT("Over waits for fade"),Sphere->IsActorBeingDestroyed());
+	}));
+	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<HALElectricWallTests::FWait>(F,this,.78f,[this,F,Sphere]()
+	{ TestTrue(TEXT("Fade expiry destroys"),Sphere->IsActorBeingDestroyed()); }));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALElectricSphereSweepTest,"HAL.FutureCreation.ElectricSphere.FastCrossing",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALElectricSphereSweepTest::RunTest(const FString& Parameters)
+{
+	HALElectricWallTests::FWorld F;
+	if (!TestNotNull(TEXT("Vehicle"),F.Pawn)) { return false; }
+	F.Wall->Destroy();
+	auto* Sphere=F.World->SpawnActor<AHALElectricSphereGimmick>();
+	FHALElectricSphereConfig C; C.BeginSeconds=0; C.Radius=150;
+	TestTrue(TEXT("Configure"),Sphere->ConfigureSphere(C));
+	Sphere->SetActorLocation(FVector(0,0,1150)); Sphere->DispatchBeginPlay();
+	FHALElectricWallTestAccess::Scan(Sphere);
+	TestEqual(TEXT("Outside sphere"),Sphere->GetAcceptedContactCount(),0u);
+	F.Pawn->SetActorLocation(FVector(0,-600,1150),false,nullptr,ETeleportType::TeleportPhysics);
+	FHALElectricWallTestAccess::Scan(Sphere);
+	TestEqual(TEXT("Full crossing detected without endpoint overlap"),Sphere->GetAcceptedContactCount(),1u);
+	TestTrue(TEXT("Shared shocked/stun path"),F.ASC->IsStunned());
+	FHALElectricWallTestAccess::Scan(Sphere);
+	TestEqual(TEXT("No duplicate crossing"),Sphere->GetAcceptedContactCount(),1u);
+	return true;
 }
 #endif
