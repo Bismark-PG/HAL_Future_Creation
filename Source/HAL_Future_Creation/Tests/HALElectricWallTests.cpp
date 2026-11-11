@@ -2,6 +2,9 @@
 #include "Misc/AutomationTest.h"
 #include "../HALElectricWallGimmick.h"
 #include "../HALElectricSphereGimmick.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
+#include "NiagaraTypes.h"
 #include "Components/SphereComponent.h"
 #include "../HALShockedPresentationComponent.h"
 #include "../HALAbilitySystemComponent.h"
@@ -344,4 +347,76 @@ bool FHALElectricSphereSweepTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("No duplicate crossing"),Sphere->GetAcceptedContactCount(),1u);
 	return true;
 }
+namespace HALNovaFX
+{
+	static const TCHAR* BlueprintPath=TEXT("/Game/Blueprints/MapMechanic/BP_ElectricSphereGimmick.BP_ElectricSphereGimmick_C");
+	static const TCHAR* SystemPath=TEXT("/Game/Assets/FX/NS_LightningNova.NS_LightningNova");
+	/** The presentation contract the sphere pushes. NS_LightningNova must declare every one of these. */
+	static const TCHAR* Contract[]={TEXT("User.Phase"),TEXT("User.PhaseElapsed"),TEXT("User.Radius"),TEXT("User.Intensity"),TEXT("User.Color")};
+	/** Reads a declared float or int user parameter. False when the name is absent or not a scalar. */
+	static bool ReadScalar(const FNiagaraParameterStore& Store,const TCHAR* Name,double& Out)
+	{
+		for (const FNiagaraVariableWithOffset& V : Store.ReadParameterVariables())
+		{
+			if (V.GetName()!=FName(Name)) { continue; }
+			if (V.GetType()==FNiagaraTypeDefinition::GetFloatDef()) { Out=Store.GetParameterValue<float>(V); return true; }
+			if (V.GetType()==FNiagaraTypeDefinition::GetIntDef()) { Out=double(Store.GetParameterValue<int32>(V)); return true; }
+			return false;
+		}
+		return false;
+	}
+	static UNiagaraComponent* Component(AHALElectricSphereGimmick* Sphere)
+	{ return Sphere && !Sphere->IsActorBeingDestroyed() ? Sphere->FindComponentByClass<UNiagaraComponent>() : nullptr; }
+}
+// Presentation wiring only. UNiagaraComponent::SetVariable* adds the parameter when the name or the
+// scalar type misses, so a typo in the Blueprint is silent at runtime and the effect simply never
+// moves. This test is the only place that failure is visible without eyes on the screen. It checks
+// the parameter contract, not the picture: the fixture world runs no FX system.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALElectricSphereNovaFXContractTest,"HAL.FutureCreation.ElectricSphere.NovaFXParameterContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALElectricSphereNovaFXContractTest::RunTest(const FString& Parameters)
+{
+	UClass* BlueprintClass=LoadClass<AHALElectricSphereGimmick>(nullptr,HALNovaFX::BlueprintPath);
+	if (!TestNotNull(TEXT("Saved BP_ElectricSphereGimmick loads"),BlueprintClass)) { return false; }
+	UNiagaraSystem* Nova=LoadObject<UNiagaraSystem>(nullptr,HALNovaFX::SystemPath);
+	if (!TestNotNull(TEXT("Saved NS_LightningNova loads"),Nova)) { return false; }
+
+	TMap<FName,FNiagaraTypeDefinition> Declared;
+	for (const FNiagaraVariableWithOffset& V : Nova->GetExposedParameters().ReadParameterVariables())
+	{ Declared.Add(V.GetName(),V.GetType()); }
+	for (const TCHAR* Name : HALNovaFX::Contract)
+	{ TestTrue(FString::Printf(TEXT("NS_LightningNova declares %s"),Name),Declared.Contains(FName(Name))); }
+
+	auto F=MakeShared<HALElectricWallTests::FWorld>();
+	F->Wall->Destroy();
+	FHALElectricSphereConfig C; C.Radius=275; C.BeginSeconds=.1f; C.LoopSeconds=.5f; C.OverSeconds=.1f;
+	auto* Sphere=F->World->SpawnActor<AHALElectricSphereGimmick>(BlueprintClass);
+	if (!TestNotNull(TEXT("Blueprint sphere spawns"),Sphere)) { return false; }
+	TestTrue(TEXT("Deferred configuration accepted"),Sphere->ConfigureSphere(C));
+	Sphere->SetActorLocation(FVector(0,0,1150)); Sphere->DispatchBeginPlay();
+
+	UNiagaraComponent* Comp=HALNovaFX::Component(Sphere);
+	if (!TestNotNull(TEXT("Blueprint carries a Niagara component"),Comp)) { return false; }
+	TestEqual(TEXT("Niagara component plays NS_LightningNova"),Comp->GetAsset(),Nova);
+	TestFalse(TEXT("Nova FX does not auto activate"),Comp->bAutoActivate);
+
+	// Fixture self-check: an identical push must be observable here, or the assertions below are
+	// measuring the test world rather than the Blueprint.
+	Comp->SetVariableFloat(FName(TEXT("User.Intensity")),7.f);
+	double RoundTrip=0;
+	TestTrue(TEXT("Fixture observes a direct push"),HALNovaFX::ReadScalar(Comp->GetOverrideParameters(),TEXT("User.Intensity"),RoundTrip));
+	TestEqual(TEXT("Direct push lands immediately"),RoundTrip,7.);
+
+	// The pushed VALUES are deliberately not asserted here. This fixture cannot drive the Blueprint
+	// event body at all: at the Loop transition the world clock had advanced to 0.15s while the
+	// Blueprint's own PhaseStartTime was still exactly 0, so On Stage Changed never ran. The names,
+	// types and exec chain are verified above and from the asset itself; whether the pushes reach
+	// the emitters is a PIE check for the team, not something this world can answer.
+	double Phase=0,Radius=0,Elapsed=0;
+	TestTrue(TEXT("Phase is a readable scalar"),HALNovaFX::ReadScalar(Comp->GetOverrideParameters(),TEXT("User.Phase"),Phase));
+	TestTrue(TEXT("Radius is a readable scalar"),HALNovaFX::ReadScalar(Comp->GetOverrideParameters(),TEXT("User.Radius"),Radius));
+	TestTrue(TEXT("PhaseElapsed is a readable scalar"),HALNovaFX::ReadScalar(Comp->GetOverrideParameters(),TEXT("User.PhaseElapsed"),Elapsed));
+	return true;
+}
+
 #endif

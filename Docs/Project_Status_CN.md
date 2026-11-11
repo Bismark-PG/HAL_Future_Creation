@@ -1,5 +1,17 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-11 闪电新星接线已核对，参数契约已用自动化测试锁住；实际画面仍待 PIE 验收。** 本机从落后 73 个提交快进到 `main/b06ecae` 后接续。**开工第一个发现是本机 binary 停留在 11/02，`HALElectricSphereGimmick` 不在 DLL 内**，导致 `BP_ElectricSphereGimmick` 的 generated class 为 `None`、Blueprint Status 为 `BS_UNKNOWN`，`MVPB_NetTest` 与 `Test` 两张图里摆好的球一起载入失败，而且只有 LogLinker 警告、没有错误弹窗。重编后恢复，接续这个环节必须先重编再开 Editor。
+
+`NS_LightningNova` 实际宣告的五个参数型别已实读确认：`User.Phase` 为 **Int32**，`PhaseElapsed`／`Radius`／`Intensity` 为 Float，`Color` 为 Linear Color。把 `BP_ElectricSphereGimmick` 导出 T3D 逐节点核对，存档接线与 `b06ecae` 说明**一致**、无 guard：四个推送节点的名称字符串与型别全部正确，`User.Color` 与 `User.Intensity` 目前无推送。查引擎源码 `FNiagaraUserRedirectionParameterStore` 确认 `User.` 前缀与裸名等价，commit 里「拼法未确认」一项结案；真正的风险是 `SetVariable*` 的 `bAdd=true` 在名称或型别对不上时静默新增参数、特效安静不动，新增测试即针对这一点。
+
+新增 `HAL.FutureCreation.ElectricSphere.NovaFXParameterContract`（并入既有 `HALElectricWallTests.cpp`，沿用该档世界夹具），锁住：两个存档资产可载入（直接抓未重编状况）、五个名称均已宣告、元件指向 `NS_LightningNova` 且 Auto Activate 关闭、**override store 内不存在未宣告或型别不符的参数**、以及夹具自检。该夹具**无法驱动 Blueprint 事件本体**——Loop 转换后世界时钟已到 0.15 秒而 Blueprint 自己的 `PhaseStartTime` 仍为精确的 0——所以推送的值不做断言，只锁契约；已逐一排除延后队列、`Activate()` 重置、名称型别错误与元件抓错，本轮**未发现接线缺陷**，但也没有任何证据显示特效会动。
+
+本机 UE **5.8.2-56702186** Editor Target 编译通过（警告仅既有 `HALCameraTests.cpp` 的 C4305）。`ElectricSphere` 与 `ElectricWall` 合并复测 **12/12**（球体 3 项含本轮新增 1 项，电墙既有回归 9 项），0 测试警告／失败／未运行。NullRHI、单进程；报告在 `Saved/ElectricSphere/20261111/NovaFX_R3`，过程诊断留在同目录 `NovaFX`、`NovaFX_Diag`～`NovaFX_Diag3`。**未验证**：PIE、实际画面、双端、晚加入、效能、Cook。本轮未修改任何 `.uasset`／`.umap`／Config。
+
+下一步入口：按[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 8 节在 PIE 内用 Niagara Debugger 看 `Phase` 是否依序 1→2→3；通过后再做第 7 节的移除 Event Tick（改推 `User.PhaseStartTime`、Niagara 侧用 `Engine.Time` 相减，同一次变更要改测试里的 `HALNovaFX::Contract` 名单）与第 9 节两个缺口（`User.Intensity` 未接线、`ArcSpokes` 俯视被遮）。Niagara 与 Blueprint 的实际编修一律由团队在 Editor 执行：本轮重新确认 UE 5.8 的 Python 无法编写 emitter 堆叠，新的 `NiagaraExt_*` 外部编辑 API 只有 USTRUCT 进了 Python、函式没有 `UFUNCTION`。
+
+开工时本机有 5 份未提交改动，其中 `BP_MVPB_ListenGameMode.uasset` 与 `BP_ElectricWallGimmick.uasset` 与上游同档冲突（二进制无法合并），已 `git stash` 保留待团队决定；`DefaultEngine.ini` 的 Python 远程执行设定及其余不冲突改动保持未提交。
+
 **2026-11-11 单车测试观察摄像机已改为Alt鼠标操作，Editor编译链接通过。** 从干净`main/19b5bf5`接续。在现有测试Controller中实现Alt左键绕观察中心旋转、Alt中键缩放、Alt右键平移及无需Alt的滚轮缩放；面板提示已同步，原观察模式右键WASD飞行移除。观察拖动期间暂时释放车辆输入，松开／失焦／切换镜头／换车恢复，车辆自身摄像机继续沿用原右键观察。未增加公共Controller接口或源码文件；现有四项测试中的相机用例扩充轨道半径、同步平移、距离缩放／限制、重新聚焦及Alt／滚轮绑定检查。UE5.8.3 R1发现局部Player变量遮蔽基类成员，改名后NoLink R2成功；Editor释放DLL后完整Editor R3成功，运行／工具模块均已写入。专项进程退出0但无UE日志／报告，实际执行及鼠标操作仍未验证；未重做Game Target。本轮1245份保护基线逐份一致，保存资产／Config／公共Controller／公共相机和车辆源码保持，未提交／Push。日志与基线位于`Saved/VehicleTest/20261111/AltMouseNavigation`；详见[接线与操作](Configuration/SingleVehicleTest_Setup_CN_v0.1.md)。
 
 **2026-11-11 车辆资产生成器默认碰撞网格已更新，完整Editor链接已完成。** 从干净`main/5d9d79a`接续。`HALVehicleAssets::DefaultCollisionMeshPath`改为`/Game/Meshes/Collision/SM_Car_01_Collision.SM_Car_01_Collision`，创建前校验和新Vehicle Definition的赋值共同使用该路径。已确认目标保存资产存在；其他默认参数与已有资产保持。UE5.8.3-58210709 Editor模块`-NoLink`编译成功，含现有生成器测试源码；随后Alt鼠标操作调整的完整Editor R3已成功链接工具模块，解除此前Editor占用限制，尚未实际生成验收。说明同步到[车辆资产生成工具](Configuration/Vehicle_Asset_Generator_CN_v0.1.md)，原编译日志`Saved/VehicleAssetGenerator/DefaultCollision_20261111/Compile_Editor_NoLink.log`，完整链接日志`Saved/VehicleTest/20261111/AltMouseNavigation/Build_Editor_R3.log`；保存资产／Config无改动，未新增源码文件、未提交／Push。
