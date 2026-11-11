@@ -44,7 +44,8 @@ namespace
 		Connect(TEXT("UV"), NewObject<UMaterialExpressionTextureCoordinate>(Material));
 		for (const auto& Pair : {TPair<FName, FName>(TEXT("Height"), TEXT("HAL_GroundBulgeHeight")),
 			TPair<FName, FName>(TEXT("Amplitude"), TEXT("HAL_GroundWaveAmplitude")),
-			TPair<FName, FName>(TEXT("Phase"), TEXT("HAL_GroundWavePhase"))})
+			TPair<FName, FName>(TEXT("Phase"), TEXT("HAL_GroundWavePhase")),
+			TPair<FName, FName>(TEXT("InvTileSize"), TEXT("HAL_GroundInvTileSize"))})
 		{
 			auto* Parameter = NewObject<UMaterialExpressionScalarParameter>(Material);
 			Parameter->ParameterName = Pair.Value;
@@ -83,11 +84,17 @@ bool FHALGroundSurfaceMeshTest::RunTest(const FString&)
 	const auto Mesh = HALGroundSurface::BuildRibbon(Points, FVector::ZeroVector, 2, 320, Settings);
 	if (!TestTrue(TEXT("Subdivided strip and rounded caps form a valid mesh"), Mesh.TriangleCount() > 0 && Mesh.CheckValidity())) { return false; }
 	const auto* Colors = Mesh.Attributes()->PrimaryColors();
+	TestEqual(TEXT("UV1 carries the smooth weight gradient separately from texture UV0"), Mesh.Attributes()->NumUVLayers(), 2);
+	const auto* Gradients = Mesh.Attributes()->GetUVLayer(1);
 	bool bRaisedInterior = false, bPinnedEdge = false, bInteriorCapRing = false;
 	for (const int32 Vertex : Mesh.VertexIndicesItr())
 	{
 		const FVector Position = Mesh.GetVertex(Vertex);
 		const float Weight = Colors->GetElement(Vertex).X;
+		const FVector2f Gradient = Gradients->GetElement(Vertex);
+		TestTrue(TEXT("Smooth gradients are finite"), FMath::IsFinite(Gradient.X) && FMath::IsFinite(Gradient.Y));
+		if (Weight > .99f) { TestTrue(TEXT("The bulge crest has a flat analytic tangent"), Gradient.SizeSquared() < .00001f); }
+		if (Position.X < 0) { TestTrue(TEXT("Rounded end gradients point towards the raised center"), Gradient.X >= 0); }
 		TestTrue(TEXT("Deformation weights are bounded"), Weight >= 0 && Weight <= 1);
 		TestTrue(TEXT("Base mesh remains on its sampled ground plane"), FMath::IsNearlyEqual(Position.Z, Position.Y * .25 + 2, .001));
 		bRaisedInterior |= Weight > .99f;
@@ -131,9 +138,15 @@ bool FHALGroundSurfaceConfigTest::RunTest(const FString&)
 	Material = DeformationTestMaterial();
 #endif
 	Surface->ConfigureSurface(Material, 320, Settings);
+	TestFalse(TEXT("Existing ground surfaces retain their shadow-free default"), Surface->CastShadow);
+	Settings.bCastShadow = true;
+	Surface->ConfigureSurface(Material, 320, Settings);
+	TestTrue(TEXT("A valid raised surface can opt into real shadows"), Surface->CastShadow);
 	auto* MID = Cast<UMaterialInstanceDynamic>(Surface->GetMaterial(0));
 	if (!TestNotNull(TEXT("Each surface gets its own WPO material instance"), MID)) { return false; }
 	TestEqual(TEXT("Height comes from the area's config"), MID->K2_GetScalarParameterValue(TEXT("HAL_GroundBulgeHeight")), 8.f);
+	TestTrue(TEXT("Wave normals use the same world-to-UV scale as the displacement"),
+		FMath::IsNearlyEqual(MID->K2_GetScalarParameterValue(TEXT("HAL_GroundInvTileSize")), 1.f / 320));
 	Surface->SetSurfaceAge(.75f);
 	TestTrue(TEXT("Server age reaches the material phase"), FMath::IsNearlyEqual(MID->K2_GetScalarParameterValue(TEXT("HAL_GroundWavePhase")), .25f));
 	Surface->SetSurfaceAge(3.75f);
@@ -150,6 +163,10 @@ bool FHALGroundSurfaceConfigTest::RunTest(const FString&)
 	Settings.bEnabled = false;
 	Surface->ConfigureSurface(Material, 320, Settings);
 	TestTrue(TEXT("Opting out restores the supplied material"), Surface->GetMaterial(0) == Material);
+	TestFalse(TEXT("Disabling deformation also removes its optional shadow"), Surface->CastShadow);
+	Settings.bEnabled = true;
+	Surface->ConfigureSurface(nullptr, 320, Settings);
+	TestFalse(TEXT("An absent material cannot leave a shadow-only surface"), Surface->CastShadow);
 	return true;
 }
 

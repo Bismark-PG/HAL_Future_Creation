@@ -67,7 +67,51 @@
 
 描边过渡和笔触形状分别调节。现有 `StrokeAmount`、`DotAmount` 可降低笔触／网点对比；针状笔触需通过替换更圆润的 `StrokeMask` 改形。母材质中 **Bold brush shapes** 的 SmoothStep 默认 0.35／0.55，扩大该区间可柔化笔触颜色过渡，但不会自动将尖端变圆。本轮只记录方法，未调整实际资产。
 
-## 节点结构
+## 体积明暗与投影（2026-11-11）
+
+按用户授权，当前母材质已增加平滑卡通体积明暗，继续使用 **Unlit / Masked**。原有配色、笔触和颜色输出完整保留，在最终颜色上叠加可关闭的明暗倍率。现有 MI 自动继承新参数，无需重新指定材质或新建实例。
+
+打开 `MI_SlipperyTrail_Graffiti`，展开 **04 Volume shading**。勾选相应参数左侧的覆盖框后可调节。
+
+| 参数 | 新增默认值 | 调试方式 |
+| --- | --- | --- |
+| VolumeStrength | 1 | 总强度，0 恢复原来的颜色输出，建议 0～1 |
+| VolumeNormalStrength | 4 | 放大曲面朝向变化，让宽而低的隆起更易读；不改变实际高度，建议 1～5，代码限制 0～8 |
+| VolumeLightDirection | `(-0.5,-0.6,0.65,0)` | RGB 表示世界 XYZ 的虚拟来光方向，A 不使用；向量会归一化，修改 XY 符号可对调明暗方向；零向量按向上处理 |
+| VolumeBandThreshold | 0.08 | 明暗从接近原色进入亮／暗色块的门槛；减小会让较缓的坡度也显示明暗 |
+| VolumeSoftness | 0.12 | 颜色过渡宽度；增大更柔和，可先试 0.18～0.25，建议不小于 0.002 |
+| VolumeShadowStrength | 0.45 | 背向虚拟光的部分暗多少；过暗时先降到 0.2～0.3，建议 0～1 |
+| VolumeHighlightStrength | 0.15 | 朝向虚拟光的部分亮多少；可试 0.2～0.3，建议 0～1 |
+
+这些是颜色表现参数。实际高度／波幅仍在技能 DA 的 Deformation 中配置，新增 `HAL_GroundInvTileSize` 属于程序写入的参数，团队不手工修改。
+
+建议首测步骤：
+
+1. 保持你当前的颜色和隆起高度，先把 Wave Amplitude 设为 0，比较 VolumeStrength=0 与 1，观察静态隆起的方向明暗。
+2. 在 MI 调 VolumeNormalStrength 和 VolumeShadowStrength。先让大形可读，再用 VolumeSoftness 缓和过渡。测试不同方向时以数值编辑 VolumeLightDirection 的 RGB 分量。
+3. 把 Wave Amplitude 改为 2～4 cm，观察波峰／波谷的明暗是否随曲面一起移动。若希望缓慢而大块的起伏，可试 Wave Length=400 cm、Wave Period=3 s。参数为首测建议，没有覆盖你的 DA。
+4. 在 `DA_Ability_SlipperyTrail → Slippery Trail → Presentation → Deformation` 勾选 **Cast Shadow**，保存后重新释放技能。默认关闭，便于与当前效果对照；重新关闭 Enabled 或移除材质时也会关闭该投影。
+5. 从比赛镜头看原地、直行、急弯、绕回、斜坡和两端到期清理。轮廓折线可通过 Width Subdivisions=12／16、Vertex Spacing=20～30 cm 改善；平滑明暗自身已不依赖三角面块的法线。
+
+真实投影需要场景中有投影灯光、地面能够接收阴影。柔和度由灯光与阴影设置决定，MI 的 VolumeSoftness 只调卡通明暗过渡。本轮未新增独立的软阴影图层；开启真实投影后的多区域性能与实际地图画面由团队继续验收。
+
+下图是当前保存材质在瞬态网格／地面上的真实 D3D12 对照，依次为关闭体积明暗、开启体积明暗及投影。测试使用 25 cm 隆起、2 cm 波幅、400 cm 波长、独立灯光／曝光，不能当作正式地图或原截图的最终亮度。
+
+![关闭体积明暗](../../SourceArt/SlipperyTrail/SlipperyTrail_Volume_Before_v01.png)
+
+![开启平滑体积明暗和真实投影](../../SourceArt/SlipperyTrail/SlipperyTrail_Volume_After_v01.png)
+
+### 实现与验证记录
+
+公共网格 UV1 提供中央权重对世界 XY 的平滑梯度，MID 增加 `HAL_GroundInvTileSize`。材质据此对原隆起／波动公式求导，结合原地面 PixelNormalWS 计算圆润的曲面朝向，再用虚拟来光方向形成柔和的卡通明暗。这里只改变颜色；原 WPO、顶点位置、范围、球／车碰撞、抓地和权威规则保持。相位继续来自服务器时间。
+
+更新脚本为 `Tools/SlipperyTrailGraffiti/UpdateVolumeMaterial.py`，嵌入代码为同目录 `VolumeShading.hlsl`。修改通过 Unreal Editor API 完成，没有手工修改二进制、编辑 Blueprint 或保存 MI／DA／地图。脚本保留现有颜色图和参数，可识别并更新自己创建的 Custom 节点。
+
+基点 `main/0c53a5d`，UE 5.8.3-58210709；最终 Editor／Game R2 完整构建通过，原生专项 R2 **11/11**，原生产组件 D3D12 位移回归 **1/1**，均 0 测试警告／失败／未运行／进行中。保存材质重新加载后的 R3 六幅 D3D12 画面对比通过：体积明暗变化 209547 像素、反向来光变化 239442、波动相位变化 87823、真实投影变化 4346；重新关闭体积明暗后与原画面差异为 **0**。图像为 768×512，颜色通道差异阈值 0.025。最终材质 71 节点，VS 175／PS 225 指令、1 个采样器，为本设置统计。
+
+首轮脚本 CustomInput 构造接口不适配、第二轮将新增方向参数误判为旧配色变化，均在保存前停止；R3 初版能渲染但三角面明暗呈块状，改为平滑梯度后经 R4 更新并完成 R2／R3 渲染复验。原失败和中间画面均保留在 `Saved/SlipperyTrail/Volume_20261111`。1246 份原有保存资产／Config／uproject 中，仅授权的母材质变化，其余 **1245** 份逐份一致，包含原 MI、用户开工前的 Definition DA 修改、技能 DA 与纹理。没有新增真人／双端／发布包验收，本轮未提交／Push。[可同步验证摘要](Slippery_Trail_Volume_Verification_20261111.json)
+
+## 节点结构（首版分色与 WPO）
 
 ### 1. 粗轮廓与分块明暗
 

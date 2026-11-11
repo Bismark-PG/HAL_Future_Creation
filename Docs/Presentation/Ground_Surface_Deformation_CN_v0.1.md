@@ -7,6 +7,7 @@ SlipperyTrail 的入口为 `DA_Ability_SlipperyTrail → Slippery Trail → Pres
 | 参数 | 默认值及含义 |
 | --- | --- |
 | Enabled | 默认关闭。接线后启用网格细分、独立材质实例和 WPO 参数 |
+| Cast Shadow | 默认关闭；启用 Deformation 后可单独开启真实投影，读取场景灯光和地面材质，纯表现且不启用碰撞 |
 | Width Subdivisions | 8，横向等分数量，允许 2～16 的偶数 |
 | Vertex Spacing | 40 cm，沿路径的目标顶点间距 |
 | Bulge Height | 8 cm，中央基础隆起，允许 0～60 cm |
@@ -64,7 +65,7 @@ WorldPositionOffset = (0, 0, VertexColor.r * height)
 
 ### 顶视角下的体积明暗
 
-当前网格法线取自原地面采样，WPO 修改顶点高度。地面组件关闭投影。Unlit 油膜的颜色由 Emissive 输出，因此隆起主要通过轮廓和透视表现。在接近顶视的比赛镜头下，需要额外的明暗来表现中央和边缘之间的曲率。若采用 Default Lit，还需要提供变形后曲面的法线，并把受光底色与自发光纹路分别接入 Base Color 和 Emissive。
+当前网格法线取自原地面采样，WPO 修改顶点高度。地面组件默认关闭投影，2026-11-11 已增加 DA 的 Cast Shadow 开关。Unlit 油膜的颜色由 Emissive 输出，因此隆起主要通过轮廓和透视表现。在接近顶视的比赛镜头下，需要额外的明暗来表现中央和边缘之间的曲率。若采用 Default Lit，还需要提供变形后曲面的法线，并把受光底色与自发光纹路分别接入 Base Color 和 Emissive。
 
 首轮可以利用已有的 VertexColor.R 做柔和的中央亮、边缘暗，按以下步骤验证体积可读性。
 
@@ -81,6 +82,16 @@ WorldPositionOffset = (0, 0, VertexColor.r * height)
 调用方创建自己的 `UHALGroundSurfaceComponent`，用 `ConfigureSurface` 传入材质、平铺尺寸及变形配置，再用 `SetMesh` 更新形状。已有稳定形状时，每帧只调用 `SetSurfaceAge` 更新波动阶段。到期时由所属区域隐藏或销毁组件。
 
 岩浆可以配置更大的起伏及流纹，雪地可以将 Wave Amplitude 设为 0，使用静态柔和隆起。该能力输出表现网格和材质参数，区域本身继续提供伤害、抓地或其他玩法结果。当前首个接入者为 SlipperyTrail。
+
+## 平滑体积明暗的附加合同（2026-11-11）
+
+涂鸦材质已增加可关闭的卡通体积明暗。公共生成器继续用 UV0 表示地面平铺坐标、VertexColor.R 表示中央权重；**UV1 现在保留为权重对世界 XY 的平滑梯度，单位 1/cm**。条带横向使用 `(-2*u/半宽)*横向单位向量`，圆端使用 `(-2*归一化半径/半宽)*径向单位向量`，顶点间插值后用于计算圆润的曲面朝向。该附加通道不改变顶点位置、UV0、权重、范围或碰撞。
+
+启用变形时，公共 MID 额外写入 Scalar `HAL_GroundInvTileSize=1/TextureTileSize`。基础 WPO 仍沿用原四参数，旧材质可继续使用；需要新体积明暗的材质再读取 UV1 和这项新参数。
+
+新材质使用 `H=W*(Height+Amplitude*sin(theta))` 的导数计算理想平滑隆起／波纹法线，并以原地面 PixelNormalWS 为基准加入虚拟方向明暗。该方向服务卡通表现，独立于场景真实照明；真实投影由 Cast Shadow 控制。实现保存在 `Tools/SlipperyTrailGraffiti/VolumeShading.hlsl`，由 Editor API 脚本嵌入材质，运行时不依赖外部 HLSL 文件。具体调参见[涂鸦材质体积明暗与投影](Slippery_Trail_Graffiti_Material_CN_v0.1.md#体积明暗与投影2026-11-11)。
+
+这里的法线对应公共隆起公式的平滑曲面。很粗的网格仍可能显示轮廓折线，弯道急变／相交和坡面仍需实景检查。复用到其他地面效果时保留 UV1，额外纹理使用 UV0 或其他未占用通道；自定义额外 WPO 需同步其法线计算。
 
 ## 验收
 

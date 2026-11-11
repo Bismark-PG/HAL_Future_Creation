@@ -65,8 +65,10 @@ UE::Geometry::FDynamicMesh3 HALGroundSurface::BuildRibbon(TConstArrayView<FHALGr
 	}
 
 	Mesh.EnableAttributes();
+	Mesh.Attributes()->SetNumUVLayers(2);
 	Mesh.Attributes()->EnablePrimaryColors();
 	auto* UVs = Mesh.Attributes()->PrimaryUV();
+	auto* Gradients = Mesh.Attributes()->GetUVLayer(1);
 	auto* Normals = Mesh.Attributes()->PrimaryNormals();
 	auto* Colors = Mesh.Attributes()->PrimaryColors();
 	const int32 Across = Deformation.bEnabled ? Deformation.WidthSubdivisions : 2;
@@ -80,17 +82,20 @@ UE::Geometry::FDynamicMesh3 HALGroundSurface::BuildRibbon(TConstArrayView<FHALGr
 		if (Triangle >= 0)
 		{
 			UVs->SetTriangle(Triangle, Vertices);
+			Gradients->SetTriangle(Triangle, Vertices);
 			Normals->SetTriangle(Triangle, Vertices);
 			Colors->SetTriangle(Triangle, Vertices);
 		}
 	};
-	const auto AddVertex = [&](const FHALGroundSurfacePoint& Point, FVector Offset, float Weight)
+	const auto AddVertex = [&](const FHALGroundSurfacePoint& Point, FVector Offset, float Weight, FVector2f Gradient)
 	{
 		const FVector Normal = Point.Normal.GetSafeNormal();
 		Offset.Z = -(Normal.X * Offset.X + Normal.Y * Offset.Y) / Normal.Z + GroundLift;
 		const FVector Position = Point.Ground - Origin + Offset;
 		const int32 Vertex = Mesh.AppendVertex(Position);
 		UVs->AppendElement(FVector2f(Position.X / TextureTileSize, Position.Y / TextureTileSize));
+		// Smooth analytic d(weight)/d(world XY), in inverse centimeters, for stylized volume normals.
+		Gradients->AppendElement(Gradient);
 		Normals->AppendElement(FVector3f(Normal));
 		Colors->AppendElement(FVector4f(Weight, 0, 0, 1));
 		return Vertex;
@@ -110,7 +115,8 @@ UE::Geometry::FDynamicMesh3 HALGroundSurface::BuildRibbon(TConstArrayView<FHALGr
 		for (int32 Column = 0; Column <= Across; ++Column)
 		{
 			const float Coordinate = 2.f * Column / Across - 1.f;
-			const int32 Vertex = AddVertex(Row.Point, Side * (Coordinate * Row.Point.HalfWidth), 1.f - Coordinate * Coordinate);
+			const int32 Vertex = AddVertex(Row.Point, Side * (Coordinate * Row.Point.HalfWidth), 1.f - Coordinate * Coordinate,
+				FVector2f(Side.X, Side.Y) * (-2.f * Coordinate / Row.Point.HalfWidth));
 			if (Column == 0) { Row.FirstVertex = Vertex; }
 		}
 	}
@@ -142,8 +148,9 @@ UE::Geometry::FDynamicMesh3 HALGroundSurface::BuildRibbon(TConstArrayView<FHALGr
 				for (int32 Segment = 1; Segment < CapSegments; ++Segment)
 				{
 					const double Angle = UE_DOUBLE_PI * Segment / CapSegments;
-					Outer.Add(AddVertex(Row.Point, (Side * FMath::Cos(Angle) + Along * FMath::Sin(Angle))
-						* (Row.Point.HalfWidth * Radius), 1.f - Radius * Radius));
+					const FVector Radial = Side * FMath::Cos(Angle) + Along * FMath::Sin(Angle);
+					Outer.Add(AddVertex(Row.Point, Radial * (Row.Point.HalfWidth * Radius), 1.f - Radius * Radius,
+						FVector2f(Radial.X, Radial.Y) * (-2.f * Radius / Row.Point.HalfWidth)));
 				}
 				Outer.Add(Center + int32(Sign) * Ring);
 				for (int32 Segment = 0; Segment < CapSegments; ++Segment)
@@ -182,11 +189,13 @@ void UHALGroundSurfaceComponent::ConfigureSurface(UMaterialInterface* Material, 
 	TileSize = TextureTileSize;
 	SourceMaterial = Material;
 	RuntimeMaterial = nullptr;
+	SetCastShadow(Material && Settings.bEnabled && Settings.IsValid() && Settings.bCastShadow);
 	if (Material && Settings.bEnabled && Settings.IsValid())
 	{
 		RuntimeMaterial = UMaterialInstanceDynamic::Create(Material, this);
 		RuntimeMaterial->SetScalarParameterValue(TEXT("HAL_GroundBulgeHeight"), Settings.BulgeHeight);
 		RuntimeMaterial->SetScalarParameterValue(TEXT("HAL_GroundWaveAmplitude"), Settings.WaveAmplitude);
+		RuntimeMaterial->SetScalarParameterValue(TEXT("HAL_GroundInvTileSize"), 1.f / TileSize);
 		const float Angle = FMath::DegreesToRadians(Settings.WaveDirection);
 		const float Scale = TileSize / Settings.WaveLength;
 		RuntimeMaterial->SetVectorParameterValue(TEXT("HAL_GroundWaveUV"), FLinearColor(FMath::Cos(Angle) * Scale, FMath::Sin(Angle) * Scale, 0, 0));

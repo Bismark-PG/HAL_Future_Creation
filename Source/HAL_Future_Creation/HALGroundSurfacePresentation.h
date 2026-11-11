@@ -12,6 +12,9 @@ struct HAL_FUTURE_CREATION_API FHALGroundSurfaceDeformation
 	GENERATED_BODY()
 	/** Enable after the material consumes the HAL_Ground parameters and Vertex Color R. */
 	UPROPERTY(EditAnywhere, Category="Deformation") bool bEnabled = false;
+	/** Optional real shadow from the deformed visual mesh. Does not enable collision or lighting reception. */
+	UPROPERTY(EditAnywhere, Category="Deformation", meta=(EditCondition="bEnabled"))
+	bool bCastShadow = false;
 	/** Even subdivision count across each strip and the diameter of rounded ends. */
 	UPROPERTY(EditAnywhere, Category="Deformation", meta=(ClampMin="2", ClampMax="16", EditCondition="bEnabled"))
 	int32 WidthSubdivisions = 8;

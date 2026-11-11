@@ -1,0 +1,120 @@
+{
+  "date": "2026-11-11",
+  "base_commit": "0c53a5d",
+  "branch": "main",
+  "engine": "5.8.3-58210709",
+  "editor_build": "R2 succeeded",
+  "game_build": "R2 succeeded",
+  "native": {
+    "failed": 0,
+    "not_run": 0,
+    "passed": 11,
+    "report": "Saved/SlipperyTrail/Volume_20261111/Native_R2/index.json",
+    "in_process": 0,
+    "warnings": 0
+  },
+  "component_render": {
+    "warnings": 0,
+    "passed": 1,
+    "failed": 0,
+    "report": "Saved/SlipperyTrail/Volume_20261111/Component_Render_R2/index.json"
+  },
+  "material_nodes": 71,
+  "shader_statistics": {
+    "num_vertex_shader_instructions": 175,
+    "num_pixel_shader_instructions": 225,
+    "num_samplers": 1
+  },
+  "render": {
+    "cases": [
+      {
+        "name": "A_Original",
+        "pixels": 393216
+      },
+      {
+        "name": "B_Volume",
+        "pixels": 393216
+      },
+      {
+        "name": "C_LightReversed",
+        "pixels": 393216
+      },
+      {
+        "name": "D_WaveMoved",
+        "pixels": 393216
+      },
+      {
+        "name": "E_RealShadow",
+        "pixels": 393216
+      },
+      {
+        "name": "F_DisabledAgain",
+        "pixels": 393216
+      }
+    ],
+    "statistics": {
+      "num_vertex_shader_instructions": 175,
+      "num_pixel_shader_instructions": 225,
+      "num_samplers": 1
+    },
+    "volume_changed_pixels": 209547,
+    "direction_changed_pixels": 239442,
+    "wave_changed_pixels": 87823,
+    "shadow_changed_pixels": 4346,
+    "disable_restore_changed_pixels": 0,
+    "status": "passed"
+  },
+  "render_setup": {
+    "scene": "transient ribbon, lit floor, directional light, independent exposure",
+    "width": 768,
+    "amplitude_cm": 2,
+    "height": 512,
+    "bulge_cm": 25,
+    "channel_difference_threshold": 0.025,
+    "wavelength_cm": 400
+  },
+  "protection": {
+    "textures_maps_config_uproject_unchanged": true,
+    "skill_da_unchanged": true,
+    "preexisting_definition_da_change_preserved": true,
+    "unchanged": 1245,
+    "authorized_changes": [
+      "Content\\Assets\\FX\\Materials\\M_SlipperyTrail_Graffiti.uasset"
+    ],
+    "checked": 1246,
+    "mi_unchanged": true
+  },
+  "inputs": [
+    {
+      "sha256": "CA3AFD28C5080C6DE4FA6FFF04EDF89B55045B50567DEDEE27FDE8894A52DFBA",
+      "path": "Source/HAL_Future_Creation/HALGroundSurfacePresentation.h"
+    },
+    {
+      "sha256": "23905F2F438B5FE30316914EF2862C6BD1565FE9C2E821E0F86D11939F57ECE4",
+      "path": "Source/HAL_Future_Creation/HALGroundSurfacePresentation.cpp"
+    },
+    {
+      "sha256": "8D275BA0E01BBDF09B632500BB17D3647B8B3255C3C83DDE6A1382054FA6D0AE",
+      "path": "Source/HAL_Future_Creation/Tests/HALGroundSurfaceTests.cpp"
+    },
+    {
+      "sha256": "856E2300A4DED8C7405C04932153FC430816D009E1ADD3771DD93991255F2BA1",
+      "path": "Tools/SlipperyTrailGraffiti/UpdateVolumeMaterial.py"
+    },
+    {
+      "sha256": "E8A481EE66CEFD82D9E6AC72B2AF9F83C0EB6B518F2BDB0BB09F73EBA88B9436",
+      "path": "Tools/SlipperyTrailGraffiti/VolumeShading.hlsl"
+    },
+    {
+      "sha256": "5C46D85ED5BC1F42D8F91CAD13C89075109289F4F6518405533DEF999FC14236",
+      "path": "Content/Assets/FX/Materials/M_SlipperyTrail_Graffiti.uasset"
+    }
+  ],
+  "pending": [
+    "Actual saved DA and production-map visual tuning",
+    "Host/client lifecycle and joins",
+    "Packaged build and multiple simultaneous shadow performance"
+  ],
+  "raw_logs": "Saved/SlipperyTrail/Volume_20261111 (local, not committed)",
+  "submitted": false
+}
