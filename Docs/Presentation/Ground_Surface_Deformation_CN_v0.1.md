@@ -21,15 +21,32 @@ SlipperyTrail 的入口为 `DA_Ability_SlipperyTrail → Slippery Trail → Pres
 
 ## 材质接线
 
-保留当前底纹、绿紫高光和透明度输出，在母材质增加以下节点。所有参数名区分大小写。
+打开 `/Game/Assets/FX/Materials/M_SlipperyTrail_OilSheen` 母材质，在材质图的空白处新增一组地面变形节点。以下是一条独立连接到 World Position Offset 的分支。所有参数名按下表逐字填写，程序会按这些名字向运行时材质实例写入数值。
 
-1. 新建三个 Scalar Parameter，分别命名 `HAL_GroundBulgeHeight`、`HAL_GroundWaveAmplitude`、`HAL_GroundWavePhase`，默认都填 0。新建 Vector Parameter `HAL_GroundWaveUV`，默认填 `(0,0,0,0)`。
-2. `TextureCoordinate[0]` 接 `DotProduct.A`。`HAL_GroundWaveUV` 经过只勾选 **R、G** 的 `ComponentMask`，接 `DotProduct.B`。
-3. `DotProduct` 输出与 `HAL_GroundWavePhase` 相加，接 `Sine`，将 Sine 的 **Period** 设为 **1**。
-4. Sine 输出乘 `HAL_GroundWaveAmplitude`，再加 `HAL_GroundBulgeHeight`。
-5. 添加 `VertexColor`，取 **R**，与上一步结果相乘，得到 Z 偏移。
-6. 用 `AppendVector` 将 `Constant2Vector(0,0)` 与 Z 偏移合成三维向量，接 **World Position Offset**。
-7. Apply／Save 母材质，在技能 DA 勾选 **Deformation → Enabled**，保存后释放技能测试。
+1. **创建四个参数节点。** 在材质图空白处按住 **S** 并单击左键，创建 Scalar Parameter。选中节点，在 Details 的 **Parameter Name** 填写名称，在 **Default Value** 填写 0。重复创建下表前三个参数。按住 **V** 并单击左键，创建 Vector Parameter，将名称填为表中最后一项，打开默认颜色，把 R、G、B、A 四个分量都设为 0。也可右键搜索完整节点名创建。 [Epic 材质实例操作](https://dev.epicgames.com/documentation/en-us/unreal-engine/creating-and-using-material-instances-in-unreal-engine)
+
+   | 节点类型 | Parameter Name | Default Value | 运行时来源 |
+   | --- | --- | --- | --- |
+   | Scalar Parameter | `HAL_GroundBulgeHeight` | 0 | DA 的 Bulge Height |
+   | Scalar Parameter | `HAL_GroundWaveAmplitude` | 0 | DA 的 Wave Amplitude |
+   | Scalar Parameter | `HAL_GroundWavePhase` | 0 | 根据服务器时间计算的波动相位 |
+   | Vector Parameter | `HAL_GroundWaveUV` | `(0,0,0,0)` | 由平铺尺寸、波长及方向计算 |
+
+   母材质的默认高度和幅度设为 0。游戏中启用 Deformation 后，C++ 会分别写入 DA 的 8 cm 和 2 cm 等实际配置。
+
+2. **计算波纹的空间位置。** 右键搜索并创建 `TextureCoordinate`，选中后将 **Coordinate Index** 设为 0，**U Tiling / V Tiling** 都设为 1。新建 `ComponentMask`，在 Details 只勾 **R、G**，将 **B、A** 取消勾选。将 `HAL_GroundWaveUV` 的 **RGB 总输出**接到这个 Mask 的输入。新建 `DotProduct`，将刚创建的 TextureCoordinate 输出直接接 **A**，Mask 的输出接 **B**。这两条输入都是二通道。 [Epic ComponentMask 与 DotProduct](https://dev.epicgames.com/documentation/en-us/unreal-engine/math-material-expressions-in-unreal-engine)
+
+3. **让波纹随时间运动。** 新建第一个 `Add`，将 DotProduct 输出接 **A**，`HAL_GroundWavePhase` 接 **B**。新建 `Sine`，将这个 Add 的输出接到 Sine 输入。选中 Sine，在 Details 中将 **Period** 填为 **1**。Sine 输出保留 −1～1 的范围。一轮实际持续 3 秒由 DA 的 Wave Period 和程序计算控制，此处的 Period=1 对应相位变化一个单位。 [Epic Sine 节点](https://dev.epicgames.com/documentation/unreal-engine/math-material-expressions-in-unreal-engine)
+
+4. **把波形变成厘米高度。** 新建第一个 `Multiply`，将 Sine 输出接 **A**，`HAL_GroundWaveAmplitude` 接 **B**。再新建第二个 `Add`，将这个 Multiply 输出接 **A**，`HAL_GroundBulgeHeight` 接 **B**。这个 Add 的输出就是中央高度。以基础高度 8 cm、幅度 2 cm 为例，其数值在 6～10 cm 之间变化。
+
+5. **让边缘贴地。** 新建 `VertexColor`，使用标有 **R** 的红色输出引脚。新建第二个 `Multiply`，将第 4 步的 Add 输出接 **A**，VertexColor 的 **R** 接 **B**。程序在生成网格时已经写入这项权重，中央为 1、外边缘为 0，中间平滑过渡。因此中央获得完整高度，边缘获得 0 cm 偏移。圆端也使用相同权重。
+
+6. **合成 WPO 的三维偏移。** 在空白处按住 **2** 并单击左键，或右键搜索 `Constant2Vector`，把其两个分量都设为 0。新建 `AppendVector`，将这个 Constant2Vector 接 **A**，第 5 步的 Multiply 输出接 **B**。AppendVector 的结果为 `(0,0,Z偏移)`。将它接到主材质输出节点的 **World Position Offset**。输入顺序决定最终的 XYZ，A 提供前两个分量，B 提供第三个分量。 [Epic AppendVector](https://dev.epicgames.com/documentation/unreal-engine/math-material-expressions-in-unreal-engine)
+
+7. **保存并在游戏中验证。** 点击母材质的 **Apply**，等待编译结束，再 **Save**。打开 `DA_Ability_SlipperyTrail`，确认 **Presentation → Ground Material** 引用 `MI_SlipperyTrail_OilSheen`。展开 **Presentation → Deformation**，勾选 **Enabled**，先使用 Width Subdivisions=8、Bulge Height=8、Wave Amplitude=2、Wave Period=3，保存 DA。重新释放一次技能，让新生成的区域读取这份参数。
+
+效果以游戏中生成的地面条带为准，那里同时具备程序写入的材质参数和顶点权重。可先将 DA 的 Wave Amplitude 设为 0，观察静态隆起，再改回 2，观察缓慢起伏。母材质预览读取默认零值，实际隆起与波动通过游戏内生成的条带观察。
 
 计算式如下，其中 `UV0` 是当前地面材质的平铺坐标。
 
@@ -44,6 +61,18 @@ WorldPositionOffset = (0, 0, VertexColor.r * height)
 材质的 **Max World Position Offset Displacement** 可设为 0，使用组件提供的完整包围盒。如需在材质中显式限制，限制值应覆盖本材质所有配方的 `Bulge Height + Wave Amplitude`。组件按世界 Z 方向扩展包围盒，覆盖从底面到最大隆起的完整高度。
 
 现有 Unlit 油膜的明暗通过 Emissive 图表现。WPO 提供真实顶点起伏，比赛镜头下可结合当前底色与反光调节凸起的可读性。
+
+### 顶视角下的体积明暗
+
+当前网格法线取自原地面采样，WPO 修改顶点高度。地面组件关闭投影。Unlit 油膜的颜色由 Emissive 输出，因此隆起主要通过轮廓和透视表现。在接近顶视的比赛镜头下，需要额外的明暗来表现中央和边缘之间的曲率。若采用 Default Lit，还需要提供变形后曲面的法线，并把受光底色与自发光纹路分别接入 Base Color 和 Emissive。
+
+首轮可以利用已有的 VertexColor.R 做柔和的中央亮、边缘暗，按以下步骤验证体积可读性。
+
+1. 新建 `Lerp`，A 填 `0.35`，B 填 `1.0`，Alpha 接用于 WPO 的同一份 **VertexColor.R**。
+2. 新建 `Multiply`，A 接原本输出到 Emissive Color 的最终油膜颜色，B 接这个 Lerp。
+3. 将 Multiply 输出接 Emissive Color，Apply／Save，再在比赛镜头下释放技能对照。数值为明暗首测值，美术后续可按画面调节。
+
+该分支提供风格化明暗。WPO 继续负责实际隆起。可从低视角观察网格轮廓确认高度，再回到比赛镜头检查明暗效果。Wave Amplitude 为 0 时表现静态隆起，配置大于 0 的幅度才会出现缓慢起伏。
 
 ## 后续地面效果复用
 
