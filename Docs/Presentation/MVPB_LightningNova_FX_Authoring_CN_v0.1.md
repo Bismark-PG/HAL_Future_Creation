@@ -139,7 +139,11 @@ NovaFX → SetVariableFloat("User.PhaseElapsed", GetGameTimeInSeconds − PhaseS
 
 第 1～5 項全部通過。
 
-## 6. 夾具的能力邊界（已判定，不是缺陷）
+## 6. 夾具的能力邊界（已由團隊 PIE 結案，不是缺陷）
+
+> **2026-11-11 團隊回報：PIE 內確認三個階段都有。** 推送在真實遊戲世界中確實送達，
+> 本節描述的是自動化夾具的限制，不是接線缺陷。第 8 節的驗收走向因此確定為「夾具限制」一路。
+> 此為團隊實際畫面觀察，非本機量測結果。
 
 自動化世界**無法**驅動這個 Blueprint 的事件本體，因此不能用它驗證推送的值。證據是單一且明確的：
 
@@ -161,13 +165,21 @@ NovaFX → SetVariableFloat("User.PhaseElapsed", GetGameTimeInSeconds − PhaseS
 - **Blueprint 沒有覆寫事件**：`OnStageChanged` 在 generated class 上有 96 bytes bytecode；
   T3D 匯出顯示 exec 鏈完整。
 
-結論：**本環節沒有發現 Blueprint 或 Niagara 的接線缺陷**，但也還沒有任何證據顯示特效真的會動。
-值的驗證只能在 PIE 內做，見第 8 節。測試因此不斷言這些值，只鎖住名稱、型別與「沒有多出未宣告參數」。
+結論：**接線沒有缺陷，且已由團隊在 PIE 內確認三個階段都有**。
+值的驗證無法在這個夾具內做，測試因此不斷言這些值，只鎖住名稱、型別與「沒有多出未宣告參數」。
+
+這個限制不只影響本環節：任何「原生事件 → Blueprint 表現」的接線，在這套世界夾具裡都驗不到值。
+若之後要讓自動化涵蓋這類推送，需要先解決夾具無法執行 Blueprint 事件本體的問題，屬獨立課題。
 
 ## 7. 移除 Event Tick（團隊在 Editor 執行）
 
 AGENTS.md 第 13.7 節要求能由事件／狀態變更驅動時就不新增 Tick。目前 `User.PhaseElapsed` 由
 `Event Tick` 每幀推一次，可以改成只在階段轉換時推一次相位起點，讓 Niagara 自己算經過時間。
+
+> **不是只把那段接線刪掉。** `Event Tick` 目前是階段**內**時間唯一的推進來源：
+> `On Stage Changed` 只在轉換當下推一次 `StageAgeSeconds`（通常是 0），之後就不再更新。
+> 只刪 Tick 會讓 `User.PhaseElapsed` 凍在那個值，曲線停在每個階段的第一幀，三段都變成靜止畫面。
+> 必須先讓 Niagara 自己算時間（步驟 1～3），再動 Blueprint（步驟 4～6）。順序反了會把現在能動的特效弄壞。
 
 引擎提供的時間系統參數已查證（`NiagaraModule.cpp`）：
 
