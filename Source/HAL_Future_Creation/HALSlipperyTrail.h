@@ -3,6 +3,7 @@
 #include "Engine/NetSerialization.h"
 #include "GameFramework/Actor.h"
 #include "HALMovementAreaTypes.h"
+#include "HALGroundSurfacePresentation.h"
 #include "HALSlipperyTrail.generated.h"
 
 class ATestVehiclePawn;
@@ -67,6 +68,9 @@ struct FHALSlipperyTrailPresentation
 	UPROPERTY(EditAnywhere, Category="Ground", meta=(ClampMin="20", ClampMax="2000", Units="cm"))
 	float TextureTileSize = 320.f;
 
+	UPROPERTY(EditAnywhere, Category="Ground")
+	FHALGroundSurfaceDeformation Deformation;
+
 	bool HasUsableMaterial() const;
 };
 
@@ -117,7 +121,7 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_PresentationInput) double StartTime = -1;
 	UPROPERTY(ReplicatedUsing=OnRep_PresentationInput) TArray<FHALSlipperyTrailPoint> Points;
 	UPROPERTY(ReplicatedUsing=OnRep_PresentationInput) FHALSlipperyTrailPresentation Presentation;
-	UPROPERTY(Transient) TObjectPtr<UDynamicMeshComponent> GroundMesh;
+	UPROPERTY(Transient) TObjectPtr<UHALGroundSurfaceComponent> GroundMesh;
 	float LastMeshAge = -1.f;
 	bool bGroundMeshDirty = true;
 	FHALSlipperyTrailEmission Emission;

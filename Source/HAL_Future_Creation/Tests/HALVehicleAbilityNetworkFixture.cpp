@@ -32,6 +32,7 @@ namespace
 					{
 						Config->Presentation.GroundMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
 						Config->Shape.bDrawOutline = false;
+						Config->Presentation.Deformation.bEnabled = FParse::Param(FCommandLine::Get(), TEXT("HALGroundSurfaceFixture"));
 					}
 					Property->SetObjectPropertyValue_InContainer(Ability, Config);
 				}
@@ -53,14 +54,15 @@ namespace
 					const auto Class=Pawn->GetClass()->GetPathName();
 					const bool Boost=Class==TEXT("/Game/Blueprints/Vehicles/BP_RoundedVehiclePawn.BP_RoundedVehiclePawn_C");
 					const bool bCar03=Class==TEXT("/Game/Blueprints/Vehicles/BP_VehiclePawn_Car_03.BP_VehiclePawn_Car_03_C");
+					const bool bCar04=Class==TEXT("/Game/Blueprints/Vehicles/BP_VehiclePawn_Car_04.BP_VehiclePawn_Car_04_C");
 					if (!Boost && Class!=TEXT("/Game/Blueprints/Vehicles/BP_VehiclePawn_Car_02.BP_VehiclePawn_Car_02_C")
-						&& !((bBattleTop || bTrail) && bCar03)) { return; }
-					static UVehicleDefinition* Definitions[3]={nullptr,nullptr,nullptr}; const int32 I=bCar03?2:Boost?0:1;
+						&& !((bBattleTop || bTrail) && bCar03) && !(bTrail && bCar04)) { return; }
+					static UVehicleDefinition* Definitions[4]={nullptr,nullptr,nullptr,nullptr}; const int32 I=bCar04?3:bCar03?2:Boost?0:1;
 					if (!Definitions[I])
 					{
 						auto* GA=bTrail ? UHALSlipperyTrailAbility::StaticClass() : bBattleTop ? UHALBattleTopAbility::StaticClass() : LoadClass<UGameplayAbility>(nullptr,Boost?TEXT("/Game/Blueprints/GA/GA_MovementBoost.GA_MovementBoost_C")
 							:TEXT("/Game/Blueprints/GA/GA_ImpactImmunity.GA_ImpactImmunity_C"));
-						const FName Name = bCar03 ? TEXT("HALCar03AbilityFixture") : Boost ? TEXT("HALCar01AbilityFixture") : TEXT("HALCar02AbilityFixture");
+						const FName Name = bCar04 ? TEXT("HALCar04AbilityFixture") : bCar03 ? TEXT("HALCar03AbilityFixture") : Boost ? TEXT("HALCar01AbilityFixture") : TEXT("HALCar02AbilityFixture");
 						Definitions[I]=FHALVehicleAbilityTestAccess::Configure(Pawn,GA,Name);
 						Definitions[I]->AddToRoot();
 					}

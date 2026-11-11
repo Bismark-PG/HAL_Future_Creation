@@ -1,5 +1,9 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-11 通用地面隆起／波动程序及验证完成，已接入 SlipperyTrail，待团队补母材质 WPO 接线。** 从 `main/b06ecae` 接续并保留上一轮进度文档改动。新增可复用的 `FHALGroundSurfaceDeformation`、地面条带／圆端细分及 `UHALGroundSurfaceComponent`，输出中央到边缘权重、独立 MID、服务器相位与 WPO 包围盒。技能 DA 的 `Presentation → Deformation` 管统一参数，默认 8 cm 隆起、2 cm 起伏、3 s 周期，通过 Enabled 显式启用。UE5.8.3 Editor／Game R3 编译链接通过，原生专项 **11/11**，D3D12 测试材质实际轮廓／波动像素检查 **1/1**，D3D12 本机双端专项各 **1/1**。1243 份保存资产／Config／uproject 保护基线逐份一致。日志位于 `Saved/GroundSurface/20261111`。团队按[通用地面隆起与波动](Presentation/Ground_Surface_Deformation_CN_v0.1.md)在 Editor 接母材质 WPO，再启用 DA 并验收实际油膜画面。
+
+**2026-11-11 SlipperyTrail 联合开发进度核对，当前进入油膜观感调参与保存配方验收。** 核对基点为干净 `main/b06ecae`，本机 UE 5.8.3-58210709。程序已接入按服务器轨迹、地面法线和时间扩宽的动态地面网格，技能 DA 提供 `Presentation → Ground Material / Ground Lift / Texture Tile Size`。`987a129` 已提交遮罩、母材质、实例和技能 DA 的更新，本次只读确认保存的 `DA_Ability_SlipperyTrail` 包引用 `MI_SlipperyTrail_OilSheen`。团队留档已记录游戏内看到油膜，后续完成暗绿底纹与绿紫高光的独立流动接线；最新一版实际观感、急弯／绕回叠色、断段和双端到期清理待复测。当前先按[油膜特效速查](Presentation/Slippery_Trail_OilSheen_QuickGuide_CN.md)调参并在比赛镜头下验收。既有构建、隔离原生 188/188 和 D3D12 双端专项属于 11-10 UE 5.8.2 的地面表现施工记录，本轮为 Git、源码、保存包引用与文档核对。
+
 **2026-11-11 单车测试观察摄像机已改为Alt鼠标操作，Editor编译链接通过。** 从干净`main/19b5bf5`接续。在现有测试Controller中实现Alt左键绕观察中心旋转、Alt中键缩放、Alt右键平移及无需Alt的滚轮缩放；面板提示已同步，原观察模式右键WASD飞行移除。观察拖动期间暂时释放车辆输入，松开／失焦／切换镜头／换车恢复，车辆自身摄像机继续沿用原右键观察。未增加公共Controller接口或源码文件；现有四项测试中的相机用例扩充轨道半径、同步平移、距离缩放／限制、重新聚焦及Alt／滚轮绑定检查。UE5.8.3 R1发现局部Player变量遮蔽基类成员，改名后NoLink R2成功；Editor释放DLL后完整Editor R3成功，运行／工具模块均已写入。专项进程退出0但无UE日志／报告，实际执行及鼠标操作仍未验证；未重做Game Target。本轮1245份保护基线逐份一致，保存资产／Config／公共Controller／公共相机和车辆源码保持，未提交／Push。日志与基线位于`Saved/VehicleTest/20261111/AltMouseNavigation`；详见[接线与操作](Configuration/SingleVehicleTest_Setup_CN_v0.1.md)。
 
 **2026-11-11 车辆资产生成器默认碰撞网格已更新，完整Editor链接已完成。** 从干净`main/5d9d79a`接续。`HALVehicleAssets::DefaultCollisionMeshPath`改为`/Game/Meshes/Collision/SM_Car_01_Collision.SM_Car_01_Collision`，创建前校验和新Vehicle Definition的赋值共同使用该路径。已确认目标保存资产存在；其他默认参数与已有资产保持。UE5.8.3-58210709 Editor模块`-NoLink`编译成功，含现有生成器测试源码；随后Alt鼠标操作调整的完整Editor R3已成功链接工具模块，解除此前Editor占用限制，尚未实际生成验收。说明同步到[车辆资产生成工具](Configuration/Vehicle_Asset_Generator_CN_v0.1.md)，原编译日志`Saved/VehicleAssetGenerator/DefaultCollision_20261111/Compile_Editor_NoLink.log`，完整链接日志`Saved/VehicleTest/20261111/AltMouseNavigation/Build_Editor_R3.log`；保存资产／Config无改动，未新增源码文件、未提交／Push。
@@ -511,7 +515,9 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 ## 6. 下一环节和待确定项
 
-**2026-11-10 量产技能入口为扩散打滑带配置。** 依次完成技能 DA、GA 的 `Skill Config`、目标车型 `Primary` 授权，再验证保存配方与本机双端手感。通过房间验证 Car04 时，先补测试选车目录。双端使用相同构建，运动历史格式为 5。见[技能配置与验收](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md#editor-接线)。
+**2026-11-11 SlipperyTrail 当前入口为油膜表现调参和保存配方验收。** 技能 DA／GA、动态地面网格及油膜材质资产均已提交，保存的技能 DA 包引用油膜实例。按[油膜特效速查](Presentation/Slippery_Trail_OilSheen_QuickGuide_CN.md)检查双层流动与变色高光，在同版 Host／Client 对照原地、直线、弯道、断段、到期清理和画面可读性，回填最新观感与问题。新车型授权仍按[技能配置与验收](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md#editor-接线)操作，运动历史格式为 5。
+
+地面隆起／缓慢蠕动的程序已交付，新增入口为[母材质 WPO 节点和 DA 启用步骤](Presentation/Ground_Surface_Deformation_CN_v0.1.md#材质接线)。当前自动化使用临时测试材质，保存油膜配方接线后的画面由团队验收。
 
 2026-11-07当前入口：FX-4A～4D与FX-5程序验证通过。团队按[FX-4 Editor配置](Presentation/MVPB_Vehicle_Status_FX4_Implementation_CN_v0.1.md#2-测试表面先做两种颜色)验收实际模板，同时按[FX-5接线](Presentation/MVPB_Vehicle_Status_FX5_Implementation_CN_v0.1.md#3-editor-配置)保存共享电击配方并核对三车型效果。FX-6 进入第二视觉状态组合、退出次序和压力验收。
 

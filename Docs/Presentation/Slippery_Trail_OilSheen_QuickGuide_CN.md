@@ -27,3 +27,5 @@
 - 保存后在比赛镜头下释放一次技能，观察底纹流动、高光换色以及整条地面带到期清理。需要对照实际打滑范围时，可在技能 DA 打开 **Shape → Draw Outline**。
 
 技能授权、规则和联机验收见[扩散打滑带技能说明](../Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md)。
+
+地面隆起与缓慢蠕动可在母材质接入公共 WPO 参数，再在技能 DA 的 **Presentation → Deformation** 启用和调节。逐节点接线及参数见[通用地面隆起与波动](Ground_Surface_Deformation_CN_v0.1.md)。

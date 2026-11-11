@@ -55,7 +55,7 @@ EDataValidationResult UHALSlipperyTrailConfig::IsDataValid(FDataValidationContex
 	}
 	if (Presentation.GroundMaterial && !Presentation.HasUsableMaterial())
 	{
-		Context.AddError(FText::FromString(TEXT("Trail Ground Material must use the Surface domain. Use a Ground Lift of 0.1–20 cm and Texture Tile Size of 20–2000 cm.")));
+		Context.AddError(FText::FromString(TEXT("Trail Ground Material must use the Surface domain. Use Ground Lift 0.1–20 cm, Texture Tile Size 20–2000 cm and valid Deformation settings (even Width Subdivisions, Wave Amplitude at or below Bulge Height).")));
 		return EDataValidationResult::Invalid;
 	}
 	return EDataValidationResult::Valid;

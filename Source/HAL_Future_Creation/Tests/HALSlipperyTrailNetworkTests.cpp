@@ -15,6 +15,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/PlayerState.h"
 #include "Materials/Material.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/CommandLine.h"
 
 struct FHALSlipperyTrailNetworkAccess
@@ -124,8 +125,16 @@ namespace
 					{
 						bSawGround = true;
 						GroundMesh = Mesh;
-						Test.TestTrue(TEXT("Local ground mesh uses the replicated material"),
-							Mesh->GetMaterial(0) == UMaterial::GetDefaultMaterial(MD_Surface));
+						if (bCheckDeformation)
+						{
+							auto* MID = Cast<UMaterialInstanceDynamic>(Mesh->GetMaterial(0));
+							Test.TestTrue(TEXT("Replicated deformation creates an area-local material with the authored height"),
+								MID && MID->K2_GetScalarParameterValue(TEXT("HAL_GroundBulgeHeight")) == 8.f);
+						}
+						else
+						{
+							Test.TestTrue(TEXT("Local ground mesh uses the replicated material"), Mesh->GetMaterial(0) == UMaterial::GetDefaultMaterial(MD_Surface));
+						}
 						Test.TestEqual(TEXT("Ground rendering cannot affect queries or physics"),
 							Mesh->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
 					}
@@ -183,6 +192,7 @@ namespace
 		int32 Stage = 0;
 		bool bSawGripRecovery = false;
 		const bool bCheckGround = FParse::Param(FCommandLine::Get(), TEXT("HALSlipperyTrailGroundFixture"));
+		const bool bCheckDeformation = FParse::Param(FCommandLine::Get(), TEXT("HALGroundSurfaceFixture"));
 		bool bSawGround = false;
 		bool bSawFullWidth = false;
 		TWeakObjectPtr<UDynamicMeshComponent> GroundMesh;
