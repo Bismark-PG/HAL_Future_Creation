@@ -59,6 +59,7 @@ USTRUCT(BlueprintType)
 struct FHALSlipperyTrailPresentation
 {
 	GENERATED_BODY()
+	FHALSlipperyTrailPresentation() { PaintEdge.bEnabled = true; }
 
 	UPROPERTY(EditAnywhere, Category="Ground")
 	TObjectPtr<UMaterialInterface> GroundMaterial;
@@ -73,6 +74,9 @@ struct FHALSlipperyTrailPresentation
 
 	UPROPERTY(EditAnywhere, Category="Ground")
 	FHALGroundSurfaceDeformation Deformation;
+
+	UPROPERTY(EditAnywhere, Category="Ground")
+	FHALGroundSurfacePaintEdge PaintEdge;
 
 	/** Visual-only retirement after gameplay expiry. Zero keeps immediate removal. */
 	UPROPERTY(EditAnywhere, Category="Dissolve", meta=(ClampMin="0", ClampMax="5", Units="s"))

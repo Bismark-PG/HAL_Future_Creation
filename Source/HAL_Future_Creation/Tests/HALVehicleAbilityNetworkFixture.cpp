@@ -24,6 +24,12 @@ namespace
 					auto* Ability = GetMutableDefault<UHALSlipperyTrailAbility>();
 					auto* Property = FindFProperty<FObjectProperty>(Ability->GetClass(), TEXT("SkillConfig"));
 					auto* Config = NewObject<UHALSlipperyTrailConfig>(Ability);
+					Config->Presentation.PaintEdge.bEnabled = FParse::Param(FCommandLine::Get(), TEXT("HALSlipperyTrailPaintEdgeFixture"));
+					if (Config->Presentation.PaintEdge.bEnabled)
+					{
+						Config->Presentation.PaintEdge.MaximumOutset = 12;
+						Config->Presentation.PaintEdge.MaximumHalfWidthFraction = .06f;
+					}
 					Config->Shape.InitialHalfWidth = 750;
 					Config->Shape.MaximumHalfWidth = 900;
 					Config->Shape.LifetimeSeconds = 4;

@@ -37,6 +37,22 @@ struct HAL_FUTURE_CREATION_API FHALGroundSurfaceDeformation
 	bool operator==(const FHALGroundSurfaceDeformation& Other) const = default;
 };
 
+/** Bounded render-only margin; never passed to a gameplay footprint query. */
+USTRUCT(BlueprintType)
+struct HAL_FUTURE_CREATION_API FHALGroundSurfacePaintEdge
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, Category="Paint Edge") bool bEnabled = false;
+	UPROPERTY(EditAnywhere, Category="Paint Edge", meta=(ClampMin="0", ClampMax="30", Units="cm", EditCondition="bEnabled"))
+	float MaximumOutset = 15.f;
+	/** Additional half-width is capped by both Maximum Outset and this fraction. */
+	UPROPERTY(EditAnywhere, Category="Paint Edge", meta=(ClampMin="0", ClampMax="0.2", EditCondition="bEnabled"))
+	float MaximumHalfWidthFraction = .08f;
+	bool IsValid() const;
+	float Padding(float HalfWidth) const;
+	bool operator==(const FHALGroundSurfacePaintEdge& Other) const = default;
+};
+
 /** Already evaluated shape data. Width and ground sampling belong to the calling area. */
 struct HAL_FUTURE_CREATION_API FHALGroundSurfacePoint
 {
@@ -50,7 +66,8 @@ namespace HALGroundSurface
 {
 	/** UV0 tiles in ground centimeters. Vertex Color R is zero at the edge and one at the center. */
 	HAL_FUTURE_CREATION_API UE::Geometry::FDynamicMesh3 BuildRibbon(TConstArrayView<FHALGroundSurfacePoint> Points,
-		const FVector& Origin, float GroundLift, float TextureTileSize, const FHALGroundSurfaceDeformation& Deformation);
+		const FVector& Origin, float GroundLift, float TextureTileSize, const FHALGroundSurfaceDeformation& Deformation,
+		const FHALGroundSurfacePaintEdge& PaintEdge = FHALGroundSurfacePaintEdge());
 }
 
 /** Per-area material state and WPO bounds, reusable by ground-effect actors. */
@@ -60,7 +77,8 @@ class HAL_FUTURE_CREATION_API UHALGroundSurfaceComponent : public UDynamicMeshCo
 	GENERATED_BODY()
 public:
 	UHALGroundSurfaceComponent();
-	void ConfigureSurface(UMaterialInterface* Material, float TextureTileSize, const FHALGroundSurfaceDeformation& Deformation);
+	void ConfigureSurface(UMaterialInterface* Material, float TextureTileSize, const FHALGroundSurfaceDeformation& Deformation,
+		const FHALGroundSurfacePaintEdge& PaintEdge = FHALGroundSurfacePaintEdge());
 	/** Caller supplies elapsed server game time, including when the component first becomes visible. */
 	void SetSurfaceAge(float Age);
 	/** Area-local, world-fixed dissolve; works even when vertex deformation is disabled. */
@@ -70,5 +88,6 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UMaterialInterface> SourceMaterial;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> RuntimeMaterial;
 	FHALGroundSurfaceDeformation Settings;
+	FHALGroundSurfacePaintEdge EdgeSettings;
 	float TileSize = 320.f;
 };

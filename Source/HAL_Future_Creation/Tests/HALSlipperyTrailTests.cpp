@@ -15,6 +15,7 @@ bool FHALSlipperyTrailGroundMeshTest::RunTest(const FString&)
 	Shape.MaximumHalfWidth = 90;
 	Shape.ExpansionSeconds = 2;
 	FHALSlipperyTrailPresentation Look;
+	Look.PaintEdge.bEnabled = false;
 	TArray<FHALSlipperyTrailPoint> Path;
 	Path.SetNum(3);
 	Path[0].Ground = FVector(1000, 2000, 100);
@@ -52,6 +53,13 @@ bool FHALSlipperyTrailGroundMeshTest::RunTest(const FString&)
 		}
 	}
 	TestTrue(TEXT("Older point reaches a larger width than newer point"), FMath::IsNearlyEqual(Mesh.GetBounds().Max.Y, 75., .001));
+	const FVector OutsideOriginal = Path[0].Ground + FVector(0, 76, 0);
+	Look.PaintEdge.bEnabled = true;
+	const auto Painted = AHALSlipperyTrail::BuildGroundMesh(Path, Shape, Look, 1.5f);
+	TestTrue(TEXT("Visual overflow is independent of the logical footprint"), Painted.GetBounds().Max.Y > 75);
+	TestFalse(TEXT("Decorative overflow never expands the slippery query"),
+		AHALSlipperyTrail::Intersects(Path, Shape, 1.5f, OutsideOriginal, OutsideOriginal));
+	Look.PaintEdge.bEnabled = false;
 	const auto Full = AHALSlipperyTrail::BuildGroundMesh(Path, Shape, Look, 4);
 	TestTrue(TEXT("Width clamps at the authored maximum"), FMath::IsNearlyEqual(Full.GetBounds().Max.Y, 90., .001));
 	Shape.ExpansionSeconds = 20;

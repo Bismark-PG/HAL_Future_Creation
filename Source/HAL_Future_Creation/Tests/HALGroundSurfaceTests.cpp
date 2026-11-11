@@ -5,6 +5,11 @@
 #include "DynamicMesh/DynamicMeshAttributeSet.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Parse.h"
+#include "Misc/Paths.h"
 #include <limits>
 
 #if WITH_EDITOR
@@ -46,7 +51,8 @@ namespace
 			TPair<FName, FName>(TEXT("Amplitude"), TEXT("HAL_GroundWaveAmplitude")),
 			TPair<FName, FName>(TEXT("Phase"), TEXT("HAL_GroundWavePhase")),
 			TPair<FName, FName>(TEXT("InvTileSize"), TEXT("HAL_GroundInvTileSize")),
-			TPair<FName, FName>(TEXT("Dissolve"), TEXT("HAL_GroundDissolveProgress"))})
+			TPair<FName, FName>(TEXT("Dissolve"), TEXT("HAL_GroundDissolveProgress")),
+			TPair<FName, FName>(TEXT("PaintEdge"), TEXT("HAL_GroundPaintEdgeEnabled"))})
 		{
 			auto* Parameter = NewObject<UMaterialExpressionScalarParameter>(Material);
 			Parameter->ParameterName = Pair.Value;
@@ -85,7 +91,7 @@ bool FHALGroundSurfaceMeshTest::RunTest(const FString&)
 	const auto Mesh = HALGroundSurface::BuildRibbon(Points, FVector::ZeroVector, 2, 320, Settings);
 	if (!TestTrue(TEXT("Subdivided strip and rounded caps form a valid mesh"), Mesh.TriangleCount() > 0 && Mesh.CheckValidity())) { return false; }
 	const auto* Colors = Mesh.Attributes()->PrimaryColors();
-	TestEqual(TEXT("UV1 carries the smooth weight gradient separately from texture UV0"), Mesh.Attributes()->NumUVLayers(), 2);
+	TestEqual(TEXT("UV1 gradient and UV2 paint metadata remain separate from texture UV0"), Mesh.Attributes()->NumUVLayers(), 3);
 	const auto* Gradients = Mesh.Attributes()->GetUVLayer(1);
 	bool bRaisedInterior = false, bPinnedEdge = false, bInteriorCapRing = false;
 	for (const int32 Vertex : Mesh.VertexIndicesItr())
@@ -114,6 +120,101 @@ bool FHALGroundSurfaceMeshTest::RunTest(const FString&)
 	}
 	const auto Long = HALGroundSurface::BuildRibbon(Points, FVector::ZeroVector, 2, 320, Settings);
 	TestTrue(TEXT("Worst-case source count stays below 65536 vertices"), Long.VertexCount() > 0 && Long.VertexCount() < 65536);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALGroundSurfacePaintEdgeTest, "HAL.FutureCreation.GroundSurface.PaintMarginAndCorePreservation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALGroundSurfacePaintEdgeTest::RunTest(const FString&)
+{
+	FHALGroundSurfacePaintEdge Edge;
+	TestTrue(TEXT("Generic surfaces keep an opt-in paint margin"), Edge.IsValid() && !Edge.bEnabled);
+	Edge.bEnabled = true;
+	TestTrue(TEXT("Small patches use the relative cap"), FMath::IsNearlyEqual(Edge.Padding(70), 5.6f));
+	TestEqual(TEXT("Large patches use the centimeter cap"), Edge.Padding(900), 15.f);
+	FHALGroundSurfaceDeformation Settings;
+	Settings.bEnabled = true;
+	TArray<FHALGroundSurfacePoint> Points = {
+		{FVector::ZeroVector, FVector::UpVector, 100, false},
+		{FVector(200, 0, 0), FVector::UpVector, 100, true},
+		{FVector(600, 0, 0), FVector::UpVector, 80, false}};
+	const auto Core = HALGroundSurface::BuildRibbon(Points, FVector::ZeroVector, 2, 320, Settings);
+	const auto Paint = HALGroundSurface::BuildRibbon(Points, FVector::ZeroVector, 2, 320, Settings, Edge);
+	if (!TestTrue(TEXT("Paint annulus, caps and gaps form a valid mesh"), Paint.CheckValidity())) { return false; }
+	TestTrue(TEXT("Visual bounds include the thin margin"), FMath::IsNearlyEqual(Paint.GetBounds().Max.Y, 108., .001));
+	for (const int32 Vertex : Core.VertexIndicesItr())
+	{
+		bool bPreserved = false;
+		for (const int32 Candidate : Paint.VertexIndicesItr())
+		{
+			if (Core.GetVertex(Vertex).Equals(Paint.GetVertex(Candidate), .001)
+				&& Core.Attributes()->PrimaryUV()->GetElement(Vertex).Equals(Paint.Attributes()->PrimaryUV()->GetElement(Candidate), .0001f)
+				&& Core.Attributes()->GetUVLayer(1)->GetElement(Vertex).Equals(Paint.Attributes()->GetUVLayer(1)->GetElement(Candidate), .0001f)
+				&& Core.Attributes()->PrimaryColors()->GetElement(Vertex).Equals(Paint.Attributes()->PrimaryColors()->GetElement(Candidate), .0001f))
+			{ bPreserved = true; break; }
+		}
+		if (!TestTrue(TEXT("Original core vertices, texture coordinates, weights and normals survive"), bPreserved)) { return false; }
+	}
+	for (const int32 Vertex : Paint.VertexIndicesItr())
+	{
+		const auto Meta = Paint.Attributes()->GetUVLayer(2)->GetElement(Vertex);
+		TestTrue(TEXT("Visual margin is bounded in its own metadata"), Meta.Y >= 0 && Meta.Y <= 15 && Meta.X <= Meta.Y + .001f);
+		if (Meta.X > 0)
+		{
+			TestEqual(TEXT("Overflow remains flat on the ground"), Paint.Attributes()->PrimaryColors()->GetElement(Vertex).X, 0.f);
+			TestTrue(TEXT("Overflow does not inherit the core's bulge gradient"),
+				Paint.Attributes()->GetUVLayer(1)->GetElement(Vertex).SizeSquared() == 0);
+		}
+		const auto P = Paint.GetVertex(Vertex);
+		TestTrue(TEXT("Paint does not bridge a disconnected landing gap"), P.X <= 308.001 || P.X >= 513.599);
+	}
+	Points.SetNum(256);
+	for (int32 Index = 0; Index < Points.Num(); ++Index)
+	{
+		Points[Index] = {FVector(Index * 1500., 0, 0), FVector::UpVector, 100, false};
+	}
+	for (const int32 Across : {2, 8, 16})
+	{
+		Settings.WidthSubdivisions = Across;
+		const auto Maximum = HALGroundSurface::BuildRibbon(Points, FVector::ZeroVector, 2, 320, Settings, Edge);
+		TestTrue(TEXT("Paint caps remain below the existing vertex budget"), Maximum.VertexCount() < 65536);
+	}
+	Edge.MaximumOutset = std::numeric_limits<float>::quiet_NaN();
+	TestFalse(TEXT("Nonfinite paint limits are rejected"), Edge.IsValid());
+	// Optional render-fixture input: export production vertices and attributes, rather than recreating them in Python.
+	if (FParse::Param(FCommandLine::Get(), TEXT("HALPaintEdgeExport")))
+	{
+		const FString Directory = FPaths::ProjectSavedDir() / TEXT("PaintEdgeFixture");
+		IFileManager::Get().MakeDirectory(*Directory, true);
+		Settings.WidthSubdivisions = 8;
+		Settings.VertexSpacing = 40;
+		Points = {{FVector::ZeroVector, FVector::UpVector, 280, false}};
+		for (const bool bPaint : {false, true})
+		{
+			Edge = {};
+			Edge.bEnabled = bPaint;
+			const auto Export = HALGroundSurface::BuildRibbon(Points, FVector::ZeroVector, 2, 320, Settings, Edge);
+			FString CSV;
+			for (const int32 Vertex : Export.VertexIndicesItr())
+			{
+				const auto P = Export.GetVertex(Vertex);
+				const auto UV = Export.Attributes()->PrimaryUV()->GetElement(Vertex);
+				const auto Gradient = Export.Attributes()->GetUVLayer(1)->GetElement(Vertex);
+				const auto Meta = Export.Attributes()->GetUVLayer(2)->GetElement(Vertex);
+				const auto Normal = Export.Attributes()->PrimaryNormals()->GetElement(Vertex);
+				CSV += FString::Printf(TEXT("v,%.9g,%.9g,%.9g,%.9g,%.9g,%.9g,%.9g,%.9g,%.9g,%.9g,%.9g,%.9g,%.9g\n"),
+					P.X, P.Y, P.Z, UV.X, UV.Y, Gradient.X, Gradient.Y, Meta.X, Meta.Y,
+					Export.Attributes()->PrimaryColors()->GetElement(Vertex).X, Normal.X, Normal.Y, Normal.Z);
+			}
+			for (const int32 Triangle : Export.TriangleIndicesItr())
+			{
+				const auto T = Export.GetTriangle(Triangle);
+				CSV += FString::Printf(TEXT("t,%d,%d,%d\n"), T.A, T.B, T.C);
+			}
+			TestTrue(TEXT("Production render fixture export succeeds"), FFileHelper::SaveStringToFile(CSV,
+				*(Directory / (bPaint ? TEXT("Paint.csv") : TEXT("Legacy.csv"))), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM));
+		}
+	}
 	return true;
 }
 

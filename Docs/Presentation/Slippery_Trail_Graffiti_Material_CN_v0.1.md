@@ -1,5 +1,7 @@
 # SlipperyTrail 涂鸦风材质 v0.1
 
+**2026-11-11 当前补充：** 已在原材质上接入体积明暗、分块消散及圆润油漆溢边，原 MI 调色保留。Paint Edge 开启时在 MI **06 Paint edge** 按厘米调整随形描边粗细，完整入口见[油漆／液体溢边](Slippery_Trail_Paint_Edge_CN_v0.1.md)。下文首版节点／固定遮罩描述保留原时点。
+
 ## 画风目标
 
 用户指定参考《Need for Speed Unbound》的夸张卡通特效。首版使用粗墨线、鲜明色块、手绘笔触和局部印刷网点，沿用绿紫配色。EA 的官方介绍将该作的驾驶特效描述为街头艺术与动作表达的结合。这里据此设计适合俯视竞技场的地面表现。 [EA 特效风格介绍](https://www.ea.com/games/need-for-speed/need-for-speed-unbound/news/the-world-is-your-canvas)
@@ -25,7 +27,7 @@
 
 在当前 `DA_Ability_SlipperyTrail → Slippery Trail → Presentation → Ground Material` 选择 `MI_SlipperyTrail_Graffiti`，保存后重新释放技能。Deformation 勾选 Enabled，首测可用 Bulge Height=18 cm、Wave Amplitude=4 cm、Wave Period=1.5 s、Wave Length=220 cm，Width Subdivisions=8、Vertex Spacing=40 cm。首测数值由本轮选择，可按比赛镜头调节。
 
-母材质使用 **Surface / Unlit / Masked**，Opacity Mask 连接常数 1。粗线和色块覆盖整个实际区域轮廓，车辆与球通过正常深度关系显示。材质通过同一技能 DA 引用实例，实例中的画风参数按下表调节，隆起和时间参数由 DA 的 Deformation 传入。
+母材质使用 **Surface / Unlit / Masked**，Opacity Mask 当前由完整基础遮罩乘入消散与溢边覆盖。粗线和色块覆盖地面表现轮廓，车辆与球通过正常深度关系显示。材质通过同一技能 DA 引用实例，实例中的画风参数按下表调节，隆起和时间参数由 DA 的 Deformation 传入。
 
 ## 日常调参
 

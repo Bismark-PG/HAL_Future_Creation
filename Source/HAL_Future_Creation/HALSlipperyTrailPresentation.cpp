@@ -12,7 +12,7 @@ bool FHALSlipperyTrailPresentation::HasUsableMaterial() const
 	return BaseMaterial && BaseMaterial->MaterialDomain == MD_Surface
 		&& GroundLift >= .1f && GroundLift <= 20.f && TextureTileSize >= 20.f && TextureTileSize <= 2000.f
 		&& DissolveSeconds >= 0 && DissolveSeconds <= 5
-		&& Deformation.IsValid();
+		&& Deformation.IsValid() && PaintEdge.IsValid();
 }
 
 float FHALSlipperyTrailPresentation::DissolveProgress(float Age, float GameplayLifetime) const
@@ -36,7 +36,7 @@ UE::Geometry::FDynamicMesh3 AHALSlipperyTrail::BuildGroundMesh(TConstArrayView<F
 		Surface.HalfWidth = Shape.HalfWidthAt(Age - Point.EmissionAge);
 		Surface.bLinked = Point.bLinked;
 	}
-	return HALGroundSurface::BuildRibbon(SurfacePoints, Path[0].Ground, Look.GroundLift, Look.TextureTileSize, Look.Deformation);
+	return HALGroundSurface::BuildRibbon(SurfacePoints, Path[0].Ground, Look.GroundLift, Look.TextureTileSize, Look.Deformation, Look.PaintEdge);
 }
 
 void AHALSlipperyTrail::OnRep_PresentationInput()
@@ -54,7 +54,7 @@ void AHALSlipperyTrail::UpdateGroundMesh(float Age)
 	if (!Presentation.HasUsableMaterial()) { return; }
 	if (GroundMesh)
 	{
-		GroundMesh->ConfigureSurface(Presentation.GroundMaterial, Presentation.TextureTileSize, Presentation.Deformation);
+		GroundMesh->ConfigureSurface(Presentation.GroundMaterial, Presentation.TextureTileSize, Presentation.Deformation, Presentation.PaintEdge);
 		GroundMesh->SetSurfaceAge(Age);
 		if (Presentation.DissolveSeconds > 0) { GroundMesh->SetDissolveProgress(Presentation.DissolveProgress(Age, Shape.LifetimeSeconds)); }
 	}
@@ -79,7 +79,7 @@ void AHALSlipperyTrail::UpdateGroundMesh(float Age)
 		SetRootComponent(GroundMesh);
 		GroundMesh->SetWorldLocation(Points[0].Ground);
 	}
-	GroundMesh->ConfigureSurface(Presentation.GroundMaterial, Presentation.TextureTileSize, Presentation.Deformation);
+	GroundMesh->ConfigureSurface(Presentation.GroundMaterial, Presentation.TextureTileSize, Presentation.Deformation, Presentation.PaintEdge);
 	GroundMesh->SetSurfaceAge(Age);
 	if (Presentation.DissolveSeconds > 0) { GroundMesh->SetDissolveProgress(Presentation.DissolveProgress(Age, Shape.LifetimeSeconds)); }
 	GroundMesh->SetMesh(MoveTemp(Mesh));

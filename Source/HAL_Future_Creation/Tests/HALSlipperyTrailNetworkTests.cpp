@@ -26,10 +26,17 @@ struct FHALSlipperyTrailNetworkAccess
 			&& FMath::IsNearlyEqual(Trail.Points[0].Ground.Z, 10000., .2)
 			&& FMath::IsNearlyEqual(Trail.Points[0].GroundNormal.Z, 1., .001)
 			&& (!FParse::Param(FCommandLine::Get(), TEXT("HALSlipperyTrailDissolveFixture"))
-				|| FMath::IsNearlyEqual(Trail.Presentation.DissolveSeconds, 1.2f));
+				|| FMath::IsNearlyEqual(Trail.Presentation.DissolveSeconds, 1.2f))
+			&& (!FParse::Param(FCommandLine::Get(), TEXT("HALSlipperyTrailPaintEdgeFixture"))
+				|| (Trail.Presentation.PaintEdge.bEnabled && Trail.Presentation.PaintEdge.MaximumOutset == 12
+					&& FMath::IsNearlyEqual(Trail.Presentation.PaintEdge.MaximumHalfWidthFraction, .06f)));
 	}
 	static UDynamicMeshComponent* GetGroundMesh(const AHALSlipperyTrail& Trail) { return Trail.GroundMesh; }
 	static UMaterialInterface* GetGroundMaterial(const AHALSlipperyTrail& Trail) { return Trail.Presentation.GroundMaterial; }
+	static float RenderHalfWidth(const AHALSlipperyTrail& Trail)
+	{
+		return Trail.Shape.MaximumHalfWidth + Trail.Presentation.PaintEdge.Padding(Trail.Shape.MaximumHalfWidth);
+	}
 	static float DissolveProgress(const AHALSlipperyTrail& Trail)
 	{
 		return Trail.Presentation.DissolveProgress(float(Trail.ServerTime() - Trail.StartTime), Trail.Shape.LifetimeSeconds);
@@ -147,8 +154,15 @@ namespace
 						}
 						Test.TestEqual(TEXT("Ground rendering cannot affect queries or physics"),
 							Mesh->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
+						if (FParse::Param(FCommandLine::Get(), TEXT("HALSlipperyTrailPaintEdgeFixture")))
+						{
+							auto* MID = Cast<UMaterialInstanceDynamic>(Mesh->GetMaterial(0));
+							Test.TestTrue(TEXT("Paint mode is written to an area-local MID"),
+								MID && MID->K2_GetScalarParameterValue(TEXT("HAL_GroundPaintEdgeEnabled")) == 1.f);
+						}
 					}
-					bSawFullWidth |= FMath::IsNearlyEqual(Mesh->Bounds.BoxExtent.Y, 900., .1);
+					bSawFullWidth |= FMath::IsNearlyEqual(Mesh->Bounds.BoxExtent.Y,
+						FHALSlipperyTrailNetworkAccess::RenderHalfWidth(*Trail), .1);
 				}
 			}
 			const bool bReadySway = Status.bReady && Status.Definition.AreaSway.Amplitude == 5.f && Status.Definition.SwayPeriodFrames > 0

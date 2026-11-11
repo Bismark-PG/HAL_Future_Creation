@@ -99,6 +99,12 @@ WorldPositionOffset = (0, 0, VertexColor.r * height)
 
 玩法结束时间和视觉生命周期属于调用方。当前仅 SlipperyTrail 拆分这两个阶段，其他区域的销毁时机保持。完整时间／材质合同见[分块蒸发消散](Slippery_Trail_Dissolve_CN_v0.1.md)。
 
+### 油漆溢边的附加合同
+
+2026-11-11 增加可选 `FHALGroundSurfacePaintEdge`；公共默认关闭，SlipperyTrail 默认开启。BuildRibbon 与 ConfigureSurface 均接受该配置，调用者需传入同一份值。薄的渲染外带受厘米／半宽比例双重限制，不改变调用方的逻辑范围。
+
+**UV2 保留给边缘元数据：R 为原主体边界的插值有符号距离、G 为允许外扩余量，均为 cm。** UV0／UV1 和主体中央权重保持；外带权重及 UV1 梯度为 0。MID 增加 `HAL_GroundPaintEdgeEnabled`，启用边缘也会创建独立 MID 并写入逆平铺尺寸，形变可单独关闭。未消费 UV2 与开关的旧材质应保持 Paint Edge 关闭。配置、上限及移植方式见[油漆／液体溢边](Slippery_Trail_Paint_Edge_CN_v0.1.md)。
+
 ## 验收
 
 - 在低视角观察原地圆斑、直行条带和弯道，确认中央平滑隆起、圆端连续、外边缘贴地。再切回比赛相机检查可读性。
