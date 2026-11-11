@@ -34,6 +34,12 @@ namespace
 						Config->Shape.bDrawOutline = false;
 						Config->Presentation.Deformation.bEnabled = FParse::Param(FCommandLine::Get(), TEXT("HALGroundSurfaceFixture"));
 					}
+					if (FParse::Param(FCommandLine::Get(), TEXT("HALSlipperyTrailDissolveFixture")))
+					{
+						Config->Presentation.DissolveSeconds = 1.2f;
+						Config->Presentation.GroundMaterial = LoadObject<UMaterialInterface>(nullptr,
+							TEXT("/Game/Assets/FX/Materials/MI_SlipperyTrail_Graffiti.MI_SlipperyTrail_Graffiti"));
+					}
 					Property->SetObjectPropertyValue_InContainer(Ability, Config);
 				}
 				if (bBattleTop)

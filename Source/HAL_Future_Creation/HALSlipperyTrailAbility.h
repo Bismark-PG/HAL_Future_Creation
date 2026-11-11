@@ -53,6 +53,7 @@ private:
 	bool ResolveStart(const FGameplayAbilityActorInfo* ActorInfo, const UHALSlipperyTrailConfig* Config,
 		FVector& Ground, FVector* GroundNormal = nullptr) const;
 	UFUNCTION() void TrailDestroyed(AActor* Actor);
+	void TrailGameplayEnded(AHALSlipperyTrail* Trail);
 	TWeakObjectPtr<AHALSlipperyTrail> ActiveTrail;
 	mutable FActiveGameplayEffectHandle CommittedCooldown;
 };

@@ -63,6 +63,8 @@ public:
 	void ConfigureSurface(UMaterialInterface* Material, float TextureTileSize, const FHALGroundSurfaceDeformation& Deformation);
 	/** Caller supplies elapsed server game time, including when the component first becomes visible. */
 	void SetSurfaceAge(float Age);
+	/** Area-local, world-fixed dissolve; works even when vertex deformation is disabled. */
+	void SetDissolveProgress(float Progress);
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 private:
 	UPROPERTY(Transient) TObjectPtr<UMaterialInterface> SourceMaterial;

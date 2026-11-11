@@ -213,6 +213,18 @@ void UHALGroundSurfaceComponent::SetSurfaceAge(float Age)
 	}
 }
 
+void UHALGroundSurfaceComponent::SetDissolveProgress(float Progress)
+{
+	if (!SourceMaterial || !FMath::IsFinite(Progress) || !FMath::IsFinite(TileSize) || TileSize <= 0) { return; }
+	if (!RuntimeMaterial)
+	{
+		RuntimeMaterial = UMaterialInstanceDynamic::Create(SourceMaterial, this);
+		RuntimeMaterial->SetScalarParameterValue(TEXT("HAL_GroundInvTileSize"), 1.f / TileSize);
+		SetMaterial(0, RuntimeMaterial);
+	}
+	RuntimeMaterial->SetScalarParameterValue(TEXT("HAL_GroundDissolveProgress"), FMath::Clamp(Progress, 0.f, 1.f));
+}
+
 FBoxSphereBounds UHALGroundSurfaceComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	const auto Base = Super::CalcBounds(LocalToWorld);

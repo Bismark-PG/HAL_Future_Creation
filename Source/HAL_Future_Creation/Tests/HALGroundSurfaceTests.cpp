@@ -45,7 +45,8 @@ namespace
 		for (const auto& Pair : {TPair<FName, FName>(TEXT("Height"), TEXT("HAL_GroundBulgeHeight")),
 			TPair<FName, FName>(TEXT("Amplitude"), TEXT("HAL_GroundWaveAmplitude")),
 			TPair<FName, FName>(TEXT("Phase"), TEXT("HAL_GroundWavePhase")),
-			TPair<FName, FName>(TEXT("InvTileSize"), TEXT("HAL_GroundInvTileSize"))})
+			TPair<FName, FName>(TEXT("InvTileSize"), TEXT("HAL_GroundInvTileSize")),
+			TPair<FName, FName>(TEXT("Dissolve"), TEXT("HAL_GroundDissolveProgress"))})
 		{
 			auto* Parameter = NewObject<UMaterialExpressionScalarParameter>(Material);
 			Parameter->ParameterName = Pair.Value;
@@ -154,6 +155,10 @@ bool FHALGroundSurfaceConfigTest::RunTest(const FString&)
 	const auto Other = NewObject<UHALGroundSurfaceComponent>();
 	Other->ConfigureSurface(Material, 320, Settings);
 	TestTrue(TEXT("Two effects do not share a mutable material"), Other->GetMaterial(0) != MID);
+	Surface->SetDissolveProgress(.4f);
+	TestEqual(TEXT("Dissolve affects only this area's material"), MID->K2_GetScalarParameterValue(TEXT("HAL_GroundDissolveProgress")), .4f);
+	TestEqual(TEXT("Another area's dissolve remains intact"),
+		CastChecked<UMaterialInstanceDynamic>(Other->GetMaterial(0))->K2_GetScalarParameterValue(TEXT("HAL_GroundDissolveProgress")), 0.f);
 
 	TArray<FHALGroundSurfacePoint> Points = {{FVector::ZeroVector, FVector::UpVector, 100, false}};
 	Surface->SetMesh(HALGroundSurface::BuildRibbon(Points, FVector::ZeroVector, 2, 320, Settings));
@@ -164,6 +169,10 @@ bool FHALGroundSurfaceConfigTest::RunTest(const FString&)
 	Surface->ConfigureSurface(Material, 320, Settings);
 	TestTrue(TEXT("Opting out restores the supplied material"), Surface->GetMaterial(0) == Material);
 	TestFalse(TEXT("Disabling deformation also removes its optional shadow"), Surface->CastShadow);
+	Surface->SetDissolveProgress(.5f);
+	TestTrue(TEXT("An undeformed surface can still dissolve with its own MID"), Surface->GetMaterial(0) != Material);
+	TestEqual(TEXT("Undeformed dissolution keeps its supplied progress"),
+		CastChecked<UMaterialInstanceDynamic>(Surface->GetMaterial(0))->K2_GetScalarParameterValue(TEXT("HAL_GroundDissolveProgress")), .5f);
 	Settings.bEnabled = true;
 	Surface->ConfigureSurface(nullptr, 320, Settings);
 	TestFalse(TEXT("An absent material cannot leave a shadow-only surface"), Surface->CastShadow);

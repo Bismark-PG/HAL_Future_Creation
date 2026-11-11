@@ -176,6 +176,11 @@ DerivedDataCache/*
 !Docs/Presentation/Ground_Surface_Deformation_CN_v0.1.md
 !Docs/Presentation/Slippery_Trail_Graffiti_Material_CN_v0.1.md
 !Docs/Presentation/Slippery_Trail_Volume_Verification_20261111.json
+!Docs/Presentation/Slippery_Trail_Dissolve_CN_v0.1.md
+!Docs/Presentation/Slippery_Trail_Dissolve_Verification_20261111.json
+!SourceArt/SlipperyTrail/SlipperyTrail_Dissolve_Quarter_v01.png
+!SourceArt/SlipperyTrail/SlipperyTrail_Dissolve_Half_v01.png
+!SourceArt/SlipperyTrail/SlipperyTrail_Dissolve_ThreeQuarters_v01.png
 Tools/SlipperyTrailGraffiti/__pycache__/
 !SourceArt/SlipperyTrail/SlipperyTrail_Graffiti_Concept_v01.png
 !SourceArt/SlipperyTrail/SlipperyTrail_Graffiti_D3D12_Preview_v01.png

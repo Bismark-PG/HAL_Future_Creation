@@ -159,7 +159,8 @@ bool AHALSlipperyTrail::Start(const FHALSlipperyTrailShape& InShape, const FHALS
 	const FHALSlipperyTrailPresentation& InPresentation)
 {
 	const auto* Vehicle = Cast<ATestVehiclePawn>(GetOwner());
-	if (!HasAuthority() || !Vehicle || !IsActiveVehicle(*Vehicle) || StartTime >= 0) { return false; }
+	if (!HasAuthority() || !Vehicle || !IsActiveVehicle(*Vehicle) || StartTime >= 0
+		|| !(InPresentation.DissolveSeconds >= 0 && InPresentation.DissolveSeconds <= 5)) { return false; }
 	Shape = InShape;
 	Presentation = InPresentation;
 	Emission = InEmission;
@@ -170,7 +171,8 @@ bool AHALSlipperyTrail::Start(const FHALSlipperyTrailShape& InShape, const FHALS
 	StartTime = ServerTime();
 	AddPoint(FirstPoint, FirstNormal, 0);
 	UpdateReceivers(0);
-	SetLifeSpan(Shape.LifetimeSeconds);
+	GetWorldTimerManager().SetTimer(GameplayEndHandle, this, &ThisClass::FinishGameplay, Shape.LifetimeSeconds, false);
+	SetLifeSpan(Shape.LifetimeSeconds + Presentation.DissolveSeconds);
 	FTimerManagerTimerParameters Timer;
 	Timer.bLoop = true;
 	Timer.bMaxOncePerFrame = true;
@@ -198,12 +200,14 @@ void AHALSlipperyTrail::UpdateTrail()
 {
 	const auto* Vehicle = Cast<ATestVehiclePawn>(GetOwner());
 	const float Age = float(ServerTime() - StartTime);
-	if (Age >= Shape.LifetimeSeconds || !Vehicle || !IsActiveVehicle(*Vehicle)
+	if (!Vehicle || !IsActiveVehicle(*Vehicle)
 		|| !HALGameFlow::Permissions(GetWorld(), Vehicle).bAbilities)
 	{
 		Destroy();
 		return;
 	}
+	if (Age >= Shape.LifetimeSeconds) { FinishGameplay(); return; }
+	if (bGameplayEnded) { return; }
 	if (Age < Emission.EmissionSeconds && Points.Num() < Emission.MaximumPoints)
 	{
 		FVector Ground;
@@ -212,6 +216,26 @@ void AHALSlipperyTrail::UpdateTrail()
 		else { bLinkNext = false; }
 	}
 	UpdateReceivers(Age);
+}
+
+void AHALSlipperyTrail::FinishGameplay()
+{
+	if (!HasAuthority() || bGameplayEnded) { return; }
+	bGameplayEnded = true;
+	GetWorldTimerManager().ClearTimer(GameplayEndHandle);
+	ClearReceivers();
+	OnGameplayEnded.Broadcast(this);
+}
+
+void AHALSlipperyTrail::ClearReceivers()
+{
+	for (const auto& Occupant : Occupants)
+	{
+		if (auto* Receiver = Occupant.Get()) { Receiver->UnregisterArea(this); }
+	}
+	Occupants.Reset();
+	LastGround.Reset();
+	bLinkNext = false;
 }
 
 bool AHALSlipperyTrail::Intersects(TConstArrayView<FHALSlipperyTrailPoint> Path, const FHALSlipperyTrailShape& InShape,
@@ -270,7 +294,7 @@ void AHALSlipperyTrail::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	if (StartTime < 0 || Points.IsEmpty()) { return; }
 	const float Age = float(ServerTime() - StartTime);
-	if (Age >= Shape.LifetimeSeconds)
+	if (Age >= Shape.LifetimeSeconds + Presentation.DissolveSeconds)
 	{
 		HideGroundMesh();
 		SetActorTickEnabled(false);
@@ -278,6 +302,7 @@ void AHALSlipperyTrail::Tick(float DeltaSeconds)
 	}
 	if (Age < 0) { return; }
 	UpdateGroundMesh(Age);
+	if (Age >= Shape.LifetimeSeconds) { return; }
 #if ENABLE_DRAW_DEBUG
 	if (!Shape.bDrawOutline) { return; }
 	const FVector Lift = FVector::UpVector * Shape.OutlineLift;
@@ -312,11 +337,9 @@ void AHALSlipperyTrail::Tick(float DeltaSeconds)
 void AHALSlipperyTrail::EndPlay(const EEndPlayReason::Type Reason)
 {
 	GetWorldTimerManager().ClearTimer(UpdateHandle);
-	for (const auto& Occupant : Occupants)
-	{
-		if (auto* Receiver = Occupant.Get()) { Receiver->UnregisterArea(this); }
-	}
-	Occupants.Reset();
+	GetWorldTimerManager().ClearTimer(GameplayEndHandle);
+	ClearReceivers();
+	HideGroundMesh();
 	Super::EndPlay(Reason);
 }
 

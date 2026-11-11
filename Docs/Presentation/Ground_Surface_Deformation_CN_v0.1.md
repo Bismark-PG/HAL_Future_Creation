@@ -93,6 +93,12 @@ WorldPositionOffset = (0, 0, VertexColor.r * height)
 
 这里的法线对应公共隆起公式的平滑曲面。很粗的网格仍可能显示轮廓折线，弯道急变／相交和坡面仍需实景检查。复用到其他地面效果时保留 UV1，额外纹理使用 UV0 或其他未占用通道；自定义额外 WPO 需同步其法线计算。
 
+### 结束消散的附加合同
+
+公共组件新增 `SetDissolveProgress`，写入 Scalar `HAL_GroundDissolveProgress`，0 为完整、1 为完全消散。该调用按需创建区域自己的 MID，形变关闭时同样可用，并写入有效的 `HAL_GroundInvTileSize`。材质可用地面 UV0 生成固定缺口，保持 UV1 的平滑法线用途。
+
+玩法结束时间和视觉生命周期属于调用方。当前仅 SlipperyTrail 拆分这两个阶段，其他区域的销毁时机保持。完整时间／材质合同见[分块蒸发消散](Slippery_Trail_Dissolve_CN_v0.1.md)。
+
 ## 验收
 
 - 在低视角观察原地圆斑、直行条带和弯道，确认中央平滑隆起、圆端连续、外边缘贴地。再切回比赛相机检查可读性。

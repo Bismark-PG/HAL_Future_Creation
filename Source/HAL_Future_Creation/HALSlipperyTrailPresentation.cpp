@@ -11,13 +11,21 @@ bool FHALSlipperyTrailPresentation::HasUsableMaterial() const
 	const UMaterial* BaseMaterial = GroundMaterial ? GroundMaterial->GetMaterial() : nullptr;
 	return BaseMaterial && BaseMaterial->MaterialDomain == MD_Surface
 		&& GroundLift >= .1f && GroundLift <= 20.f && TextureTileSize >= 20.f && TextureTileSize <= 2000.f
+		&& DissolveSeconds >= 0 && DissolveSeconds <= 5
 		&& Deformation.IsValid();
+}
+
+float FHALSlipperyTrailPresentation::DissolveProgress(float Age, float GameplayLifetime) const
+{
+	if (Age < GameplayLifetime) { return 0; }
+	return DissolveSeconds > 0 ? FMath::Clamp((Age - GameplayLifetime) / DissolveSeconds, 0.f, 1.f) : 1.f;
 }
 
 UE::Geometry::FDynamicMesh3 AHALSlipperyTrail::BuildGroundMesh(TConstArrayView<FHALSlipperyTrailPoint> Path,
 	const FHALSlipperyTrailShape& Shape, const FHALSlipperyTrailPresentation& Look, float Age)
 {
-	if (Path.IsEmpty() || Age < 0 || Age >= Shape.LifetimeSeconds) { return {}; }
+	if (Path.IsEmpty() || Age < 0 || Age >= Shape.LifetimeSeconds + Look.DissolveSeconds) { return {}; }
+	Age = FMath::Min(Age, Shape.LifetimeSeconds);
 	TArray<FHALGroundSurfacePoint> SurfacePoints;
 	for (const auto& Point : Path)
 	{
@@ -48,13 +56,15 @@ void AHALSlipperyTrail::UpdateGroundMesh(float Age)
 	{
 		GroundMesh->ConfigureSurface(Presentation.GroundMaterial, Presentation.TextureTileSize, Presentation.Deformation);
 		GroundMesh->SetSurfaceAge(Age);
+		if (Presentation.DissolveSeconds > 0) { GroundMesh->SetDissolveProgress(Presentation.DissolveProgress(Age, Shape.LifetimeSeconds)); }
 	}
+	const float ShapeAge = FMath::Min(Age, Shape.LifetimeSeconds);
 	const float ExpansionEnd = Points.Last().EmissionAge + Shape.ExpansionSeconds;
-	const bool bClockRewound = Age < LastMeshAge;
-	const bool bNeedsFinalWidth = LastMeshAge < ExpansionEnd;
+	const bool bClockRewound = ShapeAge < LastMeshAge;
+	const bool bNeedsFinalWidth = LastMeshAge < FMath::Min(ExpansionEnd, Shape.LifetimeSeconds);
 	if (!bGroundMeshDirty && !bClockRewound && !bNeedsFinalWidth) { return; }
 	constexpr float MeshUpdateInterval = 1.f / 30.f;
-	if (!bGroundMeshDirty && !bClockRewound && Age - LastMeshAge < MeshUpdateInterval) { return; }
+	if (!bGroundMeshDirty && !bClockRewound && ShapeAge - LastMeshAge < MeshUpdateInterval) { return; }
 
 	auto Mesh = BuildGroundMesh(Points, Shape, Presentation, Age);
 	if (Mesh.TriangleCount() == 0)
@@ -71,10 +81,11 @@ void AHALSlipperyTrail::UpdateGroundMesh(float Age)
 	}
 	GroundMesh->ConfigureSurface(Presentation.GroundMaterial, Presentation.TextureTileSize, Presentation.Deformation);
 	GroundMesh->SetSurfaceAge(Age);
+	if (Presentation.DissolveSeconds > 0) { GroundMesh->SetDissolveProgress(Presentation.DissolveProgress(Age, Shape.LifetimeSeconds)); }
 	GroundMesh->SetMesh(MoveTemp(Mesh));
 	if (bNewComponent) { GroundMesh->RegisterComponent(); }
 	GroundMesh->SetVisibility(true);
-	LastMeshAge = Age;
+	LastMeshAge = ShapeAge;
 	bGroundMeshDirty = false;
 }
 

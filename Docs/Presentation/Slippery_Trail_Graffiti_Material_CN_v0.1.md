@@ -111,6 +111,12 @@
 
 首轮脚本 CustomInput 构造接口不适配、第二轮将新增方向参数误判为旧配色变化，均在保存前停止；R3 初版能渲染但三角面明暗呈块状，改为平滑梯度后经 R4 更新并完成 R2／R3 渲染复验。原失败和中间画面均保留在 `Saved/SlipperyTrail/Volume_20261111`。1246 份原有保存资产／Config／uproject 中，仅授权的母材质变化，其余 **1245** 份逐份一致，包含原 MI、用户开工前的 Definition DA 修改、技能 DA 与纹理。没有新增真人／双端／发布包验收，本轮未提交／Push。[可同步验证摘要](Slippery_Trail_Volume_Verification_20261111.json)
 
+## 分块蒸发消散（2026-11-11）
+
+当前母材质已接入结束消散。技能 DA 的 `Presentation → Dissolve Seconds` 默认 1 s，决定玩法到期后的视觉时长；MI 的 **05 Dissolve** 提供 `DissolveCellSize`、`DissolveSoftness`、`DissolveEdgeWidth`、`DissolveEdgeStrength`、`DissolveEdgeColor`。原配色和体积参数保持，程序独立驱动 `HAL_GroundDissolveProgress`。零时长使用立即移除，形变关闭时也可消散。见[行为、配置与真实渲染对照](Slippery_Trail_Dissolve_CN_v0.1.md)。最新材质为 84 节点，VS175／PS296／1采样器，下面的首版与 Volume 记录保留各自时点。
+
+计量说明：上节历史 Volume 画面差异使用 `ReadRenderTarget` 返回的 FColor 8 位通道，以 0.025 原值阈值比较，相当于记录任意一级差异；它是整幅画面变化检查，不按 2.5% 阈值或区域覆盖率解释。新的消散覆盖验证使用固定色底、6/255 阈值并严格检查单调性、内部缺口、空覆盖和恢复，指标分别留档。
+
 ## 节点结构（首版分色与 WPO）
 
 ### 1. 粗轮廓与分块明暗

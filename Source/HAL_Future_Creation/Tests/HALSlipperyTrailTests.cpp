@@ -54,8 +54,39 @@ bool FHALSlipperyTrailGroundMeshTest::RunTest(const FString&)
 	TestTrue(TEXT("Older point reaches a larger width than newer point"), FMath::IsNearlyEqual(Mesh.GetBounds().Max.Y, 75., .001));
 	const auto Full = AHALSlipperyTrail::BuildGroundMesh(Path, Shape, Look, 4);
 	TestTrue(TEXT("Width clamps at the authored maximum"), FMath::IsNearlyEqual(Full.GetBounds().Max.Y, 90., .001));
-	TestEqual(TEXT("Whole mesh expires on the area's clock"),
+	Shape.ExpansionSeconds = 20;
+	const auto Ending = AHALSlipperyTrail::BuildGroundMesh(Path, Shape, Look, Shape.LifetimeSeconds);
+	const auto Retiring = AHALSlipperyTrail::BuildGroundMesh(Path, Shape, Look, Shape.LifetimeSeconds + .5f);
+	TestTrue(TEXT("Visual retirement retains the footprint after gameplay expires"), Ending.TriangleCount() > 0);
+	TestTrue(TEXT("Expansion freezes at gameplay expiry, including for a late observer"),
+		Ending.GetBounds().Min == Retiring.GetBounds().Min && Ending.GetBounds().Max == Retiring.GetBounds().Max);
+	TestEqual(TEXT("Whole mesh disappears at the end of visual retirement"),
+		AHALSlipperyTrail::BuildGroundMesh(Path, Shape, Look, Shape.LifetimeSeconds + Look.DissolveSeconds).TriangleCount(), 0);
+	Look.DissolveSeconds = 0;
+	TestEqual(TEXT("Zero visual retirement preserves immediate removal"),
 		AHALSlipperyTrail::BuildGroundMesh(Path, Shape, Look, Shape.LifetimeSeconds).TriangleCount(), 0);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSlipperyTrailDissolveTest, "HAL.FutureCreation.SlipperyTrail.DissolveClockAndValidation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALSlipperyTrailDissolveTest::RunTest(const FString&)
+{
+	auto* Config = NewObject<UHALSlipperyTrailConfig>();
+	FString Error;
+	auto& Look = Config->Presentation;
+	TestEqual(TEXT("The first dissolve recipe lasts one second"), Look.DissolveSeconds, 1.f);
+	TestEqual(TEXT("The surface is intact until gameplay ends"), Look.DissolveProgress(6.9f, 7), 0.f);
+	TestEqual(TEXT("The exact gameplay deadline starts an intact retirement"), Look.DissolveProgress(7, 7), 0.f);
+	TestEqual(TEXT("Late observation reconstructs elapsed progress from the same clock"), Look.DissolveProgress(7.5f, 7), .5f);
+	TestEqual(TEXT("Late destruction packets cannot keep the surface visible"), Look.DissolveProgress(9, 7), 1.f);
+	Look.DissolveSeconds = 0;
+	TestTrue(TEXT("Immediate visual expiry is supported"), Config->Validate(Error));
+	TestEqual(TEXT("Zero duration has no division by zero"), Look.DissolveProgress(7, 7), 1.f);
+	Look.DissolveSeconds = 5.1f;
+	TestFalse(TEXT("Excessive visual retention is rejected"), Config->Validate(Error));
+	Look.DissolveSeconds = -1;
+	TestFalse(TEXT("Negative retirement is rejected"), Config->Validate(Error));
 	return true;
 }
 

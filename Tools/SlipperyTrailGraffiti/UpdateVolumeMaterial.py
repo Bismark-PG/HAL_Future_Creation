@@ -52,7 +52,8 @@ try:
     existing = [item for item in old_nodes if isinstance(item, unreal.MaterialExpressionCustom)
                 and item.get_editor_property('description') == MARKER]
     if existing:
-        if len(existing) != 1 or old_root != existing[0]:
+        if len(existing) != 1 or (old_root != existing[0]
+                and existing[0] not in MAT.get_inputs_for_material_expression(material, old_root)):
             raise RuntimeError('Unexpected volume graph; refusing to rewire existing work')
         custom = existing[0]
         custom.set_editor_property('code', source)

@@ -17,6 +17,8 @@ SlipperyTrail 当前描边调节方法见[涂鸦材质：描边粗细与柔和�
 
 2026-11-11 后续施工已在现有涂鸦母材质接入平滑体积明暗与独立的真实投影开关，原 MI 配色和技能 DA 保留。地面表现网格的 **UV1 保留给平滑权重梯度**，复用地面材质时勿将其改作笔触平铺；基础纹理仍使用 UV0。参数及复用边界见[体积明暗与投影](Slippery_Trail_Graffiti_Material_CN_v0.1.md#体积明暗与投影2026-11-11)和[公共地面合同](Ground_Surface_Deformation_CN_v0.1.md#平滑体积明暗的附加合同2026-11-11)。上一段“本次只补说明”保留纲领确认时点。
 
+SlipperyTrail 结束消散也已接入：玩法到期先移除区域来源并结束 GAS，随后仅保留视觉图块退场；DA 管 `Dissolve Seconds`，MI 的 **05 Dissolve** 管图块／边缘外观。不得用剩余画面反向注册玩法作用。见[消散配置与验证](Slippery_Trail_Dissolve_CN_v0.1.md)；不含额外蒸汽粒子，其他区域的生命周期没有自动改动。
+
 ## 1. 从哪辆车、哪个组件找起
 
 实际选车由 `/Game/Data/Gameflow/DA_VehicleCatalog_Default` 的 Vehicle ID 找到 Pawn BP。Pawn 的 **Vehicle → Configuration → Definition** 指向车辆定义。定义的 **Visual → Presentation** 指向车型表现 DA，里面放 Skeletal Mesh、Anim Class、车身姿态与回弹、悬挂、漂移／急刹拖尾。状态特效另走 **Project Settings → Game → Vehicle Status FX → Default Catalog**，普通车型的 **Visual → Status FX → Status FX Catalog Override** 留空时继承项目默认。

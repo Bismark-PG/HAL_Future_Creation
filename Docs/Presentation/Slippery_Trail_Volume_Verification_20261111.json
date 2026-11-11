@@ -116,5 +116,11 @@
     "Packaged build and multiple simultaneous shadow performance"
   ],
   "raw_logs": "Saved/SlipperyTrail/Volume_20261111 (local, not committed)",
-  "submitted": false
+  "submitted": false,
+  "readback_units_clarification_20261111": {
+    "type": "FColor",
+    "historical_threshold_raw_u8": 0.025,
+    "interpretation": "Any one-level whole-image difference, not segmented coverage or a 2.5% threshold; original evidence retained.",
+    "range": "0..255"
+  }
 }

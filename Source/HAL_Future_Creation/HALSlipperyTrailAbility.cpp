@@ -40,6 +40,11 @@ bool UHALSlipperyTrailConfig::Validate(FString& Error) const
 		Error = TEXT("Use finite shape/handling/outline values in the editor ranges. Maximum Half Width must be at least Initial Half Width.");
 		return false;
 	}
+	if (!InRange(Presentation.DissolveSeconds, 0, 5))
+	{
+		Error = TEXT("Presentation Dissolve Seconds must be finite and between 0 and 5 seconds.");
+		return false;
+	}
 	Error.Reset();
 	return true;
 }
@@ -160,6 +165,7 @@ void UHALSlipperyTrailAbility::ActivateAbility(FGameplayAbilitySpecHandle Handle
 	}
 	ActiveTrail = Trail;
 	Trail->OnDestroyed.AddDynamic(this, &ThisClass::TrailDestroyed);
+	Trail->OnGameplayEnded.AddUObject(this, &ThisClass::TrailGameplayEnded);
 	ASC->GetOwner()->ForceNetUpdate();
 	UE_CLOG(HALAbilities::ShouldLog(), LogHALAbility, Log, TEXT("SlipperyTrail started Avatar=%s Emission=%.2f Lifetime=%.2f"),
 		*GetNameSafe(Vehicle), Config->Emission.EmissionSeconds, Config->Shape.LifetimeSeconds);
@@ -172,6 +178,15 @@ void UHALSlipperyTrailAbility::TrailDestroyed(AActor* Actor)
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 
+void UHALSlipperyTrailAbility::TrailGameplayEnded(AHALSlipperyTrail* Trail)
+{
+	if (ActiveTrail.Get() != Trail) { return; }
+	ActiveTrail.Reset();
+	Trail->OnDestroyed.RemoveDynamic(this, &ThisClass::TrailDestroyed);
+	Trail->OnGameplayEnded.RemoveAll(this);
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+}
+
 void UHALSlipperyTrailAbility::EndAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
@@ -179,6 +194,7 @@ void UHALSlipperyTrailAbility::EndAbility(FGameplayAbilitySpecHandle Handle, con
 	{
 		ActiveTrail.Reset();
 		Trail->OnDestroyed.RemoveDynamic(this, &ThisClass::TrailDestroyed);
+		Trail->OnGameplayEnded.RemoveAll(this);
 		Trail->Destroy();
 	}
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
