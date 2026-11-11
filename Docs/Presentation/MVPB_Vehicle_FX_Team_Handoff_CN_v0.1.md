@@ -21,6 +21,8 @@ SlipperyTrail 结束消散也已接入：玩法到期先移除区域来源并结
 
 SlipperyTrail 圆润油漆溢边已接入：DA 的 `Presentation → Paint Edge` 控制薄的纯表现余量，MI 的 **06 Paint edge** 控制噪声大形、细节与按厘米调节的随形描边。**UV2 保留给边缘距离／余量（cm），UV1 继续保留给体积梯度。** 不得以视觉溢边扩大打滑查询或添加碰撞；原主体覆盖保持。见[配置、通道合同与本轮验证](Slippery_Trail_Paint_Edge_CN_v0.1.md)。
 
+同日新增地面主体朝向三色，参考 TireSkid 的三档卡通明暗思路。MI **07 Three tone shading** 调独立三色、虚拟来光和门槛，满强度时替代旧高度分色并关闭 04 的额外明暗倍率，ToonStrength=0 恢复旧配方；轮胎烟尘资源本身没有修改。当前保留 C++ 地面网格，Niagara／液团暂缓；详见[三档明暗配置](Slippery_Trail_Three_Tone_CN_v0.1.md)。
+
 ## 1. 从哪辆车、哪个组件找起
 
 实际选车由 `/Game/Data/Gameflow/DA_VehicleCatalog_Default` 的 Vehicle ID 找到 Pawn BP。Pawn 的 **Vehicle → Configuration → Definition** 指向车辆定义。定义的 **Visual → Presentation** 指向车型表现 DA，里面放 Skeletal Mesh、Anim Class、车身姿态与回弹、悬挂、漂移／急刹拖尾。状态特效另走 **Project Settings → Game → Vehicle Status FX → Default Catalog**，普通车型的 **Visual → Status FX → Status FX Catalog Override** 留空时继承项目默认。

@@ -57,6 +57,18 @@ UV2 是适用于本条带／圆端的插值边缘信息，并非任意网格的�
 
 材质源为 `Tools/SlipperyTrailGraffiti/PaintEdge.hlsl`，维护脚本为 `UpdatePaintEdgeMaterial.py`。脚本通过官方 Editor API 更新现有母材质并保护原 MI 有效参数，只保存母材质，不保存 BP、MI、DA 或地图。Custom 代码已嵌入 uasset，游戏运行时不读取这些工具文件；日常调参无需重跑脚本。脚本依赖原图中的描述标记，手工重构母材质后先核对连接再运行。
 
+## 向 TireSkid 卡通烟尘靠拢（方案讨论）
+
+**后续范围已确认并完成首项：** 本轮只实现地面主体的表面朝向三色，保留原地面网格／溢边／隆起／消散，暂缓液团和 Niagara 迁移。当前配置与验证见[三档明暗](Slippery_Trail_Three_Tone_CN_v0.1.md)，下文液团等内容为原讨论备选，未施工。
+
+2026-11-11 用户反馈现有溢边效果不错，并指定当前 TireSkid 新增的卡通烟尘为满意参考，仅讨论方案。只读核对 `main/e1ded4d` 的保存资源：`NS_TireSkid` 的 `DriftSmoke` 使用 `/Engine/BasicShapes/Sphere` 和 `/Game/Assets/FX/Materials/M_FX_ToonSmoke_Mesh`。材质为 Unlit／Opaque，使用 VertexNormalWS 对固定虚拟光向的朝向值切换 ShadowColor／MidColor／LitColor，再乘 ParticleColor.RGB。与截图的圆润立体分色一致；不是靠真实场景照明或半透明烟图产生体积。节点／引用导出保留在 `Saved/TireSkid/20261111_ReadOnly`，没有保存资产。
+
+建议首版保留现有地面油漆与消散，将三色明暗规则接入现有平滑隆起法线，并新增少量低矮、压扁、圆润的液团／泡团。以铺设处短促鼓起为重点，存续期稀疏点缀，可选在退场时短促起团并缩小消失；不建议整片密集冒烟遮住车、球与边界。烟尘的形状／运动语言可复用，油漆团保持自身颜色与较低高度。
+
+技能专用 Niagara 可从 DriftSmoke 的有效模块和材质实例出发，独立于轮胎漂移系统调参；不整套挂接 TireSkid 的 Ribbon／Sparks／漂移触发。C++ 表现层由已有地面轨迹、法线与服务器时间驱动本地世界空间粒子，按空间间隔采样并限制总量，随技能统一清理；不由粒子碰撞参与玩法，也不复制每粒子。资源、尺寸、高度、密度、寿命等技能控制项建议集中到原技能 DA。现有 SlipperyTrail 只有地面网格接口，还需开发 Niagara 引用／管理／参数桥接，当前没有这些新参数。
+
+Opaque 烟尘材质没有消费 ParticleColor Alpha，不能直接靠 Scale Color 的透明度退场；首版可用尺寸归零，需溶解时另做技能专用 Masked 变体。地面母材质仍保留 WPO／UV2／消散合同；使用同一三色规则时应使用现有隆起的平滑法线，直接使用原平面顶点法线不会获得同样的体积色块。精确追踪每个消散孔洞需额外采样与匹配，首版建议只同步退场进度与大致分布。这些均为方案，未施工，未新增测试结论。
+
 ## 验证与下一步
 
 UE **5.8.3-58210709**，Editor／Game Development 最终 R2 构建通过。原生专项 **13/13**，公共 WPO D3D12 回归 **1/1**，实际涂鸦材质 D3D12 Listen Server／Client 各 **1/1**，均 0 测试警告／失败／未运行／进行中。联机使用非默认 12 cm／0.06 余量、1.2 s 消散及 Host 出站 80 ms 注入，检查配置复制、本地 MID 开关、无碰撞、完整扩宽、尾效期间来源／GAS 已结束与最终清理。
