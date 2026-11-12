@@ -1,0 +1,212 @@
+{
+  "date": "2026-11-11",
+  "base_commit": "d08eae9",
+  "branch": "main",
+  "engine": "5.8.3-58210709",
+  "build": {
+    "editor": "R2 succeeded",
+    "game": "R2 succeeded"
+  },
+  "native": {
+    "warnings": 0,
+    "passed": 12,
+    "report": "Saved/SlipperyTrail/Dissolve_20261111/Native_R1/index.json",
+    "in_process": 0,
+    "failed": 0,
+    "not_run": 0
+  },
+  "network": [
+    {
+      "Role": "Host",
+      "Pid": 41960,
+      "Exit": 0,
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0
+    },
+    {
+      "Role": "Client1",
+      "Pid": 10112,
+      "Exit": 0,
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0
+    }
+  ],
+  "network_setup": {
+    "assertions": [
+      "Clock=1",
+      "GameplayOffWhileVisible=1",
+      "GAS inactive and source removed before the visual tail ends",
+      "Final source and mesh cleanup"
+    ],
+    "host_outbound_injected_ms": 80,
+    "nondefault_dissolve_seconds": 1.2,
+    "real_rhi": "D3D12 offscreen both roles"
+  },
+  "render": {
+    "cases": [
+      {
+        "name": "Floor",
+        "retained_pixels": 0
+      },
+      {
+        "name": "Intact",
+        "retained_pixels": 158450
+      },
+      {
+        "name": "Quarter",
+        "retained_pixels": 140268
+      },
+      {
+        "name": "Half",
+        "retained_pixels": 78294
+      },
+      {
+        "name": "ThreeQuarters",
+        "retained_pixels": 12417
+      },
+      {
+        "name": "Gone",
+        "retained_pixels": 0
+      },
+      {
+        "name": "Restored",
+        "retained_pixels": 158450
+      },
+      {
+        "name": "StyledHalf",
+        "retained_pixels": 78646
+      }
+    ],
+    "channel_difference_threshold_u8": 6,
+    "normalize_readback": false,
+    "statistics": {
+      "num_vertex_shader_instructions": 175,
+      "num_pixel_shader_instructions": 296,
+      "num_samplers": 1
+    },
+    "retained_pixels": [
+      158450,
+      140268,
+      78294,
+      12417,
+      0
+    ],
+    "resurfaced_pixels": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "restored_mask_difference": 0,
+    "interior_holes": [
+      3,
+      0,
+      0
+    ],
+    "status": "passed"
+  },
+  "render_exit": {
+    "EngineExit": 0,
+    "Status": "passed"
+  },
+  "saved_recipe": {
+    "saved_config": "/Game/Data/Abilities/DA_Ability_SlipperyTrail.DA_Ability_SlipperyTrail",
+    "dissolve_seconds": 1.0,
+    "ground_material": "/Game/Assets/FX/Materials/MI_SlipperyTrail_Graffiti.MI_SlipperyTrail_Graffiti",
+    "base_material": "/Game/Assets/FX/Materials/M_SlipperyTrail_Graffiti.M_SlipperyTrail_Graffiti",
+    "shading_model": "<MaterialShadingModel.MSM_UNLIT: 0>",
+    "blend_mode": "<BlendMode.BLEND_MASKED: 1>",
+    "saved_assets": false
+  },
+  "material_nodes": 84,
+  "shader_statistics": {
+    "num_vertex_shader_instructions": 175,
+    "num_pixel_shader_instructions": 296,
+    "num_samplers": 1
+  },
+  "protection": {
+    "mi_skill_da_textures_maps_config_uproject_unchanged": true,
+    "checked": 1246,
+    "unchanged": 1245,
+    "preexisting_definition_da_change_preserved": true,
+    "authorized_changes": [
+      "Content\\Assets\\FX\\Materials\\M_SlipperyTrail_Graffiti.uasset"
+    ]
+  },
+  "inputs": [
+    {
+      "path": "Content/Assets/FX/Materials/M_SlipperyTrail_Graffiti.uasset",
+      "sha256": "1A0C54796D288B57DD41481B02E8431A380E172F4AA44C8000805F387679290A"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGroundSurfacePresentation.cpp",
+      "sha256": "E0D104A183D9111C368258264C41B1CE53838E9D1DD605D13524E6D1146018DA"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGroundSurfacePresentation.h",
+      "sha256": "000EEF0B66849A700A43389A8390CE2D971AF9533AC00FE497FCA5A1E3767867"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALSlipperyTrail.cpp",
+      "sha256": "80922967DEC6E758A7E175E2E408FD1681F618D1F0C6CFB3D88E64185896D05B"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALSlipperyTrail.h",
+      "sha256": "25F87BA47706A3366CD1FB59575A96FB3DE2EEBC2CB4828292F71F4FB93B1076"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALSlipperyTrailAbility.cpp",
+      "sha256": "71D7534A14C4F15E67D8C7C087A1188F847A5976EB70DA137229E8FC520080BE"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALSlipperyTrailAbility.h",
+      "sha256": "F3B9B50043BF3B74725CE5766AEA7EE68CCB87ADBF25C98189C6A0420F895AB3"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALSlipperyTrailPresentation.cpp",
+      "sha256": "BD69D338802E90D789677B91031B125B5F3BC1FFEA067474BBD0B352067E5512"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALGroundSurfaceTests.cpp",
+      "sha256": "AE79EEEC7180986DAD0A7FF611F41731C4F5B7A1FC9A78180B23318F3AB1DAF1"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALSlipperyTrailNetworkTests.cpp",
+      "sha256": "DAD5D4B74E787FAA46C2DA1DCCA838D50EA2C1375E38725D7BF61BA63AF4E366"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALSlipperyTrailTests.cpp",
+      "sha256": "7CEB1DB3C907BABEFEB9C9C6D060FD18BD9F2AA900F08F76737314A922E97D8A"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleAbilityNetworkFixture.cpp",
+      "sha256": "C77F6923E7C5C1C6740B9D67498D1175BD173C533CF4D8F486F8FBFDB0A61F83"
+    },
+    {
+      "path": "Tools/SlipperyTrailGraffiti/DissolveMask.hlsl",
+      "sha256": "9A4CFCA20DEFDCB4442D675938BA300F76BE3C3A760C7E186CE9B568AFDE3773"
+    },
+    {
+      "path": "Tools/SlipperyTrailGraffiti/UpdateDissolveMaterial.py",
+      "sha256": "76FD661814623528994439FB1EFFED5A48400F3B8F7DD80801FB67AF7E635C2E"
+    },
+    {
+      "path": "Tools/SlipperyTrailGraffiti/UpdateVolumeMaterial.py",
+      "sha256": "4766C00341E874A7969EE8B62B41A00BDC86A18D7E64D89EE2F4431F717B1A64"
+    }
+  ],
+  "pending": [
+    "Production-map visual tuning, turns, overlaps and ramps",
+    "All forced lifecycle cases in a real session",
+    "Actual late join/relevancy observation beyond the native clock reconstruction checks",
+    "Campus machines, packaged build and many-region performance"
+  ],
+  "raw_logs": "Saved/SlipperyTrail/Dissolve_20261111 (local, not committed)",
+  "submitted": false
+}

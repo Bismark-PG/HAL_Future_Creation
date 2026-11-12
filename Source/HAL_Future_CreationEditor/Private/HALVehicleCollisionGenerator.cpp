@@ -1,4 +1,6 @@
 #include "HALVehicleCollisionGenerator.h"
+#include "HALVehicleAlignment.h"
+#include "VehicleDefinition.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetToolsModule.h"
@@ -22,17 +24,19 @@
 
 namespace
 {
-	constexpr int32 RecipeVersion = 2;
+	constexpr int32 RecipeVersion = 4;
 	bool Fail(FString& Error, const TCHAR* Message) { Error = Message; return false; }
 	void WriteRecipe(UStaticMesh& Mesh, const FHALVehicleCollisionParameters& P)
 	{
 		auto& Data = Mesh.GetOutermost()->GetMetaData();
-		Data.SetValue(&Mesh, TEXT("HALCollision.Version"), TEXT("2"));
-		Data.SetValue(&Mesh, TEXT("HALCollision.GeneratorRevision"), TEXT("3"));
+		Data.SetValue(&Mesh, TEXT("HALCollision.Version"), *LexToString(RecipeVersion));
+		Data.SetValue(&Mesh, TEXT("HALCollision.GeneratorRevision"), TEXT("5"));
 		const auto SetFloat = [&](const TCHAR* Key, float Value) {
 			Data.SetValue(&Mesh, Key, *FString::Printf(TEXT("%.9g"), Value));
 		};
-		SetFloat(TEXT("HALCollision.LengthCm"), P.LengthCm);
+		Data.RemoveValue(&Mesh, TEXT("HALCollision.LengthCm"));
+		SetFloat(TEXT("HALCollision.FrontCm"), P.FrontCm);
+		SetFloat(TEXT("HALCollision.RearCm"), P.RearCm);
 		SetFloat(TEXT("HALCollision.WidthCm"), P.WidthCm);
 		SetFloat(TEXT("HALCollision.HeightCm"), P.HeightCm);
 		SetFloat(TEXT("HALCollision.FrontRadiusCm"), P.FrontRadiusCm);
@@ -40,17 +44,73 @@ namespace
 		SetFloat(TEXT("HALCollision.FrontSideRadiusCm"), P.FrontSideRadiusCm);
 		SetFloat(TEXT("HALCollision.RearSideRadiusCm"), P.RearSideRadiusCm);
 		Data.SetValue(&Mesh, TEXT("HALCollision.SegmentsPerCorner"), *LexToString(P.SegmentsPerCorner));
+		if (P.BottomZCm.IsSet())
+		{
+			Data.SetValue(&Mesh, TEXT("HALCollision.BottomZCm"), *FString::Printf(TEXT("%.17g"), P.BottomZCm.GetValue()));
+		}
+		else
+		{
+			Data.RemoveValue(&Mesh, TEXT("HALCollision.BottomZCm"));
+		}
+	}
+
+	void BuildRoundedOutline(double MinX, double MaxX, double HalfAcross, double FrontRadius,
+		double RearRadius, int32 Segments, TArray<FVector2D>& Outline)
+	{
+		// Fit rounding inside the authored end planes. Keep the radius ratio when the ends overlap.
+		const double Length = MaxX - MinX;
+		const double RadiusSum = FrontRadius + RearRadius;
+		if (RadiusSum > Length)
+		{
+			FrontRadius = Length * (FrontRadius / RadiusSum);
+			RearRadius = Length - FrontRadius;
+		}
+		const auto AddPoint = [&](const FVector2D& Point) {
+			if (Outline.IsEmpty() || !Outline.Last().Equals(Point, 0.00001)) { Outline.Add(Point); }
+		};
+		const auto AddCorner = [&](double EndX, double SignX, double SignAcross, double Radius, double StartAngle) {
+			const FVector2D Corner(EndX, SignAcross * HalfAcross);
+			if (Radius == 0) { AddPoint(Corner); return; }
+			const FVector2D Center = Corner - FVector2D(SignX * Radius, SignAcross * Radius);
+			for (int32 I = 0; I <= Segments; ++I)
+			{
+				const double Angle = FMath::DegreesToRadians(StartAngle + 90.0 * I / Segments);
+				AddPoint(Center + Radius * FVector2D(FMath::Cos(Angle), FMath::Sin(Angle)));
+			}
+		};
+		// Counterclockwise. Merge coincident endpoints where arcs meet.
+		AddCorner(MaxX, 1, 1, FrontRadius, 0);
+		AddCorner(MinX, -1, 1, RearRadius, 90);
+		AddCorner(MinX, -1, -1, RearRadius, 180);
+		AddCorner(MaxX, 1, -1, FrontRadius, 270);
+		if (Outline[0].Equals(Outline.Last(), 0.00001)) { Outline.Pop(); }
 	}
 }
 
 bool FHALVehicleCollisionParameters::Validate(FString& Error) const
 {
 	Error.Reset();
-	for (const float Dimension : { LengthCm, WidthCm, HeightCm })
+	const double Length = GetLengthCm();
+	if (!FMath::IsFinite(FrontCm) || !FMath::IsFinite(RearCm) || FrontCm < 0 || RearCm < 0
+		|| Length < 1 || Length > 10000)
+	{
+		return Fail(Error, TEXT("Front and Rear must be finite and non-negative, with a combined length of 1 to 10000 cm."));
+	}
+	for (const float Dimension : { WidthCm, HeightCm })
 	{
 		if (!FMath::IsFinite(Dimension) || Dimension < 1 || Dimension > 10000)
 		{
-			return Fail(Error, TEXT("Length, width and height must be finite and between 1 and 10000 cm."));
+			return Fail(Error, TEXT("Width and height must be finite and between 1 and 10000 cm."));
+		}
+	}
+	if (BottomZCm.IsSet())
+	{
+		const double Bottom = BottomZCm.GetValue();
+		const double Top = Bottom + HeightCm;
+		if (!FMath::IsFinite(Bottom) || FMath::Abs(Bottom) > MAX_flt || FMath::Abs(Top) > MAX_flt
+			|| static_cast<float>(Top) <= static_cast<float>(Bottom))
+		{
+			return Fail(Error, TEXT("The wheel bottom and collision height must produce distinct, finite mesh coordinates."));
 		}
 	}
 	for (const float Radius : { FrontRadiusCm, RearRadiusCm })
@@ -60,17 +120,11 @@ bool FHALVehicleCollisionParameters::Validate(FString& Error) const
 			return Fail(Error, TEXT("Each corner radius must be between 0 and width / 2."));
 		}
 	}
-	if (FrontRadiusCm + RearRadiusCm > LengthCm)
-	{
-		return Fail(Error, TEXT("Front radius + rear radius must not exceed length."));
-	}
 	for (const float Radius:{FrontSideRadiusCm,RearSideRadiusCm})
 	{
 		if (!FMath::IsFinite(Radius) || Radius<0 || Radius>HeightCm*0.5f)
 		{ return Fail(Error,TEXT("Side radii must be finite and between 0 and height / 2.")); }
 	}
-	if (FrontSideRadiusCm+RearSideRadiusCm>LengthCm)
-	{ return Fail(Error,TEXT("Front side radius + rear side radius must not exceed length.")); }
 	if (SegmentsPerCorner < 1 || SegmentsPerCorner > 8)
 	{
 		return Fail(Error, TEXT("Segments per corner must be between 1 and 8."));
@@ -82,33 +136,17 @@ bool HALVehicleCollision::BuildGeometry(const FHALVehicleCollisionParameters& P,
 {
 	Out = {};
 	if (!P.Validate(Error)) { return false; }
-	const double X = P.LengthCm * 0.5, Y = P.WidthCm * 0.5, Z = P.HeightCm * 0.5;
-	const auto AddPoint = [&](const FVector2D& Point) {
-		if (Out.Outline.IsEmpty() || !Out.Outline.Last().Equals(Point, 0.00001)) { Out.Outline.Add(Point); }
-	};
-	const auto AddCorner = [&](double SignX, double SignY, double Radius, double StartAngle) {
-		const FVector2D Corner(SignX * X, SignY * Y);
-		if (Radius == 0) { AddPoint(Corner); return; }
-		const FVector2D Center = Corner - FVector2D(SignX * Radius, SignY * Radius);
-		for (int32 I = 0; I <= P.SegmentsPerCorner; ++I)
-		{
-			const double Angle = FMath::DegreesToRadians(StartAngle + 90.0 * I / P.SegmentsPerCorner);
-			AddPoint(Center + Radius * FVector2D(FMath::Cos(Angle), FMath::Sin(Angle)));
-		}
-	};
-	// Counterclockwise in XY. Coincident endpoints at semicircular tips are merged.
-	AddCorner(1, 1, P.FrontRadiusCm, 0);
-	AddCorner(-1, 1, P.RearRadiusCm, 90);
-	AddCorner(-1, -1, P.RearRadiusCm, 180);
-	AddCorner(1, -1, P.FrontRadiusCm, 270);
-	if (Out.Outline[0].Equals(Out.Outline.Last(), 0.00001)) { Out.Outline.Pop(); }
+	const double MinX = -P.RearCm, MaxX = P.FrontCm;
+	const double CenterX = (MinX + MaxX) * 0.5, Y = P.WidthCm * 0.5, Z = P.HeightCm * 0.5;
+	BuildRoundedOutline(MinX, MaxX, Y, P.FrontRadiusCm, P.RearRadiusCm, P.SegmentsPerCorner, Out.Outline);
+	BuildRoundedOutline(MinX, MaxX, Z, P.FrontSideRadiusCm, P.RearSideRadiusCm, P.SegmentsPerCorner, Out.SideOutline);
 	const int32 N = Out.Outline.Num();
 	for (const double Height : { -Z, Z })
 	{
 		for (const FVector2D& Point : Out.Outline) { Out.Vertices.Emplace(Point.X, Point.Y, Height); }
 	}
-	const int32 Bottom = Out.Vertices.Add(FVector(0, 0, -Z));
-	const int32 Top = Out.Vertices.Add(FVector(0, 0, Z));
+	const int32 Bottom = Out.Vertices.Add(FVector(CenterX, 0, -Z));
+	const int32 Top = Out.Vertices.Add(FVector(CenterX, 0, Z));
 	for (int32 I = 0; I < N; ++I)
 	{
 		const int32 J = (I + 1) % N;
@@ -117,17 +155,9 @@ bool HALVehicleCollision::BuildGeometry(const FHALVehicleCollisionParameters& P,
 		Out.Triangles.Emplace(I, J, N + J);
 		Out.Triangles.Emplace(I, N + J, N + I);
 	}
-	Out.SideOutline={FVector2D(-X,-Z),FVector2D(X,-Z),FVector2D(X,Z),FVector2D(-X,Z)};
 	if (P.FrontSideRadiusCm>0 || P.RearSideRadiusCm>0)
 	{
-		// Intersect the XY prism with a convex polygonal XZ profile. The legacy zero-radius
-		// branch above stays byte-for-byte geometrically identical, including flat-top winding.
-		FHALVehicleCollisionParameters Side=P; Side.WidthCm=P.HeightCm; Side.HeightCm=1;
-		Side.FrontRadiusCm=P.FrontSideRadiusCm; Side.RearRadiusCm=P.RearSideRadiusCm;
-		Side.FrontSideRadiusCm=Side.RearSideRadiusCm=0;
-		FGeometry SideShape;
-		if (!BuildGeometry(Side,SideShape,Error)) { return false; }
-		Out.SideOutline=SideShape.Outline;
+		// Intersect the XY prism with the rounded XZ profile.
 		TArray<double> Heights;
 		const auto AddHeight=[&](double Value)
 		{ if (!Heights.ContainsByPredicate([&](double V){return FMath::IsNearlyEqual(V,Value,1.e-6);})) { Heights.Add(Value); } };
@@ -136,18 +166,18 @@ bool HALVehicleCollision::BuildGeometry(const FHALVehicleCollisionParameters& P,
 		TArray<FVector> Points;
 		for (const double Height:Heights)
 		{
-			double MinX=TNumericLimits<double>::Max(),MaxX=-TNumericLimits<double>::Max();
+			double RingMinX=TNumericLimits<double>::Max(),RingMaxX=-TNumericLimits<double>::Max();
 			for (int32 I=0;I<Out.SideOutline.Num();++I)
 			{
 				const auto A=Out.SideOutline[I],B=Out.SideOutline[(I+1)%Out.SideOutline.Num()];
-				if (FMath::IsNearlyEqual(A.Y,Height,1.e-7)) { MinX=FMath::Min(MinX,A.X); MaxX=FMath::Max(MaxX,A.X); }
+				if (FMath::IsNearlyEqual(A.Y,Height,1.e-7)) { RingMinX=FMath::Min(RingMinX,A.X); RingMaxX=FMath::Max(RingMaxX,A.X); }
 				if (FMath::Abs(B.Y-A.Y)>1.e-7 && Height>=FMath::Min(A.Y,B.Y) && Height<=FMath::Max(A.Y,B.Y))
-				{ const double V=FMath::Lerp(A.X,B.X,(Height-A.Y)/(B.Y-A.Y)); MinX=FMath::Min(MinX,V); MaxX=FMath::Max(MaxX,V); }
+				{ const double V=FMath::Lerp(A.X,B.X,(Height-A.Y)/(B.Y-A.Y)); RingMinX=FMath::Min(RingMinX,V); RingMaxX=FMath::Max(RingMaxX,V); }
 			}
 			TArray<FVector2D> Ring=Out.Outline;
 			for (const bool KeepLess:{true,false})
 			{
-				const double Limit=KeepLess?MaxX:MinX;
+				const double Limit=KeepLess?RingMaxX:RingMinX;
 				TArray<FVector2D> Clipped;
 				for (int32 I=0;I<Ring.Num();++I)
 				{
@@ -189,6 +219,12 @@ bool HALVehicleCollision::BuildGeometry(const FHALVehicleCollisionParameters& P,
 				Out.Triangles.Add(Triangle);
 			}
 		}
+	}
+	if (P.BottomZCm.IsSet())
+	{
+		const double WheelBottom = P.BottomZCm.GetValue();
+		for (FVector& Vertex : Out.Vertices) { Vertex.Z = WheelBottom + (Vertex.Z + Z); }
+		for (FVector2D& Point : Out.SideOutline) { Point.Y = WheelBottom + (Point.Y + Z); }
 	}
 	return true;
 }
@@ -240,7 +276,8 @@ bool HALVehicleCollision::BuildMesh(UStaticMesh& Mesh, const FHALVehicleCollisio
 			Tangents[ID] = Tangent;
 			Signs[ID] = 1;
 			Colors[ID] = FVector4f(1, 1, 1, 1);
-			UVs.Set(ID, 0, FVector2f(Geometry.Vertices[Index].X / P.LengthCm + 0.5, Geometry.Vertices[Index].Y / P.WidthCm + 0.5));
+			UVs.Set(ID, 0, FVector2f((Geometry.Vertices[Index].X + P.RearCm) / P.GetLengthCm(),
+				Geometry.Vertices[Index].Y / P.WidthCm + 0.5));
 		}
 		Description.CreateTriangle(Group, Instances);
 	}
@@ -263,12 +300,14 @@ bool HALVehicleCollision::BuildMesh(UStaticMesh& Mesh, const FHALVehicleCollisio
 	Setup->AggGeom.EmptyElements();
 	Setup->CollisionTraceFlag = CTF_UseSimpleAndComplex;
 	FKConvexElem& Hull = Setup->AggGeom.ConvexElems.AddDefaulted_GetRef();
-	// Only the two boundary rings are required for the convex; cap centers are render vertices.
-	Hull.VertexData.Append(Geometry.Vertices.GetData(), Geometry.Outline.Num() * 2);
+	// Side rounding produces a hull with more than two rings. Flat caps have two extra render-only center vertices.
+	const int32 HullVertexCount = P.FrontSideRadiusCm > 0 || P.RearSideRadiusCm > 0
+		? Geometry.Vertices.Num() : Geometry.Vertices.Num() - 2;
+	Hull.VertexData.Append(Geometry.Vertices.GetData(), HullVertexCount);
 	Hull.UpdateElemBox();
 	Setup->InvalidatePhysicsData();
 	Setup->CreatePhysicsMeshes();
-	if (Setup->AggGeom.GetScaledVolume(FVector::OneVector) <= 0)
+	if (Setup->bFailedToCreatePhysicsMeshes || Setup->AggGeom.GetScaledVolume(FVector::OneVector) <= 0)
 	{
 		return Fail(Error, TEXT("Chaos convex cooking failed. See Output Log."));
 	}
@@ -281,22 +320,41 @@ bool HALVehicleCollision::ReadRecipe(UStaticMesh& Mesh, FHALVehicleCollisionPara
 {
 	auto& Data = Mesh.GetOutermost()->GetMetaData();
 	int32 Version = 0;
-	if (!LexTryParseString(Version, *Data.GetValue(&Mesh, TEXT("HALCollision.Version"))) || (Version!=1 && Version!=RecipeVersion))
+	if (!LexTryParseString(Version, *Data.GetValue(&Mesh, TEXT("HALCollision.Version"))) || Version < 1 || Version > RecipeVersion)
 	{
 		return Fail(Error, TEXT("Select a mesh generated by this version of the HAL Collision Generator."));
 	}
 	FHALVehicleCollisionParameters P;
 	const auto ReadFloat = [&](const TCHAR* Key, float& Value) { return LexTryParseString(Value, *Data.GetValue(&Mesh, Key)); };
-	if (!ReadFloat(TEXT("HALCollision.LengthCm"), P.LengthCm) || !ReadFloat(TEXT("HALCollision.WidthCm"), P.WidthCm)
+	if (!ReadFloat(TEXT("HALCollision.WidthCm"), P.WidthCm)
 		|| !ReadFloat(TEXT("HALCollision.HeightCm"), P.HeightCm) || !ReadFloat(TEXT("HALCollision.FrontRadiusCm"), P.FrontRadiusCm)
 		|| !ReadFloat(TEXT("HALCollision.RearRadiusCm"), P.RearRadiusCm)
 		|| !LexTryParseString(P.SegmentsPerCorner, *Data.GetValue(&Mesh, TEXT("HALCollision.SegmentsPerCorner"))))
 	{
 		return Fail(Error, TEXT("The saved generator recipe is incomplete."));
 	}
+	if (Version < 4)
+	{
+		float LegacyLength = 0;
+		if (!ReadFloat(TEXT("HALCollision.LengthCm"), LegacyLength))
+		{ return Fail(Error, TEXT("The saved centered length is missing or invalid.")); }
+		P.FrontCm = P.RearCm = LegacyLength * 0.5f;
+	}
+	else if (!ReadFloat(TEXT("HALCollision.FrontCm"), P.FrontCm) || !ReadFloat(TEXT("HALCollision.RearCm"), P.RearCm))
+	{ return Fail(Error, TEXT("The saved Front or Rear distance is missing or invalid.")); }
 	if (Version>=2 && (!ReadFloat(TEXT("HALCollision.FrontSideRadiusCm"),P.FrontSideRadiusCm)
 		|| !ReadFloat(TEXT("HALCollision.RearSideRadiusCm"),P.RearSideRadiusCm)))
 	{ return Fail(Error,TEXT("The saved side-radius recipe is incomplete.")); }
+	if (Version >= 3)
+	{
+		const FString BottomText = Data.GetValue(&Mesh, TEXT("HALCollision.BottomZCm"));
+		if (!BottomText.IsEmpty())
+		{
+			double Bottom;
+			if (!LexTryParseString(Bottom, *BottomText)) { return Fail(Error, TEXT("The saved wheel bottom Z is invalid.")); }
+			P.BottomZCm = Bottom;
+		}
+	}
 	if (!P.Validate(Error)) { return false; }
 	Out = P;
 	Error.Reset();
@@ -321,16 +379,57 @@ bool HALVehicleCollision::CanUpdateAsset(UStaticMesh& Mesh, FString& Error)
 	{
 		return Fail(Error, TEXT("Update requires the generated mesh's editable source LOD, material slot and collision body."));
 	}
-	if (!Mesh.GetSourceModel(0).BuildSettings.BuildScale3D.Equals(FVector::OneVector))
+	if (!Mesh.GetSourceModel(0).BuildSettings.BuildScale3D.Equals(FVector::OneVector)
+		|| !Mesh.GetBodySetup()->BuildScale3D.Equals(FVector::OneVector))
 	{
 		return Fail(Error, TEXT("Reset the mesh Build Scale to (1,1,1) before updating dimensions in cm."));
 	}
 	return true;
 }
 
-bool HALVehicleCollision::UpdateAsset(UStaticMesh& Mesh, const FHALVehicleCollisionParameters& P, FString& Error)
+bool HALVehicleCollision::ResolveUpdateAnchor(UStaticMesh& Mesh, FHALVehicleCollisionParameters& P, FString& Error)
 {
-	if (!CanUpdateAsset(Mesh, Error) || !P.Validate(Error)) { return false; }
+	TSet<UVehicleDefinition*> Definitions;
+	if (!HALVehicleAlignment::FindVehicleDefinitions(Definitions, Error)) { return false; }
+	UVehicleDefinition* First = nullptr;
+	double Lowest = 0, Highest = 0;
+	for (UVehicleDefinition* Definition : Definitions)
+	{
+		if (Definition->CollisionShape != EVehicleCollisionShape::ConvexMesh || Definition->CollisionMesh != &Mesh) { continue; }
+		HALVehicleAlignment::FReport Report;
+		if (!HALVehicleAlignment::AnalyzeWheels(*Definition, Report))
+		{
+			Error = FString::Printf(TEXT("Cannot measure wheel bottoms for %s: %s"), *Definition->GetName(), *Report.Error);
+			return false;
+		}
+		if (!First)
+		{
+			First = Definition;
+			Lowest = Highest = Report.WheelBottomZ;
+		}
+		Lowest = FMath::Min(Lowest, Report.WheelBottomZ);
+		Highest = FMath::Max(Highest, Report.WheelBottomZ);
+		if (Highest - Lowest > 0.0001)
+		{
+			Error = FString::Printf(TEXT("%s and %s use this mesh with different wheel-bottom heights. Load the intended Vehicle Definition and create a separate mesh."),
+				*First->GetName(), *Definition->GetName());
+			return false;
+		}
+	}
+	if (First) { P.BottomZCm = Lowest; }
+	else if (!P.BottomZCm.IsSet())
+	{
+		FHALVehicleCollisionParameters Saved;
+		if (!ReadRecipe(Mesh, Saved, Error)) { return false; }
+		P.BottomZCm = Saved.BottomZCm;
+	}
+	return true;
+}
+
+bool HALVehicleCollision::UpdateAsset(UStaticMesh& Mesh, const FHALVehicleCollisionParameters& Parameters, FString& Error)
+{
+	FHALVehicleCollisionParameters P = Parameters;
+	if (!CanUpdateAsset(Mesh, Error) || !ResolveUpdateAnchor(Mesh, P, Error) || !P.Validate(Error)) { return false; }
 	// All predictable generation/cooking failures happen before touching the target.
 	TStrongObjectPtr<UStaticMesh> Candidate(NewObject<UStaticMesh>(GetTransientPackage(), NAME_None, RF_Transient));
 	if (!BuildMesh(*Candidate, P, Error)) { return false; }

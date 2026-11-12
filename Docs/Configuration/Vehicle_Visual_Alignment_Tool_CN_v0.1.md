@@ -4,6 +4,8 @@
 
 ![实际Editor校准面板](VehicleVisualAlignment_Panel_20261022.png)
 
+调整车型碰撞体厚度时，**HAL Vehicle Collision Generator → Load Selected Vehicle** 复用此工具的轮胎测量，把现有外观的最低轮底作为碰撞底面，再从该平面向上计算 Height。见[碰撞生成器的车型轮底对齐](Vehicle_Collision_Generator_CN_v0.1.md#车型轮底对齐)。本面板仍可测量或手动调整表现 DA 的 Z，以适配固定的碰撞网格。
+
 ## 1. 入口与首次使用
 
 1. 同步本轮Editor模块源码、Build.cs和说明；先保存工作，关闭Editor／游戏／Live Coding，再运行根目录`BuildAndLaunch.cmd`。没有新增插件或工具蓝图。

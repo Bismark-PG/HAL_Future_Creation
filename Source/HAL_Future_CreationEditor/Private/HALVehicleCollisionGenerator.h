@@ -20,6 +20,8 @@ namespace HALVehicleCollision
 	bool ReadRecipe(UStaticMesh& Mesh, FHALVehicleCollisionParameters& Out, FString& Error);
 	/** Accepts only editable /Game meshes with a supported generator recipe and one source LOD. */
 	bool CanUpdateAsset(UStaticMesh& Mesh, FString& Error);
+	/** Re-measures wheel bottoms for every Vehicle Definition currently using this mesh. */
+	bool ResolveUpdateAnchor(UStaticMesh& Mesh, FHALVehicleCollisionParameters& Parameters, FString& Error);
 	/** Rebuilds the same asset in memory after staging/cooking; preserves references. Does not save. */
 	bool UpdateAsset(UStaticMesh& Mesh, const FHALVehicleCollisionParameters& Parameters, FString& Error);
 	bool ValidateOutput(const FString& Folder, const FString& Name, FString& Error);

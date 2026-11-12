@@ -232,6 +232,8 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		{ FScopeLock Lock(&PendingPhysicsDataLock); PublishedPresentationInput = FHALVehiclePresentationInput(); }
 		return;
 	}
+	const auto& Overdrive = CurrentMovement.Overdrive;
+	const bool bCharging = Overdrive.IsDriving(CurrentMovementServerFrame);
 	FVector RecoilDeltaVelocity;
 	{
 		FScopeLock Lock(&PendingPhysicsDataLock);
@@ -256,6 +258,16 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		}
 	}
 
+	if (bCharging && Overdrive.bStunned)
+	{
+		// Resolve pending actions first so a same-frame electric-wall bounce cannot undo the stop.
+		if (CurrentMovementServerFrame == Overdrive.StunFrame)
+		{
+			const FVector V = PhysicsHandle->V();
+			FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(), FVector(-V.X, -V.Y, 0), true);
+		}
+		BounceBackPhysics.bActive = false; // Retain the authored sequence for prediction acknowledgement.
+	}
 	// Replace horizontal motion on the Internal body at its center. No angular impulse,
 	// no teleport, no GAS access. Chaos still resolves contacts and gravity normally.
 	const bool bBouncing = BounceBackPhysics.bActive;
@@ -305,6 +317,11 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	else { bPoseDriveAllowed = bGrounded; }
 
 	const FVector Velocity = PhysicsHandle->V();
+	if (bCharging && !CurrentMovement.bControlsBlocked && bMovementDriveAllowed && !RecoveryPhysics.bActive)
+	{
+		InputCommand.Throttle = InputCommand.Brake > KINDA_SMALL_NUMBER ? 0.f : 1.f;
+		InputCommand.bHandbrake = false;
+	}
 	const FVector ForwardDirection = FVector::VectorPlaneProject(
 		BodyTransform.GetRotation().GetForwardVector(), GroundNormal).GetSafeNormal();
 	const FVector RightDirection = FVector::CrossProduct(GroundNormal, ForwardDirection).GetSafeNormal();
@@ -348,7 +365,7 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	const float LateralSpeed = FVector::DotProduct(Velocity, RightDirection);
 	UpdateWallEscape(BodyTransform, GroundNormal, ForwardDirection, Velocity, DeltaTime);
 
-	ApplyLongitudinalForces(*Body, ForwardDirection, ForwardSpeed);
+	ApplyLongitudinalForces(*Body, ForwardDirection, ForwardSpeed, DeltaTime);
 	ApplyLateralGrip(*Body, RightDirection, LateralSpeed);
 	const float AreaSway = bMovementDriveAllowed && !RecoveryPhysics.bActive
 		? CurrentMovement.EvaluateSway(CurrentMovementServerFrame, FMath::Sqrt(FMath::Square(ForwardSpeed) + FMath::Square(LateralSpeed))) : 0;
@@ -962,7 +979,8 @@ bool UArcadeVehicleMovementComponent::UpdateRecoverySupport(const FVector& BodyL
 void UArcadeVehicleMovementComponent::ApplyLongitudinalForces(
 	FBodyInstance& Body,
 	const FVector& ForwardDirection,
-	float CurrentForwardSpeed)
+	float CurrentForwardSpeed,
+	float DeltaTime)
 {
 	// Brake wins when both face buttons are held, producing deterministic input.
 	const bool bBrakeHeld = InputCommand.Brake > KINDA_SMALL_NUMBER;
@@ -979,7 +997,7 @@ void UArcadeVehicleMovementComponent::ApplyLongitudinalForces(
 		{
 			RequestedAcceleration = -BrakeDeceleration * InputCommand.Brake;
 		}
-		else if (bMovementDriveAllowed && CurrentForwardSpeed > -EffectiveMaxReverseSpeed)
+		else if (bMovementDriveAllowed && !CurrentMovement.Overdrive.IsDriving(CurrentMovementServerFrame) && CurrentForwardSpeed > -EffectiveMaxReverseSpeed)
 		{
 			RequestedAcceleration = -EffectiveReverseAcceleration * InputCommand.Brake;
 		}
@@ -1005,10 +1023,13 @@ void UArcadeVehicleMovementComponent::ApplyLongitudinalForces(
 	// Base drag/braking remain independent. An unknown replay frame cannot
 	// impose a guessed speed cap; known zero scales still use normal corrections.
 	float ResistanceAcceleration = -CurrentForwardSpeed * CoastingDragRate;
+	const float CorrectionRate = CurrentMovement.Overdrive.IsRecovering(CurrentMovementServerFrame)
+		? FMath::Min(FMath::Max(OverspeedCorrectionRate, 5.f / CurrentMovement.Overdrive.RecoverySeconds), 1.f / FMath::Max(DeltaTime, SMALL_NUMBER))
+		: OverspeedCorrectionRate;
 
 	if (bMovementDriveAllowed && CurrentForwardSpeed > EffectiveMaxForwardSpeed)
 	{
-		ResistanceAcceleration -= (CurrentForwardSpeed - EffectiveMaxForwardSpeed) * OverspeedCorrectionRate;
+		ResistanceAcceleration -= (CurrentForwardSpeed - EffectiveMaxForwardSpeed) * CorrectionRate;
 	}
 	else if (bMovementDriveAllowed && CurrentForwardSpeed < -EffectiveMaxReverseSpeed)
 	{
@@ -1069,6 +1090,7 @@ void UArcadeVehicleMovementComponent::ApplySteering(
 		: 0.0f;
 	const float TravelDirection = CurrentForwardSpeed < ReverseSteeringThreshold ? -1.0f : 1.0f;
 	const float SteeringMultiplier = InputCommand.bHandbrake ? HandbrakeSteeringMultiplier : 1.0f;
+	const float OverdriveSteering = CurrentMovement.Overdrive.SteeringAt(CurrentMovementServerFrame);
 	const float DampingRate = InputCommand.bHandbrake ? HandbrakeYawDampingRate : YawDampingRate;
 
 	const float SteeringAcceleration =
@@ -1076,10 +1098,10 @@ void UArcadeVehicleMovementComponent::ApplySteering(
 		* TravelDirection
 		* SteeringAngularAcceleration
 		* SteeringAuthority
-		* SteeringMultiplier;
+		* SteeringMultiplier * OverdriveSteering;
 	const float DampingAcceleration = -CurrentYawRate * DampingRate;
 	const float EscapeAcceleration = VehicleWallEscape::YawAcceleration(
-		InputCommand.Steering * FMath::Max(0.0f, WallEscapeTargetYawRate), CurrentYawRate,
+		InputCommand.Steering * FMath::Max(0.0f, WallEscapeTargetYawRate) * OverdriveSteering, CurrentYawRate,
 		WallEscapeYawResponseRate, WallEscapeMaxYawAcceleration, DeltaTime);
 	const float YawAcceleration = FMath::Lerp(
 		SteeringAcceleration + DampingAcceleration + AreaSwayAcceleration, EscapeAcceleration, WallEscapeBlend);

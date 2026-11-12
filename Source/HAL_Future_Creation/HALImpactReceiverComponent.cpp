@@ -5,6 +5,7 @@
 #include "HALImpactAttributeSet.h"
 #include "HALImpactSourceComponent.h"
 #include "HALBattleTopComponent.h"
+#include "HALBullChargeComponent.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALGameplayTags.h"
 #include "CombatResolver.h"
@@ -150,16 +151,23 @@ void UHALImpactReceiverComponent::HandleContact(UPrimitiveComponent* Body, AActo
 	{
 		return;
 	}
+	if (auto* Charge = GetOwner()->FindComponentByClass<UHALBullChargeComponent>();
+		Charge && Charge->DeferContact(Body, OtherBody, NormalImpulse, Hit)) { return; }
 	// Active attack owns its one response. Controlled balls cannot attack through their constraints.
 	if (const ABasicBallActor* Ball = Cast<ABasicBallActor>(Other))
 	{
 		if (Ball->GetBallState() != EBasicBallState::Free) { return; }
 	}
-	if (UHALBattleTopComponent::HandleVehiclePair(*Body, *OtherBody, NormalImpulse, Hit))
+	if (UHALBullChargeComponent::HandleVehiclePair(*Body, *OtherBody, NormalImpulse, Hit)
+		|| UHALBattleTopComponent::HandleVehiclePair(*Body, *OtherBody, NormalImpulse, Hit))
 	{
 		SuppressContact(OtherBody);
 		if (auto* Receiver = Other->FindComponentByClass<UHALImpactReceiverComponent>()) { Receiver->SuppressContact(Body); }
 		return;
+	}
+	if (auto* Charge = GetOwner()->FindComponentByClass<UHALBullChargeComponent>(); Charge && Charge->IsActive())
+	{
+		if (auto* Ball = Cast<ABasicBallActor>(Other); Ball && Charge->HandleFreeBall(*Ball, Hit)) { return; }
 	}
 	if (auto* Top = GetOwner()->FindComponentByClass<UHALBattleTopComponent>(); Top && Top->IsActive())
 	{

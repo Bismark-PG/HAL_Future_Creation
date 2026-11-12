@@ -11,6 +11,7 @@
 #include "HALAbilitySystemComponent.h"
 #include "HALShockedPresentationComponent.h"
 #include "HALBattleTopComponent.h"
+#include "HALBullChargeComponent.h"
 #include "HALMovementEffectBridge.h"
 #include "HALMovementAreaReceiver.h"
 #include "HALVehiclePresentationComponent.h"
@@ -112,6 +113,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	MovementEffectBridge = CreateDefaultSubobject<UHALMovementEffectBridge>(TEXT("MovementEffectBridge"));
 	ShockedPresentation = CreateDefaultSubobject<UHALShockedPresentationComponent>(TEXT("ShockedPresentation"));
 	BattleTop = CreateDefaultSubobject<UHALBattleTopComponent>(TEXT("BattleTop"));
+	BullCharge = CreateDefaultSubobject<UHALBullChargeComponent>(TEXT("BullCharge"));
 	MovementAreaReceiver = CreateDefaultSubobject<UHALMovementAreaReceiver>(TEXT("MovementAreaReceiver"));
 
 	BallControlPoint = CreateDefaultSubobject<USceneComponent>(TEXT("BallControlPoint"));
@@ -310,6 +312,7 @@ void ATestVehiclePawn::UninitializeAbilitySystem()
 {
 	ResetLocalInputReadiness();
 	if (HasAuthority()) { BattleTop->Stop(); }
+	if (HasAuthority()) { BullCharge->Stop(); }
 	ShockedPresentation->Unbind();
 	StatusFXPresentation->Unbind();
 	MovementAreaReceiver->Unbind();

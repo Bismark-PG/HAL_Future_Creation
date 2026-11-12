@@ -8,9 +8,9 @@ public class HAL_Future_Creation : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "DeveloperSettings", "PhysicsCore", "UMG", "GameplayAbilities", "GameplayTags", "GameplayTasks" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "DeveloperSettings", "PhysicsCore", "UMG", "GameplayAbilities", "GameplayTags", "GameplayTasks", "GeometryFramework" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "Chaos", "Networking", "Slate", "SlateCore", "Niagara", "GeometryCore", "GeometryFramework" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Chaos", "Networking", "Slate", "SlateCore", "Niagara", "GeometryCore" });
 		// Editor automation constructs transient render LODs and reads back the real RHI fixture.
 		if (Target.bBuildEditor) { PrivateDependencyModuleNames.AddRange(new string[] { "RHI", "RenderCore" }); }
 		

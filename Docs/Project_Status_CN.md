@@ -1,5 +1,61 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-12 Car04 冲锋接触球不发射已修复代码、构建与程序验证，待真人画面复测。** 从 `main/8af4c4d` 接续，保留团队技能 DA／GA、Car04 Definition 和监听 GameMode 改动。真实碰撞复现确认 UE 在自身 Chaos 处理器中直接触发组件碰撞，技能采样可能尚未到达；原实现因此持续缺少／拒绝同帧采样。现在将相关接触预约至同帧全部事件收齐后，仍由原服务器入口校验并提交，保留角度／速度／拾取锁、规则冲击与自然碰撞边界；无新增 Tick／RPC／复制字段，格式 **6** 不变，球速公式和保存参数未改。新增默认关闭的 `hal.BullChargeContactLog`，见[修复、日志与团队复测](Combat/Car04_Bull_Charge_CN_v0.1.md#接触发射修复与复测2026-11-12)。
+
+本机 UE **5.8.2-56702186** 最终 ContactFix Editor R5／Game R2 成功；原生专项 **11/11**。保存配方真实单 Host 碰撞从修复前失败转为 **1/1**，实际发射 **9000 cm/s**。低延迟及 Host 出站 **80 ms** 注入的真实双进程接触，两端均各 **1/1**，覆盖双方车辆经本人技能请求、真实 Chaos 接触出球和两端归属；服务器确认两球均为 9000 cm/s。既有眩晕／恢复／冷却双端也各 **1/1**，测试报告均 0 警告／失败。全量另记 **199 通过、1 带告警通过、4 失败**；四项均依赖已重命名的旧玩家 DA 路径，本轮未修这些夹具，未宣称全量通过。该轮 1251 保存资产及 Config／uproject 共 **1256** 项与开工逐份一致。无代理资产修改／接线或提交／Push；同机 NullRHI 不替代真人画面、校园四机或发布包。团队下一步重开 Editor 按原保存配方复测，无新增接线。详见[修复验证摘要](Combat/Car04_Bull_Charge_ContactFix_Verification_20261112.json)；下方排查中记录保留原时点。
+
+**本次状态文档恢复核对：** 当前 `main/7648c5d` 已包含后续前后碰撞端面工具及 Nova 电击表现更新，保留这些记录。本次核对 Car04 修复的 5 份源码／测试与验证摘要逐份 SHA256 一致；只恢复本文件，没有改代码／资产、重编或重跑测试。以上为原修复时点的验证，不扩大为后续工具／表现／资产组合的复测结论。
+
+**2026-11-12 Car04 推球问题已检查团队本次日志，接触发射未见提交证据，具体拒绝点仍待定位（修复前记录）。** 本地 17:18:47 结束的 `Saved/Logs/HAL_Future_Creation.log` 确认 NetTest Listen Host、Car04 和单人 Playing；17:18:15.768～17:18:40.840 的 BallNetLog 开启期间没有球状态转换。用户确认仅测技能中接触球。当时应排查接触发射入口，不能将现象认定为 90 m/s 不足；日志没有细分拒绝原因，不能断言具体条件。下一步为增加可关闭的拒绝原因／速度诊断并覆盖真实物理接触；现有人工样本测试未覆盖该真实场景。详见[排查记录](Combat/Car04_Bull_Charge_CN_v0.1.md#球速计算与接触推球排查2026-11-12)。该次仅日志分析和文档，未改代码／资产或运行新测试；后续已按顶部修复完成。
+
+**2026-11-12 Car04 接触球后持续推球，当前为排查中（修复前记录）。** 已接收 `main/8af4c4d` 的技能代码；团队本地新增技能 DA／GA，并修改 Car04 Definition 与监听 GameMode。只读加载确认技能基础／最大球速均为 90 m/s、车速继承 0.75，故车速贡献被上限截断，实际发射初速应为 90 m/s；Car04 保存基础车速 24 m/s、技能速度倍率 1.5，无其他效果时目标上限约 36 m/s。当时尚不能将推球现象认定为单纯球速不足，需要以 Host 对应球的 `Free -> Launched` 日志区分接触发射未触发与发射后的物理／表现问题。见[公式、配置观察与排查](Combat/Car04_Bull_Charge_CN_v0.1.md#球速计算与接触推球排查2026-11-12)。该次两次只读命令行加载退出 0，未修改 C++／资产、未重编或新增玩法复现结论；后续以顶部修复和验证为准。
+
+**2026-11-12 车辆碰撞生成器已支持前后端面独立调整，Editor Target 构建通过。** 从干净 `main/474d90a` 接续。面板 **Front / Rear** 从碰撞根 `X=0` 平面分别量到 +X 前端和 −X 后端，俯视／侧视、渲染网格和简单凸包共用端面坐标。俯视圆角与侧面圆角在端面确定后计算，各组总半径超出总长时按比例缩小实际生成半径，配方保留输入值。原点与轮底基准沿用现有定义。v1～v3 总长载入时平分到两端，v4 分别保存前后距离。见[碰撞生成器参数说明](Configuration/Vehicle_Collision_Generator_CN_v0.1.md#3-参数含义)。
+
+本机 UE5.8.3-58210709 Editor Win64 Development R2 编译与链接成功，`git diff --check` 通过。前后端面、圆角适配、原位更新、轮底和保存重载的自动化代码已编译。独立 Editor-Cmd 启动退出 0，未生成 Unreal 日志或自动化报告，运行结果及场景实测待确认。保存资产未变更。下一步从车型载入已有碰撞配方，分别调整 Front 和 Rear，检查侧视／简单凸包后保存。构建记录位于 `Saved/CollisionGenerator/IndependentEndPlanes_20261112/Build_Editor_R2.log`。
+
+**2026-11-12 Car04「蛮牛冲撞」代码、两 Target 与专项验证完成，待团队配置和手感验收。** 从 `main/3cb1386` 接续。独立技能 DA／原生 GA／GE 接入自动前进、渐进过载、削弱转向、冲击免疫、车头速度伤害、每目标内置 CD、持球／自由球发射及结束收速。眩晕进入帧清零水平速度、停止主动驱动，技能继续计时，解除后按原进度恢复。运动曲线进入同一服务器帧历史，协议升至 **6**；双方使用同版构建。暂用 5 秒总时长含 2 秒爬升、20 秒冷却、1.7 倍上限、0.8 秒每目标 CD，均可配置。见[技能规则、默认值与 Editor 接线](Combat/Car04_Bull_Charge_CN_v0.1.md)。
+
+该轮本机 UE **5.8.2-56702186** 最终 Editor R16／Game R9 构建通过，Release 专项原生 **11/11**，实际 Car04 的低延迟及 Host 出站 80 ms 注入两轮双端均各 **1/1**，报告均 0 测试警告／失败；失效持球发动撤销、未来帧拒绝及眩晕停止回弹并保留序号均已纳入最终复测。全量原生 **192 通过、1 带告警通过、11 旧默认技能夹具相关失败**单独保留，未记为全量通过。该轮 1246 保存资产／Config／uproject 与开工基线逐份一致，保留原有两份资产和状态文档改动。测试使用瞬态技能配方及 Editor `-game`／NullRHI，团队需手动创建技能 DA／GA、替换 Car04 Primary，再验收画面／手感与复杂碰撞。详见[验证摘要](Combat/Car04_Bull_Charge_Verification_20261112.json)。
+
+**本次恢复核对：** 当前已同步至 `main/83a1e60`，保留后续车辆碰撞生成器、碰撞网格及 Car01 DA 重命名记录。Car04 运行时源码与上述验证摘要哈希一致，技能代码／文档仍为未提交改动；本次仅恢复本状态文档，没有重新编译或运行测试，不把原验证扩大为后续 Editor 工具／资产组合的复测结论。
+
+**2026-11-12 车辆碰撞生成器已接入静态轮底测量，Editor Target 构建通过。** 从干净 `main/bd3a670` 接续。**Load Selected Vehicle** 读取实际 Definition 的 Presentation／Skeletal Mesh，复用 Visual Alignment 的四个 SpinBone 与 LOD0 参考几何测量。最低轮底 Z 同时用于侧视预览、渲染网格和简单凸包。Height 从该平面向上计量，网格原点保留在碰撞根。创建时可按车型测量，原位更新时重新测量当前引用者，共享网格的轮底基准冲突时可创建车型专用网格。v3 配方保存轮底，兼容旧 v1／v2。另修正侧面圆角凸包只读取部分生成顶点的问题。见[操作说明](Configuration/Vehicle_Collision_Generator_CN_v0.1.md#车型轮底对齐)。
+
+本机 UE5.8.3-58210709 Editor Win64 Development R6 编译与链接成功，`git diff --check` 通过。首轮构建定位临时路径与 UBA 缓存权限，改用工程 Saved 下的构建临时目录，后续修正编译器报告的局部变量遮蔽后复建。新增轮底固定、侧圆角、共享冲突的回归用例，并扩充配方保存重载测试，测试代码随 Editor 构建。两个独立自动化启动均退出 0，但无 UE 日志或报告，自动化执行和团队场景实测仍待确认。工作区的保存 Mesh／DA／BP／地图未变更。下一步在 Editor 从车型载入，比较两档 Height 的底／顶 Z，保存并 Play 核对实际接地。构建记录位于 `Saved/CollisionGenerator/WheelBottom_20261112/Build_Editor_R6.log`。
+
+**2026-11-12 SlipperyTrail 暗绿色边缘＋中间色缓冲已完成材质施工与本机验证，待比赛地图观感调试。** 用户反馈三档朝向明暗已非常接近预期，本轮从 `main/9a673e3` 接续，只改边缘颜色分布：MI **07 Three tone shading** 新增 `ToonEdgeColor`、`ToonEdgeBufferWidth`（默认24 cm）和 `ToonEdgeBufferSoftness`（12 cm），形成暗绿外缘→中间色缓冲→内部三档。颜色独立于原InkColor，用户调亮的高光和其他MI参数保持；宽度0可关缓冲，配合原InkColor可精确恢复施工前三档，ToonStrength=0仍恢复旧模式。Paint Custom输出扩为float4，RGB原合同保持、A提供同一不规则轮廓内深度，UV／网格／C++接口／WPO／消散／玩法不变。见[配置与对照](Presentation/Slippery_Trail_Edge_Buffer_CN_v0.1.md)、[验证摘要](Presentation/Slippery_Trail_Edge_Buffer_Verification_20261112.json)。
+
+UE5.8.3-58210709，保存材质重载后D3D12 shader编译通过，115节点／VS179／PS453／1采样器。真实生产网格R1 13帧及原生退出0：新／旧三档和更早旧模式恢复差异0，各颜色设置Alpha覆盖189123像素且轮廓差异0，半程消散98262像素且与施工前遮罩差异0，终点及回长0。外缘保守抽样带15027像素中，暗部／高光从7854降到0，内部三档仍均可见；宽度、柔和度、波动及来光响应已检查。实际材质D3D12 Listen Server／Client各1/1，0测试警告／失败／未运行／进行中、两原生进程退出0，验证原MID、扩宽、消散时钟、尾效时玩法／GAS已结束与回收。1246份原保存资产／Config／uproject仅授权母材质变化，其余1245份及349份Source逐份一致，保留用户Definition改动及原MI／技能DA／地图／纹理／轮胎烟尘。本轮仅材质、工具及文档，无C++／反射变更，未重建Target或重跑完整原生规则测试；未改BP、未提交／Push。下一步重开材质或工程，以原技能在比赛地图调暗绿、缓冲宽度／柔和度；复杂弯道／绕回／坡面与真人、校园多机、发布包、大规模性能仍待团队验收，Niagara／液团继续暂缓。
+
+**2026-11-11 SlipperyTrail 地面主体表面朝向三档明暗已实现，待团队比赛镜头调色验收。** 用户明确先用方案一：保留 C++ 地面网格，仅试暗／中／亮三档，不加液团、不迁移 Niagara、不改现有消散。从 `main/e1ded4d` 接续，保留车辆 Definition DA 和前轮文档改动。母材质增加 MI **07 Three tone shading**，从隆起／波动的平滑朝向计算三色，支持独立三色、虚拟来光、门槛、柔和度和强度；默认 ToonStrength=1，0 精确恢复旧配方。新模式保留随形墨线、笔触、WPO、溢边及消散，满强度时关闭旧 04 的重复明暗。见[配置与对照](Presentation/Slippery_Trail_Three_Tone_CN_v0.1.md)、[验证摘要](Presentation/Slippery_Trail_Three_Tone_Verification_20261111.json)。
+
+UE5.8.3-58210709，保存材质重载后 D3D12 shader 编译通过，111节点／VS179／PS438／1采样器。真实生产网格 R2 十帧检查及原生退出0：关闭与施工前对照逐通道差异0；新分色、反向来光、波动、柔和度分别改变156447／166590／44637／19752像素，三档诊断均可见。独立逆透明度 Alpha 覆盖在旧／新／反向／波动／诊断／柔和／恢复之间差异均0，半程消散98262像素、终点0、回长0。R1颜色差计覆盖的误判保留，R2已改用独立Alpha复核。实际材质 D3D12 Listen Server／Client各1/1，0测试警告／失败／未运行／进行中、原生退出0，验证原扩宽、消散时钟、尾效可见时来源／GAS已结束及清理。1246份原保存资产／Config／uproject仅授权母材质变化，其余1245份及349份Source逐份一致，原MI、技能DA、地图、纹理、轮胎烟尘与用户Definition改动保持，未改BP。本轮仅材质／工具／文档，不重建Target或重跑完整原生规则测试；无新增真人、校园多机、发布包或大规模性能结论，未提交／Push。下一步打开原MI的07分组，按文档对照0／1及调三色，原地／弯道／坡面／波动／消散观感由团队验收。以下讨论中的Niagara／液团备选继续暂缓。
+
+**2026-11-11 用户反馈油漆溢边效果不错，下一项仅讨论向 TireSkid 卡通烟尘靠拢，尚未施工。** 当前 `main/e1ded4d` 已包含溢边提交，保留车辆 Definition DA 的已有改动。只读加载／T3D 导出当前保存的 `NS_TireSkid`，确认新增 `DriftSmoke` 为 Sphere 网格＋`M_FX_ToonSmoke_Mesh`，后者为 Unlit／Opaque、以表面朝向和固定虚拟光向切换 Shadow／Mid／Lit 三色并乘 ParticleColor.RGB。建议 SlipperyTrail 采用同源卡通分色，保留地面油漆底层，叠少量低矮液团／泡团及可选退场小团，技能专用 Niagara 由 C++ 表现接口管理，资源与控制参数归同一技能 DA。当前 SlipperyTrail 尚无这层 Niagara 引用与管理，不视为已有能力；精确孔洞跟踪不是首版建议。见[方案记录](Presentation/Slippery_Trail_Paint_Edge_CN_v0.1.md#向-tireskid-卡通烟尘靠拢方案讨论)。本轮只读检查与文档记录，没有修改代码／资产或新增编译／渲染／联机测试；一般正向画面反馈不扩大为完整工况验收。下一步确认视觉方向与首版范围后再开发。
+
+**2026-11-11 SlipperyTrail 圆润油漆／液体溢边已完成程序与材质施工、本机验证，待原比赛地图观感验收。** 从 `main/53d3fa2` 接续，保留用户 Definition DA 已有改动。原主体外新增薄的纯表现余量，由固定地面低频圆润噪声裁剪，墨线跟随新轮廓；主体覆盖、配色、隆起、体积明暗与结束消散保持。技能 DA 的 `Presentation → Paint Edge` 默认开启／15 cm／0.08 半宽比例，双重上限约束溢出；MI **06 Paint edge** 调强度、大形尺度、细节、柔和度及厘米制描边。公共地面结构默认关闭，UV2 新保留为边缘距离／余量，UV1 保持体积梯度。没有新增玩法范围、碰撞、GA Tick、RPC 或独立小滴。见[配置与团队验收](Presentation/Slippery_Trail_Paint_Edge_CN_v0.1.md)、[可同步验证摘要](Presentation/Slippery_Trail_Paint_Edge_Verification_20261111.json)。
+
+UE5.8.3-58210709 最终 Editor／Game R2 构建通过，原生专项 **13/13**、公共 WPO D3D12 回归 **1/1**、实际涂鸦材质 D3D12 Listen Server／Client 各 **1/1**，均 0 测试警告／失败／未运行／进行中。联机用非默认 12 cm／0.06 配方、1.2 s 消散及 Host 出站 80 ms 注入，确认参数复制、无碰撞、本地 MID、完整扩宽、尾效时玩法／GAS 已结束与最终回收。生产网格＋保存材质的 D3D12 R2 十帧像素检查通过且退出 0：原主体丢失／越出包络／重采样漂移／消散回长／终点残留／关闭恢复差异均 0，新增溢边 10279 像素，半径抽样外扩约 1.17～14.65 cm。首次空画面夹具失败已修正并保留原记录。母材质98节点／VS179／PS373／1采样器。1246份原保存资产／Config／uproject仅授权母材质变化，其余1245份及5份核心玩法源码逐份一致；原MI调色、技能DA、地图、纹理与用户Definition改动保持，未改BP，未提交／Push。下一步重开Editor，以原技能按文档调试；原地／弯道／绕回重叠／坡面／断段和双端强制清理由团队验收，尚无新增真人、校园多机、发布包或大规模性能结论。下方历史“最新／尚未施工”以本段为准。
+
+**2026-11-11 SlipperyTrail 分块蒸发消散完成代码、构建、原生／材质／双端程序验证，待团队原地图画面验收。** 从 `main/d08eae9` 接续，保留用户 Definition DA 改动。玩法寿命保持：到期移除区域来源、停止摆动并按既有曲线恢复抓地、结束 GAS；随后默认 1 s 的纯视觉消散，DA 的 `Presentation → Dissolve Seconds` 可调 0～5 s，0 为立即消失。范围冻结于玩法截止，固定地面噪声缺口扩大连接，MI 的 **05 Dissolve** 调图块尺度、柔和度和边缘颜色；原颜色／体积明暗／WPO 保留，形变关闭也支持。复制的服务器时间驱动进度，晚观察可重建当前阶段，视觉截止即隐藏；强制退场仍清理。见[配置、实现与图示](Presentation/Slippery_Trail_Dissolve_CN_v0.1.md)和[验证摘要](Presentation/Slippery_Trail_Dissolve_Verification_20261111.json)。
+
+本机 UE5.8.3-58210709，最终 Editor／Game R2 完整构建通过，原生专项 **12/12**、实际涂鸦材质 D3D12 Listen Server／Client 各 **1/1**，均 0 测试警告／失败／未运行／进行中。联机使用非默认 1.2 s 尾效及 Host 出站 80 ms 注入，双方均记录 `Clock=1 GameplayOffWhileVisible=1`，验证复制时长、尾效可见时来源／GAS 已结束、恢复与最终清理。实际材质 D3D12 R4 八帧检查及原生退出 0：剩余覆盖 158450→140268→78294→12417→0，回长为0、恢复差异0、初期3个内部缺口。中间读回单位／地面噪声与进程包装器的验证问题均保留后修正；历史 Volume 计量单位已澄清。母材质84节点／VS175／PS296／1采样器。1246份原有保存资产／Config／uproject仅授权母材质变化，其余1245份逐份一致，MI、技能DA、地图、纹理和用户Definition改动保持，未改BP，未提交／Push。没有额外蒸汽粒子、真人／校园多机／发布包或大规模性能结论。下一步重开Editor，以原技能测试并调整Dissolve Seconds及05 Dissolve；原场景的拐弯／重叠／坡面／强制清理继续按文档验收。下方历史“最新／尚未施工”以本段为准。
+
+**2026-11-11 SlipperyTrail 平滑卡通体积明暗与可选真实投影已完成，待团队比赛镜头验收。** 从 `main/0c53a5d` 接续，保留用户已提交的调色与开工前 Definition DA 修改。现有涂鸦母材质继续 Unlit／Masked，在原颜色输出后增加可关闭的虚拟方向明暗；MI 的 `04 Volume shading` 提供强度、方向、法线表现强度、色块门槛、柔和度及亮／暗强度。公共地面网格 UV1 增加平滑权重梯度，MID 增加 `HAL_GroundInvTileSize`，按同一隆起／波动公式计算平滑朝向，避免初版三角面块；基础 WPO／UV0／中央权重／范围／玩法与权威管线保持。技能 DA 的 `Presentation → Deformation → Cast Shadow` 可选开启真实投影，默认关闭。见[配置、对比图与实现](Presentation/Slippery_Trail_Graffiti_Material_CN_v0.1.md#体积明暗与投影2026-11-11)、[公共 UV1 合同](Presentation/Ground_Surface_Deformation_CN_v0.1.md#平滑体积明暗的附加合同2026-11-11)和[验证摘要](Presentation/Slippery_Trail_Volume_Verification_20261111.json)。
+
+本机 UE5.8.3-58210709，最终 Editor／Game R2 构建成功，原生相关 R2 **11/11**、生产组件 D3D12 位移回归 **1/1**，均 0 测试警告／失败／未运行／进行中。保存材质的 D3D12 六图 R3 对比通过：体积／方向／波动／投影变化分别 209547／239442／87823／4346 像素，关闭后恢复差异 0；71 节点，VS175／PS225／1采样器。原接口、配色检查误判及块状初版均保留后修正。1246 份原有保存资产／Config／uproject 中只修改授权母材质，其余1245份逐份一致，原 MI 配色、技能 DA、纹理、地图及用户 Definition 改动均保留；未修改 BP，未提交／Push。真实投影为可选场景阴影，没有额外私有软阴影层。下一步打开原 MI 调整 Volume 参数；先关闭波幅验静态隆起，再开轻波动并按需启用 Cast Shadow，验收急弯／绕回／斜坡及 Host／Client 生命周期。当前没有新增真人、双端、发布包或多区域投影性能结论，以下早期节点数／未施工记录保留原时点。
+
+**2026-11-11 量产特效画风纲领已补充：保持夸张卡通／手绘涂鸦，颜色、纹理与边缘稍柔和、圆润。** 用户实测反馈 SlipperyTrail 新材质比旧版明显接近预期，配色由用户继续调试；当前首版的尖锐笔触与强烈对比需要在后续制作中适度缓和，同时保留卡通分色、轮廓和比赛可读性。要求适用于后续技能／地面区域／车辆状态／机关特效，已记录到[特效团队交接纲领](Presentation/MVPB_Vehicle_FX_Team_Handoff_CN_v0.1.md#量产特效视觉纲领2026-11-11-补充)和[当前材质说明](Presentation/Slippery_Trail_Graffiti_Material_CN_v0.1.md#画风目标)。当前母材质 `Ink border threshold` 的 SmoothStep Min／Max 为 0.10／0.12，宽度尚未暴露给 MI；已补充加粗、变细及柔和过渡的 Editor 手工调节步骤。此轮仅三份文档修改，保留全部已有改动，没有修改材质／纹理／BP／DA 或 C++，没有新增编译／渲染／联机测试；用户一般画面反馈不扩大为复杂场景或双端验收通过。下一步由用户调色并按说明调描边，后续特效遵循新纲领。本轮未提交／Push。
+
+**2026-11-11 SlipperyTrail 新涂鸦风材质已创建并完成独立 D3D12 渲染检查，下一步团队切换技能 DA 验收比赛画面。** 用户反馈隆起已生效，但原油膜观感不符合《Need for Speed Unbound》的夸张卡通方向，授权重做材质。从 `main/a5dfa12` 接续，新增 `M_SlipperyTrail_Graffiti`、`MI_SlipperyTrail_Graffiti` 和独立笔触纹理，使用粗深色轮廓、绿紫硬分色、局部网点和分步移动笔触；保留公共 WPO 四参数接口。通过 Unreal Editor API 创建新资源，没有编辑 Blueprint 或覆盖旧材质／技能 DA。概念图与实际渲染图分别留档，见[材质配置、参数与交接](Presentation/Slippery_Trail_Graffiti_Material_CN_v0.1.md)。此前“待补 WPO 接线”是历史时点，用户现已反馈变形有效。
+
+本机 UE 5.8.3-58210709，保存资源重新加载后 D3D12 着色器编译通过，59 节点／67 条已检查连接；独立瞬态地面网格 R5 渲染通过，512×512 中绿色 38145／紫色 13911 像素，已查看导出图片。VS 173／PS 151 指令、1 采样器为本设置统计。R1～R3 验证脚本接口错误及 R4 未等待更新的空画面均留原记录，修正后 R5 通过；不记作技能画面／联机验收。1243 份原有保存资产／Config／uproject 与开工保护基线逐份一致，保留三份用户资产及地面说明文档的已有改动。没有 C++／配置修改或新 Target 构建／玩法自动化，未提交／Push。下一步将 `DA_Ability_SlipperyTrail → Presentation → Ground Material` 设为新 MI，按文档试 18 cm／4 cm／1.5 s 后在比赛镜头验收轮廓、笔触、弯道／重叠和双端到期清理；完整悬空涂鸦／烟团属于额外表现层。
+
+**2026-11-11 通用地面隆起／波动程序及验证完成，已接入 SlipperyTrail，待团队补母材质 WPO 接线。** 从 `main/b06ecae` 接续并保留上一轮进度文档改动。新增可复用的 `FHALGroundSurfaceDeformation`、地面条带／圆端细分及 `UHALGroundSurfaceComponent`，输出中央到边缘权重、独立 MID、服务器相位与 WPO 包围盒。技能 DA 的 `Presentation → Deformation` 管统一参数，默认 8 cm 隆起、2 cm 起伏、3 s 周期，通过 Enabled 显式启用。UE5.8.3 Editor／Game R3 编译链接通过，原生专项 **11/11**，D3D12 测试材质实际轮廓／波动像素检查 **1/1**，D3D12 本机双端专项各 **1/1**。1243 份保存资产／Config／uproject 保护基线逐份一致。日志位于 `Saved/GroundSurface/20261111`。团队按[通用地面隆起与波动](Presentation/Ground_Surface_Deformation_CN_v0.1.md)在 Editor 接母材质 WPO，再启用 DA 并验收实际油膜画面。
+
+**2026-11-11 SlipperyTrail 联合开发进度核对，当前进入油膜观感调参与保存配方验收。** 核对基点为干净 `main/b06ecae`，本机 UE 5.8.3-58210709。程序已接入按服务器轨迹、地面法线和时间扩宽的动态地面网格，技能 DA 提供 `Presentation → Ground Material / Ground Lift / Texture Tile Size`。`987a129` 已提交遮罩、母材质、实例和技能 DA 的更新，本次只读确认保存的 `DA_Ability_SlipperyTrail` 包引用 `MI_SlipperyTrail_OilSheen`。团队留档已记录游戏内看到油膜，后续完成暗绿底纹与绿紫高光的独立流动接线；最新一版实际观感、急弯／绕回叠色、断段和双端到期清理待复测。当前先按[油膜特效速查](Presentation/Slippery_Trail_OilSheen_QuickGuide_CN.md)调参并在比赛镜头下验收。既有构建、隔离原生 188/188 和 D3D12 双端专项属于 11-10 UE 5.8.2 的地面表现施工记录，本轮为 Git、源码、保存包引用与文档核对。
+
 **2026-11-11 闪电新星接线已核对，参数契约已用自动化测试锁住；团队 PIE 已确认三个阶段都有。** 本机从落后 73 个提交快进到 `main/b06ecae` 后接续。**开工第一个发现是本机 binary 停留在 11/02，`HALElectricSphereGimmick` 不在 DLL 内**，导致 `BP_ElectricSphereGimmick` 的 generated class 为 `None`、Blueprint Status 为 `BS_UNKNOWN`，`MVPB_NetTest` 与 `Test` 两张图里摆好的球一起载入失败，而且只有 LogLinker 警告、没有错误弹窗。重编后恢复，接续这个环节必须先重编再开 Editor。
 
 `NS_LightningNova` 实际宣告的五个参数型别已实读确认：`User.Phase` 为 **Int32**，`PhaseElapsed`／`Radius`／`Intensity` 为 Float，`Color` 为 Linear Color。把 `BP_ElectricSphereGimmick` 导出 T3D 逐节点核对，存档接线与 `b06ecae` 说明**一致**、无 guard：四个推送节点的名称字符串与型别全部正确，`User.Color` 与 `User.Intensity` 目前无推送。查引擎源码 `FNiagaraUserRedirectionParameterStore` 确认 `User.` 前缀与裸名等价，commit 里「拼法未确认」一项结案；真正的风险是 `SetVariable*` 的 `bAdd=true` 在名称或型别对不上时静默新增参数、特效安静不动，新增测试即针对这一点。
@@ -383,7 +439,7 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 ## 1. 先读什么、先检查什么
 
-量产技能当前先读[扩散打滑带规则、配置与验收](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md)，车型技能授予见[车型技能实现与DA迁移](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)。
+量产技能当前先读[Car04 蛮牛冲撞规则、配置与验收](Combat/Car04_Bull_Charge_CN_v0.1.md)，打滑带接续见[扩散打滑带规则、配置与验收](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md)，车型技能授予见[车型技能实现与DA迁移](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)。
 
 **2026-11-10 扩散打滑带油膜已完成本地接线。** 当前工作区已有遮罩、母材质和实例，技能 DA 的保存包包含该实例引用。用户已在游戏中看到油膜，后续完成了独立底纹流动与变色高光接线。最后一版接线按截图核对，最新观感和双端画面待团队复测。见[油膜特效速查](Presentation/Slippery_Trail_OilSheen_QuickGuide_CN.md)。
 
@@ -523,7 +579,11 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 ## 6. 下一环节和待确定项
 
-**2026-11-10 量产技能入口为扩散打滑带配置。** 依次完成技能 DA、GA 的 `Skill Config`、目标车型 `Primary` 授权，再验证保存配方与本机双端手感。通过房间验证 Car04 时，先补测试选车目录。双端使用相同构建，运动历史格式为 5。见[技能配置与验收](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md#editor-接线)。
+**2026-11-12 Car04 当前入口为技能配置和手感验收。** 按[Editor 接线](Combat/Car04_Bull_Charge_CN_v0.1.md#editor-接线)创建 `HALBullChargeConfig` DA 与 `HALBullChargeAbility` 子蓝图，替换 Car04 Definition 的唯一 `Input.Ability.Primary`，确认 Combat／Impact 使用 V1，并在测试用 Vehicle Catalog 登记 Car04。双方使用运动历史格式 **6** 的同版构建，测试渐进过载、前方接触伤害与每目标 CD、技能出球、眩晕续行和结束收速。程序专项通过不替代真实画面、手感、复杂碰撞、校园四机或发布包验收；技能特效可另行制作。
+
+**2026-11-11 SlipperyTrail 当前入口为油膜表现调参和保存配方验收。** 技能 DA／GA、动态地面网格及油膜材质资产均已提交，保存的技能 DA 包引用油膜实例。按[油膜特效速查](Presentation/Slippery_Trail_OilSheen_QuickGuide_CN.md)检查双层流动与变色高光，在同版 Host／Client 对照原地、直线、弯道、断段、到期清理和画面可读性，回填最新观感与问题。新车型授权仍按[技能配置与验收](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md#editor-接线)操作；当前已随 Car04 升至运动历史格式 6，原打滑带独立验证时点为格式 5。
+
+地面隆起／缓慢蠕动的程序已交付，新增入口为[母材质 WPO 节点和 DA 启用步骤](Presentation/Ground_Surface_Deformation_CN_v0.1.md#材质接线)。当前自动化使用临时测试材质，保存油膜配方接线后的画面由团队验收。
 
 2026-11-07当前入口：FX-4A～4D与FX-5程序验证通过。团队按[FX-4 Editor配置](Presentation/MVPB_Vehicle_Status_FX4_Implementation_CN_v0.1.md#2-测试表面先做两种颜色)验收实际模板，同时按[FX-5接线](Presentation/MVPB_Vehicle_Status_FX5_Implementation_CN_v0.1.md#3-editor-配置)保存共享电击配方并核对三车型效果。FX-6 进入第二视觉状态组合、退出次序和压力验收。
 

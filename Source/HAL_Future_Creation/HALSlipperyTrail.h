@@ -3,13 +3,17 @@
 #include "Engine/NetSerialization.h"
 #include "GameFramework/Actor.h"
 #include "HALMovementAreaTypes.h"
+#include "HALGroundSurfacePresentation.h"
 #include "HALSlipperyTrail.generated.h"
 
 class ATestVehiclePawn;
 class UDynamicMeshComponent;
 class UHALMovementAreaReceiver;
 class UMaterialInterface;
+class AHALSlipperyTrail;
 namespace UE::Geometry { class FDynamicMesh3; }
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FHALSlipperyTrailGameplayEnded, AHALSlipperyTrail*);
 
 USTRUCT(BlueprintType)
 struct FHALSlipperyTrailShape
@@ -55,6 +59,7 @@ USTRUCT(BlueprintType)
 struct FHALSlipperyTrailPresentation
 {
 	GENERATED_BODY()
+	FHALSlipperyTrailPresentation() { PaintEdge.bEnabled = true; }
 
 	UPROPERTY(EditAnywhere, Category="Ground")
 	TObjectPtr<UMaterialInterface> GroundMaterial;
@@ -67,7 +72,18 @@ struct FHALSlipperyTrailPresentation
 	UPROPERTY(EditAnywhere, Category="Ground", meta=(ClampMin="20", ClampMax="2000", Units="cm"))
 	float TextureTileSize = 320.f;
 
+	UPROPERTY(EditAnywhere, Category="Ground")
+	FHALGroundSurfaceDeformation Deformation;
+
+	UPROPERTY(EditAnywhere, Category="Ground")
+	FHALGroundSurfacePaintEdge PaintEdge;
+
+	/** Visual-only retirement after gameplay expiry. Zero keeps immediate removal. */
+	UPROPERTY(EditAnywhere, Category="Dissolve", meta=(ClampMin="0", ClampMax="5", Units="s"))
+	float DissolveSeconds = 1.f;
+
 	bool HasUsableMaterial() const;
+	float DissolveProgress(float Age, float GameplayLifetime) const;
 };
 
 USTRUCT()
@@ -98,6 +114,8 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
+	/** Authority notification: the lingering surface no longer owns gameplay or an active GAS cast. */
+	FHALSlipperyTrailGameplayEnded OnGameplayEnded;
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALSlipperyTrailNetworkAccess;
@@ -105,6 +123,8 @@ private:
 #endif
 	double ServerTime() const;
 	void UpdateTrail();
+	void FinishGameplay();
+	void ClearReceivers();
 	void AddPoint(const FVector& Ground, const FVector& Normal, float Age);
 	void UpdateReceivers(float Age);
 	UFUNCTION() void OnRep_PresentationInput();
@@ -117,13 +137,15 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_PresentationInput) double StartTime = -1;
 	UPROPERTY(ReplicatedUsing=OnRep_PresentationInput) TArray<FHALSlipperyTrailPoint> Points;
 	UPROPERTY(ReplicatedUsing=OnRep_PresentationInput) FHALSlipperyTrailPresentation Presentation;
-	UPROPERTY(Transient) TObjectPtr<UDynamicMeshComponent> GroundMesh;
+	UPROPERTY(Transient) TObjectPtr<UHALGroundSurfaceComponent> GroundMesh;
 	float LastMeshAge = -1.f;
 	bool bGroundMeshDirty = true;
 	FHALSlipperyTrailEmission Emission;
 	FHALMovementAreaConfig Area;
 	FTimerHandle UpdateHandle;
+	FTimerHandle GameplayEndHandle;
 	TMap<TWeakObjectPtr<ATestVehiclePawn>, FVector> LastGround;
 	TSet<TWeakObjectPtr<UHALMovementAreaReceiver>> Occupants;
 	bool bLinkNext = false;
+	bool bGameplayEnded = false;
 };

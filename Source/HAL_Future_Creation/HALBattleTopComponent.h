@@ -44,6 +44,8 @@ public:
 	float GetVisualSpinRate() const { return VisualState.SpinRate; }
 	bool GetUnspunMeshTransform(const UMeshComponent& Mesh, FTransform& Out) const;
 	static bool IsActiveOn(const AActor* Actor);
+	static FHALPreparedCombatHit PrepareVehicleHit(UPrimitiveComponent& Source, UPrimitiveComponent& Target,
+		const FVector& Impulse, const FHitResult& Hit);
 	/** Evaluates both attack directions before either hit can eliminate an Avatar. */
 	static bool HandleVehiclePair(UPrimitiveComponent& Body, UPrimitiveComponent& OtherBody,
 		const FVector& NormalImpulse, const FHitResult& Hit);

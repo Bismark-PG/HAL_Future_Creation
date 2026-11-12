@@ -3,6 +3,7 @@
 #include "BasicBallActor.h"
 #include "CoreGlobals.h"
 #include "HALBattleTopComponent.h"
+#include "HALBullChargeComponent.h"
 #include "HALGameFlowPermissions.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALBallPresentationComponent.h"
@@ -190,9 +191,14 @@ bool ABasicBallActor::LaunchFromControl(
 
 bool ABasicBallActor::LaunchFreeFromBattleTop(AActor* NewLauncher, const FVector& InitialVelocity)
 {
+	return UHALBattleTopComponent::IsActiveOn(NewLauncher) && LaunchFreeFromVehicleSkill(NewLauncher, InitialVelocity);
+}
+
+bool ABasicBallActor::LaunchFreeFromVehicleSkill(AActor* NewLauncher, const FVector& InitialVelocity)
+{
 	if (!HasAuthority() || !bConfigurationValid || RepState.State != EBasicBallState::Free
 		|| LastBecameFreeGameFrame == GFrameCounter || !VehicleConfiguration::IsReadyForGameplay(NewLauncher)
-		|| !UHALBattleTopComponent::IsActiveOn(NewLauncher)
+		|| (!UHALBattleTopComponent::IsActiveOn(NewLauncher) && !UHALBullChargeComponent::IsActiveOn(NewLauncher))
 		|| !HALGameFlow::Permissions(GetWorld(), Cast<APawn>(NewLauncher)).bBallControl
 		|| !PassesPickupLocks(NewLauncher) || InitialVelocity.ContainsNaN() || InitialVelocity.IsNearlyZero()) { return false; }
 	return CommitLaunch(NewLauncher, InitialVelocity, NewLauncher);

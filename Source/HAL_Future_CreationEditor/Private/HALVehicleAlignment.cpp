@@ -43,15 +43,15 @@ namespace
 	}
 }
 
-bool HALVehicleAlignment::Measure(const FMeshDescription& Source, const FName (&SpinBones)[4],
-	const FTransform& Transform, const FVector& RootScale, const FBox& ConvexBounds, FReport& Out)
+namespace HALVehicleAlignment
 {
-	Out = {};
-	Out.CurrentTransform = Transform; Out.RootScale = RootScale; Out.CollisionBounds = ConvexBounds;
+static bool MeasureWheelGeometry(const FMeshDescription& Source, const FName (&SpinBones)[4],
+	const FTransform& Transform, const FVector& RootScale, FReport& Out)
+{
+	Out.CurrentTransform = Transform; Out.RootScale = RootScale;
 	if (Transform.ContainsNaN() || !Transform.GetRotation().IsNormalized() || !PositiveUniform(Transform.GetScale3D())
-		|| !PositiveUniform(RootScale) || !ConvexBounds.IsValid || ConvexBounds.Min.ContainsNaN() || ConvexBounds.Max.ContainsNaN()
-		|| ConvexBounds.GetSize().GetMin() <= SMALL_NUMBER)
-	{ return Fail(Out, TEXT("Use finite transforms, positive uniform model/root scale and a nonzero convex volume.")); }
+		|| !PositiveUniform(RootScale))
+	{ return Fail(Out, TEXT("Use finite transforms and positive uniform model/root scale.")); }
 	const FSkeletalMeshConstAttributes Attributes(Source);
 	const auto Weights = Attributes.GetVertexSkinWeights();
 	if (!Attributes.HasBones() || !Attributes.HasBoneNameAttribute() || !Weights.IsValid() || Source.Triangles().Num() == 0)
@@ -111,16 +111,35 @@ bool HALVehicleAlignment::Measure(const FMeshDescription& Source, const FName (&
 		Lowest = FMath::Min(Lowest, WheelBase[I].Min.Z); Highest = FMath::Max(Highest, WheelBase[I].Min.Z);
 		Out.Wheels[I].Bounds = WheelBase[I].ShiftBy(FVector(0, 0, Transform.GetTranslation().Z));
 	}
-	Out.SuggestedZ = ConvexBounds.Min.Z - Lowest;
-	Out.DeltaZ = Out.SuggestedZ - Transform.GetTranslation().Z;
+	Out.WheelBottomZ = Lowest + Transform.GetTranslation().Z;
 	Out.SpreadCm = (Highest - Lowest) * RootScale.Z;
 	Out.bMeasured = true;
+	return true;
+}
+
+static bool CompareToCollision(const FBox& ConvexBounds, FReport& Out)
+{
+	Out.CollisionBounds = ConvexBounds;
+	if (!ConvexBounds.IsValid || ConvexBounds.Min.ContainsNaN() || ConvexBounds.Max.ContainsNaN()
+		|| ConvexBounds.GetSize().GetMin() <= SMALL_NUMBER)
+	{ return Fail(Out, TEXT("A finite, nonzero convex volume is required.")); }
+	Out.DeltaZ = ConvexBounds.Min.Z - Out.WheelBottomZ;
+	Out.SuggestedZ = Out.CurrentTransform.GetTranslation().Z + Out.DeltaZ;
 	if (Out.SpreadCm > CoplanarToleranceCm)
 	{ return Fail(Out, FString::Printf(TEXT("Wheel bottom spread %.3f world cm exceeds %.1f cm. A single Z offset cannot fix this pose."), Out.SpreadCm, CoplanarToleranceCm)); }
-	if (ConvexBounds.GetSize().Z > Out.ModelBounds.GetSize().Z + 1 / RootScale.Z)
+	if (ConvexBounds.GetSize().Z > Out.ModelBounds.GetSize().Z + 1 / Out.RootScale.Z)
 	{ Out.Warnings.Add(TEXT("Collision is taller than the visual model. Upright alignment does not fit roof/side contacts; review collision dimensions separately.")); }
 	Out.bCanApply = true;
 	return true;
+}
+
+}
+
+bool HALVehicleAlignment::Measure(const FMeshDescription& Source, const FName (&SpinBones)[4],
+	const FTransform& Transform, const FVector& RootScale, const FBox& ConvexBounds, FReport& Out)
+{
+	Out = {};
+	return MeasureWheelGeometry(Source, SpinBones, Transform, RootScale, Out) && CompareToCollision(ConvexBounds, Out);
 }
 
 bool HALVehicleAlignment::Analyze(UVehicleDefinition& Definition, FReport& Out)
@@ -144,6 +163,30 @@ bool HALVehicleAlignment::Analyze(UVehicleDefinition& Definition, FReport& Out)
 			ConvexBounds += P;
 		}
 	}
+	if (!AnalyzeWheels(Definition, Out) || !CompareToCollision(ConvexBounds, Out)) { return false; }
+	TSet<UVehicleDefinition*> Definitions;
+	FString Error;
+	if (!FindVehicleDefinitions(Definitions, Error)) { return Fail(Out, Error); }
+	for (auto* Other : Definitions)
+	{
+		if (Other == &Definition || Other->Presentation != Presentation) { continue; }
+		Out.SharedUsers.Add(Other->GetPathName());
+		if (Other->CollisionShape != Definition.CollisionShape || Other->CollisionMesh != Definition.CollisionMesh || !Other->Physics.Scale.Equals(Definition.Physics.Scale, .0001))
+		{ Out.IncompatibleUsers.Add(Other->GetPathName()); }
+	}
+	Out.SharedUsers.Sort(); Out.IncompatibleUsers.Sort();
+	if (!Out.IncompatibleUsers.IsEmpty())
+	{ Out.bCanApply = false; Out.Error = TEXT("Presentation DA is shared by a different collision configuration. Duplicate/reassign that DA manually before applying."); }
+	return true;
+}
+
+bool HALVehicleAlignment::AnalyzeWheels(UVehicleDefinition& Definition, FReport& Out)
+{
+	Out = {};
+	UHALVehiclePresentationConfig* Presentation = Definition.Presentation;
+	if (!Presentation || !Presentation->Mesh)
+	{ return Fail(Out, TEXT("The Vehicle Definition needs a Presentation DA with a Skeletal Mesh.")); }
+	Out.Definition = &Definition; Out.Presentation = Presentation; Out.CollisionMesh = Definition.CollisionMesh; Out.Model = Presentation->Mesh;
 	if (Presentation->Wheels.Num() != 4) { return Fail(Out, TEXT("Presentation must configure exactly FL, FR, BL and BR.")); }
 	FName SpinBones[4];
 	bool Seen[4] = {};
@@ -162,20 +205,29 @@ bool HALVehicleAlignment::Analyze(UVehicleDefinition& Definition, FReport& Out)
 	}
 	const FMeshDescription* Source = Presentation->Mesh->GetMeshDescription(0);
 	if (!Source) { return Fail(Out, TEXT("Skeletal Mesh LOD0 editable source geometry is unavailable.")); }
-	const bool bMeasured = Measure(*Source, SpinBones, Presentation->RelativeTransform, Definition.Physics.Scale, ConvexBounds, Out);
-	Out.Definition = &Definition; Out.Presentation = Presentation; Out.CollisionMesh = Definition.CollisionMesh; Out.Model = Presentation->Mesh;
-	if (!bMeasured) { return false; }
+	return MeasureWheelGeometry(*Source, SpinBones, Presentation->RelativeTransform, Definition.Physics.Scale, Out);
+}
+
+bool HALVehicleAlignment::FindVehicleDefinitions(TSet<UVehicleDefinition*>& Definitions, FString& Error)
+{
 	IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
-	if (Registry.IsLoadingAssets()) { return Fail(Out, TEXT("Asset discovery is still running. Wait for the scan, then analyze again to check shared DA users.")); }
+	if (Registry.IsLoadingAssets())
+	{
+		Error = TEXT("Asset discovery is still running. Wait for the scan, then load or analyze again.");
+		return false;
+	}
 	TArray<FAssetData> Assets;
 	Registry.GetAssetsByClass(UVehicleDefinition::StaticClass()->GetClassPathName(), Assets, true);
-	TSet<UVehicleDefinition*> Definitions;
 	for (const FAssetData& Asset : Assets)
 	{
 		if (Asset.PackageName.ToString().StartsWith(TEXT("/Game/")))
 		{
 			auto* Other = Cast<UVehicleDefinition>(Asset.GetAsset());
-			if (!Other) { return Fail(Out, TEXT("A project Vehicle Definition could not be loaded; shared-DA safety cannot be verified.")); }
+			if (!Other)
+			{
+				Error = FString::Printf(TEXT("Could not load Vehicle Definition %s to check shared references."), *Asset.GetObjectPathString());
+				return false;
+			}
 			Definitions.Add(Other);
 		}
 	}
@@ -183,16 +235,7 @@ bool HALVehicleAlignment::Analyze(UVehicleDefinition& Definition, FReport& Out)
 	{
 		if (!It->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) && !It->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor)) { Definitions.Add(*It); }
 	}
-	for (auto* Other : Definitions)
-	{
-		if (Other == &Definition || Other->Presentation != Presentation) { continue; }
-		Out.SharedUsers.Add(Other->GetPathName());
-		if (Other->CollisionShape != Definition.CollisionShape || Other->CollisionMesh != Definition.CollisionMesh || !Other->Physics.Scale.Equals(Definition.Physics.Scale, .0001))
-		{ Out.IncompatibleUsers.Add(Other->GetPathName()); }
-	}
-	Out.SharedUsers.Sort(); Out.IncompatibleUsers.Sort();
-	if (!Out.IncompatibleUsers.IsEmpty())
-	{ Out.bCanApply = false; Out.Error = TEXT("Presentation DA is shared by a different collision configuration. Duplicate/reassign that DA manually before applying."); }
+	Error.Reset();
 	return true;
 }
 

@@ -15,6 +15,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/PlayerState.h"
 #include "Materials/Material.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/CommandLine.h"
 
 struct FHALSlipperyTrailNetworkAccess
@@ -23,9 +24,23 @@ struct FHALSlipperyTrailNetworkAccess
 	{
 		return Trail.StartTime >= 0 && Trail.Shape.InitialHalfWidth == 750 && Trail.Points.Num() == 1
 			&& FMath::IsNearlyEqual(Trail.Points[0].Ground.Z, 10000., .2)
-			&& FMath::IsNearlyEqual(Trail.Points[0].GroundNormal.Z, 1., .001);
+			&& FMath::IsNearlyEqual(Trail.Points[0].GroundNormal.Z, 1., .001)
+			&& (!FParse::Param(FCommandLine::Get(), TEXT("HALSlipperyTrailDissolveFixture"))
+				|| FMath::IsNearlyEqual(Trail.Presentation.DissolveSeconds, 1.2f))
+			&& (!FParse::Param(FCommandLine::Get(), TEXT("HALSlipperyTrailPaintEdgeFixture"))
+				|| (Trail.Presentation.PaintEdge.bEnabled && Trail.Presentation.PaintEdge.MaximumOutset == 12
+					&& FMath::IsNearlyEqual(Trail.Presentation.PaintEdge.MaximumHalfWidthFraction, .06f)));
 	}
 	static UDynamicMeshComponent* GetGroundMesh(const AHALSlipperyTrail& Trail) { return Trail.GroundMesh; }
+	static UMaterialInterface* GetGroundMaterial(const AHALSlipperyTrail& Trail) { return Trail.Presentation.GroundMaterial; }
+	static float RenderHalfWidth(const AHALSlipperyTrail& Trail)
+	{
+		return Trail.Shape.MaximumHalfWidth + Trail.Presentation.PaintEdge.Padding(Trail.Shape.MaximumHalfWidth);
+	}
+	static float DissolveProgress(const AHALSlipperyTrail& Trail)
+	{
+		return Trail.Presentation.DissolveProgress(float(Trail.ServerTime() - Trail.StartTime), Trail.Shape.LifetimeSeconds);
+	}
 };
 
 namespace
@@ -124,12 +139,30 @@ namespace
 					{
 						bSawGround = true;
 						GroundMesh = Mesh;
-						Test.TestTrue(TEXT("Local ground mesh uses the replicated material"),
-							Mesh->GetMaterial(0) == UMaterial::GetDefaultMaterial(MD_Surface));
+						if (bCheckDeformation)
+						{
+							auto* MID = Cast<UMaterialInstanceDynamic>(Mesh->GetMaterial(0));
+							Test.TestTrue(TEXT("Replicated deformation creates an area-local material with the authored height"),
+								MID && MID->K2_GetScalarParameterValue(TEXT("HAL_GroundBulgeHeight")) == 8.f);
+						}
+						else
+						{
+							const auto* MID = Cast<UMaterialInstanceDynamic>(Mesh->GetMaterial(0));
+							Test.TestTrue(TEXT("Local ground mesh or dissolve MID uses the replicated material"),
+								MID ? MID->Parent == FHALSlipperyTrailNetworkAccess::GetGroundMaterial(*Trail)
+									: Mesh->GetMaterial(0) == FHALSlipperyTrailNetworkAccess::GetGroundMaterial(*Trail));
+						}
 						Test.TestEqual(TEXT("Ground rendering cannot affect queries or physics"),
 							Mesh->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
+						if (FParse::Param(FCommandLine::Get(), TEXT("HALSlipperyTrailPaintEdgeFixture")))
+						{
+							auto* MID = Cast<UMaterialInstanceDynamic>(Mesh->GetMaterial(0));
+							Test.TestTrue(TEXT("Paint mode is written to an area-local MID"),
+								MID && MID->K2_GetScalarParameterValue(TEXT("HAL_GroundPaintEdgeEnabled")) == 1.f);
+						}
 					}
-					bSawFullWidth |= FMath::IsNearlyEqual(Mesh->Bounds.BoxExtent.Y, 900., .1);
+					bSawFullWidth |= FMath::IsNearlyEqual(Mesh->Bounds.BoxExtent.Y,
+						FHALSlipperyTrailNetworkAccess::RenderHalfWidth(*Trail), .1);
 				}
 			}
 			const bool bReadySway = Status.bReady && Status.Definition.AreaSway.Amplitude == 5.f && Status.Definition.SwayPeriodFrames > 0
@@ -149,6 +182,26 @@ namespace
 				Stage = 4;
 			}
 			if (Stage != 4) { return false; }
+			if (bCheckDissolve && Trail)
+			{
+				auto* Mesh = FHALSlipperyTrailNetworkAccess::GetGroundMesh(*Trail);
+				auto* MID = Mesh ? Cast<UMaterialInstanceDynamic>(Mesh->GetMaterial(0)) : nullptr;
+				const float Expected = FHALSlipperyTrailNetworkAccess::DissolveProgress(*Trail);
+				const float Progress = MID ? MID->K2_GetScalarParameterValue(TEXT("HAL_GroundDissolveProgress")) : 0;
+				if (Expected > .05f && Expected < .9f && Mesh && Mesh->IsVisible() && Progress > 0)
+				{
+					bSawDissolveClock |= FMath::IsNearlyEqual(Progress, Expected, .1f);
+					if (!bAffected && Status.Definition.AreaSway.Amplitude == 0)
+					{
+						bSawGameplayOffWhileVisible = true;
+						if (bHost)
+						{
+							Test.TestEqual(TEXT("Retiring pixels do not retain the authority source"), TargetReceiver->GetAreaCount(), 0);
+							Test.TestFalse(TEXT("Visual retirement does not keep GAS active"), SourceASC->GetActivatableAbilities()[0].IsActive());
+						}
+					}
+				}
+			}
 			bSawGripRecovery |= Status.Definition.AreaSway.Amplitude == 0
 				&& Status.Value.GripScale > .3f && Status.Value.GripScale < .99f;
 			if (!Trail && !bAffected && Status.bReady && FMath::IsNearlyEqual(Status.Value.GripScale, 1.f, .001f))
@@ -162,6 +215,13 @@ namespace
 						bHost ? TEXT("Host") : TEXT("Client"), bSawGround, bSawFullWidth);
 				}
 				Test.TestTrue(TEXT("Grip recovers after sway stops"), bSawGripRecovery);
+				if (bCheckDissolve)
+				{
+					Test.TestTrue(TEXT("Both roles observe clock-driven dissolution"), bSawDissolveClock);
+					Test.TestTrue(TEXT("Gameplay ends while retiring pixels are still visible"), bSawGameplayOffWhileVisible);
+					UE_LOG(LogTemp, Display, TEXT("SlipperyTrail dissolve: Role=%s Clock=%d GameplayOffWhileVisible=%d"),
+						bHost ? TEXT("Host") : TEXT("Client"), bSawDissolveClock, bSawGameplayOffWhileVisible);
+				}
 				Test.TestEqual(TEXT("No active sway at expiry"), Status.Definition.AreaSway.Amplitude, 0.f);
 				if (bHost)
 				{
@@ -183,6 +243,10 @@ namespace
 		int32 Stage = 0;
 		bool bSawGripRecovery = false;
 		const bool bCheckGround = FParse::Param(FCommandLine::Get(), TEXT("HALSlipperyTrailGroundFixture"));
+		const bool bCheckDeformation = FParse::Param(FCommandLine::Get(), TEXT("HALGroundSurfaceFixture"));
+		const bool bCheckDissolve = FParse::Param(FCommandLine::Get(), TEXT("HALSlipperyTrailDissolveFixture"));
+		bool bSawDissolveClock = false;
+		bool bSawGameplayOffWhileVisible = false;
 		bool bSawGround = false;
 		bool bSawFullWidth = false;
 		TWeakObjectPtr<UDynamicMeshComponent> GroundMesh;

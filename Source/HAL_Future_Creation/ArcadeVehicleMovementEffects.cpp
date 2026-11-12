@@ -37,7 +37,7 @@ bool UArcadeVehicleMovementComponent::QueueMovementParameters(const FHALMovement
 	{
 		FScopeLock Lock(&PendingPhysicsDataLock);
 		if (Value.Epoch != MovementEpochExternal) { return false; }
-		if (Value.bHasAreaState && Value.Revision > 1)
+		if ((Value.bHasAreaState || Value.Overdrive.Activation.IsValid()) && Value.Revision > 1)
 		{
 			const auto& Previous = PublishedMovementStatus.Definition;
 			// Coalesce GT changes until the previous command has an actual authority frame.
@@ -82,7 +82,7 @@ void UArcadeVehicleMovementComponent::ApplyMovementAction(const FVehicleMovement
 {
 	ApplyPendingMovementConfiguration();
 	if (!Action.Value.IsValidValues() || Action.Value.Epoch != MovementEpoch || !UpdatedPrimitive) { return; }
-	if (Action.Value.bHasAreaState && (!FMath::IsFinite(Action.FixedDeltaSeconds) || Action.FixedDeltaSeconds <= 0
+	if ((Action.Value.bHasAreaState || Action.Value.Overdrive.Activation.IsValid()) && (!FMath::IsFinite(Action.FixedDeltaSeconds) || Action.FixedDeltaSeconds <= 0
 		|| Action.FixedDeltaSeconds > 1 || (Action.Value.Revision > 1 && (!Action.Previous.IsValid()
 			|| Action.Previous.Epoch != Action.Value.Epoch || Action.Previous.Revision != Action.Value.Revision - 1)))) { return; }
 	FBodyInstance* Body = UpdatedPrimitive->GetBodyInstance();

@@ -92,6 +92,14 @@ struct FHALCombatHitRequest
 	FHALImpactProposal Impact;
 };
 
+class FHALCombatAction;
+/** Capture both sides before resolving a contact that may retire either Avatar. */
+struct FHALPreparedCombatHit
+{
+	TSharedPtr<FHALCombatAction> Action;
+	FHALCombatHitRequest Request;
+};
+
 struct FHALCombatHitResult
 {
 	bool bHitAccepted = false;

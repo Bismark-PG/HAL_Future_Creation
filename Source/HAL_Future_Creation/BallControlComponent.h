@@ -40,6 +40,7 @@ public:
 
 	bool LaunchHeldBall(FVector& OutRecoilDeltaVelocity);
 	bool LaunchBattleTopHeldBall(float LaunchSpeed);
+	bool LaunchSkillHeldBall(float LaunchSpeed);
 	/** The same tuned recoil calculation is used by the server and owning client's prediction. */
 	FVector CalculateRecoilDeltaVelocity() const;
 	/** Explicit server cleanup before the owning Pawn is unpossessed/destroyed. */
@@ -114,6 +115,9 @@ protected:
 	bool bDrawAcquisitionDebug = false;
 
 private:
+#if WITH_DEV_AUTOMATION_TESTS
+	friend struct FHALBullChargeTestAccess;
+#endif
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALVehicleLifecycleTestAccess;
 #endif
