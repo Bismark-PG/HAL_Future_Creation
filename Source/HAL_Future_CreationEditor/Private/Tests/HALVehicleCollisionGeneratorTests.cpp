@@ -284,6 +284,7 @@ bool FHALCollisionAssetTest::RunTest(const FString&)
 	Settings->Shape.HeightCm = 96;
 	Settings->Shape.FrontSideRadiusCm = 35;
 	Settings->Shape.RearSideRadiusCm = 18;
+	Settings->Shape.BottomZCm = -41.25;
 	if (!TestTrue(TEXT("Update original asset before saving"), HALVehicleCollision::UpdateAsset(*First, Settings->Shape, Error))) { AddError(Error); return false; }
 	TestEqual(TEXT("Update retains original object path"), First->GetPathName(), OriginalPath);
 	FHALVehicleCollisionParameters Untouched;
@@ -313,9 +314,12 @@ bool FHALCollisionAssetTest::RunTest(const FString&)
 	TestEqual(TEXT("Saved independent rear radius"), Recipe.RearRadiusCm, 12.f);
 	TestEqual(TEXT("Updated side radius persisted"), Recipe.FrontSideRadiusCm, 35.f);
 	TestEqual(TEXT("Updated rear side radius persisted"), Recipe.RearSideRadiusCm, 18.f);
+	TestTrue(TEXT("Wheel-bottom anchor persisted"), Recipe.BottomZCm.IsSet() && Recipe.BottomZCm.GetValue() == -41.25);
 	TestTrue(TEXT("Updated render bounds persisted"), Copy->GetBounds().BoxExtent.Equals(FVector(201,70,48), 0.01));
+	TestEqual(TEXT("Reloaded render bottom retains anchor"), Copy->GetBounds().GetBox().Min.Z, -41.25, 0.001);
 	TestNotNull(TEXT("Reloaded editable source"), Copy->GetMeshDescription(0));
 	TestEqual(TEXT("Reloaded single convex"), Copy->GetBodySetup()->AggGeom.ConvexElems.Num(), 1);
+	TestEqual(TEXT("Reloaded physics bottom retains anchor"), Copy->GetBodySetup()->AggGeom.ConvexElems[0].ElemBox.Min.Z, -41.25, 0.001);
 	TestTrue(TEXT("Reloaded physics volume"), Copy->GetBodySetup()->AggGeom.GetScaledVolume(FVector::OneVector) > 0);
 	Copy->GetOutermost()->GetMetaData().SetValue(Copy, TEXT("HALCollision.Version"), TEXT("999"));
 	Recipe.LengthCm = 777;

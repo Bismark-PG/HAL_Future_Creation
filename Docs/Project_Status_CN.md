@@ -1,5 +1,9 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-12 车辆碰撞生成器已接入静态轮底测量，Editor Target 构建通过。** 从干净 `main/bd3a670` 接续。**Load Selected Vehicle** 读取实际 Definition 的 Presentation／Skeletal Mesh，复用 Visual Alignment 的四个 SpinBone 与 LOD0 参考几何测量。最低轮底 Z 同时用于侧视预览、渲染网格和简单凸包。Height 从该平面向上计量，网格原点保留在碰撞根。创建时可按车型测量，原位更新时重新测量当前引用者，共享网格的轮底基准冲突时可创建车型专用网格。v3 配方保存轮底，兼容旧 v1／v2。另修正侧面圆角凸包只读取部分生成顶点的问题。见[操作说明](Configuration/Vehicle_Collision_Generator_CN_v0.1.md#车型轮底对齐)。
+
+本机 UE5.8.3-58210709 Editor Win64 Development R6 编译与链接成功，`git diff --check` 通过。首轮构建定位临时路径与 UBA 缓存权限，改用工程 Saved 下的构建临时目录，后续修正编译器报告的局部变量遮蔽后复建。新增轮底固定、侧圆角、共享冲突的回归用例，并扩充配方保存重载测试，测试代码随 Editor 构建。两个独立自动化启动均退出 0，但无 UE 日志或报告，自动化执行和团队场景实测仍待确认。工作区的保存 Mesh／DA／BP／地图未变更。下一步在 Editor 从车型载入，比较两档 Height 的底／顶 Z，保存并 Play 核对实际接地。构建记录位于 `Saved/CollisionGenerator/WheelBottom_20261112/Build_Editor_R6.log`。
+
 **2026-11-12 SlipperyTrail 暗绿色边缘＋中间色缓冲已完成材质施工与本机验证，待比赛地图观感调试。** 用户反馈三档朝向明暗已非常接近预期，本轮从 `main/9a673e3` 接续，只改边缘颜色分布：MI **07 Three tone shading** 新增 `ToonEdgeColor`、`ToonEdgeBufferWidth`（默认24 cm）和 `ToonEdgeBufferSoftness`（12 cm），形成暗绿外缘→中间色缓冲→内部三档。颜色独立于原InkColor，用户调亮的高光和其他MI参数保持；宽度0可关缓冲，配合原InkColor可精确恢复施工前三档，ToonStrength=0仍恢复旧模式。Paint Custom输出扩为float4，RGB原合同保持、A提供同一不规则轮廓内深度，UV／网格／C++接口／WPO／消散／玩法不变。见[配置与对照](Presentation/Slippery_Trail_Edge_Buffer_CN_v0.1.md)、[验证摘要](Presentation/Slippery_Trail_Edge_Buffer_Verification_20261112.json)。
 
 UE5.8.3-58210709，保存材质重载后D3D12 shader编译通过，115节点／VS179／PS453／1采样器。真实生产网格R1 13帧及原生退出0：新／旧三档和更早旧模式恢复差异0，各颜色设置Alpha覆盖189123像素且轮廓差异0，半程消散98262像素且与施工前遮罩差异0，终点及回长0。外缘保守抽样带15027像素中，暗部／高光从7854降到0，内部三档仍均可见；宽度、柔和度、波动及来光响应已检查。实际材质D3D12 Listen Server／Client各1/1，0测试警告／失败／未运行／进行中、两原生进程退出0，验证原MID、扩宽、消散时钟、尾效时玩法／GAS已结束与回收。1246份原保存资产／Config／uproject仅授权母材质变化，其余1245份及349份Source逐份一致，保留用户Definition改动及原MI／技能DA／地图／纹理／轮胎烟尘。本轮仅材质、工具及文档，无C++／反射变更，未重建Target或重跑完整原生规则测试；未改BP、未提交／Push。下一步重开材质或工程，以原技能在比赛地图调暗绿、缓冲宽度／柔和度；复杂弯道／绕回／坡面与真人、校园多机、发布包、大规模性能仍待团队验收，Niagara／液团继续暂缓。

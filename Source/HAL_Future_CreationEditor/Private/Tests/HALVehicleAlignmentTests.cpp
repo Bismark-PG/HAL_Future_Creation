@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "HALVehicleAlignment.h"
+#include "HALVehicleCollisionGenerator.h"
 #include "VehicleDefinition.h"
 #include "HALVehiclePresentationConfig.h"
 #include "BoneWeights.h"
@@ -11,7 +12,9 @@
 #include "Misc/AutomationTest.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "SkeletalMeshAttributes.h"
+#include "UObject/MetaData.h"
 #include "UObject/Package.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -188,6 +191,76 @@ bool FHALAlignmentApplyTest::RunTest(const FString&)
 	TestTrue(TEXT("Different collider sharing blocks writes"),!R.bCanApply && !R.IncompatibleUsers.IsEmpty());
 	TestFalse(TEXT("Acknowledgement cannot bypass incompatible sharing"),HALVehicleAlignment::Apply(R,true,bChanged,Error));
 	Other->ClearFlags(RF_Standalone);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALCollisionWheelAnchorTest, "HAL.Editor.CollisionGenerator.WheelBottomAnchored",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALCollisionWheelAnchorTest::RunTest(const FString&)
+{
+	UVehicleDefinition* Seed = TeamDefinition();
+	if (!Seed || !Seed->Presentation) { AddError(TEXT("A saved vehicle with wheel geometry is required.")); return false; }
+	FProbe Probe(Seed);
+	Probe.Definition->CollisionMesh = nullptr;
+	Probe.Definition->Physics.Scale = FVector(2);
+	const FTransform Before = Probe.Config->RelativeTransform;
+	HALVehicleAlignment::FReport Report;
+	if (!TestTrue(TEXT("Wheels can be measured before a collider is assigned"), HALVehicleAlignment::AnalyzeWheels(*Probe.Definition, Report)))
+	{
+		AddError(Report.Error);
+		return false;
+	}
+	double Bottom = Report.Wheels[0].Bounds.Min.Z;
+	for (const auto& Wheel : Report.Wheels) { Bottom = FMath::Min(Bottom, Wheel.Bounds.Min.Z); }
+	TestEqual(TEXT("Anchor is the lowest transformed tire in root-local cm"), Report.WheelBottomZ, Bottom, 0.0001);
+
+	TStrongObjectPtr<UStaticMesh> Mesh(NewObject<UStaticMesh>(Probe.Package, TEXT("WheelAnchorMesh"), RF_Public | RF_Standalone));
+	FHALVehicleCollisionParameters Shape;
+	FString Error;
+	if (!TestTrue(TEXT("Legacy centered geometry built"), HALVehicleCollision::BuildMesh(*Mesh, Shape, Error))) { AddError(Error); return false; }
+	Probe.Package->GetMetaData().SetValue(Mesh.Get(), TEXT("HALCollision.Version"), TEXT("2"));
+	Probe.Definition->CollisionMesh = Mesh.Get();
+	for (const float Height : { 60.f, 95.f, 70.f })
+	{
+		Shape.HeightCm = Height;
+		Shape.FrontSideRadiusCm = Height == 60 ? 0 : 18;
+		Shape.RearSideRadiusCm = Height == 60 ? 0 : 12;
+		if (!TestTrue(TEXT("Assigned legacy or anchored mesh updates in place"), HALVehicleCollision::UpdateAsset(*Mesh, Shape, Error)))
+		{
+			AddError(Error);
+			return false;
+		}
+		const FBox Render = Mesh->GetBounds().GetBox();
+		const FKConvexElem& Hull = Mesh->GetBodySetup()->AggGeom.ConvexElems[0];
+		TestEqual(TEXT("Render bottom stays at the tire"), Render.Min.Z, Bottom, 0.001);
+		TestEqual(TEXT("Collision bottom stays at the tire"), Hull.ElemBox.Min.Z, Bottom, 0.001);
+		TestEqual(TEXT("Render height extends upward"), Render.Max.Z, Bottom + Height, 0.001);
+		TestEqual(TEXT("Convex height extends upward"), Hull.ElemBox.Max.Z, Bottom + Height, 0.001);
+		FHALVehicleCollisionParameters Recipe;
+		TestTrue(TEXT("Updated recipe carries the wheel anchor"), HALVehicleCollision::ReadRecipe(*Mesh, Recipe, Error)
+			&& Recipe.BottomZCm.IsSet() && FMath::IsNearlyEqual(Recipe.BottomZCm.GetValue(), Bottom, 0.0001));
+		HALVehicleCollision::FGeometry Geometry;
+		if (!TestTrue(TEXT("Side preview uses the saved recipe"), HALVehicleCollision::BuildGeometry(Recipe, Geometry, Error))) { return false; }
+		double PreviewBottom = Geometry.SideOutline[0].Y;
+		for (const auto& Point : Geometry.SideOutline) { PreviewBottom = FMath::Min(PreviewBottom, Point.Y); }
+		TestEqual(TEXT("Side preview bottom matches the convex"), PreviewBottom, Bottom, 0.001);
+	}
+	TestTrue(TEXT("Visual transform and the assigned mesh reference are retained"),
+		Probe.Config->RelativeTransform.Equals(Before) && Probe.Definition->CollisionMesh == Mesh.Get());
+
+	FProbe Other(Seed);
+	Other.Definition->CollisionMesh = Mesh.Get();
+	Other.Config->RelativeTransform = Before;
+	TestTrue(TEXT("Compatible shared vehicles can update"), HALVehicleCollision::UpdateAsset(*Mesh, Shape, Error));
+	Other.Config->RelativeTransform.AddToTranslation(FVector(0, 0, 8));
+	const FGuid BeforeRejectedUpdate = Mesh->GetBodySetup()->BodySetupGuid;
+	TestFalse(TEXT("Different shared wheel-bottom heights block in-place editing"), HALVehicleCollision::UpdateAsset(*Mesh, Shape, Error));
+	TestEqual(TEXT("Rejected update leaves existing collision intact"), Mesh->GetBodySetup()->BodySetupGuid, BeforeRejectedUpdate);
+	Other.Definition->CollisionMesh = nullptr;
+	Probe.Config->RelativeTransform.AddToTranslation(FVector(0, 0, 8));
+	TestTrue(TEXT("Update remeasures the current presentation"), HALVehicleCollision::UpdateAsset(*Mesh, Shape, Error));
+	TestEqual(TEXT("Updated transform supplies the new bottom"), Mesh->GetBodySetup()->AggGeom.ConvexElems[0].ElemBox.Min.Z, Bottom + 8, 0.001);
+	Mesh->ClearFlags(RF_Standalone);
 	return true;
 }
 

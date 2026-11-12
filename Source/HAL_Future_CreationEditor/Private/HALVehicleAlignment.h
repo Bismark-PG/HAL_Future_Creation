@@ -28,7 +28,7 @@ namespace HALVehicleAlignment
 		FVector RootScale = FVector::OneVector;
 		FBox CollisionBounds = FBox(ForceInit), ModelBounds = FBox(ForceInit);
 		FWheel Wheels[4]; // FL, FR, BL, BR.
-		double SuggestedZ = 0, DeltaZ = 0, SpreadCm = 0;
+		double WheelBottomZ = 0, SuggestedZ = 0, DeltaZ = 0, SpreadCm = 0;
 		bool bMeasured = false, bCanApply = false;
 		TArray<FString> SharedUsers, IncompatibleUsers, Warnings;
 		FString Error;
@@ -38,6 +38,9 @@ namespace HALVehicleAlignment
 	/** Pure source-geometry calculation. Only fully rigid vertices on the four configured spin bones are accepted. */
 	bool Measure(const FMeshDescription& Source, const FName (&SpinBones)[4], const FTransform& ModelTransform,
 		const FVector& RootScale, const FBox& ConvexBounds, FReport& Out);
+	/** Measures the current wheel bottoms in collision-root local space, even when there is no collision mesh yet. */
+	bool AnalyzeWheels(UVehicleDefinition& Definition, FReport& Out);
+	bool FindVehicleDefinitions(TSet<UVehicleDefinition*>& Out, FString& Error);
 	/** Read-only: imports no files, changes no asset properties, and uses no animated pose or configured RadiusCm. */
 	bool Analyze(UVehicleDefinition& Definition, FReport& Out);
 	/** Team-triggered Editor operation only. Fresh analysis, shared-DA guard, transaction/Undo, dirty but never saved. */

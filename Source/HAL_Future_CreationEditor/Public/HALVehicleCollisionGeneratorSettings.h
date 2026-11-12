@@ -4,7 +4,7 @@
 #include "UObject/Object.h"
 #include "HALVehicleCollisionGeneratorSettings.generated.h"
 
-/** Baked mesh dimensions in cm. +X is forward, +Y is right, +Z is up; pivot is the bounds center. */
+/** Baked mesh dimensions in collision-root local cm. +X is forward, +Y is right, +Z is up. */
 USTRUCT()
 struct FHALVehicleCollisionParameters
 {
@@ -30,6 +30,9 @@ struct FHALVehicleCollisionParameters
 	/** Polygon approximation per 90 degree arc. More segments increase the collision vertex count. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "Corners", meta = (ClampMin = "1", ClampMax = "8"))
 	int32 SegmentsPerCorner = 4;
+
+	/** When set, the lower face stays at this Z and HeightCm extends upward. Legacy recipes are centered. */
+	TOptional<double> BottomZCm;
 
 	bool Validate(FString& Error) const;
 };
