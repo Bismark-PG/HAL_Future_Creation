@@ -17,6 +17,7 @@
 #include "VehicleRecoveryComponent.h"
 #include "VehicleKnockbackSettings.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/Controller.h"
 #include "Engine/World.h"
 #include "Net/UnrealNetwork.h"
@@ -24,6 +25,13 @@
 #include "PBDRigidsSolver.h"
 #include "EventManager.h"
 #include "EventsData.h"
+#include "HAL/IConsoleManager.h"
+
+namespace
+{
+	TAutoConsoleVariable<int32> CVarBullChargeContactLog(TEXT("hal.BullChargeContactLog"), 0,
+		TEXT("Log authority charge/ball contact decisions and launch speeds (0=off, 1=on)."));
+}
 
 UHALBullChargeComponent::UHALBullChargeComponent()
 {
@@ -43,6 +51,7 @@ void UHALBullChargeComponent::BeginPlay()
 		GetWorld()->GetPhysicsScene()->GetSolver()->GetEventManager()->RegisterHandler<Chaos::FCollisionEventData>(
 			Chaos::EEventType::Collision, this, &ThisClass::CollisionEvents);
 		bCollisionRegistered = true;
+		PostActorTickHandle = FWorldDelegates::OnWorldPostActorTick.AddUObject(this, &ThisClass::ResolveDeferredContacts);
 	}
 }
 void UHALBullChargeComponent::EndPlay(EEndPlayReason::Type Reason)
@@ -53,15 +62,19 @@ void UHALBullChargeComponent::EndPlay(EEndPlayReason::Type Reason)
 		GetWorld()->GetPhysicsScene()->GetSolver()->GetEventManager()->UnregisterHandler(Chaos::EEventType::Collision, this);
 	}
 	bCollisionRegistered = false;
+	FWorldDelegates::OnWorldPostActorTick.Remove(PostActorTickHandle);
+	PostActorTickHandle.Reset();
+	DeferredContacts.Reset();
 	Super::EndPlay(Reason);
 }
 void UHALBullChargeComponent::CollisionEvents(const Chaos::FCollisionEventData& Event)
 {
 	if (!bActive || Event.CollisionData.TimeCreated <= LastCollisionBatch) { return; }
 	LastCollisionBatch = Event.CollisionData.TimeCreated;
-	ContactSamples.Reset();
+	if (SampleGameFrame != GFrameCounter) { ContactSamples.Reset(); SampleGameFrame = GFrameCounter; }
 	const auto* Scene = GetWorld()->GetPhysicsScene();
-	// Engine queues OnComponentHit from this same buffer and dispatches after event handlers.
+	// FPhysScene_Chaos dispatches OnComponentHit INSIDE its own collision handler.
+	// Handler order is unspecified. Gameplay consumes samples after all world tick groups.
 	// Velocity is post-solve; DeltaVelocity is V - PreV in UE EventDefaults.cpp.
 	for (const auto& Data : Event.CollisionData.AllCollisionsArray)
 	{
@@ -79,6 +92,37 @@ void UHALBullChargeComponent::CollisionEvents(const Chaos::FCollisionEventData& 
 		Sample.OtherBeforeVelocity = bFirst ? Data.Velocity2 - Data.DeltaVelocity2 : Data.Velocity1 - Data.DeltaVelocity1;
 		Sample.SolverTime = Data.SolverTime;
 		Sample.GameFrame = GFrameCounter;
+	}
+}
+bool UHALBullChargeComponent::DeferContact(UPrimitiveComponent* Body, UPrimitiveComponent* OtherBody,
+	const FVector& Impulse, const FHitResult& Hit)
+{
+	if (bResolvingContacts || !GetOwner()->HasAuthority() || !IsValid(Body) || !IsValid(OtherBody)
+		|| Body != GetOwner()->GetRootComponent() || !PostActorTickHandle.IsValid()
+		|| (!IsActive() && !IsActiveOn(OtherBody->GetOwner()))
+		|| (!OtherBody->GetOwner()->IsA<ABasicBallActor>()
+			&& !OtherBody->GetOwner()->FindComponentByClass<UHALImpactReceiverComponent>())) { return false; }
+	// Keep the first contact per body pair, matching the earliest pre-solve sample in this frame.
+	DeferredContacts.RemoveAll([](const FDeferredContact& Contact) { return Contact.Frame != GFrameCounter; });
+	for (const auto& Contact : DeferredContacts) { if (Contact.OtherBody == OtherBody) { return true; } }
+	if (DeferredContacts.Num() >= 64) { return false; }
+	auto& Contact = DeferredContacts.AddDefaulted_GetRef();
+	Contact.Body = Body; Contact.OtherBody = OtherBody; Contact.Impulse = Impulse; Contact.Hit = Hit; Contact.Frame = GFrameCounter;
+	return true;
+}
+void UHALBullChargeComponent::ResolveDeferredContacts(UWorld* World, ELevelTick, float)
+{
+	if (World != GetWorld() || DeferredContacts.IsEmpty()) { return; }
+	auto Contacts = MoveTemp(DeferredContacts);
+	DeferredContacts.Reset();
+	TGuardValue<bool> Resolving(bResolvingContacts, true);
+	auto* Receiver = GetOwner()->FindComponentByClass<UHALImpactReceiverComponent>();
+	if (!Receiver || !GetOwner()->HasAuthority()) { return; }
+	for (const auto& Contact : Contacts)
+	{
+		if (Contact.Frame != GFrameCounter || !Contact.Body.IsValid() || !Contact.OtherBody.IsValid()) { continue; }
+		// Reuse the authority adapter, including normal-impact fallback when a skill rejects the contact.
+		Receiver->HandleContact(Contact.Body.Get(), Contact.OtherBody->GetOwner(), Contact.OtherBody.Get(), Contact.Impulse, Contact.Hit);
 	}
 }
 bool UHALBullChargeComponent::CanStart() const
@@ -246,12 +290,40 @@ bool UHALBullChargeComponent::HandleVehiclePair(UPrimitiveComponent& Body, UPrim
 }
 bool UHALBullChargeComponent::HandleFreeBall(ABasicBallActor& Ball, const FHitResult& Hit)
 {
-	if (!CanResolveContacts() || Ball.GetBallState() != EBasicBallState::Free) { return false; }
 	const auto* Sample = ContactSamples.Find(Cast<UPrimitiveComponent>(Ball.GetRootComponent()));
 	const auto Before = GetOwner()->FindComponentByClass<UArcadeVehicleMovementComponent>()->GetContactObservation();
-	float Speed;
-	if (!Sample || Sample->GameFrame != GFrameCounter || !Before.bValid
-		|| !Config->Qualifies(Before.Rotation.GetForwardVector(), Hit.ImpactPoint - Before.Position,
-			-Hit.ImpactNormal, Sample->BeforeVelocity, Sample->OtherBeforeVelocity, Speed)) { return false; }
-	return Ball.LaunchFreeFromVehicleSkill(GetOwner(), Before.Rotation.GetForwardVector().GetSafeNormal2D() * Config->BallSpeed(Speed));
+	float Speed = Sample ? FVector::DotProduct(Sample->BeforeVelocity, Before.Rotation.GetForwardVector().GetSafeNormal2D()) : 0;
+	const auto Report = [&](const TCHAR* Reason, bool bAccepted = false)
+	{
+		const double Now = GetWorld()->GetTimeSeconds();
+		if (CVarBullChargeContactLog.GetValueOnGameThread() > 0
+			&& (bAccepted || LastBallDiagnostic != Reason || Now - LastBallDiagnosticTime >= .5))
+		{
+			LastBallDiagnostic = Reason; LastBallDiagnosticTime = Now;
+			const auto* Movement = GetOwner()->FindComponentByClass<UArcadeVehicleMovementComponent>();
+			const auto Pose = Movement->GetStabilityObservation();
+			const auto Status = Movement->GetMovementEffectStatus();
+			UE_LOG(LogHALAbility, Log, TEXT("BullCharge ball Pawn=%s Ball=%s Result=%s State=%d Sample=%d SampleFrame=%llu Frame=%llu PreSpeed=%.2f RequestedSpeed=%.2f BallSpeed=%.2f Grounded=%d Driving=%d Ready=%d ActiveMotion=%d"),
+				*GetNameSafe(GetOwner()), *Ball.GetName(), Reason, int32(Ball.GetBallState()), Sample != nullptr,
+				Sample ? Sample->GameFrame : uint64(0), GFrameCounter, Speed, Config ? Config->BallSpeed(Speed) : 0,
+				Ball.GetPhysicsRoot()->GetPhysicsLinearVelocity().Size(), Pose.bGrounded, Pose.bDrivingAllowed,
+				Status.bReady, Status.Definition.Overdrive.IsDriving(Status.ServerFrame));
+		}
+		return bAccepted;
+	};
+	if (!CanResolveContacts()) { return Report(TEXT("StateNotReady")); }
+	if (Ball.GetBallState() != EBasicBallState::Free) { return Report(TEXT("BallNotFree")); }
+	if (!Sample) { return Report(TEXT("NoCollisionSample")); }
+	if (Sample->GameFrame != GFrameCounter) { return Report(TEXT("StaleCollisionSample")); }
+	if (!Before.bValid) { return Report(TEXT("InvalidObservation")); }
+	if (!Config->Qualifies(Before.Rotation.GetForwardVector(), Hit.ImpactPoint - Before.Position,
+		-Hit.ImpactNormal, Sample->BeforeVelocity, Sample->OtherBeforeVelocity, Speed))
+	{
+		if (Speed < Config->MinimumForwardSpeed) { return Report(TEXT("BelowMinimumForwardSpeed")); }
+		if (FVector::DotProduct(Before.Rotation.GetForwardVector().GetSafeNormal2D(), (Hit.ImpactPoint - Before.Position).GetSafeNormal2D())
+			< FMath::Cos(FMath::DegreesToRadians(Config->FrontHalfAngle))) { return Report(TEXT("OutsideFrontCone")); }
+		return Report(TEXT("BelowMinimumClosingSpeed"));
+	}
+	const bool bLaunched = Ball.LaunchFreeFromVehicleSkill(GetOwner(), Before.Rotation.GetForwardVector().GetSafeNormal2D() * Config->BallSpeed(Speed));
+	return Report(bLaunched ? TEXT("Launched") : TEXT("LaunchCommitRejected"), bLaunched);
 }

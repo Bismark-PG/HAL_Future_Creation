@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Components/ActorComponent.h"
+#include "Engine/EngineTypes.h"
 #include "GameplayEffectTypes.h"
 #include "HALCombatTypes.h"
 #include "HALBullChargeComponent.generated.h"
@@ -27,6 +28,8 @@ public:
 	static bool HandleVehiclePair(UPrimitiveComponent& Body, UPrimitiveComponent& Other,
 		const FVector& NormalImpulse, const FHitResult& Hit);
 	bool HandleFreeBall(ABasicBallActor& Ball, const FHitResult& Hit);
+	/** Reserve charge contacts until all Chaos event handlers have delivered this frame's samples. */
+	bool DeferContact(UPrimitiveComponent* Body, UPrimitiveComponent* OtherBody, const FVector& Impulse, const FHitResult& Hit);
 	virtual void BeginPlay() override;
 	virtual void EndPlay(EEndPlayReason::Type Reason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
@@ -42,6 +45,7 @@ private:
 		uint64 GameFrame = 0;
 	};
 	void CollisionEvents(const Chaos::FCollisionEventData& Event);
+	void ResolveDeferredContacts(UWorld* World, ELevelTick TickType, float DeltaSeconds);
 	bool CanResolveContacts() const;
 	FHALPreparedCombatHit PrepareVehicleHit(UPrimitiveComponent& Source, UPrimitiveComponent& Target,
 		const FVector& NormalImpulse, const FHitResult& Hit);
@@ -54,7 +58,20 @@ private:
 	FDelegateHandle TagChangedHandle, HealthChangedHandle;
 	FHALAttackSourceSnapshot AttackSnapshot;
 	TMap<TWeakObjectPtr<UPrimitiveComponent>, FContactSample> ContactSamples;
+	struct FDeferredContact
+	{
+		TWeakObjectPtr<UPrimitiveComponent> Body, OtherBody;
+		FVector Impulse;
+		FHitResult Hit;
+		uint64 Frame = 0;
+	};
+	TArray<FDeferredContact> DeferredContacts;
+	FDelegateHandle PostActorTickHandle;
+	uint64 SampleGameFrame = MAX_uint64;
+	bool bResolvingContacts = false;
 	TMap<TWeakObjectPtr<AActor>, double> NextTargetHit;
 	double LastCollisionBatch = -1;
 	bool bCollisionRegistered = false;
+	FString LastBallDiagnostic;
+	double LastBallDiagnosticTime = -1;
 };

@@ -4,6 +4,7 @@
 #include "HALRoomTestSupport.h"
 #include "../HALBullChargeAbility.h"
 #include "../HALBullChargeComponent.h"
+#include "../HALImpactReceiverComponent.h"
 #include "../HALAbilitySystemComponent.h"
 #include "../HALHealthAttributeSet.h"
 #include "../HALMatchGameState.h"
@@ -27,6 +28,8 @@
 
 struct FHALBullChargeTestAccess
 {
+	static void FlushContacts(ATestVehiclePawn* Pawn)
+	{ Pawn->FindComponentByClass<UHALBullChargeComponent>()->ResolveDeferredContacts(Pawn->GetWorld(), LEVELTICK_All, 0); }
 	static bool Acquire(ATestVehiclePawn* Pawn, ABasicBallActor* Ball)
 	{ return Pawn->FindComponentByClass<UBallControlComponent>()->AcquireBall(Ball); }
 	static void SetHeldReference(ATestVehiclePawn* Pawn, ABasicBallActor* Ball)
@@ -237,6 +240,23 @@ bool FHALBullChargeGASTest::RunTest(const FString&)
 	TestTrue(TEXT("Frontal free ball is launched through shared commit"), A->FindComponentByClass<UHALBullChargeComponent>()->HandleFreeBall(*Free, BallHit));
 	TestTrue(TEXT("Ball receives launcher attribution"), Free->GetLaunchedBy() == A && Free->GetBallState() == EBasicBallState::Launched);
 	TestFalse(TEXT("Already launched ball cannot be stolen"), A->FindComponentByClass<UHALBullChargeComponent>()->HandleFreeBall(*Free, BallHit));
+	for (const bool bSampleFirst : {false, true})
+	{
+		auto* Deferred = MakeBall();
+		FHitResult DeferredHit; DeferredHit.ImpactPoint = Deferred->GetActorLocation(); DeferredHit.ImpactNormal = -FVector::ForwardVector;
+		auto* Receiver = A->FindComponentByClass<UHALImpactReceiverComponent>();
+		auto* VehicleBody = CastChecked<UPrimitiveComponent>(A->GetRootComponent());
+		if (bSampleFirst) { FHALBullChargeTestAccess::Contact(A, Deferred->GetPhysicsRoot(), FVector(3000, 0, 0)); }
+		Receiver->HandleContact(VehicleBody, Deferred, Deferred->GetPhysicsRoot(), FVector(100, 0, 0), DeferredHit);
+		Receiver->HandleContact(VehicleBody, Deferred, Deferred->GetPhysicsRoot(), FVector(100, 0, 0), DeferredHit);
+		TestTrue(TEXT("Engine callbacks reserve a free ball until the collision batch is complete"), Deferred->GetBallState() == EBasicBallState::Free);
+		if (!bSampleFirst) { FHALBullChargeTestAccess::Contact(A, Deferred->GetPhysicsRoot(), FVector(3000, 0, 0)); }
+		FHALBullChargeTestAccess::FlushContacts(A);
+		TestTrue(TEXT("Both event-handler orders launch once through the authority contact adapter"), Deferred->GetBallState() == EBasicBallState::Launched && Deferred->GetLaunchedBy() == A);
+		const uint32 Sequence = Deferred->GetBallStateSequence();
+		FHALBullChargeTestAccess::FlushContacts(A);
+		TestEqual(TEXT("Repeated flush cannot launch the same contact twice"), Deferred->GetBallStateSequence(), Sequence);
+	}
 	auto* RootA = CastChecked<UPrimitiveComponent>(A->GetRootComponent());
 	auto* RootB = CastChecked<UPrimitiveComponent>(B->GetRootComponent());
 	FHitResult Hit; Hit.ImpactPoint = A->GetActorLocation() + FVector(200, 0, 0); Hit.ImpactNormal = -FVector::ForwardVector;
