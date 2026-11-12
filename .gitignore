@@ -171,6 +171,16 @@ DerivedDataCache/*
 !Docs/Movement/MVPB_Prepackage_Gameplay_Polish_CN_v0.1.md
 !Docs/Combat/MVPB_Vehicle_Ability_Loadout_Plan_CN_v0.1.md
 !Docs/Combat/Car03_Battle_Top_Ability_Design_CN_v0.1.md
+!Source/HAL_Future_Creation/HALOverdriveMotion.h
+!Source/HAL_Future_Creation/HALOverdriveMotion.cpp
+!Source/HAL_Future_Creation/HALBullChargeAbility.h
+!Source/HAL_Future_Creation/HALBullChargeAbility.cpp
+!Source/HAL_Future_Creation/HALBullChargeComponent.h
+!Source/HAL_Future_Creation/HALBullChargeComponent.cpp
+!Source/HAL_Future_Creation/Tests/HALBullChargeTests.cpp
+!Source/HAL_Future_Creation/Tests/HALBullChargeNetworkTests.cpp
+!Docs/Combat/Car04_Bull_Charge_CN_v0.1.md
+!Docs/Combat/Car04_Bull_Charge_Verification_20261112.json
 !Docs/Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md
 !Docs/Presentation/Slippery_Trail_OilSheen_QuickGuide_CN.md
 !Docs/Presentation/Ground_Surface_Deformation_CN_v0.1.md

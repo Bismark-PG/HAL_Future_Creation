@@ -181,6 +181,32 @@ bool UHALBattleTopComponent::CanResolveContacts() const
 		&& HALGameFlow::Permissions(GetWorld(), Pawn).bAbilities && (!Recovery || !Recovery->IsExecuting());
 }
 
+FHALPreparedCombatHit UHALBattleTopComponent::PrepareVehicleHit(UPrimitiveComponent& Source, UPrimitiveComponent& Target,
+	const FVector& Impulse, const FHitResult& Hit)
+{
+	FHALPreparedCombatHit Pending;
+	const auto* Top = Source.GetOwner()->FindComponentByClass<UHALBattleTopComponent>();
+	if (!Top || !Top->CanResolveContacts()) { return Pending; }
+	Pending.Action = Top->Action;
+	auto& Request = Pending.Request;
+	Request.AttackId = Pending.Action->GetSnapshot().AttackId;
+	Request.PulseSequence = Pending.Action->GetPulseSequence();
+	Request.bApplyDamage = true;
+	Request.bApplyImpact = true;
+	Request.Impact.Mode = EHALImpactMode::ExplicitTier;
+	Request.Impact.Tier = Top->Config->ContactTier;
+	Request.Impact.PushPreset = Top->Config->ContactPush;
+	Request.Hit.TargetActor = Target.GetOwner();
+	Request.Hit.TargetPhysicsBody = &Target;
+	Request.Hit.SourcePhysicsBody = &Source;
+	Request.Hit.ImpactPoint = Hit.ImpactPoint;
+	Request.Hit.NormalImpulse = Impulse;
+	const FVector Direction = Impulse.GetSafeNormal2D();
+	Request.Hit.ImpactNormal = Direction.IsNearlyZero()
+		? (Source.GetComponentLocation() - Target.GetComponentLocation()).GetSafeNormal2D() : -Direction;
+	return Pending;
+}
+
 bool UHALBattleTopComponent::HandleVehiclePair(UPrimitiveComponent& Body, UPrimitiveComponent& OtherBody,
 	const FVector& NormalImpulse, const FHitResult& Hit)
 {
@@ -188,45 +214,12 @@ bool UHALBattleTopComponent::HandleVehiclePair(UPrimitiveComponent& Body, UPrimi
 	auto* Other = OtherBody.GetOwner();
 	if (!Owner || !Other || &OtherBody != Other->GetRootComponent()
 		|| !Other->FindComponentByClass<UHALImpactReceiverComponent>()) { return false; }
-
-	struct FPendingHit
-	{
-		TSharedPtr<FHALCombatAction> Action;
-		FHALCombatHitRequest Request;
-	};
-	const auto Capture = [&](UPrimitiveComponent& Source, UPrimitiveComponent& Target, const FVector& Impulse)
-	{
-		FPendingHit Pending;
-		const auto* Top = Source.GetOwner()->FindComponentByClass<UHALBattleTopComponent>();
-		if (!Top || !Top->CanResolveContacts()) { return Pending; }
-		Pending.Action = Top->Action;
-		auto& Request = Pending.Request;
-		Request.AttackId = Pending.Action->GetSnapshot().AttackId;
-		Request.PulseSequence = Pending.Action->GetPulseSequence();
-		Request.bApplyDamage = true;
-		Request.bApplyImpact = true;
-		Request.Impact.Mode = EHALImpactMode::ExplicitTier;
-		Request.Impact.Tier = Top->Config->ContactTier;
-		Request.Impact.PushPreset = Top->Config->ContactPush;
-		Request.Hit.TargetActor = Target.GetOwner();
-		Request.Hit.TargetPhysicsBody = &Target;
-		Request.Hit.SourcePhysicsBody = &Source;
-		Request.Hit.ImpactPoint = Hit.ImpactPoint;
-		Request.Hit.NormalImpulse = Impulse;
-		// Prefer the actual horizontal separation impulse. Fall back to centers at very low closing speed.
-		const FVector Direction = Impulse.GetSafeNormal2D();
-		Request.Hit.ImpactNormal = Direction.IsNearlyZero()
-			? (Source.GetComponentLocation() - Target.GetComponentLocation()).GetSafeNormal2D() : -Direction;
-		return Pending;
-	};
-	// Both sides are armed at the same instant, even if the first resolution retires the other Pawn.
-	auto Incoming = Capture(OtherBody, Body, NormalImpulse);
-	auto Outgoing = Capture(Body, OtherBody, -NormalImpulse);
+	auto Incoming = PrepareVehicleHit(OtherBody, Body, NormalImpulse, Hit);
+	auto Outgoing = PrepareVehicleHit(Body, OtherBody, -NormalImpulse, Hit);
 	if (Incoming.Action) { FCombatResolver::ResolveCombatHit(*Incoming.Action, Incoming.Request); }
 	if (Outgoing.Action) { FCombatResolver::ResolveCombatHit(*Outgoing.Action, Outgoing.Request); }
 	return Incoming.Action.IsValid() || Outgoing.Action.IsValid();
 }
-
 bool UHALBattleTopComponent::HandleFreeBall(ABasicBallActor& Ball)
 {
 	if (!CanResolveContacts() || Ball.GetBallState() != EBasicBallState::Free) { return false; }

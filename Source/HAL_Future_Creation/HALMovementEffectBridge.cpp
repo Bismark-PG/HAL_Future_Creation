@@ -65,6 +65,17 @@ void UHALMovementEffectBridge::SetAreaSway(const FHALMovementAreaSway& Sway)
 	AreaSway = Sway;
 	bDirty = true;
 }
+void UHALMovementEffectBridge::SetOverdriveMotion(const FHALOverdriveMotion& Motion)
+{
+	if (Overdrive == Motion) { return; }
+	Overdrive = Motion;
+	bDirty = true;
+}
+void UHALMovementEffectBridge::EndOverdriveMotion()
+{
+	Overdrive.bActive = false;
+	bDirty = true;
+}
 
 void UHALMovementEffectBridge::Unbind()
 {
@@ -81,6 +92,7 @@ void UHALMovementEffectBridge::Unbind()
 	LastPublished = {};
 	AreaRecoverySeconds = FVector::ZeroVector;
 	AreaSway = {};
+	Overdrive = {};
 	if (GetOwner()->HasAuthority() && Epoch.IsValid()) { Epoch.Invalidate(); GetOwner()->ForceNetUpdate(); }
 	if (Movement) { Movement->ConfigureMovementEffects({}, History, GetOwner()->HasAuthority(), BoundPlayerId); }
 }
@@ -100,6 +112,8 @@ void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float D
 	Snapshot.Epoch = Epoch;
 	Snapshot.bControlsBlocked = ASC->IsStunned() || bFlowBlocked;
 	Snapshot.bHandbrakeBlocked = ASC->HasMatchingGameplayTag(HALGameplayTags::State_BattleTop);
+	Snapshot.Overdrive = Overdrive;
+	Snapshot.Overdrive.bStunned = Overdrive.bActive && ASC->IsStunned();
 	if (!Values) { return; }
 	Snapshot.bHasAreaState = true;
 	Snapshot.AreaSway = AreaSway;
@@ -120,6 +134,7 @@ void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float D
 	bDirty = false;
 	if (LastPublished.IsValidValues() && LastPublished.bControlsBlocked == Snapshot.bControlsBlocked
 		&& LastPublished.bHandbrakeBlocked == Snapshot.bHandbrakeBlocked
+		&& LastPublished.Overdrive == Snapshot.Overdrive
 		&& LastPublished.AreaSway == Snapshot.AreaSway
 		&& SameTarget(LastPublished.AreaAcceleration, Snapshot.AreaAcceleration)
 		&& SameTarget(LastPublished.AreaSpeed, Snapshot.AreaSpeed) && SameTarget(LastPublished.AreaGrip, Snapshot.AreaGrip))

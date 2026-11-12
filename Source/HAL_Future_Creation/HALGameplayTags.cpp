@@ -3,6 +3,11 @@
 namespace HALGameplayTags
 {
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_BattleTop, "Ability.Vehicle.BattleTop", "Car03 primary ability.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_BullCharge, "Ability.Vehicle.BullCharge", "Car04 primary ability.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_BullCharge, "State.Vehicle.BullCharge", "Avatar overdrive charge is active.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Visual_BullCharge, "State.Visual.BullCharge", "Optional charge presentation.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_BullCharge, "Cooldown.Vehicle.BullCharge", "Bull charge cooldown.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_BullCharge, "Combat.Source.BullCharge", "Speed-scaled frontal vehicle contact.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_SlipperyTrail, "Ability.Vehicle.SlipperyTrail", "Vehicle slippery trail primary ability.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_SlipperyTrail, "Cooldown.Vehicle.SlipperyTrail", "Slippery trail cooldown.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_BattleTop, "State.Vehicle.BattleTop", "Avatar battle top is active.");

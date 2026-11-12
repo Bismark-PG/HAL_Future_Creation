@@ -2,6 +2,7 @@
 
 #include "BallControlComponent.h"
 #include "HALBattleTopComponent.h"
+#include "HALBullChargeComponent.h"
 #include "HALGameFlowPermissions.h"
 #include "GameFramework/Pawn.h"
 #include "HALAbilitySystemComponent.h"
@@ -111,7 +112,7 @@ bool UBallControlComponent::GetControlTargetWorldTransform(FTransform& OutTransf
 bool UBallControlComponent::LaunchHeldBall(FVector& OutRecoilDeltaVelocity)
 {
 	OutRecoilDeltaVelocity = FVector::ZeroVector;
-	if (!VehicleBody || UHALBattleTopComponent::IsActiveOn(GetOwner())) { return false; }
+	if (!VehicleBody || UHALBattleTopComponent::IsActiveOn(GetOwner()) || UHALBullChargeComponent::IsActiveOn(GetOwner())) { return false; }
 	const FVector Direction = VehicleBody->GetForwardVector().GetSafeNormal();
 	if (!LaunchHeldBallWithVelocity(VehicleBody->GetPhysicsLinearVelocity() + Direction * LaunchSpeedIncrement)) { return false; }
 	OutRecoilDeltaVelocity = CalculateRecoilDeltaVelocity();
@@ -120,7 +121,12 @@ bool UBallControlComponent::LaunchHeldBall(FVector& OutRecoilDeltaVelocity)
 
 bool UBallControlComponent::LaunchBattleTopHeldBall(float LaunchSpeed)
 {
-	if (!VehicleBody || !UHALBattleTopComponent::IsActiveOn(GetOwner())
+	return UHALBattleTopComponent::IsActiveOn(GetOwner()) && LaunchSkillHeldBall(LaunchSpeed);
+}
+
+bool UBallControlComponent::LaunchSkillHeldBall(float LaunchSpeed)
+{
+	if (!VehicleBody || (!UHALBattleTopComponent::IsActiveOn(GetOwner()) && !UHALBullChargeComponent::IsActiveOn(GetOwner()))
 		|| !FMath::IsFinite(LaunchSpeed) || LaunchSpeed <= 0.f) { return false; }
 	return LaunchHeldBallWithVelocity(VehicleBody->GetForwardVector().GetSafeNormal() * LaunchSpeed);
 }
@@ -245,7 +251,7 @@ void UBallControlComponent::EvaluateBallControl()
 	}
 
 	ABasicBallActor* BestCandidate = nullptr;
-	if (!IsValid(HeldBall) && !UHALBattleTopComponent::IsActiveOn(GetOwner()))
+	if (!IsValid(HeldBall) && !UHALBattleTopComponent::IsActiveOn(GetOwner()) && !UHALBullChargeComponent::IsActiveOn(GetOwner()))
 	{
 		BestCandidate = FindBestCandidate();
 		if (BestCandidate)

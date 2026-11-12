@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HALOverdriveMotion.h"
 #include "HALMovementTypes.generated.h"
 
 /** Optional regional yaw acceleration. Zero amplitude preserves the original slippery-area behavior. */
@@ -49,6 +50,7 @@ struct HAL_FUTURE_CREATION_API FHALMovementSnapshot
 	UPROPERTY() float SpeedScale = 1;
 	UPROPERTY() bool bControlsBlocked = false;
 	UPROPERTY() bool bHandbrakeBlocked = false;
+	UPROPERTY() FHALOverdriveMotion Overdrive;
 	UPROPERTY() float GripScale = 1;
 	/** Legacy/native callers may supply constant scales. The GAS bridge supplies all three channels. */
 	UPROPERTY() bool bHasAreaState = false;
@@ -76,8 +78,8 @@ struct HAL_FUTURE_CREATION_API FHALMovementTimeline
 {
 	GENERATED_BODY()
 	static constexpr int32 MaximumEntries = 256;
-	/** Version 5 adds the replayable regional sway. */
-	static constexpr uint8 CurrentFormat = 5;
+	/** Version 6 adds frame-stamped overdrive, steering recovery and stun entry. */
+	static constexpr uint8 CurrentFormat = 6;
 	UPROPERTY() uint8 FormatVersion = CurrentFormat;
 	UPROPERTY() FGuid Epoch;
 	UPROPERTY() int32 StartFrame = INDEX_NONE;

@@ -1,5 +1,11 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-12 Car04「蛮牛冲撞」代码、两 Target 与专项验证完成，待团队配置和手感验收。** 从 `main/3cb1386` 接续。独立技能 DA／原生 GA／GE 接入自动前进、渐进过载、削弱转向、冲击免疫、车头速度伤害、每目标内置 CD、持球／自由球发射及结束收速。眩晕进入帧清零水平速度、停止主动驱动，技能继续计时，解除后按原进度恢复。运动曲线进入同一服务器帧历史，协议升至 **6**；双方使用同版构建。暂用 5 秒总时长含 2 秒爬升、20 秒冷却、1.7 倍上限、0.8 秒每目标 CD，均可配置。见[技能规则、默认值与 Editor 接线](Combat/Car04_Bull_Charge_CN_v0.1.md)。
+
+该轮本机 UE **5.8.2-56702186** 最终 Editor R16／Game R9 构建通过，Release 专项原生 **11/11**，实际 Car04 的低延迟及 Host 出站 80 ms 注入两轮双端均各 **1/1**，报告均 0 测试警告／失败；失效持球发动撤销、未来帧拒绝及眩晕停止回弹并保留序号均已纳入最终复测。全量原生 **192 通过、1 带告警通过、11 旧默认技能夹具相关失败**单独保留，未记为全量通过。该轮 1246 保存资产／Config／uproject 与开工基线逐份一致，保留原有两份资产和状态文档改动。测试使用瞬态技能配方及 Editor `-game`／NullRHI，团队需手动创建技能 DA／GA、替换 Car04 Primary，再验收画面／手感与复杂碰撞。详见[验证摘要](Combat/Car04_Bull_Charge_Verification_20261112.json)。
+
+**本次恢复核对：** 当前已同步至 `main/83a1e60`，保留后续车辆碰撞生成器、碰撞网格及 Car01 DA 重命名记录。Car04 运行时源码与上述验证摘要哈希一致，技能代码／文档仍为未提交改动；本次仅恢复本状态文档，没有重新编译或运行测试，不把原验证扩大为后续 Editor 工具／资产组合的复测结论。
+
 **2026-11-12 车辆碰撞生成器已接入静态轮底测量，Editor Target 构建通过。** 从干净 `main/bd3a670` 接续。**Load Selected Vehicle** 读取实际 Definition 的 Presentation／Skeletal Mesh，复用 Visual Alignment 的四个 SpinBone 与 LOD0 参考几何测量。最低轮底 Z 同时用于侧视预览、渲染网格和简单凸包。Height 从该平面向上计量，网格原点保留在碰撞根。创建时可按车型测量，原位更新时重新测量当前引用者，共享网格的轮底基准冲突时可创建车型专用网格。v3 配方保存轮底，兼容旧 v1／v2。另修正侧面圆角凸包只读取部分生成顶点的问题。见[操作说明](Configuration/Vehicle_Collision_Generator_CN_v0.1.md#车型轮底对齐)。
 
 本机 UE5.8.3-58210709 Editor Win64 Development R6 编译与链接成功，`git diff --check` 通过。首轮构建定位临时路径与 UBA 缓存权限，改用工程 Saved 下的构建临时目录，后续修正编译器报告的局部变量遮蔽后复建。新增轮底固定、侧圆角、共享冲突的回归用例，并扩充配方保存重载测试，测试代码随 Editor 构建。两个独立自动化启动均退出 0，但无 UE 日志或报告，自动化执行和团队场景实测仍待确认。工作区的保存 Mesh／DA／BP／地图未变更。下一步在 Editor 从车型载入，比较两档 Height 的底／顶 Z，保存并 Play 核对实际接地。构建记录位于 `Saved/CollisionGenerator/WheelBottom_20261112/Build_Editor_R6.log`。
@@ -407,7 +413,7 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 ## 1. 先读什么、先检查什么
 
-量产技能当前先读[扩散打滑带规则、配置与验收](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md)，车型技能授予见[车型技能实现与DA迁移](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)。
+量产技能当前先读[Car04 蛮牛冲撞规则、配置与验收](Combat/Car04_Bull_Charge_CN_v0.1.md)，打滑带接续见[扩散打滑带规则、配置与验收](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md)，车型技能授予见[车型技能实现与DA迁移](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)。
 
 **2026-11-10 扩散打滑带油膜已完成本地接线。** 当前工作区已有遮罩、母材质和实例，技能 DA 的保存包包含该实例引用。用户已在游戏中看到油膜，后续完成了独立底纹流动与变色高光接线。最后一版接线按截图核对，最新观感和双端画面待团队复测。见[油膜特效速查](Presentation/Slippery_Trail_OilSheen_QuickGuide_CN.md)。
 
@@ -547,7 +553,9 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 
 ## 6. 下一环节和待确定项
 
-**2026-11-11 SlipperyTrail 当前入口为油膜表现调参和保存配方验收。** 技能 DA／GA、动态地面网格及油膜材质资产均已提交，保存的技能 DA 包引用油膜实例。按[油膜特效速查](Presentation/Slippery_Trail_OilSheen_QuickGuide_CN.md)检查双层流动与变色高光，在同版 Host／Client 对照原地、直线、弯道、断段、到期清理和画面可读性，回填最新观感与问题。新车型授权仍按[技能配置与验收](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md#editor-接线)操作，运动历史格式为 5。
+**2026-11-12 Car04 当前入口为技能配置和手感验收。** 按[Editor 接线](Combat/Car04_Bull_Charge_CN_v0.1.md#editor-接线)创建 `HALBullChargeConfig` DA 与 `HALBullChargeAbility` 子蓝图，替换 Car04 Definition 的唯一 `Input.Ability.Primary`，确认 Combat／Impact 使用 V1，并在测试用 Vehicle Catalog 登记 Car04。双方使用运动历史格式 **6** 的同版构建，测试渐进过载、前方接触伤害与每目标 CD、技能出球、眩晕续行和结束收速。程序专项通过不替代真实画面、手感、复杂碰撞、校园四机或发布包验收；技能特效可另行制作。
+
+**2026-11-11 SlipperyTrail 当前入口为油膜表现调参和保存配方验收。** 技能 DA／GA、动态地面网格及油膜材质资产均已提交，保存的技能 DA 包引用油膜实例。按[油膜特效速查](Presentation/Slippery_Trail_OilSheen_QuickGuide_CN.md)检查双层流动与变色高光，在同版 Host／Client 对照原地、直线、弯道、断段、到期清理和画面可读性，回填最新观感与问题。新车型授权仍按[技能配置与验收](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md#editor-接线)操作；当前已随 Car04 升至运动历史格式 6，原打滑带独立验证时点为格式 5。
 
 地面隆起／缓慢蠕动的程序已交付，新增入口为[母材质 WPO 节点和 DA 启用步骤](Presentation/Ground_Surface_Deformation_CN_v0.1.md#材质接线)。当前自动化使用临时测试材质，保存油膜配方接线后的画面由团队验收。
 

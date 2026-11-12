@@ -5,6 +5,7 @@
 #include "HALImpactAttributeSet.h"
 #include "HALImpactSourceComponent.h"
 #include "HALBattleTopComponent.h"
+#include "HALBullChargeComponent.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALGameplayTags.h"
 #include "CombatResolver.h"
@@ -155,11 +156,16 @@ void UHALImpactReceiverComponent::HandleContact(UPrimitiveComponent* Body, AActo
 	{
 		if (Ball->GetBallState() != EBasicBallState::Free) { return; }
 	}
-	if (UHALBattleTopComponent::HandleVehiclePair(*Body, *OtherBody, NormalImpulse, Hit))
+	if (UHALBullChargeComponent::HandleVehiclePair(*Body, *OtherBody, NormalImpulse, Hit)
+		|| UHALBattleTopComponent::HandleVehiclePair(*Body, *OtherBody, NormalImpulse, Hit))
 	{
 		SuppressContact(OtherBody);
 		if (auto* Receiver = Other->FindComponentByClass<UHALImpactReceiverComponent>()) { Receiver->SuppressContact(Body); }
 		return;
+	}
+	if (auto* Charge = GetOwner()->FindComponentByClass<UHALBullChargeComponent>(); Charge && Charge->IsActive())
+	{
+		if (auto* Ball = Cast<ABasicBallActor>(Other); Ball && Charge->HandleFreeBall(*Ball, Hit)) { return; }
 	}
 	if (auto* Top = GetOwner()->FindComponentByClass<UHALBattleTopComponent>(); Top && Top->IsActive())
 	{
