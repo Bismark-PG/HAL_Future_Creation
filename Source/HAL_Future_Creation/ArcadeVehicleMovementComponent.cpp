@@ -220,7 +220,7 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	{
 		bGrounded = false;
 		ForwardSpeed = 0.0f;
-		{ FScopeLock Lock(&PendingPhysicsDataLock); PublishedPresentationInput = FHALVehiclePresentationInput(); }
+		{ FScopeLock Lock(&PendingPhysicsDataLock); PublishedPresentationInput = FHALVehiclePresentationInput(); PublishedAcceptedDrivingInput.Reset(); }
 		ResetWallEscape();
 		return;
 	}
@@ -229,7 +229,7 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		? Body->GetBodyInstanceAsyncPhysicsTickHandle() : FBodyInstanceAsyncPhysicsTickHandle();
 	if (!PhysicsHandle.IsValid())
 	{
-		{ FScopeLock Lock(&PendingPhysicsDataLock); PublishedPresentationInput = FHALVehiclePresentationInput(); }
+		{ FScopeLock Lock(&PendingPhysicsDataLock); PublishedPresentationInput = FHALVehiclePresentationInput(); PublishedAcceptedDrivingInput.Reset(); }
 		return;
 	}
 	const auto& Overdrive = CurrentMovement.Overdrive;
@@ -334,6 +334,8 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		PublishedPresentationInput.PhysicsFrame = StepInput.PhysicsFrame;
 		PublishedPresentationInput.bGrounded = bGrounded;
 		PublishedPresentationInput.bValid = true;
+		PublishedAcceptedDrivingInput = bPoseDriveAllowed && bMovementDriveAllowed && !CurrentMovement.bControlsBlocked
+			? InputCommand : FVehicleInputCmd();
 		PublishedPresentationInput.TireSkidInputs = bPoseDriveAllowed && bMovementDriveAllowed && !CurrentMovement.bControlsBlocked
 			? HALVehiclePresentation::TireSkidInputs(InputCommand.Brake, InputCommand.Throttle, InputCommand.bHandbrake) : 0;
 		PublishedStability.PhysicsFrame = StepInput.PhysicsFrame;
@@ -610,6 +612,12 @@ void UArcadeVehicleMovementComponent::ApplyAction_Internal(
 	{
 		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(), Recoil->DeltaVelocity, true);
 	}
+}
+
+FVehicleInputCmd UArcadeVehicleMovementComponent::GetAcceptedDrivingInput() const
+{
+	FScopeLock Lock(&PendingPhysicsDataLock);
+	return bShouldRunPhysics.Load() && !bHistoryInputBlocked.Load() ? PublishedAcceptedDrivingInput : FVehicleInputCmd();
 }
 
 FVehicleContactObservation UArcadeVehicleMovementComponent::GetContactObservation() const

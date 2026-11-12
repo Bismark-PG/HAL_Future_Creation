@@ -79,6 +79,8 @@ public:
 	FHALMovementStatus GetMovementEffectStatus() const;
 	/** Thread-safe copy of the last actually consumed input; for cosmetic observers only. */
 	FHALVehiclePresentationInput GetPresentationInput() const;
+	/** Authority gameplay query: last physics-consumed driving demand after control permission gates. */
+	FVehicleInputCmd GetAcceptedDrivingInput() const;
 	FVehicleStabilityObservation GetStabilityObservation() const;
 	FVehicleContactObservation GetContactObservation() const;
 	bool IsBounceBackActive() const;
@@ -157,6 +159,7 @@ private:
 	mutable FCriticalSection PendingPhysicsDataLock;
 	FHALVehiclePresentationInput PublishedPresentationInput; // Protected by PendingPhysicsDataLock.
 	FVehicleInputCmd InputCommand;
+	FVehicleInputCmd PublishedAcceptedDrivingInput; // Protected by PendingPhysicsDataLock.
 	FVehicleNetInputData LastPhysicsInput;
 	FVehicleNetInputData AppliedHistoryInput;
 	TAtomic<bool> bUseNetworkPhysicsHistory{false};
