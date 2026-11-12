@@ -43,19 +43,21 @@ namespace
 				FSlateDrawElement::MakeText(Elements, Layer + 1, Geometry.ToPaintGeometry(FVector2D(1,1), FSlateLayoutTransform(Position)),
 					Label, FAppStyle::GetFontStyle("NormalFont"), ESlateDrawEffect::None, FLinearColor::White);
 			};
-			Text(FVector2D(12, 10), LOCTEXT("Top", "Top (XY) - front +X ->"));
+			Text(FVector2D(12, 10), LOCTEXT("Top", "Top (XY) - X=0 in yellow, front +X ->"));
 			Text(FVector2D(12, Size.Y * 0.5 + 10), LOCTEXT("Side", "Side (XZ) - rounded front/rear edges"));
 			HALVehicleCollision::FGeometry Shape;
 			FString Error;
 			if (!HALVehicleCollision::BuildGeometry(Settings->Shape, Shape, Error)) { return Layer + 1; }
-			const auto Draw = [&](const TArray<FVector2D>& Points, double Width, double MinY, double MaxY,
+			const auto& P = Settings->Shape;
+			const double MidX = (static_cast<double>(P.FrontCm) - P.RearCm) * 0.5;
+			const auto Draw = [&](const TArray<FVector2D>& Points, double MinY, double MaxY,
 				double CenterY, FLinearColor Color, TOptional<double> WheelBottom) {
-				const double Scale = FMath::Min(FMath::Max(1.0, Size.X - 64) / Width,
+				const double Scale = FMath::Min(FMath::Max(1.0, Size.X - 64) / P.GetLengthCm(),
 					FMath::Max(1.0, Size.Y * 0.5 - 76) / (MaxY - MinY));
 				const FVector2D Center(Size.X * 0.5, CenterY);
 				const double MidY = (MinY + MaxY) * 0.5;
 				const auto ToPixel = [&](const FVector2D& Point) {
-					return FVector2f(Center + FVector2D(Point.X, MidY - Point.Y) * Scale);
+					return FVector2f(Center + FVector2D(Point.X - MidX, MidY - Point.Y) * Scale);
 				};
 				if (WheelBottom.IsSet())
 				{
@@ -69,15 +71,14 @@ namespace
 				const FVector2f FirstPixel = Pixels[0];
 				Pixels.Add(FirstPixel);
 				FSlateDrawElement::MakeLines(Elements, Layer + 1, Geometry.ToPaintGeometry(), Pixels, ESlateDrawEffect::None, Color, true, 2);
-				const FVector2f Origin = ToPixel(FVector2D::ZeroVector);
-				TArray<FVector2f> Axis = { Origin + FVector2f(-6, 0), Origin + FVector2f(6, 0) };
-				FSlateDrawElement::MakeLines(Elements, Layer + 1, Geometry.ToPaintGeometry(), Axis, ESlateDrawEffect::None, FLinearColor::Yellow);
+				const TArray<FVector2f> OriginPlane = { ToPixel(FVector2D(0, MinY)), ToPixel(FVector2D(0, MaxY)) };
+				FSlateDrawElement::MakeLines(Elements, Layer + 1, Geometry.ToPaintGeometry(), OriginPlane,
+					ESlateDrawEffect::None, FLinearColor::Yellow);
 			};
-			const auto& P = Settings->Shape;
 			const double Bottom = P.BottomZCm.Get(-P.HeightCm * 0.5);
-			Draw(Shape.Outline, P.LengthCm, -P.WidthCm * 0.5, P.WidthCm * 0.5,
+			Draw(Shape.Outline, -P.WidthCm * 0.5, P.WidthCm * 0.5,
 				Size.Y * 0.25 + 12, FLinearColor(0.1f, 0.8f, 0.4f), {});
-			Draw(Shape.SideOutline, P.LengthCm, FMath::Min(0.0, Bottom), FMath::Max(0.0, Bottom + P.HeightCm),
+			Draw(Shape.SideOutline, FMath::Min(0.0, Bottom), FMath::Max(0.0, Bottom + P.HeightCm),
 				Size.Y * 0.75 + 12, FLinearColor(0.2f, 0.65f, 1), P.BottomZCm);
 			return Layer + 1;
 		}
@@ -106,7 +107,7 @@ namespace
 				[
 					SNew(SVerticalBox)
 					+ SVerticalBox::Slot().AutoHeight().Padding(0,0,0,8)
-					[ SNew(STextBlock).AutoWrapText(true).Text(LOCTEXT("Intro", "Select a Vehicle Definition in the Content Browser to fit the collision bottom to the tires. Height extends upward from that plane. Dimensions are local cm.")) ]
+					[ SNew(STextBlock).AutoWrapText(true).Text(LOCTEXT("Intro", "Front and Rear are distances from local X=0. Load a Vehicle Definition to fit the collision bottom to its tires. Dimensions are in cm.")) ]
 					+ SVerticalBox::Slot().AutoHeight().Padding(0,0,0,8)
 					[
 						SNew(SHorizontalBox)
@@ -126,7 +127,12 @@ namespace
 					+ SVerticalBox::Slot().AutoHeight().Padding(0,8)
 					[ SNew(STextBlock).AutoWrapText(true).Text_Lambda([this] {
 						FString Error;
-						return FText::FromString(Validate(Error) ? TEXT("Ready. Radius <= width/2; front radius + rear radius <= length.") : Error);
+						if (!Validate(Error)) { return FText::FromString(Error); }
+						const auto& P = Settings->Shape;
+						const double Length = P.GetLengthCm();
+						return static_cast<double>(P.FrontRadiusCm) + P.RearRadiusCm > Length
+							|| static_cast<double>(P.FrontSideRadiusCm) + P.RearSideRadiusCm > Length
+							? LOCTEXT("RadiiFitted", "Ready. Rounding is reduced to fit the Front and Rear planes.") : LOCTEXT("Ready", "Ready.");
 					}) ]
 					+ SVerticalBox::Slot().AutoHeight()
 					[

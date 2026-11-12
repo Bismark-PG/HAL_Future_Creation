@@ -10,8 +10,12 @@ struct FHALVehicleCollisionParameters
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category = "Dimensions", meta = (DisplayName = "Length", Units = "cm", ClampMin = "1", ClampMax = "10000"))
-	float LengthCm = 200;
+	/** Distance from the collision root's X=0 plane to the front (+X). */
+	UPROPERTY(EditAnywhere, Category = "Dimensions", meta = (DisplayName = "Front", Units = "cm", ClampMin = "0", ClampMax = "10000"))
+	float FrontCm = 100;
+	/** Distance from the collision root's X=0 plane to the rear (-X). */
+	UPROPERTY(EditAnywhere, Category = "Dimensions", meta = (DisplayName = "Rear", Units = "cm", ClampMin = "0", ClampMax = "10000"))
+	float RearCm = 100;
 	UPROPERTY(EditAnywhere, Category = "Dimensions", meta = (DisplayName = "Width", Units = "cm", ClampMin = "1", ClampMax = "10000"))
 	float WidthCm = 140;
 	UPROPERTY(EditAnywhere, Category = "Dimensions", meta = (DisplayName = "Height", Units = "cm", ClampMin = "1", ClampMax = "10000"))
@@ -34,6 +38,7 @@ struct FHALVehicleCollisionParameters
 	/** When set, the lower face stays at this Z and HeightCm extends upward. Legacy recipes are centered. */
 	TOptional<double> BottomZCm;
 
+	double GetLengthCm() const { return static_cast<double>(FrontCm) + RearCm; }
 	bool Validate(FString& Error) const;
 };
 

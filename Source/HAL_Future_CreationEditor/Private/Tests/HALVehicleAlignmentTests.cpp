@@ -52,7 +52,7 @@ namespace
 	}
 	UVehicleDefinition* TeamDefinition()
 	{
-		return LoadObject<UVehicleDefinition>(nullptr, TEXT("/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.DA_Vehicle_Player_TestBaseline_v1"));
+		return LoadObject<UVehicleDefinition>(nullptr, TEXT("/Game/Data/MVP_B/DA_Vehicle_Car_01.DA_Vehicle_Car_01"));
 	}
 	struct FProbe
 	{
@@ -219,6 +219,7 @@ bool FHALCollisionWheelAnchorTest::RunTest(const FString&)
 	FString Error;
 	if (!TestTrue(TEXT("Legacy centered geometry built"), HALVehicleCollision::BuildMesh(*Mesh, Shape, Error))) { AddError(Error); return false; }
 	Probe.Package->GetMetaData().SetValue(Mesh.Get(), TEXT("HALCollision.Version"), TEXT("2"));
+	Probe.Package->GetMetaData().SetValue(Mesh.Get(), TEXT("HALCollision.LengthCm"), TEXT("200"));
 	Probe.Definition->CollisionMesh = Mesh.Get();
 	for (const float Height : { 60.f, 95.f, 70.f })
 	{

@@ -181,7 +181,7 @@ bool FHALCollisionGeneratorThumbnailTest::RunTest(const FString&)
 	// A transient proxy with the reported dimensions: never load, overwrite or save a team mesh.
 	TStrongObjectPtr<UStaticMesh> Mesh(NewObject<UStaticMesh>());
 	FHALVehicleCollisionParameters P;
-	P.LengthCm = 456; P.WidthCm = 288; P.HeightCm = 269;
+	P.FrontCm = P.RearCm = 228; P.WidthCm = 288; P.HeightCm = 269;
 	P.FrontRadiusCm = 120; P.RearRadiusCm = 120;
 	FString Error;
 	if (!TestTrue(TEXT("Thumbnail proxy built"), HALVehicleCollision::BuildMesh(*Mesh, P, Error)))
