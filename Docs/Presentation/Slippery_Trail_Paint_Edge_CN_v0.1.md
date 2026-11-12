@@ -57,6 +57,8 @@ UV2 是适用于本条带／圆端的插值边缘信息，并非任意网格的�
 
 材质源为 `Tools/SlipperyTrailGraffiti/PaintEdge.hlsl`，维护脚本为 `UpdatePaintEdgeMaterial.py`。脚本通过官方 Editor API 更新现有母材质并保护原 MI 有效参数，只保存母材质，不保存 BP、MI、DA 或地图。Custom 代码已嵌入 uasset，游戏运行时不读取这些工具文件；日常调参无需重跑脚本。脚本依赖原图中的描述标记，手工重构母材质后先核对连接再运行。
 
+2026-11-12 材质内部 Paint Custom 扩展为 float4：RGB 保持原覆盖／墨线 Alpha／模式，A 输出同一噪声轮廓内的深度（cm），供三档主体的中间色缓冲使用。UV2、C++ 接口、网格与原覆盖规则不变。完整配置见[暗绿色边缘与中间色缓冲](Slippery_Trail_Edge_Buffer_CN_v0.1.md)。
+
 ## 向 TireSkid 卡通烟尘靠拢（方案讨论）
 
 **后续范围已确认并完成首项：** 本轮只实现地面主体的表面朝向三色，保留原地面网格／溢边／隆起／消散，暂缓液团和 Niagara 迁移。当前配置与验证见[三档明暗](Slippery_Trail_Three_Tone_CN_v0.1.md)，下文液团等内容为原讨论备选，未施工。

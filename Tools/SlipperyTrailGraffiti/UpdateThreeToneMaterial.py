@@ -10,7 +10,7 @@ import traceback
 import unreal
 
 ROOT = pathlib.Path(unreal.Paths.project_dir()).resolve()
-WORK = ROOT/'Saved/SlipperyTrail/ThreeTone_20261111'
+WORK = ROOT/'Saved/SlipperyTrail/EdgeBuffer_20261112'
 WORK.mkdir(parents=True, exist_ok=True)
 MAT = unreal.MaterialEditingLibrary
 MARKER = 'HAL Ground Three Tone v1'
@@ -132,6 +132,46 @@ try:
         wire(parameter('VolumeStrength'), gate, 'A')
         wire(inverse, gate, 'B')
         wire(gate, volume, 'Strength')
+    # Upgrade existing and newly created graphs together; no MI overrides change.
+    expressions = MAT.get_material_expressions(material)
+    custom = next(n for n in expressions if isinstance(n, unreal.MaterialExpressionCustom)
+        and n.get_editor_property('description') == MARKER)
+    inputs = list(custom.get_editor_property('inputs'))
+    names = {str(item.get_editor_property('input_name')) for item in inputs}
+    for name in ('EdgeDepth','EdgeOutlineWidth','EdgeColor','EdgeBufferWidth','EdgeBufferSoftness'):
+        if name not in names:
+            item = unreal.CustomInput()
+            item.set_editor_property('input_name', name)
+            inputs.append(item)
+    custom.set_editor_property('inputs', inputs)
+    paint = next(n for n in expressions if isinstance(n, unreal.MaterialExpressionCustom)
+        and n.get_editor_property('description') == 'HAL Ground Paint Edge v1')
+    paint.set_editor_property('code', (ROOT/'Tools/SlipperyTrailGraffiti/PaintEdge.hlsl').read_text(encoding='utf-8'))
+    paint.set_editor_property('output_type', unreal.CustomMaterialOutputType.CMOT_FLOAT4)
+    depth_nodes = [n for n in expressions if n.get_editor_property('desc') == 'HAL Ground Paint Interior Depth v1']
+    depth = depth_nodes[0] if depth_nodes else node(material, unreal.MaterialExpressionComponentMask, 2200, -1800,
+        desc='HAL Ground Paint Interior Depth v1', r=False, g=False, b=False, a=True)
+    wire(paint, depth)
+    wire(depth, custom, 'EdgeDepth')
+    outline = next(n for n in expressions if isinstance(n, unreal.MaterialExpressionScalarParameter)
+        and str(n.get_editor_property('parameter_name')) == 'PaintEdgeOutlineWidth')
+    wire(outline, custom, 'EdgeOutlineWidth')
+    for index,(name,pin,default,high) in enumerate((
+        ('ToonEdgeBufferWidth','EdgeBufferWidth',24.,200.),
+        ('ToonEdgeBufferSoftness','EdgeBufferSoftness',12.,100.))):
+        found = [n for n in expressions if isinstance(n, unreal.MaterialExpressionScalarParameter)
+            and str(n.get_editor_property('parameter_name')) == name]
+        scalar = found[0] if found else node(material, unreal.MaterialExpressionScalarParameter,
+            800, -2900-index*180, parameter_name=name, default_value=default, group=GROUP,
+            slider_min=0., slider_max=high)
+        wire(scalar, custom, pin)
+    edge_colors = [n for n in expressions if isinstance(n, unreal.MaterialExpressionVectorParameter)
+        and str(n.get_editor_property('parameter_name')) == 'ToonEdgeColor']
+    shadow = report['parameters_before'].get('ToonShadowColor', report['parameters_before']['ShadowColor'])
+    edge_color = edge_colors[0] if edge_colors else node(material, unreal.MaterialExpressionVectorParameter,
+        1100, -3000, parameter_name='ToonEdgeColor', group=GROUP,
+        default_value=unreal.LinearColor(shadow[0]*.55, shadow[1]*.55, shadow[2]*.55, 1.))
+    wire(edge_color, custom, 'EdgeColor', 'RGB')
     MAT.recompile_material(material)
     stats = MAT.get_statistics(material)
     report['statistics'] = {n:stats.get_editor_property(n) for n in (

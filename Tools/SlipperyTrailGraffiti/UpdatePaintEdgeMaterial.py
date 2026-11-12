@@ -52,6 +52,7 @@ try:
         if len(existing) != 1:
             raise RuntimeError('Ambiguous paint-edge graph')
         existing[0].set_editor_property('code', source)
+        existing[0].set_editor_property('output_type', unreal.CustomMaterialOutputType.CMOT_FLOAT4)
     else:
         border = next(item for item in expressions if item.get_editor_property('desc') == 'Ink border threshold')
         palette = next(item for item in expressions if item.get_editor_property('desc') == 'Outer ink and purple side')
@@ -62,7 +63,7 @@ try:
         if not old_mask:
             raise RuntimeError('The existing dissolve mask must be preserved')
         custom = node(material, unreal.MaterialExpressionCustom, 1900, -1500,
-            code=source, description=MARKER, desc=MARKER, output_type=unreal.CustomMaterialOutputType.CMOT_FLOAT3)
+            code=source, description=MARKER, desc=MARKER, output_type=unreal.CustomMaterialOutputType.CMOT_FLOAT4)
         names = ['UV', 'EdgeMetadata', 'InvTile', 'Enabled', 'Strength', 'CellSize', 'Detail',
                  'Softness', 'OutlineWidth', 'OutlineSoftness']
         inputs = []

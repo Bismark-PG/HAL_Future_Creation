@@ -22,8 +22,18 @@ float softness = min(max(ToneSoftness, 0), (high - low) * 0.5);
 float toMid = softness > 0.00001 ? smoothstep(low - softness * 0.5, low + softness * 0.5, facing) : step(low, facing);
 float toLit = softness > 0.00001 ? smoothstep(high - softness * 0.5, high + softness * 0.5, facing) : step(high, facing);
 float3 ramp = lerp(lerp(ShadowColor, MidColor, toMid), LitColor, toLit);
+float bufferWidth = clamp(EdgeBufferWidth, 0, 200);
+if (bufferWidth > 0)
+{
+    float innerDepth = EdgeDepth - max(EdgeOutlineWidth, 0);
+    float bufferSoftness = clamp(EdgeBufferSoftness, 0, 100);
+    float interior = bufferSoftness > 0.00001
+        ? smoothstep(bufferWidth, bufferWidth + bufferSoftness, innerDepth)
+        : step(bufferWidth, innerDepth);
+    ramp = lerp(MidColor, ramp, interior);
+}
 // Reuse the current contour alpha, including its optional paint-edge replacement.
-float3 colored = lerp(InkColor, ramp, saturate(InkAlpha));
+float3 colored = lerp(EdgeColor, ramp, saturate(InkAlpha));
 return lerp(OldPalette, colored, strength);
 #else
 return OldPalette;

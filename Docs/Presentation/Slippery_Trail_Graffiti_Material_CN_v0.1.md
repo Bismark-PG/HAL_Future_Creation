@@ -1,5 +1,7 @@
 # SlipperyTrail 涂鸦风材质 v0.1
 
+**2026-11-12 边缘更新：** MI **07 Three tone shading** 新增暗绿色 `ToonEdgeColor` 和 `ToonEdgeBufferWidth／Softness`，高光／暗部靠近外缘时回到中间色。原三档配色、溢边、隆起与消散保持，详见[新配置与对照](Slippery_Trail_Edge_Buffer_CN_v0.1.md)。
+
 **2026-11-11 最新主体分色：** 按用户确认先保留 C++ 地面网格，新增表面朝向驱动的暗／中／亮三色，默认开启。使用 MI 的 **07 Three tone shading** 调三色、方向、门槛与柔和度，ToonStrength=0 可恢复旧主体配色及 04 体积倍率。原墨线、笔触、隆起、溢边和消散保留；Niagara／液团暂缓。见[配置、对照与验证](Slippery_Trail_Three_Tone_CN_v0.1.md)。以下按中央权重分色的接线与旧统计保留原时点。
 
 **2026-11-11 当前补充：** 已在原材质上接入体积明暗、分块消散及圆润油漆溢边，原 MI 调色保留。Paint Edge 开启时在 MI **06 Paint edge** 按厘米调整随形描边粗细，完整入口见[油漆／液体溢边](Slippery_Trail_Paint_Edge_CN_v0.1.md)。下文首版节点／固定遮罩描述保留原时点。
