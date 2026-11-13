@@ -147,6 +147,8 @@ private:
 		const FVector& Velocity, float DeltaTime);
 	void ResetWallEscape();
 	void ApplyLongitudinalForces(FBodyInstance& Body, const FVector& ForwardDirection, float CurrentForwardSpeed, float DeltaTime = 1.f / 60.f);
+	/** Optional Drag-only adapter. Leaves the caller's original driving frame untouched without active Drag propulsion. */
+	void ResolveDragDriveFrame(FBodyInstance& Body, FVector& InOutForwardDirection, float& InOutForwardSpeed) const;
 	void ApplyLateralGrip(FBodyInstance& Body, const FVector& RightDirection, float CurrentLateralSpeed);
 	void ApplySteering(FBodyInstance& Body, const FVector& GroundNormal, float CurrentForwardSpeed,
 		float CurrentYawRate, float DeltaTime, float AreaSwayAcceleration);

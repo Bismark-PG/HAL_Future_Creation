@@ -90,7 +90,8 @@ void UArcadeVehicleMovementComponent::ApplyMovementAction(const FVehicleMovement
 	if (!Solver) { return; }
 	const int32 Frame = Solver->GetCurrentFrame() + UE::NetworkPhysicsUtils::GetNetworkPhysicsTickOffset_Internal(Solver);
 	if (Action.ServerFrame != INDEX_NONE && Action.ServerFrame != Frame) { return; }
-	if (Action.Previous.IsValid() && Action.Previous.EffectiveServerFrame > Frame) { return; }
+	if ((Action.Value.bHasAreaState || Action.Value.GravityDrive.Source.IsValid())
+		&& Action.Previous.IsValid() && Action.Previous.EffectiveServerFrame > Frame) { return; }
 	FHALMovementSnapshot Value = Action.Value;
 	Value.Stamp(&Action.Previous, Frame, Action.FixedDeltaSeconds);
 	for (const auto& Existing : MovementActions)

@@ -1,5 +1,9 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Parse.h"
+#include "Misc/Paths.h"
 #include "../ArcadeVehicleMovementComponent.h"
 #include "../VehicleConfigurationTypes.h"
 #include "../HALMovementEffectBridge.h"
@@ -82,6 +86,7 @@ bool FHALMovementSolverTest::RunTest(const FString& Parameters)
 	Step(); auto* Probe = Solver->CreateAndRegisterSimCallbackObject_External<FMovementProbe>();
 	FGuid Epoch = FGuid::NewGuid(); Movement->ConfigureMovementEffects(Epoch, nullptr, true, 7);
 	int32 Id = 0; bool bWorker = false;
+	FString MeasuredSamples;
 	const uint32 GT = FPlatformTLS::GetCurrentThreadId();
 	auto Run = [&](const TCHAR* Label, TFunction<void()> Work, double ExpectedX, double ExpectedY = 0)
 	{
@@ -92,6 +97,7 @@ bool FHALMovementSolverTest::RunTest(const FString& Parameters)
 		{
 			if (Output->Id != Id) { continue; }
 			bFound = true; Status = Output->Status; bWorker |= Output->Thread != GT;
+			MeasuredSamples += FString::Printf(TEXT("%s\t%.9f\t%.9f\t%.9f\n"),Label,Output->Velocity.X,Output->Velocity.Y,Output->Velocity.Z);
 			if (!FMath::IsNearlyEqual(Output->Velocity.X,ExpectedX,.02) || !FMath::IsNearlyEqual(Output->Velocity.Y,ExpectedY,.02))
 			{ AddInfo(FString::Printf(TEXT("%s actual=%s expectedXY=(%.4f,%.4f) gravity=%s"),Label,*Output->Velocity.ToString(),ExpectedX,ExpectedY,*Status.Value.GravityDrive.Source.ToString())); }
 			TestTrue(FString(Label)+TEXT(" physics context"), Output->bPhysicsContext);
@@ -238,6 +244,26 @@ bool FHALMovementSolverTest::RunTest(const FString& Parameters)
 	Run(TEXT("Slippery state never enables Drag propulsion"),[=](){ Drive(false,0); },30,0);
 	Receiver->ClearForOwnerExit();
 	Bridge->Unbind();
+	Epoch = FGuid::NewGuid(); Movement->ConfigureMovementEffects(Epoch,nullptr,true,7); Publish(1,1,1);
+	const auto OrdinaryDrive = [=](float Throttle, float Brake, const FVector& Velocity, const FVector& Forward)
+	{
+		auto Handle = Body->GetBodyInstance()->GetBodyInstanceAsyncPhysicsTickHandle(); Handle->SetV(Velocity);
+		Movement->PrepareMovementFrame(Solver,Solver->GetCurrentFrame(),false);
+		Movement->InputCommand.Reset(); Movement->InputCommand.Throttle = Throttle; Movement->InputCommand.Brake = Brake;
+		Movement->CoastingDragRate = .35f;
+		Movement->ApplyLongitudinalForces(*Body->GetBodyInstance(),Forward,FVector::DotProduct(Velocity,Forward));
+		Movement->CoastingDragRate = 0;
+	};
+	Run(TEXT("No Drag ordinary coast preserves lateral momentum"),[=](){ OrdinaryDrive(0,0,FVector(600,180,0),FVector::ForwardVector); },596.5,180);
+	Run(TEXT("No Drag partial throttle and base drag"),[=](){ OrdinaryDrive(.5f,0,FVector(600,300,0),FVector::ForwardVector); },611.5,300);
+	Run(TEXT("No Drag brake wins simultaneous throttle"),[=](){ OrdinaryDrive(1,.6f,FVector(600,0,0),FVector::ForwardVector); },600-(Config.Drive.BrakeDeceleration*.6+210)/60,0);
+	Run(TEXT("No Drag reverse with base drag"),[=](){ OrdinaryDrive(0,1,FVector(-600,0,0),FVector::ForwardVector); },-600+(-Config.Drive.ReverseAcceleration+210)/60,0);
+	Run(TEXT("No Drag inclined ground drive"),[=](){ OrdinaryDrive(.5f,0,FVector(480,200,360),FVector(.8,0,.6)); },489.2,200);
+	if (FParse::Param(FCommandLine::Get(),TEXT("HALDragInterfaceSamples")))
+	{
+		const TCHAR* Name = FParse::Param(FCommandLine::Get(),TEXT("HALDragInterfaceBaseline")) ? TEXT("Before.tsv") : TEXT("After.tsv");
+		TestTrue(TEXT("Write opt-in measured physics comparison"),FFileHelper::SaveStringToFile(MeasuredSamples,*(FPaths::ProjectSavedDir()/TEXT("BlackHole/20261113/DragInterface")/Name)));
+	}
 	TestTrue(TEXT("Actual worker thread exercised"), bWorker);
 	Solver->UnregisterAndFreeSimCallbackObject_External(Probe); Step();
 	World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
