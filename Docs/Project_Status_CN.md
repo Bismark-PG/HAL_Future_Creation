@@ -1,5 +1,15 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-14 Car03 柔和卡通火花＋立体气流施工、保存资源、DA 迁移与本机专项完成，下一步团队画风验收。** 从 `main/69a16d5` 接续，UE5.8.3-58210709。接触火花改圆润笔触与概括分色，保留已认可的数量7和全部运动参数；气流改 Niagara 曲面弧网格，支持独立流速、数量／寿命、高低错层、倾角、宽度、上升及发光，所有新增控制仍在技能 DA。只切换现有 DA 的 Wind／Wind Material／Contact Sparks 三项，Ground=None、原暖色及其他调参保留。五个新资源与旧资源并存；玩法接触／伤害／推送／技能规则未改，未编辑 BP。
+
+最终 Editor R13／Game R4 编译链接成功；最终统一原生＋D3D12 渲染 **16/16**、0 测试警告／失败；当前地图双进程 Host 出站额外80ms，拥有者／观察者、原 ObserveContact 的合成权威接触→真实 multicast、数量7、参数复制和到期清理均各 **1/1**。已查看真实车辆与独立粒子图片。开工1277份资产／Config／uproject只有授权技能DA改变，其余1276份哈希一致，保留团队监听GameMode BP和地图修改。早期空Mesh槽、透明内外面条纹与副本编译数据未就绪的失败记录均保留，最终测试已复验；没有四机／发布包／全量历史套件或新真人风格验收结论，未提交／Push。下一入口：重开Editor，在技能DA的 Presentation→FX 调流速／层高／倾角／宽度，验真实撞墙、擦碰和遮挡。见[配置、实际截图与验收](Presentation/Car03_BattleTop_Cartoon_FX_CN_v0.1.md)和[验证摘要](Presentation/Car03_BattleTop_Cartoon_Verification_20261113.json)。下方“讨论／未施工”保留历史时点。
+
+**2026-11-13 Car03 接触专用资源已由团队切换，当前进入柔和卡通造型与立体气流方案讨论，尚未施工。** 只读确认保存技能 DA 的 Contact Sparks 现为 `NS_BattleTop_ContactSpray`，Contact Count仍为7；用户反馈效果有进步且粒子强度可以，因此不再将迁移数量32作为本轮必须动作。新反馈是火花样式偏写实，暖色风环也偏光效且缺乏立体气流层次。保存材质复核与生成源码确认：接触火花采用高发光、热芯及连续渐变；风环为单个平面Sprite上的三组径向细弧，颜色图案整体跟随外观自转。建议保留已认可强度／触发／散射，改圆润短粗飞溅笔触和概括分色；风环升级为Niagara弧面网格粒子，使用错落高度、开放弧段、独立推进／消退和三档方向明暗，新增美术控制仍集中技能DA。见[风格反馈与方案](Presentation/Car03_BattleTop_Polish_FX_CN_v0.1.md#柔和卡通造型与立体气流方案讨论2026-11-13)。本轮只读资源／源码检查与文档同步，无代码／资产修改、构建或新渲染／联机测试；保留团队技能DA、监听GameMode BP和地图修改。下方“仍引用旧系统／下一步数量32”为切换前快照。
+
+**2026-11-13 Car03 特效进度重新核对：接触飞溅加强的代码／资源已提交，保存技能 DA 尚未切换，当前处于接线与本版验证前。** 当前 `main/69a16d5`（add battleTop vfx），本机 UE5.8.3-58210709。只读加载确认 `NS_BattleTop_ContactSpray`／`M_BattleTop_ContactSpray` 均已存在，修正下方“未生成资源”的历史时点；新尺寸／寿命／散射等反射字段可读取。但实际 `DA_Ability_Car03_BattleTop` 的 Contact Sparks 仍为 `NS_BattleTop_Sparks`、Contact Count=7，尚未按加强方案切换为专用 ContactSpray／32。Ground Sparks=None 保持团队隔离选择；已保存风环 Radius Scale=1.45、Opacity=0.55、转速1500°/s、持续10 s、进入0.15 s／退出0.2 s、目标CD0.8 s。完整核对见[当前接续入口](Presentation/Car03_BattleTop_Polish_FX_CN_v0.1.md#当前接续核对2026-11-13)。
+
+原16/16及双端通过属于 `eb1079c`／UE5.8.2 的首版记录；现版渲染测试源码哈希已不同，不能当作加强版或本机UE5.8.3复验通过。下一步只迁移 Contact Sparks 引用及数量，保留底部None和其他调参，再完成匹配现版的构建核对、接触飞溅渲染／运动专项、相关规则与双端清理验证，最后验收真人画面。本轮仅Git／源码／只读保存配方核对及文档同步，未改代码／资产、未运行新构建或玩法／渲染测试；保留监听GameMode BP及NetTest地图已有修改，未提交／Push。早先Editor PID及“资源未生成”记录不代表当前运行状态。只读报告在 `Saved/BattleTop/Progress_20261113/Saved_Recipe_Audit.json`。
+
 **2026-11-13 丢弃后的 Movement／Git 忽略规则已恢复。** 当前 `main/c697601`，保留后续 Black Hole 提交及其他工作区修改，仅恢复 `ArcadeVehicleMovementComponent.cpp` 发布碰撞前角速度的一行，以及 BattleTop 源码／工具／测试／说明文档的七条 Git 白名单。旧验证摘要基于 `eb1079c`，其整文件哈希不能替代当前已合入黑洞功能的版本；本轮按当前提交做最小补回，不回滚后续代码。仅检查恢复差异、忽略规则和文件保护，没有重编或运行新测试；接触飞溅加强仍未收尾，下方构建／施工记录保留各自时点。
 
 **2026-11-13 Car03 接触飞溅加强施工中：源码／新 Niagara 配方及验证代码已写，待关闭 Editor 后完成资源与验证。** 用户确认放大后可见，要求更大、更密、更分散；主方向继续保留反向接触切向，新增表面法线驱动朝外／向上散射、随机大小／寿命／速度、视觉重力和阻力。新建接触专用资源，计划仅迁移技能 DA 的 Contact Sparks 与 Contact Count=32，保留原火花、底部设置及其他调参。参数与验证入口见[施工留档](Presentation/Car03_BattleTop_Polish_FX_CN_v0.1.md)。当前未生成新资源／迁移保存 DA，未宣称构建或新测试通过；Editor（PID 43740）仍运行。下方记录保留早先时点。

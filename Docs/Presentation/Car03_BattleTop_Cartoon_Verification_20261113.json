@@ -1,0 +1,282 @@
+{
+  "Task": "Car03 BattleTop soft cartoon contact strokes and layered mesh airflow",
+  "CompletedLocalDate": "2026-11-14",
+  "TimeZone": "Asia/Tokyo",
+  "StartingBranch": "main",
+  "StartingCommit": "69a16d5",
+  "Engine": "5.8.3-58210709",
+  "Builds": [
+    {
+      "Target": "HAL_Future_CreationEditor",
+      "Configuration": "Win64 Development",
+      "Result": "Succeeded",
+      "Log": "Saved/BattleTop/Cartoon_20261113/Build_Editor_R13_Console.log",
+      "SHA256": "3C949116006392B696F3E1F43ADE06FFEC9617C538747F167EB7110B19B5E061"
+    },
+    {
+      "Target": "HAL_Future_Creation",
+      "Configuration": "Win64 Development",
+      "Result": "Succeeded",
+      "Log": "Saved/BattleTop/Cartoon_20261113/Build_Game_R4_Console.log",
+      "SHA256": "98C885ACE39E77D62DFF1681D87A918F91F5D54A126EE012D6D4B42445899DEF"
+    }
+  ],
+  "Reports": [
+    {
+      "Run": "Final_R3",
+      "Path": "Saved/BattleTop/Cartoon_20261113/Final_R3/index.json",
+      "SHA256": "7C80FF178B5C627B2FA08715382CA689B43CCCD6EDBCB81C8EC1EAA66724E1E3",
+      "Passed": 16,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0,
+      "Tests": [
+        {
+          "fullTestPath": "HAL.FutureCreation.BattleTop.AuthoritySkillContactsAndCleanup",
+          "state": "Success"
+        },
+        {
+          "fullTestPath": "HAL.FutureCreation.BattleTop.ContactSprayGeometryAndTuning",
+          "state": "Success"
+        },
+        {
+          "fullTestPath": "HAL.FutureCreation.BattleTop.SustainedContactIndependentCooldown",
+          "state": "Success"
+        },
+        {
+          "fullTestPath": "HAL.FutureCreation.BattleTop.TransitionTimelineAndSparkTangent",
+          "state": "Success"
+        },
+        {
+          "fullTestPath": "HAL.FutureCreation.BattleTop.WallResponseAndConfig",
+          "state": "Success"
+        },
+        {
+          "fullTestPath": "HAL.FutureCreation.Combat.BallMigrationAndConsumption",
+          "state": "Success"
+        },
+        {
+          "fullTestPath": "HAL.FutureCreation.Combat.ConfigurationAndContext",
+          "state": "Success"
+        },
+        {
+          "fullTestPath": "HAL.FutureCreation.Combat.DamageImpactIndependence",
+          "state": "Success"
+        },
+        {
+          "fullTestPath": "HAL.FutureCreation.Combat.PulsesTargetsAndDedup",
+          "state": "Success"
+        },
+        {
+          "fullTestPath": "HAL.FutureCreation.Combat.PureDamageAndActualRemoval",
+          "state": "Success"
+        },
+        {
+          "fullTestPath": "HAL.FutureCreation.Combat.SnapshotAndSourceLifetime",
+          "state": "Success"
+        },
+        {
+          "fullTestPath": "HAL.FutureCreation.VehicleAbilities.AtomicBatchAndExplicitVersion",
+          "state": "Success"
+        },
+        {
+          "fullTestPath": "HAL.FutureCreation.VehicleAbilities.ModelSwitchAndOwnerIsolation",
+          "state": "Success"
+        },
+        {
+          "fullTestPath": "HAL.RenderSmoke.BattleTop.CartoonShapesAndLayeredWind",
+          "state": "Success"
+        },
+        {
+          "fullTestPath": "HAL.RenderSmoke.BattleTop.ContactSprayPixelsAndMotion",
+          "state": "Success"
+        },
+        {
+          "fullTestPath": "HAL.RenderSmoke.BattleTop.WarmWindAndDirectionalSparks",
+          "state": "Success"
+        }
+      ]
+    },
+    {
+      "Run": "Network_R6_Host",
+      "Path": "Saved/BattleTop/Cartoon_20261113/Network_R6/Host/index.json",
+      "SHA256": "8E3B872F36D0DC913878FCF4AB5A6BD8FD2ECE37FAF284D28EB72AC3841DD5DA",
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0,
+      "Tests": [
+        {
+          "fullTestPath": "HAL.NetworkSmoke.BattleTop.ActivationAndDrift",
+          "state": "Success"
+        }
+      ]
+    },
+    {
+      "Run": "Network_R6_Client",
+      "Path": "Saved/BattleTop/Cartoon_20261113/Network_R6/Client1/index.json",
+      "SHA256": "9DFB71E1FC7EBBD0138022086E88E62620C43A4984BA99BD000D58574C6E3525",
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0,
+      "Tests": [
+        {
+          "fullTestPath": "HAL.NetworkSmoke.BattleTop.ActivationAndDrift",
+          "state": "Success"
+        }
+      ]
+    }
+  ],
+  "Network": {
+    "Processes": 2,
+    "Map": "/Game/Maps/MVPB_NetTest",
+    "RHI": "D3D12",
+    "HostOutboundAdditionalLagMs": 80,
+    "ContactEntry": "Original ObserveContact with synthetic authoritative contact samples, real multicast",
+    "NoDirectRPCTestHelperInFinalCode": true
+  },
+  "RecipeMigration": {
+    "changes": {
+      "wind": {
+        "before": "/Game/Assets/FX/BattleTop/NS_BattleTop_Wind.NS_BattleTop_Wind",
+        "after": "/Game/Assets/FX/BattleTop/NS_BattleTop_ToonWind.NS_BattleTop_ToonWind"
+      },
+      "wind_material": {
+        "before": "/Game/Assets/FX/BattleTop/M_BattleTop_Wind.M_BattleTop_Wind",
+        "after": "/Game/Assets/FX/BattleTop/M_BattleTop_ToonWind.M_BattleTop_ToonWind"
+      },
+      "contact_sparks": {
+        "before": "/Game/Assets/FX/BattleTop/NS_BattleTop_ContactSpray.NS_BattleTop_ContactSpray",
+        "after": "/Game/Assets/FX/BattleTop/NS_BattleTop_ToonContact.NS_BattleTop_ToonContact"
+      }
+    },
+    "preserved_fields": 15,
+    "new_controls": {
+      "wind_flow_degrees_per_second": 240.0,
+      "wind_band_count": 5,
+      "wind_band_lifetime": 1.2000000476837158,
+      "wind_layer_height": 45.0,
+      "wind_tilt_degrees": 12.0,
+      "wind_band_width_scale": 1.0,
+      "wind_rise_speed": 18.0,
+      "wind_glow_strength": 0.800000011920929,
+      "contact_glow_strength": 1.0
+    }
+  },
+  "Protection": {
+    "ProtectedOriginals": 1277,
+    "Changes": [
+      {
+        "Path": "Content\\Data\\Abilities\\DA_Ability_Car03_BattleTop.uasset",
+        "Before": "A559742A662FE3C5C65D3A12CEE0CB7D79C684AD96FC5F63F74E16D669B7BBAF",
+        "After": "C780C160373DD35791301C8EF16DFCE7FA26A111876BDEDF772B53189547748F"
+      }
+    ],
+    "SourceOriginals": 368,
+    "ChangedSource": [
+      "Source\\HAL_Future_Creation\\HALBattleTopFXTypes.h",
+      "Source\\HAL_Future_Creation\\HALBattleTopPresentation.cpp",
+      "Source\\HAL_Future_Creation\\Tests\\HALAbilityNetworkSmokeTests.cpp",
+      "Source\\HAL_Future_Creation\\Tests\\HALVehicleAbilityNetworkFixture.cpp",
+      "Source\\HAL_Future_Creation\\Tests\\HALVehicleAbilityTests.cpp"
+    ]
+  },
+  "SourceSHA256": [
+    {
+      "Path": "Source/HAL_Future_Creation/HALBattleTopFXTypes.h",
+      "SHA256": "B55670108BAC900E07F6FA6D2D66AF3DF6FDB7D53B3F5F29CEFF542F4D860AAA"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALBattleTopPresentation.cpp",
+      "SHA256": "A38FCCB5A7E98295B4BAABF6748304999242D3785EB3440CE9C248602A620BD3"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALAbilityNetworkSmokeTests.cpp",
+      "SHA256": "D2CCDEF14BE9890FA3E5591F9E4B94F9AFB8D50BF215A7ADACF2D63E9E5A03B1"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALVehicleAbilityNetworkFixture.cpp",
+      "SHA256": "CEDC4439118233D700123DF4A85E348A3D9132DAD2A313A7F7337EDD6335E9C2"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALVehicleAbilityTests.cpp",
+      "SHA256": "EB00BBE8BAFB36680BFB99B4F7D8A327A56814F57FB5E9DAE7B44EEADAEB3315"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALBattleTopCartoonRenderTests.cpp",
+      "SHA256": "6FA36BAADD1332D3F9E04955BB0B05F53BA888293ADC9074D96FC4FE6381EA74"
+    },
+    {
+      "Path": "Source/HAL_Future_CreationEditor/Private/HALBuildBattleTopCartoonFXCommandlet.cpp",
+      "SHA256": "6A855569E315E1BEECAFD7A7E0054A6ACC4D76A346F9E2EAE47A9477D9073ABC"
+    },
+    {
+      "Path": "Source/HAL_Future_CreationEditor/Public/HALBuildBattleTopCartoonFXCommandlet.h",
+      "SHA256": "479B6496B94014C9ED1E3E70F0B5FDF794341C86F3C090D6E1DDC5B4B7BD76F7"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALBattleTopComponent.cpp",
+      "SHA256": "C654CF5F4BEABE7ADC50FAE5D3944793A31F8A3980B0D229E143F873DF2BDCB8"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALBattleTopAbility.cpp",
+      "SHA256": "A8316730AD2B24538BE6E53152E1582839BEB802B159291C3CBEA0B757FBDCE2"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp",
+      "SHA256": "55BC462C853A93574B44A84BE78916F59BF2972B68259AD1104EA716CCE0CCE6"
+    },
+    {
+      "Path": "HAL_Future_Creation.uproject",
+      "SHA256": "07100B2E1554EF47889893C47407522D4D22CA27B60EE37DB7C5F8C970FFCCE5"
+    }
+  ],
+  "AssetsAndPreviewSHA256": [
+    {
+      "Path": "Content/Assets/FX/BattleTop/M_BattleTop_ToonContact.uasset",
+      "SHA256": "32C52857D03A2159D19EE73121616FDB743D5584C8DBC44B72519821B8A16F24"
+    },
+    {
+      "Path": "Content/Assets/FX/BattleTop/M_BattleTop_ToonWind.uasset",
+      "SHA256": "C64A8AA9522B104047FDC3B0B82401CCE64C01AB36D01F4F08333A0C594144BE"
+    },
+    {
+      "Path": "Content/Assets/FX/BattleTop/NS_BattleTop_ToonContact.uasset",
+      "SHA256": "6A647A40FA10644472B4B230CB677F8050299FB9596D66A9D2A5E7186C03F9F8"
+    },
+    {
+      "Path": "Content/Assets/FX/BattleTop/NS_BattleTop_ToonWind.uasset",
+      "SHA256": "94871035A17EBA703C4F78AC69442E39BB7718CC50AE7DB000479D349A5848D7"
+    },
+    {
+      "Path": "Content/Assets/FX/BattleTop/SM_BattleTop_WindArc.uasset",
+      "SHA256": "905AC7A93B2D0F61EDEF9EF1E556D52BAB72F25A18E225333EADC18647931AC4"
+    },
+    {
+      "Path": "Content/Data/Abilities/DA_Ability_Car03_BattleTop.uasset",
+      "SHA256": "C780C160373DD35791301C8EF16DFCE7FA26A111876BDEDF772B53189547748F"
+    },
+    {
+      "Path": "SourceArt/BattleTop/Car03_BattleTop_Cartoon_D3D12_Host_20261113.png",
+      "SHA256": "76DA63D65A4933DE7A7DDF88BF51644FEAA3EB5BE71CD54899D9FBA8C1D05385"
+    }
+  ],
+  "FailuresRetained": [
+    "Render_R1-R3: default mesh slot empty; fixed slot zero.",
+    "Surface visual QA: removed inner-face overlap and corrected outer-face winding.",
+    "Network_R1-R4: duplicated Contact Niagara not ready in fresh game process; fixed PostEditChange and forced full compile before save.",
+    "Network_R5: temporary isolated RPC diagnostic; removed before final Network_R6 using ObserveContact.",
+    "ReadAfter_R1: compared Python vector wrapper addresses; ReadAfter_R2 compares vector numbers."
+  ],
+  "Limits": [
+    "Team style and real physical contact acceptance remain pending.",
+    "Synthetic network contacts do not replace collision-scene acceptance.",
+    "No four-machine, cooked package or complete historical-suite test in this task."
+  ],
+  "Committed": false,
+  "Pushed": false
+}

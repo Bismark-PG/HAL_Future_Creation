@@ -76,6 +76,15 @@ namespace
 								Config->FX.ContactSparks = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Assets/FX/BattleTop/NS_BattleTop_ContactSpray.NS_BattleTop_ContactSpray"));
 								Config->FX.ContactCount = 32;
 							}
+							if (FParse::Param(FCommandLine::Get(),TEXT("HALBattleTopCartoonFixture")))
+							{
+								Config->FX.Wind=LoadObject<UNiagaraSystem>(nullptr,TEXT("/Game/Assets/FX/BattleTop/NS_BattleTop_ToonWind.NS_BattleTop_ToonWind"));
+								Config->FX.WindMaterial=LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Assets/FX/BattleTop/M_BattleTop_ToonWind.M_BattleTop_ToonWind"));
+								Config->FX.ContactSparks=LoadObject<UNiagaraSystem>(nullptr,TEXT("/Game/Assets/FX/BattleTop/NS_BattleTop_ToonContact.NS_BattleTop_ToonContact"));
+								Config->FX.GroundSparks=nullptr;Config->FX.ContactCount=7;
+								Config->FX.WindFlowDegreesPerSecond=315;Config->FX.WindBandCount=4;Config->FX.WindBandLifetime=1.5f;
+								Config->FX.ContactGlowStrength=.75f;
+							}
 						}
 						Property->SetObjectPropertyValue_InContainer(Ability, Config);
 					}

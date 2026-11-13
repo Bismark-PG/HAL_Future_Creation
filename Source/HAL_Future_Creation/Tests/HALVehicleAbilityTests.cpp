@@ -337,6 +337,10 @@ bool FHALBattleTopSprayGeometryTest::RunTest(const FString&)
 	FX.ContactLifetimeMax=FX.ContactLifetimeMin-.01f;TestFalse(TEXT("Inverted lifetime rejected"),FX.IsValid());
 	FX={};FX.ContactSizeMax.X=FX.ContactSizeMin.X-1;TestFalse(TEXT("Inverted size rejected"),FX.IsValid());
 	FX={};FX.ContactCount=65;TestFalse(TEXT("Contact burst budget enforced"),FX.IsValid());
+	FX={};FX.WindBandCount=9;TestFalse(TEXT("Independent wind particle budget enforced"),FX.IsValid());
+	FX={};FX.WindBandLifetime=0;TestFalse(TEXT("Wind cannot divide by a zero lifetime"),FX.IsValid());
+	FX={};FX.WindBandWidthScale=.1f;TestFalse(TEXT("Near-zero wind width is rejected"),FX.IsValid());
+	FX={};FX.WindFlowDegreesPerSecond=-240;TestTrue(TEXT("Reverse airflow is cosmetic and valid"),FX.IsValid());
 	FX={};TestTrue(TEXT("Invalid contact axes produce no arbitrary launch"),HALBattleTopFX::ContactSprayMotion(FX,FVector::ZeroVector,FVector::UpVector).VelocityMax.IsZero());
 	return true;
 }

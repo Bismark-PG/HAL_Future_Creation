@@ -67,6 +67,10 @@ bool FHALBattleTopFXConfig::IsValid() const
 		   Range(ContactLifetimeMin, .08f, 1.2f) && Range(ContactLifetimeMax, ContactLifetimeMin, 1.2f) &&
 		   Range(ContactSpeedMin, 100, 4000) && Range(ContactSpeedMax, ContactSpeedMin, 4000) &&
 		   Range(ContactSpreadDegrees, 5, 80) && Range(ContactGravityScale, 0, 3) && Range(ContactDrag, 0, 15) &&
+		   Range(WindFlowDegreesPerSecond, -720, 720) && WindBandCount >= 1 && WindBandCount <= 8 &&
+		   Range(WindBandLifetime, .4f, 3) && Range(WindLayerHeight, 0, 150) && Range(WindTiltDegrees, 0, 30) &&
+		   Range(WindBandWidthScale, .35f, 2.5f) && Range(WindRiseSpeed, 0, 100) &&
+		   Range(WindGlowStrength, 0, 3) && Range(ContactGlowStrength, 0, 3) &&
 		   Range(GroundMinimumSpeed, 1, 2000) && Range(GroundDistance, 1, 100);
 }
 
@@ -276,6 +280,7 @@ void UHALBattleTopComponent::SpawnSparks(bool bGround, const FVector& Point, con
 		C->SetVariableFloat(TEXT("User.LifetimeMax"), VisualFX.ContactLifetimeMax);
 		C->SetVariableVec3(TEXT("User.Gravity"), Motion.Gravity);
 		C->SetVariableFloat(TEXT("User.Drag"), VisualFX.ContactDrag);
+		C->SetVariableVec4(TEXT("User.StyleParameters"), FVector4(VisualFX.ContactGlowStrength, 0, 0, 0));
 	}
 	C->SetVariableLinearColor(TEXT("User.SparkColor"), VisualFX.HighlightColor);
 	C->RegisterComponent();
@@ -325,6 +330,22 @@ void UHALBattleTopComponent::UpdateParticles(float, float Angle, float Envelope)
 		Radius = FMath::Max(E.X, E.Y);
 		Center = T.MeshToWorld.TransformPosition(T.LocalBounds.GetCenter());
 	}
+	const float Diameter = FMath::Clamp(Radius * VisualFX.RadiusScale * 2.f, 100.f, 4000.f);
+	const auto ConfigureWind = [&](UNiagaraComponent& C) {
+		C.SetVariableVec2(TEXT("User.WindSize"), FVector2D(Diameter)); // Original sprite systems remain compatible.
+		C.SetVariableFloat(TEXT("User.SpawnRate"), VisualFX.WindBandCount / VisualFX.WindBandLifetime);
+		C.SetVariableFloat(TEXT("User.Lifetime"), VisualFX.WindBandLifetime);
+		C.SetVariableFloat(TEXT("User.YawRate"), VisualFX.WindFlowDegreesPerSecond);
+		const float Scale = Diameter / 200.f;
+		C.SetVariableVec3(TEXT("User.ScaleMin"), FVector(Scale * .9f));
+		C.SetVariableVec3(TEXT("User.ScaleMax"), FVector(Scale * 1.08f));
+		C.SetVariableVec3(TEXT("User.PositionMin"), FVector(0, 0, -VisualFX.WindLayerHeight * .25f));
+		C.SetVariableVec3(TEXT("User.PositionMax"), FVector(0, 0, VisualFX.WindLayerHeight * .75f));
+		const float Tilt = VisualFX.WindTiltDegrees / 360.f; // Initial orientation uses turns, rotation rate uses deg/s.
+		C.SetVariableVec3(TEXT("User.RotationMin"), FVector(-Tilt, -Tilt, 0));
+		C.SetVariableVec3(TEXT("User.RotationMax"), FVector(Tilt, Tilt, 1));
+		C.SetVariableVec3(TEXT("User.Velocity"), FVector(0, 0, VisualFX.WindRiseSpeed));
+	};
 	if (WindComponent && WindComponent->GetAsset() != VisualFX.Wind)
 	{
 		WindComponent->DestroyComponent();
@@ -338,6 +359,7 @@ void UHALBattleTopComponent::UpdateParticles(float, float Angle, float Envelope)
 		WindComponent->SetAsset(VisualFX.Wind);
 		WindComponent->SetAutoActivate(false);
 		WindComponent->SetupAttachment(Body);
+		ConfigureWind(*WindComponent); // Set spawn-time inputs before warmup and activation.
 		WindComponent->RegisterComponent();
 		auto* M = VisualFX.WindMaterial.Get();
 		if (!M)
@@ -355,14 +377,15 @@ void UHALBattleTopComponent::UpdateParticles(float, float Angle, float Envelope)
 	}
 	if (WindComponent)
 	{
-		const float Diameter = FMath::Clamp(Radius * VisualFX.RadiusScale * 2.f, 100.f, 4000.f);
 		WindComponent->SetRelativeLocation(Body->GetComponentTransform().InverseTransformPosition(Center));
-		WindComponent->SetVariableVec2(TEXT("User.WindSize"), FVector2D(Diameter));
+		ConfigureWind(*WindComponent);
 		if (WindMaterial)
 		{
 			WindMaterial->SetScalarParameterValue(TEXT("SpinAngle"), Angle / 360);
 			WindMaterial->SetScalarParameterValue(TEXT("Envelope"), Envelope);
 			WindMaterial->SetScalarParameterValue(TEXT("Opacity"), VisualFX.Opacity);
+			WindMaterial->SetScalarParameterValue(TEXT("BandWidthScale"), VisualFX.WindBandWidthScale);
+			WindMaterial->SetScalarParameterValue(TEXT("GlowStrength"), VisualFX.WindGlowStrength);
 			WindMaterial->SetVectorParameterValue(TEXT("MainColor"), VisualFX.MainColor);
 			WindMaterial->SetVectorParameterValue(TEXT("AccentColor"), VisualFX.AccentColor);
 			WindMaterial->SetVectorParameterValue(TEXT("HighlightColor"), VisualFX.HighlightColor);

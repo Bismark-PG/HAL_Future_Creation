@@ -121,13 +121,23 @@ namespace
 				if (OriginalVisual.IsSet() && (!Mesh || Mesh->GetRelativeTransform().Equals(OriginalVisual.GetValue()))) { return false; }
 				if (OriginalVisual.IsSet() && FParse::Param(FCommandLine::Get(), TEXT("HALBattleTopFXFixture")))
 				{
-					const auto WindCount = [](ATestVehiclePawn* P)
+					const bool bCartoon=FParse::Param(FCommandLine::Get(),TEXT("HALBattleTopCartoonFixture"));
+					const auto WindCount = [bCartoon](ATestVehiclePawn* P)
 					{
 						TArray<UNiagaraComponent*> Components; P->GetComponents(Components);
-						return Components.FilterByPredicate([](const UNiagaraComponent* C){ return IsValid(C) && C->IsRegistered() && GetNameSafe(C->GetAsset()) == TEXT("NS_BattleTop_Wind"); }).Num();
+						return Components.FilterByPredicate([bCartoon](const UNiagaraComponent* C){ return IsValid(C) && C->IsRegistered() && GetNameSafe(C->GetAsset()) == (bCartoon?TEXT("NS_BattleTop_ToonWind"):TEXT("NS_BattleTop_Wind")); }).Num();
 					};
 					if (WindCount(Vehicle) != 1 || WindCount(RemoteVehicle) != 1) { return false; }
 					Test->AddInfo(TEXT("Owner and observer each render exactly one saved BattleTop wind system."));
+					if(bCartoon)for(auto* P:{Vehicle,RemoteVehicle})
+					{
+						TArray<UNiagaraComponent*> Cs;P->GetComponents(Cs);
+						for(auto* C:Cs)if(IsValid(C)&&GetNameSafe(C->GetAsset())==TEXT("NS_BattleTop_ToonWind"))
+						{
+							const FNiagaraVariable Yaw(FNiagaraTypeDefinition::GetFloatDef(),TEXT("User.YawRate"));
+							Test->TestEqual(TEXT("Replicated airflow rate is independent of authored body spin"),C->GetOverrideParameters().GetParameterValue<float>(Yaw),315.f);
+						}
+					}
 				}
 				if (bBattleTop)
 				{
@@ -148,11 +158,12 @@ namespace
 					bHost ? TEXT("Host") : TEXT("Client"), bBattleTop, bRestriction, Local->GetEffectTimeRemaining(CooldownTag));
 				Controller->HALGASStatus();
 			}
-			const bool bSprayFixture=FParse::Param(FCommandLine::Get(),TEXT("HALBattleTopContactSprayFixture"));
+			const bool bCartoonFixture=FParse::Param(FCommandLine::Get(),TEXT("HALBattleTopCartoonFixture"));
+			const bool bSprayFixture=FParse::Param(FCommandLine::Get(),TEXT("HALBattleTopContactSprayFixture"))||bCartoonFixture;
 			if (bSprayFixture && bBothActive && bLocalActive && bRemoteActive)
 			{
 				const double Now=World->GetTimeSeconds();
-				if (bHost && Now>RequestedWorldTime+1.2 && Now<RequestedWorldTime+2.1 && Now>LastSprayRequest+.12)
+				if (bHost && Now>RequestedWorldTime+.4 && Now>LastSprayRequest+.12)
 				{
 					LastSprayRequest=Now;
 					// Synthetic authority contact observations isolate RPC/payload delivery from collision classification.
@@ -161,6 +172,7 @@ namespace
 					{
 						auto* Body=Cast<UPrimitiveComponent>(Source->GetRootComponent());auto* Target=Cast<UPrimitiveComponent>(Other->GetRootComponent());
 						FHitResult H;H.ImpactNormal=(Body->GetComponentLocation()-Target->GetComponentLocation()).GetSafeNormal2D();
+						if(H.ImpactNormal.IsNearlyZero())H.ImpactNormal=FVector::ForwardVector;
 						H.ImpactPoint=Body->GetComponentLocation()-H.ImpactNormal*Body->Bounds.BoxExtent.X;
 						Source->FindComponentByClass<UHALBattleTopComponent>()->ObserveContact(*Body,*Target,FVector::ZeroVector,H);
 					};
@@ -171,10 +183,10 @@ namespace
 					if(Seen){return;}TArray<UNiagaraComponent*> Components;Source->GetComponents(Components);
 					for(const auto* C:Components)
 					{
-						if(IsValid(C)&&C->IsRegistered()&&GetNameSafe(C->GetAsset())==TEXT("NS_BattleTop_ContactSpray"))
+						if(IsValid(C)&&C->IsRegistered()&&GetNameSafe(C->GetAsset())==(bCartoonFixture?TEXT("NS_BattleTop_ToonContact"):TEXT("NS_BattleTop_ContactSpray")))
 						{
 							const FNiagaraVariable Count(FNiagaraTypeDefinition::GetIntDef(),TEXT("User.BurstCount"));
-							Test->TestEqual(TEXT("Replicated contact spray retains authored burst count"),C->GetOverrideParameters().GetParameterValue<int32>(Count),32);
+							Test->TestEqual(TEXT("Replicated contact spray retains authored burst count"),C->GetOverrideParameters().GetParameterValue<int32>(Count),bCartoonFixture?7:32);
 							Seen=true;Test->AddInfo(FString::Printf(TEXT("Contact spray observed Role=%s Pawn=%s"),bHost?TEXT("Host"):TEXT("Client"),*Source->GetName()));break;
 						}
 					}
@@ -186,7 +198,7 @@ namespace
 				&& World->GetTimeSeconds() > RequestedWorldTime + 1.5)
 			{
 				bFXCaptured = true;
-				FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir() / TEXT("BattleTop/Polish_20261113") / (bHost ? TEXT("Live_Host.png") : TEXT("Live_Client.png")), false, false);
+				FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir() / (bCartoonFixture?TEXT("BattleTop/Cartoon_20261113"):TEXT("BattleTop/Polish_20261113")) / (bHost ? TEXT("Live_Host.png") : TEXT("Live_Client.png")), false, false);
 			}
 			if (!bBothExpired)
 			{
