@@ -4,6 +4,7 @@
 #include "../HALBlackHole.h"
 #include "../ArcadeVehicleMovementComponent.h"
 #include "../TestVehiclePawn.h"
+#include "../HALMovementAreaReceiver.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/LineBatchComponent.h"
 #include "Components/SplineComponent.h"
@@ -51,6 +52,7 @@ bool FHALBlackHoleRulesTest::RunTest(const FString& Parameters)
 {
 	FHALBlackHoleConfig C;
 	TestTrue(TEXT("Defaults valid"), C.IsValid());
+	C.SwirlAcceleration = 0; // Keep the straight-pull regression independent of the new default swirl.
 	TestEqual(TEXT("Seed radius"), C.RadiusAt(0), 1.f);
 	TestEqual(TEXT("Expansion endpoint"), C.RadiusAt(2), 700.f);
 	TestEqual(TEXT("Pulse never shrinks range"), C.RadiusAt(6), 700.f);
@@ -109,6 +111,51 @@ bool FHALBlackHoleRulesTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALBlackHoleSoftCaptureTest, "HAL.FutureCreation.BlackHole.SoftCaptureProfile",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALBlackHoleSoftCaptureTest::RunTest(const FString& Parameters)
+{
+	FHALBlackHoleConfig C; C.EntrySpeedMultiplier = .05f;
+	TestEqual(TEXT("Capture starts at zero"), C.CaptureAlpha(0),0.f);
+	TestTrue(TEXT("Halfway smooth capture"), FMath::IsNearlyEqual(C.CaptureAlpha(.15f),.5f));
+	TestEqual(TEXT("Capture finishes at configured time"), C.CaptureAlpha(.3f),1.f);
+	const FVector Entry(1000,200,50);
+	FVector Total = Entry;
+	for (int32 Index = 0; Index < 15; ++Index) { Total += C.CaptureDelta(Entry,Index*.02f,(Index+1)*.02f); }
+	TestTrue(TEXT("Reduction applies once to original momentum, not repeatedly to current speed"), Total.Equals(FVector(50,10,50),.01));
+	TestTrue(TEXT("New yellow or driving momentum is additive and not rescaled"), (Total+FVector(-700,30,0)).Equals(FVector(-650,40,50),.01));
+	TestTrue(TEXT("First step removes only a small portion"), C.CaptureDelta(Entry,0,.02f).Size2D() < 20);
+	C.EntrySpeedMultiplier = 1;
+	TestTrue(TEXT("Multiplier one disables entry braking"), C.CaptureDelta(Entry,0,.3f).IsZero());
+	C.EntryCaptureSeconds = -1; TestFalse(TEXT("Negative capture time rejected"),C.IsValid());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALBlackHoleSwirlTest, "HAL.FutureCreation.BlackHole.SpiralFlow",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALBlackHoleSwirlTest::RunTest(const FString& Parameters)
+{
+	FHALBlackHoleConfig C;
+	const auto Flow = [&](FVector P, FVector V = FVector::ZeroVector, FVector Forward = FVector::ZeroVector, float Throttle = 0.f)
+	{ return C.ContinuousDeltaVelocity(FVector::ZeroVector,P,V,3,.02f,Forward,Throttle); };
+	TestTrue(TEXT("Right side flows inward and counterclockwise"), Flow(FVector(500,0,0)).Equals(FVector(-2.4,1.8,0),.001));
+	TestTrue(TEXT("Top side rotates its tangent with position"), Flow(FVector(0,500,0)).Equals(FVector(-1.8,-2.4,0),.001));
+	TestTrue(TEXT("Both limits stop adding; Z is preserved"), Flow(FVector(500,0,0),FVector(-200,300,40)).IsZero());
+	TestTrue(TEXT("Soft center attenuates both components"), Flow(FVector(50,0,0)).Equals(FVector(-1.2,.9,0),.001));
+	TestTrue(TEXT("Escape assistance attenuates the entire flow"), Flow(FVector(500,0,0),FVector::ZeroVector,FVector::ForwardVector,1).Equals(FVector(-.72,.54,0),.001));
+	TestTrue(TEXT("Exact center has no invented tangent"), Flow(FVector::ZeroVector).IsZero());
+	FVector Position(500,0,0), Velocity = FVector::ZeroVector;
+	for (int32 Index = 0; Index < 100; ++Index) { Velocity += Flow(Position,Velocity); Position += Velocity * .02; }
+	TestTrue(TEXT("Passive trajectory turns and moves closer to center"), Position.Size2D() < 500 && Position.Y > 20);
+	C.SwirlDirection = EHALBlackHoleSwirlDirection::Clockwise;
+	TestTrue(TEXT("Clockwise direction"), Flow(FVector(500,0,0)).Equals(FVector(-2.4,-1.8,0),.001));
+	C.SwirlAcceleration = 0;
+	TestTrue(TEXT("Zero swirl restores straight attraction"), Flow(FVector(500,0,0)).Equals(FVector(-2.4,0,0),.001));
+	C.SwirlSpeedLimit = 0; TestFalse(TEXT("Zero swirl speed limit rejected"), C.IsValid());
+	C = {}; C.SwirlAcceleration = -1; TestFalse(TEXT("Negative swirl strength rejected"), C.IsValid());
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALBlackHoleLifecycleTest, "HAL.FutureCreation.BlackHole.AuthorityPhysicsAndLifecycle",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FHALBlackHoleLifecycleTest::RunTest(const FString& Parameters)
@@ -134,7 +181,7 @@ bool FHALBlackHoleLifecycleTest::RunTest(const FString& Parameters)
 	Vehicle->FindComponentByClass<UArcadeVehicleMovementComponent>()->Deactivate();
 	TestTrue(TEXT("Vehicle is valid"), Vehicle->IsConfigurationValid());
 	auto* Hole = World->SpawnActor<AHALBlackHole>(FVector(0,0,10000), FRotator::ZeroRotator, Spawn);
-	FHALBlackHoleConfig C; C.ExpansionSeconds = 0;
+	FHALBlackHoleConfig C; C.ExpansionSeconds = 0; C.SwirlAcceleration = 0; C.EntryCaptureSeconds = 0; C.EntrySpeedMultiplier = .4f; // Legacy instant-mode regression.
 	TestTrue(TEXT("Deferred spawn can configure"), Hole->ConfigureBlackHole(C));
 	Hole->DispatchBeginPlay();
 	TestTrue(TEXT("Replicated Actor"), Hole->GetIsReplicated());
@@ -166,6 +213,8 @@ bool FHALBlackHoleLifecycleTest::RunTest(const FString& Parameters)
 	};
 	const auto Reset = [&]() { Body->SetPhysicsLinearVelocity(FVector::ZeroVector); };
 	Reset(); Hole->ApplyAttraction(1, .1f, false);
+	auto* DragReceiver = Vehicle->FindComponentByClass<UHALMovementAreaReceiver>();
+	TestTrue(TEXT("Black hole registers Drag on entry"), DragReceiver && FMath::IsNearlyEqual(DragReceiver->GetSelection().Scales.Z,.2));
 	TestTrue(TEXT("Continuous pull uses acceleration times elapsed step"), ReadVelocity().Equals(FVector(-12,0,0), .1));
 	Reset(); Hole->ApplyAttraction(2, 0, true);
 	TestTrue(TEXT("Instant pull adds authored delta speed"), ReadVelocity().Equals(FVector(-700,0,0), .1));
@@ -174,6 +223,7 @@ bool FHALBlackHoleLifecycleTest::RunTest(const FString& Parameters)
 	Reset(); Hole->ApplyAttraction(2, 0, true); Hole->ApplyAttraction(2, 0, true);
 	TestTrue(TEXT("Independent physical contributions add"), ReadVelocity().Equals(FVector(-1400,0,0), .1));
 	Reset(); Vehicle->SetActorLocation(FVector(800,0,10000)); Hole->ApplyAttraction(2, .1f, true);
+	TestEqual(TEXT("Leaving black hole removes Drag source"), DragReceiver->GetAreaCount(),0);
 	TestTrue(TEXT("Outside field no velocity change"), Body->GetPhysicsLinearVelocity().IsNearlyZero());
 	Vehicle->SetActorLocation(FVector(200,0,10000));
 	Hole->StartedAt = double(World->GetTimeSeconds()) - 2.; Hole->LastUpdateAge = 1.98;
@@ -199,9 +249,46 @@ bool FHALBlackHoleLifecycleTest::RunTest(const FString& Parameters)
 	Vehicle->SetActorLocation(FVector(200,0,10000)); Body->SetPhysicsLinearVelocity(FVector(1000,0,0));
 	Hole->ApplyAttraction(7.3,0,true);
 	TestTrue(TEXT("Rearmed entry slows first, then yellow adds full 700"), ReadVelocity().Equals(FVector(-300,0,0),.1));
+	Hole->Settings.SwirlAcceleration = 90;
+	Reset(); Hole->ApplyAttraction(7.4,.02f,false);
+	TestTrue(TEXT("Physics combines inward and counterclockwise acceleration"), ReadVelocity().Equals(FVector(-2.4,1.8,0),.1));
+	Hole->Settings.SwirlDirection = EHALBlackHoleSwirlDirection::Clockwise;
+	Reset(); Hole->ApplyAttraction(7.5,.02f,false);
+	TestTrue(TEXT("Clockwise reverses only the tangential contribution"), ReadVelocity().Equals(FVector(-2.4,-1.8,0),.1));
+	Hole->Settings.EntryRetriggerDelay = 0; Hole->Settings.EntryCaptureSeconds = .3f; Hole->Settings.EntrySpeedMultiplier = .05f;
+	Vehicle->SetActorLocation(FVector(800,0,10000)); Hole->ApplyAttraction(7.51,0,false);
+	Vehicle->SetActorLocation(FVector(200,0,10000)); Body->SetPhysicsLinearVelocity(FVector(1000,0,50));
+	Hole->ApplyAttraction(7.52,.02f,false);
+	FVector PreviousCaptureV = ReadVelocity();
+	TestTrue(TEXT("Soft entry has no first-sample velocity snap"), PreviousCaptureV.Equals(FVector(1000,0,50),.1));
+	for (int32 Index = 1; Index <= 16; ++Index)
+	{
+		Hole->ApplyAttraction(7.52 + Index * .02,.02f,Index == 8);
+		const FVector V = ReadVelocity();
+		if (Index != 8) { TestTrue(TEXT("Capture distributes braking over physical steps"), (V-PreviousCaptureV).Size2D() < 120); }
+		TestTrue(TEXT("Capture preserves vertical velocity"), FMath::IsNearlyEqual(V.Z,50.,.1));
+		PreviousCaptureV = V;
+	}
+	TestTrue(TEXT("Yellow impulse survives the remaining soft capture"), PreviousCaptureV.X < -600);
+	TestTrue(TEXT("Spiral force redirects motion during capture"), PreviousCaptureV.Y < -5);
+	Vehicle->SetActorLocation(FVector(800,0,10000)); Hole->ApplyAttraction(7.85,0,false);
+	Vehicle->SetActorLocation(FVector(200,0,10000)); Body->SetPhysicsLinearVelocity(FVector(600,0,0));
+	Hole->ApplyAttraction(7.86,.02f,false); Hole->ApplyAttraction(7.88,.02f,false); ReadVelocity();
+	Vehicle->SetActorLocation(FVector(800,0,10000)); Hole->ApplyAttraction(7.90,.02f,false);
+	const FVector ExitV = ReadVelocity(); Hole->ApplyAttraction(7.92,.02f,false);
+	TestTrue(TEXT("Exit cancels unfinished capture without giving back or taking more velocity"), ReadVelocity().Equals(ExitV,.1));
+	TestTrue(TEXT("Exit clears capture bookkeeping"), Hole->Captures.IsEmpty());
+	Vehicle->SetActorLocation(FVector(200,0,10000)); Hole->Settings.DragGripMultiplier = 1;
+	Hole->ApplyAttraction(7.93,0,false);
+	TestEqual(TEXT("Disabled Drag registers no source even inside the black hole"),DragReceiver->GetAreaCount(),0);
+	TestFalse(TEXT("Disabled Drag carries no propulsion flow"),DragReceiver->GetSelection().DragDrive.Source.IsValid());
+	Hole->Settings.DragGripMultiplier = .2f; Hole->ApplyAttraction(7.94,0,false);
+	TestTrue(TEXT("Enabled black hole Drag owns its propulsion flow"),DragReceiver->GetSelection().bHasDrag
+		&& DragReceiver->GetSelection().DragDrive.Source.IsValid());
 	Hole->StartedAt = double(World->GetTimeSeconds()) - 8.;
 	Reset(); Hole->UpdateField();
 	TestTrue(TEXT("Lifetime destroys Actor"), Hole->IsActorBeingDestroyed());
+	TestEqual(TEXT("Black hole end clears Drag source"), DragReceiver->GetAreaCount(),0);
 	TestTrue(TEXT("End applies no final pulse"), Body->GetPhysicsLinearVelocity().IsNearlyZero());
 	TestFalse(TEXT("Timer cleared"), World->GetTimerManager().IsTimerActive(Hole->UpdateTimer));
 	return true;

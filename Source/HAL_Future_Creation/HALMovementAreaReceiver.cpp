@@ -25,12 +25,14 @@ void UHALMovementAreaReceiver::Unbind()
 		ASC->RemoveActiveGameplayEffect(SlowHandle); ASC->RemoveActiveGameplayEffect(SlipperyHandle);
 	}
 	ASC = nullptr; SlowHandle = {}; SlipperyHandle = {}; AppliedScales = FVector::OneVector;
-	if (auto* Bridge = GetOwner()->FindComponentByClass<UHALMovementEffectBridge>()) { Bridge->SetAreaSway({}); }
+	if (auto* Bridge = GetOwner()->FindComponentByClass<UHALMovementEffectBridge>()) { Bridge->SetAreaSway({}); Bridge->SetDragDrive({}); }
 	Selection = {};
+	bAppliedDrag = bAppliedSlippery = false;
 }
 bool UHALMovementAreaReceiver::RegisterArea(AActor* Source, const FHALMovementAreaConfig& Config)
 {
 	if (!GetOwner()->HasAuthority() || !IsValid(Source) || Source->GetWorld() != GetWorld() || !Config.IsValid()) { return false; }
+	if (const auto* Existing = Sources.Find(Source); Existing && *Existing == Config) { return true; }
 	Sources.Add(Source, Config);
 	Source->OnEndPlay.AddUniqueDynamic(this, &ThisClass::SourceEnded);
 	Rebuild(); return true;
@@ -45,10 +47,19 @@ void UHALMovementAreaReceiver::SourceEnded(AActor* Actor, EEndPlayReason::Type R
 void UHALMovementAreaReceiver::Rebuild()
 {
 	FHALMovementAreaSelection Next;
+	uint32 SelectedDriveId = MAX_uint32;
 	for (auto It = Sources.CreateIterator(); It; ++It)
 	{
 		if (!It.Key().IsValid()) { It.RemoveCurrent(); }
-		else { Next.Include(It.Value()); }
+		else
+		{
+			const auto& Config = It.Value(); Next.Include(Config);
+			const auto& Field = Config.DragDrive;
+			const uint32 Id = It.Key()->GetUniqueID();
+			if (Config.Kind == EHALMovementAreaKind::Drag && Config.LateralGripMultiplier < 1 && Field.Source.IsValid()
+				&& (Field.Strength > Next.DragDrive.Strength || (Field.Strength == Next.DragDrive.Strength && Id < SelectedDriveId)))
+			{ Next.DragDrive = Field; SelectedDriveId = Id; }
+		}
 	}
 	FVector Recovery = FVector::ZeroVector;
 	for (int32 Index = 0; Index < 3; ++Index)
@@ -59,8 +70,11 @@ void UHALMovementAreaReceiver::Rebuild()
 	}
 	if (auto* Bridge = GetOwner()->FindComponentByClass<UHALMovementEffectBridge>())
 	{
+		// Removing Drag restores the remaining environment immediately, even if its source normally fades.
+		if (Selection.bHasDrag && !Next.bHasDrag) { Recovery.Z = 0; }
 		Bridge->SetAreaRecoverySeconds(Recovery);
 		Bridge->SetAreaSway(Next.Sway);
+		Bridge->SetDragDrive(Next.DragDrive);
 	}
 	Selection = Next;
 	UpdateEffects();
@@ -76,7 +90,7 @@ void UHALMovementAreaReceiver::UpdateEffects()
 	if (!ASC || ASC->GetAvatarActor() != GetOwner()) { return; }
 	const FVector Target = Selection.Scales;
 	const bool bSlowChanged = Target.X != AppliedScales.X || Target.Y != AppliedScales.Y;
-	const bool bGripChanged = Target.Z != AppliedScales.Z;
+	const bool bGripChanged = Target.Z != AppliedScales.Z || Selection.bHasDrag != bAppliedDrag || Selection.bHasSlippery != bAppliedSlippery;
 	if (bSlowChanged)
 	{
 		ASC->RemoveActiveGameplayEffect(SlowHandle); SlowHandle = {};
@@ -96,13 +110,17 @@ void UHALMovementAreaReceiver::UpdateEffects()
 		if (Target.Z < 1)
 		{
 			auto Context = ASC->MakeEffectContext(); Context.AddSourceObject(this);
-			auto Spec = ASC->MakeOutgoingSpec(UHALSlipperyAreaEffect::StaticClass(), 1, Context);
+			const TSubclassOf<UGameplayEffect> GripEffect = Selection.bHasSlippery
+				? UHALSlipperyAreaEffect::StaticClass() : UHALDragAreaEffect::StaticClass();
+			auto Spec = ASC->MakeOutgoingSpec(GripEffect, 1, Context);
+			if (Selection.bHasDrag && Selection.bHasSlippery) { Spec.Data->DynamicGrantedTags.AddTag(HALGameplayTags::State_Movement_Drag); }
 			Spec.Data->SetSetByCallerMagnitude(HALGameplayTags::Data_Movement_AreaGrip, float(Target.Z - 1));
 			SlipperyHandle = ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data);
 			if (!SlipperyHandle.IsValid()) { UE_LOG(LogTemp, Error, TEXT("Movement area grip GE rejected on %s."), *GetNameSafe(GetOwner())); }
 		}
 	}
 	AppliedScales = Target;
+	bAppliedDrag = Selection.bHasDrag; bAppliedSlippery = Selection.bHasSlippery;
 	if (bSlowChanged || bGripChanged) { ASC->GetOwner()->ForceNetUpdate(); }
 }
 void UHALMovementAreaReceiver::EndPlay(const EEndPlayReason::Type Reason)

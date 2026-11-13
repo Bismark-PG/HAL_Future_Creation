@@ -1,6 +1,51 @@
 #include "HALMovementTypes.h"
 #include "Serialization/Archive.h"
 
+bool FHALGravityDrive::IsValid(bool bStamped) const
+{
+	if (!Source.IsValid()) { return *this == FHALGravityDrive{}; }
+	return !Center.ContainsNaN() && Radius >= 1 && Radius <= 10000 && HalfHeight >= 1 && HalfHeight <= 1000
+		&& SofteningRadius >= 1 && SofteningRadius <= 1000 && Inward >= 0 && Inward <= 1
+		&& Tangential >= -1 && Tangential <= 1 && Inward * Inward + Tangential * Tangential > 0
+		&& Strength >= 0 && Strength <= 1 && SteeringResistance >= 0 && SteeringResistance <= 1
+		&& RampSeconds >= 0 && RampSeconds <= 5 && RampFrames >= 0 && RampFrames <= 6000
+		&& (bStamped ? StartFrame >= 0 : StartFrame >= INDEX_NONE);
+}
+void FHALGravityDrive::Stamp(const FHALGravityDrive* Previous, int32 Frame, float FixedDeltaSeconds)
+{
+	if (!Source.IsValid()) { *this = {}; return; }
+	StartFrame = Previous && Previous->Source == Source ? Previous->StartFrame : Frame;
+	RampFrames = FixedDeltaSeconds > 0 ? FMath::Clamp(FMath::CeilToInt(RampSeconds / FixedDeltaSeconds), 0, 6000) : 0;
+}
+void FHALGravityDrive::Serialize(FArchive& Ar)
+{
+	bool bActive = Source.IsValid(); Ar.SerializeBits(&bActive, 1);
+	if (bActive)
+	{
+		Ar << Source << Center << Radius << HalfHeight << SofteningRadius << Inward << Tangential;
+		Ar << Strength << SteeringResistance << RampSeconds << StartFrame << RampFrames;
+		if (!Source.IsValid()) { Ar.SetError(); }
+	}
+	else if (Ar.IsLoading()) { *this = {}; }
+}
+FVector FHALGravityDrive::Bend(const FVector& Position, const FVector& Forward, float Steering, int32 Frame) const
+{
+	if (!Source.IsValid() || Frame < StartFrame) { return Forward; }
+	const FVector Offset = Center - Position;
+	if (FMath::Abs(Offset.Z) > HalfHeight || Offset.SizeSquared2D() > FMath::Square(double(Radius))) { return Forward; }
+	const FVector ToCenter = Offset.GetSafeNormal2D(), Heading = Forward.GetSafeNormal2D();
+	const FVector Flow = (ToCenter * Inward + FVector::CrossProduct(FVector::UpVector, -ToCenter) * Tangential).GetSafeNormal();
+	if (Flow.IsNearlyZero() || Heading.IsNearlyZero()) { return Forward; }
+	const float T = RampFrames > 0 ? FMath::Clamp(float(int64(Frame) - StartFrame) / RampFrames, 0.f, 1.f) : 1.f;
+	const double Alpha = Strength * (T*T*(3.f-2.f*T)) * (1.f-SteeringResistance*FMath::Clamp(FMath::Abs(Steering),0.f,1.f))
+		* FMath::Min(Offset.Size2D()/SofteningRadius,1.);
+	// Interpolate angles, not vectors: opposing headings must not cancel propulsion magnitude.
+	double Angle = FMath::Atan2(FVector::CrossProduct(Heading,Flow).Z,FVector::DotProduct(Heading,Flow));
+	if (FMath::Abs(FMath::Abs(Angle)-UE_PI) < 1.e-6) { Angle = Tangential < 0 ? -UE_PI : UE_PI; }
+	const double Turn = Angle * Alpha, Cos = FMath::Cos(Turn), Sin = FMath::Sin(Turn);
+	return FVector(Forward.X*Cos-Forward.Y*Sin,Forward.X*Sin+Forward.Y*Cos,Forward.Z).GetSafeNormal();
+}
+
 bool FHALMovementAreaSway::IsValid() const
 {
 	return Amplitude >= 0 && Amplitude <= 12 && PeriodSeconds >= .2f && PeriodSeconds <= 3
@@ -60,7 +105,7 @@ bool FHALMovementSnapshot::IsValidValues() const
 	return Epoch.IsValid() && Revision != 0 && FMath::IsFinite(AccelerationScale) && FMath::IsFinite(SpeedScale)
 		&& FMath::IsFinite(GripScale) && AccelerationScale >= 0 && AccelerationScale <= 3
 		&& SpeedScale >= 0 && SpeedScale <= 3 && GripScale >= 0 && GripScale <= 3
-		&& Overdrive.IsValidState(false) && AreaSway.IsValid() && (bHasAreaState || AreaSway.Amplitude == 0)
+		&& Overdrive.IsValidState(false) && GravityDrive.IsValid(false) && AreaSway.IsValid() && (bHasAreaState || AreaSway.Amplitude == 0)
 		&& (!bHasAreaState || (AreaAcceleration.IsValid(false) && AreaSpeed.IsValid(false) && AreaGrip.IsValid(false)));
 }
 bool FHALMovementSnapshot::IsValid() const
@@ -72,7 +117,8 @@ bool FHALMovementSnapshot::IsValid() const
 	const bool bOverdriveValid = Overdrive.IsValidState(true) && (!Overdrive.Activation.IsValid()
 		|| (Overdrive.StartFrame <= EffectiveServerFrame && (!Overdrive.bStunned
 			|| (Overdrive.StunFrame >= Overdrive.StartFrame && Overdrive.StunFrame <= EffectiveServerFrame))));
-	return IsValidValues() && bOverdriveValid && bSwayValid && EffectiveServerFrame >= 0 && (!bHasAreaState
+	return IsValidValues() && GravityDrive.IsValid(true) && (!GravityDrive.Source.IsValid() || GravityDrive.StartFrame <= EffectiveServerFrame)
+		&& bOverdriveValid && bSwayValid && EffectiveServerFrame >= 0 && (!bHasAreaState
 		|| (AreaAcceleration.IsValid(true) && AreaSpeed.IsValid(true) && AreaGrip.IsValid(true)
 			&& AreaAcceleration.StartFrame <= EffectiveServerFrame && AreaSpeed.StartFrame <= EffectiveServerFrame
 			&& AreaGrip.StartFrame <= EffectiveServerFrame));
@@ -81,7 +127,7 @@ bool FHALMovementSnapshot::IsUnset() const
 {
 	return !Epoch.IsValid() && Revision == 0 && EffectiveServerFrame == INDEX_NONE
 		&& AccelerationScale == 1 && SpeedScale == 1 && GripScale == 1 && !bHasAreaState && !bControlsBlocked && !bHandbrakeBlocked
-		&& Overdrive == FHALOverdriveMotion{} && AreaSway == FHALMovementAreaSway{} && SwayStartFrame == INDEX_NONE && SwayPeriodFrames == 0 && SwayRampFrames == 0;
+		&& Overdrive == FHALOverdriveMotion{} && GravityDrive == FHALGravityDrive{} && AreaSway == FHALMovementAreaSway{} && SwayStartFrame == INDEX_NONE && SwayPeriodFrames == 0 && SwayRampFrames == 0;
 }
 bool FHALMovementSnapshot::Equals(const FHALMovementSnapshot& Other) const
 {
@@ -92,7 +138,7 @@ bool FHALMovementSnapshot::Equals(const FHALMovementSnapshot& Other) const
 		&& bControlsBlocked == Other.bControlsBlocked && bHandbrakeBlocked == Other.bHandbrakeBlocked
 		&& (!bHasAreaState || (AreaAcceleration.Equals(Other.AreaAcceleration)
 			&& AreaSpeed.Equals(Other.AreaSpeed) && AreaGrip.Equals(Other.AreaGrip)))
-		&& Overdrive == Other.Overdrive && AreaSway == Other.AreaSway && SwayStartFrame == Other.SwayStartFrame
+		&& Overdrive == Other.Overdrive && GravityDrive == Other.GravityDrive && AreaSway == Other.AreaSway && SwayStartFrame == Other.SwayStartFrame
 		&& SwayPeriodFrames == Other.SwayPeriodFrames && SwayRampFrames == Other.SwayRampFrames;
 }
 void FHALMovementSnapshot::Serialize(FArchive& Ar)
@@ -100,6 +146,7 @@ void FHALMovementSnapshot::Serialize(FArchive& Ar)
 	Ar << Epoch << Revision << EffectiveServerFrame << AccelerationScale << SpeedScale << bControlsBlocked << GripScale << bHasAreaState;
 	Ar << bHandbrakeBlocked;
 	Overdrive.Serialize(Ar);
+	GravityDrive.Serialize(Ar);
 	if (bHasAreaState) { AreaAcceleration.Serialize(Ar); AreaSpeed.Serialize(Ar); AreaGrip.Serialize(Ar); }
 	else if (Ar.IsLoading()) { AreaAcceleration = {}; AreaSpeed = {}; AreaGrip = {}; }
 	bool bHasSway = !Ar.IsLoading() && AreaSway.Amplitude > 0;
@@ -116,6 +163,7 @@ void FHALMovementSnapshot::Stamp(const FHALMovementSnapshot* Previous, int32 Fra
 {
 	EffectiveServerFrame = Frame;
 	Overdrive.Stamp(Previous ? &Previous->Overdrive : nullptr, Frame, FixedDeltaSeconds);
+	GravityDrive.Stamp(Previous ? &Previous->GravityDrive : nullptr, Frame, FixedDeltaSeconds);
 	SwayStartFrame = INDEX_NONE;
 	SwayPeriodFrames = SwayRampFrames = 0;
 	if (!bHasAreaState) { return; }

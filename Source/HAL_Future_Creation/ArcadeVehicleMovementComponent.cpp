@@ -997,6 +997,10 @@ void UArcadeVehicleMovementComponent::ApplyLongitudinalForces(
 	const float EffectiveReverseAcceleration = ReverseAcceleration * CurrentMovementScales.X;
 	const float EffectiveMaxForwardSpeed = MaxForwardSpeed * CurrentMovementScales.Y;
 	const float EffectiveMaxReverseSpeed = MaxReverseSpeed * CurrentMovementScales.Y;
+	auto PhysicsHandle = Body.GetBodyInstanceAsyncPhysicsTickHandle();
+	const FVector PropulsionDirection = CurrentMovement.GravityDrive.Bend(
+		PhysicsHandle->X(),ForwardDirection,InputCommand.Steering,CurrentMovementServerFrame);
+	const float PropulsionSpeed = FVector::DotProduct(PhysicsHandle->V(),PropulsionDirection);
 
 	float RequestedAcceleration = 0.0f;
 	if (bBrakeHeld)
@@ -1012,40 +1016,42 @@ void UArcadeVehicleMovementComponent::ApplyLongitudinalForces(
 	}
 	else if (bThrottleHeld)
 	{
-		if (CurrentForwardSpeed < -ReverseEngageSpeed)
+		if (PropulsionSpeed < -ReverseEngageSpeed)
 		{
 			RequestedAcceleration = BrakeDeceleration * InputCommand.Throttle;
 		}
-		else if (bMovementDriveAllowed && CurrentForwardSpeed < EffectiveMaxForwardSpeed)
+		else if (bMovementDriveAllowed && PropulsionSpeed < EffectiveMaxForwardSpeed)
 		{
 			RequestedAcceleration = EffectiveForwardAcceleration * InputCommand.Throttle;
 		}
 	}
 
-	FVector DriveAcceleration = ForwardDirection * RequestedAcceleration;
-	if (bThrottleHeld && CurrentForwardSpeed >= -ReverseEngageSpeed && RequestedAcceleration > 0.0f)
+	FVector DriveAcceleration = (bThrottleHeld ? PropulsionDirection : ForwardDirection) * RequestedAcceleration;
+	if (bThrottleHeld && PropulsionSpeed >= -ReverseEngageSpeed && RequestedAcceleration > 0.0f)
 	{
 		DriveAcceleration = VehicleWallEscape::ConstrainThrottle(DriveAcceleration,
 			WallEscapeNormals, WallEscapeIntoWallThrottleScale, WallEscapeBlend);
 	}
 	// Base drag/braking remain independent. An unknown replay frame cannot
 	// impose a guessed speed cap; known zero scales still use normal corrections.
-	float ResistanceAcceleration = -CurrentForwardSpeed * CoastingDragRate;
+	const FVector ResistanceDirection = bThrottleHeld ? PropulsionDirection : ForwardDirection;
+	const float ResistanceSpeed = bThrottleHeld ? PropulsionSpeed : CurrentForwardSpeed;
+	float ResistanceAcceleration = -ResistanceSpeed * CoastingDragRate;
 	const float CorrectionRate = CurrentMovement.Overdrive.IsRecovering(CurrentMovementServerFrame)
 		? FMath::Min(FMath::Max(OverspeedCorrectionRate, 5.f / CurrentMovement.Overdrive.RecoverySeconds), 1.f / FMath::Max(DeltaTime, SMALL_NUMBER))
 		: OverspeedCorrectionRate;
 
-	if (bMovementDriveAllowed && CurrentForwardSpeed > EffectiveMaxForwardSpeed)
+	if (bMovementDriveAllowed && ResistanceSpeed > EffectiveMaxForwardSpeed)
 	{
-		ResistanceAcceleration -= (CurrentForwardSpeed - EffectiveMaxForwardSpeed) * CorrectionRate;
+		ResistanceAcceleration -= (ResistanceSpeed - EffectiveMaxForwardSpeed) * CorrectionRate;
 	}
-	else if (bMovementDriveAllowed && CurrentForwardSpeed < -EffectiveMaxReverseSpeed)
+	else if (bMovementDriveAllowed && ResistanceSpeed < -EffectiveMaxReverseSpeed)
 	{
-		ResistanceAcceleration -= (CurrentForwardSpeed + EffectiveMaxReverseSpeed) * OverspeedCorrectionRate;
+		ResistanceAcceleration -= (ResistanceSpeed + EffectiveMaxReverseSpeed) * OverspeedCorrectionRate;
 	}
 
 	FPhysicsInterface::AddForce_AssumesLocked(Body.GetPhysicsActor(),
-		DriveAcceleration + ForwardDirection * ResistanceAcceleration, false, true, true);
+		DriveAcceleration + ResistanceDirection * ResistanceAcceleration, false, true, true);
 }
 
 void UArcadeVehicleMovementComponent::ApplyLateralGrip(

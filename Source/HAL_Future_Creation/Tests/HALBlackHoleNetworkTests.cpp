@@ -1,6 +1,9 @@
 #if WITH_DEV_AUTOMATION_TESTS && !UE_BUILD_SHIPPING
 #include "Misc/AutomationTest.h"
 #include "../HALBlackHole.h"
+#include "../HALAbilitySystemComponent.h"
+#include "../HALGameplayTags.h"
+#include "../HALMovementAttributeSet.h"
 #include "../HALMatchGameState.h"
 #include "../HALPlayerController.h"
 #include "../ArcadeVehicleMovementComponent.h"
@@ -22,6 +25,11 @@ namespace
 		bool bPrepared = false, bAligned = false, bSpawned = false, bSawField = false, bSawExpansion = false, bSawHold = false;
 		float PeakInwardSpeed = 0;
 		bool bSawEntrySlowdown = false;
+		bool bSawSwirlMotion = false;
+		bool bSawDrag = false;
+		bool bSawGravityDrive = false;
+		bool bSawDragTag = false, bSawReady = false, bSawUnwantedSlippery = false;
+		float MinimumAttributeGrip = 1, MinimumPhysicsGrip = 1;
 		TWeakObjectPtr<AHALBlackHole> Observed;
 	public:
 		explicit FBlackHoleNetworkProbe(FAutomationTestBase& InTest) : Test(InTest) {}
@@ -85,6 +93,7 @@ namespace
 				auto* Hole = World->SpawnActorDeferred<AHALBlackHole>(AHALBlackHole::StaticClass(), Transform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 				FHALBlackHoleConfig Config; Config.ExpansionSeconds = 1; Config.DurationSeconds = 4;
 				Config.MaximumRadius = 2500; Config.ContinuousAcceleration = 40; Config.PulseDeltaSpeed = 400; Config.PulseInterval = 1;
+				Config.EntrySpeedMultiplier = .4f; // Preserve entry regression independently of the gentler native default.
 				Test.TestTrue(TEXT("Server configures deferred field"), Hole->ConfigureBlackHole(Config));
 				Hole->FinishSpawning(Transform); bSpawned = true;
 			}
@@ -104,13 +113,44 @@ namespace
 			}
 			if (bSawField)
 			{
+				if (auto* ASC = Cast<UHALAbilitySystemComponent>(Own->GetAbilitySystemComponent()))
+				{
+					const auto* Values = ASC->GetSet<UHALMovementAttributeSet>();
+					const auto MovementStatus = Own->FindComponentByClass<UArcadeVehicleMovementComponent>()->GetMovementEffectStatus();
+					bSawDragTag |= ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Drag);
+					bSawUnwantedSlippery |= ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_SlipperyArea);
+					bSawReady |= MovementStatus.bReady;
+					bSawGravityDrive |= ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Drag)
+						&& MovementStatus.bReady && MovementStatus.Value.GravityDrive.Source.IsValid()
+						&& MovementStatus.Value.GravityDrive.Center.Equals(FVector(0,0,10000),.1)
+						&& FMath::IsNearlyEqual(MovementStatus.Value.GravityDrive.Strength,.85f)
+						&& MovementStatus.Value.GravityDrive.StartFrame >= 0;
+					if (Values) { MinimumAttributeGrip = FMath::Min(MinimumAttributeGrip,Values->GetAreaGripDelta()+1.f); }
+					MinimumPhysicsGrip = FMath::Min(MinimumPhysicsGrip,MovementStatus.Value.GripScale);
+					bSawDrag |= ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Drag)
+						&& !ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_SlipperyArea)
+						&& Values && FMath::IsNearlyEqual(Values->GetAreaGripDelta(),-.8f,1.e-4f)
+						&& MovementStatus.bReady && FMath::IsNearlyEqual(MovementStatus.Value.GripScale,.2f,1.e-4f);
+				}
 				const FVector Direction = -Own->GetActorLocation().GetSafeNormal2D();
+				const FVector Tangent = FVector::CrossProduct(FVector::UpVector,-Direction);
+				bSawSwirlMotion |= FVector::DotProduct(Tangent,CastChecked<UPrimitiveComponent>(Own->GetRootComponent())->GetPhysicsLinearVelocity()) > 5;
 				PeakInwardSpeed = FMath::Max(PeakInwardSpeed, float(FVector::DotProduct(Direction, CastChecked<UPrimitiveComponent>(Own->GetRootComponent())->GetPhysicsLinearVelocity())));
 			}
 			if (bSawField && !Observed.IsValid())
 			{
+				// Actor destruction and PlayerState tags travel on different channels; await both within the deadline.
+				if (auto* ASC = Own->GetAbilitySystemComponent(); ASC && ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Drag)) { return false; }
+				if (Own->FindComponentByClass<UArcadeVehicleMovementComponent>()->GetMovementEffectStatus().Value.GravityDrive.Source.IsValid()) { return false; }
+				Test.TestTrue(TEXT("Authority-stamped gravity drive reaches local owner history"),bSawGravityDrive);
 				Test.TestTrue(TEXT("Synchronized expansion observed"), bSawExpansion);
 				Test.TestTrue(TEXT("Authority entry slowdown observed on local owned moving vehicle"), bSawEntrySlowdown);
+				Test.TestTrue(TEXT("Local owned vehicle receives counterclockwise swirl"), bSawSwirlMotion);
+				Test.TestTrue(TEXT("Drag state and selected grip replicated to local owner"), bSawDrag);
+				Test.AddInfo(FString::Printf(TEXT("Drag probe Host=%d Tag=%d UnwantedSlip=%d Ready=%d MinAttributeGrip=%.9f MinPhysicsGrip=%.9f"),
+					bHost,bSawDragTag,bSawUnwantedSlippery,bSawReady,MinimumAttributeGrip,MinimumPhysicsGrip));
+				if (auto* ASC = Own->GetAbilitySystemComponent())
+				{ Test.TestFalse(TEXT("Field expiration clears Drag state"), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Drag)); }
 				Test.TestTrue(TEXT("Replicated maximum range and hold observed"), bSawHold);
 				Test.TestTrue(TEXT("Local owned vehicle pulled by authority physics actions"), PeakInwardSpeed > 200);
 				bool bFixtureRemains = false;

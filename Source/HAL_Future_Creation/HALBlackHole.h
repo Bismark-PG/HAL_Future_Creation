@@ -10,6 +10,9 @@ class ATestVehiclePawn;
 UENUM(BlueprintType)
 enum class EHALBlackHoleStage : uint8 { Expanding, PreparingPulse, Ended };
 
+UENUM(BlueprintType)
+enum class EHALBlackHoleSwirlDirection : uint8 { CounterClockwise, Clockwise };
+
 USTRUCT(BlueprintType)
 struct HAL_FUTURE_CREATION_API FHALBlackHoleConfig
 {
@@ -20,14 +23,30 @@ struct HAL_FUTURE_CREATION_API FHALBlackHoleConfig
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attraction|Continuous Pull", meta=(ClampMin="1", ClampMax="2000", Units="cm/s")) float ContinuousSpeedLimit = 200.f;
 	/** Within this distance, weak acceleration and target inward speed taper linearly to zero. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attraction|Continuous Pull", meta=(ClampMin="1", ClampMax="1000", Units="cm")) float CenterSofteningRadius = 100.f;
+	/** Tangential acceleration around the center; 0 restores straight inward attraction. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attraction|Swirl", meta=(ClampMin="0", ClampMax="10000", Units="cm/s^2")) float SwirlAcceleration = 90.f;
+	/** Stops adding tangential speed in the selected direction; never clamps existing velocity. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attraction|Swirl", meta=(ClampMin="1", ClampMax="200000", Units="cm/s")) float SwirlSpeedLimit = 250.f;
+	/** Viewed from above along world -Z. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attraction|Swirl") EHALBlackHoleSwirlDirection SwirlDirection = EHALBlackHoleSwirlDirection::CounterClockwise;
+	/** Fraction of the angle from car forward to local spiral flow applied to forward propulsion. 0 disables. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Drag|Drive Bending", meta=(ClampMin="0", ClampMax="1")) float DriveBendStrength = .85f;
+	/** Smooth activation of propulsion bending after entry, independent of entry braking. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Drag|Drive Bending", meta=(ClampMin="0", ClampMax="5", Units="s")) float DriveBendRampSeconds = .4f;
+	/** At full steering, this fraction of bending is suppressed. 1 restores full directional control while steering. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Drag|Drive Bending", meta=(ClampMin="0", ClampMax="1")) float DriveSteeringResistance = .75f;
 	/** Outward speed where escape assistance smoothly ends. This never imposes a minimum velocity. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attraction|Escape Assistance", meta=(ClampMin="1", ClampMax="2000", Units="cm/s")) float EscapeRecoverySpeed = 150.f;
 	/** Weak attraction retained at zero outward speed with full outward throttle; 1 disables assistance. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attraction|Escape Assistance", meta=(ClampMin="0", ClampMax="1")) float LowSpeedAttractionScale = .3f;
-	/** Planar speed retained once on entry. 0.4 retains 40%; 1 disables entry slowdown. Z and rotation are unchanged. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attraction|Entry", meta=(ClampMin="0", ClampMax="1")) float EntrySpeedMultiplier = .4f;
+	/** Fraction of original planar entry momentum retained after capture. New driving/flow/yellow velocity is not rescaled. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attraction|Entry", meta=(ClampMin="0", ClampMax="1")) float EntrySpeedMultiplier = .8f;
+	/** Smooth entry momentum reduction and flow ramp duration. 0 restores the old instantaneous entry. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attraction|Entry", meta=(ClampMin="0", ClampMax="5", Units="s")) float EntryCaptureSeconds = .3f;
 	/** Minimum time between entry slowdowns from this field; prevents edge jitter from repeatedly braking. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attraction|Entry", meta=(ClampMin="0", ClampMax="10", Units="s")) float EntryRetriggerDelay = 1.f;
+	/** Drag affects lateral grip and enables its optional drive bending. 1 disables both parts of Drag. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Drag", meta=(ClampMin="0", ClampMax="1")) float DragGripMultiplier = .2f;
 	/** Instantaneous inward speed increment; not a force sustained over time. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attraction", meta=(ClampMin="0", ClampMax="10000", Units="cm/s")) float PulseDeltaSpeed = 700.f;
 	/** First pulse occurs this long after expansion; further pulses use the same interval. */
@@ -43,6 +62,8 @@ struct HAL_FUTURE_CREATION_API FHALBlackHoleConfig
 	float RadiusAt(double Age) const;
 	EHALBlackHoleStage StageAt(double Age) const;
 	int32 PulseIndexAt(double Age) const;
+	float CaptureAlpha(float Seconds) const;
+	FVector CaptureDelta(const FVector& EntryVelocity, float FromSeconds, float ToSeconds) const;
 	FVector InwardDirection(const FVector& Center, const FVector& Position, double Age) const;
 	FVector ContinuousDeltaVelocity(const FVector& Center, const FVector& Position, const FVector& Velocity, double Age, float StepSeconds,
 		const FVector& Forward = FVector::ZeroVector, float Throttle = 0.f) const;
@@ -98,6 +119,13 @@ private:
 	bool bPresentationReady = false;
 	int32 PresentedPulse = 0;
 	uint32 ActionSequence = 0;
+	FGuid GravitySource;
 	TSet<TWeakObjectPtr<ATestVehiclePawn>> Occupants;
 	TMap<TWeakObjectPtr<ATestVehiclePawn>, double> LastEntryAt;
+	struct FCapture
+	{
+		FVector EntryVelocity = FVector::ZeroVector;
+		float AppliedSeconds = 0;
+	};
+	TMap<TWeakObjectPtr<ATestVehiclePawn>, FCapture> Captures;
 };

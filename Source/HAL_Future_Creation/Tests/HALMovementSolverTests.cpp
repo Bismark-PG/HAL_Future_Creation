@@ -2,6 +2,11 @@
 #include "Misc/AutomationTest.h"
 #include "../ArcadeVehicleMovementComponent.h"
 #include "../VehicleConfigurationTypes.h"
+#include "../HALMovementEffectBridge.h"
+#include "../HALMovementAreaReceiver.h"
+#include "../HALGameplayTags.h"
+#include "../HALPlayerState.h"
+#include "../HALAbilitySystemComponent.h"
 #include "Components/BoxComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -43,6 +48,7 @@ namespace
 			Last = Pending = Input->Id; Movement = Input->Movement;
 			Thread = FPlatformTLS::GetCurrentThreadId(); bPhysics = Chaos::IsInPhysicsThreadContext();
 			Handle->SetObjectState(Chaos::EObjectStateType::Dynamic, true);
+			Handle->SetX(FVector(0,0,2000));
 			Handle->SetV(FVector::ZeroVector); Handle->SetW(FVector::ZeroVector);
 			Handle->SetLinearImpulse(FVector::ZeroVector, false);
 			Input->Work();
@@ -86,6 +92,8 @@ bool FHALMovementSolverTest::RunTest(const FString& Parameters)
 		{
 			if (Output->Id != Id) { continue; }
 			bFound = true; Status = Output->Status; bWorker |= Output->Thread != GT;
+			if (!FMath::IsNearlyEqual(Output->Velocity.X,ExpectedX,.02) || !FMath::IsNearlyEqual(Output->Velocity.Y,ExpectedY,.02))
+			{ AddInfo(FString::Printf(TEXT("%s actual=%s expectedXY=(%.4f,%.4f) gravity=%s"),Label,*Output->Velocity.ToString(),ExpectedX,ExpectedY,*Status.Value.GravityDrive.Source.ToString())); }
 			TestTrue(FString(Label)+TEXT(" physics context"), Output->bPhysicsContext);
 			TestTrue(FString(Label)+TEXT(" measured integrated velocity"), FMath::IsNearlyEqual(Output->Velocity.X, ExpectedX, 0.02));
 			TestTrue(FString(Label)+TEXT(" measured lateral velocity"), FMath::IsNearlyEqual(Output->Velocity.Y, ExpectedY, 0.02));
@@ -98,11 +106,12 @@ bool FHALMovementSolverTest::RunTest(const FString& Parameters)
 		Value.GripScale = Grip;
 		TestTrue(TEXT("Authority publication accepted"), Movement->QueueMovementParameters(Value));
 	};
-	auto Drive = [Movement,Body,Solver](bool bReverse, float Initial, int32 ReplayFrame = INDEX_NONE)
+	auto Drive = [Movement,Body,Solver](bool bReverse, float Initial, int32 ReplayFrame = INDEX_NONE, float Steering = 0)
 	{
 		auto Handle = Body->GetBodyInstance()->GetBodyInstanceAsyncPhysicsTickHandle(); Handle->SetV(FVector(Initial,0,0));
 		Movement->PrepareMovementFrame(Solver, ReplayFrame == INDEX_NONE ? Solver->GetCurrentFrame() : ReplayFrame, ReplayFrame != INDEX_NONE);
 		Movement->InputCommand.Reset(); if (bReverse) { Movement->InputCommand.Brake = 1; } else { Movement->InputCommand.Throttle = 1; }
+		Movement->InputCommand.Steering = Steering;
 		Movement->ApplyLongitudinalForces(*Body->GetBodyInstance(), FVector::ForwardVector, Initial);
 	};
 	Publish(1,1,1); Run(TEXT("Neutral"), [=](){ Drive(false,0); },30);
@@ -176,8 +185,59 @@ bool FHALMovementSolverTest::RunTest(const FString& Parameters)
 	Run(TEXT("Charge stun entry replays once on its frame"), [=](){ StunStep(ChargeStun.LocalFrame); }, 0);
 	Epoch = FGuid::NewGuid(); Movement->ConfigureMovementEffects(Epoch,nullptr,true,7); Publish(1,1,1);
 	Run(TEXT("New Avatar uses new epoch"), [=](){ Drive(false,0); },30);
+	FHALMovementSnapshot Gravity; Gravity.Epoch = Epoch; Gravity.Revision = 2;
+	Gravity.GravityDrive.Source = FGuid::NewGuid(); Gravity.GravityDrive.Center = FVector(0,1000,2000);
+	Gravity.GravityDrive.Radius = 5000; Gravity.GravityDrive.HalfHeight = 200;
+	Gravity.GravityDrive.Strength = 1; Gravity.GravityDrive.SteeringResistance = 1; Gravity.GravityDrive.RampSeconds = 0;
+	TestTrue(TEXT("Gravity uses the normal authority parameter channel"), Movement->QueueMovementParameters(Gravity));
+	const auto Bent = Run(TEXT("Gravity redirects actual forward propulsion"),[=](){ Drive(false,0); },0,30);
+	Run(TEXT("Sideways entry momentum is retained while thrust bends"),[=](){ Drive(false,1000); },1000,30);
+	Run(TEXT("Bent forward thrust is not mistaken for reverse driving"),[=](){ Drive(false,-1000); },-1000,30);
+	Run(TEXT("Full steering resists gravity bending"),[=](){ Drive(false,0,INDEX_NONE,1); },30,0);
+	Run(TEXT("Gravity preserves reverse propulsion"),[=](){ Drive(true,0); },-20,0);
+	Run(TEXT("Gravity preserves braking direction"),[=](){ Drive(true,100); },100-Config.Drive.BrakeDeceleration/60,0);
+	Publish(3,1,1); Run(TEXT("Gravity removal restores forward propulsion"),[=](){ Drive(false,0); },30,0);
+	const auto GravityReplay = Run(TEXT("Old gravity force survives removal during replay"),[=](){ Drive(false,0,Bent.LocalFrame); },0,30);
+	TestTrue(TEXT("Replay retains the exact gravity source"),GravityReplay.Value.GravityDrive.Source == Gravity.GravityDrive.Source);
 	Run(TEXT("Unknown replay adds no drive"), [=](){ Drive(false,0,0); },0);
 	Run(TEXT("Unknown replay does not invent a speed cap"), [=](){ Drive(false,2700,0); },2700);
+	// Exercise source selection and cleanup through the real GT -> authority -> solver adapter.
+	auto* State = World->SpawnActor<AHALPlayerState>(); auto* ASC = State->GetHALAbilitySystemComponent();
+	auto* Bridge = NewObject<UHALMovementEffectBridge>(Actor); Actor->AddInstanceComponent(Bridge); Bridge->RegisterComponent();
+	ASC->InitAbilityActorInfo(State,Actor); Bridge->Bind(ASC,7);
+	auto* Receiver = NewObject<UHALMovementAreaReceiver>(Actor); Actor->AddInstanceComponent(Receiver); Receiver->RegisterComponent(); Receiver->Bind(ASC);
+	auto* SourceA = World->SpawnActor<AActor>(); auto* SourceB = World->SpawnActor<AActor>();
+	for (auto* Source : {SourceA,SourceB}) { Source->PreInitializeComponents(); Source->InitializeComponents(); Source->PostInitializeComponents(); Source->DispatchBeginPlay(); }
+	auto FieldA = Gravity.GravityDrive, FieldB = FieldA; FieldB.Source = FGuid::NewGuid();
+	FieldB.Strength = .5f; FieldB.Center = FVector(0,-1000,2000);
+	const auto Flush = [&]() { FWorldDelegates::OnWorldPostActorTick.Broadcast(World,LEVELTICK_All,1.f/60); };
+	Bridge->SetDragDrive(FieldA); Flush();
+	Run(TEXT("Flow payload without Drag never bends propulsion"),[=](){ Drive(false,0); },30,0);
+	FHALMovementAreaConfig DragA; DragA.Kind = EHALMovementAreaKind::Drag; DragA.RecoverySeconds = 0;
+	Receiver->RegisterArea(SourceA,DragA); Flush();
+	Run(TEXT("Grip-only Drag has no invented flow direction"),[=](){ Drive(false,0); },30,0);
+	DragA.DragDrive = FieldA; auto DragB = DragA; DragB.DragDrive = FieldB;
+	Receiver->RegisterArea(SourceA,DragA); Receiver->RegisterArea(SourceB,DragB); Flush();
+	Run(TEXT("Overlapping fields select strongest bend"),[=](){ Drive(false,0); },0,30);
+	Receiver->UnregisterArea(SourceA); Flush();
+	Run(TEXT("Removing one field preserves the remaining source"),[=](){ Drive(false,0); },30*UE_SQRT_2/2,-30*UE_SQRT_2/2);
+	SourceB->Destroy(); Flush();
+	Run(TEXT("Destroyed field cannot leave stale propulsion bending"),[=](){ Drive(false,0); },30,0);
+	Receiver->RegisterArea(SourceA,DragA); Flush();
+	const auto DragFrame = Run(TEXT("Reenter Drag restores its flow"),[=](){ Drive(false,0); },0,30);
+	TestEqual(TEXT("Remove actual Drag GE while still within its source"),ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(HALGameplayTags::State_Movement_Drag)),1);
+	Flush(); Run(TEXT("Removing Drag state stops bending despite retained source geometry"),[=](){ Drive(false,0); },30,0);
+	Run(TEXT("Past Drag frame still bends when replayed after removal"),[=](){ Drive(false,0,DragFrame.LocalFrame); },0,30);
+	Receiver->UnregisterArea(SourceA); DragA.LateralGripMultiplier = 1; Receiver->RegisterArea(SourceA,DragA); Flush();
+	Run(TEXT("Disabling Drag grip also disables propulsion bending"),[=](){ Drive(false,0); },30,0);
+	Receiver->ClearForOwnerExit(); Receiver->Bind(ASC);
+	FHALMovementAreaConfig Oil; Oil.Kind = EHALMovementAreaKind::Slippery;
+	Receiver->RegisterArea(SourceA,Oil); Bridge->SetDragDrive(FieldA); Flush();
+	TestTrue(TEXT("Slippery fixture grants only Slippery state"),ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_SlipperyArea)
+		&& !ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Drag));
+	Run(TEXT("Slippery state never enables Drag propulsion"),[=](){ Drive(false,0); },30,0);
+	Receiver->ClearForOwnerExit();
+	Bridge->Unbind();
 	TestTrue(TEXT("Actual worker thread exercised"), bWorker);
 	Solver->UnregisterAndFreeSimCallbackObject_External(Probe); Step();
 	World->DestroyWorld(false); GEngine->DestroyWorldContext(World);

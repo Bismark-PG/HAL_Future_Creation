@@ -54,6 +54,8 @@ void UHALMovementEffectBridge::Bind(UHALAbilitySystemComponent* InASC, int32 Pla
 			.AddUObject(this, &ThisClass::StunChanged);
 		BattleTopHandle = ASC->RegisterGameplayTagEvent(HALGameplayTags::State_BattleTop, EGameplayTagEventType::NewOrRemoved)
 			.AddUObject(this, &ThisClass::StunChanged);
+		DragHandle = ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Movement_Drag, EGameplayTagEventType::NewOrRemoved)
+			.AddUObject(this, &ThisClass::StunChanged);
 		GetOwner()->ForceNetUpdate();
 	}
 	WorldHandle = FWorldDelegates::OnWorldPostActorTick.AddUObject(this, &ThisClass::Flush);
@@ -77,22 +79,30 @@ void UHALMovementEffectBridge::EndOverdriveMotion()
 	bDirty = true;
 }
 
+void UHALMovementEffectBridge::SetDragDrive(const FHALGravityDrive& Field)
+{
+	if (!GetOwner()->HasAuthority() || !Field.IsValid(false) || DragDrive == Field) { return; }
+	DragDrive = Field; bDirty = true;
+}
+
 void UHALMovementEffectBridge::Unbind()
 {
 	if (ASC)
 	{
 		ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Stun, EGameplayTagEventType::NewOrRemoved).Remove(StunHandle);
 		ASC->RegisterGameplayTagEvent(HALGameplayTags::State_BattleTop, EGameplayTagEventType::NewOrRemoved).Remove(BattleTopHandle);
+		ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Movement_Drag, EGameplayTagEventType::NewOrRemoved).Remove(DragHandle);
 		for (const auto& Pair : AttributeHandles) { ASC->GetGameplayAttributeValueChangeDelegate(Pair.Key).Remove(Pair.Value); }
 	}
 	FWorldDelegates::OnWorldPostActorTick.Remove(WorldHandle);
-	WorldHandle.Reset(); AttributeHandles.Reset(); StunHandle.Reset(); BattleTopHandle.Reset();
+	WorldHandle.Reset(); AttributeHandles.Reset(); StunHandle.Reset(); BattleTopHandle.Reset(); DragHandle.Reset();
 	ASC = nullptr;
 	bDirty = false;
 	LastPublished = {};
 	AreaRecoverySeconds = FVector::ZeroVector;
 	AreaSway = {};
 	Overdrive = {};
+	DragDrive = {};
 	if (GetOwner()->HasAuthority() && Epoch.IsValid()) { Epoch.Invalidate(); GetOwner()->ForceNetUpdate(); }
 	if (Movement) { Movement->ConfigureMovementEffects({}, History, GetOwner()->HasAuthority(), BoundPlayerId); }
 }
@@ -114,6 +124,7 @@ void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float D
 	Snapshot.bHandbrakeBlocked = ASC->HasMatchingGameplayTag(HALGameplayTags::State_BattleTop);
 	Snapshot.Overdrive = Overdrive;
 	Snapshot.Overdrive.bStunned = Overdrive.bActive && ASC->IsStunned();
+	Snapshot.GravityDrive = ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Drag) ? DragDrive : FHALGravityDrive{};
 	if (!Values) { return; }
 	Snapshot.bHasAreaState = true;
 	Snapshot.AreaSway = AreaSway;
@@ -135,6 +146,7 @@ void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float D
 	if (LastPublished.IsValidValues() && LastPublished.bControlsBlocked == Snapshot.bControlsBlocked
 		&& LastPublished.bHandbrakeBlocked == Snapshot.bHandbrakeBlocked
 		&& LastPublished.Overdrive == Snapshot.Overdrive
+		&& LastPublished.GravityDrive == Snapshot.GravityDrive
 		&& LastPublished.AreaSway == Snapshot.AreaSway
 		&& SameTarget(LastPublished.AreaAcceleration, Snapshot.AreaAcceleration)
 		&& SameTarget(LastPublished.AreaSpeed, Snapshot.AreaSpeed) && SameTarget(LastPublished.AreaGrip, Snapshot.AreaGrip))

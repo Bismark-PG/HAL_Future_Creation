@@ -8,6 +8,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/GameStateBase.h"
 #include "HALGameFlowPermissions.h"
+#include "HALMovementAreaReceiver.h"
 #include "Net/UnrealNetwork.h"
 #include "TestVehiclePawn.h"
 #include "TimerManager.h"
@@ -17,8 +18,13 @@ bool FHALBlackHoleConfig::IsValid() const
 	const auto Range = [](float V, float Min, float Max) { return FMath::IsFinite(V) && V >= Min && V <= Max; };
 	return Range(ContinuousAcceleration, 0, 10000) && Range(PulseDeltaSpeed, 0, 10000)
 		&& Range(ContinuousSpeedLimit, 1, 2000) && Range(CenterSofteningRadius, 1, 1000)
+		&& Range(SwirlAcceleration, 0, 10000) && Range(SwirlSpeedLimit, 1, 200000)
+		&& (SwirlDirection == EHALBlackHoleSwirlDirection::CounterClockwise || SwirlDirection == EHALBlackHoleSwirlDirection::Clockwise)
 		&& Range(EscapeRecoverySpeed, 1, 2000) && Range(LowSpeedAttractionScale, 0, 1)
 		&& Range(EntrySpeedMultiplier, 0, 1) && Range(EntryRetriggerDelay, 0, 10)
+		&& Range(EntryCaptureSeconds, 0, 5)
+		&& Range(DriveBendStrength, 0, 1) && Range(DriveBendRampSeconds, 0, 5) && Range(DriveSteeringResistance, 0, 1)
+		&& Range(DragGripMultiplier, 0, 1)
 		&& Range(PulseInterval, .1f, 120) && Range(ExpansionSeconds, 0, 60)
 		&& Range(DurationSeconds, .01f, 120) && Range(MaximumRadius, 1, 10000) && Range(HalfHeight, 1, 1000);
 }
@@ -67,8 +73,27 @@ FVector FHALBlackHoleConfig::ContinuousDeltaVelocity(const FVector& Center, cons
 		EscapeScale = FMath::Lerp(1., double(LowSpeedAttractionScale), Assistance);
 	}
 	const double Headroom = FMath::Max(0., ContinuousSpeedLimit * Softening - InwardSpeed);
-	// Bound only the weak contribution; never brake a yellow pulse, lateral motion or Z velocity.
-	return Direction * FMath::Min(double(ContinuousAcceleration) * FMath::Min(StepSeconds, .1f) * Softening * EscapeScale, Headroom);
+	const FVector Tangent = FVector::CrossProduct(FVector::UpVector, -Direction)
+		* (SwirlDirection == EHALBlackHoleSwirlDirection::Clockwise ? -1. : 1.);
+	const double TangentialHeadroom = FMath::Max(0., SwirlSpeedLimit * Softening - FVector::DotProduct(Velocity,Tangent));
+	const double Step = FMath::Min(StepSeconds,.1f) * Softening * EscapeScale;
+	// Both components only add bounded velocity. Entry and yellow are resolved separately.
+	return Direction * FMath::Min(double(ContinuousAcceleration) * Step, Headroom)
+		+ Tangent * FMath::Min(double(SwirlAcceleration) * Step,TangentialHeadroom);
+}
+
+float FHALBlackHoleConfig::CaptureAlpha(float Seconds) const
+{
+	if (EntryCaptureSeconds <= 0) { return 1.f; }
+	const float T = FMath::Clamp(Seconds / EntryCaptureSeconds,0.f,1.f);
+	return T * T * (3.f - 2.f * T);
+}
+
+FVector FHALBlackHoleConfig::CaptureDelta(const FVector& EntryVelocity, float FromSeconds, float ToSeconds) const
+{
+	if (EntryVelocity.ContainsNaN() || !FMath::IsFinite(FromSeconds) || !FMath::IsFinite(ToSeconds) || ToSeconds < FromSeconds) { return FVector::ZeroVector; }
+	return FVector(EntryVelocity.X,EntryVelocity.Y,0) * (EntrySpeedMultiplier - 1.f)
+		* (CaptureAlpha(ToSeconds) - CaptureAlpha(FromSeconds));
 }
 
 AHALBlackHole::AHALBlackHole()
@@ -175,27 +200,81 @@ void AHALBlackHole::ApplyAttraction(double Elapsed, float StepSeconds, bool bPul
 			if (!Body || !Body->IsSimulatingPhysics()) { continue; }
 			const TWeakObjectPtr<ATestVehiclePawn> Vehicle(*It);
 			Inside.Add(Vehicle);
+			if (auto* Receiver = It->FindComponentByClass<UHALMovementAreaReceiver>())
+			{
+				if (Settings.DragGripMultiplier < 1)
+				{
+					FHALMovementAreaConfig Drag;
+					Drag.Kind = EHALMovementAreaKind::Drag;
+					Drag.LateralGripMultiplier = Settings.DragGripMultiplier;
+					Drag.RecoverySeconds = 0;
+					if (Settings.DriveBendStrength > 0 && Settings.ContinuousAcceleration + Settings.SwirlAcceleration > 0)
+					{
+						if (!GravitySource.IsValid()) { GravitySource = FGuid::NewGuid(); }
+						auto& Field = Drag.DragDrive; Field.Source = GravitySource; Field.Center = GetActorLocation();
+						Field.Radius = Settings.MaximumRadius; Field.HalfHeight = Settings.HalfHeight;
+						Field.SofteningRadius = Settings.CenterSofteningRadius;
+						const FVector Weights = FVector(Settings.ContinuousAcceleration,Settings.SwirlAcceleration,0).GetSafeNormal();
+						Field.Inward = Weights.X; Field.Tangential = Weights.Y * (Settings.SwirlDirection == EHALBlackHoleSwirlDirection::Clockwise ? -1.f : 1.f);
+						Field.Strength = Settings.DriveBendStrength; Field.RampSeconds = Settings.DriveBendRampSeconds;
+						Field.SteeringResistance = Settings.DriveSteeringResistance;
+					}
+					Receiver->RegisterArea(this,Drag);
+				}
+				else { Receiver->UnregisterArea(this); }
+			}
 			const double* LastEntry = LastEntryAt.Find(Vehicle);
 			const bool bEntering = !Occupants.Contains(Vehicle) && (!LastEntry || Elapsed - *LastEntry >= Settings.EntryRetriggerDelay);
 			const FVector Velocity = Body->GetPhysicsLinearVelocity();
-			const FVector EntryDelta = bEntering ? FVector(Velocity.X,Velocity.Y,0) * (Settings.EntrySpeedMultiplier - 1.f) : FVector::ZeroVector;
+			if (bEntering && Settings.EntryCaptureSeconds > 0)
+			{
+				FCapture Capture; Capture.EntryVelocity = Velocity; Captures.Add(Vehicle,Capture);
+			}
+			auto* Capture = Captures.Find(Vehicle);
+			const float CaptureTo = Capture ? FMath::Min(Settings.EntryCaptureSeconds, Capture->AppliedSeconds
+				+ (bEntering ? 0.f : FMath::Clamp(StepSeconds,0.f,.1f))) : 0.f;
+			const float FlowScale = Capture ? Settings.CaptureAlpha(CaptureTo) : 1.f;
+			const FVector EntryDelta = Capture ? Settings.CaptureDelta(Capture->EntryVelocity,Capture->AppliedSeconds,CaptureTo)
+				: bEntering ? FVector(Velocity.X,Velocity.Y,0) * (Settings.EntrySpeedMultiplier - 1.f) : FVector::ZeroVector;
 			const FVehicleInputCmd Input = Movement->GetAcceptedDrivingInput();
 			const float OutwardThrottle = Input.Brake <= KINDA_SMALL_NUMBER ? Input.Throttle : 0.f;
 			const FVector Continuous = Settings.ContinuousDeltaVelocity(GetActorLocation(), It->GetActorLocation(),
-				Velocity + EntryDelta, Elapsed, StepSeconds, Body->GetForwardVector(), OutwardThrottle);
+				Velocity + EntryDelta, Elapsed, StepSeconds, Body->GetForwardVector(), OutwardThrottle) * FlowScale;
 			// Resolve entry first, then add the complete yellow impulse; entry never attenuates that pulse.
 			const FVector DeltaVelocity = EntryDelta + Continuous + (bPulse ? Direction * Settings.PulseDeltaSpeed : FVector::ZeroVector);
-			if (DeltaVelocity.IsNearlyZero()) { if (bEntering) { LastEntryAt.Add(Vehicle,Elapsed); } continue; }
+			if (DeltaVelocity.IsNearlyZero())
+			{
+				if (bEntering) { LastEntryAt.Add(Vehicle,Elapsed); }
+				if (Capture) { Capture->AppliedSeconds = CaptureTo; if (CaptureTo >= Settings.EntryCaptureSeconds) { Captures.Remove(Vehicle); } }
+				continue;
+			}
 			FVehicleImpactAction Action;
 			if (++ActionSequence == 0) { ++ActionSequence; }
 			Action.EventSequence = ActionSequence;
 			Action.DeltaVelocity = DeltaVelocity;
 			// Existing authority physics action stores the resolved delta for replay; no GAS/HP/drop rules.
-			if (Movement->QueueImpact(Action)) { if (bEntering) { LastEntryAt.Add(Vehicle,Elapsed); } }
-			else { Inside.Remove(Vehicle); }
+			if (Movement->QueueImpact(Action))
+			{
+				if (bEntering) { LastEntryAt.Add(Vehicle,Elapsed); }
+				if (Capture) { Capture->AppliedSeconds = CaptureTo; if (CaptureTo >= Settings.EntryCaptureSeconds) { Captures.Remove(Vehicle); } }
+			}
+			else
+			{
+				if (auto* Receiver = It->FindComponentByClass<UHALMovementAreaReceiver>()) { Receiver->UnregisterArea(this); }
+				Inside.Remove(Vehicle);
+				Captures.Remove(Vehicle);
+			}
+		}
+	}
+	for (const auto& Previous : Occupants)
+	{
+		if (auto* Vehicle = Previous.Get(); Vehicle && !Inside.Contains(Previous))
+		{
+			if (auto* Receiver = Vehicle->FindComponentByClass<UHALMovementAreaReceiver>()) { Receiver->UnregisterArea(this); }
 		}
 	}
 	Occupants = MoveTemp(Inside);
+	for (auto It = Captures.CreateIterator(); It; ++It) { if (!Occupants.Contains(It.Key())) { It.RemoveCurrent(); } }
 	for (auto It = LastEntryAt.CreateIterator(); It; ++It)
 	{
 		if (!It.Key().IsValid() || (!Occupants.Contains(It.Key()) && Elapsed - It.Value() >= Settings.EntryRetriggerDelay)) { It.RemoveCurrent(); }
@@ -281,7 +360,10 @@ void AHALBlackHole::DrawFieldDebug(double Elapsed) const
 	{
 		const double Angle = Index * 2. * UE_DOUBLE_PI / 8.;
 		const FVector Direction(FMath::Cos(Angle), FMath::Sin(Angle), 0);
-		DrawDebugDirectionalArrow(GetWorld(), Center + Direction * Radius * .85, Center + Direction * Radius * .25,
+		const FVector Tangent = FVector::CrossProduct(FVector::UpVector,Direction)
+			* (Settings.SwirlDirection == EHALBlackHoleSwirlDirection::Clockwise ? -1. : 1.);
+		const FVector Flow = (-Direction * Settings.ContinuousAcceleration + Tangent * Settings.SwirlAcceleration).GetSafeNormal();
+		DrawDebugDirectionalArrow(GetWorld(), Center + Direction * Radius * .85, Center + Direction * Radius * .85 + Flow * Radius * .4,
 			20, Color, false, .04f, 0, 2);
 	}
 #endif
@@ -300,7 +382,14 @@ void AHALBlackHole::OnRep_Pulse()
 void AHALBlackHole::EndPlay(const EEndPlayReason::Type Reason)
 {
 	GetWorldTimerManager().ClearTimer(UpdateTimer);
-	Occupants.Reset(); LastEntryAt.Reset();
+	for (const auto& Entry : Occupants)
+	{
+		if (auto* Vehicle = Entry.Get())
+		{
+			if (auto* Receiver = Vehicle->FindComponentByClass<UHALMovementAreaReceiver>()) { Receiver->UnregisterArea(this); }
+		}
+	}
+	Occupants.Reset(); LastEntryAt.Reset(); Captures.Reset();
 	if (bPresented && PresentedStage != EHALBlackHoleStage::Ended && !IsNetMode(NM_DedicatedServer)) { OnStageChanged(EHALBlackHoleStage::Ended); }
 	Super::EndPlay(Reason);
 }
