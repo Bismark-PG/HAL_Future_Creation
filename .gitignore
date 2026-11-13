@@ -182,6 +182,10 @@ DerivedDataCache/*
 !Docs/Combat/Car04_Bull_Charge_CN_v0.1.md
 !Docs/Combat/Car04_Bull_Charge_Verification_20261112.json
 !Docs/Combat/Car04_Bull_Charge_ContactFix_Verification_20261112.json
+!Source/HAL_Future_Creation/HALBattleTopFXTypes.h
+!Source/HAL_Future_Creation/HALBattleTopPresentation.cpp
+!Source/HAL_Future_CreationEditor/Public/HALBuildBattleTopFXCommandlet.h
+!Source/HAL_Future_CreationEditor/Private/HALBuildBattleTopFXCommandlet.cpp
 !Docs/Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md
 !Docs/Presentation/Slippery_Trail_OilSheen_QuickGuide_CN.md
 !Docs/Presentation/Ground_Surface_Deformation_CN_v0.1.md
@@ -241,3 +245,7 @@ Plugins/Monolith/
 !Source/HAL_Future_Creation/HALPlayerControllerSlipperyDebug.cpp
 !Docs/Combat/Expanding_Slippery_Area_CN_v0.1.md
 !Docs/Combat/Black_Hole_CN_v0.1.md
+
+!Source/HAL_Future_Creation/Tests/HALBattleTopRenderTests.cpp
+!Docs/Presentation/Car03_BattleTop_Polish_FX_CN_v0.1.md
+!Docs/Presentation/Car03_BattleTop_Polish_Verification_20261113.json

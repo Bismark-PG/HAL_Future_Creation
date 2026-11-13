@@ -151,6 +151,8 @@ void UHALImpactReceiverComponent::HandleContact(UPrimitiveComponent* Body, AActo
 	{
 		return;
 	}
+	if (auto* Top = GetOwner()->FindComponentByClass<UHALBattleTopComponent>(); Top && Top->IsActive())
+	{ Top->ObserveContact(*Body, *OtherBody, NormalImpulse, Hit); }
 	if (auto* Charge = GetOwner()->FindComponentByClass<UHALBullChargeComponent>();
 		Charge && Charge->DeferContact(Body, OtherBody, NormalImpulse, Hit)) { return; }
 	// Active attack owns its one response. Controlled balls cannot attack through their constraints.

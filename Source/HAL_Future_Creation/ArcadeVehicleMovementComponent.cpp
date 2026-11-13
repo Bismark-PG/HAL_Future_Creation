@@ -355,6 +355,7 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		PublishedContact.Position=BodyTransform.GetLocation();
 		PublishedContact.Rotation=BodyTransform.GetRotation();
 		PublishedContact.Velocity=PhysicsHandle->V();
+		PublishedContact.AngularVelocity=PhysicsHandle->W();
 		PublishedStability.PoseStableSeconds = PoseStableSeconds;
 	}
 

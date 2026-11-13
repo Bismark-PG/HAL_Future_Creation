@@ -20,9 +20,20 @@
 #include "Engine/World.h"
 #include "Components/SphereComponent.h"
 #include "Misc/ScopeExit.h"
+#include "Serialization/MemoryReader.h"
+#include "Serialization/MemoryWriter.h"
 
 struct FHALBattleTopTestAccess
 {
+	static void FreezePhysics(ATestVehiclePawn* P)
+	{
+		CastChecked<UPrimitiveComponent>(P->GetRootComponent())->SetSimulatePhysics(false);
+		auto* Movement = P->FindComponentByClass<UArcadeVehicleMovementComponent>();
+		Movement->SetAsyncPhysicsTickEnabled(false);
+		Movement->SetComponentTickEnabled(false);
+	}
+	static int32 Targets(ATestVehiclePawn* P) { return P->FindComponentByClass<UHALBattleTopComponent>()->NextTargetHit.Num(); }
+	static FGuid Activation(ATestVehiclePawn* P) { return P->FindComponentByClass<UHALBattleTopComponent>()->VisualState.Activation; }
 	static void SetPose(ATestVehiclePawn* Pawn, bool bGrounded, FVector Up = FVector::UpVector)
 	{
 		auto* Movement = Pawn->FindComponentByClass<UArcadeVehicleMovementComponent>();
@@ -269,6 +280,144 @@ bool FHALBattleTopLifecycleTest::RunTest(const FString&)
 	TestFalse(TEXT("GE removal restores the physical handbrake bit"), FHALRoomTestAccess::Flush(Bridge).bHandbrakeBlocked);
 	B->RetireForVehicleTransition();
 	TestTrue(TEXT("Retirement removes the active state from both Pawn and ASC"), !TopB->IsActive() && !BA->HasMatchingGameplayTag(HALGameplayTags::State_BattleTop));
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALBattleTopTimelineTest,"HAL.FutureCreation.BattleTop.TransitionTimelineAndSparkTangent",
+	EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALBattleTopTimelineTest::RunTest(const FString&)
+{
+	FHALBattleTopVisualState S;S.StartServerTime=20;S.SpinRate=900;S.DurationSeconds=5;S.EnterSeconds=.15f;S.ExitSeconds=.2f;S.Activation=FGuid::NewGuid();
+	TestEqual(TEXT("Entry starts at rest"),S.AngleAt(0),0.f);
+	TestEqual(TEXT("Entry speed starts at zero"),S.AngularSpeedAt(0),0.f);
+	TestTrue(TEXT("Entry ramps instead of snapping"),S.AngularSpeedAt(.075)>0&&S.AngularSpeedAt(.075)<900);
+	TestEqual(TEXT("Steady authored spin"),S.AngularSpeedAt(2),900.f);
+	TestEqual(TEXT("End restores heading"),S.AngleAt(5),0.f);
+	TestEqual(TEXT("End stops spin"),S.AngularSpeedAt(5),0.f);
+	TestEqual(TEXT("End removes wind envelope"),S.EnvelopeAt(5),0.f);
+	for(double T=.01;T<5;T+=.01)
+	{
+		const double Difference=FMath::FindDeltaAngleDegrees(S.AngleAt(T-.001),S.AngleAt(T+.001))/.002;
+		TestTrue(TEXT("Spark spin uses the actual visual angular derivative"),FMath::Abs(Difference-S.AngularSpeedAt(T))<2);
+	}
+	TestTrue(TEXT("Heading approaches base continuously"),FMath::Abs(FMath::UnwindDegrees(S.AngleAt(4.9999)))<.01);
+	TArray<uint8> Bytes;{FMemoryWriter Ar(Bytes);bool OK=false;S.NetSerialize(Ar,nullptr,OK);TestTrue(TEXT("Timeline serializes"),OK);}
+	FHALBattleTopVisualState Copy;{FMemoryReader Ar(Bytes);bool OK=false;Copy.NetSerialize(Ar,nullptr,OK);TestTrue(TEXT("Timeline reads"),OK);}
+	TestTrue(TEXT("Observers reconstruct the same activation and ramp"),Copy.Activation==S.Activation&&Copy.AngleAt(4.9)==S.AngleAt(4.9));
+	TestTrue(TEXT("Tangential spark opposes sliding, not incoming normal"),HALBattleTopFX::SparkDirection(FVector(-500,1200,0),FVector::ForwardVector).Equals(-FVector::RightVector));
+	TestTrue(TEXT("No tangent has no arbitrary backward spark"),HALBattleTopFX::SparkDirection(FVector(-500,0,0),FVector::ForwardVector).IsZero());
+	FHALBattleTopFXConfig FX;TestTrue(TEXT("Missing visual assets do not invalidate gameplay recipe"),FX.IsValid());
+	FX.ContactCount=1000;TestFalse(TEXT("Particle burst budget is validated"),FX.IsValid());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALBattleTopSprayGeometryTest,"HAL.FutureCreation.BattleTop.ContactSprayGeometryAndTuning",
+	EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALBattleTopSprayGeometryTest::RunTest(const FString&)
+{
+	FHALBattleTopFXConfig FX;
+	TestTrue(TEXT("Spray defaults are valid without visual asset dependencies"),FX.IsValid());
+	for (const FVector N : {FVector::ForwardVector,-FVector::ForwardVector,FVector::RightVector,FVector::UpVector})
+	{
+		const FVector T=FVector::CrossProduct(N,FVector(0.3,0.4,1)).GetSafeNormal();
+		const auto M=HALBattleTopFX::ContactSprayMotion(FX,T,N);
+		TestTrue(TEXT("Gravity remains world down for rotated surface frames"), M.Rotation.RotateVector(M.Gravity).Equals(FVector(0,0,-980),.01));
+		for (int32 Mask=0;Mask<8;++Mask)
+		{
+			const FVector Local((Mask&1)?M.VelocityMax.X:M.VelocityMin.X,(Mask&2)?M.VelocityMax.Y:M.VelocityMin.Y,(Mask&4)?M.VelocityMax.Z:M.VelocityMin.Z);
+			const FVector V=M.Rotation.RotateVector(Local);
+			TestTrue(TEXT("Scatter never fires into the contacted surface"),FVector::DotProduct(V,N)>=-.01);
+			TestTrue(TEXT("Primary motion preserves the opposite contact tangent"),FVector::DotProduct(V,T)>0);
+			TestTrue(TEXT("Scatter stays within the configured half angle"),FVector::DotProduct(V.GetSafeNormal(),T)>=FMath::Cos(FMath::DegreesToRadians(FX.ContactSpreadDegrees))-.001);
+		}
+	}
+	const auto Old=HALBattleTopFX::ContactSprayMotion(FX,-FVector::RightVector,FVector::ForwardVector);
+	FX.ContactSpreadDegrees=10;
+	const auto Narrow=HALBattleTopFX::ContactSprayMotion(FX,-FVector::RightVector,FVector::ForwardVector);
+	TestTrue(TEXT("Wider angle increases real lateral velocity range"),Old.VelocityMax.Y>Narrow.VelocityMax.Y*5);
+	FX.ContactLifetimeMax=FX.ContactLifetimeMin-.01f;TestFalse(TEXT("Inverted lifetime rejected"),FX.IsValid());
+	FX={};FX.ContactSizeMax.X=FX.ContactSizeMin.X-1;TestFalse(TEXT("Inverted size rejected"),FX.IsValid());
+	FX={};FX.ContactCount=65;TestFalse(TEXT("Contact burst budget enforced"),FX.IsValid());
+	FX={};TestTrue(TEXT("Invalid contact axes produce no arbitrary launch"),HALBattleTopFX::ContactSprayMotion(FX,FVector::ZeroVector,FVector::UpVector).VelocityMax.IsZero());
+	return true;
+}
+
+namespace
+{
+	struct FTopPolishWorld : FSkillWorld
+	{
+		UObject* Previous=nullptr;
+		FTopPolishWorld()
+		{
+			auto* Default=GetMutableDefault<UHALBattleTopAbility>();auto* P=FindFProperty<FObjectProperty>(Default->GetClass(),TEXT("SkillConfig"));
+			Previous=P->GetObjectPropertyValue_InContainer(Default);auto* C=NewObject<UHALBattleTopConfig>(Default);C->CooldownSeconds=0;
+			P->SetObjectPropertyValue_InContainer(Default,C);
+		}
+		~FTopPolishWorld()
+		{auto* D=GetMutableDefault<UHALBattleTopAbility>();FindFProperty<FObjectProperty>(D->GetClass(),TEXT("SkillConfig"))->SetObjectPropertyValue_InContainer(D,Previous);}
+	};
+	class FAdvanceTopPolish : public IAutomationLatentCommand
+	{
+		TSharedRef<FTopPolishWorld> World;double Until;TFunction<void()> Check;uint64 LastFrame=MAX_uint64;
+	public:
+		FAdvanceTopPolish(TSharedRef<FTopPolishWorld> In,float Seconds,TFunction<void()> Done):World(In),Until(In->W->GetTimeSeconds()+Seconds),Check(MoveTemp(Done)){}
+		bool Update() override {if(World->W->GetTimeSeconds()>=Until){Check();return true;}if(LastFrame!=GFrameCounter){LastFrame=GFrameCounter;World->W->Tick(LEVELTICK_All,.05f);}return false;}
+	};
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALBattleTopSustainedTest,"HAL.FutureCreation.BattleTop.SustainedContactIndependentCooldown",
+	EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALBattleTopSustainedTest::RunTest(const FString&)
+{
+	auto F=MakeShared<FTopPolishWorld>();
+	int32 NextPlayerId = 500;
+	const auto Make=[&]()
+	{
+		auto* P=F->Car(false);auto* D=FHALVehicleAbilityTestAccess::Configure(P,UHALBattleTopAbility::StaticClass());FHALVehicleAbilityTestAccess::RuntimeConfig(P,D->Abilities);
+		auto* PS=F->Player();PS->SetPlayerId(++NextPlayerId);PS->ChangeVehicleAvatar(P,1);P->DispatchBeginPlay();FHALBattleTopTestAccess::SetPose(P,true);return P;
+	};
+	auto* A=Make();auto* B=Make();auto* C=Make();auto* AA=CastChecked<UHALAbilitySystemComponent>(A->GetAbilitySystemComponent());
+	auto* BA=CastChecked<UHALAbilitySystemComponent>(B->GetAbilitySystemComponent());auto* CA=CastChecked<UHALAbilitySystemComponent>(C->GetAbilitySystemComponent());
+	auto* BodyA=CastChecked<UPrimitiveComponent>(A->GetRootComponent());auto* BodyB=CastChecked<UPrimitiveComponent>(B->GetRootComponent());auto* BodyC=CastChecked<UPrimitiveComponent>(C->GetRootComponent());
+	// Keep the actual query hulls touching. Physics responses are covered separately by live tests.
+	for (auto* P : {A, B, C})
+	{
+		FHALBattleTopTestAccess::FreezePhysics(P);
+	}
+	const FVector Touch=A->GetActorLocation()+FVector(BodyA->Bounds.BoxExtent.X+BodyB->Bounds.BoxExtent.X-1,0,0);
+	B->SetActorLocation(Touch,false,nullptr,ETeleportType::TeleportPhysics);C->SetActorLocation(Touch,false,nullptr,ETeleportType::TeleportPhysics);
+	TestTrue(TEXT("Native Primary starts"),AA->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary));
+	const auto HP=UHALHealthAttributeSet::GetCurrentHPAttribute();const float InitialB=BA->GetNumericAttribute(HP),InitialC=CA->GetNumericAttribute(HP);
+	FHitResult Hit;Hit.ImpactNormal=-FVector::ForwardVector;Hit.ImpactPoint=(A->GetActorLocation()+Touch)*.5;
+	UHALBattleTopComponent::HandleVehiclePair(*BodyA,*BodyB,FVector::ZeroVector,Hit);
+	UHALBattleTopComponent::HandleVehiclePair(*BodyA,*BodyC,FVector::ZeroVector,Hit);
+	TestEqual(TEXT("First target hit"),BA->GetNumericAttribute(HP),InitialB-5);
+	TestEqual(TEXT("Other target has an independent cooldown"),CA->GetNumericAttribute(HP),InitialC-5);
+	const auto Activation=FHALBattleTopTestAccess::Activation(A);
+	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FAdvanceTopPolish>(F,.35f,[this,F,A,B,C,BodyA,BodyB,BodyC,AA,BA,CA,HP,InitialB,InitialC,Hit,Touch,Activation]()
+	{
+		TestEqual(TEXT("Persistent contact cannot bypass cooldown"),BA->GetNumericAttribute(HP),InitialB-5);
+		C->SetActorLocation(Touch+FVector(0,5000,0),false,nullptr,ETeleportType::TeleportPhysics);
+		FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FAdvanceTopPolish>(F,.3f,[this,F,A,B,C,BodyA,BodyB,BodyC,AA,BA,CA,HP,InitialB,InitialC,Hit,Touch,Activation]()
+		{
+			C->SetActorLocation(Touch,false,nullptr,ETeleportType::TeleportPhysics);
+			UHALBattleTopComponent::HandleVehiclePair(*BodyA,*BodyC,FVector::ZeroVector,Hit);
+			TestEqual(TEXT("Leaving/reentering does not reset cooldown"),CA->GetNumericAttribute(HP),InitialC-5);
+			FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FAdvanceTopPolish>(F,.35f,[this,F,A,B,C,AA,BA,CA,HP,InitialB,InitialC,Touch,Activation]()
+			{
+				TestEqual(TEXT("Timer revalidates real touching bodies without another hit callback"),BA->GetNumericAttribute(HP),InitialB-10);
+				TestEqual(TEXT("Second target resumes on its own deadline"),CA->GetNumericAttribute(HP),InitialC-10);
+				B->SetActorLocation(Touch+FVector(0,5000,0),false,nullptr,ETeleportType::TeleportPhysics);C->SetActorLocation(Touch+FVector(0,6000,0),false,nullptr,ETeleportType::TeleportPhysics);
+				FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FAdvanceTopPolish>(F,1,[this,F,A,AA,BA,CA,HP,InitialB,InitialC,Activation]()
+				{
+					TestEqual(TEXT("Separation prevents phantom timer damage"),BA->GetNumericAttribute(HP),InitialB-10);
+					TestEqual(TEXT("Separated second target remains safe"),CA->GetNumericAttribute(HP),InitialC-10);
+					A->FindComponentByClass<UHALBattleTopComponent>()->Stop();TestEqual(TEXT("Stop clears per-avatar target clocks"),FHALBattleTopTestAccess::Targets(A),0);
+					FHALBattleTopTestAccess::SetPose(A,true);
+					TestTrue(TEXT("A new activation is independent"),AA->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary));
+					TestTrue(TEXT("Activation identity changes for late spark rejection"),FHALBattleTopTestAccess::Activation(A)!=Activation);
+				}));
+			}));
+		}));
+	}));
 	return true;
 }
 #endif

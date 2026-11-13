@@ -1,0 +1,209 @@
+{
+  "Date": "2026-11-13",
+  "Branch": "main",
+  "BaseCommit": "eb1079ca4583a6cbd624e39ef0ec2642a4a097aa",
+  "Engine": "5.8.2-56702186",
+  "Specification": "Docs/Combat/Car03_Battle_Top_Ability_Design_CN_v0.1.md",
+  "Handoff": "Docs/Presentation/Car03_BattleTop_Polish_FX_CN_v0.1.md",
+  "Builds": [
+    {
+      "Run": "Editor_R13",
+      "Result": "Succeeded",
+      "Target": "Editor"
+    },
+    {
+      "Run": "Game_R2",
+      "Result": "Succeeded",
+      "Target": "Game"
+    }
+  ],
+  "Reports": [
+    {
+      "Run": "Combined_R3",
+      "Passed": 16,
+      "Warned": 0,
+      "Failed": 0,
+      "Report": "Saved/BattleTop/Polish_20261113/Combined_R3/index.json"
+    },
+    {
+      "Run": "Low_R2_Host",
+      "Passed": 1,
+      "Warned": 0,
+      "Failed": 0,
+      "Report": "Saved/BattleTop/Polish_20261113/Low_R2_Host/index.json"
+    },
+    {
+      "Run": "Low_R2_Client",
+      "Passed": 1,
+      "Warned": 0,
+      "Failed": 0,
+      "Report": "Saved/BattleTop/Polish_20261113/Low_R2_Client/index.json"
+    },
+    {
+      "Run": "Lag80_R1_Host",
+      "Passed": 1,
+      "Warned": 0,
+      "Failed": 0,
+      "Report": "Saved/BattleTop/Polish_20261113/Lag80_R1_Host/index.json"
+    },
+    {
+      "Run": "Lag80_R1_Client",
+      "Passed": 1,
+      "Warned": 0,
+      "Failed": 0,
+      "Report": "Saved/BattleTop/Polish_20261113/Lag80_R1_Client/index.json"
+    }
+  ],
+  "Network": {
+    "Map": "/Game/Maps/MVPB_NetTest",
+    "Method": "Two real Editor -game processes, Listen Server, D3D12 offscreen",
+    "Fixture": "Spawned Car03 instances and process-scoped native skill recipe only; saved BP/DA unchanged",
+    "LowLatency": "Low_R2",
+    "InjectedHostOutboundLagMs": 80,
+    "LagRun": "Lag80_R1",
+    "EditorBuild": "Editor_R12",
+    "FinalEditorDelta": "Editor_R13 only adds a rendered WindSize assertion. Gameplay and presentation runtime sources unchanged since the network run.",
+    "Assertions": [
+      "Both real Primary requests via GAS",
+      "Owner and observer replicated authored spin rate",
+      "One saved wind system per car on both rendering endpoints",
+      "Repeated activation rejection",
+      "GE expiry and cooldown",
+      "Visual restoration and particle removal"
+    ],
+    "Unmeasured": "80 ms is injected host outbound lag, not a measured four-PC RTT"
+  },
+  "Render": {
+    "RHI": "D3D12_SM6",
+    "WarmPixels": 34356,
+    "RotatedPixels": 65001,
+    "FadedPixels": 38218,
+    "SparkPixels": 72,
+    "AdditionalAssertion": "Changing User.WindSize really changes rendered sprite size",
+    "SceneReview": "Actual Car03 owner and observer wind inspected after positioning and size correction",
+    "Screenshots": [
+      "Wind_0.bmp",
+      "Wind_Turned.bmp",
+      "Wind_Hidden.bmp",
+      "Wind_Small.bmp",
+      "Sparks_Forward.bmp",
+      "Low_R2_Client.png",
+      "Lag80_R1_Client.png"
+    ]
+  },
+  "Protection": {
+    "ExistingAssets": 1265,
+    "ConfigFiles": 4,
+    "ProjectFiles": 1,
+    "Compared": 1270,
+    "Changed": 0,
+    "NewAssets": [
+      "M_BattleTop_Wind",
+      "M_BattleTop_Spark",
+      "NS_BattleTop_Wind",
+      "NS_BattleTop_Sparks"
+    ],
+    "PreservedExistingUserModification": "Content/Blueprints/Gamemode/BP_MVPB_ListenGameMode.uasset",
+    "BlueprintsEditedByAgent": false,
+    "Committed": false,
+    "Pushed": false
+  },
+  "FullNativeSuiteRun": false,
+  "KnownPriorSuiteIssue": "Prior full suite has four failures referencing the renamed player DA. Not repaired or retested by this scoped task.",
+  "TeamPending": [
+    "Manually wire existing Car03 skill DA FX slots",
+    "Human entry/exit and cooldown feel",
+    "Actual wall/vehicle contact spark RPC appearance and direction",
+    "Moving near-ground sparks, air and recovery behavior",
+    "Complex impacts, four physical PCs and packaged build"
+  ],
+  "Iterations": [
+    "Initial sustained fixture reused PlayerId 0, corrected to unique IDs",
+    "Persistent geometry test freezes bodies so push does not separate expected contacts",
+    "Niagara lifecycle enum uses name rather than numeric default",
+    "ParticleColor RGBA output corrected after real shader check",
+    "Live scene revealed root-origin/size occlusion; now uses actual visual center and explicit sprite diameter"
+  ],
+  "FileSHA256": [
+    {
+      "Path": "Content/Assets/FX/BattleTop/M_BattleTop_Spark.uasset",
+      "SHA256": "CEE10DCCCA12BBF90231E9E9AD317F92AA8757A29BFD933E779CC5C104E21973"
+    },
+    {
+      "Path": "Content/Assets/FX/BattleTop/M_BattleTop_Wind.uasset",
+      "SHA256": "0802D6B04BED1167411C6188438FD867C02AA5E0039F016062BD95B053F3FA0D"
+    },
+    {
+      "Path": "Content/Assets/FX/BattleTop/NS_BattleTop_Sparks.uasset",
+      "SHA256": "1F25CBA682DF8894930117E821A25CA0D77079BD4E438C59E07047C5ECF463E7"
+    },
+    {
+      "Path": "Content/Assets/FX/BattleTop/NS_BattleTop_Wind.uasset",
+      "SHA256": "BC5B1527A76128468227095FD59F407997D237D80596F8822F1D491D0B0F204B"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp",
+      "SHA256": "D1C23E6A34CF0AAC8063039F32D168B55CEC07A8EE66482DB8241305E7F3FEE7"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALBattleTopAbility.cpp",
+      "SHA256": "A8316730AD2B24538BE6E53152E1582839BEB802B159291C3CBEA0B757FBDCE2"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALBattleTopAbility.h",
+      "SHA256": "A709AB3110E532312CBA88C65A29088E058FBE4D7EC95B54CF6D1043BD05E8BC"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALBattleTopComponent.cpp",
+      "SHA256": "7E998BCD5C20D79E2FB090CF837553D68606E4872290E93A19DAFC81B790CBB5"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALBattleTopComponent.h",
+      "SHA256": "CF38FA81811A085425961F4E7332CE0D35BE07DCAA811E7651D023E20278889F"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALBattleTopFXTypes.h",
+      "SHA256": "CCDF3BE1A1BD073A37B21FEE3E4FFCFB76CD2F6B3B228E5A86E641D5868656B5"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALBattleTopPresentation.cpp",
+      "SHA256": "6858F2C3474590CF17FF8F0F397A8F8A3F29903B678A1FF9BF1FFD12672D9ECB"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALImpactReceiverComponent.cpp",
+      "SHA256": "3AEFCC9F95698C01DCC4A35AAC26E7E715432201A23BCFCC75013BC8593D9E7F"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALAbilityNetworkSmokeTests.cpp",
+      "SHA256": "D204A43044327465BCA345808206106CFB95425D5280D0F47411CC5D6A498BFF"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALBattleTopRenderTests.cpp",
+      "SHA256": "F87BFB8DEE423BC60F3E099BFEDA9CB5C774EF95E5B57E0325ED982343CB0663"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALVehicleAbilityNetworkFixture.cpp",
+      "SHA256": "945388F19B4052A9D4FFBDC4D7BDABA4F30EFB6B1E2A4881DE9F412B86919A3A"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALVehicleAbilityTests.cpp",
+      "SHA256": "812B81F2D0081651CEC86D4D75B2BE83CC191E19AF77765EA6043095276C397A"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/VehicleBounceBackTypes.h",
+      "SHA256": "DAAC188C9CF891EEC76DD43B4B733B142AE41D294EE38E062EDE5A2F4EEDE3DD"
+    },
+    {
+      "Path": "Source/HAL_Future_CreationEditor/HAL_Future_CreationEditor.Build.cs",
+      "SHA256": "57CFAB4ADDE27031334F3FFC4BDB3D1E1E8C1AB21CFBF6A29467AD2003FE90A5"
+    },
+    {
+      "Path": "Source/HAL_Future_CreationEditor/Private/HALBuildBattleTopFXCommandlet.cpp",
+      "SHA256": "9F05C448E806FD7CE31140BD0FB286D8E06D3E7F75AFFFC5F4484D5801A291FF"
+    },
+    {
+      "Path": "Source/HAL_Future_CreationEditor/Public/HALBuildBattleTopFXCommandlet.h",
+      "SHA256": "58EF3E8FABE736EF4606AB2F813377402CA1EEE040E8090261552DCFEAA9C8D6"
+    }
+  ]
+}
