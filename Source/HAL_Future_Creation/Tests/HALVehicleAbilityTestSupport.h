@@ -9,6 +9,7 @@
 
 struct FHALVehicleAbilityTestAccess
 {
+	static constexpr float BattleTopNetworkSpinRate = 540.f;
 	static FHALVehicleAbilityConfig Config(TSubclassOf<UGameplayAbility> Ability)
 	{
 		FHALVehicleAbilityConfig C; C.Version=EHALVehicleAbilityVersion::VehicleDefinitionV1;

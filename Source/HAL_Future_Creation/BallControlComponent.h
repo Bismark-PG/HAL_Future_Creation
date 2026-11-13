@@ -39,6 +39,8 @@ public:
 		UPhysicsConstraintComponent* InBallConstraint);
 
 	bool LaunchHeldBall(FVector& OutRecoilDeltaVelocity);
+	bool LaunchBattleTopHeldBall(float LaunchSpeed);
+	bool LaunchSkillHeldBall(float LaunchSpeed);
 	/** The same tuned recoil calculation is used by the server and owning client's prediction. */
 	FVector CalculateRecoilDeltaVelocity() const;
 	/** Explicit server cleanup before the owning Pawn is unpossessed/destroyed. */
@@ -114,6 +116,9 @@ protected:
 
 private:
 #if WITH_DEV_AUTOMATION_TESTS
+	friend struct FHALBullChargeTestAccess;
+#endif
+#if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALVehicleLifecycleTestAccess;
 #endif
 #if WITH_DEV_AUTOMATION_TESTS
@@ -121,6 +126,7 @@ private:
 	friend class FHALImpactBallPipelineTest;
 	friend class FConfigurationPlayerBallTest;
 	friend struct FHALRecoveryTestAccess;
+	friend struct FHALBattleTopTestAccess;
 	friend struct FHALBallRelativeNetworkAccess;
 #endif
 	void EvaluateBallControl();
@@ -130,6 +136,7 @@ private:
 	void ConfigureConstraint(ABasicBallActor* Ball);
 	void ReleaseConstraint();
 	void ReleaseHeldBall(const FVector& ReleaseDirection, bool bApplyReleaseImpulse, FName Reason = NAME_None);
+	bool LaunchHeldBallWithVelocity(const FVector& InitialVelocity);
 	void DrawAcquisitionDebug(const ABasicBallActor* BestCandidate) const;
 
 	UPROPERTY(Transient)

@@ -24,6 +24,9 @@ public:
 	FGuid GetBindingEpoch() const { return Epoch; }
 	/** GT-only. Preserve all changed-channel recovery requests until one paired snapshot is queued. */
 	void SetAreaRecoverySeconds(const FVector& Seconds);
+	void SetAreaSway(const FHALMovementAreaSway& Sway);
+	void SetOverdriveMotion(const FHALOverdriveMotion& Motion);
+	void EndOverdriveMotion();
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 private:
@@ -41,8 +44,10 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UArcadeVehicleMovementComponent> Movement;
 	UPROPERTY(Transient) TObjectPtr<UNetworkPhysicsComponent> History;
 	TArray<TPair<FGameplayAttribute, FDelegateHandle>> AttributeHandles;
-	FDelegateHandle StunHandle, WorldHandle;
+	FDelegateHandle StunHandle, BattleTopHandle, WorldHandle;
 	FVector AreaRecoverySeconds = FVector::ZeroVector;
+	FHALMovementAreaSway AreaSway;
+	FHALOverdriveMotion Overdrive;
 	FHALMovementSnapshot LastPublished;
 	int32 BoundPlayerId = INDEX_NONE;
 	bool bDirty = false;

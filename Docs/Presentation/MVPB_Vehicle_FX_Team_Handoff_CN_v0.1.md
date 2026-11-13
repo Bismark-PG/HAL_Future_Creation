@@ -2,6 +2,29 @@
 
 适用于特效制作、双端验收和接续开发。核对基点为 `main/e43e1fa`，引擎为 UE **5.8.3-58210709**。本轮交接核对保存资产引用与源码，实际画面由团队按下文验收。优先完成 FX-5 三车型共享电击，再验收 FX-4 的通用材质与粒子模板。两项结果都可用于后续 FX-6 组合测试。 [项目当前进度](../Project_Status_CN.md)
 
+## 量产特效视觉纲领（2026-11-11 补充）
+
+用户已试玩 SlipperyTrail 新涂鸦材质，反馈其风格比旧油膜明显接近预期；颜色将由用户继续调试。此反馈确认视觉方向，具体材质尚需继续调参，未扩展为所有场景或双端验收通过。下述纲领适用于后续技能、地面区域、车辆状态及机关特效，后文车型／引用清单仍保留原交接时点。
+
+**保持《Need for Speed Unbound》启发的夸张卡通与手绘涂鸦风格，整体呈现应稍柔和、圆润。** 保留清楚的轮廓、概括色块与动作节奏，在颜色、纹理和边缘上减少当前首版过于尖锐、刺眼的感觉。
+
+- **颜色：** 保留卡通分色与必要对比，适度缓和相邻色块和笔触的明暗／色彩反差；具体配色由用户调试，不将首版绿紫配色固化为通用要求。
+- **纹理与形状：** 优先使用圆润、饱满、较宽的手绘笔触，减少密集细碎纹理、针状尖端和锯齿感。允许少量尖锐形状表达速度／冲击，但应服务效果语义。
+- **描边与过渡：** 保留可读轮廓，粗细应可调；颜色带之间允许短而柔和的过渡。软化程度以比赛镜头下仍能清楚辨认效果为准。
+- **制作与验收：** 柔和化与卡通风格同时成立，保留车辆、球、危险区域边界的可读性。以比赛镜头检查大形、颜色与笔触比例，再检查近景细节。
+
+SlipperyTrail 当前描边调节方法见[涂鸦材质：描边粗细与柔和度](Slippery_Trail_Graffiti_Material_CN_v0.1.md#描边粗细与柔和度)。本次只补充视觉方向与配置说明，没有按此修改现有资源。
+
+2026-11-11 后续施工已在现有涂鸦母材质接入平滑体积明暗与独立的真实投影开关，原 MI 配色和技能 DA 保留。地面表现网格的 **UV1 保留给平滑权重梯度**，复用地面材质时勿将其改作笔触平铺；基础纹理仍使用 UV0。参数及复用边界见[体积明暗与投影](Slippery_Trail_Graffiti_Material_CN_v0.1.md#体积明暗与投影2026-11-11)和[公共地面合同](Ground_Surface_Deformation_CN_v0.1.md#平滑体积明暗的附加合同2026-11-11)。上一段“本次只补说明”保留纲领确认时点。
+
+SlipperyTrail 结束消散也已接入：玩法到期先移除区域来源并结束 GAS，随后仅保留视觉图块退场；DA 管 `Dissolve Seconds`，MI 的 **05 Dissolve** 管图块／边缘外观。不得用剩余画面反向注册玩法作用。见[消散配置与验证](Slippery_Trail_Dissolve_CN_v0.1.md)；不含额外蒸汽粒子，其他区域的生命周期没有自动改动。
+
+SlipperyTrail 圆润油漆溢边已接入：DA 的 `Presentation → Paint Edge` 控制薄的纯表现余量，MI 的 **06 Paint edge** 控制噪声大形、细节与按厘米调节的随形描边。**UV2 保留给边缘距离／余量（cm），UV1 继续保留给体积梯度。** 不得以视觉溢边扩大打滑查询或添加碰撞；原主体覆盖保持。见[配置、通道合同与本轮验证](Slippery_Trail_Paint_Edge_CN_v0.1.md)。
+
+同日新增地面主体朝向三色，参考 TireSkid 的三档卡通明暗思路。MI **07 Three tone shading** 调独立三色、虚拟来光和门槛，满强度时替代旧高度分色并关闭 04 的额外明暗倍率，ToonStrength=0 恢复旧配方；轮胎烟尘资源本身没有修改。当前保留 C++ 地面网格，Niagara／液团暂缓；详见[三档明暗配置](Slippery_Trail_Three_Tone_CN_v0.1.md)。
+
+2026-11-12 追加暗绿色边缘与中间色缓冲，仍在 MI 的 07 分组调节。新模式边缘色独立于原 InkColor，避免影响网点；Paint Custom 的 RGB 合同保持，A 增加轮廓内深度。详见[边缘配置、合同与验证](Slippery_Trail_Edge_Buffer_CN_v0.1.md)。
+
 ## 1. 从哪辆车、哪个组件找起
 
 实际选车由 `/Game/Data/Gameflow/DA_VehicleCatalog_Default` 的 Vehicle ID 找到 Pawn BP。Pawn 的 **Vehicle → Configuration → Definition** 指向车辆定义。定义的 **Visual → Presentation** 指向车型表现 DA，里面放 Skeletal Mesh、Anim Class、车身姿态与回弹、悬挂、漂移／急刹拖尾。状态特效另走 **Project Settings → Game → Vehicle Status FX → Default Catalog**，普通车型的 **Visual → Status FX → Status FX Catalog Override** 留空时继承项目默认。

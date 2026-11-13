@@ -37,7 +37,7 @@ bool UArcadeVehicleMovementComponent::QueueMovementParameters(const FHALMovement
 	{
 		FScopeLock Lock(&PendingPhysicsDataLock);
 		if (Value.Epoch != MovementEpochExternal) { return false; }
-		if (Value.bHasAreaState && Value.Revision > 1)
+		if ((Value.bHasAreaState || Value.Overdrive.Activation.IsValid()) && Value.Revision > 1)
 		{
 			const auto& Previous = PublishedMovementStatus.Definition;
 			// Coalesce GT changes until the previous command has an actual authority frame.
@@ -82,7 +82,7 @@ void UArcadeVehicleMovementComponent::ApplyMovementAction(const FVehicleMovement
 {
 	ApplyPendingMovementConfiguration();
 	if (!Action.Value.IsValidValues() || Action.Value.Epoch != MovementEpoch || !UpdatedPrimitive) { return; }
-	if (Action.Value.bHasAreaState && (!FMath::IsFinite(Action.FixedDeltaSeconds) || Action.FixedDeltaSeconds <= 0
+	if ((Action.Value.bHasAreaState || Action.Value.Overdrive.Activation.IsValid()) && (!FMath::IsFinite(Action.FixedDeltaSeconds) || Action.FixedDeltaSeconds <= 0
 		|| Action.FixedDeltaSeconds > 1 || (Action.Value.Revision > 1 && (!Action.Previous.IsValid()
 			|| Action.Previous.Epoch != Action.Value.Epoch || Action.Previous.Revision != Action.Value.Revision - 1)))) { return; }
 	FBodyInstance* Body = UpdatedPrimitive->GetBodyInstance();
@@ -208,6 +208,7 @@ void UArcadeVehicleMovementComponent::PrepareMovementFrame(Chaos::FPBDRigidsSolv
 	ApplyPendingMovementConfiguration();
 	const int32 Offset = Solver ? UE::NetworkPhysicsUtils::GetNetworkPhysicsTickOffset_Internal(Solver) : 0;
 	const int32 ServerFrame = LocalFrame >= 0 ? LocalFrame + Offset : INDEX_NONE;
+	CurrentMovementServerFrame = ServerFrame;
 	if (MovementHistory && bUseNetworkPhysicsHistory.Load())
 	{
 		const auto& History = MovementHistory->GetStateHistory_Internal();

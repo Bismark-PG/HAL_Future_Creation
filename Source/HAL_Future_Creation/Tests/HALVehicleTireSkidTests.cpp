@@ -134,7 +134,10 @@ bool FHALTireSkidRHITest::RunTest(const FString&)
 	auto* FX = FHALPresentationTestAccess::TireSkid(F.Presentation,2);
 	if (!TestNotNull(TEXT("Requires real RHI: Niagara component created"), FX)) { return false; }
 	TestEqual(TEXT("Saved system assigned"), FX->GetAsset(), TireSystem());
-	TestTrue(TEXT("Ground offset applied"), FX->GetComponentLocation().Equals(FVector(-100,-100,51),.1));
+	const auto& Skid = FHALPresentationTestAccess::Config(F.Presentation)->TireSkid;
+	const FVector Expected = FVector(-100,-100,50) + FVector::UpVector * Skid.SurfaceOffsetCm
+		+ F.Body->GetComponentQuat().RotateVector(Skid.ContactOffsetCm);
+	TestTrue(TEXT("Ground offset applied"), FX->GetComponentLocation().Equals(Expected,.1));
 	const FNiagaraVariable Parameter(FNiagaraTypeDefinition::GetFloatDef(),TEXT("User.SlipRatio"));
 	TestEqual(TEXT("Actual User parameter override"), FX->GetOverrideParameters().GetParameterValue<float>(Parameter),1.f);
 	FHALPresentationTestAccess::PublishTireSkidInput(F.Pawn,0); F.Tick();

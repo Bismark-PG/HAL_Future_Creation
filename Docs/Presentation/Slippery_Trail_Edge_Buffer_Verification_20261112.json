@@ -1,0 +1,340 @@
+{
+  "date": "2026-11-12",
+  "base_commit": "9a673e3",
+  "branch": "main",
+  "engine": "5.8.3-58210709",
+  "scope": "Independent dark green rim and adjustable mid-color buffer; existing mesh, WPO, dissolve and gameplay preserved",
+  "build_targets": "Not rerun: no C++ or reflection changes",
+  "native_rule_tests": "Not rerun: 349 Source files unchanged",
+  "material": {
+    "coverage_after": [
+      "MaterialExpressionMultiply_13",
+      ""
+    ],
+    "wpo_after": [
+      "MaterialExpressionAppendVector_0",
+      ""
+    ],
+    "coverage_before": [
+      "MaterialExpressionMultiply_13",
+      ""
+    ],
+    "wpo_before": [
+      "MaterialExpressionAppendVector_0",
+      ""
+    ],
+    "existing_parameters_unchanged": true,
+    "status": "updated",
+    "statistics": {
+      "num_vertex_shader_instructions": 179,
+      "num_pixel_shader_instructions": 453,
+      "num_samplers": 1
+    },
+    "nodes": 115,
+    "new_parameters": {
+      "ToonEdgeColor": [
+        0.04122525081038475,
+        0.18046875298023224,
+        0.032973598688840866,
+        1.0
+      ],
+      "ToonEdgeBufferWidth": 24.0,
+      "ToonEdgeBufferSoftness": 12.0
+    }
+  },
+  "reference_render": {
+    "status": "passed",
+    "cases": [
+      {
+        "name": "Floor",
+        "coverage_pixels": 0
+      },
+      {
+        "name": "Reference",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "LegacyReference",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "HalfReference",
+        "coverage_pixels": 98262
+      }
+    ],
+    "readback": "FColor 8-bit, normalize=False",
+    "mask_source": "SceneColor HDR inverse opacity alpha, floor excluded",
+    "size": [
+      768,
+      512
+    ],
+    "geometry": "native BuildRibbon Paint.csv export",
+    "baseline": true,
+    "statistics": {
+      "num_vertex_shader_instructions": 179,
+      "num_pixel_shader_instructions": 438,
+      "num_samplers": 1
+    },
+    "alpha_ranges": [
+      [
+        255,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ]
+    ]
+  },
+  "reference_process": {
+    "ExitCode": 0
+  },
+  "render": {
+    "status": "passed",
+    "cases": [
+      {
+        "name": "Floor",
+        "coverage_pixels": 0
+      },
+      {
+        "name": "Unprotected",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "Protected",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "DiagnosticOpen",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "DiagnosticGuarded",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "Wider",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "Softer",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "Wave",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "Reverse",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "DissolveHalf",
+        "coverage_pixels": 98262
+      },
+      {
+        "name": "Gone",
+        "coverage_pixels": 0
+      },
+      {
+        "name": "Restored",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "Legacy",
+        "coverage_pixels": 189123
+      }
+    ],
+    "readback": "FColor 8-bit, normalize=False",
+    "mask_source": "SceneColor HDR inverse opacity alpha, floor excluded",
+    "size": [
+      768,
+      512
+    ],
+    "geometry": "native BuildRibbon Paint.csv export",
+    "baseline": false,
+    "statistics": {
+      "num_vertex_shader_instructions": 179,
+      "num_pixel_shader_instructions": 453,
+      "num_samplers": 1
+    },
+    "alpha_ranges": [
+      [
+        255,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        255,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ]
+    ],
+    "unprotected_reference_changed_channels": 0,
+    "legacy_reference_changed_channels": 0,
+    "coverage_difference": {
+      "Unprotected": 0,
+      "DiagnosticOpen": 0,
+      "DiagnosticGuarded": 0,
+      "Wider": 0,
+      "Softer": 0,
+      "Wave": 0,
+      "Reverse": 0,
+      "Restored": 0,
+      "Legacy": 0
+    },
+    "changes": {
+      "new_style": 39033,
+      "width": 30566,
+      "softness": 23238,
+      "wave": 34497,
+      "direction": 167933,
+      "restore": 0
+    },
+    "diagnostic_shadow_mid_lit_pixels": [
+      68095,
+      78203,
+      38420
+    ],
+    "edge_band": {
+      "pixels": 15027,
+      "max_4_neighbor_distance_px": 10,
+      "unprotected_shadow_or_lit_pixels": 7854,
+      "protected_shadow_or_lit_pixels": 0,
+      "original_green_rim_fraction": 0.00048204386599180526,
+      "new_green_rim_fraction": 0.9141961918534587
+    },
+    "half_dissolve_difference": 0,
+    "dissolve_regrowth": 0,
+    "gone_pixels": 0
+  },
+  "render_process": {
+    "ExitCode": 0
+  },
+  "network": [
+    {
+      "Role": "Host",
+      "Pid": 44520,
+      "Exit": 0,
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0
+    },
+    {
+      "Role": "Client1",
+      "Pid": 15292,
+      "Exit": 0,
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0
+    }
+  ],
+  "network_setup": {
+    "nondefault_maximum_outset_cm": 12,
+    "real_rhi": "D3D12 offscreen both roles",
+    "nondefault_maximum_half_width_fraction": 0.06,
+    "observations": [
+      "Mesh=1 FullWidth=1",
+      "Clock=1 GameplayOffWhileVisible=1",
+      "Final source and mesh cleanup"
+    ],
+    "host_outbound_injected_ms": 80,
+    "nondefault_dissolve_seconds": 1.2
+  },
+  "protection": {
+    "asset_config_project_total": 1246,
+    "asset_config_project_unchanged": 1245,
+    "changed": [
+      {
+        "Path": "Content\\Assets\\FX\\Materials\\M_SlipperyTrail_Graffiti.uasset",
+        "Before": "3EFBF34D7C2BCA5FE86A5B8321D376BC0A4AB73C4BEDF6380DB65EE2467430D3",
+        "After": "A99D0FF5ABE4B977CF782E09D12B27DD1231AA98CE363157C3304F23A87EE67B",
+        "Unchanged": false
+      }
+    ],
+    "source_total": 349,
+    "source_unchanged": 349,
+    "source_changed": []
+  },
+  "tool_hashes": [
+    {
+      "path": "Tools/SlipperyTrailGraffiti/PaintEdge.hlsl",
+      "sha256": "11CBEB56BCE5646F83264D7EA36BDB6B7EA60ED99E2BB5E26475FAEB8924A07F"
+    },
+    {
+      "path": "Tools/SlipperyTrailGraffiti/ThreeToneShading.hlsl",
+      "sha256": "AEF9E6D80EF98249EDFE3F8E3A6C702F8E77DB5AD7CB09F0E0B88E2F28023B53"
+    },
+    {
+      "path": "Tools/SlipperyTrailGraffiti/UpdatePaintEdgeMaterial.py",
+      "sha256": "BF6549021F703E758DE93E6EEFFD5DA256E98B4928E6423589963A13EE657E6F"
+    },
+    {
+      "path": "Tools/SlipperyTrailGraffiti/UpdateThreeToneMaterial.py",
+      "sha256": "092D8D2CAC3A6446536FC1F7CEA19D0F24B371D1B5000385FE1201116F28A5CD"
+    }
+  ],
+  "evidence_directory": "Saved/SlipperyTrail/EdgeBuffer_20261112",
+  "limitations": [
+    "Original map art and human acceptance pending",
+    "No new Niagara, blob or dissolve-hole buffer",
+    "Edge depth is interpolated strip/cap metadata with the same paint noise, not an exact arbitrary-mesh Euclidean distance field",
+    "No campus multi-machine, packaged-build or many-region performance acceptance"
+  ],
+  "committed": false,
+  "pushed": false
+}

@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "../HALDebugSettings.h"
+#include "../HALExpandingSlipperyArea.h"
 #include "../HALPlayerController.h"
 #include "../HALPlayerState.h"
 #include "../BasicBallActor.h"
@@ -23,6 +24,8 @@ namespace
 		TSoftClassPtr<ABasicBallActor> PreviousClass = Settings->DefaultBallClass;
 		float PreviousDistance = Settings->BallForwardDistance;
 		float PreviousHeight = Settings->BallHeightOffset;
+		TSoftClassPtr<AHALExpandingSlipperyArea> PreviousAreaClass = Settings->DefaultSlipperyAreaClass;
+		float PreviousAreaDistance = Settings->SlipperyAreaForwardDistance;
 		FDebugBallWorld()
 		{
 			const auto Values = UWorld::InitializationValues().AllowAudioPlayback(false).RequiresHitProxies(false)
@@ -38,6 +41,8 @@ namespace
 			Settings->DefaultBallClass = PreviousClass;
 			Settings->BallForwardDistance = PreviousDistance;
 			Settings->BallHeightOffset = PreviousHeight;
+			Settings->DefaultSlipperyAreaClass = PreviousAreaClass;
+			Settings->SlipperyAreaForwardDistance = PreviousAreaDistance;
 		}
 		TArray<ABasicBallActor*> Balls() const
 		{
@@ -111,4 +116,44 @@ bool FHALDebugBallSpawnTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALDebugSlipperySpawnTest, "HAL.FutureCreation.Debug.SlipperyAreaSpawnAuthorityAndConfiguration",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALDebugSlipperySpawnTest::RunTest(const FString& Parameters)
+{
+	FDebugBallWorld F;
+	F.Settings->DefaultSlipperyAreaClass = AHALExpandingSlipperyArea::StaticClass();
+	F.Settings->SlipperyAreaForwardDistance = 350;
+	const auto Count = [&]() { int32 N = 0; for (TActorIterator<AHALExpandingSlipperyArea> It(F.World); It; ++It) { ++N; } return N; };
+	auto* Controller = F.World->SpawnActor<AHALPlayerController>();
+	Controller->SetAsLocalPlayerController();
+	Controller->HALSpawnSlipperyArea();
+	TestEqual(TEXT("No vehicle rejected"), Count(), 0);
+	Controller->SetPlayerState(F.World->SpawnActor<AHALPlayerState>());
+	auto* Vehicle = F.World->SpawnActor<ATestVehiclePawn>();
+	Vehicle->SetActorLocation(FVector(1000, 2000, 500));
+	Vehicle->SetActorRotation(FRotator(0, 90, 0));
+	Controller->Possess(Vehicle);
+	Controller->HALSpawnSlipperyArea();
+	if (!TestEqual(TEXT("One request produces one area"), Count(), 1)) { return false; }
+	TActorIterator<AHALExpandingSlipperyArea> It(F.World);
+	const auto* Area = *It;
+	TestTrue(TEXT("Position derived from authority vehicle heading"), Area->GetActorLocation().Equals(FVector(1000,2350,500), .1));
+	TestTrue(TEXT("Replicated authority actor"), Area->GetIsReplicated());
+	TestEqual(TEXT("Configured class retained"), Area->GetClass(), AHALExpandingSlipperyArea::StaticClass());
+	TestEqual(TEXT("Actor defaults preserved"), Area->GetAreaConfig().MaximumRadius,
+		GetDefault<AHALExpandingSlipperyArea>()->GetAreaConfig().MaximumRadius);
+	F.Settings->DefaultSlipperyAreaClass.Reset();
+	Controller->HALSpawnSlipperyArea();
+	TestEqual(TEXT("Missing class does not fall back"), Count(), 1);
+	F.Settings->DefaultSlipperyAreaClass = AHALExpandingSlipperyArea::StaticClass();
+	F.Settings->SlipperyAreaForwardDistance = -1;
+	Controller->HALSpawnSlipperyArea();
+	TestEqual(TEXT("Invalid distance rejected"), Count(), 1);
+	F.Settings->SlipperyAreaForwardDistance = 350;
+	Controller->UnPossess();
+	Controller->Possess(F.World->SpawnActor<APawn>());
+	Controller->HALSpawnSlipperyArea();
+	TestEqual(TEXT("Nonvehicle rejected"), Count(), 1);
+	return true;
+}
 #endif

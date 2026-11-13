@@ -1,0 +1,261 @@
+{
+  "date": "2026-11-11",
+  "base_commit": "53d3fa2",
+  "branch": "main",
+  "engine": "5.8.3-58210709",
+  "build": {
+    "game": "R2 succeeded, exit 0",
+    "editor": "R2 succeeded, exit 0"
+  },
+  "native": {
+    "succeeded": 13,
+    "succeededWithWarnings": 0,
+    "failed": 0,
+    "notRun": 0,
+    "inProcess": 0
+  },
+  "wpo_render_smoke": {
+    "succeeded": 1,
+    "succeededWithWarnings": 0,
+    "failed": 0,
+    "notRun": 0,
+    "inProcess": 0
+  },
+  "network": [
+    {
+      "Role": "Host",
+      "Pid": 33108,
+      "Exit": 0,
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0
+    },
+    {
+      "Role": "Client1",
+      "Pid": 43700,
+      "Exit": 0,
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0
+    }
+  ],
+  "network_setup": {
+    "nondefault_maximum_half_width_fraction": 0.06,
+    "nondefault_maximum_outset_cm": 12,
+    "real_rhi": "D3D12 offscreen both roles",
+    "host_outbound_injected_ms": 80,
+    "assertions": [
+      "Replicated paint settings and area-local MID enabled",
+      "No query or physics collision",
+      "Full expanded render extent",
+      "Clock=1",
+      "GameplayOffWhileVisible=1",
+      "Final source and mesh cleanup"
+    ],
+    "nondefault_dissolve_seconds": 1.2
+  },
+  "render": {
+    "cases": [
+      {
+        "name": "Floor",
+        "retained_pixels": 0
+      },
+      {
+        "name": "Legacy",
+        "retained_pixels": 177308
+      },
+      {
+        "name": "Core",
+        "retained_pixels": 178844
+      },
+      {
+        "name": "Paint",
+        "retained_pixels": 189123
+      },
+      {
+        "name": "Envelope",
+        "retained_pixels": 200655
+      },
+      {
+        "name": "Repeat",
+        "retained_pixels": 189123
+      },
+      {
+        "name": "DissolveHalf",
+        "retained_pixels": 98262
+      },
+      {
+        "name": "Gone",
+        "retained_pixels": 0
+      },
+      {
+        "name": "LegacyRestored",
+        "retained_pixels": 177308
+      },
+      {
+        "name": "Styled",
+        "retained_pixels": 189300
+      }
+    ],
+    "channel_difference_threshold_u8": 6,
+    "normalize_readback": false,
+    "geometry": "native BuildRibbon CSV export",
+    "ortho_width_cm": 900,
+    "size": [
+      768,
+      512
+    ],
+    "statistics": {
+      "num_vertex_shader_instructions": 179,
+      "num_pixel_shader_instructions": 373,
+      "num_samplers": 1
+    },
+    "meshes": {
+      "Legacy": {
+        "vertices": 97,
+        "triangles": 168
+      },
+      "Paint": {
+        "vertices": 241,
+        "triangles": 432
+      }
+    },
+    "coverage_checks": {
+      "legacy_pixels_lost": 0,
+      "core_pixels_lost": 0,
+      "outside_envelope": 0,
+      "added_outside_core": 10279,
+      "cut_from_envelope": 11532,
+      "static_mask_difference": 0,
+      "dissolve_regrowth": 0,
+      "gone_pixels": 0,
+      "restored_difference": 0
+    },
+    "radial_outset_cm": {
+      "minimum": 1.171875,
+      "maximum": 14.6484375,
+      "variation": 13.4765625
+    },
+    "status": "passed"
+  },
+  "render_process": {
+    "ExitCode": 0
+  },
+  "saved_recipe": {
+    "saved_config": "/Game/Data/Abilities/DA_Ability_SlipperyTrail.DA_Ability_SlipperyTrail",
+    "paint_edge": {
+      "enabled": true,
+      "maximum_outset": 15.0,
+      "maximum_half_width_fraction": 0.07999999821186066
+    },
+    "dissolve_seconds": 1.0,
+    "ground_material": "/Game/Assets/FX/Materials/MI_SlipperyTrail_Graffiti.MI_SlipperyTrail_Graffiti",
+    "base_material": "/Game/Assets/FX/Materials/M_SlipperyTrail_Graffiti.M_SlipperyTrail_Graffiti",
+    "shading_model": "<MaterialShadingModel.MSM_UNLIT: 0>",
+    "blend_mode": "<BlendMode.BLEND_MASKED: 1>",
+    "saved_assets": false
+  },
+  "protection": {
+    "Total": 1246,
+    "Unchanged": 1245,
+    "Changed": [
+      {
+        "Path": "Content\\Assets\\FX\\Materials\\M_SlipperyTrail_Graffiti.uasset",
+        "Before": "1A0C54796D288B57DD41481B02E8431A380E172F4AA44C8000805F387679290A",
+        "After": "572DA2D4E2515EFC115E680D9D02F455473F43D484ADA223A6D9AFBACBD352BF",
+        "Unchanged": false
+      }
+    ],
+    "Logic": [
+      {
+        "Path": "Source/HAL_Future_Creation/HALSlipperyTrail.cpp",
+        "Before": "80922967DEC6E758A7E175E2E408FD1681F618D1F0C6CFB3D88E64185896D05B",
+        "After": "80922967DEC6E758A7E175E2E408FD1681F618D1F0C6CFB3D88E64185896D05B",
+        "Unchanged": true
+      },
+      {
+        "Path": "Source/HAL_Future_Creation/HALSlipperyTrailAbility.cpp",
+        "Before": "71D7534A14C4F15E67D8C7C087A1188F847A5976EB70DA137229E8FC520080BE",
+        "After": "71D7534A14C4F15E67D8C7C087A1188F847A5976EB70DA137229E8FC520080BE",
+        "Unchanged": true
+      },
+      {
+        "Path": "Source/HAL_Future_Creation/HALSlipperyTrailAbility.h",
+        "Before": "F3B9B50043BF3B74725CE5766AEA7EE68CCB87ADBF25C98189C6A0420F895AB3",
+        "After": "F3B9B50043BF3B74725CE5766AEA7EE68CCB87ADBF25C98189C6A0420F895AB3",
+        "Unchanged": true
+      },
+      {
+        "Path": "Source/HAL_Future_Creation/HALMovementAreaReceiver.cpp",
+        "Before": "2C14CBFBA9FE2E95C1AB15C087B29D06E12530667B414EC48C6F8BA08775BC79",
+        "After": "2C14CBFBA9FE2E95C1AB15C087B29D06E12530667B414EC48C6F8BA08775BC79",
+        "Unchanged": true
+      },
+      {
+        "Path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp",
+        "Before": "C2ECE648A48F1D79693EC2FECF3DCE912612E1621E5D73DF6B85DFED81BEEDA7",
+        "After": "C2ECE648A48F1D79693EC2FECF3DCE912612E1621E5D73DF6B85DFED81BEEDA7",
+        "Unchanged": true
+      }
+    ]
+  },
+  "input_hashes": [
+    {
+      "path": "Source/HAL_Future_Creation/HALGroundSurfacePresentation.h",
+      "sha256": "7A73B3A987B484444A147CED27FA1BC3778EF07A7C916253D753973EF1C0AAAD"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGroundSurfacePresentation.cpp",
+      "sha256": "9CBDB080813F917D42B5BBDC1277A661B7353D2441AD2BB293A2F9DEC172DF7E"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALSlipperyTrail.h",
+      "sha256": "2E128CF52BD5D6A49FCAABC970F16C305510E673A1DE5EA4DF4FB5171219462A"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALSlipperyTrailPresentation.cpp",
+      "sha256": "2DB265391DC3C1D14522501A6EE1A1D868E0C9F8E490CCDC26AB0E618C856771"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALGroundSurfaceTests.cpp",
+      "sha256": "4650F20D7F9C926001A63C9B9975E67C9CC4AAC969C848178F41ECDB2F93E560"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALSlipperyTrailTests.cpp",
+      "sha256": "F34EA8FF4983D8A9434BCC5B5C762D9F9AEFF1254ED62F8F9D8C35C6D200B67F"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALSlipperyTrailNetworkTests.cpp",
+      "sha256": "6B4A547B7883823A7DD14975CF5E8BA308A1D10668C1112F6FBF043950B2C86B"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleAbilityNetworkFixture.cpp",
+      "sha256": "18C5119D2DA36D4D551AD98A4C3F10C08FE309662F72D94117C584EC20722832"
+    },
+    {
+      "path": "Tools/SlipperyTrailGraffiti/PaintEdge.hlsl",
+      "sha256": "D97E28647498E9D2A083E23637B63AB3120F4369904C3B25A1A9849CADEE7DBF"
+    },
+    {
+      "path": "Tools/SlipperyTrailGraffiti/UpdatePaintEdgeMaterial.py",
+      "sha256": "3510D7363E5611393CC18292033041E52EAF84DE4C8318B53E851286D287AC01"
+    }
+  ],
+  "evidence_directory": "Saved/SlipperyTrail/PaintEdge_20261111",
+  "intermediate_records": [
+    "Restricted material attempt produced no report and does not count as evidence",
+    "R1 pixel fixture failed with an empty frame due to Python Rotator positional argument order; R2 uses look-at rotation and passed"
+  ],
+  "limitations": [
+    "Original map art and human acceptance pending",
+    "Not campus multi-machine, packaged-build or many-overlapping-surface performance acceptance",
+    "No droplets or spray particles",
+    "New UV2 is interpolated ribbon metadata, not a general mesh signed distance field"
+  ],
+  "committed": false,
+  "pushed": false
+}

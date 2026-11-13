@@ -1,0 +1,185 @@
+{
+  "date": "2026-11-10",
+  "base_commit": "e12a1d994a15a59a13c898465248eca65077f2c9",
+  "branch": "main",
+  "engine": "5.8.3-58210709",
+  "scope": "Editor collision generator: update loaded generated mesh in place, keep creation, reference identity, material slots, staged generation/cooking, component refresh, save/reload and UI target tests",
+  "implementation": {
+    "update_saves_to_disk": false,
+    "requires_supported_recipe": true,
+    "supports_legacy_v1": true,
+    "preserves_mesh_and_bodysetup_identity": true,
+    "retains_materials_and_non_geometry_body_properties": true,
+    "clears_target_on_failed_load_and_successful_create": true,
+    "rejects_PIE_simulation_cooked_transient_engine_missing_source_and_nonunit_build_scale": true,
+    "dedicated_undo_redo_transaction": false,
+    "candidate_failures_precede_target_mutation": true,
+    "commit_failure_restores_old_source_and_collision": true,
+    "restoration_failure_requests_disk_reload": true
+  },
+  "build": {
+    "affected_cpp_translation_units_compiled": true,
+    "main_editor_target": "Succeeded: HAL_Future_CreationEditor Win64 Development, R6, exit 0, after user saved and closed Editor",
+    "isolated_module_link_exit": 0,
+    "isolated_module": "Saved/CollisionGeneratorUpdate/20261110/TestProject/Binaries/Win64/UnrealEditor-HAL_Future_CreationEditor.dll",
+    "isolated_link_method": "Same UBT-generated response file and compiled object files; only /OUT and /PDB redirected into verification project",
+    "game_target_run": false,
+    "verification_process_only_environment": [
+      "TMP",
+      "TEMP",
+      "UBA_ROOT"
+    ],
+    "main_binary_replaced": true,
+    "main_editor_target_exit": 0
+  },
+  "earlier_attempts": [
+    "R1: Build.bat lock cannot be opened in default temporary directory; stopped own build session",
+    "R2: UBA cache directory denied under ProgramData; stopped own build session, redirected task-local UBA_ROOT",
+    "R3: global LiveCoding mutex access denied before compilation",
+    "R4: implementation and UI tests compiled; native fixture had protected mass property access and bitfield guard errors; both fixed",
+    "R5: native fixture compiled; main DLL link failed because the file is in use",
+    "Main DLL sharing violation resolved after user saved and closed Editor. R6 successfully linked the main module and wrote metadata."
+  ],
+  "automation": {
+    "executed_and_verified": false,
+    "new_native_test_count": 2,
+    "new_slate_interaction_test_count": 1,
+    "native_group_total": 7,
+    "rendering_UI_group_total": 3,
+    "native_filter": "HAL.Editor.CollisionGenerator",
+    "UI_filter": "HAL.EditorUI.CollisionGenerator",
+    "launches": [
+      {
+        "mode": "Isolated project, Entry, NullRHI, unattended",
+        "process_exit": 0,
+        "UE_log_created": false,
+        "automation_report_created": false
+      },
+      {
+        "mode": "Isolated project, engine binary cwd, user directory, multiprocess, Entry, NullRHI",
+        "process_exit": 0,
+        "UE_log_created": false,
+        "automation_report_created": false
+      },
+      {
+        "mode": "Main project, Entry, NullRHI, unattended, UnrealEditor-Cmd",
+        "process_exit": 0,
+        "UE_log_created": false,
+        "automation_report_created": false
+      },
+      {
+        "mode": "Main project, Entry, NullRHI, unattended, hidden UnrealEditor via Start-Process with stdout/stderr redirection",
+        "process_exit": 0,
+        "UE_log_created": false,
+        "automation_report_created": false
+      }
+    ],
+    "result": "Unverified. Process exit 0 without UE logs or report is not a test pass.",
+    "forced_commit_failure_and_restore_exercised": false,
+    "team_visual_or_driving_acceptance": false
+  },
+  "protection": {
+    "saved_asset_baseline_count": 1213,
+    "saved_assets_SHA256_unchanged": true,
+    "baseline_files_count": 1552,
+    "only_source_baseline_changes": [
+      "Source/HAL_Future_CreationEditor/Private/HALVehicleCollisionGenerator.cpp",
+      "Source/HAL_Future_CreationEditor/Private/HALVehicleCollisionGenerator.h",
+      "Source/HAL_Future_CreationEditor/Private/SHALVehicleCollisionGenerator.cpp",
+      "Source/HAL_Future_CreationEditor/Private/Tests/HALCollisionGeneratorUITests.cpp",
+      "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleCollisionGeneratorTests.cpp"
+    ],
+    "runtime_source_config_uproject_build_cs_unchanged": true,
+    "existing_user_working_changes": "None at start",
+    "saved_BP_DA_mesh_map_edits": false,
+    "committed_or_pushed": false,
+    "after_user_editor_close_baseline": "Saved/CollisionGeneratorUpdate/20261110/PreTest_AfterEditorClose_Baseline.json",
+    "after_user_editor_close_asset_config_count": 1217,
+    "after_user_editor_close_changed_asset_config_files": []
+  },
+  "source_fingerprints": [
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALVehicleCollisionGenerator.cpp",
+      "sha256": "CAA37F1D39763CFB56E6A4204EE2606A01FC71A324C97692C6D67D0A32E75AC0",
+      "matches_validation_snapshot": true
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALVehicleCollisionGenerator.h",
+      "sha256": "F44035BA6A87C78D9BB7C7983C82B17223F76F392B1EC6D8ED60F51E8E9DABF4",
+      "matches_validation_snapshot": true
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/SHALVehicleCollisionGenerator.cpp",
+      "sha256": "E6E713EFBA45F1D7FBB6053BE2C57F9D0DC71F4B2A47BF43CF959D591816A001",
+      "matches_validation_snapshot": true
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALCollisionGeneratorUITests.cpp",
+      "sha256": "4A235E622155FEBFE1F6ABA9B65CD3E3F1FDCC398633A6972371B39F8EFF76A9",
+      "matches_validation_snapshot": true
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/Tests/HALVehicleCollisionGeneratorTests.cpp",
+      "sha256": "7D8343096E9ADBD74543EE2196E2685DC3046CD1E28F9C78B1F2DB2586E41D6F",
+      "matches_validation_snapshot": true
+    }
+  ],
+  "evidence": [
+    {
+      "path": "Saved/CollisionGeneratorUpdate/20261110/Build_Editor_R1.log",
+      "bytes": 75,
+      "sha256": "A2DAA0EADF0ECF88DD1AAF6988F8FAB55D841D3C2D2ABAB5DC3F99160ED8B21B"
+    },
+    {
+      "path": "Saved/CollisionGeneratorUpdate/20261110/Build_Editor_R2.log",
+      "bytes": 18806725,
+      "sha256": "47796933051A974DC2D24CE247560C7C045F0CFD8457C8BB70C441638E6FDE40"
+    },
+    {
+      "path": "Saved/CollisionGeneratorUpdate/20261110/Build_Editor_R3.log",
+      "bytes": 2348,
+      "sha256": "475A84B47D41BA26B0653E95C02BEEBDE1097C66F19C1A05E031527377BB9450"
+    },
+    {
+      "path": "Saved/CollisionGeneratorUpdate/20261110/Build_Editor_R4.log",
+      "bytes": 5431,
+      "sha256": "081B9EDFA39E287275F0F17A431843D65C16E1313E40D051AD5E071A7F361121"
+    },
+    {
+      "path": "Saved/CollisionGeneratorUpdate/20261110/Build_Editor_R5.log",
+      "bytes": 3051,
+      "sha256": "A9C49F1BDB9F185F8F7A58924AF74FA792CC88A43C2811EC86B88295A4CE13EE"
+    },
+    {
+      "path": "Saved/CollisionGeneratorUpdate/20261110/Link_Isolated_R1.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "Saved/CollisionGeneratorUpdate/20261110/Link_Isolated.rsp",
+      "bytes": 6888,
+      "sha256": "D6960AC3E8220628015143000589F0BF5623006F9E01ED6447E27080C2187E1E"
+    },
+    {
+      "path": "Saved/CollisionGeneratorUpdate/20261110/TestProject/Binaries/Win64/UnrealEditor-HAL_Future_CreationEditor.dll",
+      "bytes": 710144,
+      "sha256": "3FCFC594CB8EFC055DDCF1D730B81C1F8C60B80497815ED4BCD5E5FCFA03C7B5"
+    },
+    {
+      "path": "Saved/CollisionGeneratorUpdate/20261110/Build_Editor_R6.log",
+      "bytes": 2434,
+      "sha256": "612CD79BFCE9E873F23E3DF2C77370CF3BC91110630BE562135EB0025B8750AB"
+    },
+    {
+      "path": "Binaries/Win64/UnrealEditor-HAL_Future_CreationEditor.dll",
+      "bytes": 710144,
+      "sha256": "F7CD8C72505B76F7DFA25941A75A5AD75B49DD6D00B971867D339D46C9E58508"
+    },
+    {
+      "path": "Saved/CollisionGeneratorUpdate/20261110/PreTest_AfterEditorClose_Baseline.json",
+      "bytes": 223941,
+      "sha256": "65190C505EDF18F34DBC69B04693D884EBDD9E7A56C5A0B8ED7346100320E2AB"
+    }
+  ],
+  "next": "Reopen Editor to use Update Loaded Mesh. Run HAL.Editor.CollisionGenerator and HAL.EditorUI.CollisionGenerator in Session Frontend, then manually verify original mesh update and saved/reloaded dimensions/collision."
+}

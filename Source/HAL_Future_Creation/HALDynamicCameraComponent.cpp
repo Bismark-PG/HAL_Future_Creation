@@ -4,6 +4,7 @@
 #include "BasicBallActor.h"
 #include "TestVehiclePawn.h"
 #include "HALMatchGameState.h"
+#include "HALVehicleTestPlayerController.h"
 #include "Engine/World.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/GameViewportClient.h"
@@ -58,7 +59,7 @@ bool UHALDynamicCameraComponent::CalculateView(float Dt, FMinimalViewInfo& Out)
 	{ ClearObservationInput(); if (Frame.bValid) { Out=Frame.View; return true; } return false; }
 	const auto* Player = PC->GetLocalPlayer();
 	const auto* Viewport = Player && Player->ViewportClient ? Player->ViewportClient->Viewport : nullptr;
-	const bool bAccept = Viewport && Viewport->HasFocus() && Viewport->IsForegroundWindow() && !PC->bShowMouseCursor
+	const bool bAccept = Viewport && Viewport->HasFocus() && Viewport->IsForegroundWindow() && AHALVehicleTestPlayerController::AllowsVehicleCameraInput(PC)
 		&& !PC->IsLookInputIgnored() && HALGameFlow::Permissions(GetWorld(),Pawn).bObserve && !GetWorld()->IsPaused();
 	if (CalculatedFrame == GFrameCounter && Frame.bValid) { Out = Frame.View; return true; }
 	CalculatedFrame = GFrameCounter;

@@ -5,7 +5,7 @@ bool FHALMovementAreaConfig::IsValid() const
 	const auto ValidMultiplier = [](float Value) { return FMath::IsFinite(Value) && Value >= 0 && Value <= 1; };
 	return (Kind == EHALMovementAreaKind::Slow || Kind == EHALMovementAreaKind::Slippery)
 		&& ValidMultiplier(AccelerationMultiplier) && ValidMultiplier(SpeedLimitMultiplier) && ValidMultiplier(LateralGripMultiplier)
-		&& FMath::IsFinite(RecoverySeconds) && RecoverySeconds >= 0 && RecoverySeconds <= 10;
+		&& FMath::IsFinite(RecoverySeconds) && RecoverySeconds >= 0 && RecoverySeconds <= 10 && Sway.IsValid();
 }
 FVector FHALMovementAreaConfig::GetScales() const
 {
@@ -15,6 +15,7 @@ FVector FHALMovementAreaConfig::GetScales() const
 void FHALMovementAreaSelection::Include(const FHALMovementAreaConfig& Config)
 {
 	if (!Config.IsValid()) { return; }
+	if (Config.Kind == EHALMovementAreaKind::Slippery && Config.Sway.IsStrongerThan(Sway)) { Sway = Config.Sway; }
 	const FVector Incoming = Config.GetScales();
 	for (int32 Index = 0; Index < 3; ++Index)
 	{

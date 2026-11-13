@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HALMovementTypes.h"
 #include "HALMovementAreaTypes.generated.h"
 
 UENUM(BlueprintType)
@@ -27,6 +28,8 @@ struct HAL_FUTURE_CREATION_API FHALMovementAreaConfig
 	/** Parameter recovery in game seconds, not a promise that physical velocity has settled. */
 	UPROPERTY(EditAnywhere, Category="Movement Area", meta=(ClampMin="0", ClampMax="10", Units="s"))
 	float RecoverySeconds = 0.4f;
+	/** Set by authored skill sources. Fixed Slow/Slippery actors retain their existing behavior. */
+	FHALMovementAreaSway Sway;
 	bool IsValid() const;
 	FVector GetScales() const;
 };
@@ -36,5 +39,6 @@ struct HAL_FUTURE_CREATION_API FHALMovementAreaSelection
 {
 	FVector Scales = FVector::OneVector;
 	FVector RecoverySeconds = FVector::ZeroVector;
+	FHALMovementAreaSway Sway;
 	void Include(const FHALMovementAreaConfig& Config);
 };

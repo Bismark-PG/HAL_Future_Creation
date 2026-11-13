@@ -100,6 +100,8 @@ private:
 	friend class FHALMovementSolverTest;
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALVehicleStabilityTestAccess;
+	friend struct FHALBattleTopTestAccess;
+	friend struct FHALBullChargeTestAccess;
 	friend struct FHALRecoveryTestAccess;
 	friend struct FHALPresentationTestAccess;
 	friend struct FHALCameraTestAccess;
@@ -142,10 +144,10 @@ private:
 	void UpdateWallEscape(const FTransform& BodyTransform, const FVector& GroundNormal, const FVector& ForwardDirection,
 		const FVector& Velocity, float DeltaTime);
 	void ResetWallEscape();
-	void ApplyLongitudinalForces(FBodyInstance& Body, const FVector& ForwardDirection, float CurrentForwardSpeed);
+	void ApplyLongitudinalForces(FBodyInstance& Body, const FVector& ForwardDirection, float CurrentForwardSpeed, float DeltaTime = 1.f / 60.f);
 	void ApplyLateralGrip(FBodyInstance& Body, const FVector& RightDirection, float CurrentLateralSpeed);
 	void ApplySteering(FBodyInstance& Body, const FVector& GroundNormal, float CurrentForwardSpeed,
-		float CurrentYawRate, float DeltaTime);
+		float CurrentYawRate, float DeltaTime, float AreaSwayAcceleration);
 
 	UPROPERTY(Transient)
 	TObjectPtr<UPrimitiveComponent> UpdatedPrimitive;
@@ -180,6 +182,7 @@ private:
 	FHALMovementTimeline MovementAuthorityTimeline;
 	TArray<FHALMovementSnapshot> MovementActions;
 	FHALMovementSnapshot CurrentMovement;
+	int32 CurrentMovementServerFrame = INDEX_NONE;
 	FVector CurrentMovementScales = FVector::OneVector;
 	struct FUsedMovementFrame
 	{

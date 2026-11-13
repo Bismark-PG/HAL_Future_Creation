@@ -119,6 +119,7 @@ void AHALElectricWallGimmick::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AHALElectricWallGimmick,Config); DOREPLIFETIME(AHALElectricWallGimmick,AcceptedContactCount);
 	DOREPLIFETIME(AHALElectricWallGimmick,PhysicsSourceId);
 }
+UPrimitiveComponent* AHALElectricWallGimmick::GetContactSurface() const { return ElectricField; }
 FVector AHALElectricWallGimmick::GetPushDirection(UPrimitiveComponent* Surface,const FVector& Current,const FVector& Previous,const FVector& Velocity) const
 {
 	// Contact can already have reversed Chaos velocity. Prefer the sampled incoming travel,
@@ -127,11 +128,11 @@ FVector AHALElectricWallGimmick::GetPushDirection(UPrimitiveComponent* Surface,c
 	if (Travel.SizeSquared2D()>.01) { return -Travel.GetSafeNormal2D(); }
 	if (Velocity.SizeSquared2D()>.01) { return -Velocity.GetSafeNormal2D(); }
 	// No incoming motion (e.g. a car spawned inside the field): fall back to geometry.
-	if (Surface==ElectricField)
+	if (Surface==GetContactSurface())
 	{
-		const FVector Normal = ElectricField->GetRightVector().GetSafeNormal2D();
-		double Side = FVector::DotProduct(Previous-ElectricField->GetComponentLocation(),Normal);
-		if (FMath::Abs(Side)<.1) { Side = FVector::DotProduct(Current-ElectricField->GetComponentLocation(),Normal); }
+		const FVector Normal = GetContactSurface()->GetRightVector().GetSafeNormal2D();
+		double Side = FVector::DotProduct(Previous-GetContactSurface()->GetComponentLocation(),Normal);
+		if (FMath::Abs(Side)<.1) { Side = FVector::DotProduct(Current-GetContactSurface()->GetComponentLocation(),Normal); }
 		if (FMath::Abs(Side)<.1) { Side = -FVector::DotProduct(Velocity,Normal); }
 		return Normal*(Side<0 ? -1 : 1);
 	}
@@ -141,8 +142,8 @@ FVector AHALElectricWallGimmick::GetPushDirection(UPrimitiveComponent* Surface,c
 }
 bool AHALElectricWallGimmick::ApplyContact(ATestVehiclePawn* Target,UPrimitiveComponent* Surface,const FVector& Previous)
 {
-	if (!bReady || !HasAuthority() || GetNetMode()==NM_Client || !IsValid(Target)
-		|| Surface!=ElectricField) { return false; }
+	if (!IsContactActive() || !bReady || !HasAuthority() || GetNetMode()==NM_Client || !IsValid(Target)
+		|| Surface!=GetContactSurface()) { return false; }
 	const auto* Match = GetWorld()->GetGameState<AHALMatchGameState>();
 	const auto Flow = HALGameFlow::Permissions(GetWorld(),Target);
 	if (Flow.bRoomEnabled ? !Flow.bWorldInteractions : Match && Match->GetMatchPhase()!=EHALMatchPhase::Playing) { return false; }
@@ -173,11 +174,13 @@ bool AHALElectricWallGimmick::ApplyContact(ATestVehiclePawn* Target,UPrimitiveCo
 }
 void AHALElectricWallGimmick::ScanContacts()
 {
-	if (!bReady) { return; }
+	if (!bReady || !IsContactActive()) { Contacts.Reset(); return; }
 	const auto* Match = GetWorld()->GetGameState<AHALMatchGameState>();
 	const auto Flow = HALGameFlow::Permissions(GetWorld());
 	if (Flow.bRoomEnabled ? !Flow.bWorldInteractions : Match && Match->GetMatchPhase()!=EHALMatchPhase::Playing) { Contacts.Reset(); return; }
-	if (bDrawDebug) { DrawDebugBox(GetWorld(),ElectricField->GetComponentLocation(),ElectricField->GetScaledBoxExtent(),
+	// Sphere subclasses draw all lifecycle phases using their own lifecycle timer.
+	if (bDrawDebug && GetContactSurface()==ElectricField)
+	{ DrawDebugBox(GetWorld(),ElectricField->GetComponentLocation(),ElectricField->GetScaledBoxExtent(),
 		ElectricField->GetComponentQuat(),FColor::Cyan,false,Config.ScanInterval,0,2); }
 	for (TActorIterator<ATestVehiclePawn> It(GetWorld()); It; ++It)
 	{
@@ -197,7 +200,7 @@ void AHALElectricWallGimmick::ScanContacts()
 		GetWorld()->ComponentOverlapMulti(Overlaps,Body,Current,Rotation,OverlapQuery);
 		UPrimitiveComponent* Surface=nullptr;
 		for (const auto& Overlap : Overlaps)
-		{ if (Overlap.GetComponent()==ElectricField) { Surface=ElectricField; break; } }
+		{ if (Overlap.GetComponent()==GetContactSurface()) { Surface=GetContactSurface(); break; } }
 		const bool bOverlapping = Surface!=nullptr;
 		FVector Entry=Current;
 		bool HasEntry=false;
@@ -210,9 +213,9 @@ void AHALElectricWallGimmick::ScanContacts()
 			GetWorld()->ComponentSweepMulti(Swept,Body,Previous,Current,Rotation,SweepQuery);
 			for (const auto& Hit : Swept)
 			{
-				if (Hit.GetActor()==this && Hit.GetComponent()==ElectricField)
+				if (Hit.GetActor()==this && Hit.GetComponent()==GetContactSurface())
 				{
-					Surface=ElectricField;
+					Surface=GetContactSurface();
 					if (!Hit.bStartPenetrating) { Entry=FMath::Lerp(Previous,Current,Hit.Time); HasEntry=true; }
 					break;
 				}

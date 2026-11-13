@@ -140,11 +140,12 @@ void UHALVehiclePresentationComponent::UpdateTireSkids(const FVector& Velocity, 
 		Frame.ForwardSpeedCmPerSecond, FVector::DotProduct(Velocity, Body->GetRightVector()), PreviousReasons,
 		bTireSkidReady && bDrivingAllowed);
 	Frame.TireSkidWheelMask = 0;
+	const FTransform WheelToWorld = GetWheelSampleTransform();
 	for (const auto& Wheel : Config->Wheels)
 	{
 		const int32 Slot = uint8(Wheel.Wheel);
 		const auto& Support = WheelSupports[Slot];
-		const FVector Center = Mesh->GetComponentTransform().TransformPosition(ReferenceWheelCenters[Slot])
+		const FVector Center = WheelToWorld.TransformPosition(ReferenceWheelCenters[Slot])
 			+ Body->GetUpVector() * Frame.Wheel(Wheel.Wheel).SuspensionOffsetCm;
 		const double Gap = FVector::DotProduct(Center - Support.Point, Support.Normal) - Wheel.RadiusCm;
 		const bool bEmit = Frame.TireSkidReasons && Settings.Wheels.Contains(Wheel.Wheel) && Support.bHit

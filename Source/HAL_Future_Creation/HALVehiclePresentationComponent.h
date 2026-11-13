@@ -66,6 +66,7 @@ private:
 	float ReadSteering(float DeltaTime, bool bDrivingLeanAllowed);
 	bool ReadDrivingLeanAllowed() const;
 	void UpdateSuspension(float DeltaTime);
+	FTransform GetWheelSampleTransform() const;
 	uint8 ReadTireSkidInputs() const;
 	void UpdateTireSkids(const FVector& Velocity, bool bDrivingAllowed);
 	void StopTireSkid(int32 Slot, bool bImmediate);

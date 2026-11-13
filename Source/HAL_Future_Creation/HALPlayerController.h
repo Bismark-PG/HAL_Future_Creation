@@ -81,6 +81,8 @@ public:
 	void HALUseSkill();
 	/** Development only: server spawns one physical bomb and immediately starts its configured fuse. */
 	UFUNCTION(Exec) void HALSpawnBomb();
+	/** Development only: spawn the server-configured slippery area in front of this vehicle. */
+	UFUNCTION(Exec) void HALSpawnSlipperyArea();
 	/** Development only: request the server-configured movement boost on this controller's own Avatar. */
 	UFUNCTION(Exec)
 	void HALMovementBoost();
@@ -113,6 +115,8 @@ private:
 	bool bRoomMenuOpen = false;
 	EHALRoomResult LastRoomResult = EHALRoomResult::Inactive;
 	UFUNCTION(Server, Reliable) void ServerSpawnDebugBomb();
+	UFUNCTION(Server, Reliable) void ServerSpawnDebugSlipperyArea();
+	UFUNCTION(Client, Reliable) void ClientDebugSlipperyAreaResult(const FString& Message, bool bSuccess);
 	UFUNCTION(Client, Reliable) void ClientDebugBombResult(const FString& Message, bool bSuccess);
 	UPROPERTY(Transient)
 	TObjectPtr<UHALDebugHUDWidget> DebugHUD;

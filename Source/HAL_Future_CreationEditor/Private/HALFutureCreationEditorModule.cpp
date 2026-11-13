@@ -65,7 +65,7 @@ private:
 		UToolMenu* Menu = UToolMenus::Get()->ExtendMenu(TEXT("LevelEditor.MainMenu.Tools"));
 		Menu->FindOrAddSection(TEXT("HALTools"), LOCTEXT("Section", "HAL Tools")).AddMenuEntry(
 			TEXT("HALVehicleCollisionGenerator"), LOCTEXT("Entry", "HAL Vehicle Collision Generator"),
-			LOCTEXT("Hint", "Generate a flat convex collision mesh from vehicle dimensions and corner radii."), FSlateIcon(),
+			LOCTEXT("Hint", "Generate or update a convex collision mesh with its bottom fitted to the selected vehicle's tires."), FSlateIcon(),
 			FUIAction(FExecuteAction::CreateLambda([] { FGlobalTabmanager::Get()->TryInvokeTab(FName(TEXT("HALVehicleCollisionGenerator"))); })));
 		Menu->FindOrAddSection(TEXT("HALTools")).AddMenuEntry(
 			TEXT("HALVehicleAlignment"), LOCTEXT("AlignmentEntry", "HAL Vehicle Visual Alignment"),

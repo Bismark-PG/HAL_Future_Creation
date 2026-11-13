@@ -1,0 +1,299 @@
+{
+  "date": "2026-11-11",
+  "base_commit": "e1ded4d",
+  "branch": "main",
+  "engine": "5.8.3-58210709",
+  "scope": "Only orientation-driven three-tone ground material; existing C++ mesh retained; no Niagara or blob layer",
+  "build_targets": "Not rerun: no C++ or reflection changes",
+  "native_rule_tests": "Not rerun: all 349 Source files unchanged",
+  "material": {
+    "status": "updated",
+    "nodes": 111,
+    "coverage_after": [
+      "MaterialExpressionMultiply_13",
+      ""
+    ],
+    "existing_parameters_unchanged": true,
+    "wpo_after": [
+      "MaterialExpressionAppendVector_0",
+      ""
+    ],
+    "coverage_before": [
+      "MaterialExpressionMultiply_13",
+      ""
+    ],
+    "new_parameters": {
+      "ToonStrength": 1.0,
+      "ToonNormalStrength": 4.0,
+      "ToonShadowThreshold": -0.03999999910593033,
+      "ToonLitThreshold": 0.03999999910593033,
+      "ToonSoftness": 0.014999999664723873,
+      "ToonShadowColor": [
+        0.07495500147342682,
+        0.328125,
+        0.05995199829339981,
+        1.0
+      ],
+      "ToonMidColor": [
+        0.18116424977779388,
+        0.7912979125976562,
+        0.0,
+        1.0
+      ],
+      "ToonLitColor": [
+        0.25021469593048096,
+        0.9099925756454468,
+        0.10602884739637375,
+        1.0
+      ],
+      "ToonLightDirection": [
+        0.30000001192092896,
+        -0.3499999940395355,
+        0.8899999856948853,
+        0.0
+      ]
+    },
+    "statistics": {
+      "num_vertex_shader_instructions": 179,
+      "num_pixel_shader_instructions": 438,
+      "num_samplers": 1
+    },
+    "wpo_before": [
+      "MaterialExpressionAppendVector_0",
+      ""
+    ]
+  },
+  "reference_render": {
+    "status": "passed",
+    "cases": [
+      {
+        "name": "Floor",
+        "coverage_pixels": 0
+      },
+      {
+        "name": "Reference",
+        "coverage_pixels": 189190
+      }
+    ],
+    "readback": "FColor 8-bit, normalize=False",
+    "mask_channel_threshold": 6,
+    "size": [
+      768,
+      512
+    ],
+    "geometry": "native BuildRibbon Paint.csv export",
+    "baseline": true,
+    "statistics": {
+      "num_vertex_shader_instructions": 179,
+      "num_pixel_shader_instructions": 373,
+      "num_samplers": 1
+    }
+  },
+  "reference_process": {
+    "ExitCode": 0
+  },
+  "render": {
+    "status": "passed",
+    "cases": [
+      {
+        "name": "Floor",
+        "coverage_pixels": 0
+      },
+      {
+        "name": "Legacy",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "ThreeTone",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "Reverse",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "Wave",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "Diagnostic",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "Softer",
+        "coverage_pixels": 189123
+      },
+      {
+        "name": "DissolveHalf",
+        "coverage_pixels": 98262
+      },
+      {
+        "name": "Gone",
+        "coverage_pixels": 0
+      },
+      {
+        "name": "Restored",
+        "coverage_pixels": 189123
+      }
+    ],
+    "readback": "FColor 8-bit, normalize=False",
+    "mask_source": "SceneColor HDR inverse opacity alpha, floor excluded",
+    "size": [
+      768,
+      512
+    ],
+    "geometry": "native BuildRibbon Paint.csv export",
+    "baseline": false,
+    "statistics": {
+      "num_vertex_shader_instructions": 179,
+      "num_pixel_shader_instructions": 438,
+      "num_samplers": 1
+    },
+    "alpha_ranges": [
+      [
+        255,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        255,
+        255
+      ],
+      [
+        0,
+        255
+      ]
+    ],
+    "legacy_reference_changed_channels": 0,
+    "coverage_difference": {
+      "Legacy": 0,
+      "Reverse": 0,
+      "Wave": 0,
+      "Diagnostic": 0,
+      "Softer": 0,
+      "Restored": 0
+    },
+    "changes": {
+      "new_style": 156447,
+      "direction": 166590,
+      "wave": 44637,
+      "softness": 19752,
+      "restore": 0
+    },
+    "diagnostic_shadow_mid_lit_pixels": [
+      97931,
+      36524,
+      49513
+    ],
+    "dissolve_regrowth": 0,
+    "gone_pixels": 0
+  },
+  "render_process": {
+    "ExitCode": 0
+  },
+  "network": [
+    {
+      "Role": "Host",
+      "Pid": 21564,
+      "Exit": 0,
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0
+    },
+    {
+      "Role": "Client1",
+      "Pid": 23480,
+      "Exit": 0,
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0
+    }
+  ],
+  "network_setup": {
+    "observations": [
+      "Mesh=1 FullWidth=1",
+      "Clock=1 GameplayOffWhileVisible=1",
+      "Final source and mesh cleanup"
+    ],
+    "nondefault_maximum_half_width_fraction": 0.06,
+    "nondefault_dissolve_seconds": 1.2,
+    "host_outbound_injected_ms": 80,
+    "real_rhi": "D3D12 offscreen both roles",
+    "nondefault_maximum_outset_cm": 12
+  },
+  "protection": {
+    "asset_config_project_total": 1246,
+    "asset_config_project_unchanged": 1245,
+    "changed": [
+      {
+        "Path": "Content\\Assets\\FX\\Materials\\M_SlipperyTrail_Graffiti.uasset",
+        "Before": "572DA2D4E2515EFC115E680D9D02F455473F43D484ADA223A6D9AFBACBD352BF",
+        "After": "E0859860C0C1898DCD987A5E5D7D378AACAD2B3E6BA5E227DFF399598C69ACA6",
+        "Unchanged": false
+      }
+    ],
+    "source_total": 349,
+    "source_unchanged": 349,
+    "source_changed": []
+  },
+  "saved_recipe": {
+    "enabled": true,
+    "bulge_height": 20.0,
+    "wave_amplitude": 2.0,
+    "wave_length": 180.0,
+    "ground_material": "/Game/Assets/FX/Materials/MI_SlipperyTrail_Graffiti.MI_SlipperyTrail_Graffiti"
+  },
+  "tool_hashes": [
+    {
+      "path": "Tools/SlipperyTrailGraffiti/ThreeToneShading.hlsl",
+      "sha256": "B856CF2940071FFC733859CD3C0BD3D39EE00950106DC979102FDAFA637CCD5A"
+    },
+    {
+      "path": "Tools/SlipperyTrailGraffiti/UpdateThreeToneMaterial.py",
+      "sha256": "38BD64C51F8B4BAF8AFEEC4CE3315DF4582E2F54826E7DDD81CFCB5211F4D5A2"
+    }
+  ],
+  "evidence_directory": "Saved/SlipperyTrail/ThreeTone_20261111",
+  "intermediate_records": [
+    "R1 color-difference coverage produced 67 Legacy edge differences and 2 Wave edge differences; R2 uses separate HDR inverse-opacity alpha without the floor and all coverage differences are zero"
+  ],
+  "limitations": [
+    "Original map human art acceptance pending",
+    "Not a campus multi-machine or packaged-build acceptance",
+    "No many-overlapping-surface performance result",
+    "No Niagara, blob or new retirement layer"
+  ],
+  "committed": false,
+  "pushed": false
+}

@@ -1,6 +1,21 @@
 #include "HALMovementTypes.h"
 #include "Serialization/Archive.h"
 
+bool FHALMovementAreaSway::IsValid() const
+{
+	return Amplitude >= 0 && Amplitude <= 12 && PeriodSeconds >= .2f && PeriodSeconds <= 3
+		&& FullSpeed >= 1 && FullSpeed <= 6000 && RampSeconds >= 0 && RampSeconds <= 2;
+}
+
+bool FHALMovementAreaSway::IsStrongerThan(const FHALMovementAreaSway& Other) const
+{
+	if (Amplitude != Other.Amplitude) { return Amplitude > Other.Amplitude; }
+	if (Amplitude == 0) { return false; }
+	if (PeriodSeconds != Other.PeriodSeconds) { return PeriodSeconds > Other.PeriodSeconds; }
+	if (FullSpeed != Other.FullSpeed) { return FullSpeed < Other.FullSpeed; }
+	return RampSeconds < Other.RampSeconds;
+}
+
 bool FHALMovementAreaChannel::IsValid(bool bStamped) const
 {
 	return FMath::IsFinite(OrdinaryDelta) && FMath::IsFinite(Target) && Target >= 0 && Target <= 1
@@ -45,11 +60,19 @@ bool FHALMovementSnapshot::IsValidValues() const
 	return Epoch.IsValid() && Revision != 0 && FMath::IsFinite(AccelerationScale) && FMath::IsFinite(SpeedScale)
 		&& FMath::IsFinite(GripScale) && AccelerationScale >= 0 && AccelerationScale <= 3
 		&& SpeedScale >= 0 && SpeedScale <= 3 && GripScale >= 0 && GripScale <= 3
+		&& Overdrive.IsValidState(false) && AreaSway.IsValid() && (bHasAreaState || AreaSway.Amplitude == 0)
 		&& (!bHasAreaState || (AreaAcceleration.IsValid(false) && AreaSpeed.IsValid(false) && AreaGrip.IsValid(false)));
 }
 bool FHALMovementSnapshot::IsValid() const
 {
-	return IsValidValues() && EffectiveServerFrame >= 0 && (!bHasAreaState
+	const bool bSwayValid = AreaSway.Amplitude > 0
+		? SwayStartFrame >= 0 && SwayStartFrame <= EffectiveServerFrame && SwayPeriodFrames > 0
+			&& SwayPeriodFrames <= 6000 && SwayRampFrames >= 0 && SwayRampFrames <= 6000
+		: SwayStartFrame == INDEX_NONE && SwayPeriodFrames == 0 && SwayRampFrames == 0;
+	const bool bOverdriveValid = Overdrive.IsValidState(true) && (!Overdrive.Activation.IsValid()
+		|| (Overdrive.StartFrame <= EffectiveServerFrame && (!Overdrive.bStunned
+			|| (Overdrive.StunFrame >= Overdrive.StartFrame && Overdrive.StunFrame <= EffectiveServerFrame))));
+	return IsValidValues() && bOverdriveValid && bSwayValid && EffectiveServerFrame >= 0 && (!bHasAreaState
 		|| (AreaAcceleration.IsValid(true) && AreaSpeed.IsValid(true) && AreaGrip.IsValid(true)
 			&& AreaAcceleration.StartFrame <= EffectiveServerFrame && AreaSpeed.StartFrame <= EffectiveServerFrame
 			&& AreaGrip.StartFrame <= EffectiveServerFrame));
@@ -57,7 +80,8 @@ bool FHALMovementSnapshot::IsValid() const
 bool FHALMovementSnapshot::IsUnset() const
 {
 	return !Epoch.IsValid() && Revision == 0 && EffectiveServerFrame == INDEX_NONE
-		&& AccelerationScale == 1 && SpeedScale == 1 && GripScale == 1 && !bHasAreaState && !bControlsBlocked;
+		&& AccelerationScale == 1 && SpeedScale == 1 && GripScale == 1 && !bHasAreaState && !bControlsBlocked && !bHandbrakeBlocked
+		&& Overdrive == FHALOverdriveMotion{} && AreaSway == FHALMovementAreaSway{} && SwayStartFrame == INDEX_NONE && SwayPeriodFrames == 0 && SwayRampFrames == 0;
 }
 bool FHALMovementSnapshot::Equals(const FHALMovementSnapshot& Other) const
 {
@@ -65,29 +89,66 @@ bool FHALMovementSnapshot::Equals(const FHALMovementSnapshot& Other) const
 		&& FMath::IsNearlyEqual(AccelerationScale, Other.AccelerationScale, 1.e-4f)
 		&& FMath::IsNearlyEqual(SpeedScale, Other.SpeedScale, 1.e-4f)
 		&& FMath::IsNearlyEqual(GripScale, Other.GripScale, 1.e-4f) && bHasAreaState == Other.bHasAreaState
-		&& bControlsBlocked == Other.bControlsBlocked
+		&& bControlsBlocked == Other.bControlsBlocked && bHandbrakeBlocked == Other.bHandbrakeBlocked
 		&& (!bHasAreaState || (AreaAcceleration.Equals(Other.AreaAcceleration)
-			&& AreaSpeed.Equals(Other.AreaSpeed) && AreaGrip.Equals(Other.AreaGrip)));
+			&& AreaSpeed.Equals(Other.AreaSpeed) && AreaGrip.Equals(Other.AreaGrip)))
+		&& Overdrive == Other.Overdrive && AreaSway == Other.AreaSway && SwayStartFrame == Other.SwayStartFrame
+		&& SwayPeriodFrames == Other.SwayPeriodFrames && SwayRampFrames == Other.SwayRampFrames;
 }
 void FHALMovementSnapshot::Serialize(FArchive& Ar)
 {
 	Ar << Epoch << Revision << EffectiveServerFrame << AccelerationScale << SpeedScale << bControlsBlocked << GripScale << bHasAreaState;
+	Ar << bHandbrakeBlocked;
+	Overdrive.Serialize(Ar);
 	if (bHasAreaState) { AreaAcceleration.Serialize(Ar); AreaSpeed.Serialize(Ar); AreaGrip.Serialize(Ar); }
 	else if (Ar.IsLoading()) { AreaAcceleration = {}; AreaSpeed = {}; AreaGrip = {}; }
+	bool bHasSway = !Ar.IsLoading() && AreaSway.Amplitude > 0;
+	Ar.SerializeBits(&bHasSway, 1);
+	if (bHasSway)
+	{
+		Ar << AreaSway.Amplitude << AreaSway.PeriodSeconds << AreaSway.FullSpeed << AreaSway.RampSeconds;
+		Ar << SwayStartFrame << SwayPeriodFrames << SwayRampFrames;
+		if (AreaSway.Amplitude <= 0) { Ar.SetError(); }
+	}
+	else if (Ar.IsLoading()) { AreaSway = {}; SwayStartFrame = INDEX_NONE; SwayPeriodFrames = SwayRampFrames = 0; }
 }
 void FHALMovementSnapshot::Stamp(const FHALMovementSnapshot* Previous, int32 Frame, float FixedDeltaSeconds)
 {
 	EffectiveServerFrame = Frame;
+	Overdrive.Stamp(Previous ? &Previous->Overdrive : nullptr, Frame, FixedDeltaSeconds);
+	SwayStartFrame = INDEX_NONE;
+	SwayPeriodFrames = SwayRampFrames = 0;
 	if (!bHasAreaState) { return; }
 	const bool bPrevious = Previous && Previous->IsValid() && Previous->Epoch == Epoch && Previous->bHasAreaState;
 	AreaAcceleration.Stamp(bPrevious ? &Previous->AreaAcceleration : nullptr, Frame, FixedDeltaSeconds);
 	AreaSpeed.Stamp(bPrevious ? &Previous->AreaSpeed : nullptr, Frame, FixedDeltaSeconds);
 	AreaGrip.Stamp(bPrevious ? &Previous->AreaGrip : nullptr, Frame, FixedDeltaSeconds);
+	if (AreaSway.Amplitude <= 0 || FixedDeltaSeconds <= 0) { AreaSway = {}; return; }
+	SwayStartFrame = bPrevious && Previous->AreaSway.Amplitude > 0 ? Previous->SwayStartFrame : Frame;
+	SwayPeriodFrames = FMath::Clamp(FMath::RoundToInt(AreaSway.PeriodSeconds / FixedDeltaSeconds), 1, 6000);
+	SwayRampFrames = FMath::Clamp(FMath::CeilToInt(AreaSway.RampSeconds / FixedDeltaSeconds), 0, 6000);
 }
 FVector FHALMovementSnapshot::EvaluateScales(int32 Frame) const
 {
-	return bHasAreaState ? FVector(AreaAcceleration.EffectiveValue(Frame), AreaSpeed.EffectiveValue(Frame), AreaGrip.EffectiveValue(Frame))
+	FVector Scales = bHasAreaState ? FVector(AreaAcceleration.EffectiveValue(Frame), AreaSpeed.EffectiveValue(Frame), AreaGrip.EffectiveValue(Frame))
 		: FVector(AccelerationScale, SpeedScale, GripScale);
+	if (Overdrive.IsDriving(Frame))
+	{
+		const double AccelerationBase = bHasAreaState ? double(AreaAcceleration.OrdinaryDelta) + AreaAcceleration.RegionalValue(Frame) : Scales.X;
+		const double SpeedBase = bHasAreaState ? double(AreaSpeed.OrdinaryDelta) + AreaSpeed.RegionalValue(Frame) : Scales.Y;
+		Scales.X = FMath::Clamp(AccelerationBase + FMath::Lerp(Overdrive.InitialAccelerationScale, Overdrive.FinalAccelerationScale, Overdrive.RampAlpha(Frame)) - 1, 0., 3.);
+		Scales.Y = FMath::Clamp(SpeedBase + (Overdrive.FinalSpeedScale - 1) * Overdrive.RampAlpha(Frame), 0., 3.);
+	}
+	return Scales;
+}
+float FHALMovementSnapshot::EvaluateSway(int32 Frame, float PlanarSpeed) const
+{
+	if (AreaSway.Amplitude <= 0 || SwayPeriodFrames <= 0 || Frame < SwayStartFrame) { return 0; }
+	const int64 Age = int64(Frame) - SwayStartFrame;
+	const float SpeedAlpha = FMath::Clamp(PlanarSpeed / AreaSway.FullSpeed, 0.f, 1.f);
+	const float RampAlpha = SwayRampFrames > 0 ? FMath::Min(float(Age) / SwayRampFrames, 1.f) : 1.f;
+	const float Phase = 2.f * UE_PI * float(Age % SwayPeriodFrames) / SwayPeriodFrames;
+	return AreaSway.Amplitude * SpeedAlpha * RampAlpha * FMath::Sin(Phase);
 }
 bool FHALMovementSnapshot::CalculateScales(float AccelerationDelta, float SpeedDelta, float& Acceleration, float& Speed)
 {
@@ -98,7 +159,7 @@ bool FHALMovementSnapshot::CalculateScales(float AccelerationDelta, float SpeedD
 }
 bool FHALMovementTimeline::Validate() const
 {
-	if (FormatVersion != 3 || Changes.Num() >= MaximumEntries) { return false; }
+	if (FormatVersion != CurrentFormat || Changes.Num() >= MaximumEntries) { return false; }
 	if (IsEmpty()) { return EndFrame == INDEX_NONE && !Epoch.IsValid() && Anchor.IsUnset() && Changes.IsEmpty(); }
 	if (StartFrame < 0 || EndFrame < StartFrame || EndFrame - StartFrame >= MaximumEntries
 		|| !Anchor.IsValid() || Epoch != Anchor.Epoch || Anchor.EffectiveServerFrame > StartFrame) { return false; }
@@ -209,7 +270,7 @@ bool FHALMovementTimeline::Serialize(FArchive& Ar)
 {
 	if (Ar.IsSaving() && !Validate()) { Ar.SetError(); return false; }
 	Ar << FormatVersion;
-	if (FormatVersion != 3) { Ar.SetError(); return false; }
+	if (FormatVersion != CurrentFormat) { Ar.SetError(); return false; }
 	uint8 Present = IsEmpty() ? 0 : 1;
 	Ar << Present;
 	if (Ar.IsLoading() && Present == 0) { *this = {}; return !Ar.IsError(); }

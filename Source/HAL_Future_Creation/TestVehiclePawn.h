@@ -14,6 +14,8 @@
 
 class UArcadeVehicleMovementComponent;
 class UHALShockedPresentationComponent;
+class UHALBattleTopComponent;
+class UHALBullChargeComponent;
 class AHALPlayerState;
 class UArrowComponent;
 class UBallControlComponent;
@@ -126,6 +128,10 @@ protected:
 	TObjectPtr<UHALVehicleStatusFXComponent> StatusFXPresentation;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vehicle|Components")
 	TObjectPtr<UHALShockedPresentationComponent> ShockedPresentation;
+	UPROPERTY(VisibleAnywhere, Category="Vehicle|Abilities")
+	TObjectPtr<UHALBattleTopComponent> BattleTop;
+	UPROPERTY(VisibleAnywhere, Category="Vehicle|Abilities")
+	TObjectPtr<UHALBullChargeComponent> BullCharge;
 
 	/** Visible MVP marker for the physical forward / future launch direction. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")

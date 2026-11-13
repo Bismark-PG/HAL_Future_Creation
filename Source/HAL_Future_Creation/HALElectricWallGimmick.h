@@ -61,13 +61,16 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Electric Wall|Components") TObjectPtr<UStaticMeshComponent> PillarVisualB;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Electric Wall|Components") TObjectPtr<UStaticMeshComponent> WallVisual;
 	UPROPERTY(VisibleAnywhere, Category="Electric Wall|Components") TObjectPtr<UHALImpactSourceComponent> ContactImpactProfile;
+protected:
+	virtual UPrimitiveComponent* GetContactSurface() const;
+	virtual bool IsContactActive() const { return true; }
+	virtual void UpdateGeometry();
+	virtual FVector GetPushDirection(UPrimitiveComponent* Surface,const FVector& Current,const FVector& Previous,const FVector& Velocity) const;
 private:
 	friend struct FHALElectricWallTestAccess;
 	UFUNCTION() void OnRep_Config();
-	void UpdateGeometry();
 	void ScanContacts();
 	bool ApplyContact(ATestVehiclePawn* Target,UPrimitiveComponent* Surface,const FVector& PreviousLocation);
-	FVector GetPushDirection(UPrimitiveComponent* Surface,const FVector& Current,const FVector& Previous,const FVector& Velocity) const;
 	struct FContactRecord
 	{
 		FVector PreviousLocation = FVector::ZeroVector;

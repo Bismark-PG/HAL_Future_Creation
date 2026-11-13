@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS && !UE_BUILD_SHIPPING
 #include "Misc/AutomationTest.h"
 #include "../HALElectricWallGimmick.h"
+#include "../HALElectricSphereGimmick.h"
 #include "../HALShockedPresentationComponent.h"
 #include "../HALAbilitySystemComponent.h"
 #include "../HALGameplayTags.h"
@@ -22,12 +23,13 @@ namespace HALElectricWallNetworkTests
 	class FRun : public IAutomationLatentCommand
 	{
 		FAutomationTestBase* Test;
+		bool bSphere=false;
 		double Deadline=FPlatformTime::Seconds()+100,AlignedAt=-1,Complete=-1;
 		bool Prepared=false,ReadySent=false,Aligned=false,Triggered=false,SawOwn=false,SawRemote=false;
 		float OwnPeak=0;
 		FGuid PreviousImpactId;
 	public:
-		explicit FRun(FAutomationTestBase* T):Test(T) {}
+		explicit FRun(FAutomationTestBase* T,bool Sphere=false):Test(T),bSphere(Sphere) {}
 		bool Update() override
 		{
 			if (Complete>0) { return FPlatformTime::Seconds()-Complete>4; }
@@ -62,22 +64,27 @@ namespace HALElectricWallNetworkTests
 			// The team's map can already contain electric-wall Blueprint instances. Select only
 			// this test's native aerial fixture, never the first unrelated mechanism in the level.
 			for (TActorIterator<AHALElectricWallGimmick> It(World);It;++It)
-			{ if (It->GetClass()==AHALElectricWallGimmick::StaticClass() && It->GetActorLocation().Equals(FVector(0,0,10000),1.f)) { Wall=*It; break; } }
+			{ if (It->GetClass()==(bSphere ? AHALElectricSphereGimmick::StaticClass() : AHALElectricWallGimmick::StaticClass()) && It->GetActorLocation().Equals(FVector(0,0,10000),1.f)) { Wall=*It; break; } }
 			if (Host && !Aligned && Physics.bReady && OtherName==TEXT("HAL_Electric_ReadyC"))
 			{
 				int32 Index=0;
 				for (auto* V:{Own,Other})
 				{
 					auto* Body=CastChecked<UPrimitiveComponent>(V->GetRootComponent());
-					Body->SetWorldLocationAndRotation(FVector(-600,Index++ ? 500 : -500,10300),FRotator::ZeroRotator,false,nullptr,ETeleportType::TeleportPhysics);
+					Body->SetWorldLocationAndRotation(FVector(bSphere ? -1200 : -600,Index++ ? 500 : -500,10300),FRotator::ZeroRotator,false,nullptr,ETeleportType::TeleportPhysics);
 					Body->SetPhysicsLinearVelocity(FVector::ZeroVector); Body->SetPhysicsAngularVelocityInRadians(FVector::ZeroVector);
 					V->GetAbilitySystemComponent()->SetNumericAttributeBase(UHALHealthAttributeSet::GetCurrentHPAttribute(),100);
 					V->ForceNetUpdate();
 				}
 				FHALElectricWallConfig Config; Config.PillarSpacing=2400; Config.Height=600; Config.BounceBackDistance=100; Config.BounceBackSeconds=.3f;
 				const FTransform Pose(FRotator(0,90,0),FVector(0,0,10000));
-				Wall=World->SpawnActorDeferred<AHALElectricWallGimmick>(AHALElectricWallGimmick::StaticClass(),Pose,nullptr,nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+				Wall=World->SpawnActorDeferred<AHALElectricWallGimmick>(bSphere ? AHALElectricSphereGimmick::StaticClass() : AHALElectricWallGimmick::StaticClass(),Pose,nullptr,nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 				if (!Wall || !Wall->Configure(Config)) { Test->AddError(TEXT("Cannot create paired electric wall fixture")); return true; }
+				if (bSphere)
+				{
+					FHALElectricSphereConfig SphereConfig; SphereConfig.Radius=650; SphereConfig.BeginSeconds=.3f; SphereConfig.LoopSeconds=30;
+					if (!CastChecked<AHALElectricSphereGimmick>(Wall)->ConfigureSphere(SphereConfig)) { Test->AddError(TEXT("Sphere config rejected")); return true; }
+				}
 				Wall->FinishSpawning(Pose); Wall->ForceNetUpdate();
 				Aligned=true; AlignedAt=Now; return false;
 			}
@@ -94,6 +101,11 @@ namespace HALElectricWallNetworkTests
 				Triggered=true; UE_LOG(LogTemp,Display,TEXT("HAL ElectricWall smoke: Host=1 Entered=1 Lag=80ms"));
 			}
 			if (!Wall) { return false; }
+			if (bSphere && GFrameCounter%60==0)
+			{
+				UE_LOG(LogTemp,Display,TEXT("Sphere fixture: Host=%d Stage=%d Contacts=%u OwnStun=%d RemoteStun=%d OwnSeen=%d RemoteSeen=%d Peak=%.2f Position=%s"),
+					Host,int32(CastChecked<AHALElectricSphereGimmick>(Wall)->GetStage()),Wall->GetAcceptedContactCount(),ASC->IsStunned(),Remote->IsStunned(),SawOwn,SawRemote,OwnPeak,*Own->GetActorLocation().ToCompactString());
+			}
 			auto* OwnVisual=Own->FindComponentByClass<UHALShockedPresentationComponent>();
 			auto* OtherVisual=Other->FindComponentByClass<UHALShockedPresentationComponent>();
 			SawOwn |= ASC->IsStunned() && OwnVisual->IsShocked() && Physics.bReady && Physics.Value.bControlsBlocked;
@@ -121,5 +133,12 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALElectricWallNetworkTest,"HAL.NetworkSmoke.E
 bool FHALElectricWallNetworkTest::RunTest(const FString& Parameters)
 {
 	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<HALElectricWallNetworkTests::FRun>(this)); return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALElectricSphereNetworkTest,"HAL.NetworkSmoke.ElectricSphere",
+	EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::EngineFilter)
+bool FHALElectricSphereNetworkTest::RunTest(const FString& Parameters)
+{
+	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<HALElectricWallNetworkTests::FRun>(this,true)); return true;
 }
 #endif

@@ -6,13 +6,30 @@
 
 2026-11-04扩展：新增独立的 **Front Side Radius／Rear Side Radius**，可对XZ侧视前后端上、下边缘做圆角；Side Radius=0保留旧形状。配方v2兼容读取v1，侧视预览同步更新，仍生成新资产并由团队手工保存／引用。完整参数、`Vehicle Definition → Physics → Collision Mesh`引用步骤和验收见[打包前手感调整说明](../Movement/MVPB_Prepackage_Gameplay_Polish_CN_v0.1.md#2-生成带侧面圆角的新碰撞体)。下方旧截图与2026-10-20记录保持原时点。
 
+2026-11-10扩展：增加 **Update Loaded Mesh**，加载已有生成配方后，可以在原Static Mesh资产内更新网格、简单碰撞和配方。原路径与车辆引用保留，更新后由团队保存。11月4日及更早记录中“只能创建新资产”的限制已由本次扩展解除，本次验证见[更新功能验证记录](Vehicle_Collision_Generator_Update_Verification_20261110.json)。
+
+## 车型轮底对齐
+
+在 Content Browser 选中实际使用的 `DA_Vehicle_<车型>`，然后在生成器点击 **Load Selected Vehicle**。面板从车型的 Presentation DA 读取 Skeletal Mesh、`Relative Transform` 和四个 `SpinBone`，沿用 Visual Alignment 对 LOD0 参考姿态轮胎顶点的测量。即使 Definition 尚未引用 Collision Mesh，也可以测量并生成。四轮高度有差异时，以其中最低的轮胎顶点为基准。
+
+面板的 **Wheel bottom Z** 是碰撞根局部坐标中的轮底高度，**Collision top Z** 等于 `Wheel bottom Z + Height`。侧视图的橙线是轮底基准，黄线标出 `X=0`。调整 Height 时，底面在预览、实际 Static Mesh 和 Chaos 简单凸包中都留在轮底 Z。例如轮底是 −45 cm，Height 从 70 改到 90 cm 时，顶面从 25 升到 45 cm。轮底坐标已包含表现模型的旋转、缩放和平移，车辆根的均匀缩放会同时作用于模型和碰撞。
+
+- 车型引用可编辑的生成网格时，**Load Selected Vehicle** 同时载入其配方。**Update Loaded Mesh** 原位更新，保存后车辆继续使用同一引用。旧版生成网格也可以通过这一步转换为轮底固定的网格。
+- 车型当前使用手工网格或共用网格的各车型轮底高度不一致时，**Create New Mesh** 可基于所选车型创建专用网格。保存网格后，在该车型的 **Physics → Collision Mesh** 选择它并保存 Definition。
+- 直接使用 **Load Selected Mesh Recipe** 时，工具也会检查当前引用该网格的 Vehicle Definition。只在所有引用者可测量且轮底基准一致时允许原位更新。应用时会重新测量，涵盖加载后修改的 Presentation 变换。
+- v3 起配方随资产保存轮底 Z。尚未用于车辆、也没有轮底配方的独立网格仍可按 Z=0 居中制作。通过车型入口重建可得到当前轮底基准。
+
+校准使用正立静态参考姿态。可在保存后重新开始 Play，对照平地静止、出生位置与车身碰撞顶部，再根据需要调整 Height。更换模型、轮胎蒙皮或 Presentation 相对变换后，重新从对应 Definition 载入并更新网格即可刷新轮底基准。
+
+2026-11-12 的 UE5.8.3 Editor Development 已完成构建。轮底固定的专项用例为 `HAL.Editor.CollisionGenerator.WheelBottomAnchored`，保存重载仍在 `HAL.Editor.CollisionGenerator.RecipePersistenceAndUniqueAssets` 中验证。此轮独立 Editor 启动未输出自动化报告，专项运行和 Slate 面板实测待确认。
+
 ## 1. 用途与边界
 
-输入长、宽、高、前后圆角，生成独立的 Static Mesh 代理和一个简单凸包。俯视前后圆润；侧视可配置独立圆角，默认0保持上下平整的旧挤出形状；沿用现有 `VehiclePhysicsBody` 单 Chaos 刚体、驾驶和网络物理。
+输入前后端距离、宽、高和圆角，生成独立的 Static Mesh 代理和一个简单凸包。俯视前后圆润，侧视可配置独立圆角，默认0保持上下平整的旧挤出形状。沿用现有 `VehiclePhysicsBody` 单 Chaos 刚体、驾驶和网络物理。
 
 生成工具不自动修改车辆 Blueprint、Vehicle Definition、表现 DA、地图、质量、驾驶参数或球控制点。资产生成后由团队检查、保存，再手工分配给车型。
 
-每次创建新资产，重名自动追加编号；不提供覆盖现有资产按钮。修改旧形状时读取旧配方、创建新版本、对比后切换引用，可继续保留旧版用于回退。
+**Create New Mesh** 每次创建独立的新资产，重名自动追加编号。**Update Loaded Mesh** 更新最近成功加载的原资产；也可以继续创建新版本，对比后手工切换引用。
 
 ## 2. 首次安装／换电脑
 
@@ -24,16 +41,17 @@
 
 ## 3. 参数含义
 
-所有尺寸单位均为 **cm**，都是整体尺寸；例如 Length=400 表示总长4米，不是半长，也不是中间直线段长。
+尺寸单位为 **cm**。Front 和 Rear 分别从车辆物理根的 `X=0` 平面量到车头和车尾。Front=160、Rear=90 时，前端位于 `X=+160`、后端位于 `X=−90`，总长 250。两项分别调整各自端面，俯视图和侧视图用黄线标记同一 `X=0` 基准。
 
 | 界面参数 | 用途／限制 |
 |---|---|
-| Length | 本地 X 方向总长，范围1～10000 cm；**+X为车头** |
+| Front | 从 `X=0` 到前端的距离，向 +X，最小 0 cm |
+| Rear | 从 `X=0` 到后端的距离，向 −X，最小 0 cm。两项之和为总长，范围 1～10000 cm |
 | Width | 本地 Y 方向总宽，范围1～10000 cm |
-| Height | 本地 Z 方向总厚度，范围1～10000 cm；顶、底各位于 `±Height/2` |
+| Height | 本地 Z 方向总厚度，范围1～10000 cm；已测量轮底时，从轮底向上延伸 |
 | Front Corner Radius | 车头 +X 端的两个水平圆角半径；范围0～Width/2 |
 | Rear Corner Radius | 车尾 -X 端的两个水平圆角半径；范围0～Width/2 |
-| Front Side Radius / Rear Side Radius | XZ侧视前后端上下圆角，各0～Height/2，前后之和不超过Length；默认0 |
+| Front Side Radius / Rear Side Radius | XZ侧视前后端上下圆角，各0～Height/2，默认0 |
 | Segments Per Corner（高级项） | 每个90°圆弧的分段数，范围1～8，默认4；增加后线框更圆，但凸包更复杂 |
 | Output Folder | 输出虚拟目录，例如 `/Game/Meshes/Collision`，必须在 `/Game/` 下，不带末尾斜杠 |
 | Asset Name | 输出资产名，例如 `SM_Collision_Car01_v1`；单个名称，不填路径／扩展名 |
@@ -43,16 +61,16 @@
 - 半径为0：该端保留方角。
 - 半径小于车宽一半：端面中央仍有一段直边。
 - 半径等于车宽一半：该端的两个圆角接成半圆。
-- 前后半径可以不同，但 **Front Radius + Rear Radius ≤ Length**，防止两端圆角重叠。
+- 端面位置先由 Front 和 Rear 确定，圆角再向轮廓内侧计算。XY 或 XZ 同一组半径的和超过总长时，该组的实际半径按比例缩小以适配两端。面板会提示，输入值保留，长度增加后按原值生成。
 
-工具不会静默缩小不合法半径。参数不合法时会显示原因，禁用生成按钮；例如减小 Width 后，也应相应减小两个半径。
+单个半径仍受 Width 或 Height 一半的限制。超出该范围会显示原因并禁用生成按钮。例如减小 Width 后，也需相应调整两个俯视半径。
 
-资产 Pivot 固定为整体包围盒中心 `(0,0,0)`，尺寸直接烘焙入网格。工具默认200×140×70、前后70只是旧尺寸风格的起点，不是已经适配 Car_01 的测试结论。
+资产原点保留在车辆物理根位置 `(0,0,0)`，尺寸和底面高度直接烘焙入网格。包围盒中心可随前后距离和轮底锚定的 Height 变化。默认 Front=100、Rear=100、Width=140、Height=70，两端的俯视半径为 70。读取旧 v1～v3 配方时，旧总长平均分给 Front 和 Rear。应用更新或创建后，v4 配方分别保存这两个距离。
 
 ## 4. 创建、检查和保存
 
-1. 结束 PIE／Simulate，在 Tools 菜单打开生成器。
-2. 展开尺寸和圆角参数，填写实测所需尺寸；提交参数后右侧预览更新俯视和侧视，车头 +X 在右侧，黄色短线表示原点。两张预览各自缩放以方便阅读，最终以数值和生成资产为准。
+1. 结束 PIE／Simulate，在 Tools 菜单打开生成器。车型专用碰撞网格可从 **Load Selected Vehicle** 开始。
+2. 展开尺寸和圆角参数，填写实测所需尺寸。提交参数后右侧预览更新俯视和侧视，车头 +X 在右侧，黄线表示 `X=0`。两张预览各自缩放，最终以数值和生成资产为准。
 3. 填写输出目录、资产名。建议按底盘／车型和版本命名，例如 `SM_Collision_Car01_v1`。
 4. 检查面板下方状态为 Ready，点击 **Create New Mesh**。
 5. 工具自动定位新资产并打开 Static Mesh Editor。它此时仍是**未保存的新资产**，不会自动替换任何车辆。
@@ -69,7 +87,7 @@
 3. 将 **Collision Mesh** 指向第4节已保存的新代理网格。
 4. 核对 **Physics → Scale** 为 `(1,1,1)`。若旧资产已经用非1缩放，先记录该值并评估尺寸／子组件影响，再安排迁移；不要直接把旧根缩放与已经烘焙的尺寸叠乘。
 5. 保留现有质量、阻尼、CCD、碰撞事件和碰撞通道等已调参数。Ready For Use 保持原迁移流程，工具不替你改动。
-6. 核对骨骼表现 DA 的相对位置／缩放，让视觉车身与新代理对齐；骨骼模型仍为 No Collision、不模拟物理。不要给轮胎、尾翼和模型 Physics Asset 再启用独立车身碰撞。
+6. 核对保存的表现 DA 与生成时选中的是同一车型配置。车型轮底已按该表现 DA 的相对变换计入生成结果。骨骼模型沿用 No Collision 和单车身刚体方案。
 7. 检查 **Ball Control Point**。加长车身后，原控制点可能落到车头内；让目标球中心位于车头外，预留球半径和合理间隙，并核对高度。不要盲目沿用旧的 `(170,0,20)`。
 8. 保存修改的 DA。重新开始游戏时由现有 `ApplyDefinition` 应用新碰撞；在 Definition 模式下只改蓝图组件面板的 Static Mesh，运行时可能被 DA 覆盖。
 
@@ -79,10 +97,37 @@
 
 1. 在 Content Browser 中**只选中一个**本工具生成并保存过的 Static Mesh。
 2. 切回生成器，点击 **Load Selected Mesh Recipe**。
-3. 面板恢复原尺寸、圆角、分段数和输出位置。它读取的是该资产的生成配方，不从后来手工编辑过的顶点反推参数。
-4. 调整数值，再点击 **Create New Mesh**，保存新版本，检查后手工切换车辆 DA 的 Collision Mesh。
+3. 面板恢复原尺寸、圆角、分段数和输出位置，并在 **Update target** 显示实际目标路径。读取内容来自生成配方，手工编辑过的顶点不会反推出新参数。
+4. 调整数值后，点击 **Update Loaded Mesh**，原资产内的网格、单个简单凸包和配方一起更新。名称和路径保留，Vehicle Definition 的 Collision Mesh 引用继续使用。
+5. 原资产在内存中标记为待保存；在该资产的Static Mesh Editor中保存后，磁盘文件才更新。重新开始Play可验证新形状。
 
-原资产、原配方和原引用保留。普通手工碰撞网格、缺失配方或未知配方版本会明确拒绝读取，并保留面板原参数。若手工修改了已生成网格，原配方不会随之自动更新；需要新的确定形状时应再次生成新版本。
+需要保留旧版时，**Create New Mesh** 继续创建独立版本，再由团队保存并切换引用。创建成功会清除更新目标，再次更新需要重新加载目标资产。
+
+### 6.1 更新目标与影响范围
+
+- 更新始终绑定 **Update target** 显示的资产。加载之后单独切换Content Browser选择，目标保持原资产。Output Folder与Asset Name只影响创建功能。
+- 读取失败会清除旧更新目标，并禁用更新按钮，避免继续覆盖之前加载的资产；面板已有参数保留。
+- 多个车型共用同一Mesh时，所有引用都使用更新后的形状。工具检查各车型轮底高度是否一致。仅调整某一车型时可创建独立版本，再切换该车型Definition引用。
+- 原有材质引用／材质槽、BodySetup对象与非几何物理配置保留。组件重新注册后刷新实际碰撞与包围盒，组件上的质量和位置等覆盖值保持。
+- 手工编辑过的顶点或简单碰撞会被生成参数重建的形状替换，原配方不会追踪这些手工调整。
+- 普通手工网格、未知／缺失配方、Engine资产、Cooked资产、缺失源LOD或非单位Build Scale均拒绝更新。旧 v1～v3 配方可读取并更新为 v4。
+- PIE／Simulate期间禁止更新。工具不在比赛运行期间改变车辆碰撞体。
+
+### 6.2 更新失败与保存
+
+工具先在临时网格中完成生成与Chaos烹制，成功后才写入目标。写入阶段保留旧源网格及碰撞几何，用于恢复失败更新。若更新与恢复均失败，状态栏要求从磁盘重新加载该资产；此时应保留原磁盘文件。
+
+当前没有新增工具专用的Undo／Redo事务。保存前可以通过Editor的资产重载恢复磁盘版本，保存后可通过Git恢复旧版。需要保留可对照版本时仍可使用Create New Mesh。
+
+### 6.3 本次验证与接续
+
+2026-11-10，本机UE5.8.3-58210709：四份受影响C++实现／测试源码均已通过编译。用户保存并关闭Editor后，主工程 **HAL_Future_CreationEditor Win64 Development构建成功**，R6日志为`Result: Succeeded`、退出码0，新模块DLL已写入主工程Binaries。此前被占用导致的LNK1104及独立验证目录链接保留为早期记录，当前构建结果以R6为准。
+
+独立Editor-Cmd两次启动、主工程Editor-Cmd及隐藏Editor各一次启动，均未产生UE日志或自动化报告，退出码0不能作为测试通过证据。新增两项原生测试及一项实际Slate交互测试已经编译，运行结果仍待验证。本次没有Game Target构建、真人操作或新形状驾驶验收，也没有保存任何现有Mesh／DA／BP／地图。用户关闭Editor后重新采集的1213份保存资产及四份Config均与验证结束时一致。
+
+后续入口：重新打开Editor及 **Tools → HAL Tools → HAL Vehicle Collision Generator** 即可装载本次构建的工具。在Session Frontend的Automation中分别运行 **HAL.Editor.CollisionGenerator** 与 **HAL.EditorUI.CollisionGenerator**；后一组需要可渲染Editor。前者覆盖七项参数、几何、单物理体、保存重载与原资产更新测试，后者覆盖三项面板、缩略图与更新目标交互测试。
+
+手工验收可在生成的临时测试网格上完成：加载后调整长宽高与两类圆角，更新并核对原路径、Simple Collision和视口包围盒；切换Content Browser选择后更新应仍作用于Update target。保存并重载后应读回新参数；PIE期间更新按钮应禁用。最终由团队核对实际车型的接地、墙角、控球和碰撞表现。
 
 ## 7. 测试与 Git 交接
 
@@ -93,8 +138,8 @@
 ## 8. 实现与验证入口
 
 - `Source/HAL_Future_CreationEditor/` 是独立 Editor 模块；Runtime 模块和 Game Target 不依赖它。
-- `HALVehicleCollisionGenerator.cpp` 负责参数校验、确定性圆角轮廓、封闭挤出网格、单凸包烹制、版本化文本元数据及唯一新资产创建。
-- `SHALVehicleCollisionGenerator.cpp` 负责原生 Slate 面板、预览、读取配方及显式创建；没有工具蓝图或运行时 Tick。
+- `HALVehicleCollisionGenerator.cpp` 负责参数校验、确定性圆角轮廓、封闭网格、单凸包烹制、版本化文本元数据、唯一新资产创建和原资产更新。
+- `SHALVehicleCollisionGenerator.cpp` 负责原生Slate面板、预览、读取配方、显式创建及绑定已加载目标的更新；没有工具蓝图或运行时Tick。
 - 正常保存的结果是标准 `UStaticMesh`＋`UBodySetup`，配方写在包元数据中，没有序列化 Editor 模块的自定义类引用。
 - 自动化 `HAL.Editor.CollisionGenerator` 覆盖参数／几何、真实动态刚体、唯一新资产及 Saved 目录下的保存／重新加载；渲染面板探针为 `HAL.EditorUI.CollisionGenerator.Panel`，二者分别运行。
 

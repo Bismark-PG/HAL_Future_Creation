@@ -101,6 +101,8 @@ struct FHALPresentationTestAccess
 	static int32 FadingTireSkids(UHALVehiclePresentationComponent* Component) { return Component->FadingTireSkids.Num(); }
 	static void Reset(UHALVehiclePresentationComponent* Component) { Component->ResetPose(); }
 	static void DisableChassis(UHALVehiclePresentationComponent* Component) { Component->Config->Chassis.bEnabled = false; }
+	/** Read-only runtime config, so placement tests assert the documented formula instead of a tuned constant. */
+	static const UHALVehiclePresentationConfig* Config(UHALVehiclePresentationComponent* Component) { return Component->Config; }
 	/** Runtime instance copies only. Actual rig caching stays intact unless a synthetic probe is requested. */
 	static UHALVehiclePresentationComponent* EnableSuspensionProbe(ATestVehiclePawn* Pawn, bool bSynthetic = false)
 	{

@@ -1,4 +1,5 @@
 #include "HALVehiclePresentationComponent.h"
+#include "HALBattleTopComponent.h"
 #include "HALVehiclePresentationConfig.h"
 #include "HALVehicleAnimInstance.h"
 #include "ArcadeVehicleMovementComponent.h"
@@ -84,6 +85,14 @@ void UHALVehiclePresentationComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	SetComponentTickEnabled(bConfigured);
+}
+
+FTransform UHALVehiclePresentationComponent::GetWheelSampleTransform() const
+{
+	if (!Mesh) { return FTransform::Identity; }
+	const auto* Top = GetOwner()->FindComponentByClass<UHALBattleTopComponent>();
+	FTransform Unspun;
+	return Top && Top->GetUnspunMeshTransform(*Mesh, Unspun) ? Unspun : Mesh->GetComponentTransform();
 }
 
 void UHALVehiclePresentationComponent::EndPlay(const EEndPlayReason::Type Reason)
@@ -230,13 +239,14 @@ void UHALVehiclePresentationComponent::TickComponent(float DeltaTime, ELevelTick
 	Frame.ChassisPitchDegrees = ChassisState.PitchDegrees;
 	Frame.ChassisRollDegrees = ChassisState.RollDegrees;
 	Frame.bDrivingLeanActive = Config->Chassis.bEnabled && bDrivingLeanAllowed;
+	const FTransform WheelToWorld = GetWheelSampleTransform();
 	for (const auto& Wheel : Config->Wheels)
 	{
 		const int32 Slot = uint8(Wheel.Wheel);
 		auto& Pose = Frame.Wheel(Wheel.Wheel);
 		const float Steer = Wheel.bSteers ? Frame.SteeringDegrees : 0;
 		Pose.SteeringRotation = HALVehiclePresentation::AxisRotation(Wheel.SteeringAxis, Steer * Wheel.SteeringSign);
-		const FVector Point = Mesh ? Mesh->GetComponentTransform().TransformPosition(ReferenceWheelCenters[Slot]) : Position;
+		const FVector Point = Mesh ? WheelToWorld.TransformPosition(ReferenceWheelCenters[Slot]) : Position;
 		const FVector PointVelocity = Velocity + FVector::CrossProduct(Angular, Point - CenterOfMass);
 		const FVector RollingDirection = FQuat(Body->GetUpVector(), FMath::DegreesToRadians(Steer)).RotateVector(Body->GetForwardVector());
 		float Speed = FVector::DotProduct(PointVelocity, RollingDirection);
