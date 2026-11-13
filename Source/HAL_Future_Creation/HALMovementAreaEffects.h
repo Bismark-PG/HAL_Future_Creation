@@ -19,3 +19,11 @@ class HAL_FUTURE_CREATION_API UHALSlipperyAreaEffect : public UGameplayEffect
 public:
 	UHALSlipperyAreaEffect();
 };
+
+UCLASS()
+class HAL_FUTURE_CREATION_API UHALDragAreaEffect : public UGameplayEffect
+{
+	GENERATED_BODY()
+public:
+	UHALDragAreaEffect();
+};

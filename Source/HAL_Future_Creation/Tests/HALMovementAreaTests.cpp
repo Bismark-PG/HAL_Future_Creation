@@ -154,6 +154,44 @@ bool FHALAreaCurveTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALDragAreaTest, "HAL.FutureCreation.MovementAreas.DragSourcesAndSlipperyOverlap",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALDragAreaTest::RunTest(const FString& Parameters)
+{
+	FAreaTestWorld F;
+	auto* State = F.World->SpawnActor<AHALPlayerState>(); auto* ASC = State->GetHALAbilitySystemComponent();
+	auto* Avatar = F.Source(); auto* Receiver = F.Receiver(Avatar);
+	ASC->InitAbilityActorInfo(State,Avatar); Receiver->Bind(ASC);
+	auto* First = F.Source(); auto* Second = F.Source(); auto* Oil = F.Source();
+	FHALMovementAreaConfig Drag; Drag.Kind = EHALMovementAreaKind::Drag; Drag.LateralGripMultiplier = .2f; Drag.RecoverySeconds = 0;
+	FHALMovementAreaConfig Slip; Slip.Kind = EHALMovementAreaKind::Slippery; Slip.LateralGripMultiplier = .3f;
+	TestTrue(TEXT("Drag recipe valid"), Drag.IsValid());
+	Receiver->RegisterArea(First,Drag);
+	const auto* Values = ASC->GetSet<UHALMovementAttributeSet>();
+	TestTrue(TEXT("Drag contributes selected 0.2 grip"), FMath::IsNearlyEqual(Values->GetAreaGripDelta(),-.8f));
+	TestTrue(TEXT("Independent Drag state"), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Drag));
+	TestFalse(TEXT("Drag alone never masquerades as Slippery"), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_SlipperyArea));
+	TestEqual(TEXT("No slippery sway from Drag"), Receiver->GetSelection().Sway.Amplitude,0.f);
+	Receiver->RegisterArea(Oil,Slip); Receiver->RegisterArea(Second,Drag);
+	TestTrue(TEXT("Sources select minimum rather than multiply"), FMath::IsNearlyEqual(Values->GetAreaGripDelta(),-.8f));
+	TestTrue(TEXT("Overlapping Slippery state remains visible"), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_SlipperyArea));
+	Receiver->UnregisterArea(First);
+	TestTrue(TEXT("Leaving one field retains another Drag source"), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Drag));
+	Receiver->UnregisterArea(Second);
+	TestFalse(TEXT("Last Drag exit removes Drag state"), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Drag));
+	TestTrue(TEXT("Remaining Slippery value restored, not normal grip"), FMath::IsNearlyEqual(Values->GetAreaGripDelta(),-.7f));
+	Drag.LateralGripMultiplier = .5f; Receiver->RegisterArea(First,Drag);
+	TestTrue(TEXT("Weaker Drag still has its own state without changing selected grip"), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Drag) && FMath::IsNearlyEqual(Values->GetAreaGripDelta(),-.7f));
+	Receiver->UnregisterArea(Oil);
+	TestFalse(TEXT("No stale Slippery state when only Drag remains"), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_SlipperyArea));
+	TestTrue(TEXT("Remaining weaker Drag selected"), FMath::IsNearlyEqual(Values->GetAreaGripDelta(),-.5f));
+	F.World->InitializeActorsForPlay(FURL()); F.World->SetBegunPlay(true);
+	First->Destroy();
+	TestFalse(TEXT("Destroyed source clears Drag"), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Drag));
+	TestEqual(TEXT("No residual grip delta"), Values->GetAreaGripDelta(),0.f);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALAreaGASTest, "HAL.FutureCreation.MovementAreas.SourceLifecycleAndIndependentBuffs",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FHALAreaGASTest::RunTest(const FString& Parameters)

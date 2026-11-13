@@ -34,6 +34,7 @@ namespace HALGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Movement_Boost, "State.Movement.Boost", "Movement boost is active; actual scales are consumed from per-physics-frame history.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Movement_SlowArea, "State.Movement.SlowArea", "A selected slowing-area GE is active; recovery after exit is stored in physics history.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Movement_SlipperyArea, "State.Movement.SlipperyArea", "A selected slippery-area GE is active; does not change chassis mass or collision.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Movement_Drag, "State.Movement.Drag", "A Drag field reduces lateral grip without adding slippery sway.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Movement_Area, "Effect.Vehicle.MovementArea", "Avatar-scoped, selected regional contribution; separate from ordinary movement buffs.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Data_Movement_AreaAcceleration, "Data.Movement.AreaAcceleration", "Reserved selected regional acceleration delta.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Data_Movement_AreaSpeed, "Data.Movement.AreaSpeed", "Reserved selected regional speed-limit delta.");

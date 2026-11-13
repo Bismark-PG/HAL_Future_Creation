@@ -31,4 +31,5 @@ private:
 	FHALMovementAreaSelection Selection;
 	FVector AppliedScales = FVector::OneVector;
 	FActiveGameplayEffectHandle SlowHandle, SlipperyHandle;
+	bool bAppliedDrag = false, bAppliedSlippery = false;
 };

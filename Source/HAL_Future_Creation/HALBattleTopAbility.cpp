@@ -14,6 +14,7 @@ bool UHALBattleTopConfig::Validate(FString& Error) const
 	const auto InRange = [](float Value, float Min, float Max)
 	{ return FMath::IsFinite(Value) && Value >= Min && Value <= Max; };
 	if (InRange(DurationSeconds, .1f, 30.f) && InRange(CooldownSeconds, 0, 120)
+		&& InRange(TargetCooldownSeconds,.05f,10) && InRange(SpinEnterSeconds,0,2) && InRange(SpinExitSeconds,0,2) && FX.IsValid()
 		&& InRange(ContactDamage, 0, 100) && HALImpact::IsValidTier(ContactTier) && ContactTier != EHALImpactTier::None
 		&& HALImpact::IsValidPushPreset(ContactPush) && InRange(WallReboundScale, 0, 2)
 		&& InRange(WallMinimumIncomingSpeed, 1, 6000) && InRange(WallMaximumReboundSpeed, 1, 6000)

@@ -6,6 +6,7 @@
 #include "../HALSlipperyTrailAbility.h"
 #include "Engine/World.h"
 #include "Materials/Material.h"
+#include "NiagaraSystem.h"
 #include "Misc/CommandLine.h"
 
 namespace
@@ -65,17 +66,37 @@ namespace
 					{
 						auto* Config = NewObject<UHALBattleTopConfig>(Ability);
 						Config->SpinRate = FHALVehicleAbilityTestAccess::BattleTopNetworkSpinRate;
+						if (FParse::Param(FCommandLine::Get(), TEXT("HALBattleTopFXFixture")))
+						{
+							Config->FX.Wind = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Assets/FX/BattleTop/NS_BattleTop_Wind.NS_BattleTop_Wind"));
+							Config->FX.ContactSparks = Config->FX.GroundSparks = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Assets/FX/BattleTop/NS_BattleTop_Sparks.NS_BattleTop_Sparks"));
+							Config->FX.WindMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Assets/FX/BattleTop/M_BattleTop_Wind.M_BattleTop_Wind"));
+							if (FParse::Param(FCommandLine::Get(), TEXT("HALBattleTopContactSprayFixture")))
+							{
+								Config->FX.ContactSparks = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Assets/FX/BattleTop/NS_BattleTop_ContactSpray.NS_BattleTop_ContactSpray"));
+								Config->FX.ContactCount = 32;
+							}
+							if (FParse::Param(FCommandLine::Get(),TEXT("HALBattleTopCartoonFixture")))
+							{
+								Config->FX.Wind=LoadObject<UNiagaraSystem>(nullptr,TEXT("/Game/Assets/FX/BattleTop/NS_BattleTop_ToonWind.NS_BattleTop_ToonWind"));
+								Config->FX.WindMaterial=LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Assets/FX/BattleTop/M_BattleTop_ToonWind.M_BattleTop_ToonWind"));
+								Config->FX.ContactSparks=LoadObject<UNiagaraSystem>(nullptr,TEXT("/Game/Assets/FX/BattleTop/NS_BattleTop_ToonContact.NS_BattleTop_ToonContact"));
+								Config->FX.GroundSparks=nullptr;Config->FX.ContactCount=7;
+								Config->FX.WindFlowDegreesPerSecond=315;Config->FX.WindBandCount=4;Config->FX.WindBandLifetime=1.5f;
+								Config->FX.ContactGlowStrength=.75f;
+							}
+						}
 						Property->SetObjectPropertyValue_InContainer(Ability, Config);
 					}
 				}
 				W->AddOnActorPreSpawnInitialization(FOnActorSpawned::FDelegate::CreateLambda([bBattleTop, bTrail, bCharge](AActor* Actor)
 				{
-					if (bCharge)
+					if (bBattleTop || bCharge)
 					{
 						if (auto* Mode = Cast<AHALMatchGameMode>(Actor))
 						{
 							Mode->DefaultPawnClass = LoadClass<ATestVehiclePawn>(nullptr,
-								TEXT("/Game/Blueprints/Vehicles/BP_VehiclePawn_Car_04.BP_VehiclePawn_Car_04_C"));
+									bBattleTop ? TEXT("/Game/Blueprints/Vehicles/BP_VehiclePawn_Car_03.BP_VehiclePawn_Car_03_C") : TEXT("/Game/Blueprints/Vehicles/BP_VehiclePawn_Car_04.BP_VehiclePawn_Car_04_C"));
 						}
 					}
 					auto* Pawn=Cast<ATestVehiclePawn>(Actor); if (!Pawn || !Pawn->GetVehicleDefinition()) { return; }

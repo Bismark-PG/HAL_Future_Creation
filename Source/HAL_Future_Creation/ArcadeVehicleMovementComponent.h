@@ -79,6 +79,8 @@ public:
 	FHALMovementStatus GetMovementEffectStatus() const;
 	/** Thread-safe copy of the last actually consumed input; for cosmetic observers only. */
 	FHALVehiclePresentationInput GetPresentationInput() const;
+	/** Authority gameplay query: last physics-consumed driving demand after control permission gates. */
+	FVehicleInputCmd GetAcceptedDrivingInput() const;
 	FVehicleStabilityObservation GetStabilityObservation() const;
 	FVehicleContactObservation GetContactObservation() const;
 	bool IsBounceBackActive() const;
@@ -145,6 +147,8 @@ private:
 		const FVector& Velocity, float DeltaTime);
 	void ResetWallEscape();
 	void ApplyLongitudinalForces(FBodyInstance& Body, const FVector& ForwardDirection, float CurrentForwardSpeed, float DeltaTime = 1.f / 60.f);
+	/** Optional Drag-only adapter. Leaves the caller's original driving frame untouched without active Drag propulsion. */
+	void ResolveDragDriveFrame(FBodyInstance& Body, FVector& InOutForwardDirection, float& InOutForwardSpeed) const;
 	void ApplyLateralGrip(FBodyInstance& Body, const FVector& RightDirection, float CurrentLateralSpeed);
 	void ApplySteering(FBodyInstance& Body, const FVector& GroundNormal, float CurrentForwardSpeed,
 		float CurrentYawRate, float DeltaTime, float AreaSwayAcceleration);
@@ -157,6 +161,7 @@ private:
 	mutable FCriticalSection PendingPhysicsDataLock;
 	FHALVehiclePresentationInput PublishedPresentationInput; // Protected by PendingPhysicsDataLock.
 	FVehicleInputCmd InputCommand;
+	FVehicleInputCmd PublishedAcceptedDrivingInput; // Protected by PendingPhysicsDataLock.
 	FVehicleNetInputData LastPhysicsInput;
 	FVehicleNetInputData AppliedHistoryInput;
 	TAtomic<bool> bUseNetworkPhysicsHistory{false};

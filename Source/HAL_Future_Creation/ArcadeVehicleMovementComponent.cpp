@@ -220,7 +220,7 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	{
 		bGrounded = false;
 		ForwardSpeed = 0.0f;
-		{ FScopeLock Lock(&PendingPhysicsDataLock); PublishedPresentationInput = FHALVehiclePresentationInput(); }
+		{ FScopeLock Lock(&PendingPhysicsDataLock); PublishedPresentationInput = FHALVehiclePresentationInput(); PublishedAcceptedDrivingInput.Reset(); }
 		ResetWallEscape();
 		return;
 	}
@@ -229,7 +229,7 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		? Body->GetBodyInstanceAsyncPhysicsTickHandle() : FBodyInstanceAsyncPhysicsTickHandle();
 	if (!PhysicsHandle.IsValid())
 	{
-		{ FScopeLock Lock(&PendingPhysicsDataLock); PublishedPresentationInput = FHALVehiclePresentationInput(); }
+		{ FScopeLock Lock(&PendingPhysicsDataLock); PublishedPresentationInput = FHALVehiclePresentationInput(); PublishedAcceptedDrivingInput.Reset(); }
 		return;
 	}
 	const auto& Overdrive = CurrentMovement.Overdrive;
@@ -334,6 +334,8 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		PublishedPresentationInput.PhysicsFrame = StepInput.PhysicsFrame;
 		PublishedPresentationInput.bGrounded = bGrounded;
 		PublishedPresentationInput.bValid = true;
+		PublishedAcceptedDrivingInput = bPoseDriveAllowed && bMovementDriveAllowed && !CurrentMovement.bControlsBlocked
+			? InputCommand : FVehicleInputCmd();
 		PublishedPresentationInput.TireSkidInputs = bPoseDriveAllowed && bMovementDriveAllowed && !CurrentMovement.bControlsBlocked
 			? HALVehiclePresentation::TireSkidInputs(InputCommand.Brake, InputCommand.Throttle, InputCommand.bHandbrake) : 0;
 		PublishedStability.PhysicsFrame = StepInput.PhysicsFrame;
@@ -353,6 +355,7 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		PublishedContact.Position=BodyTransform.GetLocation();
 		PublishedContact.Rotation=BodyTransform.GetRotation();
 		PublishedContact.Velocity=PhysicsHandle->V();
+		PublishedContact.AngularVelocity=PhysicsHandle->W();
 		PublishedStability.PoseStableSeconds = PoseStableSeconds;
 	}
 
@@ -610,6 +613,12 @@ void UArcadeVehicleMovementComponent::ApplyAction_Internal(
 	{
 		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(), Recoil->DeltaVelocity, true);
 	}
+}
+
+FVehicleInputCmd UArcadeVehicleMovementComponent::GetAcceptedDrivingInput() const
+{
+	FScopeLock Lock(&PendingPhysicsDataLock);
+	return bShouldRunPhysics.Load() && !bHistoryInputBlocked.Load() ? PublishedAcceptedDrivingInput : FVehicleInputCmd();
 }
 
 FVehicleContactObservation UArcadeVehicleMovementComponent::GetContactObservation() const
@@ -978,10 +987,14 @@ bool UArcadeVehicleMovementComponent::UpdateRecoverySupport(const FVector& BodyL
 
 void UArcadeVehicleMovementComponent::ApplyLongitudinalForces(
 	FBodyInstance& Body,
-	const FVector& ForwardDirection,
-	float CurrentForwardSpeed,
+	const FVector& VehicleForwardDirection,
+	float VehicleForwardSpeed,
 	float DeltaTime)
 {
+	FVector ForwardDirection = VehicleForwardDirection;
+	float CurrentForwardSpeed = VehicleForwardSpeed;
+	ResolveDragDriveFrame(Body, ForwardDirection, CurrentForwardSpeed);
+
 	// Brake wins when both face buttons are held, producing deterministic input.
 	const bool bBrakeHeld = InputCommand.Brake > KINDA_SMALL_NUMBER;
 	const bool bThrottleHeld = InputCommand.Throttle > KINDA_SMALL_NUMBER && !bBrakeHeld;

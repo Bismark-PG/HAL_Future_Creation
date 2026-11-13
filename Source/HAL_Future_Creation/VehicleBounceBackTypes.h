@@ -7,6 +7,8 @@ struct FVehicleContactObservation
 {
 	bool bValid=false;
 	FVector Position=FVector::ZeroVector, Velocity=FVector::ZeroVector;
+	// Pre-step radians/s for contact-point presentation; not serialized in network history.
+	FVector AngularVelocity=FVector::ZeroVector;
 	FQuat Rotation=FQuat::Identity;
 };
 

@@ -134,8 +134,9 @@ void UHALDebugHUDWidget::RefreshStatus()
 			Text += FString::Printf(TEXT("Movement boost: %s %.1fs (-1=remote unknown)\n"),
 				ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Boost) ? TEXT("ACTIVE") : TEXT("off"),
 				ASC->GetEffectTimeRemaining(HALGameplayTags::State_Movement_Boost));
-			Text += FString::Printf(TEXT("Areas: Slow=%d Slippery=%d\n"),
-				ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_SlowArea), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_SlipperyArea));
+			Text += FString::Printf(TEXT("Areas: Slow=%d Slippery=%d Drag=%d\n"),
+				ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_SlowArea), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_SlipperyArea),
+				ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Drag));
 		}
 		if (Combat && ASC->IsCombatInitialized())
 		{
