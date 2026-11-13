@@ -1,5 +1,165 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-14 闪电新星第十二轮：收窄地面环，Loop 的边界对比翻倍拉回来，12.17 节的「已知未解」结案。** 两个改动：(1) 新增 **`MI_FX_NovaRing`** 并把 `GroundRing` 的渲染器改指向它——这层原本**直接用母材质** `M_FX_NovaRing`，是整个系统里唯一没有材质实例的一层（其余都有 `MI_FX_*`），调参不再需要动母材质预设；(2) **`RingWidth` 0.16 → 0.06**。`M_FX_NovaRing` 的环是 UV 平面上的径向带 `band = 1 - saturate(abs(r-Rad)/Wid)` 再平方，`Rad=0.8`／`Wid=0.16` 等于环跨 **r=0.64…0.96**（佔半径 ±20%），所以在 Loop 被电弧和雾淹掉时完全凸不出来；**`band` 峰值恆为 1.0、这材质没有亮度旋钮**，唯一能拉对比的手段就是收窄。
+
+| 阶段 | `RingWidth` | 峰值 | 外侧中位 | **阶梯** |
+|---|---|---|---|---|
+| Loop | 0.16 | 241.1 | 178.0 | **63.1** |
+| Loop | **0.06** | 241.5 | 111.6 | **129.9** |
+| Loop | 0.035 | 241.5 | 107.0 | 134.5 |
+| Begin | 0.16 | 207.8 | 54.9 | **152.9** |
+| Begin | **0.06** | 209.6 | 53.3 | **156.3** |
+
+**Loop 的阶梯翻了一倍，Begin 完全没有被牺牲**（峰值位置 x=111/448 不变）。**停在 0.06 而不是更窄是量出来的决定**：0.035 只多拿到 4.6，因为那时外侧剩下的 107 已经不是环的宽度而是**电弧餵出来的 bloom**，收窄对它无效；同时环的半高宽由 53px 掉到 22px，再窄就要开始担心 12.15 节记的 TAA 门槛。**0.06 拿到九成好处又留着安全馀裕。**
+
+**三阶段状态**：Begin 地面环清楚、−60° 下是躺在地面的椭圆（车子真正要闪的足迹）；Loop 地面环在球体下缘与左右两侧明显分离出来；Over 0.55 前后只差 3,109 个像素（火花随机抖动，不是环），**仍然没有边界线，这是刻意的**（场正在关闭，见 12.17 节）。
+
+**已验证**：上述量测；`validate_system` `valid: true`，警告仍是既有那七笔 `Particles.MeshScale`（12.12 节，不是误报）；两个资产已存档；`User.Radius` 400 / Phase 0 / PhaseElapsed 0 已还原，`list_dirty_packages` 为 0。**全程未提交。** **未验证**：PIE 实际画面——**地面环是贴在地板上的，它的对比最容易被场地底色吃掉，黑底预览裡的数字偏乐观**；本轮未重拍四张正俯视正式截图（同 12.16 节理由）。
+
+**现行值（12.16–12.18 三轮净结果）**：`MI_FX_NovaShell.RingBoost` = **0**（外圈白线关闭）、`VeilGroundZ`/`VeilFadeZ` = **−0.16**/**+0.19**、`FillGlow` = 0.15（未改，12.16 节留的待决项）；`MI_FX_NovaRing`（新）`RingWidth` = **0.06**、`RingRadius` = 0.8（未改）。
+
+**下一步入口**：进 PIE 用 −60° 看真场地底色下的地面环对比（黑底数字偏乐观），并决定 12.16 节留下的 `FillGlow` 要不要调高。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.18 节。
+
+**2026-11-14 闪电新星第十一轮：拿掉壳层的外圈白线（`RingBoost` 1.5 → 0）。Begin 没问题，但 Loop 的边界对比掉到三分之一，这一项未解。** 团队要求「不要显示最外围那个白色圆形，也就是遮罩的轮廓」。那条线是壳层材质的 `edge` 项（`smoothstep(RingS, RingS+rbw, r) * RingB`），12.15 节已用两个测试确认过归属，所以只要 `RingBoost = 0`，不必改 HLSL。
+
+> **这和 12.15 节独立评审的建议方向一致**：球壳剪影画在**球心**高度、`GroundRing` 画在**地面**高度，−60° 下两者会分离成两个半径，评审说「让 `GroundRing` 当唯一边界，不要让球壳剪影跟地面圈抢『半径在哪』」。团队这个要求刚好把那件事做掉了。
+
+**用 −60° 真实俯角逐阶段量边界**（沿通过环最宽处的水平扫描线，量峰值与刚好在外侧的中位数，差值即边界阶梯）：
+
+| 阶段 | 峰值位置 | 峰值 | 外侧中位 | **阶梯** |
+|---|---|---|---|---|
+| Loop（改前，有 `edge`） | x=108/449 | 243.5 | 45.8 | **198.2** |
+| Loop（改后） | x=141/412 | 234.7 | 178.0 | **63.1** |
+| Begin（改后） | x=110/449 | 206.8 | 50.8 | **157.2** |
+
+**Begin 没问题**：`GroundRing` 完整接手，阶梯 157.2，位置与改前的 `edge` 几乎重合，而且在 −60° 下它读起来是**躺在地面的椭圆**——那才是车子真正要闪的足迹。**Loop 是问题所在**：边界阶梯由 198.2 掉到 **63.1**（剩约三分之一），峰值位置还向内移到 x=141/412，那已经不是边界而是壳层本体与电弧。原因是 Loop 的 `rim` 闸门全开、细丝与缠绕弧把能量堆在外圈，内部中位衝到 202、外侧中位 178，`GroundRing` 淹在里面凸不出来。**Loop 正是碰到会中的阶段**，AGENTS.md 第 12 节要求危险区域必须能被快速识别——**此项尚未解决，本轮只记录不自行处理**（团队要的是拿掉那条线，不是换一条）。
+
+**可用的修法（未做，待决定）**：(1) **收窄 `GroundRing` 的 `RingWidth`**——`M_FX_NovaRing` 的 band 是 `1 - saturate(abs(r-Rad)/Wid)` 再平方、峰值恆为 1.0、**没有亮度旋钮**，只能靠收窄让它更锐利；注意 `GroundRing` 直接用母材质 `M_FX_NovaRing`、**没有 MI**，要嘛建实例要嘛改母材质预设。(2) **给 `M_FX_NovaRing` 加一个亮度参数**，比收窄直接，但要动母材质。(3) 把 `RingBoost` 设成 0.3–0.5 而非 0——与本次要求相反，列出只为完整。
+
+**Over 段**：`GroundRing` 在 Over 被 spawn 阶段的 Phase 阵列关掉（12.15 节），`edge` 现在也没了，所以 Over 0.55 完全没有边界线，只剩塌缩中的电弧球。**这是合理的**——场已在关闭，不再需要告诉玩家闪哪裡，也符合 12.1 节「全部向中心塌缩归零」。
+
+**已验证**：上述三阶段的 −60° 撷取与量测（`capture_scene_preview`、`rotation: [-60,0,0]`、`fov 60`、560×420、`User.Radius` 110）。`MI_FX_NovaShell` 已存档；`User.Radius` 400 / Phase 0 / PhaseElapsed 0 已还原，`list_dirty_packages` 为 0。**全程未提交。** **未验证**：PIE 实际画面；本轮未重拍四张正俯视正式截图（同 12.16 节理由）。
+
+**下一步入口**：决定怎么把 Loop 的边界对比拉回来（收窄 `RingWidth` 或给 `M_FX_NovaRing` 加亮度参数），以及 12.16 节留下的 `FillGlow` 要不要调高。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.17 节。
+
+**2026-11-14 闪电新星第十轮：雾感遮罩改为随高度淡出，并第一次用真实的 −60° 相机俯角验证。** 团队回馈「外围半透明遮罩太显眼，希望越往穹顶顶点越透明，只有大概由地面往上 30% 是可视的白色雾感遮罩」。`M_FX_NovaShell` 的 Custom 节点新增两个输入与两个纯量参数：`VeilGroundZ`（预设 **−0.16**，此局部高度以下雾是满值）与 `VeilFadeZ`（预设 **+0.19**，此高度以上雾完全消失），`rim` 项乘上 `1.0 - smoothstep(VeilLo, VeilHi, d.z)`。**座标换算**：`d.z` 是 `normalize(LPos).z`、球底 −1 顶点 +1，**不是世界高度**；`z_local = (h_world − 球心高度) / Radius`，球心在车身高度（约 65cm）、Radius 400 时地面是 −0.16、穹顶可见高度 30% 是 +0.19——**球心高度或 Radius 改了这两个值要重算**。
+
+> **这是整个壳层材质里唯一以世界上方向为基准的项。** 其余五项（`rim` 的 `r`、`edge`、`core`、`fil`、`gc`）全部活在视线基底上——这正是 12.15 节必改 1 讲的「这颗球从任何角度看都是同一个正圆、没有线索把它绑在地面」。这个高度淡出让壳层**第一次有了地面锚点**，附带解掉一部分那个问题。
+
+**验证方式本身也换了**：`editor_query / capture_scene_preview` 可以指定 `camera: {location, rotation, fov}`，所以这轮第一次用游戏真正的俯角拍（`rotation: [-60,0,0]`、`fov 60`、Loop、`User.Radius` 110）。`preview_system` 只有 front／top／three_quarter／side 四个预设，拍不出 −60°。**机制正确**：开关淡出相差 64,812 个像素、单点最大差 462；逐列平均亮度在接近顶点处 59.0→28.9（**−30.1**），接近地面处 90.2→92.5（**+2.3**）——顶点掉最多、地面不动，方向完全正确。把 `FillGlow` 暂拉到 0.6 再拍一张诊断图，梯度形状一眼可见。**形状对，剩下的只是强度问题。**
+
+**但使用者看到的「外围遮罩」大部分不是这一层。** 把 `FillGlow` 设 0 重拍，那层外围雾几乎没变。拆出来是两个来源：(1) **`GroundRing`**（12.15 节量到佔全图 46% 亮度），它的渲染器用 `M_FX_NovaRing`，是一个**躺在地面的 UV 平面环**——**它没有「穹顶顶点」可言，「越往上越透明」对它没有意义**，要收只能直接降亮度或宽度；(2) **Bloom**，近白细丝与 242 亮度的边界环喂出来的后处理光晕。所以 `FillGlow` 停在 0.15（12.9 节定的值，本轮没改）时，这个改动在正式设定下**看得出来但幅度不大**。
+
+**两个方向待团队决定，本轮未做**：(a) **把 `FillGlow` 调高**（例如 0.4–0.6）——雾现在被限制在底部 30%、上半部不会再被填满，12.9 节「盘面会洗白开进去的车」的理由**部分**失效，但底部 30% 正好是车子所在的高度带，这个取捨必须在 PIE 看真场地底色才能判；(b) **降 `GroundRing` 的亮度或宽度**——它是外围雾的真正主力，但 12.15 节刚确认它不是那条硬白边界（那是壳层的 `edge`）。
+
+**已验证**：27 个输入脚位逐一确认 `connected: true`（`inputs` 整组取代会全部断线，见 12.13 节）、`recompile_material` 无错误、`validate_material` 只剩既有 warning、两个资产都已存档；上述 −60° 量测。`FillGlow` 已还原 0.15、`User.Radius` 400 / Phase 0 / PhaseElapsed 0 已还原，`list_dirty_packages` 为 0。**全程未提交。**
+
+**未验证**：PIE 实际画面与真实场地底色下的对比；本轮**未重拍四张正俯视的正式截图**——那四张是正俯视验收用，这个改动在正俯视下会变成「中间透明、外圈一圈雾」，不是这个效果该被判读的角度（见 12.15 节）。
+
+**下一步入口**：决定 `FillGlow` 要不要调高、`GroundRing` 要不要收，两者都建议在 PIE 用 −60° 看真场地底色再定。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.16 节。
+
+**2026-11-14 闪电新星第九轮：没有改造型，查了两个方法学问题——截图角度与 `GroundRing`。迴圈未停止。** 独立评审（刻意不给前次结论、用同一组画面重量一次）提出两项必改，两项都不是「数字调错」，而是**前面六轮的验收方法本身有盲点**。
+
+**必改 1：四张截图都是正俯视（−90°），而游戏相机是 −60°。** 前提已从工程核对：`VehicleDefinition.h` 的 `FVehicleCameraConfig::BoomTransform` 预设 `FRotator(-60,0,0)`、`TestVehiclePawn.cpp:136` 也硬写 −60（`HALRoundMatchTypes.h` 的 `SpectatorPitch=-65` 是**观战**相机，别混用）；`Docs/Combat/Electric_Sphere_CN_v0.1.md` 写明 Actor 原点是**球心**、且「测试时将球心放到车身高度」；`M_FX_NovaShell` 的 Custom 节点第 2 行是 `V = normalize(Parameters.CameraVector)`，**rim／edge／core／fil／gc 五项全部活在视线基底上**，所以这颗球从任何角度看都是同一个正圆，**没有任何透视线索把它绑在地面上**。亮边界圆画在**球心**的萤幕投影位置，而 `camera_angle=top` 正是球心与其地面投影重合的**唯一**角度——12.9～12.14 六轮所有「边界没变动／边界够硬」的结论，都是在一个**系统性隐藏此问题的角度**下得到的。
+
+> **我不同意评审给的修法方向。** 它建议把 `RingBoost` 降到 0.6–0.8、让 `GroundRing` 当唯一边界。但**车身中心也在同一个高度**（球心就是放在车身高度），两者投影偏移相同，所以「环画在球心」对判断「车能不能进去」其实是**对的**。真正的风险是球壳剪影（球心高度）与 `GroundRing`（地面高度）在 −60° 下**分离成两个不同半径**，玩家不知道该信哪一个。**这必须在 PIE 用真实相机角度看，不能在黑底预览拍板。**
+
+**必改 2：`GroundRing` 查清楚了，12.12 留下的印象是错的。** 两个直接测试：(A) `RingBoost=0` 重拍 Begin——只有 r=123 的尖峰塌掉（242.7→211.1），**r=126–150 整段完全没变**，那段在球壳剪影之外，既不是 `rim` 也不是亮环的 bloom。(B) 直接停用 `GroundRing` 重拍——r=130 由 174.5 掉到 **10.0**、r=136 由 131.5 掉到 **1.9**、r=144 由 63.0 掉到 **0.9**，**全图总亮度 8.357M → 4.475M，少掉 46%**；而 r=123 的尖峰只由 242.7 动到 240.4。
+
+**结论两条都要记住**：(1) 那条硬白尖峰**确实**是壳层的 `edge`，12.12 这点是对的；(2) **但 `GroundRing` 绝不是「白做」的一层——它贡献全图 46% 的亮度，r=126–150 整圈外晕几乎全来自它。** 12.12／12.14 读起来会让人以为这层没有画面，**那个印象是错的**，下一个接手的人若照那印象把它停用，会直接少掉一半的光。**它在 Over 会消失是因为阶段闸门不在曲线上而在 spawn**：`emitter_update / SpawnRate` 的 `Spawn Probability` 挂 `SelectFloatFromArray`，`Direct Array Index` 绑 **`User.Phase`**。所以 12.12 说它的 `ScaleMeshSize` 曲线是死的**仍然成立**，只是那不等于这层没有阶段行为——**同一个系统裡有两套完全不同的阶段机制，这是目前最容易让人误判的地方。**
+
+**已验证**：上述两组量测；相机俯角与球心高度已从 C++ 与 `Docs/Combat` 核对。两个探针截图已删除、**四张正式截图没有被覆盖**；`RingBoost` 已还原 1.5、`GroundRing` 已重新启用、`User.Radius` 400 / Phase 0 / PhaseElapsed 0 已还原，存档后 `list_dirty_packages` 为 0。**全程未提交。**
+
+**本轮判定不处理**：`Sparks` 飞出半径——独立评审自己量完认为可结案（Loop 在 r>1.14×R 只有 5 个离散亮点、最远 1.41×R，是几颗火星不是误导边界的光带），此项已连续列出三轮，就此标记「已量测、不处理」。另外边界光晕外溢到 1.22×R（误差方向保守，不急）、细丝 TAA 门槛（**球在萤幕上小于约 100px 直径**就照 12.9 节降 `FilamentCount` 22→14，不要加粗）。
+
+**下一步入口**：造型本身两轮量测都达标，但**停止条件尚未满足**（第九轮有必改项）。剩下的必改只有 PIE 验得掉——请在 `Content/Maps/Test` 用 −60° 实拍 Begin 与 Loop，量亮环中心与地面危险圈是否重合，并一併看 additive 蓝叠在实际场地底色上的对比、车开进 Loop 的遮挡、球的萤幕直径。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.15 节。
+
+**2026-11-14 闪电新星第八轮：核心的饱和白盘与剪影硬圆已修，三项门槛全部达标，硬边界环没动。** 评审只给一项必改，但底下两个症状同一个病根——第六轮为了放大核心把 `CoreFalloff` 设成 **1.0**，`body = pow(1-r, fo)` 在 `fo=1` 时是线性的，乘上 `CoreGlow 2.4` 后蓝通道在核心网格七成半径以内全部 clip：核心不是柔光球，是**硬边的饱和白盘**。为什么是必改不是美术洁癖：12.9 节当初把 `FillGlow` 0.28 砍到 0.15 的理由是「盘面 150–170 会洗白开进去的车」，改前盘心是 **209–255**，换算 `User.Radius = 400` 就是**一块直径约 350cm 的近饱和白盘压在区域正中心**；而 Over 0.55 那道硬圆落在 0.45×R，是危险区里的**第二条同心硬边**，正是 12.10 节花一整轮修掉的失败模式。
+
+**两个改动**：**(1)** `MI_FX_NovaCore`：`CoreFalloff` 1.0→**2.0**、`CoreGlow` 2.4→**1.8**、`HaloAmount` 0.5→**0.45**。**(2)** `M_FX_NovaCore` 的 HLSL：halo 项乘上 `(1.0 - smoothstep(0.86, 1.0, r))`——硬阶梯不是 `body` 画的是 `halo` 画的，`pow(1 - r*0.85, fo*0.35)` 在 `r=1`（正好是网格剪影）仍残留约 **0.26**，additive 把它画成一条贴着核心剪影的硬圆。**没有回头缩小核心网格**，第六轮「核心太小」的回馈仍然有效，这轮动的是亮度分布的形状不是尺寸。
+
+| 量测（球半径 123px） | 改前 | 门槛 | 改后 |
+|---|---|---|---|
+| 核心 luma≥220 连续半径 | 44px (0.36×R) | ≤31px | **29px** |
+| 剪影处相邻 1px 环带 G 落差 | 117（Over055 达 163） | <40 | **26** |
+| 核心可读半径 luma≥128 | 55px | 50–58px | **51px** |
+
+> **两个门槛必须同时看，只盯一个会来回摆荡。** `HaloAmount` 没有照评审建议降到 0.30——实测 0.30 会让 luma≥128 半径掉到 **48px**，低于评审自己订的 50–58 下限，等于把「核心太小」换个方式带回来。smoothstep 起点也一样：先试 0.78（阶差降到 17，但可读半径掉到 48），改成 **0.86** 后阶差 26、可读半径 51，两项才同时进窗。
+>
+> **材质参数与 HLSL 都是资料／编译层的改动，不是 Niagara 改图，所以不必重开 Editor 就会进 `preview_system`**——这点与 12.10 节的限制不同，12.11 节改壳层 HLSL 时已确认过一次。`update_custom_hlsl_node` 只送 `code` 不送 `inputs` 时脚位不会断线（`updated_fields` 只有 `code`、`input_count` 仍是 7），但仍核对过连线才编译。
+
+**已验证**：`recompile_material` 无错误、`validate_material` 只剩既有的 `translucent_no_opacity` warning、两个材质资产都已存档；四张截图重拍覆盖，三项门槛如上表。**硬边界环完全没动**：环峰值 Begin **242.7** / Loop **242.4**、位置 r=123/122，与 12.11 节的 243.0/243.2 在误差内。**Over 段仍收乾净**：Over055 环峰 202.2 @ r=92、Over090 核心 ≥220 只到 r=1。Begin 白心由 ≥220 r=14 缩到 r=9，但 ≥128 范围由 19px 扩到 **28px**——falloff 由线性改平方的预期结果。拍完 `User.Radius` 已还原 400 / Phase 0 / PhaseElapsed 0，`list_dirty_packages` 为 0。**全程未提交。**
+
+**未验证**：PIE 实际画面、效能、双端、Cook；本轮未跑自动化测试（只改资产未改 C++）。
+
+**评审留下、本轮刻意没做的四件事**：(1) **`User.Color.A` 现在是核心的静默相依**，闸门实际值 = `User.Color.A × 曲线`，哪天被填 0 整颗核心会消失且极难追查——建议在参数契约测试补一条 `User.Color.A == 1` 断言；(2) Over 收束由 `FieldShell` 与 `CoreSphere` 两条曲线分别描述、刻意错开做「壳先塌、核心后收」，这是第二个维护点；(3) `CoreSphere` 曲线尾段 30.9→31.0 只有 0.1 个曲线单位、小于 LUT 格宽（21.2÷128≈0.166），之后精修尾段时**最小有意义的 key 间距是 0.17**；(4) **`Sparks` 仍飞出危险半径**（Loop 最远 1.44×R、Over 0.9 达 1.82×R），第三轮就被指出、第三次没处理。
+
+**下一步入口**：评审复验中，若连续两轮无必改项就跑 `ElectricSphere` + `ElectricWall` 收尾。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.14 节。
+
+**2026-11-14 闪电新星第七轮：补掉 Over 段残留的亮球，上一轮记下的回归已修并重开 Editor 验证。** 第六轮把核心放大 2.2 倍之后，Over `3 / 0.9` 会剩下一颗不会缩小也不会变暗的亮球悬在已经塌掉的壳层里。根因查清楚了：`M_FX_NovaCore` 的白炽中心 `c += hot * Hot` **刻意不乘 `PColor`**（12.3 节为了让中心保持白炽不被蓝色染掉），而 `Color` 模组的 `Scale Color` 通道走的正是 `PColor`——**所以 `Scale Color` 永远调不暗那颗白心**。两个改动：**(1)** 材质加第七个输入 `Amt`，接 `ParticleColor` 的 `A` 输出（output index 4），末段改成 `return c * saturate(Amt);`——additive 忽略 alpha，这个通道是免费的逐粒子乘数，壳层早就这样用，核心本来漏掉。**(2)** `CoreSphere` 的 `particle_update` 加 `Color` 模组（`Color` 绑 `User.Color`，不绑会把 `InitializeParticle` 给的蓝色洗掉），`Scale Alpha` 挂 `FloatFromCurve`，`CurveIndex = User.Phase*10 + User.PhaseElapsed`，线性键 `9.8:0 / 10:0.3 / 12:0.85 / 20:1.0 / 22:1.0 / 30:1.0 / 30.25:1.0 / 30.55:0.45 / 30.9:0.12 / 31:0`。这是绕开第六轮查出的 `ScaleMeshSize` 死通道，不是修好它。
+
+> **三个设定上的陷阱，接手前先看**：
+> 1. **`set_dynamic_input_value` 设不出参数绑定。** 对 `MakeFloatFromInt002.Int` 送 `value: "User.Phase"` 会回报成功，但 `get_dynamic_input_tree` 显示 `source: "literal", value: "User.Phase"`——那是字串字面值，整条索引链会算成 0。要绑定必须改用 **`set_module_input_binding`**，`module_node` 填 dynamic input 的 GUID，接完用 `get_dynamic_input_tree` 核对必须看到 `source: "linked"`。
+> 2. **重开 Editor 后头几张 `preview_system` 可能全黑，即使 `ShaderCompileWorker` 已经是 0。** 本轮 Begin 连拍两张全黑，改 `User.Phase` 拍 Loop 正常，再回头拍 Begin 就正常了。比 11.5 节原本写的「等编译」更精确：**等进程数归零还不够，要先丢一次参数变更＋重拍**，别看到黑画面就以为改坏了。
+> 3. `update_custom_hlsl_node` 的 `inputs` 是**整组取代**，送出后七个脚位全断线，必须逐一重接并用 `get_expression_connections` 核对。`Amt` 漏接读到 0，整颗核心会全黑且**不会报错**。
+
+**已验证**：材质七个输入逐一确认 `connected: true`、重编译、`validate_material` 只剩既有的 `translucent_no_opacity` warning、已存档；`NS_LightningNova` `request_compile` + `validate_system` `valid: true`，警告仍是既有那七笔 `Particles.MeshScale`（第六轮已查明不是误报）、已存档。重开 Editor（改图不重开验不掉）、等 `ShaderCompileWorker` 归零并连续四次确认后重拍四张截图：**Over 0.9 的亮球已变成很暗的小点加稀疏火花**、Over 0.55 读得到「壳层向核心收进去」（核心曲线 0.45 对壳层约 0.27）、**Begin 与 Loop 都没有被误调暗**（充能光点／边界环／放射细丝都在）。拍完 `User.Radius` 已还原 400 / Phase 0 / PhaseElapsed 0，存档后 `list_dirty_packages` 为 0。**全程未提交。**
+
+**未验证**：`ScaleMeshSize` → `Particles.Scale` 的绑定问题仍在（本轮是绕开）；PIE 实际画面、效能、双端、Cook；本轮未跑自动化测试（第五轮的 12/12 仍是最近一次绿灯，本轮只改资产未改 C++）。
+
+**下一步入口**：造型评审若连续两轮无必改项，就跑 `ElectricSphere` + `ElectricWall` 做最后确认并收尾；另外待决定是否修 `ScaleMeshSize` → `Particles.Scale` 的绑定。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.13 节。
+
+**2026-11-14 闪电新星第六轮：核心放大、细丝改为由核心长出；同时查出 `ScaleMeshSize` 的曲线是死的，并更正上一轮留档的一个错误结论。** 团队回馈「中间可视的核心太小」「希望电弧像由核心散发出去」——这两件事是同一个决定的后果：12.8 节为了让核心看得见，用 `FilamentInner = 0.3` 在核心外围挖了一圈空隙，那圈「护城河」正是让电弧看起来与核心断开的原因。本轮反过来做：`FilamentInner` 0.30→**0.12**（细丝起点落在核心辉光内部）、`CoreSphere` 的 `Mesh Uniform Scale` 係数 0.009→**0.020**、`MI_FX_NovaCore` 的 `CoreFalloff` 2.6→**1.0**／`CoreGlow` 1.6→**2.4**／`HaloAmount` 0.35→**0.5**。量测（Loop，球半径 123px）：白炽核心 7→**13px**、核心辉光 22→**35px**（占球半径 18%→**28%**），边界环峰值 243.2→242.4 不变。
+
+> **本轮最重要的发现，比造型本身重要：`CoreSphere` 与 `GroundRing` 的 `ScaleMeshSize` 曲线完全没有作用。** 证据：`CoreSphere` 的缩放曲线**整条设 0** 与**设 4.0** 的徑向剖面几乎逐格相同（d00:255 d05:246 d10:225），而 `MI_FX_NovaCore` 三个参数整组设 0 则核心确实消失；`GroundRing` 缩放曲线整条设 0，Begin 的白环依然在，但把 `MI_FX_NovaShell.RingBoost` 设 0 白环就消失。**结论有二**：(1) 实际决定网格大小的是 `InitializeParticle` 的 `Mesh Uniform Scale`（spawn 阶段），`ScaleMeshSize` 写的 `Particles.MeshScale` 没被 renderer 读取——`validate_system` 那七笔一直被当成「既有误报」的 `MeshScale` warning **不是误报**；(2) 那条硬白边界环是壳层材质的 `edge` 项，不是 `GroundRing`。
+
+**更正上一轮留档**：12.10 节写「把 `GroundRing` 的 Over 段改成 30.3 就归零，修掉了双同心环」——**那项改动其实无效**，双环消失只能归功于同一轮的 `FieldShell / Scale Alpha` 改动。12.4 节写的 `CoreSphere` Over「0.95 爆闪」也从来没发生过。12.4／12.8 的 `CoreSphere` 数值冲突（0.36↔0.44 对 0.58）到此结案：**两个都没生效过**。`FieldShell` 是例外，Over 时球确实变小（环半径 Loop 123px、Over 0.55 为 92px），三者差异还没查清。
+
+**本轮引入的回归（尚未修）**：核心尺寸现在三阶段恒定（本来就是，但 `k` 放大 2.2 倍后明显了）。最明显的是 **Over `3 / 0.9`：壳层已收乾净，核心却还是一颗不会缩小的亮球悬在那里**，与 12.1 节「全部向中心塌缩归零」不符。**正确修法**：照 `FieldShell` 的模式给 `CoreSphere` 加一个 `Color` 模组，`Scale Alpha` 与 `Scale Color` 各挂一条以 `Phase*10 + PhaseElapsed` 为索引的曲线——Color 模组的曲线是确定有效的，这是目前唯一验证过能让 `CoreSphere` 随阶段变化的通道。那是改图，**必须重开 Editor 才验得掉**。
+
+**已验证**：四张截图重拍覆盖，Begin 仍无电弧、边界环不变，Loop 的核心与细丝如上。拍完 `User.Radius` 已还原 400 / Phase 0 / PhaseElapsed 0，存档后读回确认，`list_dirty_packages` 为 0。**未验证**：Over 0.9 的回归、PIE 实际画面、效能、双端、Cook；**本轮未跑自动化测试**。
+
+**下一步入口**：给 `CoreSphere` 加 `Color` 模组修掉 Over 0.9 的回归（需重开 Editor 验），并决定是否一併修 `ScaleMeshSize` → `Particles.Scale` 的绑定问题。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.12 节。
+
+**2026-11-14 闪电新星外观第五轮：补上外围缠绕电弧，参考图的三项要求到齐，自动化 12/12，PIE 画面与效能待验。** 这是评审排第一的参考图差距——细电弧缠绕在最外围的半透遮罩上。卡住它的不是参数值，是两个结构问题：**(1)** HLSL 迴圈写死 `for (int k = 0; k < 6; k++)`，`BoltCount` 的实际上限是 6，设 8 不会多出任何一条；本轮把上限改成 10 并把 `n` 改成 `clamp(Count, 1, 10)`。**(2)** `az` 是大圆**平面法线**的 Z 分量，俯视下 `az→±1` 贴着剪影跑、`az→0` 变成横过盘面的直线；原本均匀分布在 ±0.8，中间多数横过盘面，而且**大圆由平面决定、`ax` 与 `−ax` 是同一个圆**，正负成对重复、有效条数再打对折。改成只取正值、在 `0.735…0.945`（相对赤道倾斜约 19°–43°）铺开，每条都在外圈绕行，正好补在放射细丝留下的空档上。参数：`BoltCount` 5→8、`BoltDropout` 0.35→0.20、`BoltSpan` 1.25→1.8、`ArcBoost` 1.1→1.4。
+
+**已验证**：`recompile_material` 无错误、`validate_material` 仅剩既有的 `translucent_no_opacity` warning；四张截图重拍覆盖——Loop 外圈出现数条沿剪影绕行的弧并与放射细丝交织，**Begin 仍完全没有电弧**（`Amt` 闸门没漏），Over 0.55 弧与细丝一起淡掉、Over 0.9 仍在 1 秒内归零。**边界可读性**（AGENTS.md 第 12 节）量了徑向剖面：环峰值 243.0→243.2 不变，环内侧低点 139.8→150.8 被弧提亮，**对比 103.3→92.4**，约降一成但仍是清楚的硬阶梯。拍完 `User.Radius` 已还原 400 / Phase 0 / PhaseElapsed 0，存档后读回确认，`list_dirty_packages` 为 0。
+
+**自动化测试**：`ElectricSphere` + `ElectricWall` **12/12**，0 失败／0 警告／0 未执行，报告在 `Saved/ElectricSphere/20261114/NovaLook_R5`（`reportCreatedOn` 为 UTC `2026.11.13-21.33.35`，即本地 06:33，不是旧报告）。其中 `ElectricSphere.NovaFXParameterContract` 通过，等于由测试独立确认 `User` 参数契约没有被这几轮的截图操作破坏。用另开的 `UnrealEditor-Cmd.exe … -nullrhi` 行程跑，没有动到开着的 Editor；本轮只改资产、未改 C++，不需要重编译。
+
+**本轮唯一的效能风险**：大圆迴圈由实际执行 5 次变成 8 次（+60%），`BoltDropout` 降低让 `continue` 提早跳出的机会变少，`BoltSpan` 加大也让更多像素进入线宽计算。请在 PIE 用 `stat GPU` 看 `M_FX_NovaShell` 的成本；要退优先降 `BoltCount` 回 6。**自动化测试涵盖不到这一项**——它跑在 `-nullrhi` 下，根本没有绘制。**仍未验证**：PIE 实际画面、效能、双端、Cook。
+
+**下一步入口**：照第 8 节在 `Content/Maps/Test` 进 PIE，一次验四件事——盘面降亮后范围还读不读得到、细丝与缠绕弧在实机相机距离会不会抖、车辆开进 Loop 区域的遮挡、以及 `stat GPU` 下 `M_FX_NovaShell` 的成本。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.11 节。
+
+**2026-11-14 闪电新星外观第三、四轮：盘面降亮、细丝收细、Over 段收束已全部修好并验证（含重开 Editor 后的复验）。** 由特效评审逐轮比对截图与参考图驱动。**第三轮**（留档 12.9 节）：`FillGlow` 0.28→0.15 并把材质 `rim` 项挂上 `Amt` 阶段闸门 `(0.40 + 0.60*saturate(Amt))`，让 Begin 盘面只剩 Loop 的 40%、Over 跟着变暗——additive 圆盘在实机是 8 公尺直径，原亮度会把开进去的车洗白；`FilamentThickness` 0.0075→0.0030、`FilamentBoost` 1.25→1.55，原本 `hwf = FilT*FilN/r` 在 r=0.5 时单条细丝就吃掉角度格距的 66%，必然糊成亮面。**第四轮**（留档 12.10 节）：`FieldShell` 的 `Scale Alpha` 与 `GroundRing` 的缩放曲线整条重写，Over 段提早起跌、地面环 30.3 就归零——原本 Over 0.55 只读得到「变小」、读不到「已经安全」，且两层脱钩裂成两道等亮同心环。
+
+**第三项改动**：材质回传 `(arcs + rim + edge + core) * PColor`，`edge`（硬白环）与 `core` 刻意不吃 `Amt`（Begin 的 `Amt` 是 0，挂上去会让 Begin 失去危险边界），所以场已关掉的 Over 那条边界环仍是 100% 亮度。已在 `FieldShell / Color / Scale Color` 接上同索引的 `VectorFromCurve`（结构与 `Scale Alpha` 同形），重开 Editor 后复验生效：Over 0.55 的壳层本体相对 Loop 的同正规化半径降到约 **26%**，而 Begin 与 Loop 逐格不变。
+
+> **本轮最重要的两个工具发现**：
+> 1. 曲线 DI 的**资料**改动会即时进到 `preview_system`，**改图**（新增 dynamic input）不会。把新曲线整条压成 0.3 重拍，像素与改动前逐格相同（环峰值 226.6 两次一致），而 `get_system_diagnostics` 同时回报该 script 为 `UpToDate`——**资产编译状态与预览画面是两回事**。要验证任何改图必须重开 Editor 或进 PIE。这是 11.5 节第 1 点的精确版本。
+> 2. 重开 Editor 后著色器编译完成前，`preview_system` 会拍出**全黑**图（诊断一切正常）。拍摄前先等 `ShaderCompileWorker` 行程归零。
+> 3. **环峰值不是好指标**：Over 0.55 的环峰值只从 243 掉到 200，但环两侧掉了约 74%——additive 高光在 sRGB 下已近饱和。判断有没有变暗要看剖面，不要看峰值。
+
+**已验证**：材质 `recompile_material` 无错误、`validate_material` 仅剩既有的 `translucent_no_opacity` warning；`validate_system` 无 error；四张截图重拍覆盖并量徑向亮度剖面——Loop 细丝已是细硬折线、盘面中段由 150–170 降到约 105，Over 0.55 的双同心环消失、细丝降到约 27%、环峰值 243→226.6，Begin／Over 0.9 行为不变（`Saved/Screenshots/Monolith/20261114_NovaLook_*.png`，`User.Radius` 暂设 110 拍摄，拍完已还原 400 / Phase 0 / PhaseElapsed 0 并读回确认）。**本轮未跑自动化测试**（Editor 保持开启，依 12.7 节禁止用 Monolith 在 Editor 内跑）。**仍未验证**：PIE 实际画面、双端、效能、Cook；**本轮未跑自动化测试**。
+
+**下一步入口**：跑一次 `ElectricSphere` + `ElectricWall` 确认资产改动没影响玩法测试；接着处理评审排第一的参考图差距——外围剪影的缠绕电弧不足（`BoltCount` 5→8、`BoltDropout` 0.35→0.20、`BoltSpan` 1.25→1.8，并把 HLSL 内 `az` 分布往 ±0.5 以外偏）。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.9、12.10 节。
+
+**2026-11-14 闪电新星细丝已改为折线、核心可见度已修正，自动化 12/12，PIE 画面待验。** 团队回馈两点：细丝没有明确折线、太像触须；细丝出现后中心核心变得不太可见。**折线**：原本的中心偏移是两个 `sin()` 叠加，数学上就是平滑曲线，振幅再大也只会变成更夸张的触须；改成分段线性杂讯——把 `r` 切成 `FilamentKinks` 段，取节点杂凑值、段内 `lerp`（不是 `smoothstep`），每段是直线、节点是硬转折。每条细丝的节点间距与相位各自乘上自己的杂凑，否则所有细丝会在同一半径同时转折、形成同心圆纹路。**核心可见度**三处一起改：`FilamentInner` 0.3 在核心周围留空隙、细丝从空隙外缘才开始；壳层自身的中心柔光收窄（`CoreGlow` 0.5→0.22、`CorePower` 4.5→6.0）以免填满空隙；核心球本体加大（`CoreSphere` Loop 缩放 0.44→0.58）并把白炽中心加亮（新建 `MI_FX_NovaCore` 实例，`HotCenter` 2.5→3.5）。同时细丝数量由 34 降到 22、线稍微加粗到 0.0075——34 条在这个半径下会互相叠成一片亮面，反而让折线和核心都读不出来；`FillGlow` 0.55→0.28 让盘面中段暗下来。未改 C++、Blueprint 或 `User` 参数契约。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.8 节。
+
+**已验证**：材质重建 `has_errors: false`；三段截图重拍并逐张确认——Loop 的细丝有明确硬转折、白炽核心清楚可辨，Begin 仍只有范围提示与核心、无电弧，Over 仍在 1 秒内收乾净（`Saved/Screenshots/Monolith/20261114_NovaLook_*.png`，`User.Radius` 暂设 110 拍摄、拍完已还原 400）；`ElectricSphere` + `ElectricWall` **12/12**，0 失败／警告／未运行，报告在 `Saved/ElectricSphere/20261114/NovaLook_R2`。**仍未验证**：PIE 实际游戏画面、双端、效能、Cook。
+
+**2026-11-14 闪电新星已改为等离子球造型，三段截图通过、自动化 12/12，PIE 画面待验。** 团队提供参考图，要求「最外围有向内渐淡的范围提示、中间由发光体散出细电弧、细电弧缠绕在最外围的半透遮罩上」，并明确漸层是**外缘最亮、向核心渐淡**（因此不存在模糊危险边界的问题），同时给出三段对应：Begin 只显示范围提示与核心、Loop 为参考图完整样貌、Over 让范围显示与电弧一起收进核心内缩小消失。本轮重写 `M_FX_NovaShell` 的 Custom HLSL：边界渐层改为 `pow(r, RimFalloff)`（`r` 为投影半径，边界 1、中心 0），新增以视线轴对齐、用**角度域重复**而非迴圈逐条绘制的放射细丝（34 条与 6 条成本几乎相同；若改用迴圈，条数会直接变成每像素成本），原有的球面大圆电弧调细后保留作为缠绕层。核心球另建 `M_FX_NovaCore`（Additive／Unlit／双面）取代 `MI_FX_ToonNova_Core`——后者父材质是三阶色卡通烟、设计目的就是制造色块分界，与参考图柔和外扩的白炽球本质冲突，调参数救不回来；旧材质保留未删，可随时切回。三段的分别用一个新通道完成：`FieldShell` 的 `particle_update` 加一个 `Color` 模块，`Scale Alpha` 由 `FloatFromCurve(User.Phase * 10 + User.PhaseElapsed)` 推，材质把 `ParticleColor.A` 接到 `Amt` 只乘在电弧项上，`rim`／`edge`／`core` 不受影响（Additive 混合不使用 alpha，此通道安全）；Over 的「收进核心」由 `FieldShell`／`CoreSphere` 的缩放曲线在 31.05 归零完成。`ArcSpokes` 与 `MicroArcs` 已停用——放射与缠绕都改由壳层材质绘制，这两层在新造型里没有存在意义，关掉剛好抵销壳层变复杂的开销，第 9.2 节「ArcSpokes 从上方被遮住」因此成为历史条目。未改 C++、未改 Blueprint、未改 `User` 参数契约、未新增贴图（全部程序化）。规格、HLSL 要点与参数值见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12 节。
+
+**已验证**：两份材质 `build_material_graph` 回报 `has_errors: false`，材质属性（Additive／Unlit／双面／Niagara Mesh）在重建后保留；`validate_system` 无 error（七笔 `MeshScale`／`SpriteSize` warning 为既有误报，改版前即存在）；三段俯视截图取得并逐张确认——Begin 为外围亮环向内渐淡加白炽核心、**无电弧**，Loop 为细丝由核心放射至边界、外围亮环包覆（与参考图接近），Over 0.55 秒时范围与电弧一起缩小、火花向外散开，0.9 秒只剩一个小点，1 秒内归零（`Saved/Screenshots/Monolith/20261114_NovaLook_Begin`／`_Loop`／`_Over055`／`_Over090.png`，`User.Radius` 暂设 110 拍摄、拍完已还原 400）；`ElectricSphere` 与 `ElectricWall` 合并复测 **12/12**（含 `NovaFXParameterContract`），0 失败／警告／未运行，NullRHI、单进程，报告在 `Saved/ElectricSphere/20261114/NovaLook_R1`。**仍未验证**：PIE 实际游戏画面（场地亮度下 additive 蓝的对比、细线在远距离的 TAA 闪烁）、双端、效能、Cook。细丝若在远距离抖动，先调 `FilamentThickness` 加粗或降 `FilamentCount`。**新增一个工具坑**：不要用 Monolith 在开着的 Editor 里跑 `run_automation_tests`——本轮这样做让 Editor 直接 assert 崩溃（`Assertion failed: LatentCommands.IsEmpty()`，`AutomationTest.cpp:1370`），资产在崩溃前已存档、没有损失，但自动化测试请一律用 `UnrealEditor-Cmd.exe … -nullrhi` 另开行程跑；Editor 目前是关闭状态，需要重开才能继续在编辑器内作业。下一步：重开 Editor，开 `Content/Maps/Test` 跑 PIE，确认三段在真实场地亮度与相机距离下仍然好读。
+
+**2026-11-14 闪电新星三阶段视觉已重编曲线并存档，画面待重开 Editor／PIE 验收。** 团队反馈「整个新星看不出明显的三阶段」。根因有二：其一，曲线索引 `Phase * 1000` 让曲线 Key 区间横跨 0～3002，而 Niagara 曲线 DI 预设用 **128 格 LUT** 覆盖整个 Key 区间，每格约 23.5 个单位，阶段内 0～2 秒的形状整段塞在一格以内被抹平，三段于是取到几乎相同的值；其二，`7648c5d` 停用了 `GroundRing`，俯视角下没有任何一层把范围画在地面，区域提示读不出来。本轮把七个 emitter 的索引倍率由 `1000` 改为 `10`、曲线 Key 全部改编在 **9.8～32**（Idle 0／Begin 10–12／Loop 20–22／Over 30–32，每格约 0.17 单位），按新的视觉规格重写七层曲线，并重新启用 `GroundRing` 当作区域底盘；`ArcSpokes` 的 Loop 值压到 0.62，避免放射臂伸出危险边界之外（AGENTS.md 第 12 节）。`User` 参数名称／型别、Blueprint 推送与 `HALNovaFX::Contract` 都没有改，倍率与曲线必须同时改、只改一边会让该层永远取到 0。规格与各层数值见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 11 节。
+
+**已验证**：七个 emitter 的倍率读回皆为 `10.0`；存档后的 `.uasset` 内可找到各曲线特征 Key 时间与电墙色 `0.438499`；`User.Phase`／`PhaseElapsed` 预设已还原为 0、七层全部启用；`ElectricSphere` 与 `ElectricWall` 合并复测 **12/12**，0 测试警告／失败／未运行，NullRHI、单进程，报告在 `Saved/ElectricSphere/20261114/ThreeStage_R1`。重开 Editor 后已取得可信的三段俯视截图（`Saved/Screenshots/Monolith/20261114_045840`／`045851`／`045910`／`045920`）：Begin 为地面环撑满半径、粒子向中心落、中央只有小蓄力球；Loop 为环内整片电弧填满；Over 在 1 秒内收乾净，先核心爆闪、后地面环消失只剩散开火花，三段在俯视角下可明确区分。**截图注意**：`preview_system` 相机固定、可见范围仅约 440 cm 宽，用预设 `User.Radius = 400` 拍会把球壳与地面环拍到画面外、看起来像没变化，截图时需暂时把半径调到 110 左右再改回。**仍未验证**：PIE 实际游戏画面与手感、双端、晚加入、效能、Cook。**两个工具坑已留档**：Monolith 的 `preview_system` 会持续回传旧编译结果，即使 `request_compile` 回报 `UpToDate`、`save_system` 已存档也一样，本轮曾因此误判写入没生效、来回改了多轮，资产内容只能用读取动作确认、画面要重开 Editor 或 PIE 才可信；`EditorLoadingAndSavingUtils.reload_packages` 会跳对话框卡住 Editor 主执行绪、Monolith 整个连不上，要重载资产请直接重开 Editor。过程中资产一度处于半套状态，已用 `git checkout` 还原、重开 Editor 后一次写完并重新套用电墙色。下一步：重开 Editor 后开 `Content/Maps/Test` 跑 PIE，确认 Begin 只有地面环、Loop 满径、Over 在 1 秒内收乾净。
+
+**2026-11-14 闪电新星配色已统一到电墙色系，两份资产已保存，待团队 PIE 画面复核。** 用户指出两者造成的效果相同、颜色应属同一色系。实读确认 `NS_LightningNova` 七个发射器的 `InitializeParticle.Color` 全部链接到 `User.Color`，而 `BP_ElectricSphereGimmick` 不推送该参数（与 11-11 的 T3D 逐节点核对一致），因此资产默认值即实际主色；电墙侧 `NS_ElectricArc` 的 `Core`／`ArcInner`／`ArcOuter` 三层 `Color` 模块同为 `(0, 0.438499, 1, 1)`。本轮把 `NS_LightningNova` 的 `User.Color` 默认值从 `(0.35, 0.72, 1)` 改为与电墙同值；核心球另有硬编码的卡通三段分色，`MI_FX_ToonNova_Core` 的 `MidColor` 改为同一电墙色、`ShadowColor` 改为 `(0, 0.298, 0.68)`、`LitColor` 改为 `(0.88, 0.96, 1)`，使三段落在同一色相。其余 Nova 材质（`M_FX_NovaRing`／`M_FX_NovaSpokes`／`M_FX_NovaMicroArc`／`M_FX_NovaShell`）没有颜色参数，`ChargeMotes`／`Sparks` 用引擎默认 Sprite 材质，全部跟随粒子颜色，无需另改。
+
+改动透过 Monolith 编辑器 API 完成，只改两份资产的参数值：`Content/Assets/FX/NS_LightningNova.uasset` 与 `Content/Assets/FX/Materials/MI_FX_ToonNova_Core.uasset`；没有改 Blueprint、发射器堆叠、曲线、C++ 或 Config，`HALNovaFX::Contract` 的名称／型别名单不受影响。**已验证**：改后读回两份资产的参数值与目标一致，`MI_FX_ToonNova_Core` 缩图渲染为电墙同色；`ElectricSphere` 与 `ElectricWall` 合并复测 **12/12**（含 `NovaFXParameterContract`，确认改后的 `NS_LightningNova` 仍可载入且五个参数名称／型别不变），0 测试警告／失败／未运行，NullRHI、单进程，报告在 `Saved/ElectricSphere/20261114/NovaColor_R2`。首轮我多加 `-NoShaderCompile`，引擎在初始化即 `Null assigned to TNotNull` 崩溃，与本次资产改动无关，移除该旗标后 R2 通过。**未验证**：PIE 实际画面、三阶段、双端、效能、Cook。Niagara 系统预览只能在 `User.Phase=0` 的 Idle 状态截图、画面为空，不能当作验收。下一步由团队在 `Content/Maps/Test` 的 PIE 内同时看电墙与新星确认色系一致，必要时再微调 `MI_FX_ToonNova_Core` 的三段分色；详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 2.4 节。
+
 **2026-11-12 Car04 冲锋接触球不发射已修复代码、构建与程序验证，待真人画面复测。** 从 `main/8af4c4d` 接续，保留团队技能 DA／GA、Car04 Definition 和监听 GameMode 改动。真实碰撞复现确认 UE 在自身 Chaos 处理器中直接触发组件碰撞，技能采样可能尚未到达；原实现因此持续缺少／拒绝同帧采样。现在将相关接触预约至同帧全部事件收齐后，仍由原服务器入口校验并提交，保留角度／速度／拾取锁、规则冲击与自然碰撞边界；无新增 Tick／RPC／复制字段，格式 **6** 不变，球速公式和保存参数未改。新增默认关闭的 `hal.BullChargeContactLog`，见[修复、日志与团队复测](Combat/Car04_Bull_Charge_CN_v0.1.md#接触发射修复与复测2026-11-12)。
 
 本机 UE **5.8.2-56702186** 最终 ContactFix Editor R5／Game R2 成功；原生专项 **11/11**。保存配方真实单 Host 碰撞从修复前失败转为 **1/1**，实际发射 **9000 cm/s**。低延迟及 Host 出站 **80 ms** 注入的真实双进程接触，两端均各 **1/1**，覆盖双方车辆经本人技能请求、真实 Chaos 接触出球和两端归属；服务器确认两球均为 9000 cm/s。既有眩晕／恢复／冷却双端也各 **1/1**，测试报告均 0 警告／失败。全量另记 **199 通过、1 带告警通过、4 失败**；四项均依赖已重命名的旧玩家 DA 路径，本轮未修这些夹具，未宣称全量通过。该轮 1251 保存资产及 Config／uproject 共 **1256** 项与开工逐份一致。无代理资产修改／接线或提交／Push；同机 NullRHI 不替代真人画面、校园四机或发布包。团队下一步重开 Editor 按原保存配方复测，无新增接线。详见[修复验证摘要](Combat/Car04_Bull_Charge_ContactFix_Verification_20261112.json)；下方排查中记录保留原时点。
