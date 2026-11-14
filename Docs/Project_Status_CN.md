@@ -1,5 +1,11 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-15 MVPB_Match 地面法线已换成随机凹凸。** M_ArenaFloor_Metal 的主纹理两路和细节一路改用 1024 × 1024 的无缝 T_ArenaFloor_RandomRelief_N，实例重载验证参数继承。UE 5.8.3 SM6 编译无材质错误，DX12 同俯视角对比了 850 cm 与 2300 cm，确认条带变为不规则凹点与凸起，软边和细节层仍可见。正式比赛镜头待复核，见[当前法线与验证](Presentation/ArenaFloor_SatinMetal_CN.md#随机凹凸法线)。
+
+**2026-11-15 MVPB_Match 地面波纹过渡和放大细节已修正。** 核对团队保存的 M_ArenaFloor_Metal，把默认六层有符号噪声调整为一层 0～1，覆盖使用可调渐变并共同淡出主、细两层斜率。新增独立 200 cm 细节法线采样，同图复用。UE 5.8.3 最终重载未报材质编译错误，DX12 核对俯视下软边及 2300 cm 放大对比。资产修改仅涉及母材质，地图、实例和法线贴图哈希一致。下一步从 MI_ArenaFloor_Metal 在正式比赛镜头中复核，见[接线、调参与验证](Presentation/ArenaFloor_SatinMetal_CN.md#波纹区域过渡和近看细节)。
+
+**2026-11-15 MVPB_Match 波纹缎面金属地面已制作并完成 DX12 预览，待关卡接线与比赛镜头验收。** 新增独立母材质、材质实例和 512 × 512 周期波纹法线。确认中央可见地面为 base_circle_inflatable_007_1374，Floor 关闭可见性。最终预览保留场地图案，约 −75° 时可见宽幅波纹高光，专用面光在抽样机关区域未新增近白像素。资产生成正常结束，临时 Editor 在截图写出后退出异常。保存的 MVPB_Match 保留开工哈希，既有用户改动保留。下一步在关卡配置中央地面槽和面光，复核正式相机和曝光，见[配置与验证](Presentation/ArenaFloor_SatinMetal_CN.md)。
+
 **2026-11-14 Car05 主体逐层成型／柔和边缘提亮完成，待用户场景实测。** 用户确认多层重做明显改善后，本轮把整体淡入升级为从下往上逐层显形并扩展体积，仍复用 `Rules.GatherSeconds`，边缘提亮沿用当前三阶配色；新增 Formation Exponent／Feather 和 Glow Strength／Power 均在原技能 DA。主体及外围两份材质已更新，不需重新接线。**尺寸只在 Rules.Radius/Height 配置，判定圆柱与主体基准尺寸自动联动；OuterRadiusScale/GatherRadiusScale 只改装饰外扩，冲击强度与范围独立。** 见[当前调参、尺寸说明及验证](Combat/Car05_Tornado_CN_v0.1.md#第三轮主体逐渐成型与边缘提亮2026-11-14当前)。
 
 本轮 UE5.8.3 **Editor R1／Game R1** 编译、原生／真实 D3D12／Car03及04回归 **17/17**、80 ms Host 出站延迟双端 **各1/1** 通过，零测试警告／失败。隐藏地面提示后，主体早／中／晚可见高度 **70／187／289 px**，提亮使 **13333** 个风体像素更亮；三层出粒子、新字段复制／材质绑定、停墙／上抛／防御球及清理回归通过。开工1316份既有资产／Config／uproject仅两份当前风材质变化，其余1314份哈希一致，**用户刚调过的技能DA完整文件未改写**，GA／Definition／NS／Mesh及其他车型保留。见[验证摘要](Presentation/Car05_Tornado_FormationGlow_Verification_20261114.json)。下一步：重开本轮 Editor，用原技能验证生成过程及环境可见度，再在同一 DA 调参。四机／发布包／完整房间／真实晚加入仍待团队测试，未提交／Push。以下为此前阶段记录。
