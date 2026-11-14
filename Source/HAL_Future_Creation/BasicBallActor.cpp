@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BasicBallActor.h"
+#include "HALTornado.h"
 #include "CoreGlobals.h"
 #include "HALBattleTopComponent.h"
 #include "HALBullChargeComponent.h"
@@ -202,6 +203,26 @@ bool ABasicBallActor::LaunchFreeFromVehicleSkill(AActor* NewLauncher, const FVec
 		|| !HALGameFlow::Permissions(GetWorld(), Cast<APawn>(NewLauncher)).bBallControl
 		|| !PassesPickupLocks(NewLauncher) || InitialVelocity.ContainsNaN() || InitialVelocity.IsNearlyZero()) { return false; }
 	return CommitLaunch(NewLauncher, InitialVelocity, NewLauncher);
+}
+
+bool ABasicBallActor::DeflectByTornado(AHALTornado& Source, const FVector& InitialVelocity)
+{
+	if (!HasAuthority() || !bConfigurationValid || bResolvingDamageHit || !Source.AuthorizesBallContact(*this)
+		|| InitialVelocity.ContainsNaN() || InitialVelocity.IsNearlyZero()) { return false; }
+	if (RepState.State == EBasicBallState::Free)
+	{
+		if (LastBecameFreeGameFrame == GFrameCounter || !PassesPickupLocks(Source.GetOwner())) { return false; }
+		return CommitLaunch(Source.GetOwner(), InitialVelocity, Source.GetOwner());
+	}
+	if (RepState.State != EBasicBallState::Launched) { return false; }
+	StopLowSpeedMonitor();
+	FBallRepState Free;
+	Free.GlobalPickupLockEndServerTime = GetWorld()->GetTimeSeconds() + Source.DisarmPickupLock();
+	// Atomic state commit retires LaunchAction and its damage payload before the new velocity.
+	CommitRepState(Free, Source.GetOwner());
+	PhysicsRoot->WakeAllRigidBodies(); PhysicsRoot->SetPhysicsLinearVelocity(InitialVelocity);
+	AccumulatedLowSpeedTime = 0;
+	return true;
 }
 
 bool ABasicBallActor::CommitLaunch(AActor* NewLauncher, const FVector& InitialVelocity, const AActor* FrameSource)

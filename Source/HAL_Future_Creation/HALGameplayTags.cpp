@@ -2,6 +2,9 @@
 
 namespace HALGameplayTags
 {
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Tornado,"Ability.Vehicle.Tornado","Car05 moving tornado primary ability.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_Tornado,"Cooldown.Vehicle.Tornado","Tornado cooldown from successful activation.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_Tornado,"Combat.Source.Tornado","Independent tornado impact, no direct damage.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_BattleTop, "Ability.Vehicle.BattleTop", "Car03 primary ability.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_BullCharge, "Ability.Vehicle.BullCharge", "Car04 primary ability.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_BullCharge, "State.Vehicle.BullCharge", "Avatar overdrive charge is active.");

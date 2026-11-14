@@ -1,0 +1,393 @@
+{
+  "SchemaVersion": 1,
+  "Date": "2026-11-14",
+  "StartingCommit": "9c7640f",
+  "StartingBranch": "main; inherited previous uncommitted Car05 implementation and team asset edits",
+  "Engine": "5.8.3-58210709",
+  "Objective": "Replace rigid spring-shaped tornado with layered independently orbiting/rising wind, sparse outer gusts and cyan-to-gray-white color cycling",
+  "Specification": "Docs/Combat/Car05_Tornado_CN_v0.1.md#第二轮多层独立气流重做2026-11-14当前",
+  "Car06Record": "Docs/Combat/Car06_Police_Pursuit_CN_v0.1.md; confirmed caster stun/self-right does not pause pursuit; no Car06 code built",
+  "Scope": {
+    "GameplayRuleChange": false,
+    "PresentationCode": true,
+    "NativeAssets": true,
+    "EditorBuild": true,
+    "GameBuild": true,
+    "Automated": true,
+    "HumanArtAcceptance": false,
+    "Commit": false,
+    "Push": false
+  },
+  "Recipe": {
+    "Core": "low-opacity funnel with broad advected curls",
+    "InternalGusts": 22,
+    "ExternalGusts": 5,
+    "PersistentMeshEmitters": 3,
+    "IndependentMotion": "per-stream seeded angular rate, upward circulation with endpoint fade, local bending; does not rotate a continuous helix as one object",
+    "Coordinates": "Pre-Skinned Local Position; UV1.x stream seed, UV1.y kind; no vertex-color coordinate decoding",
+    "Color": "existing soft shadow/mid/light palette blended locally toward gray-white; existing palette retained",
+    "Clock": "existing server-relative integrated phase clock, monotonic slowing through dissipation",
+    "NewFields": {
+      "DifferentialRotation": 0.55,
+      "RiseSpeed": 0.22,
+      "CoreOpacity": 0.24,
+      "OuterOpacity": 0.32,
+      "OuterRadiusScale": 1.15,
+      "OuterSpeedScale": 0.65,
+      "GrayColor": [
+        0.7,
+        0.78,
+        0.8
+      ],
+      "GrayMix": 0.75,
+      "ColorCycleSeconds": 1.6
+    }
+  },
+  "Builds": [
+    {
+      "Target": "Editor Win64 Development",
+      "Final": "BuildEditor_R3",
+      "Success": true,
+      "Log": "Saved/Car05Tornado/Layered_20261114/BuildEditor_R3.log"
+    },
+    {
+      "Target": "Game Win64 Development",
+      "Final": "BuildGame_R2",
+      "Success": true,
+      "Log": "Saved/Car05Tornado/Layered_20261114/BuildGame_R2.log"
+    }
+  ],
+  "NativeRenderRegression": {
+    "LocalPath": "Saved/Car05Tornado/Layered_20261114/Final_R2/index.json",
+    "SHA256": "CC8F24745D72C66C7B02686ECE17948875ECCFE12DC577627519218EF1DC8478",
+    "Passed": 17,
+    "Warnings": 0,
+    "Failed": 0,
+    "NotRun": 0,
+    "InProcess": 0,
+    "Tests": [
+      {
+        "Name": "HAL.FutureCreation.BattleTop.AuthoritySkillContactsAndCleanup",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BattleTop.ContactSprayGeometryAndTuning",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BattleTop.SustainedContactIndependentCooldown",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BattleTop.TransitionTimelineAndSparkTangent",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BattleTop.WallResponseAndConfig",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.FX.EventOrderingAndCleanup",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.FX.SocketMountAndReplacement",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.FX.SpeedPhaseAndVelocity",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.FrontSpeedDamageAndCaps",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.GASContactsCooldownStunAndBall",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.MotionHistoryAndSerialization",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.Tornado.AuthorityGASImpactBallsWallAndCleanup",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.Tornado.PhasesValidationAndSweptCylinder",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.RenderSmoke.BullCharge.ContinuousPressureWind",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.RenderSmoke.BullCharge.RuntimeLengthAndAccelerationEnvelope",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.RenderSmoke.BullCharge.ThreeLayersAndWorldSpaceExhaust",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.RenderSmoke.Tornado.GatherSustainDissipateAndToonColors",
+        "State": "Success"
+      }
+    ]
+  },
+  "Render": {
+    "RHI": "actual offscreen D3D12, orthographic 768x768, oblique isolated preview",
+    "LocalDirectory": "Saved/Car05Tornado/Layered_20261114/Render_R2",
+    "ActualParticleOrigins": [
+      "0,0,0",
+      "0,0,0",
+      "0,0,0"
+    ],
+    "VisibleGather": 20829,
+    "VisibleActive": 52035,
+    "ChangedAfterPoint15Seconds": 53142,
+    "ThreeColorsChangedPixels": [
+      12929,
+      15279,
+      25432
+    ],
+    "FinishedVsEmptyPixels": 0,
+    "OuterDisabledChangedPixels": 2314,
+    "GrayDisabledChangedPixels": 13265,
+    "DifferentialVsCommonRateChangedPixels": 42966,
+    "InternalFlowWithSpinAndGrayDisabledChangedPixels": 34426,
+    "SourceAssertions": "Original numeric thresholds retained; motion/shading comparisons plus three real emitter particle-count/origin checks"
+  },
+  "Network": {
+    "Final": "Network_R2",
+    "HostOutgoingLagMilliseconds": 80,
+    "Rendering": "D3D12 offscreen, native HALMatchGameMode, test-only HALTornadoFixture transient grants",
+    "Host": {
+      "LocalPath": "Saved/Car05Tornado/Layered_20261114/Network_R2/Host/index.json",
+      "SHA256": "1EF1ADF77AD0140AEEFB0454DB16C75F3752DC053BEAFD130061EF486B114FF0",
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0,
+      "Tests": [
+        {
+          "Name": "HAL.NetworkSmoke.Tornado.LifecycleWallUpdraftDisarmAndFX",
+          "State": "Success"
+        }
+      ]
+    },
+    "Client": {
+      "LocalPath": "Saved/Car05Tornado/Layered_20261114/Network_R2/Client/index.json",
+      "SHA256": "C3D94BB8E061DAC49AE4CBAD5998D4E8072A768F6CA392309AFAAD9A1078B19E",
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0,
+      "Tests": [
+        {
+          "Name": "HAL.NetworkSmoke.Tornado.LifecycleWallUpdraftDisarmAndFX",
+          "State": "Success"
+        }
+      ]
+    },
+    "ProcessResults": [
+      {
+        "Role": "Host",
+        "PID": 37452,
+        "ExitCode": 0,
+        "Passed": 1,
+        "Warnings": 0,
+        "Failed": 0,
+        "NotRun": 0,
+        "InProcess": 0
+      },
+      {
+        "Role": "Client",
+        "PID": 37348,
+        "ExitCode": 0,
+        "Passed": 1,
+        "Warnings": 0,
+        "Failed": 0,
+        "NotRun": 0,
+        "InProcess": 0
+      }
+    ],
+    "BothEnds": [
+      "three actual one-particle emitters, not just MID creation",
+      "non-default GrayMix .42 and DifferentialRotation .72 replicated and bound",
+      "own/observed lifecycle, stopped position, dissipation and cleanup",
+      "real attack ball becomes Free with attack attribution cleared"
+    ],
+    "HostAdditional": "actual Chaos vehicle upward velocity; canonical Heavy impact path",
+    "FixtureBoundary": "No saved BP, vehicle definition or room config modified by tests. Full room Blueprint flow/human setup not certified.",
+    "Launcher": "Saved/Car05Tornado/Layered_20261114/RunNetwork.ps1"
+  },
+  "AssetIntegrity": {
+    "BaselineExisting": 1310,
+    "ExistingUnchanged": 1309,
+    "ExistingChanged": 1,
+    "ChangedExisting": {
+      "Path": "Content/Data/Abilities/DA_Ability_Car05_Tornado.uasset",
+      "SHA256": "C8F430E75AFA8448D9FDA238126223A1FAF929E9C9A9229E90EAC051FC2AEF60",
+      "Bytes": 1594
+    },
+    "OnlyAuthorizedDAFields": "FX.System switched to NS_Tornado_LayeredFlow; native per-property assertions before save verified all other FX, Rules and Cooldown unchanged. Nine new fields take C++ defaults.",
+    "BaselineSHA256": "3C256EF5916BCDF680BF32DFE21CE1F15EF419E7D33E4EF40858145C417DF6D5",
+    "PreservedTeamAssets": [
+      {
+        "Path": "Content/Blueprints/GA/GA_Car05_Tornado.uasset",
+        "SHA256": "D343744B4793A6DA804688C411B7BCDF3734608D5B60A5844F58D94EAE2808C7",
+        "Bytes": 14433
+      },
+      {
+        "Path": "Content/Data/MVP_B/DA_Vehicle_Car_05.uasset",
+        "SHA256": "0985196708BC2791362E6DC45C41D0E131196E7E61103FFDD91CC63DD5A37FB3",
+        "Bytes": 4005
+      },
+      {
+        "Path": "Content/Blueprints/Gamemode/BP_MVPB_ListenGameMode.uasset",
+        "SHA256": "E42FD1EF8CB53EB7E5D5BF9E5FA0C17D314F86A301AD9DA25D73856B37EBF4FA",
+        "Bytes": 22173
+      }
+    ],
+    "NewAssets": [
+      {
+        "Path": "Content/Assets/FX/Tornado/M_Tornado_LayeredFlow.uasset",
+        "SHA256": "6EAE92D8B305513BCBDC1E1842EA7C0270793B1FD134A1F1277945D0E3699F2A",
+        "Bytes": 26771
+      },
+      {
+        "Path": "Content/Assets/FX/Tornado/M_Tornado_OuterGusts.uasset",
+        "SHA256": "F537A57BCDF354A9F6D30E9F86674F57F25E593F0F5B83B5CEC8344DAF9F31AB",
+        "Bytes": 26766
+      },
+      {
+        "Path": "Content/Assets/FX/Tornado/M_Tornado_GatherFlow.uasset",
+        "SHA256": "A4B8A99D0F9334C919E8E296CC0018FE6098BF6F40B3C5F5A12F86C7DEACAE4E",
+        "Bytes": 19058
+      },
+      {
+        "Path": "Content/Assets/FX/Tornado/SM_Tornado_LayeredFlow.uasset",
+        "SHA256": "D225D75012DB9AD1B36C95D48B29F554BAD7CBDEB648996406EC3D278AF225FE",
+        "Bytes": 97947
+      },
+      {
+        "Path": "Content/Assets/FX/Tornado/SM_Tornado_OuterGusts.uasset",
+        "SHA256": "AC85D8EDC22D00C82267ED30D7B6B1A9255112FB9372594D812C57E71C06E31F",
+        "Bytes": 19153
+      },
+      {
+        "Path": "Content/Assets/FX/Tornado/NS_Tornado_LayeredFlow.uasset",
+        "SHA256": "88B93C6E23606B15E0EE14359436A0D1E14962543CAB48380EE785794EBA1014",
+        "Bytes": 1055090
+      }
+    ],
+    "AgentBlueprintSaves": 0,
+    "LegacyCar03Car04TireSkidAndFirstTornadoAssetsChanged": 0
+  },
+  "SourceSHA256": [
+    {
+      "Path": "Source/HAL_Future_Creation/HALTornadoTypes.h",
+      "SHA256": "DC53BCE13B4D46EFE80F9C3F5F4AC708BA5677CBC7E7234D681404F61F420D74",
+      "Bytes": 5653
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALTornado.h",
+      "SHA256": "DC79924D93DE7965F9B1845FBDB797C4379B3C63A9820332F63C5C6CA1252895",
+      "Bytes": 2517
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALTornado.cpp",
+      "SHA256": "5C18DE172A1361A8AB903095245A723C1898EA900DDFC1DB6FB8742CC67615A1",
+      "Bytes": 16726
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALTornadoAbility.h",
+      "SHA256": "DEA3A34871AB4E4F1F41913D0D82F9B0E515DAF1AC78803875A99BD544868FDB",
+      "Bytes": 2131
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALTornadoAbility.cpp",
+      "SHA256": "0B4C165B6161ED218F9E95B2CC736E69035FC68A1633141E2F42C753A17D374E",
+      "Bytes": 6137
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALTornadoPresentation.cpp",
+      "SHA256": "FABCB0751106F994D8189042B266E7CB3D3F239FC6F10095366CBC9043AEC775",
+      "Bytes": 5044
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALTornadoTests.cpp",
+      "SHA256": "71D91598F2E34C59AAF34EBCE607EE89CB1A008C3A94F4925EC4A938EC55C6E8",
+      "Bytes": 11590
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALTornadoRenderTests.cpp",
+      "SHA256": "DEE6506B6C2C874EC5712EA912EC518A9F43CE9F5D5DD3E07FF58551C9FA4687",
+      "Bytes": 9285
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALTornadoNetworkTests.cpp",
+      "SHA256": "4BD4AC1CCCB75CE65D0490FBC08E4E6482C807F7E94672BF900BB1EE2E2FF85C",
+      "Bytes": 9823
+    },
+    {
+      "Path": "Source/HAL_Future_CreationEditor/Public/HALBuildTornadoFXCommandlet.h",
+      "SHA256": "FDCD99CEE91EF5E96087F7B738547BB186EF8F9E81BD41780741CF23C65F8B73",
+      "Bytes": 249
+    },
+    {
+      "Path": "Source/HAL_Future_CreationEditor/Private/HALBuildTornadoFXCommandlet.cpp",
+      "SHA256": "CADD854F25D8AAE504D02066F2E9EE8A68EB3200E01BF20BDCA14C10C728E0AC",
+      "Bytes": 27639
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/BasicBallActor.h",
+      "SHA256": "A62897CA577836C0DEF24032587C99C82C0BF0466C6AAF1A6DCDB1E0F6CD2E1C",
+      "Bytes": 9083
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/BasicBallActor.cpp",
+      "SHA256": "8BE31E2407C44D5690D58238ADDF7505E092C09E448E76791BD9CF6F2164C477",
+      "Bytes": 24741
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALGameplayTags.h",
+      "SHA256": "F0BBA23834CC9365708CCADCE804D9ED3BE8FE3B267615207277BCE9A9DB949C",
+      "Bytes": 3709
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALGameplayTags.cpp",
+      "SHA256": "CDF9E190C33FBE245E2E11B378E7E771996F2D568714FA8434C0F2FFAFACDB84",
+      "Bytes": 6503
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h",
+      "SHA256": "25915D1B059C44AE6413A7AB8170793CE7A56427CD831604C3A3B2BB02880CFB",
+      "Bytes": 18281
+    }
+  ],
+  "Authoring": {
+    "InitialSuccess": "Create_R3: five new assets and DA System switch",
+    "RepairSuccess": "Repair_R1: real local positions, rebuilt third emitter execution, independent gather material (sixth new asset); no DA save",
+    "Command": "& 'D:/Program Files/Epic Games/UE_5.8/Engine/Binaries/Win64/UnrealEditor-Cmd.exe' 'D:/HAL_Future_Creation/HAL_Future_Creation.uproject' '-run=HAL_Future_CreationEditor.HALBuildTornadoFX' -Layered -AllowCommandletRendering -d3d12 -RenderOffscreen -unattended",
+    "Safety": "Layered creation refuses existing paths; maintenance only new layered recipe; neither intended for routine teammate tuning"
+  },
+  "IntermediateIssues": [
+    "Create_R1: short commandlet name did not load Editor module; no assets written.",
+    "Create_R2: unquoted PowerShell -run module.class split at dot. Quoted complete argument in Create_R3 passed.",
+    "Final_R1: 16/17. Actual particle-count assertion caught zero-particle outer emitter; raw DuplicateEmitterHandle had not rebuilt system spawn/update nodes. Replaced with exported NiagaraEditorUtilities::AddEmitterToSystem.",
+    "Visual inspection of first render found detached gusts. Static mesh build sRGB-packs vertex color, invalidating encoded geometry. Replaced with Pre-Skinned Local Position and repaired new materials; copied gather material so legacy recipe remains untouched.",
+    "Network_R1 had passed the earlier MID-only mounting check. Strengthened final fixture to require all three emitters actually have one particle and non-default new fields bind. Final Network_R2 both clean."
+  ],
+  "Limits": [
+    "Human approval of new art direction, actual gameplay camera/background readability and tuning remain pending.",
+    "Isolated oblique render checks prove geometry/material behavior, not full-game artistic quality.",
+    "Four-machine LAN, real late join, full room Blueprint flow, Cook and packaged build remain team acceptance work.",
+    "Raw Saved reports, BMPs and launchers are local ignored evidence; this summary, specification, source, native assets and whitelist need normal Git sync.",
+    "Car06 has only an accepted design record; numeric test defaults and implementation are not complete."
+  ]
+}

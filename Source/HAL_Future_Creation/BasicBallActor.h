@@ -14,6 +14,7 @@ class UPrimitiveComponent;
 class UNetworkPhysicsSettingsComponent;
 class UHALBallPresentationComponent;
 class UHALMagnetBeamPresentationComponent;
+class AHALTornado;
 
 class UBallDefinition;
 
@@ -108,6 +109,8 @@ public:
 	bool LaunchFromControl(AActor* ExpectedHolder, AActor* NewLauncher, const FVector& InitialVelocity);
 	bool LaunchFreeFromBattleTop(AActor* NewLauncher, const FVector& InitialVelocity);
 	bool LaunchFreeFromVehicleSkill(AActor* NewLauncher, const FVector& InitialVelocity);
+	/** Narrow authority capability: only the tornado's current accepted contact may call this. */
+	bool DeflectByTornado(AHALTornado& Source, const FVector& InitialVelocity);
 	bool ReleaseFromControl(AActor* ExpectedHolder, float ReacquireLockDuration);
 	void AddReleaseImpulse(const FVector& Impulse);
 	/** Server cleanup before a vehicle Pawn is destroyed; preserves a launched ball's stable PlayerId. */
