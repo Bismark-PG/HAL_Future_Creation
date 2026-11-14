@@ -9,6 +9,7 @@
 #include "NiagaraSystemInstanceController.h"
 #include "NiagaraSystemInstance.h"
 #include "NiagaraEmitterInstance.h"
+#include "NiagaraDataSetAccessor.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Engine/StaticMesh.h"
@@ -20,6 +21,8 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopeExit.h"
+#include "Misc/CommandLine.h"
+#include "HAL/FileManager.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALBattleTopCartoonPixels,"HAL.RenderSmoke.BattleTop.CartoonShapesAndLayeredWind",
 	EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
@@ -58,8 +61,11 @@ bool FHALBattleTopCartoonPixels::RunTest(const FString&)
 	Camera->ProjectionType=ECameraProjectionMode::Orthographic;Camera->OrthoWidth=450;Camera->CaptureSource=ESceneCaptureSource::SCS_FinalColorLDR;Camera->ShowFlags.SetAntiAliasing(false);
 	Camera->PostProcessSettings.bOverride_AutoExposureMethod=true;Camera->PostProcessSettings.AutoExposureMethod=AEM_Manual;
 	Camera->PostProcessSettings.bOverride_AutoExposureApplyPhysicalCameraExposure=true;Camera->PostProcessSettings.AutoExposureApplyPhysicalCameraExposure=false;
+	FString RenderOutput=FPaths::ProjectSavedDir()/TEXT("BattleTop/Cartoon_20261113");
+	FParse::Value(FCommandLine::Get(),TEXT("HALBattleTopRenderOutput="),RenderOutput);
+	IFileManager::Get().MakeDirectory(*RenderOutput,true);
 	const auto Pixels=[&](const TCHAR* Name){Camera->CaptureScene();TArray<FColor> P;Target->GameThread_GetRenderTargetResource()->ReadPixels(P);
-		FFileHelper::CreateBitmap(*(FPaths::ProjectSavedDir()/TEXT("BattleTop/Cartoon_20261113")/Name),512,512,P.GetData());return P;};
+		TestTrue(TEXT("Render evidence is saved"),FFileHelper::CreateBitmap(*(RenderOutput/Name),512,512,P.GetData()));return P;};
 	const auto Difference=[](const TArray<FColor>& X,const TArray<FColor>& Y){int32 N=0;for(int32 I=0;I<X.Num();++I)N+=FMath::Abs(int32(X[I].R)-Y[I].R)>12;return N;};
 	const auto Warm=[](const TArray<FColor>& X){int32 N=0;for(const auto P:X)N+=P.R>25&&P.R>int32(P.B)*1.5;return N;};
 	const auto ResetWind=[&](float Speed){C->DeactivateImmediate();C->SetVariableFloat(TEXT("User.SpawnRate"),5.f/1.2f);C->SetVariableFloat(TEXT("User.YawRate"),Speed);C->Activate(true);C->AdvanceSimulation(20,1.f/60);};
@@ -83,6 +89,61 @@ bool FHALBattleTopCartoonPixels::RunTest(const FString&)
 	TestTrue(TEXT("Particle layer height changes its actual side-view silhouette"),Difference(First,Raised)>100);
 	MID->SetScalarParameterValue(TEXT("Envelope"),0);const auto Hidden=Pixels(TEXT("CartoonWind_Hidden.bmp"));
 	TestTrue(TEXT("Skill exit envelope hides mesh wind"),Warm(Hidden)<10);
+	// Check that the configured angle is actually reached, not merely that the angle is below a cap.
+	MID->SetScalarParameterValue(TEXT("Envelope"),1);
+	C->SetVariableVec3(TEXT("User.PositionMin"),FVector(0,0,-11.25));
+	C->SetVariableVec3(TEXT("User.PositionMax"),FVector(0,0,33.75));
+	TArray<FColor> FlatImage;
+	for(const float RequestedTilt:{0.f,12.f,30.f,60.f,80.f})
+	{
+		C->SetVariableFloat(TEXT("User.TiltDegrees"),RequestedTilt);
+		// Retain the old input in the fixture so a pre-fix resource reproduces the real attenuation.
+		const float LegacyTilt=RequestedTilt/(360.f*FMath::Sqrt(2.f));
+		C->SetVariableVec3(TEXT("User.RotationMin"),FVector(-LegacyTilt,-LegacyTilt,0));
+		C->SetVariableVec3(TEXT("User.RotationMax"),FVector(LegacyTilt,LegacyTilt,1));
+		const float Speed=RequestedTilt>=60?3600.f:1440.f;
+		ResetWind(Speed);
+		if(RequestedTilt==0)FlatImage=Pixels(TEXT("WindTilt_0.bmp"));
+		if(RequestedTilt==30)
+			{
+				const auto Tilted=Pixels(TEXT("WindTilt_30.bmp"));
+				TestTrue(TEXT("Thirty degrees produces a visibly different silhouette from flat arcs"),Difference(FlatImage,Tilted)>1000);
+			}
+		float MinimumTilt=180,MaximumTilt=0,MinimumYawAdvance=360;int32 Compared=0,Observed=0;
+		TMap<int32,FQuat4f> Previous;
+		for(int32 Frame=0;Frame<120;++Frame)
+		{
+			if(auto Controller=C->GetSystemInstanceController())if(auto* Instance=Controller->GetSystemInstance_Unsafe())
+				for(const auto& E:Instance->GetEmitters())
+				{
+					const auto& D=E->GetParticleData();
+					const auto Q=FNiagaraDataSetAccessor<FQuat4f>::CreateReader(D,TEXT("MeshOrientation"));
+					const auto ID=FNiagaraDataSetAccessor<int32>::CreateReader(D,TEXT("UniqueID"));
+					if(!Q.IsValid()||!ID.IsValid()){AddError(TEXT("Missing actual particle orientation/identity data"));return false;}
+					TMap<int32,FQuat4f> Current;
+					for(int32 I=0;I<E->GetNumParticles();++I)
+					{
+						const auto Rotation=Q[I].GetNormalized();
+						const float ActualTilt=FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(Rotation.RotateVector(FVector3f(0,0,1)).Z,-1.f,1.f)));
+						MinimumTilt=FMath::Min(MinimumTilt,ActualTilt);MaximumTilt=FMath::Max(MaximumTilt,ActualTilt);++Observed;
+						if(const auto* Old=Previous.Find(ID[I]))
+						{
+							const auto Delta=(Rotation*Old->Inverse()).GetNormalized();
+							const auto X=Delta.RotateVector(FVector3f(1,0,0));
+							MinimumYawAdvance=FMath::Min(MinimumYawAdvance,FMath::RadiansToDegrees(FMath::Atan2(X.Y,X.X)));
+							TestTrue(TEXT("Arc advances around vertical without pitching or rolling during life"),Delta.RotateVector(FVector3f(0,0,1)).Equals(FVector3f(0,0,1),.001f));++Compared;
+						}
+						Current.Add(ID[I],Rotation);
+					}
+					Previous=MoveTemp(Current);
+				}
+			C->AdvanceSimulation(1,1.f/60);
+		}
+		TestTrue(TEXT("Multiple complete particle lifetimes were checked"),Observed>500&&Compared>400);
+		TestTrue(TEXT("Every arc reaches the configured tilt without yaw attenuation"),FMath::IsNearlyEqual(MinimumTilt,RequestedTilt,.1f)&&FMath::IsNearlyEqual(MaximumTilt,RequestedTilt,.1f));
+		TestTrue(TEXT("High-speed airflow advances in the intended direction at the requested rate"),FMath::IsNearlyEqual(MinimumYawAdvance,Speed/60,.01f));
+		AddInfo(FString::Printf(TEXT("Wind tilt requested=%.1f actual=%.3f..%.3f speed=%.1f minimum step=%.3f samples=%d comparisons=%d"),RequestedTilt,MinimumTilt,MaximumTilt,Speed,MinimumYawAdvance,Observed,Compared));
+	}
 	C->DeactivateImmediate();C->SetAsset(Contact);C->SetVariableInt(TEXT("User.BurstCount"),7);
 	C->SetVariableVec4(TEXT("User.StyleParameters"),FVector4(1,0,0,0));
 	C->SetVariableLinearColor(TEXT("User.SparkColor"),FLinearColor(1,.72f,.22f));

@@ -36,6 +36,7 @@ namespace
 		bool bBothActive = false;
 		bool bBothExpired = false;
 		bool bFXCaptured = false;
+		bool bReportedFXReadiness = false;
 		bool bSawLocalSpray = false;
 		bool bSawRemoteSpray = false;
 		double LastSprayRequest = -1;
@@ -111,6 +112,16 @@ namespace
 			}
 			const bool bLocalActive = Local->HasMatchingGameplayTag(ActiveTag);
 			const bool bRemoteActive = Remote && Remote->HasMatchingGameplayTag(ActiveTag);
+			if(bBattleTop&&!bReportedFXReadiness&&bLocalActive&&bRemoteActive&&World->GetTimeSeconds()>RequestedWorldTime+2
+				&&FParse::Param(FCommandLine::Get(),TEXT("HALBattleTopCartoonFixture")))
+			{
+				bReportedFXReadiness=true;
+				auto* S=LoadObject<UNiagaraSystem>(nullptr,TEXT("/Game/Assets/FX/BattleTop/NS_BattleTop_ToonWind.NS_BattleTop_ToonWind"));
+				TArray<UNiagaraComponent*> Cs;Vehicle->GetComponents(Cs);
+				Test->AddInfo(FString::Printf(TEXT("Wind readiness Role=%s Ready=%d Components=%d VisualChanged=%d"),
+					bHost?TEXT("Host"):TEXT("Client"),S&&S->IsReadyToRun(),Cs.FilterByPredicate([S](const UNiagaraComponent* C){return C&&C->IsRegistered()&&C->GetAsset()==S;}).Num(),
+					OriginalVisual.IsSet()&&Mesh&&!Mesh->GetRelativeTransform().Equals(OriginalVisual.GetValue())));
+			}
 			const auto* Movement = Vehicle->FindComponentByClass<UArcadeVehicleMovementComponent>();
 			const bool bRestriction = Movement && Movement->GetMovementEffectStatus().Value.bHandbrakeBlocked;
 			if (!bBothActive)
@@ -135,7 +146,10 @@ namespace
 						for(auto* C:Cs)if(IsValid(C)&&GetNameSafe(C->GetAsset())==TEXT("NS_BattleTop_ToonWind"))
 						{
 							const FNiagaraVariable Yaw(FNiagaraTypeDefinition::GetFloatDef(),TEXT("User.YawRate"));
-							Test->TestEqual(TEXT("Replicated airflow rate is independent of authored body spin"),C->GetOverrideParameters().GetParameterValue<float>(Yaw),315.f);
+							Test->TestEqual(TEXT("Replicated airflow rate is independent of authored body spin"),C->GetOverrideParameters().GetParameterValue<float>(Yaw),1440.f);
+							const FNiagaraVariable Tilt(FNiagaraTypeDefinition::GetFloatDef(),TEXT("User.TiltDegrees"));
+							Test->TestEqual(TEXT("Replicated nominal tilt reaches Niagara directly"),C->GetOverrideParameters().GetParameterValue<float>(Tilt),45.f);
+							Test->TestTrue(TEXT("Airflow stays on world vertical independently of chassis rotation"),C->IsUsingAbsoluteRotation()&&C->GetComponentQuat().Equals(FQuat::Identity));
 						}
 					}
 				}
@@ -198,7 +212,9 @@ namespace
 				&& World->GetTimeSeconds() > RequestedWorldTime + 1.5)
 			{
 				bFXCaptured = true;
-				FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir() / (bCartoonFixture?TEXT("BattleTop/Cartoon_20261113"):TEXT("BattleTop/Polish_20261113")) / (bHost ? TEXT("Live_Host.png") : TEXT("Live_Client.png")), false, false);
+				FString RenderOutput=FPaths::ProjectSavedDir() / (bCartoonFixture?TEXT("BattleTop/Cartoon_20261113"):TEXT("BattleTop/Polish_20261113"));
+				FParse::Value(FCommandLine::Get(),TEXT("HALBattleTopRenderOutput="),RenderOutput);
+				FScreenshotRequest::RequestScreenshot(RenderOutput / (bHost ? TEXT("Live_Host.png") : TEXT("Live_Client.png")), false, false);
 			}
 			if (!bBothExpired)
 			{

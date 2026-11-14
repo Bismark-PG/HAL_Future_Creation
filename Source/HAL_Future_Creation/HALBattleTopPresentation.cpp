@@ -67,8 +67,8 @@ bool FHALBattleTopFXConfig::IsValid() const
 		   Range(ContactLifetimeMin, .08f, 1.2f) && Range(ContactLifetimeMax, ContactLifetimeMin, 1.2f) &&
 		   Range(ContactSpeedMin, 100, 4000) && Range(ContactSpeedMax, ContactSpeedMin, 4000) &&
 		   Range(ContactSpreadDegrees, 5, 80) && Range(ContactGravityScale, 0, 3) && Range(ContactDrag, 0, 15) &&
-		   Range(WindFlowDegreesPerSecond, -720, 720) && WindBandCount >= 1 && WindBandCount <= 8 &&
-		   Range(WindBandLifetime, .4f, 3) && Range(WindLayerHeight, 0, 150) && Range(WindTiltDegrees, 0, 30) &&
+		   Range(WindFlowDegreesPerSecond, -3600, 3600) && WindBandCount >= 1 && WindBandCount <= 8 &&
+		   Range(WindBandLifetime, .4f, 3) && Range(WindLayerHeight, 0, 150) && Range(WindTiltDegrees, 0, 80) &&
 		   Range(WindBandWidthScale, .35f, 2.5f) && Range(WindRiseSpeed, 0, 100) &&
 		   Range(WindGlowStrength, 0, 3) && Range(ContactGlowStrength, 0, 3) &&
 		   Range(GroundMinimumSpeed, 1, 2000) && Range(GroundDistance, 1, 100);
@@ -136,6 +136,11 @@ float FHALBattleTopVisualState::EnvelopeAt(double Elapsed) const
 	}
 	return float((EnterSeconds > 0 ? Smooth(Elapsed / EnterSeconds) : 1.) *
 				 (ExitSeconds > 0 ? 1 - Smooth((Elapsed - (DurationSeconds - ExitSeconds)) / ExitSeconds) : 1.));
+}
+float HALBattleTopFX::WindAngularSpeed(float AuthoredSpeed, float SkillSpinRate)
+{
+	return FMath::IsFinite(AuthoredSpeed) && FMath::IsFinite(SkillSpinRate)
+		? FMath::Sign(SkillSpinRate) * FMath::Abs(AuthoredSpeed) : 0.f;
 }
 FVector HALBattleTopFX::SparkDirection(const FVector& RelativePointVelocity, const FVector& Normal)
 {
@@ -335,13 +340,15 @@ void UHALBattleTopComponent::UpdateParticles(float, float Angle, float Envelope)
 		C.SetVariableVec2(TEXT("User.WindSize"), FVector2D(Diameter)); // Original sprite systems remain compatible.
 		C.SetVariableFloat(TEXT("User.SpawnRate"), VisualFX.WindBandCount / VisualFX.WindBandLifetime);
 		C.SetVariableFloat(TEXT("User.Lifetime"), VisualFX.WindBandLifetime);
-		C.SetVariableFloat(TEXT("User.YawRate"), VisualFX.WindFlowDegreesPerSecond);
+		C.SetVariableFloat(TEXT("User.YawRate"), HALBattleTopFX::WindAngularSpeed(VisualFX.WindFlowDegreesPerSecond, VisualState.SpinRate));
+		C.SetVariableFloat(TEXT("User.TiltDegrees"), VisualFX.WindTiltDegrees);
 		const float Scale = Diameter / 200.f;
 		C.SetVariableVec3(TEXT("User.ScaleMin"), FVector(Scale * .9f));
 		C.SetVariableVec3(TEXT("User.ScaleMax"), FVector(Scale * 1.08f));
 		C.SetVariableVec3(TEXT("User.PositionMin"), FVector(0, 0, -VisualFX.WindLayerHeight * .25f));
 		C.SetVariableVec3(TEXT("User.PositionMax"), FVector(0, 0, VisualFX.WindLayerHeight * .75f));
-		const float Tilt = VisualFX.WindTiltDegrees / 360.f; // Initial orientation uses turns, rotation rate uses deg/s.
+		// Legacy resource contract. Current ToonWind uses the independent User.TiltDegrees input above.
+		const float Tilt = VisualFX.WindTiltDegrees / (360.f * FMath::Sqrt(2.f));
 		C.SetVariableVec3(TEXT("User.RotationMin"), FVector(-Tilt, -Tilt, 0));
 		C.SetVariableVec3(TEXT("User.RotationMax"), FVector(Tilt, Tilt, 1));
 		C.SetVariableVec3(TEXT("User.Velocity"), FVector(0, 0, VisualFX.WindRiseSpeed));
@@ -359,6 +366,9 @@ void UHALBattleTopComponent::UpdateParticles(float, float Angle, float Envelope)
 		WindComponent->SetAsset(VisualFX.Wind);
 		WindComponent->SetAutoActivate(false);
 		WindComponent->SetupAttachment(Body);
+		// Follow the vehicle center without inheriting chassis turns, rolls or self-right rotation.
+		WindComponent->SetAbsolute(false, true, false);
+		WindComponent->SetWorldRotation(FQuat::Identity);
 		ConfigureWind(*WindComponent); // Set spawn-time inputs before warmup and activation.
 		WindComponent->RegisterComponent();
 		auto* M = VisualFX.WindMaterial.Get();
