@@ -1,5 +1,6 @@
 #include "HALBullChargeComponent.h"
 #include "HALBullChargeAbility.h"
+#include "HALVehiclePresentationComponent.h"
 #include "HALBattleTopComponent.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALHealthAttributeSet.h"
@@ -35,17 +36,22 @@ namespace
 
 UHALBullChargeComponent::UHALBullChargeComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
+	PrimaryComponentTick.TickGroup = TG_PostPhysics;
 	SetIsReplicatedByDefault(true);
 }
 void UHALBullChargeComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UHALBullChargeComponent, bActive);
+	DOREPLIFETIME(UHALBullChargeComponent, VisualState);
 }
 void UHALBullChargeComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	if (auto* Presentation = GetOwner()->FindComponentByClass<UHALVehiclePresentationComponent>())
+	{ AddTickPrerequisiteComponent(Presentation); }
 	if (GetOwner()->HasAuthority() && GetWorld()->GetPhysicsScene())
 	{
 		GetWorld()->GetPhysicsScene()->GetSolver()->GetEventManager()->RegisterHandler<Chaos::FCollisionEventData>(
@@ -57,6 +63,8 @@ void UHALBullChargeComponent::BeginPlay()
 void UHALBullChargeComponent::EndPlay(EEndPlayReason::Type Reason)
 {
 	Stop();
+	ClearParticles();
+	PendingImpactFX.Reset();
 	if (bCollisionRegistered && GetWorld() && GetWorld()->GetPhysicsScene())
 	{
 		GetWorld()->GetPhysicsScene()->GetSolver()->GetEventManager()->UnregisterHandler(Chaos::EEventType::Collision, this);
@@ -112,7 +120,9 @@ bool UHALBullChargeComponent::DeferContact(UPrimitiveComponent* Body, UPrimitive
 }
 void UHALBullChargeComponent::ResolveDeferredContacts(UWorld* World, ELevelTick, float)
 {
-	if (World != GetWorld() || DeferredContacts.IsEmpty()) { return; }
+	if (World != GetWorld()) { return; }
+	PublishDrivingVisual();
+	if (DeferredContacts.IsEmpty()) { return; }
 	auto Contacts = MoveTemp(DeferredContacts);
 	DeferredContacts.Reset();
 	TGuardValue<bool> Resolving(bResolvingContacts, true);
@@ -178,6 +188,13 @@ bool UHALBullChargeComponent::Start(UHALAbilitySystemComponent& ASC, UHALBullCha
 	// Commit motion only after the held-ball transaction succeeds. A rejected launch
 	// must retain the previous motion/recovery rather than publish a cancelled charge.
 	Bridge->SetOverdriveMotion(Motion);
+	VisualState.FX = InConfig.FX;
+	VisualState.DurationSeconds = InConfig.Motion.DurationSeconds;
+	VisualState.RampSeconds = InConfig.Motion.RampSeconds;
+	VisualState.Activation = Motion.Activation;
+	VisualState.StartServerTime = GetWorld()->GetTimeSeconds();
+	NextImpactFXSequence = 0;
+	OnRep_VisualState();
 	Pawn->ForceNetUpdate();
 	UE_CLOG(HALAbilities::ShouldLog(), LogHALAbility, Log, TEXT("BullCharge started Pawn=%s Duration=%.2f Ramp=%.2f TargetCD=%.2f"),
 		*GetNameSafe(Pawn), Motion.DurationSeconds, Motion.RampSeconds, Config->TargetCooldownSeconds);
@@ -195,6 +212,8 @@ void UHALBullChargeComponent::Stop()
 {
 	if (!bActive || !GetOwner() || !GetOwner()->HasAuthority()) { return; }
 	bActive = false;
+	VisualState = {};
+	OnRep_VisualState();
 	if (auto* Bridge = GetOwner()->FindComponentByClass<UHALMovementEffectBridge>())
 	{
 		// The bridge retains the activation tuning so physics can stamp early exit and recover.
@@ -284,8 +303,21 @@ bool UHALBullChargeComponent::HandleVehiclePair(UPrimitiveComponent& Body, UPrim
 	Reverse.ImpactNormal = -Hit.ImpactNormal;
 	auto Incoming = Prepare(Other, Body, NormalImpulse, Reverse);
 	auto Outgoing = Prepare(Body, Other, -NormalImpulse, Hit);
-	if (Incoming.Action) { FCombatResolver::ResolveCombatHit(*Incoming.Action, Incoming.Request); }
-	if (Outgoing.Action) { FCombatResolver::ResolveCombatHit(*Outgoing.Action, Outgoing.Request); }
+	auto* IncomingCharge = Other.GetOwner()->FindComponentByClass<UHALBullChargeComponent>();
+	auto* OutgoingCharge = Body.GetOwner()->FindComponentByClass<UHALBullChargeComponent>();
+	// Snapshot both cosmetic events before either accepted result can retire an Avatar.
+	const auto InFX = IncomingCharge ? IncomingCharge->MakeImpactFX(Incoming) : FHALBullChargeImpactFXEvent();
+	const auto OutFX = OutgoingCharge ? OutgoingCharge->MakeImpactFX(Outgoing) : FHALBullChargeImpactFXEvent();
+	if (Incoming.Action)
+	{
+		const auto Result = FCombatResolver::ResolveCombatHit(*Incoming.Action, Incoming.Request);
+		if (Result.bHitAccepted && IncomingCharge && InFX.Sequence) { IncomingCharge->MulticastImpactFX(InFX); }
+	}
+	if (Outgoing.Action)
+	{
+		const auto Result = FCombatResolver::ResolveCombatHit(*Outgoing.Action, Outgoing.Request);
+		if (Result.bHitAccepted && OutgoingCharge && OutFX.Sequence) { OutgoingCharge->MulticastImpactFX(OutFX); }
+	}
 	return Incoming.Action.IsValid() || Outgoing.Action.IsValid();
 }
 bool UHALBullChargeComponent::HandleFreeBall(ABasicBallActor& Ball, const FHitResult& Hit)

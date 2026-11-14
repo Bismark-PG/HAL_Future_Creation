@@ -15,6 +15,46 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "Misc/CommandLine.h"
+#include "NiagaraComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
+
+struct FHALBullChargeFXNetworkAccess
+{
+	static const FHALBullChargeVisualState& State(const UHALBullChargeComponent& C) { return C.VisualState; }
+	static uint32 ImpactCount(const UHALBullChargeComponent& C) { return C.ReceivedImpactFXCount; }
+	static bool HasMountedLayers(const UHALBullChargeComponent& C)
+	{
+		if (!C.FrontWindComponent || !C.FrontWindComponent->GetAttachParent() || C.RearSparkComponents.Num() != 2) { return false; }
+		for (const auto& Rear : C.RearSparkComponents) { if (!Rear || !Rear->GetAttachParent() || !Rear->IsActive()) { return false; } }
+		bool bValid = false;
+		const auto Scale = C.FrontWindComponent->GetVariableVec3(TEXT("User.WindScale"), bValid);
+		const auto& FX = C.VisualState.FX;
+		return C.FrontWindComponent->IsActive() && bValid && FMath::IsNearlyEqual(FX.WindLengthScale, 1.6f)
+			&& C.PressureMaterial && FX.PressureMidColor.Equals(FLinearColor(.61f, .66f, .72f))
+			&& C.PressureMaterial->K2_GetVectorParameterValue(TEXT("MidColor")).Equals(FX.PressureMidColor)
+			&& FMath::IsNearlyEqual(FX.PressureToneSoftness, .22f)
+			&& FMath::IsNearlyEqual(C.PressureMaterial->K2_GetScalarParameterValue(TEXT("ToneSoftness")), .22f)
+			&& Scale.Equals(FVector(FX.WindSizeScale * 1.6f, FX.WindSizeScale, FX.WindSizeScale), .001);
+	}
+	static bool HasProgressiveEnvelope(const UHALBullChargeComponent& C)
+	{
+		const auto* State = C.GetWorld()->GetGameState();
+		const double Now = State ? State->GetServerWorldTimeSeconds() : C.GetWorld()->GetTimeSeconds();
+		const float Phase = HALBullChargeFX::Ramp(Now - C.VisualState.StartServerTime, C.VisualState.RampSeconds);
+		return C.VisualState.bDriving && Phase > .05f && Phase < .9f && C.FrontMaterial && C.PressureMaterial
+			&& C.FrontMaterial->K2_GetScalarParameterValue(TEXT("Envelope")) <= Phase + .02f
+			&& C.PressureMaterial->K2_GetScalarParameterValue(TEXT("Envelope")) <= Phase + .02f;
+	}
+	/** Transport-only probe. Accepted gameplay contact is separately covered by the native resolver fixture. */
+	static void SendProbe(UHALBullChargeComponent& C)
+	{
+		if (!C.GetOwner()->HasAuthority()) { return; }
+		FHALBullChargeImpactFXEvent E; E.Activation = C.VisualState.Activation; E.Sequence = ++C.NextImpactFXSequence;
+		E.ServerTime = C.GetWorld()->GetTimeSeconds(); E.Point = C.GetOwner()->GetActorLocation(); E.Strength = .75f;
+		C.MulticastImpactFX(E);
+	}
+};
 
 namespace
 {
@@ -25,6 +65,10 @@ namespace
 		double RequestedAt = -1, CompleteAt = -1;
 		bool bBothActive = false, bStunSent = false, bSawStun = false, bResumed = false, bSawRecovery = false, bExpired = false;
 		bool bSawAutoDrive = false, bSawRaisedLimit = false;
+		bool bSawFXDrive = false, bSawFXPause = false, bSawFXResume = false;
+		bool bSentFXProbe = false;
+		bool bSawMountedLayers = false;
+		bool bSawProgressiveEnvelope = false;
 		FGuid Activation;
 	public:
 		explicit FHALBullChargeLive(FAutomationTestBase* InTest) : Test(InTest) {}
@@ -58,6 +102,19 @@ namespace
 			auto* Movement = Pawn->FindComponentByClass<UArcadeVehicleMovementComponent>();
 			const auto Status = Movement->GetMovementEffectStatus();
 			const auto& Motion = Status.Definition.Overdrive;
+			const auto& Visual = FHALBullChargeFXNetworkAccess::State(*Charge);
+			if (Other && FApp::CanEverRender())
+			{
+				bSawMountedLayers |= FHALBullChargeFXNetworkAccess::HasMountedLayers(*Charge)
+					&& FHALBullChargeFXNetworkAccess::HasMountedLayers(*Other->FindComponentByClass<UHALBullChargeComponent>());
+				bSawProgressiveEnvelope |= FHALBullChargeFXNetworkAccess::HasProgressiveEnvelope(*Charge);
+			}
+			if (Visual.Activation == Motion.Activation && Visual.FX.bEnabled && Visual.FX.IsValid())
+			{
+				bSawFXDrive |= Visual.bDriving;
+				bSawFXPause |= bSawStun && !Visual.bDriving && Charge->IsActive();
+				bSawFXResume |= bSawFXPause && Visual.bDriving;
+			}
 			if (Motion.IsDriving(Status.ServerFrame) && !Status.Value.bControlsBlocked)
 			{
 				const auto Contact = Movement->GetContactObservation();
@@ -85,6 +142,12 @@ namespace
 				Test->TestTrue(TEXT("Authority can stun charging client"), OtherASC->ApplyStun(.6f, Pawn));
 				bStunSent = true;
 			}
+			if (bBothActive && bHost && !bSentFXProbe && FParse::Param(FCommandLine::Get(), TEXT("HALBullChargeFXFixture")))
+			{
+				FHALBullChargeFXNetworkAccess::SendProbe(*Charge);
+				FHALBullChargeFXNetworkAccess::SendProbe(*Other->FindComponentByClass<UHALBullChargeComponent>());
+				bSentFXProbe = true;
+			}
 			if (bBothActive && Motion.bStunned && Status.Value.bControlsBlocked)
 			{
 				bSawStun = true;
@@ -97,6 +160,18 @@ namespace
 				&& !Motion.IsDriving(Status.ServerFrame))
 			{
 				bExpired = true;
+				if (FParse::Param(FCommandLine::Get(), TEXT("HALBullChargeFXFixture")))
+				{
+					Test->TestTrue(TEXT("Persistent VFX drive, pause and resume are replicated for this activation"), bSawFXDrive && bSawFXPause && bSawFXResume);
+					Test->TestTrue(TEXT("Impact transport reaches both local and observed vehicle components"),
+						FHALBullChargeFXNetworkAccess::ImpactCount(*Charge) > 0 && FHALBullChargeFXNetworkAccess::ImpactCount(*Other->FindComponentByClass<UHALBullChargeComponent>()) > 0);
+					if (FApp::CanEverRender())
+					{
+						Test->TestTrue(TEXT("Both observed vehicles bind replicated non-default length and two active rear mounts"), bSawMountedLayers);
+						Test->TestTrue(TEXT("Owner wind and shell use the replicated acceleration fade rather than full entry strength"), bSawProgressiveEnvelope);
+					}
+					Test->AddInfo(FString::Printf(TEXT("Car04 VFX Drive=%d Pause=%d Resume=%d"), bSawFXDrive, bSawFXPause, bSawFXResume));
+				}
 				Test->TestTrue(TEXT("Stun preserved skill and subsequently resumed"), bSawStun && bResumed);
 				Test->TestTrue(TEXT("Normal entry point automatically accelerates the actual truck"), bSawAutoDrive);
 				Test->TestTrue(TEXT("Physics consumes the increased speed limit"), bSawRaisedLimit);

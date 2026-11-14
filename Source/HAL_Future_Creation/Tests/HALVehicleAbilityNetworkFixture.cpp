@@ -27,6 +27,18 @@ namespace
 				{
 					auto* Ability = GetMutableDefault<UHALBullChargeAbility>();
 					Ability->SkillConfig = NewObject<UHALBullChargeConfig>(Ability);
+					if (FParse::Param(FCommandLine::Get(), TEXT("HALBullChargeFXFixture")))
+					{
+						if (const auto* Saved = LoadObject<UHALBullChargeConfig>(nullptr,
+							TEXT("/Game/Data/Abilities/DA_Ability_Car04_BullCharge.DA_Ability_Car04_BullCharge")))
+						{
+							Ability->SkillConfig->FX = Saved->FX;
+							// Non-default replicated length, confined to this opt-in transient fixture.
+							Ability->SkillConfig->FX.WindLengthScale = 1.6f;
+							Ability->SkillConfig->FX.PressureMidColor = FLinearColor(.61f, .66f, .72f);
+							Ability->SkillConfig->FX.PressureToneSoftness = .22f;
+						}
+					}
 				}
 				if (bTrail)
 				{
