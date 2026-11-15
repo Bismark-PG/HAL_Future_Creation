@@ -18,6 +18,8 @@
 #include "../HALPlayerState.h"
 #include "../VehicleHealthComponent.h"
 #include "../CombatResolver.h"
+#include "../HALDamageFeedbackComponent.h"
+#include "../HALGameplayTags.h"
 #include "../ArcadeVehicleMovementComponent.h"
 #include "../HALVehicleTestGameMode.h"
 #include "../HALVehicleTestPlayerController.h"
@@ -97,6 +99,22 @@ bool FHALSkillDummyLifecycle::RunTest(const FString&)
 	FHALCombatHitRequest Request; Request.AttackId=Action.GetSnapshot().AttackId; Request.PulseSequence=Action.GetPulseSequence(); Request.bApplyDamage=true; Request.bApplyImpact=false;
 	Request.Hit.TargetActor=D; Request.Hit.TargetPhysicsBody=CastChecked<UPrimitiveComponent>(D->GetRootComponent());
 	const auto Result=FCombatResolver::ResolveCombatHit(Action,Request); TestTrue(TEXT("Standard resolver damages dummy"),Result.bHitAccepted&&Result.ActualHPRemoved>0); TestTrue(TEXT("HP actually decreased"),H->GetCurrentHP()<1000);
+	auto* DamageFX=D->FindComponentByClass<UHALDamageFeedbackComponent>();
+	if(TestNotNull(TEXT("Inherited global received-damage adapter"),DamageFX))
+	{
+		TestEqual(TEXT("Actual damage emits one authority pulse"),DamageFX->GetReceivedPulseCount(),uint32(1));
+		FCombatResolver::ResolveCombatHit(Action,Request); TestEqual(TEXT("Duplicate attack target emits no second pulse"),DamageFX->GetReceivedPulseCount(),uint32(1));
+		const auto ResolveAgain=[&](bool Damage)
+		{
+			FHALCombatAction Next; auto Source=Snapshot; Source.AttackId=FGuid::NewGuid(); Next.Begin(*V,Source);
+			auto R=Request; R.AttackId=Next.GetSnapshot().AttackId; R.bApplyDamage=Damage; return FCombatResolver::ResolveCombatHit(Next,R);
+		};
+		A->AddLooseGameplayTag(HALGameplayTags::State_Combat_DamageImmune); const auto Immune=ResolveAgain(true); A->RemoveLooseGameplayTag(HALGameplayTags::State_Combat_DamageImmune);
+		TestTrue(TEXT("Damage immunity suppresses red flash without inventing damage"),Immune.bHitAccepted&&Immune.ActualHPRemoved==0&&DamageFX->GetReceivedPulseCount()==1);
+		ResolveAgain(false); TestEqual(TEXT("A zero-damage accepted action is not a damage flash"),DamageFX->GetReceivedPulseCount(),uint32(1));
+		A->AddLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune); const auto ImpactImmune=ResolveAgain(true); A->RemoveLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune);
+		TestTrue(TEXT("Impact immunity does not suppress real received-damage feedback"),ImpactImmune.ActualHPRemoved>0&&DamageFX->GetReceivedPulseCount()==2);
+	}
 	auto* Region=F.W->SpawnActor<AActor>(); Begin(Region); FHALMovementAreaConfig Area; Area.Kind=EHALMovementAreaKind::Slippery; Area.LateralGripMultiplier=.2f;
 	auto* Receiver=D->FindComponentByClass<UHALMovementAreaReceiver>(); TestTrue(TEXT("Actual area receiver registers"),Receiver->RegisterArea(Region,Area));
 	TestTrue(TEXT("Area GE changes GAS grip"),A->GetSet<UHALMovementAttributeSet>()->GetAreaGripDelta()<-.7f); Region->Destroy();

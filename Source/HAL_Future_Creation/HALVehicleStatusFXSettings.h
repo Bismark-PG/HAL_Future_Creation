@@ -5,6 +5,7 @@
 #include "HALVehicleStatusFXSettings.generated.h"
 
 class UHALVehicleStatusFXCatalog;
+class UHALDamageFeedbackConfig;
 
 UCLASS(Config=Game, DefaultConfig, meta=(DisplayName="Vehicle Status FX"))
 class HAL_FUTURE_CREATION_API UHALVehicleStatusFXSettings : public UDeveloperSettings
@@ -13,6 +14,8 @@ class HAL_FUTURE_CREATION_API UHALVehicleStatusFXSettings : public UDeveloperSet
 public:
 	/** None disables the new shared FX path. Ordinary vehicles inherit this catalog. */
 	UPROPERTY(Config, EditAnywhere, Category="Shared Configuration") TSoftObjectPtr<UHALVehicleStatusFXCatalog> DefaultCatalog;
+	/** One shared received-damage recipe. Each target has an independent short playback; None disables it. */
+	UPROPERTY(Config, EditAnywhere, Category="Shared Configuration") TSoftObjectPtr<UHALDamageFeedbackConfig> DamageFeedbackConfig;
 	/** Presentation budgets only; templates must honor User.FX_MaxParticles and User.FX_SpawnRate. */
 	UPROPERTY(Config, EditAnywhere, Category="Render Budget", meta=(ClampMin="0", ClampMax="8192")) int32 MaximumParticlesPerVehicle = 512;
 	UPROPERTY(Config, EditAnywhere, Category="Render Budget", meta=(ClampMin="0", ClampMax="128")) int32 MaximumParticleLayersPerVehicle = 16;

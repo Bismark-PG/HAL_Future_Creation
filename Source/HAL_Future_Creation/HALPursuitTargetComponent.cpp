@@ -10,7 +10,7 @@
 UHALPursuitTargetComponent::UHALPursuitTargetComponent()
 { SetIsReplicatedByDefault(true); PrimaryComponentTick.bCanEverTick=true; PrimaryComponentTick.bStartWithTickEnabled=false; PrimaryComponentTick.TickGroup=TG_PostPhysics; }
 double UHALPursuitTargetComponent::PresentationTime() const
-{ const auto* S=GetWorld()->GetGameState(); return S?S->GetServerWorldTimeSeconds():GetWorld()->GetTimeSeconds(); }
+{ const auto* W=GetWorld(); if(!W) { return 0; } const auto* S=W->GetGameState(); return S?S->GetServerWorldTimeSeconds():W->GetTimeSeconds(); }
 bool UHALPursuitTargetComponent::AcceptArrest(AHALPolicePursuit& Source)
 {
 	auto* V=Cast<ATestVehiclePawn>(GetOwner()); auto* A=V?Cast<UHALAbilitySystemComponent>(V->GetAbilitySystemComponent()):nullptr;

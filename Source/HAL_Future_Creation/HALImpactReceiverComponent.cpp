@@ -339,7 +339,7 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 			}
 		}
 		bool bQueued = false;
-		if (Movement) { bQueued = Movement->QueueImpact(PhysicsAction); }
+		if (Movement) { bQueued = Movement->QueueImpact(PhysicsAction, Request.AttackId, Request.PulseSequence); }
 		else
 		{
 			Body->AddImpulse(PhysicsAction.ResolveLinearDelta(Body->GetPhysicsLinearVelocity()), NAME_None, true);

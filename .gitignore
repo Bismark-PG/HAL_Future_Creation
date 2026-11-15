@@ -329,3 +329,25 @@ Plugins/Monolith/
 !Docs/Presentation/Car06_Arrest_Chains_CN_v0.1.md
 !Docs/Presentation/Car06_Arrest_Chains_Verification_20261115.json
 !Docs/Presentation/Car06_Arrest_Chains_Flow_Verification_20261115.json
+
+# Shared received-damage silhouette / outline / local RGB feedback.
+!Source/HAL_Future_Creation/HALDamageFeedbackConfig.h
+!Source/HAL_Future_Creation/HALDamageFeedbackConfig.cpp
+!Source/HAL_Future_Creation/HALDamageFeedbackComponent.h
+!Source/HAL_Future_Creation/HALDamageFeedbackComponent.cpp
+!Source/HAL_Future_Creation/HALDamageFeedbackSubsystem.h
+!Source/HAL_Future_Creation/HALDamageFeedbackSubsystem.cpp
+!Source/HAL_Future_Creation/Tests/HALDamageFeedbackTests.cpp
+!Source/HAL_Future_Creation/Tests/HALDamageFeedbackRenderTests.cpp
+!Source/HAL_Future_CreationEditor/Public/HALBuildDamageFeedbackFXCommandlet.h
+!Source/HAL_Future_CreationEditor/Private/HALBuildDamageFeedbackFXCommandlet.cpp
+!Docs/Presentation/Vehicle_Damage_Feedback_CN_v0.1.md
+!Docs/Presentation/Vehicle_Damage_Feedback_Verification_20261115.json
+
+# Runtime Unity compatibility fix and actual launcher verification.
+!Docs/Configuration/Build_Unity_Fix_Verification_20261115.json
+
+# Non-History impact execution diagnostics and actual Solver validation.
+!Docs/Configuration/Skill_Dummy_Impact_Diagnostics_Verification_20261115.json
+!Docs/Configuration/Skill_Dummy_Impact_Reproduction_20261115.json
+!Docs/Configuration/Skill_Dummy_Impact_Wake_Fix_Verification_20261115.json

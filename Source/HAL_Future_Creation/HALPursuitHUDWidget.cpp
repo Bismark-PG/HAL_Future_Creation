@@ -32,7 +32,7 @@ TArray<FHALPursuitView> UHALPursuitHUDWidget::GatherViews(UWorld* W)
 		if(!V&&(S.bArrested||S.bProtected)) { V=&Out.AddDefaulted_GetRef(); V->Target=*It; V->Style=S.FX; }
 		if(V) { V->bArrested=S.bArrested; V->bProtected=S.bProtected; }
 	}
-	Out.RemoveAll([](const auto& V){const auto* H=IsValid(V.Target)?V.Target->FindComponentByClass<UVehicleHealthComponent>():nullptr; return !H||!H->IsHealthReady()||H->GetCurrentHP()<=0;});
+	Out.RemoveAll([](const FHALPursuitView& V){const auto* H=IsValid(V.Target)?V.Target->FindComponentByClass<UVehicleHealthComponent>():nullptr; return !H||!H->IsHealthReady()||H->GetCurrentHP()<=0;});
 	return Out;
 }
 TArray<FHALPursuitView> UHALPursuitHUDWidget::GetPursuitViews() const { return GatherViews(GetWorld()); }

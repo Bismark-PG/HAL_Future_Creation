@@ -18,6 +18,7 @@
 #include "HALVehiclePresentationComponent.h"
 #include "HALVehicleStatusFXSubsystem.h"
 #include "HALVehicleStatusFXComponent.h"
+#include "HALDamageFeedbackComponent.h"
 #include "Engine/GameInstance.h"
 #include "HALDynamicCameraComponent.h"
 #include "HALGameFlowPermissions.h"
@@ -97,6 +98,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	SkeletalVisual->SetHiddenInGame(true);
 	VehiclePresentation = CreateDefaultSubobject<UHALVehiclePresentationComponent>(TEXT("VehiclePresentation"));
 	StatusFXPresentation = CreateDefaultSubobject<UHALVehicleStatusFXComponent>(TEXT("StatusFXPresentation"));
+	DamageFeedback=CreateDefaultSubobject<UHALDamageFeedbackComponent>(TEXT("DamageFeedback"));
 
 	ForwardArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("ForwardArrow"));
 	ForwardArrow->SetupAttachment(CollisionRoot);
@@ -326,6 +328,7 @@ bool ATestVehiclePawn::CanReceiveSkillEffects() const
 
 void ATestVehiclePawn::UninitializeAbilitySystem()
 {
+	DamageFeedback->ClearPresentation();
 	ResetLocalInputReadiness();
 	if (HasAuthority()) { BattleTop->Stop(); }
 	if (HasAuthority()) { BullCharge->Stop(); }

@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-15",
+  "branch": "main",
+  "startCommit": "5044110",
+  "engine": "5.8.3-58210709",
+  "task": "Non-History impact diagnostics for team reproduction",
+  "committedOrPushed": false,
+  "implementation": {
+    "switch": "hal.ImpactPhysicsLog",
+    "default": 0,
+    "shippingDiagnostics": false,
+    "entry": "Original non-History QueueImpact AddImpulse and angular setter path; ImpactReceiver forwards AttackId/Pulse for correlation only",
+    "stages": [
+      "SubmitGT: snapshots around original commands, not integrated confirmation",
+      "SamplePT: Internal state at later real pre-simulation physics frames, not same-frame PostSolve"
+    ],
+    "identities": [
+      "Actor",
+      "AttackId",
+      "PulseSequence",
+      "EventSequence",
+      "PhysicsFrame"
+    ],
+    "maximumConcurrentPerComponent": 8,
+    "sampleAges": [
+      0,
+      1,
+      2,
+      3,
+      7,
+      15,
+      31,
+      63,
+      95
+    ],
+    "maximumSamplesPerImpact": 9,
+    "newTickOrTimer": false,
+    "newRPCOrReplicatedState": false,
+    "reflectedFieldsAdded": false,
+    "physicsOrGameplayRulesChanged": false,
+    "clear": "Off at next available physics step, history transition, expiry, owner EndPlay"
+  },
+  "builds": [
+    {
+      "target": "HAL_Future_CreationEditor Win64 Development",
+      "run": "Editor_R2",
+      "exitCode": 0,
+      "result": "Succeeded",
+      "seconds": 24.14,
+      "log": "Saved/ImpactDiagnostics/20261115/Editor_R2.log",
+      "sha256": "442A8EDF9979B683818ACF7AE0E7CB2F1379A392C167BBA5E51BFB81B85190C0"
+    },
+    {
+      "target": "HAL_Future_Creation Win64 Development",
+      "run": "Game_R2",
+      "exitCode": 0,
+      "result": "Succeeded",
+      "seconds": 37.57,
+      "log": "Saved/ImpactDiagnostics/20261115/Game_R2.log",
+      "sha256": "2F2B4B21AA39B883B73E4D2049DEE1EF015D24BF1BE4A13C57C399BE8DB6A71F"
+    }
+  ],
+  "buildPolicy": "-DisableAdaptiveUnity; ordinary runtime Unity compilation, editor tool module retains its previous non-Unity setting. Existing compiler warnings retained.",
+  "regression": {
+    "run": "Native_R2",
+    "exitCode": 0,
+    "succeeded": 13,
+    "succeededWithWarnings": 0,
+    "failed": 0,
+    "notRun": 0,
+    "inProcess": 0,
+    "report": "Saved/ImpactDiagnostics/20261115/Native_R2/index.json",
+    "sha256": "CD0037ACC5BCDAC07537A87C4FA2D962733C4224A900D9E274F862F4A63BF4BA",
+    "tests": [
+      "HAL.FutureCreation.DamageFeedback.BoundedIndependentPulses",
+      "HAL.FutureCreation.DamageFeedback.SharedRecipeAndCookRoot",
+      "HAL.FutureCreation.Impact.PushPresets.CombinationsResistanceAndNaturalResponse",
+      "HAL.FutureCreation.Impact.PushPresets.DefaultsAndValidation",
+      "HAL.FutureCreation.Impact.AllSourcesAndContactEpisodes",
+      "HAL.FutureCreation.Impact.AuthorityPhysicsReplayContract",
+      "HAL.FutureCreation.Impact.BallSnapshotDropAndCallbackMerge",
+      "HAL.FutureCreation.Impact.GASResistanceAndIndependentDamage",
+      "HAL.FutureCreation.Impact.SolverThreadExecutionAndReplay",
+      "HAL.FutureCreation.Impact.TiersCalibrationAndEnergyBudget",
+      "HAL.FutureCreation.SkillDummy.IndependentGASReceiversAndDamage",
+      "HAL.FutureCreation.SkillDummy.PursuitStarsArrestAndTornado",
+      "HAL.FutureCreation.SkillDummy.SingleVehicleSwapPreservesOnlyNewDummy"
+    ],
+    "rhi": "NullRHI; actual TaskGraph Chaos Solver physics, no rendering claim",
+    "scope": "Production direct GT QueueImpact, passive worker observation and post-integration readback. Off/on V/W and 3D travel match; attack identity, four initial observations, off cleanup and 96-frame retirement asserted.",
+    "fixture": "Unobstructed airborne Box, gravity/damping off. Initial GT state is reset through ordinary APIs; observer does not inject target PT V/W or execute the impact a second time."
+  },
+  "actualTraceEvidence": [
+    "[2026.11.15-11.59.10:201][616]LogTemp: Vehicle impact trace: Phase=SubmitGT Actor=Actor_0 Attack=49BC6DA84BA61FE9B63F1CBC5D87452F Pulse=7 Event=100 FrameBefore=38 FrameAfter=38 PTEnabled=1 Mass=177.828 AwakeBefore=1 AwakeAfter=1 PosBefore=X=0.000 Y=0.000 Z=2000.000 BeforeV=X=0.000 Y=0.000 Z=0.000 BeforeW=X=0.000 Y=0.000 Z=0.000 RequestedDV=X=900.000 Y=0.000 Z=750.000 TargetUp=750.000 SetW=1 RequestedW=X=0.000 Y=5.130 Z=0.000 ImmediateV=X=0.000 Y=0.000 Z=0.000 ImmediateW=X=0.000 Y=5.130 Z=0.000",
+    "[2026.11.15-11.59.10:201][616]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=Actor_0 Attack=49BC6DA84BA61FE9B63F1CBC5D87452F Pulse=7 Event=100 Frame=40 SubmitFrame=38 AgeFrames=0 PTContext=1 Sleeping=0 GroundedPrev=0 Pos=X=0.000 Y=0.000 Z=2000.000 V=X=0.000 Y=0.000 Z=0.000 W=X=0.000 Y=5.130 Z=0.000 PendingImpulse=X=160045.134 Y=0.000 Z=133370.945 TravelFromGT=X=0.000 Y=0.000 Z=0.000 TravelFromFirstPT=X=0.000 Y=0.000 Z=0.000",
+    "[2026.11.15-11.59.10:201][616]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=Actor_0 Attack=49BC6DA84BA61FE9B63F1CBC5D87452F Pulse=7 Event=100 Frame=41 SubmitFrame=38 AgeFrames=1 PTContext=1 Sleeping=0 GroundedPrev=0 Pos=X=15.000 Y=0.000 Z=2012.500 V=X=900.000 Y=0.000 Z=750.000 W=X=0.000 Y=5.130 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=15.000 Y=0.000 Z=12.500 TravelFromFirstPT=X=15.000 Y=0.000 Z=12.500",
+    "[2026.11.15-11.59.10:201][616]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=Actor_0 Attack=49BC6DA84BA61FE9B63F1CBC5D87452F Pulse=7 Event=100 Frame=42 SubmitFrame=38 AgeFrames=2 PTContext=1 Sleeping=0 GroundedPrev=0 Pos=X=30.000 Y=0.000 Z=2025.000 V=X=900.000 Y=0.000 Z=750.000 W=X=0.000 Y=5.130 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=30.000 Y=0.000 Z=25.000 TravelFromFirstPT=X=30.000 Y=0.000 Z=25.000",
+    "[2026.11.15-11.59.10:201][616]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=Actor_0 Attack=49BC6DA84BA61FE9B63F1CBC5D87452F Pulse=7 Event=100 Frame=43 SubmitFrame=38 AgeFrames=3 PTContext=1 Sleeping=0 GroundedPrev=0 Pos=X=45.000 Y=0.000 Z=2037.500 V=X=900.000 Y=0.000 Z=750.000 W=X=0.000 Y=5.130 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=45.000 Y=0.000 Z=37.500 TravelFromFirstPT=X=45.000 Y=0.000 Z=37.500",
+    "[2026.11.15-11.59.10:201][616]LogTemp: Vehicle impact trace: Phase=SubmitGT Actor=Actor_0 Attack=49BC6DA84BA61FE9B63F1CBC5D87452F Pulse=7 Event=101 FrameBefore=44 FrameAfter=44 PTEnabled=1 Mass=177.828 AwakeBefore=1 AwakeAfter=1 PosBefore=X=0.000 Y=0.000 Z=2000.000 BeforeV=X=0.000 Y=0.000 Z=0.000 BeforeW=X=0.000 Y=0.000 Z=0.000 RequestedDV=X=900.000 Y=0.000 Z=750.000 TargetUp=750.000 SetW=1 RequestedW=X=0.000 Y=5.130 Z=0.000 ImmediateV=X=0.000 Y=0.000 Z=0.000 ImmediateW=X=0.000 Y=5.130 Z=0.000",
+    "[2026.11.15-11.59.10:201][616]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=Actor_0 Attack=49BC6DA84BA61FE9B63F1CBC5D87452F Pulse=7 Event=101 Frame=46 SubmitFrame=44 AgeFrames=0 PTContext=1 Sleeping=0 GroundedPrev=0 Pos=X=0.000 Y=0.000 Z=2000.000 V=X=0.000 Y=0.000 Z=0.000 W=X=0.000 Y=5.130 Z=0.000 PendingImpulse=X=160045.134 Y=0.000 Z=133370.945 TravelFromGT=X=0.000 Y=0.000 Z=0.000 TravelFromFirstPT=X=0.000 Y=0.000 Z=0.000",
+    "[2026.11.15-11.59.10:201][616]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=Actor_0 Attack=49BC6DA84BA61FE9B63F1CBC5D87452F Pulse=7 Event=101 Frame=47 SubmitFrame=44 AgeFrames=1 PTContext=1 Sleeping=0 GroundedPrev=0 Pos=X=15.000 Y=0.000 Z=2012.500 V=X=900.000 Y=0.000 Z=750.000 W=X=0.000 Y=5.130 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=15.000 Y=0.000 Z=12.500 TravelFromFirstPT=X=15.000 Y=0.000 Z=12.500",
+    "[2026.11.15-11.59.10:201][616]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=Actor_0 Attack=49BC6DA84BA61FE9B63F1CBC5D87452F Pulse=7 Event=101 Frame=48 SubmitFrame=44 AgeFrames=2 PTContext=1 Sleeping=0 GroundedPrev=0 Pos=X=30.000 Y=0.000 Z=2025.000 V=X=900.000 Y=0.000 Z=750.000 W=X=0.000 Y=5.130 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=30.000 Y=0.000 Z=25.000 TravelFromFirstPT=X=30.000 Y=0.000 Z=25.000",
+    "[2026.11.15-11.59.10:201][616]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=Actor_0 Attack=49BC6DA84BA61FE9B63F1CBC5D87452F Pulse=7 Event=101 Frame=49 SubmitFrame=44 AgeFrames=3 PTContext=1 Sleeping=0 GroundedPrev=0 Pos=X=45.000 Y=0.000 Z=2037.500 V=X=900.000 Y=0.000 Z=750.000 W=X=0.000 Y=5.130 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=45.000 Y=0.000 Z=37.500 TravelFromFirstPT=X=45.000 Y=0.000 Z=37.500",
+    "[2026.11.15-11.59.10:201][616]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=Actor_0 Attack=49BC6DA84BA61FE9B63F1CBC5D87452F Pulse=7 Event=101 Frame=53 SubmitFrame=44 AgeFrames=7 PTContext=1 Sleeping=0 GroundedPrev=0 Pos=X=105.000 Y=0.000 Z=2087.500 V=X=900.000 Y=0.000 Z=750.000 W=X=0.000 Y=5.130 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=105.000 Y=0.000 Z=87.500 TravelFromFirstPT=X=105.000 Y=0.000 Z=87.500",
+    "[2026.11.15-11.59.10:202][616]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=Actor_0 Attack=49BC6DA84BA61FE9B63F1CBC5D87452F Pulse=7 Event=101 Frame=61 SubmitFrame=44 AgeFrames=15 PTContext=1 Sleeping=0 GroundedPrev=0 Pos=X=225.000 Y=0.000 Z=2187.500 V=X=900.000 Y=0.000 Z=750.000 W=X=0.000 Y=5.130 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=225.000 Y=0.000 Z=187.500 TravelFromFirstPT=X=225.000 Y=0.000 Z=187.500",
+    "[2026.11.15-11.59.10:202][616]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=Actor_0 Attack=49BC6DA84BA61FE9B63F1CBC5D87452F Pulse=7 Event=101 Frame=77 SubmitFrame=44 AgeFrames=31 PTContext=1 Sleeping=0 GroundedPrev=0 Pos=X=465.000 Y=0.000 Z=2387.500 V=X=900.000 Y=0.000 Z=750.000 W=X=0.000 Y=5.130 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=465.000 Y=0.000 Z=387.500 TravelFromFirstPT=X=465.000 Y=0.000 Z=387.500",
+    "[2026.11.15-11.59.10:203][616]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=Actor_0 Attack=49BC6DA84BA61FE9B63F1CBC5D87452F Pulse=7 Event=101 Frame=109 SubmitFrame=44 AgeFrames=63 PTContext=1 Sleeping=0 GroundedPrev=0 Pos=X=945.000 Y=0.000 Z=2787.500 V=X=900.000 Y=0.000 Z=750.000 W=X=0.000 Y=5.130 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=945.000 Y=0.000 Z=787.500 TravelFromFirstPT=X=945.000 Y=0.000 Z=787.500",
+    "[2026.11.15-11.59.10:204][616]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=Actor_0 Attack=49BC6DA84BA61FE9B63F1CBC5D87452F Pulse=7 Event=101 Frame=141 SubmitFrame=44 AgeFrames=95 PTContext=1 Sleeping=0 GroundedPrev=0 Pos=X=1425.000 Y=0.000 Z=3187.500 V=X=900.000 Y=0.000 Z=750.000 W=X=0.000 Y=5.130 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=1425.000 Y=0.000 Z=1187.500 TravelFromFirstPT=X=1425.000 Y=0.000 Z=1187.500"
+  ],
+  "failedIteration": {
+    "run": "Native_R1",
+    "succeeded": 12,
+    "failed": 1,
+    "assertionFailures": 3,
+    "cause": "New direct-path distance assertions counted the first observed pending-impulse frame as already integrated. Actual Internal samples showed zero V plus pending impulse, then 900/0/750 velocity and actual displacement next frame.",
+    "correction": "Editor-only expected travel aligned to Steps-1 full-speed frames; explicit off/on measured 3D displacement equality added. Runtime impulse logic was not changed for this test correction."
+  },
+  "preservation": {
+    "files": 1337,
+    "unchanged": 1337,
+    "changed": [],
+    "manifest": "Saved/ImpactDiagnostics/20261115/Baseline.json",
+    "manifestSHA256": "CB55557A626D1A8E700B4DCB0D8024B84ECAA3AA0CEFC671C93743CD6904E636",
+    "includes": "All existing Content uasset/umap/wav, Config ini, uproject and original BuildAndLaunch.cmd; current user DA and dirty GameMode BP preserved."
+  },
+  "scopeSHA256": [
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h",
+      "sha256": "CCC962E204C5D7027DCE2A399E325450C23981C529E7F99D39589B7B98122024"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp",
+      "sha256": "9C3C709E38026C7FE4546AC42BF807FCF3F6197ED3C18D9A8D1E2997885696C9"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactReceiverComponent.cpp",
+      "sha256": "53768A80BB9A6B39930C23DB856BD3C2F5823C8C290DF7596652C32CBFF9F752"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALImpactPhysicsThreadTests.cpp",
+      "sha256": "74FDE7DD174918847A3B2AFFFBA00FEA863D6201DAB5A75FF6DD669738DFC57F"
+    },
+    {
+      "path": "Docs/Configuration/Skill_Test_Dummy_CN_v0.1.md",
+      "sha256": "7013D176C6EA68E36608019930FAE87B22B3CBDD412CB933B22294A1CB7FAC8C"
+    },
+    {
+      "path": "Docs/Project_Status_CN.md",
+      "sha256": "F616AFD24C352DB73D4D3160C335BA352723CCA6E7FF183153503AA82FC5BC7F"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "81B8A3694E494F5FDBDF43DE8BE64F3A7266D28873AC0F5E886F6C754B0A579B"
+    }
+  ],
+  "nextTeamTest": {
+    "commands": [
+      "hal.CombatLog 1",
+      "hal.ImpactPhysicsLog 1",
+      "hal.DamageFeedbackLog 1"
+    ],
+    "endpoint": "Authority/Host console or one-player Standalone",
+    "shots": "6 to 8 actual launched-ball hits, at least 2 seconds apart and after final hit; record which shots jittered",
+    "logs": "Full Saved/Logs run, not combat-only filtered lines",
+    "optionalComparison": "Separate run with global damage feedback Style.Enabled false, saved and Play restarted, same test conditions"
+  },
+  "limits": [
+    "No fix or confirmed root cause for Fred jitter claimed",
+    "No actual grounded ball/dummy contact reproduction or FX-enabled/disabled A/B in this run",
+    "No D3D12, multiplayer, full 95-case, Cook/package or human acceptance rerun",
+    "Diagnostics can affect timing when enabled; samples include subsequent contacts, not isolated per-hit causation",
+    "Immediate GT velocity is not a Solver-consumption acknowledgment; later pre-sim samples show prior integrated results"
+  ],
+  "evidencePolicy": "Saved remains ignored/local. This JSON and guide/status are Git-whitelisted and require normal commit/push to sync."
+}

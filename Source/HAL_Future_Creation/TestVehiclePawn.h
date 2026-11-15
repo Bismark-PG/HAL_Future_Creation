@@ -37,6 +37,7 @@ class UHALAbilitySystemComponent;
 class UHALMovementAreaReceiver;
 class UHALVehiclePresentationComponent;
 class UHALVehicleStatusFXComponent;
+class UHALDamageFeedbackComponent;
 class UVehicleRecoveryComponent;
 class USkeletalMeshComponent;
 class UHALDynamicCameraComponent;
@@ -134,6 +135,8 @@ protected:
 	TObjectPtr<UHALVehiclePresentationComponent> VehiclePresentation;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vehicle|Components")
 	TObjectPtr<UHALVehicleStatusFXComponent> StatusFXPresentation;
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Vehicle|Components")
+	TObjectPtr<UHALDamageFeedbackComponent> DamageFeedback;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vehicle|Components")
 	TObjectPtr<UHALShockedPresentationComponent> ShockedPresentation;
 	UPROPERTY(VisibleAnywhere, Category="Vehicle|Abilities")

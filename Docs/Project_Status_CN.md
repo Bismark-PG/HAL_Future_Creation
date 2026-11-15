@@ -1,5 +1,39 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-15 木桩偶发只抖动不击飞：物理执行修复已完成，待Fred真人复测。** 用户确认关闭Editor后，非History冲击改为服务器线程安全排队，在既有正常物理步中依据同一Internal刚体的V/W及待积分冲量计算、必要时唤醒并消费一次；木桩仍用普通服务器刚体复制、不启用玩家History。保留诊断并新增`ConsumePT`，SubmitGT改为QueuedPT预览；同帧多次命中不重复累加最低上抛／角速度目标，零补量不主动唤醒，生命周期清理。未调整伤害、档位、抗性、支撑分类或现有特效。
+
+本轮UE **5.8.3-58210709** 最终 **Editor R4／Game R2** 构建成功；最终原生＋D3D12 **96/96通过**（94无警告＋2带既有警告，失败／未执行0）。新增真实地面Chaos夹具覆盖6次PT休眠／6次清醒、实际升高／横移、同帧两动作、连续步不重放及停用清理；隔离持续零输入驾驶唤醒，保留真实重力／地面碰撞。**Network_R2实际Listen双端各1/1、零测试警告／失败、退出0，Host出站80ms**：正式凸包木桩先用既有Stun暂停驾驶辅助再安排休眠，ConsumePT确认Sleeping=1→0，生产解析器Heavy伤害后Host／Client实际升高约109／146cm、横移92／84cm。攻击为解析器请求，未冒充真实飞行球碰撞或Fred验收。
+
+开工 **1337/1337** 份资产／Config／uproject／入口哈希保持，BP、地图、团队受击DA调参和旧Passive保留。旧GT施力分支在开工HEAD中已存在；当前证据支持原有休眠GT→PT交接缺陷被暴露，未独立锁定底层具体丢写语句，未做FX关闭A/B。早期两轮地面夹具未达成PT休眠前置条件的失败已保留，修正测试隔离后完成最终回归。见[修复、原因与复测步骤](Configuration/Skill_Test_Dummy_CN_v0.1.md#11-2026-11-15非history休眠冲击修复待fred真人复测)及[验证摘要](Configuration/Skill_Dummy_Impact_Wake_Fix_Verification_20261115.json)。**下一步：重开Editor，无需改BP／DA，在Fred按原三个日志开关复测6～8次真实球命中，尤其静止数秒后的首击。** 代码／构建／列明自动化已完成；真人、墙角／复杂接触、四机／发布包仍待验收。未提交／Push，以下为此前历史。
+
+**2026-11-15 真人日志确认：7次球命中中第1／5／7次未击飞，第6次正常。** 已检查团队JST21:09～21:10的完整Standalone Listen日志；7次均扣25HP、Heavy且无冲击免疫／支撑抑制。三次失败均GT提交前休眠、提交后显示已唤醒，但下一真实PT帧仍Sleeping=1、V/W及PendingImpulse全0；之后没有请求的上抛。成功的2／3／4／6次则先在PT见到冲量与角速度，随后Vz≈731.833cm/s及明显位移。这证实非History休眠目标的请求未可靠落实到物理状态，不能再把Applied当作实际施力证明；尚未独立复现到底是哪一底层同步写入丢失。受击表现无物理写入，本轮未做FX关闭A/B，不能扩展为排除所有间接时序影响。第7次窗口末尾另有车撞，其少量移动不计为原球击飞。
+
+**下一环节建议：非History冲击经线程安全队列，在明确物理步内唤醒同一刚体并依据Internal V/W一次性施加；木桩仍不启用玩家History。** 新增真实地面休眠／清醒目标、连续攻击和同帧接触回归；旧13项的无阻挡Box对照未覆盖本次睡眠地面同步边界。本轮仅分析／留档，没有改运行时代码、资产或重编／复测，未声称已修复。见[逐发对照](Configuration/Skill_Test_Dummy_CN_v0.1.md#10-2026-11-15真人复现7次球命中的逐发结论)及[可同步证据](Configuration/Skill_Dummy_Impact_Reproduction_20261115.json)。以下保留日志开发及此前历史。
+
+**2026-11-15 木桩／非History冲击诊断日志已补齐，待团队采集异常。** 用户授权只补日志、不改冲击行为。扩展默认关闭的`hal.ImpactPhysicsLog`：SubmitGT记录原AddImpulse／角速度调用前后代理读数、请求DV、质量、休眠和启用状态；SamplePT在既有真实物理回调采样Internal V/W／位置、待积分冲量及位移，并通过Attack／Pulse／Event关联Combat。每组件最多8条记录，每次最多9个采样点、覆盖96物理帧；非同帧PostSolve或动作消费确认。没有新增Tick、定时器、RPC或反射调参，原History日志保持。
+
+最终 **Editor R2／Game R2**普通Unity构建通过，原生 **Native_R2共13/13通过**，零测试警告／失败／未执行。真实TaskGraph Solver对照日志关／开的直接冲击V/W与三维位移一致，关联、观察／关闭清理和96帧归还通过；首轮新夹具的3个位移预期未计第一帧待积分冲量，按实际PT证据对齐后复编通过，未为测试调整运行时施力。**1337/1337**份Content／Config／uproject及BuildAndLaunch哈希保持，用户DA／BP／地图改动保留。源码只增加诊断及攻击关联，不改变HP、档位、冲量、翻滚或接触规则；既有编译警告保留。见[测试命令与日志字段](Configuration/Skill_Test_Dummy_CN_v0.1.md#9-2026-11-15新增非history冲击物理日志)及[本轮摘要](Configuration/Skill_Dummy_Impact_Diagnostics_Verification_20261115.json)。
+
+**下一步：重开Editor，在Fred的Host／Standalone逐条执行`hal.CombatLog 1`、`hal.ImpactPhysicsLog 1`、`hal.DamageFeedbackLog 1`，每发间隔至少2秒测试6～8次并记录异常发数。** 根因仍待这一真实地面碰撞样本；本轮未复现Fred抖动或执行FX开关A/B，未重跑D3D12／多人／完整95项／Cook包。以下保留此前检查和功能验证历史，未提交／Push。
+
+**2026-11-15 新增待定位问题：Fred技能木桩被球命中后，有时只闪红／抖动而缺少明显击退。** 本轮仅检查最新两次真实运行日志和源码，未修改运行时代码或资产、未编译／复测。最新`Saved/Logs/HAL_Future_Creation.log`（本地20:24～20:25）5次球命中均Actual=25、Impact=Applied、SourceTier／EffectiveTier=Heavy、ImpactImmune=0、SupportSuppressed=0，规则请求水平补速805.28～839.62cm/s、最低上抛750cm/s；Applied表示动作已提交，不是下一物理帧速度／位移证据。上一轮备份`HAL_Future_Creation-backup-2026.11.15-11.24.24.log`另有Frame4432命中、4433再次接触Floor_0的样本。新受击表现只写可见Mesh的CustomDepth／Stencil与局部PP，当前没有其直接取消冲击的证据，但未做Enabled开关A/B，不能宣布完全排除间接时序影响。重点待查非History木桩的直接AddImpulse／角速度写入和触地／翻滚接触响应；现有ImpactPhysicsLog仅覆盖History动作，不能假作木桩执行后观测。后续先补实际物理帧V/W／位移及表现开关对照，再决定执行层修复；见[木桩待定位记录](Configuration/Skill_Test_Dummy_CN_v0.1.md#8-2026-11-15球命中后偶发缺少击退待定位)。下方编译／11项／95项通过均保留原范围，不代表此真人问题已修复。
+
+**2026-11-15 常规BuildAndLaunch暴露的项目Unity重名错误已修复。** 当前仍为`main/5044110`、UE5.8.3-58210709。首错C2084来自新受击配置和旧警车CPP内同签名`Range`被Unity合并，C4551／C2568是连带错误，工具正确报告退出6。新受击配置三个辅助函数增加明确命名，警车HUD泛型Lambda改为明确View类型以消除C4864；计算、参数、玩法及表现规则不变。此前增量构建没有覆盖这一合并组合，本次补齐验证，不用旧编译通过覆盖用户本次失败。
+
+原根目录入口 **Launcher_R1（NoLaunch／NoPopup）成功／退出0**；额外 **EditorUnity_R1／GameUnity_R1**使用`-DisableAdaptiveUnity`真实构建均成功，已确认受击配置、警车逻辑及HUD处于同一运行时Unity编译单元。当前Unity Editor模块上专项 **11/11通过**（原生＋实际D3D12），零测试警告／失败／未执行；本轮1337/1337份Content／Config／uproject及BuildAndLaunch文件哈希保持，用户既有改动保留。源码只修上述命名／语法，没有改BP／地图／DA、工具脚本或全局编译设置。保留既有UE／工具链编译警告，未重跑完整95项、双端、交互启动或Cook／包；下方受击初版证据仍按历史时点保留。见[原因、验证与后续构建约束](Configuration/Build_Editor_Tool_CN.md)及[本轮摘要](Configuration/Build_Unity_Fix_Verification_20261115.json)。
+
+**下一步：继续运行原`BuildAndLaunch.cmd`打开Editor，真人验收通用受击效果。** 本次临时验证参数不需要团队加入日常命令。文档／修复源码未提交或Push。
+
+**2026-11-15 全局通用受击表现程序／资源／工程验证完成，待团队画风验收。** 接续`main/5044110`、UE5.8.3-58210709；全局DA＋车辆遮罩局部后处理，统一CombatResolver实际扣血结果触发红色车身、白色轮廓与轻微RGB分离。冲击免疫仍扣血照常播放，0伤害／伤害免疫／纯击退／普通无伤碰撞／纯逮捕不播放。每目标独立包络、连续命中限幅，有效事件从各端收到时起播，避免网络延迟吃掉短白边／RGB；不写基础材质或电击／状态Overlay，不占FX-4两个显示通道。正式Pawn及新技能木桩自动具备接收组件，旧Passive保留原用途。见[全局配置、调参与团队验收](Presentation/Vehicle_Damage_Feedback_CN_v0.1.md)。
+
+最终 **Editor R14／Game R6**编译成功；**Final_R8共95/95通过**（93项无警告、2项带既有换车负例／D3D12虚拟资源预算警告；失败／未执行均0），Host出站80ms的真实D3D12 Listen双端 **Network_R1各1/1**，零测试警告／失败、退出0。原Car02模型／材质实际画面：组合37070像素、独立白边2658、RGB2314，未受击目标及邻近地面0变化，整图遮挡及到期清理对照通过；双端观测到接收、Pass、短强调及清理。离屏夹具的ViewState／曝光／AA与后缓冲量化抖动已隔离，最终未改测试颜色阈值或排除边框。扩展回归另修旧逮捕GC空World防守和旧Static采样夹具初始化，玩法规则未改。开工1336份受保护文件中 **1334份哈希一致**，只有两份Config按任务变更，新增共享DA／PP材质各1份；用户GameMode BP、所有既有车／技能DA、材质／Mesh／地图及Passive保留。见[本轮验证摘要](Presentation/Vehicle_Damage_Feedback_Verification_20261115.json)。
+
+**下一步：完整重开Editor，在`DA_DamageFeedback_Default`调参与真人验收。** 项目设置Vehicle Status FX → Damage Feedback Config已引用，Stencil已启用，不需要逐车接BP。先试原球／伤害机关及`hal.DamageFeedbackPreview all`，再检查与电击／眩晕／玻璃／UI重叠。正式相机画风、四机、真实晚加入／丢包、专项GPU耗时和Cook／打包均待团队；本轮Cook根验证不冒充打包成功。文档／摘要已进入Git白名单，未提交／Push。下方保留Car06铁链验收及此前历史。
+
+**2026-11-15 用户接受Car06逮捕铁链（含独立线径与沿链圈流动）作为暂定初版特效。** 当前`main/5044110`（`[mainDev] update chain vfx`）、UE5.8.3-58210709；仅有团队GameMode BP未提交改动，予以保留。本次为用户画风验收结论和只读设计审计，没有重新构建或运行测试，下方53项／双端结果仍是此前工程证据。初版接受不扩大为全部车型贴合、四机、真实晚加入或Cook／包通过。见[铁链配置与验证](Presentation/Car06_Arrest_Chains_CN_v0.1.md)。
+
+**历史讨论（已由上方施工记录取代）：全局通用受击反馈。** 此前用户参考NFS Unbound截图，提出车身闪红、白色边缘高亮及轻微RGB偏移，触发、免疫、限幅及电击叠加规则当时待定；如今已确认并实现，以上方本轮证据为准。Car07的主动空力／尾流等仍为灵感候选，未定技能或开工。
+
 **2026-11-15 Car06铁链独立线径与循环流动完成，待真人手感／画风验收。** 接续仍为`main/a105c89`、UE5.8.3-58210709。用户实测铁链偏细并确认沿链圈流动，本轮在原技能DA的 **Presentation → FX → Arrest → Chains** 新增Wire Radius=2.8cm、Flow Speed=45cm/s、Opposite Loop Flow=true、Flow Ramp Seconds=0.25s。金属半径独立于链环中心线，材质WPO按实例世界变换重建截面；小链环有保孔安全上限。链环沿固定包裹路径行进，车顶X交叉位置保持，收紧后渐入、解除时减速；服务器时钟解析相位，未新增逐帧复制。旧Wire Scale移至Advanced兼容保留，日常使用Wire Radius。自动Body尺寸适配及现有车型Fit、规则／Stun／保护／球权均保持。见[调参与当前验证](Presentation/Car06_Arrest_Chains_CN_v0.1.md#6-独立线径与沿链圈流动2026-11-15当前)。
 
 最终 **Editor R2／Game R1** 成功；专项 **5/5**，受影响回归 **53/53**（51项无警告、2项带既有负例／D3D12预算警告；失败／未执行0），80ms出站延迟的真实D3D12 Listen双端 **各1/1**，0测试警告／失败、退出0。实际画面细／粗金属覆盖13887／34661像素，线径变化不改变实例中心线，流动0.13s改变20569像素并移动实际链环；双端验证线径绑定、流动和解除清理。开工1336项中仅铁链母材质修改，**1335项哈希一致**，包括技能DA完整文件、Mesh、BP／地图／Config／uproject及Passive；所有旧调参逐项不变，新字段重载使用已记录默认值。首轮Editor头文件引用错误已修正并复编，见[本轮可同步验证摘要](Presentation/Car06_Arrest_Chains_Flow_Verification_20261115.json)。
