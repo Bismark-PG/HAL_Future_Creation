@@ -10,7 +10,7 @@ public class HAL_Future_CreationEditor : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new[] {
 			"Core", "CoreUObject", "Engine", "PhysicsCore", "UnrealEd",
 			"Slate", "SlateCore", "PropertyEditor", "ToolMenus",
-			"AssetRegistry", "AssetTools", "ContentBrowser", "MeshDescription", "StaticMeshDescription",
+			"AssetRegistry", "AssetTools", "ContentBrowser", "MeshDescription", "StaticMeshDescription", "AudioEditor",
 			"SkeletalMeshDescription", "AnimationCore", "GeometryCore", "Niagara", "NiagaraEditor", "HAL_Future_Creation"
 		});
 	}

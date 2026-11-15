@@ -1,0 +1,390 @@
+﻿{
+    "schema_version":  1,
+    "timestamp_utc":  "2026-11-15T04:01:09.5875078Z",
+    "engine":  "5.8.3-58210709",
+    "git_branch":  "main",
+    "git_head":  "f169aa9",
+    "scope":  "Formal skill test dummy; C++ target eligibility, native DA examples, test tool preservation and native/WBP health UI. No Blueprint/map edits.",
+    "builds":  [
+                   {
+                       "target":  "Editor",
+                       "attempt":  "R8",
+                       "result":  "Succeeded",
+                       "log":  "Saved/SkillTestDummy/20261115/BuildEditor_R8.log"
+                   },
+                   {
+                       "target":  "Game",
+                       "attempt":  "R4",
+                       "result":  "Succeeded",
+                       "log":  "Saved/SkillTestDummy/20261115/BuildGame_R4.log"
+                   }
+               ],
+    "native":  {
+                   "attempt":  "Final_R2",
+                   "passed":  49,
+                   "without_warnings":  47,
+                   "with_warnings":  2,
+                   "failed":  0,
+                   "not_run":  0,
+                   "exit_code":  0,
+                   "report":  "Saved/SkillTestDummy/20261115/Final_R2/index.json",
+                   "warnings":  [
+                                    {
+                                        "test":  "HAL.FutureCreation.VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar",
+                                        "message":  "LogHALVehicleTest: Set Default Pawn Class to BP_VehiclePawn_Car_02; add alternatives to Test Vehicle Classes."
+                                    },
+                                    {
+                                        "test":  "HAL.FutureCreation.VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar",
+                                        "message":  "LogHALVehicleTest: PlayerStart is blocked. Raise it above the floor or clear surrounding geometry."
+                                    },
+                                    {
+                                        "test":  "HAL.RenderSmoke.Tornado.GatherSustainDissipateAndToonColors",
+                                        "message":  "LogRHICore: Total reserved resource allocated virtual size (258 GB) exceeds the budget (256 GB). Use `rhi.DumpMemory` and `rhi.DumpResourceMemory` console commands to investigate."
+                                    }
+                                ],
+                   "tests":  [
+                                 {
+                                     "path":  "HAL.FutureCreation.BattleTop.AuthoritySkillContactsAndCleanup",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.BattleTop.ContactSprayGeometryAndTuning",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.BattleTop.SustainedContactIndependentCooldown",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.BattleTop.TransitionTimelineAndSparkTangent",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.BattleTop.WallResponseAndConfig",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.BullCharge.FX.EventOrderingAndCleanup",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.BullCharge.FX.SocketMountAndReplacement",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.BullCharge.FX.SpeedPhaseAndVelocity",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.BullCharge.FrontSpeedDamageAndCaps",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.BullCharge.GASContactsCooldownStunAndBall",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.BullCharge.MotionHistoryAndSerialization",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.GameFlow.GF2.ConfiguredCatalogAssets",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.GameFlow.GF2.PracticeDamageImpactAndConsumption",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.GameFlow.GF2.RoundIdentityAndFreshAvatar",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.GameFlow.GF2.VehicleSeedsSourcesAndRebinding",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.GAS.Health.BoundsAndIsolation",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.GAS.Health.PlayerStateAvatarLifecycle",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Impact.PushPresets.CombinationsResistanceAndNaturalResponse",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Impact.PushPresets.DefaultsAndValidation",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Impact.AllSourcesAndContactEpisodes",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Impact.AuthorityPhysicsReplayContract",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Impact.BallSnapshotDropAndCallbackMerge",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Impact.GASResistanceAndIndependentDamage",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Impact.SolverThreadExecutionAndReplay",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Impact.TiersCalibrationAndEnergyBudget",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Pursuit.AuthorityGASLifecycleArrestProtection",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Pursuit.CounterAndStars",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.SkillDummy.IndependentGASReceiversAndDamage",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.SkillDummy.PursuitStarsArrestAndTornado",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.SkillDummy.SingleVehicleSwapPreservesOnlyNewDummy",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.SlipperyTrail.DissolveClockAndValidation",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.SlipperyTrail.FootprintAndSweep",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.SlipperyTrail.GroundMesh",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.SlipperyTrail.SingleSwayAndReplay",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Stun.DebugConsoleTargetAndValidation",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Stun.DiscretePhysicsHistory",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Stun.NaturalGameTimeExpiry",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Stun.PermissionsDropAndLifecycle",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Tornado.AuthorityGASImpactBallsWallAndCleanup",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.Tornado.PhasesValidationAndSweptCylinder",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.VehicleTest.RuntimeSwapRetainsPlayerAndCleansOldAvatar",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.VehicleTest.SideCameraPreservesPossessionAndGAS",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.FutureCreation.VehicleTest.StandalonePlayingGASAndAllInputPermissions",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.RenderSmoke.BullCharge.ContinuousPressureWind",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.RenderSmoke.BullCharge.RuntimeLengthAndAccelerationEnvelope",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.RenderSmoke.BullCharge.ThreeLayersAndWorldSpaceExhaust",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.RenderSmoke.Pursuit.ScanBeaconsArrestAndLeftToRightStars",
+                                     "state":  "Success"
+                                 },
+                                 {
+                                     "path":  "HAL.RenderSmoke.Tornado.GatherSustainDissipateAndToonColors",
+                                     "state":  "Success"
+                                 }
+                             ]
+               },
+    "network":  {
+                    "attempt":  "Network_R2",
+                    "host_outgoing_lag_ms":  80,
+                    "roles":  [
+                                  {
+                                      "Role":  "Host",
+                                      "ExitCode":  0,
+                                      "Passed":  1,
+                                      "Failed":  0,
+                                      "Warnings":  0,
+                                      "InProcess":  0
+                                  },
+                                  {
+                                      "Role":  "Client",
+                                      "ExitCode":  0,
+                                      "Passed":  1,
+                                      "Failed":  0,
+                                      "Warnings":  0,
+                                      "InProcess":  0
+                                  }
+                              ],
+                    "report_dir":  "Saved/SkillTestDummy/20261115/Network_R2",
+                    "checks":  [
+                                   "Per-instance TestConfig and own ASC initialized on both ends without Controller or PlayerState",
+                                   "HP damage, wanted fraction, shared Stun, arrest and protection tail",
+                                   "Native fallback Widget instance/read-only view and cleanup on server destruction",
+                                   "Exactly two real PlayerStates; dummy never becomes a participant",
+                                   "Client preloads asset graph and acknowledges initialized dummy before host casts through normal skill request"
+                               ]
+                },
+    "protected":  {
+                      "baseline":  "Saved/SkillTestDummy/20261115/Baseline.json",
+                      "count":  1327,
+                      "unchanged":  1327,
+                      "changed":  [
+
+                                  ],
+                      "includes":  "Existing Content assets/maps/WAV, Config, uproject, PassiveTestVehicle.cpp/.h",
+                      "new_native_assets":  [
+                                                "Content/Data/Testing/DA_Vehicle_SkillDummy_Default.uasset",
+                                                "Content/Data/Testing/DA_SkillTestDummy_Default.uasset"
+                                            ]
+                  },
+    "history":  [
+                    "Editor R1: TObjectPtr argument deduction and replication macro variable name fixed.",
+                    "Editor R2: test nested HP field and UObject pointer assertion fixed.",
+                    "Editor R3: Editor DLL lock, resolved after user saved and closed Editor.",
+                    "Logic R1: 0/3; empty V1 Primary failed Definition validation. Example now retains full valid Definition, runtime dummy grants no abilities.",
+                    "Logic R2: 2/3; fixture sources had BeginPlay without PostInitializeComponents, so EndPlay did not route. Full initialization added.",
+                    "Final R1: 47/49 including 2 warning successes. Old Health test referenced deleted baseline DA; changed only its convex-mesh reference to current Car02. Same fixture initialization corrected.",
+                    "Network R1: both failed; protection timer incorrectly used caster/controller eligibility for dummy. Updated to CanReceiveSkillEffects. Client ready handshake also avoids startup loading missing a short cast.",
+                    "Final R2 and Network R2 cover the final source snapshot listed below."
+                ],
+    "limits":  [
+                   "Team must manually create BP_SkillTestDummy and configure Fred; no saved Blueprint or map was modified.",
+                   "Native trail membership fixture supplies grounded telemetry; not actual driving/handling acceptance.",
+                   "D3D12 regressions cover existing skill rendering; new health Widget instances and views are checked, not a per-pixel screenshot of the new bar.",
+                   "No custom WBP authoring, four-process match, actual late join, Cook/package or human skill/physics/placement acceptance.",
+                   "No automatic driving, automatic healing or reset. Defeated dummy is inactive with readable zero HP until Play restarts."
+               ],
+    "snapshot":  [
+                     {
+                         "path":  "Source/HAL_Future_Creation/HALSkillTestDummy.h",
+                         "sha256":  "9bf3b5812814a9b28c187c1523b17095f15042c5d6cc424d25cb18ba21f2db5c"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/HALSkillTestDummy.cpp",
+                         "sha256":  "711740718df9adde6f836db6fe768e2a21a6dd047376bd549bb070cffb68463d"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/HALSkillTestDummyWidget.cpp",
+                         "sha256":  "9537a1b0a03281131b3d7d6d761d62063f56e19ead789b0a8d6699ea23ef7e9d"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/TestVehiclePawn.h",
+                         "sha256":  "8d8c80604ba4c4f6d92b0791bd4d7b562c65de1b0ac847b577b3ddd47c2efa76"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+                         "sha256":  "a9150cfe349c008b9517cb30b29e67e0425dd6bec19beb08b79ac39a72e9ff9c"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/HALGameFlowPermissions.cpp",
+                         "sha256":  "7575e1d7c58b51b1e4a6567e47359c16e57219efeaef327ac645751febd8746b"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/HALPolicePursuit.h",
+                         "sha256":  "a0bf322ef7ada635ba6d01b0c68e4f755a82e4f91b3b3fe096110ae61fc6cc61"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/HALPolicePursuit.cpp",
+                         "sha256":  "92230e9b848d9140a44e955bafc99a186fb62fa88f151fe71749a70a402128c4"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/HALPursuitTargetComponent.cpp",
+                         "sha256":  "27c033a2067fb7e6e39ed2d42c83120b6f9c2cc03b2fbce4b29ebcdf9d3d1047"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/HALSlipperyTrail.h",
+                         "sha256":  "dbf65ac4c7ed0097d9fcb384a6a1c7fef81c36b8b7c43598ff42acd7a240fa25"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/HALSlipperyTrail.cpp",
+                         "sha256":  "54b7da09226d076763ab15ae137a510dec0ccdf20909352835ccd34bf9e21fd6"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/HALTornado.h",
+                         "sha256":  "3a0ffd2e6d12754d79e35e7929b8e29b567ea9c7d5b4c98cb7e34099d9ac5281"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/HALTornado.cpp",
+                         "sha256":  "eacca05b95a2e205f46dd4828a9d8916354b6977a3638fc4aa1e5b25d414bad9"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/HALVehicleTestGameMode.cpp",
+                         "sha256":  "a45451d41e7ca350e55c8b97c42b80b37cd1afb931c3d96098b6cb9c3d8f625a"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h",
+                         "sha256":  "2ba47867cf4524aeb7e963b86ae031fb49d0a800aba1d56e3ea63570d4320f9d"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/Tests/HALSkillTestDummyTests.cpp",
+                         "sha256":  "9ec0fa1a72e3e78073b143eb09d9f012eb1201c901fd683a8acec5d07f90bb0d"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/Tests/HALSkillTestDummyNetworkTests.cpp",
+                         "sha256":  "6841c0c3b925a2d157f5235f381096a02841b7c45e4f4d71269459287a90b26e"
+                     },
+                     {
+                         "path":  "Source/HAL_Future_Creation/Tests/HALHealthGASTests.cpp",
+                         "sha256":  "748a8ee9c5ad30911373eb443ef69ecf4ab4d22db7b9d9a8f35fe52ef939134d"
+                     },
+                     {
+                         "path":  "Tools/CreateSkillTestDummyAssets.py",
+                         "sha256":  "61746b0a1a9706dfeea7b0bc9684e43b62bf3e4938fc979e1dd81b94898cd422"
+                     },
+                     {
+                         "path":  "Content/Data/Testing/DA_Vehicle_SkillDummy_Default.uasset",
+                         "sha256":  "2e73e81e152f46e9e2e18e6eb4eb62c3a82860f27779ad293f40ba1cd094566e"
+                     },
+                     {
+                         "path":  "Content/Data/Testing/DA_SkillTestDummy_Default.uasset",
+                         "sha256":  "e9a5f02fa5fad04764c19449bd968d0c993c17ecb25e0bea346a3d55f90f89d8"
+                     }
+                 ]
+}

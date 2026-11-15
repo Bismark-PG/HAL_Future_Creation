@@ -172,7 +172,7 @@ void AHALTornado::Contacts(const FVector& From, const FVector& To, float Horizon
 	};
 	for (TActorIterator<ATestVehiclePawn> It(GetWorld()); It; ++It)
 	{
-		auto* V = *It; if (V == GetOwner()) { continue; }
+		auto* V = *It; if (V == GetOwner() || !V->CanReceiveSkillEffects()) { continue; }
 		auto* Health = V->FindComponentByClass<UVehicleHealthComponent>();
 		auto* Body = Cast<UPrimitiveComponent>(V->GetRootComponent());
 		FVector Center, Direction;

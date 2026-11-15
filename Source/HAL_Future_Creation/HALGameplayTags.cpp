@@ -2,6 +2,10 @@
 
 namespace HALGameplayTags
 {
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pursuit,"Ability.Vehicle.PolicePursuit","Car06 siren pursuit.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_Pursuit,"Cooldown.Vehicle.PolicePursuit","Pursuit cooldown from activation.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Arrested,"State.Vehicle.Arrested","Pursuit arrest marker during shared Stun.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_PursuitProtected,"State.Vehicle.PursuitProtected","Blocks Car06 arrest only; never blocks ordinary Stun.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Tornado,"Ability.Vehicle.Tornado","Car05 moving tornado primary ability.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_Tornado,"Cooldown.Vehicle.Tornado","Tornado cooldown from successful activation.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_Tornado,"Combat.Source.Tornado","Independent tornado impact, no direct damage.");

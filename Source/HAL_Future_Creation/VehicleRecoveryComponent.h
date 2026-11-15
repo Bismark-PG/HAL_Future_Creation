@@ -26,6 +26,7 @@ private:
 	friend struct FHALStunTestAccess;
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALRecoveryTestAccess;
+	friend struct FHALPursuitTestAccess;
 #endif
 	void UpdateRecovery();
 	bool Start(const FVehicleStabilityObservation& Sample);

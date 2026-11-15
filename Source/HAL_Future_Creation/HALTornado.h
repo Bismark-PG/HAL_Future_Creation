@@ -34,6 +34,7 @@ public:
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALTornadoTestAccess;
+	friend struct FHALSkillTestDummyTestAccess;
 	friend struct FHALTornadoNetworkAccess;
 	friend class FHALTornadoRenderTest;
 #endif

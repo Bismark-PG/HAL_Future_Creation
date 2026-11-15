@@ -105,6 +105,7 @@ private:
 	friend struct FHALBattleTopTestAccess;
 	friend struct FHALBullChargeTestAccess;
 	friend struct FHALTornadoTestAccess;
+	friend struct FHALSkillTestDummyTestAccess;
 	friend struct FHALRecoveryTestAccess;
 	friend struct FHALPresentationTestAccess;
 	friend struct FHALCameraTestAccess;

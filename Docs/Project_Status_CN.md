@@ -1,5 +1,17 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-15 Car06／技能木桩的Git白名单及进度记录已恢复。** 当前 `main/16ef3ab`、UE5.8.3-58210709；保留下方地面材质团队记录及既有源码／资产改动。本次仅修复 `.gitignore` 与本页，按木桩验证摘要核对的 **21/21** 份源码／工具／示例DA文件哈希一致，没有重新构建或执行自动化。以下构建／测试数据均为此前留档。当前已见团队新增 `BP_SkillTestDummy` 和 `BP_FredSkillTestGameMode`，只确认文件存在，尚未核对保存接线或真人测试，不重复要求团队创建。**下一步：按[配置文档](Configuration/Skill_Test_Dummy_CN_v0.1.md)核对TestConfig、Fred的GameMode与单人Playing流程，验收目标血条、六星及各技能接收。** 未提交／Push。
+
+**2026-11-15 新技能测试木桩代码／示例DA／验证完成。** 新增HALSkillTestDummy与测试DA包装，派生正式车辆Pawn，以独立ASC承接伤害、三档冲击、油膜、龙卷风、通缉／逮捕及状态表现；无Controller／PlayerState／主动技能授予／吸球，不占房间席位或胜负统计。HP归零清理区域及Avatar状态，保留可读0HP；首版无自动回血／复位。原生TARGET＋血条可由HALSkillTestDummyWidget的WBP替换，六星复用警车只读Overlay。新增独立 `CanReceiveSkillEffects` 目标接口并修正逮捕保护定时器，施放者资格不放宽。单车测试初始生成和换车保留新木桩、排除其可驾驶候选资格，旧Passive的源码／BP／DA及清理边界保持。见[完整BP／DA及Fred配置](Configuration/Skill_Test_Dummy_CN_v0.1.md)。
+
+此前最终 **Editor R8／Game R4** 构建通过，**Final_R2共49/49通过**（47项无警告、2项带警告：既有出生负例日志及D3D12虚拟资源预算；失败／未执行均0）；真实Listen双端 **Network_R2各1/1**，零测试警告／失败、退出0，Host出站80ms。确认复制初始化、扣血、六星、Stun、保护尾段、原生血条Widget绑定与销毁清理，始终仅2个真实玩家。施工时 **1327/1327** 份既有资产／地图／Config／uproject及Passive源码哈希保持，新增两份原生DA；旧Health自动化仅将已删除的碰撞基线引用更新为Car02。早期编译、空Primary校验、夹具初始化、保护资格及客户端就绪问题均已修正并记录，见[木桩验证摘要](Configuration/Skill_Test_Dummy_Verification_20261115.json)。当时未代改BP／地图；团队此后新增BP不等于已完成接线验收。真人摆放／新血条像素效果、自制WBP、真实晚加入、四机和Cook／包仍待团队验证。
+
+**2026-11-15 Car06追捕已完成程序及表现首版，原“未施工”记录为历史。** 每来源独立通缉、离开衰减、单次每目标一次逮捕、共用Stun与跨警车保护（实际Stun结束后2秒）已实现；施放警车眩晕／自救不取消已运行追捕。红蓝车顶发光灯体与点光、扫描范围、循环警笛、手铐、血条上方六星从左向右填充均由同一技能DA配置。追捕UI继续原生回退＋HALPursuitHUDWidget的WBP替换。精确挂点支持Socket／骨骼；原模型灯罩材质自动交替发光尚未实现。见[规则、灯光、六星及接线](Combat/Car06_Police_Pursuit_CN_v0.1.md)。
+
+Car06首轮此前 **Editor R7／Game R4** 构建、**Final_R3 24/24** 原生／D3D12／Stun及Car03～05回归、出站80ms双端 **Network_R4各1/1** 通过，零测试警告／失败。施工时1316/1316份既有资产／Config／uproject保持，新增六份uasset与WAV；见[Car06首版验证](Combat/Car06_Police_Pursuit_Verification_20261115.json)。后续木桩施工修改了目标接收及保护资格，当前源码验证以木桩49项／双端报告为准。此前只读加载已确认 `GA_Car06_PolicePursuit → DA_Ability_Car06_PolicePursuit` 及Car06 Definition唯一Primary Grant接通，当时保存DecayPerSecond=40／StunSeconds=3，未改写；这些为当时快照，不冒充本次最新DA检查。警灯位置、六星、音量及正式房间／包验收仍待团队结论。
+
+**2026-11-15 用户已接受Car05龙卷风为暂定初版，后续优化暂缓。** 这项接受不扩大为四机、真实晚加入或打包验收通过。下方Car05施工与测试仍按各自历史时点保留。以下继续保留地面材质团队更新与此前阶段记录。
+
 **2026-11-15 MVPB_Match 地面法线已换成随机凹凸。** M_ArenaFloor_Metal 的主纹理两路和细节一路改用 1024 × 1024 的无缝 T_ArenaFloor_RandomRelief_N，实例重载验证参数继承。UE 5.8.3 SM6 编译无材质错误，DX12 同俯视角对比了 850 cm 与 2300 cm，确认条带变为不规则凹点与凸起，软边和细节层仍可见。正式比赛镜头待复核，见[当前法线与验证](Presentation/ArenaFloor_SatinMetal_CN.md#随机凹凸法线)。
 
 **2026-11-15 MVPB_Match 地面波纹过渡和放大细节已修正。** 核对团队保存的 M_ArenaFloor_Metal，把默认六层有符号噪声调整为一层 0～1，覆盖使用可调渐变并共同淡出主、细两层斜率。新增独立 200 cm 细节法线采样，同图复用。UE 5.8.3 最终重载未报材质编译错误，DX12 核对俯视下软边及 2300 cm 放大对比。资产修改仅涉及母材质，地图、实例和法线贴图哈希一致。下一步从 MI_ArenaFloor_Metal 在正式比赛镜头中复核，见[接线、调参与验证](Presentation/ArenaFloor_SatinMetal_CN.md#波纹区域过渡和近看细节)。

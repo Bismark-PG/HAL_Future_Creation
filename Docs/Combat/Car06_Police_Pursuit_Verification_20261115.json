@@ -1,0 +1,475 @@
+{
+  "SchemaVersion": 1,
+  "Date": "2026-11-15",
+  "StartingCommit": "f169aa9",
+  "Branch": "main",
+  "Engine": "5.8.3-58210709",
+  "Objective": "Car06 approved police pursuit rules, shared arrest protection and roof siren/scanning range/left-to-right wanted stars/arrest marker",
+  "Specification": "Docs/Combat/Car06_Police_Pursuit_CN_v0.1.md",
+  "Completion": {
+    "Specification": true,
+    "Code": true,
+    "NativeResources": true,
+    "EditorBuild": true,
+    "GameBuild": true,
+    "AutomatedTests": true,
+    "TeamGAAndDefinitionWiring": false,
+    "HumanArtAudioAcceptance": false,
+    "Commit": false,
+    "Push": false
+  },
+  "Rules": {
+    "Duration": 8,
+    "RadiusCm": 900,
+    "MaximumHeightDifferenceCm": 300,
+    "ExitBufferCm": 25,
+    "Threshold": 100,
+    "GainPerSecond": 25,
+    "DecayPerSecond": 20,
+    "StunSeconds": 1.5,
+    "PostStunProtectionSeconds": 2,
+    "CooldownSeconds": 18,
+    "ScanIntervalSeconds": 0.05,
+    "OneArrestPerTargetPerCast": true,
+    "CasterStunOrRecoveryStopsActivePursuit": false,
+    "TargetRecordsPerSourceIndependent": true
+  },
+  "Architecture": {
+    "GAS": "ServerOnly primary GA; shared ApplyStun; Avatar-scoped arrest/protection tags; shared max-end-time Stun semantics",
+    "Authority": "One replicated non-physical pursuit actor per cast, timer scans, height/range hysteresis/ordinary physical wall occlusion; no client-reported hits",
+    "Target": "Native component on vehicle base; shared protection during arrest Stun and until two seconds after actual common Stun removal; ordinary Stun unaffected",
+    "Presentation": "Non-colliding static mesh range/beacons/handcuffs, no-shadow point lights, original looping sound, read-only Slate stars",
+    "UI": "Native fallback plus UHALPursuitHUDWidget designer root replacement and ReceivePursuitViews; one non-interactive overlay per local player, world cleanup",
+    "StarDisplay": "Six stars with fractional left-to-right fill; highest normalized independent source record, never sum; hide when wanted reaches zero; arrest marker persists without source",
+    "Parameters": "All rule/presentation/style/resource/widget/audio controls in UHALPolicePursuitConfig"
+  },
+  "Builds": [
+    {
+      "Target": "Editor Win64 Development",
+      "Final": "BuildEditor_R7",
+      "Success": true,
+      "LocalLog": "Saved/Car06Pursuit/20261115/BuildEditor_R7.log"
+    },
+    {
+      "Target": "Game Win64 Development",
+      "Final": "BuildGame_R4",
+      "Success": true,
+      "LocalLog": "Saved/Car06Pursuit/20261115/BuildGame_R4.log"
+    }
+  ],
+  "NativeRenderRegression": {
+    "LocalPath": "Saved/Car06Pursuit/20261115/Final_R3/index.json",
+    "SHA256": "A2D84B62D4F07F4A0418026B1B1FBBDC4BA3D0A5AD7FDB66963CB706EA50B7A0",
+    "Passed": 24,
+    "Warnings": 0,
+    "Failed": 0,
+    "NotRun": 0,
+    "InProcess": 0,
+    "Tests": [
+      {
+        "Name": "HAL.FutureCreation.BattleTop.AuthoritySkillContactsAndCleanup",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BattleTop.ContactSprayGeometryAndTuning",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BattleTop.SustainedContactIndependentCooldown",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BattleTop.TransitionTimelineAndSparkTangent",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BattleTop.WallResponseAndConfig",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.FX.EventOrderingAndCleanup",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.FX.SocketMountAndReplacement",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.FX.SpeedPhaseAndVelocity",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.FrontSpeedDamageAndCaps",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.GASContactsCooldownStunAndBall",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.MotionHistoryAndSerialization",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.Pursuit.AuthorityGASLifecycleArrestProtection",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.Pursuit.CounterAndStars",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.Stun.DebugConsoleTargetAndValidation",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.Stun.DiscretePhysicsHistory",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.Stun.NaturalGameTimeExpiry",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.Stun.PermissionsDropAndLifecycle",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.Tornado.AuthorityGASImpactBallsWallAndCleanup",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.Tornado.PhasesValidationAndSweptCylinder",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.RenderSmoke.BullCharge.ContinuousPressureWind",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.RenderSmoke.BullCharge.RuntimeLengthAndAccelerationEnvelope",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.RenderSmoke.BullCharge.ThreeLayersAndWorldSpaceExhaust",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.RenderSmoke.Pursuit.ScanBeaconsArrestAndLeftToRightStars",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.RenderSmoke.Tornado.GatherSustainDissipateAndToonColors",
+        "State": "Success"
+      }
+    ]
+  },
+  "LastChangeAfterFullSuite": "Only the live test fixture changed to measure source survival 0.35 seconds after observed caster Stun rather than assuming its independent cast is already four seconds old. Both targets rebuilt and final network rerun. Production code/resources unchanged from Final_R3.",
+  "Render": {
+    "RHI": "Actual offscreen D3D12; 768x768 scene and 220x64 Slate capture",
+    "LocalDirectory": "Saved/Car06Pursuit/20261115/Render_R3",
+    "ScanningChangedPixels": 135160,
+    "ArrestMarkerChangedPixels": 146,
+    "StarCenterGreenValues": [
+      231,
+      231,
+      231,
+      231,
+      14,
+      14
+    ],
+    "Assertions": [
+      "red/blue point light intensity swaps across half-cycle",
+      "range visual scale derives from authoritative radius",
+      "scanning changes actual pixels",
+      "actual handcuff marker changes pixels",
+      "four left stars filled before two right empty stars",
+      "original looping sound exists and lasts over one second"
+    ],
+    "Boundary": "Isolated scene uses cosmetic owner fixture, not full car06 art acceptance; audio output disabled"
+  },
+  "Network": {
+    "Final": "Network_R4",
+    "HostOutgoingLagMilliseconds": 80,
+    "Host": {
+      "LocalPath": "Saved/Car06Pursuit/20261115/Network_R4/Host/index.json",
+      "SHA256": "F84A5B1704DD6E84FBF62398AE7F10262AE41B2ACF4E37265B87142D00F22C91",
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0,
+      "Tests": [
+        {
+          "Name": "HAL.NetworkSmoke.Pursuit.WantedArrestProtectionAndSirenContinuity",
+          "State": "Success"
+        }
+      ]
+    },
+    "Client": {
+      "LocalPath": "Saved/Car06Pursuit/20261115/Network_R4/Client/index.json",
+      "SHA256": "78DB61A811462AB291B29B217B8423CD00CF3A0BD9FA9A94C849B13F01B4B0C5",
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0,
+      "Tests": [
+        {
+          "Name": "HAL.NetworkSmoke.Pursuit.WantedArrestProtectionAndSirenContinuity",
+          "State": "Success"
+        }
+      ]
+    },
+    "Processes": [
+      {
+        "Role": "Host",
+        "PID": 21696,
+        "ExitCode": 0,
+        "Passed": 1,
+        "Warnings": 0,
+        "Failed": 0,
+        "NotRun": 0,
+        "InProcess": 0
+      },
+      {
+        "Role": "Client",
+        "PID": 45012,
+        "ExitCode": 0,
+        "Passed": 1,
+        "Warnings": 0,
+        "Failed": 0,
+        "NotRun": 0,
+        "InProcess": 0
+      }
+    ],
+    "BothEndpointsConfirmed": [
+      "own and observed independent source",
+      "replicated wanted and star fill data",
+      "actual mutual arrest and shared Stun",
+      "post-Stun protection tail",
+      "own source alive while stunned for more than .35s",
+      "range and paired roof lights mounted",
+      "no additional HP damage",
+      "no lingering wanted/arrest data after sources/cooldown finish"
+    ],
+    "Fixture": "-HALPursuitFixture, native HALMatchGameMode, transient CDO/definition grants only; real replicated Car06 vehicle actors; no saved BP/definition edits",
+    "Audio": "Transient fixture clears SirenSound because -nosound tests do not certify audible output",
+    "LocalLauncher": "Saved/Car06Pursuit/20261115/RunNetwork.ps1",
+    "Test": "HAL.NetworkSmoke.Pursuit.WantedArrestProtectionAndSirenContinuity"
+  },
+  "AuthorityCoverage": [
+    "normal GAS primary input and duplicate rejection",
+    "inverted/airborne activation",
+    "caster Stun plus executing recovery state does not pause",
+    "exit decay and reentry/range hysteresis",
+    "height and ordinary wall exclusion",
+    "arrest despite impact immunity",
+    "no direct HP damage",
+    "one arrest per cast",
+    "cross-police protection",
+    "accepted arrest survives source cleanup",
+    "ordinary Stun still accepted during protection",
+    "protection expiry and no arrest tag leak",
+    "avatar exit clears source"
+  ],
+  "AssetIntegrity": {
+    "BaselineExisting": 1316,
+    "ExistingUnchanged": 1316,
+    "ExistingChanged": 0,
+    "BaselineManifestSHA256": "01066A6FF99C6A612457E99440EE1FAACE9ADA250CA16747EE76B6C9C614E19A",
+    "NewUAssets": 6,
+    "NewWavSources": 1,
+    "Added": [
+      {
+        "Path": "Content/Assets/FX/PolicePursuit\\SW_Pursuit_Siren.uasset",
+        "SHA256": "468CBCFDFC759D08090D6338B7700A77E019D3BD05A3EE8305D055C891C7A302",
+        "Bytes": 61654
+      },
+      {
+        "Path": "Content/Assets/FX/PolicePursuit\\Source\\Pursuit_Siren.wav",
+        "SHA256": "E0C0B364B896AD6EB7303DCB6AA4F0ECDF4A939D6E446DF926934E32E065C4F3",
+        "Bytes": 176444
+      },
+      {
+        "Path": "Content/Assets/FX/PolicePursuit\\SM_Pursuit_Range.uasset",
+        "SHA256": "24FFAC51510212FC22A44471540496CA633C264BB893C241D55626BE38C4605A",
+        "Bytes": 12494
+      },
+      {
+        "Path": "Content/Assets/FX/PolicePursuit\\SM_Pursuit_Handcuffs.uasset",
+        "SHA256": "2427CEDD62A7AB9C51CF5B77372C95E1BF57D9AACF2AEBDDE78209FF11EAD6C5",
+        "Bytes": 16722
+      },
+      {
+        "Path": "Content/Assets/FX/PolicePursuit\\M_Pursuit_Signal.uasset",
+        "SHA256": "41C7B1DC724A8D261E69D1BCD76F910F4672C2A7CD89E4DAA493376BB8C98A07",
+        "Bytes": 7524
+      },
+      {
+        "Path": "Content/Assets/FX/PolicePursuit\\M_Pursuit_Range.uasset",
+        "SHA256": "0C85521E8379B2657FACC787478F815F00580753485A03342776A1007957DF0A",
+        "Bytes": 11345
+      },
+      {
+        "Path": "Content/Data/Abilities/DA_Ability_Car06_PolicePursuit.uasset",
+        "SHA256": "7D8C9269F997E636231ED2DE3C941BF67A656B6A60CA2F6AECBC511C628196BF",
+        "Bytes": 2687
+      }
+    ],
+    "PreservedTeamAssets": [
+      {
+        "Path": "Content/Blueprints/Gamemode/BP_MVPB_ListenGameMode.uasset",
+        "SHA256": "E42FD1EF8CB53EB7E5D5BF9E5FA0C17D314F86A301AD9DA25D73856B37EBF4FA",
+        "Bytes": 22173
+      },
+      {
+        "Path": "Content/Blueprints/Vehicles/BP_VehiclePawn_Car_06.uasset",
+        "SHA256": "A5750907001CAFA7B21D7C8B9207C153AA3AB79B5C5F68945C8436CCC8D49E34",
+        "Bytes": 31914
+      },
+      {
+        "Path": "Content/Data/MVP_B/DA_Vehicle_Car_06.uasset",
+        "SHA256": "B7FAB2EE261DA794D4D16D44F045B8F56C82A4D4A816DC09B73C6D246C8D56B5",
+        "Bytes": 2915
+      },
+      {
+        "Path": "Content/Data/Abilities/DA_Ability_Car05_Tornado.uasset",
+        "SHA256": "E5EEE85E54F2E0D7A989379F6FE4C237DE70BEE55D40110ACED5C59089A6E016",
+        "Bytes": 2162
+      }
+    ],
+    "AgentBlueprintSaves": 0,
+    "ExistingVehicleDefinitionSaves": 0
+  },
+  "SourceSHA256": [
+    {
+      "Path": "Source\\HAL_Future_CreationEditor\\Public\\HALBuildPolicePursuitFXCommandlet.h",
+      "SHA256": "3F7DA2C702ABED686D202B9A67C4145F2BD57DB722D8F9F900A78A946AA6C7AB",
+      "Bytes": 261
+    },
+    {
+      "Path": "Source\\HAL_Future_CreationEditor\\Private\\HALBuildPolicePursuitFXCommandlet.cpp",
+      "SHA256": "EE1DA69FBE6523BD2E131552B9FE5075A71DC1B52F18F39F584C79808018D371",
+      "Bytes": 8674
+    },
+    {
+      "Path": "Source\\HAL_Future_Creation\\HALPursuitTargetComponent.h",
+      "SHA256": "B98271D170E1D5C8B87B62CAF16046A0CFD7045D7E22CDF2DEDE558E1B9012C7",
+      "Bytes": 1754
+    },
+    {
+      "Path": "Source\\HAL_Future_Creation\\HALPursuitTargetComponent.cpp",
+      "SHA256": "2F02D4068EA34BC11B708C76E4610CD4D666E1FC7AED4FE3D9EF9E09C6E23EA4",
+      "Bytes": 4168
+    },
+    {
+      "Path": "Source\\HAL_Future_Creation\\HALPursuitHUDWidget.h",
+      "SHA256": "D16169A251DA8A36EB4DE0DD9971FCF8AF521494335474BA7C1C8E385DB90845",
+      "Bytes": 1661
+    },
+    {
+      "Path": "Source\\HAL_Future_Creation\\HALPursuitHUDWidget.cpp",
+      "SHA256": "F81ED277E4546F95CB934C8CD4D64A43398A4A82979808AE891E0FD9EE5BAFDF",
+      "Bytes": 6517
+    },
+    {
+      "Path": "Source\\HAL_Future_Creation\\HALPolicePursuitTypes.h",
+      "SHA256": "F469CCFB38C0ED7C6676F2A382D2ADA0B9A577462BEA8E19F3C1739CA669E4EA",
+      "Bytes": 7029
+    },
+    {
+      "Path": "Source\\HAL_Future_Creation\\HALPolicePursuitPresentation.cpp",
+      "SHA256": "9253F1DEE9E03EB8AF210B32876125B31A31E82D5BFCA50F0158F11B0763533C",
+      "Bytes": 7006
+    },
+    {
+      "Path": "Source\\HAL_Future_Creation\\HALPolicePursuitAbility.h",
+      "SHA256": "A0182C856F8068979D0993FFF90ECF122E146327E8438C9E214D99821C384687",
+      "Bytes": 2217
+    },
+    {
+      "Path": "Source\\HAL_Future_Creation\\HALPolicePursuitAbility.cpp",
+      "SHA256": "F7A57F636D71362D9808A2D36D22091B4913EB7045B78EB9F975D6C889F9B576",
+      "Bytes": 5270
+    },
+    {
+      "Path": "Source\\HAL_Future_Creation\\HALPolicePursuit.h",
+      "SHA256": "C85894EC18C817AEDBBF7E8977AA835DF23F711994682025EF7001C5869ADACC",
+      "Bytes": 1709
+    },
+    {
+      "Path": "Source\\HAL_Future_Creation\\HALPolicePursuit.cpp",
+      "SHA256": "DEDD7E8E891D93152F11A06801588A6723468108E3A6913F761E2022E10B279C",
+      "Bytes": 7501
+    },
+    {
+      "Path": "Source\\HAL_Future_Creation\\Tests\\HALPursuitTests.cpp",
+      "SHA256": "51B6A59FCF8E5F3E5B0F63C79B6C330D02EB30320C8D4686C93074AC179A7D25",
+      "Bytes": 8916
+    },
+    {
+      "Path": "Source\\HAL_Future_Creation\\Tests\\HALPursuitRenderTests.cpp",
+      "SHA256": "6B19DC27BA9AEC791A43D3ED9EC04AD91EB23CC2CA9D0E17E6E9E74203A36247",
+      "Bytes": 6910
+    },
+    {
+      "Path": "Source\\HAL_Future_Creation\\Tests\\HALPursuitNetworkTests.cpp",
+      "SHA256": "E73974A7471D4BB7D448B2B2ECC974A39570BB65A8874FFDAE571BC727643B11",
+      "Bytes": 6707
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALGameplayTags.h",
+      "SHA256": "66276F9623A9B82685B1BEFFE482E5220BCE064725533F3B217A625A4A25E139",
+      "Bytes": 4016
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALGameplayTags.cpp",
+      "SHA256": "CDBF7C4F587B772397804F63571A052089F18817D809033922B6F03E3594F761",
+      "Bytes": 6996
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/TestVehiclePawn.h",
+      "SHA256": "1FFF3B29C5E05A2B89B7413D303170ECC2FD78F4ED76757772A60DB6976B8024",
+      "Bytes": 13088
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+      "SHA256": "9DCC2C8DE5F5ADF708D6CA6AF6F61D2D4485CAC54C3732DA10C3EB349054CB8A",
+      "Bytes": 40552
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/VehicleRecoveryComponent.h",
+      "SHA256": "0A3521D8D16D3010C6896F0AE34D9564FC653C33EBA1739366E10FB40266CA7F",
+      "Bytes": 1707
+    },
+    {
+      "Path": "Source/HAL_Future_CreationEditor/HAL_Future_CreationEditor.Build.cs",
+      "SHA256": "459501674EEB502F5DB2E8A73C33A3339DBE672D4F28361BAF332889B08A8D0F",
+      "Bytes": 802
+    }
+  ],
+  "Authoring": {
+    "Tool": "HAL_Future_CreationEditor.HALBuildPolicePursuitFX",
+    "Create": "Create_R1 succeeded; default refuses any existing output package",
+    "SoundSourceMaintenance": "SirenSource_R1 updates only new wave import metadata to tracked Content WAV",
+    "NewEditorOnlyDependency": "AudioEditor, for native USoundWave import; no runtime/new third-party plugin",
+    "SoundProvenance": "Original deterministic two-tone FM sine PCM authored by this project tool, 44100Hz mono 16-bit, 2 seconds loop; source WAV included"
+  },
+  "IntermediateIssues": [
+    "BuildEditor_R1 failed on TObjectPtr auto-pointer iteration, unavailable FLinearColor.ContainsNaN, ambiguous TSubclassOf ternary and protected sound factory call; fixed via explicit objects/finite channels/subclass conversion and public ImportObject.",
+    "Logic_R1 1/2: synchronous repeated World.Tick calls share GFrameCounter so TimerManager dispatches once. Native fixture explicitly refreshes protection at advanced world time; real frame expiration independently verified in network.",
+    "Final_R1 and Network_R1 hit a real PaintStars TArray alias assertion when closing contour with Points.Add(Points[0]); fixed by copying endpoint before append. Real render/network reruns passed.",
+    "Automatic beacon placement reviewed for model import-axis mismatch: use vehicle axes and roof bounds; precise mode skips missing mounts. Query-only ground triggers are ignored. Production finalized before Final_R3.",
+    "Network_R3 Host passed, Client continuation check failed because independent casts started 2.58s apart; the client own cast was under four seconds old during Stun. Fixed test timing relative to observed Stun; no production rule relaxation. Final Network_R4 both clean.",
+    "Create_R1 had a startup Unreal Trace Server process warning before authoring; not an asset-generation failure or automation warning."
+  ],
+  "Limits": [
+    "Team must create lightweight GA Blueprint and select skill DA, then replace the unique Car06 Primary grant/check catalog. Agent did not edit Blueprint assets.",
+    "Native recovery continuity test sets executing state as a fixture, not an actual hold-input recovery action; human recovery/flip/mount art checks pending.",
+    "Designer WBP not created or human-tested; native UI rendering and read-only views tested. Custom layout needs its own acceptance.",
+    "Automated audio disabled; looping wave resource verified, not audible quality, spatial falloff or simultaneous siren mix.",
+    "Actual gameplay camera/readability, complex slopes/corners, elimination/change vehicle/return-room UX, four-machine LAN, real late join, full room BP flow, Cook and packaged build remain team acceptance work.",
+    "Raw Saved logs/reports/BMPs/launchers remain local ignored evidence; this summary, docs, code, native resources and WAV source require normal Git sync."
+  ]
+}

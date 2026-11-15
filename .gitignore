@@ -290,3 +290,30 @@ Plugins/Monolith/
 !SourceArt/BattleTop/Car03_BattleTop_Cartoon_D3D12_Host_20261113.png
 
 !Docs/Presentation/ArenaFloor_SatinMetal_CN.md
+
+# Car06 police pursuit: runtime, authoring, tests and verification record.
+!Source/HAL_Future_Creation/HALPolicePursuit.h
+!Source/HAL_Future_Creation/HALPolicePursuit.cpp
+!Source/HAL_Future_Creation/HALPolicePursuitAbility.h
+!Source/HAL_Future_Creation/HALPolicePursuitAbility.cpp
+!Source/HAL_Future_Creation/HALPolicePursuitPresentation.cpp
+!Source/HAL_Future_Creation/HALPolicePursuitTypes.h
+!Source/HAL_Future_Creation/HALPursuitHUDWidget.h
+!Source/HAL_Future_Creation/HALPursuitHUDWidget.cpp
+!Source/HAL_Future_Creation/HALPursuitTargetComponent.h
+!Source/HAL_Future_Creation/HALPursuitTargetComponent.cpp
+!Source/HAL_Future_Creation/Tests/HALPursuitTests.cpp
+!Source/HAL_Future_Creation/Tests/HALPursuitRenderTests.cpp
+!Source/HAL_Future_Creation/Tests/HALPursuitNetworkTests.cpp
+!Source/HAL_Future_CreationEditor/Public/HALBuildPolicePursuitFXCommandlet.h
+!Source/HAL_Future_CreationEditor/Private/HALBuildPolicePursuitFXCommandlet.cpp
+!Docs/Combat/Car06_Police_Pursuit_Verification_20261115.json
+
+# Formal skill test dummy; Passive remains a separate regression fixture.
+!Source/HAL_Future_Creation/HALSkillTestDummy.h
+!Source/HAL_Future_Creation/HALSkillTestDummy.cpp
+!Source/HAL_Future_Creation/HALSkillTestDummyWidget.cpp
+!Source/HAL_Future_Creation/Tests/HALSkillTestDummyTests.cpp
+!Source/HAL_Future_Creation/Tests/HALSkillTestDummyNetworkTests.cpp
+!Docs/Configuration/Skill_Test_Dummy_CN_v0.1.md
+!Docs/Configuration/Skill_Test_Dummy_Verification_20261115.json

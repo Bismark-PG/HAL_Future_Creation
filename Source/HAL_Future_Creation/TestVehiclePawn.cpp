@@ -12,6 +12,7 @@
 #include "HALShockedPresentationComponent.h"
 #include "HALBattleTopComponent.h"
 #include "HALBullChargeComponent.h"
+#include "HALPursuitTargetComponent.h"
 #include "HALMovementEffectBridge.h"
 #include "HALMovementAreaReceiver.h"
 #include "HALVehiclePresentationComponent.h"
@@ -114,6 +115,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	ShockedPresentation = CreateDefaultSubobject<UHALShockedPresentationComponent>(TEXT("ShockedPresentation"));
 	BattleTop = CreateDefaultSubobject<UHALBattleTopComponent>(TEXT("BattleTop"));
 	BullCharge = CreateDefaultSubobject<UHALBullChargeComponent>(TEXT("BullCharge"));
+	PursuitTarget = CreateDefaultSubobject<UHALPursuitTargetComponent>(TEXT("PursuitTarget"));
 	MovementAreaReceiver = CreateDefaultSubobject<UHALMovementAreaReceiver>(TEXT("MovementAreaReceiver"));
 
 	BallControlPoint = CreateDefaultSubobject<USceneComponent>(TEXT("BallControlPoint"));
@@ -295,17 +297,31 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 		return;
 	}
 	ASC->InitAbilityActorInfo(State, this);
+	BindVehicleAbilitySystem(ASC, State->GetPlayerId());
+	if (HasAuthority() && bConfigurationValid) { State->GrantVehicleAbilities(); }
+}
+
+void ATestVehiclePawn::BindVehicleAbilitySystem(UHALAbilitySystemComponent* ASC, int32 MovementOwnerId)
+{
+	if (!ASC || ASC->GetAvatarActor() != this || !IsConfigurationValid()) { return; }
+	if (Health->GetBoundAbilitySystem() != ASC) { UninitializeAbilitySystem(); }
 	Health->BindToAbilitySystem(ASC);
 	RefreshStatusFXBinding();
 	ShockedPresentation->Bind(ASC);
-	MovementEffectBridge->Bind(ASC, State->GetPlayerId());
+	MovementEffectBridge->Bind(ASC, MovementOwnerId);
 	MovementAreaReceiver->Bind(ASC);
 	if (HasAuthority() && bConfigurationValid)
 	{
 		ASC->InitializeCombat(RuntimeCombatConfig);
 		ASC->InitializeImpact(ImpactReceiver->GetConfiguration());
-		State->GrantVehicleAbilities();
 	}
+}
+
+bool ATestVehiclePawn::CanReceiveSkillEffects() const
+{
+	return !IsActorBeingDestroyed() && IsConfigurationValid() && Controller && Controller->GetPawn() == this
+		&& Health && Health->IsHealthReady() && Health->GetCurrentHP() > 0
+		&& HALGameFlow::Permissions(GetWorld(), this).bWorldInteractions;
 }
 
 void ATestVehiclePawn::UninitializeAbilitySystem()
@@ -313,6 +329,7 @@ void ATestVehiclePawn::UninitializeAbilitySystem()
 	ResetLocalInputReadiness();
 	if (HasAuthority()) { BattleTop->Stop(); }
 	if (HasAuthority()) { BullCharge->Stop(); }
+	PursuitTarget->Clear();
 	ShockedPresentation->Unbind();
 	StatusFXPresentation->Unbind();
 	MovementAreaReceiver->Unbind();
