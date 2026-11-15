@@ -6,8 +6,11 @@
 #include "TestVehiclePawn.h"
 #include "TimerManager.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/GameStateBase.h"
 UHALPursuitTargetComponent::UHALPursuitTargetComponent()
-{ SetIsReplicatedByDefault(true); PrimaryComponentTick.bCanEverTick=true; PrimaryComponentTick.bStartWithTickEnabled=false; }
+{ SetIsReplicatedByDefault(true); PrimaryComponentTick.bCanEverTick=true; PrimaryComponentTick.bStartWithTickEnabled=false; PrimaryComponentTick.TickGroup=TG_PostPhysics; }
+double UHALPursuitTargetComponent::PresentationTime() const
+{ const auto* S=GetWorld()->GetGameState(); return S?S->GetServerWorldTimeSeconds():GetWorld()->GetTimeSeconds(); }
 bool UHALPursuitTargetComponent::AcceptArrest(AHALPolicePursuit& Source)
 {
 	auto* V=Cast<ATestVehiclePawn>(GetOwner()); auto* A=V?Cast<UHALAbilitySystemComponent>(V->GetAbilitySystemComponent()):nullptr;
@@ -24,6 +27,7 @@ bool UHALPursuitTargetComponent::AcceptArrest(AHALPolicePursuit& Source)
 	Arrest=Apply(UHALPursuitArrestEffect::StaticClass());
 	ensureMsgf(Arrest.IsValid(),TEXT("Native arrest effect must apply to a ready ASC"));
 	State.FX=Source.GetState().FX; State.bArrested=true; State.bProtected=true; State.ProtectionEnd=-1;
+	State.ArrestStart=PresentationTime(); State.ReleaseStart=-1;
 	ProtectionSeconds=Source.GetState().Rules.ProtectionSeconds;
 	GetWorld()->GetTimerManager().SetTimer(Timer,this,&ThisClass::UpdateProtection,.05f,true);
 	GetOwner()->ForceNetUpdate(); OnRep_State(); return true;
@@ -32,6 +36,7 @@ void UHALPursuitTargetComponent::StunChanged(FGameplayTag,int32 Count)
 {
 	if(!GetOwner()->HasAuthority()||Count>0||!State.bArrested) { return; }
 	State.bArrested=false; State.ProtectionEnd=GetWorld()->GetTimeSeconds()+ProtectionSeconds;
+	State.ReleaseStart=PresentationTime();
 	if(auto* A=ASC.Get()) { A->RemoveActiveGameplayEffect(Arrest); } Arrest.Invalidate();
 	GetOwner()->ForceNetUpdate(); OnRep_State();
 }
@@ -55,7 +60,12 @@ void UHALPursuitTargetComponent::Clear()
 	ASC.Reset(); StunHandle.Reset(); Arrest.Invalidate(); Protection.Invalidate(); State=FHALPursuitTargetState();
 	OnRep_State(); if(GetOwner()->HasAuthority()) { GetOwner()->ForceNetUpdate(); }
 }
-void UHALPursuitTargetComponent::OnRep_State() { SetComponentTickEnabled(State.bArrested); UpdateMarker(); }
+void UHALPursuitTargetComponent::OnRep_State()
+{
+	const bool Show=State.bArrested||(State.ReleaseStart>=0&&PresentationTime()<State.ReleaseStart+State.FX.Chains.ReleaseSeconds);
+	SetComponentTickEnabled(Show&&FApp::CanEverRender()&&GetNetMode()!=NM_DedicatedServer);
+	UpdateMarker();
+}
 void UHALPursuitTargetComponent::TickComponent(float Dt,ELevelTick Type,FActorComponentTickFunction* F)
 { Super::TickComponent(Dt,Type,F); UpdateMarker(); }
 void UHALPursuitTargetComponent::EndPlay(EEndPlayReason::Type R) { Clear(); Super::EndPlay(R); }

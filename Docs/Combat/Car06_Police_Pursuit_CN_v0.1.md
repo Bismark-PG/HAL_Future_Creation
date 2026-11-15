@@ -2,6 +2,10 @@
 
 2026-11-15，接续 `main/f169aa9`，UE5.8.3-58210709。用户已接受下列玩法、首测值及全部边界，并授权技能与对应表现开发。当前代码、原生资源和工程专项已完成，**团队 GA／Definition 接线及真人验收待执行**；具体证据与限制见末节。未直接修改 Blueprint，保留开工已有 GameMode BP。
 
+**当前表现更新（2026-11-15）**：粉色悬浮手铐已替换为两道金属链圈绕车身、车顶X交叉；配置在同一技能DA的 **Presentation → FX → Arrest → Chains**。旧Arrest Mesh／Size／Height／Pulse仅保留兼容，不再参与显示。新资源、贴合参数、车型覆盖及本轮验证见[立体束缚铁链](../Presentation/Car06_Arrest_Chains_CN_v0.1.md)。以下首版手铐测试为历史证据，不作为当前造型验收。
+
+当前铁链进一步支持 **Wire Radius** 独立调金属粗细，**Flow Speed／Opposite Loop Flow／Flow Ramp Seconds** 调沿闭合链圈的循环移动；自动车型尺寸适配与原Fit保留。Wire Scale仅作Advanced兼容项。见上述铁链文档第6节及[线径／流动验证](../Presentation/Car06_Arrest_Chains_Flow_Verification_20261115.json)，不改变本页追捕规则。
+
 - 发动警笛，固定持续时间，追捕范围跟随车辆；正常驾驶，不额外增强车速，自身不作为目标。
 - 每目标独立通缉值；有效范围内按秒累计，离开有效范围按秒衰减至零，不立即清空；重入继续累计。
 - 单次技能结束清理尚未完成的通缉记录，下次从零开始；已经施加的 Stun 正常计时，不因警笛结束或施放者退场被提前解除。
@@ -49,19 +53,21 @@
 | --- | --- |
 | `/Game/Data/Abilities/DA_Ability_Car06_PolicePursuit` | 唯一技能 DA，类型 **HALPolicePursuitConfig**，包含 Timing、Rules、全部 FX／UI／声音调参及引用 |
 | `/Game/Assets/FX/PolicePursuit/M_Pursuit_Range` | 淡红半透明 Unlit 圆盘，边界环＋旋转扫描及扩散纹理 |
-| `/Game/Assets/FX/PolicePursuit/M_Pursuit_Signal` | 警灯及手铐的 Unlit 发光材质 |
+| `/Game/Assets/FX/PolicePursuit/M_Pursuit_Signal` | 警灯 Unlit 发光材质；旧手铐引用保留 |
 | `/Game/Assets/FX/PolicePursuit/SM_Pursuit_Range` | 半径100 cm的基准圆盘，无碰撞 |
-| `/Game/Assets/FX/PolicePursuit/SM_Pursuit_Handcuffs` | 双手铐状态标识，无碰撞 |
+| `/Game/Assets/FX/PolicePursuit/SM_Pursuit_Handcuffs` | 旧标识留档，当前运行时不使用 |
+| `/Game/Assets/FX/PolicePursuit/SM_Pursuit_ChainLink` | 当前立体链环，由目标组件排列成两圈，无碰撞 |
+| `/Game/Assets/FX/PolicePursuit/M_Pursuit_ChainToon` | 当前柔和三阶卡通金属材质 |
 | `/Game/Assets/FX/PolicePursuit/SW_Pursuit_Siren` | 本轮原创双音变频、2秒循环警笛，可替换为其他 SoundBase |
 | `Content/Assets/FX/PolicePursuit/Source/Pursuit_Siren.wav` | 可随 Git 同步的原始 WAV；声音导入来源已指向此文件，不依赖本机 Saved |
 
 这是轻量原生持续网格／Point Light／Audio Component 配方，不依赖 Niagara 执行玩法。红蓝球形发光灯＋无阴影点光按同一服务器阶段交替，范围和标识也由原生组件驱动；未来可换材质或 Mesh，不允许其反向决定通缉／逮捕。默认警灯球 Mesh 引用 Engine BasicShapes Sphere。
 
-星级不是贴图文字：原生 Slate 绘制六个空心／实心五角星，**从左往右连续填充**，每颗对应阈值的1/6，离开后同方向退回。存在通缉值才显示；多个警车分别计数，UI 显示最高的归一化进度，绝不合并数值。同进度时按来源 Actor 名称确定显示样式。逮捕成功后本次通缉清零、星星隐藏，显示手铐及 ARRESTED 提示；状态持续至真正的 Stun 结束，保护尾段不继续显示逮捕标识。
+星级不是贴图文字：原生 Slate 绘制六个空心／实心五角星，**从左往右连续填充**，每颗对应阈值的1/6，离开后同方向退回。存在通缉值才显示；多个警车分别计数，UI 显示最高的归一化进度，绝不合并数值。同进度时按来源 Actor 名称确定显示样式。逮捕成功后本次通缉清零、星星隐藏，显示铁链及 ARRESTED 提示；逮捕状态持续至真正的 Stun 结束，铁链随后有0.18秒纯表现松开尾段，不延长Stun。
 
 ## Editor 接线：由团队手动执行
 
-1. 完整重开本轮编译的 Editor。打开已有 **DA_Ability_Car06_PolicePursuit**，确认类型 HALPolicePursuitConfig，以及 FX → Assets 中 Range Mesh／Material、Beacon Mesh、Signal Material、Arrest Mesh、Siren Sound 引用完整。首版资源已生成，不需重新制作。
+1. 完整重开本轮编译的 Editor。打开已有 **DA_Ability_Car06_PolicePursuit**，确认类型 HALPolicePursuitConfig，以及 FX → Assets 中 Range Mesh／Material、Beacon Mesh、Signal Material、Siren Sound，及 **FX → Arrest → Chains** 中Link Mesh／Material引用完整。资源已生成，不需重新制作。旧Arrest Mesh不再使用。
 2. 在 `/Game/Blueprints/GA` 新建 Blueprint Class → All Classes → **HALPolicePursuitAbility**，命名 **GA_Car06_PolicePursuit**。打开 **Class Defaults → Police Pursuit → Skill Config**，指定上述 DA，然后 Compile／Save。Event Graph 保持为空，不需新增 GE、Tick、Overlap 或伤害节点。
 3. 打开已有 `/Game/Data/MVP_B/DA_Vehicle_Car_06`，确认 **Abilities → Version = Vehicle Definition V1**，把唯一 **Input Tag = Input.Ability.Primary** Grant 的 Ability 改成此 GA，Level=1。没有该条目才新增，不要再叠加另一条相同输入。沿用已配置好的 Combat／Impact；正式共用配置应为 Attack Snapshot V1／Tiered V1。
 4. 继续使用 `/Game/Blueprints/Vehicles/BP_VehiclePawn_Car_06` 及该 Definition。所有车辆的原生基类已自动添加 **Pursuit Target** 组件以接收状态，不需要在 BP 中重复添加。核对房间 `DA_VehicleCatalog_Default` 的 Car06 条目指向现有车辆 BP；已登记时保留原条目。
@@ -79,7 +85,7 @@
 - **Colors → Red／Blue** 控警灯和标识配色；**Light Intensity=1800 lm、Light Radius=180 cm、Signal Glow=2** 控点光与发光表面。点光不投影，避免四车警灯产生大量阴影成本。
 - **Range**：Range Opacity=0.12、Range Ring Opacity=0.36、Scan Opacity=0.18、Scan Speed=0.65、Scan Width=0.12、Ring Width=0.025、Ground Lift=3 cm。范围半径自动取 **Rules.Radius**，不用另配视觉倍率。圆盘表示最大水平范围；实体墙仍可挡住通缉累计，淡红提示不表示隔墙有效。
 - **UI**：Star Count=6、Star Size=18、Star Gap=3、Stars Above Health=52（DPI 缩放后的 Slate 单位），调整与原血条／P编号间距；Star Color／Star Outline 控填充与轮廓。默认位于原血条和 P 编号上方，不改血条规则。
-- **Arrest**：Arrest Size=65 cm、Arrest Height=55 cm、Arrest Pulse Speed=1.5，控制手铐标识。标识不参与碰撞，在各客户端朝向本地相机。
+- **Arrest → Chains**：两圈立体链环随车辆完整姿态，配置数量、交叉角、包裹范围、每车型Fit、收紧／解除和三阶金属色；详见[调参表](../Presentation/Car06_Arrest_Chains_CN_v0.1.md#3-日常调参)。旧Arrest Size／Height／Pulse不再使用。
 - **Audio**：Siren Sound 可替换为配置为循环的音效；Siren Volume=0.35，Inner Radius=200 cm、Falloff=2500 cm。原 WAV 可重导入，不必修改技能代码。双端自动化关闭声音，不替代真人音量／空间听感验收。
 
 ## Widget Blueprint 替换接口
@@ -134,7 +140,7 @@ UE5.8.3 Python Commandlet 只读加载保存的 BP／DA／地图，无 PIE、保
 | Star Color | 灰色 | 已填充部分颜色 |
 | Star Outline | 深灰 | 星形轮廓颜色；当前描边线宽固定为1.6，没有DA线宽参数 |
 
-规则进度由 Rules.Threshold／GainPerSecond／DecayPerSecond 决定。当前阈值100、增长25/s时约每0.667秒填满一颗，4秒填满六颗并逮捕；当前衰减40/s，满进度量级约2.5秒衰减完（实际逮捕前进度低于100）。有通缉值才显示，从左向右连续填充；离开时反向退回。每个警车独立累计，UI取最高归一化值。逮捕后本来源进度归零，显示手铐／ARRESTED；其他来源若仍有残余值，星级可与逮捕标识短暂并存。保护期间仍按规则衰减。
+规则进度由 Rules.Threshold／GainPerSecond／DecayPerSecond 决定。当前阈值100、增长25/s时约每0.667秒填满一颗，4秒填满六颗并逮捕；当前衰减40/s，满进度量级约2.5秒衰减完（实际逮捕前进度低于100）。有通缉值才显示，从左向右连续填充；离开时反向退回。每个警车独立累计，UI取最高归一化值。逮捕后本来源进度归零，显示铁链／ARRESTED；其他来源若仍有残余值，星级可与逮捕标识短暂并存。保护期间仍按规则衰减。
 
 要自制WBP：新建父类 **HALPursuitHUDWidget** 的 Widget Blueprint，在Designer放置实际Root／布局，填写技能 DA 的 Widget Class。通过 **Receive Pursuit Views** 每0.1秒更新，或 **Get Pursuit Views** 读取；以Target维护每个目标的UI，Fraction是0～1。第i颗星（从0开始）填充为 `Clamp(Fraction * 6 - i, 0, 1)`。Designer存在布局后原生绘制退出，需要WBP自行实现目标投影／六星／逮捕提示；空数组清除旧提示。该替换接口只管追捕UI，不会同时替换现有血条UI。
 
@@ -167,7 +173,8 @@ UE5.8.3 Python Commandlet 只读加载保存的 BP／DA／地图，无 PIE、保
 | HALPolicePursuitAbility | ServerOnly GA、合法发动、冷却、唯一活跃实例，无 GA Tick |
 | HALPolicePursuit | 服务器定时扫描、遮挡／高度／退出缓冲、独立通缉记录及单次逮捕资格；客户端只复制／表现 |
 | HALPursuitTargetComponent | 目标跨来源保护、共用 Stun 真正结束后的尾段、逮捕标识及 Avatar 清理 |
-| HALPolicePursuitPresentation | 警灯、点光、扫描网格、警笛及目标手铐；Tick 只负责表现 |
+| HALPolicePursuitPresentation | 警灯、点光、扫描网格和警笛；Tick只负责表现 |
+| HALArrestChainPresentation／Types | 目标立体铁链、近似包裹姿态、服务器时钟驱动收紧／解除；纯表现 |
 | HALPursuitHUDWidget／HUDSubsystem | 只读聚合、六星绘制、WBP 替换、每本地玩家生命周期 |
 | HALBuildPolicePursuitFXCommandlet | 原生资源制作与音频源路径维护；默认拒绝覆盖既有资产，不是日常调参入口 |
 

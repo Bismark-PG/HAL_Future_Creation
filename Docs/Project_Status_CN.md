@@ -1,5 +1,17 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-15 Car06铁链独立线径与循环流动完成，待真人手感／画风验收。** 接续仍为`main/a105c89`、UE5.8.3-58210709。用户实测铁链偏细并确认沿链圈流动，本轮在原技能DA的 **Presentation → FX → Arrest → Chains** 新增Wire Radius=2.8cm、Flow Speed=45cm/s、Opposite Loop Flow=true、Flow Ramp Seconds=0.25s。金属半径独立于链环中心线，材质WPO按实例世界变换重建截面；小链环有保孔安全上限。链环沿固定包裹路径行进，车顶X交叉位置保持，收紧后渐入、解除时减速；服务器时钟解析相位，未新增逐帧复制。旧Wire Scale移至Advanced兼容保留，日常使用Wire Radius。自动Body尺寸适配及现有车型Fit、规则／Stun／保护／球权均保持。见[调参与当前验证](Presentation/Car06_Arrest_Chains_CN_v0.1.md#6-独立线径与沿链圈流动2026-11-15当前)。
+
+最终 **Editor R2／Game R1** 成功；专项 **5/5**，受影响回归 **53/53**（51项无警告、2项带既有负例／D3D12预算警告；失败／未执行0），80ms出站延迟的真实D3D12 Listen双端 **各1/1**，0测试警告／失败、退出0。实际画面细／粗金属覆盖13887／34661像素，线径变化不改变实例中心线，流动0.13s改变20569像素并移动实际链环；双端验证线径绑定、流动和解除清理。开工1336项中仅铁链母材质修改，**1335项哈希一致**，包括技能DA完整文件、Mesh、BP／地图／Config／uproject及Passive；所有旧调参逐项不变，新字段重载使用已记录默认值。首轮Editor头文件引用错误已修正并复编，见[本轮可同步验证摘要](Presentation/Car06_Arrest_Chains_Flow_Verification_20261115.json)。
+
+**下一步：完整重开Editor，用原Car06技能验收粗细与沿链圈流动。** Geometry调Wire Radius，Animation调Flow Speed（0停止、负值反向）及渐入；修改后重新施放。若增粗触及保孔上限，适量增加Link Width或减少偶数Links Per Loop。复杂车型仍可补Vehicle Fits，未新增每车必配步骤。真人美术／手感、真实晚加入、四机、完整房间和Cook／发布包仍待团队；未提交／Push。以下保留初版铁链及此前项目历史。
+
+**2026-11-15 Car06逮捕铁链首版程序／资源／专项完成，待团队画风验收。** 接续 `main/a105c89`、UE5.8.3-58210709；粉色悬浮手铐替换为两道立体金属链圈绕车身、车顶X交叉，柔和暗／中／亮三阶、快速收紧与阻尼回弹、实际Stun结束后0.18s松开。链条随完整车辆姿态，无碰撞／伤害／真实链物理；通缉、眩晕、保护、驾驶和球权规则未改。全部新参数仍在同一Car06技能DA的 **Presentation → FX → Arrest → Chains**，提供按实际Vehicle Definition匹配的Vehicle Fits；Car02和默认木桩已保存驾驶室贴合修正，复制Definition需另加匹配项。旧Arrest Mesh／Size／Height／Pulse仅兼容保留，不再控制显示。见[引用、调参及团队验收步骤](Presentation/Car06_Arrest_Chains_CN_v0.1.md)。
+
+最终 **Editor R6／Game R3** 编译成功，**Final_R2共52/52通过**（50项无警告、2项带既有负例／D3D12虚拟资源预算警告；失败／未执行均0）。实际Car02模型的D3D12截图确认128个链环、俯视X交叉、收紧／侧面／翻滚跟随及解除清理，链条改变29176像素。80ms Host出站延迟的真实Listen双端 **Network_R1各1/1**，零测试警告／失败、退出0；两端观察到逮捕、短松开、保护尾段已无铁链，及木桩HP／通缉／血条／销毁清理。开工1334份既有受保护文件中，仅技能DA写入新增Chains配置，旧Rules／Cooldown／全部原有FX逐项不变，其余 **1333份哈希一致**，团队既有GameMode BP改动保留；新增单环Mesh和卡通金属母材质，没有代改BP或地图。见[可同步验证摘要](Presentation/Car06_Arrest_Chains_Verification_20261115.json)。
+
+**下一步：完整重开Editor，在Fred／正式俯视相机中真人验收铁链贴合与画风；特殊车型或复制Definition在同一技能DA补Vehicle Fits。** 当前为近似Bounds包裹，侧面可有间隙，不宣称真实贴面。真实晚加入、四机、完整房间及Cook／发布包未在本轮验证，晚加入仅验证服务器时钟相位数学。未提交／Push。以下保留此前木桩、Car06及团队地面材质历史记录。
+
 **2026-11-15 Car06／技能木桩的Git白名单及进度记录已恢复。** 当前 `main/16ef3ab`、UE5.8.3-58210709；保留下方地面材质团队记录及既有源码／资产改动。本次仅修复 `.gitignore` 与本页，按木桩验证摘要核对的 **21/21** 份源码／工具／示例DA文件哈希一致，没有重新构建或执行自动化。以下构建／测试数据均为此前留档。当前已见团队新增 `BP_SkillTestDummy` 和 `BP_FredSkillTestGameMode`，只确认文件存在，尚未核对保存接线或真人测试，不重复要求团队创建。**下一步：按[配置文档](Configuration/Skill_Test_Dummy_CN_v0.1.md)核对TestConfig、Fred的GameMode与单人Playing流程，验收目标血条、六星及各技能接收。** 未提交／Push。
 
 **2026-11-15 新技能测试木桩代码／示例DA／验证完成。** 新增HALSkillTestDummy与测试DA包装，派生正式车辆Pawn，以独立ASC承接伤害、三档冲击、油膜、龙卷风、通缉／逮捕及状态表现；无Controller／PlayerState／主动技能授予／吸球，不占房间席位或胜负统计。HP归零清理区域及Avatar状态，保留可读0HP；首版无自动回血／复位。原生TARGET＋血条可由HALSkillTestDummyWidget的WBP替换，六星复用警车只读Overlay。新增独立 `CanReceiveSkillEffects` 目标接口并修正逮捕保护定时器，施放者资格不放宽。单车测试初始生成和换车保留新木桩、排除其可驾驶候选资格，旧Passive的源码／BP／DA及清理边界保持。见[完整BP／DA及Fred配置](Configuration/Skill_Test_Dummy_CN_v0.1.md)。

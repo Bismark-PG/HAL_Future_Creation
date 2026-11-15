@@ -6,6 +6,7 @@
 #include "../HALPursuitHUDWidget.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Materials/Material.h"
@@ -63,9 +64,10 @@ bool FHALPursuitRenderTest::RunTest(const FString&)
 	P->State.Start=P->ServerTime()-Config->FX.FlashHalfPeriod; P->UpdatePresentation(); const auto B=CapturePixels(TEXT("Pursuit_BlueScan.bmp"));
 	TestTrue(TEXT("Blue roof phase alternates"),P->Lights[1]->Intensity>P->Lights[0]->Intensity);
 	int32 Changed=0; for(int32 I=0;I<A.Num();++I) { Changed+=FMath::Abs(int32(A[I].R)-B[I].R)>5; } TestTrue(TEXT("Actual scan moves on the red disk"),Changed>300);
-	auto* ArrestOwner=Box(FVector(300,100,80),FVector(10)); auto* Receiver=NewObject<UHALPursuitTargetComponent>(ArrestOwner); Receiver->RegisterComponent(); Receiver->State.bArrested=true; Receiver->State.FX=Config->FX; Receiver->UpdateMarker();
+	for(int32 I=0;I<40;++I) { W->Tick(LEVELTICK_All,.05f); }
+	auto* ArrestOwner=Box(FVector(300,100,80),FVector(130,80,45)); auto* Receiver=NewObject<UHALPursuitTargetComponent>(ArrestOwner); Receiver->RegisterComponent(); Receiver->State.bArrested=true; Receiver->State.ArrestStart=Receiver->PresentationTime()-.6; Receiver->State.FX=Config->FX; Receiver->UpdateMarker();
 	const auto Arrest=CapturePixels(TEXT("Pursuit_Arrest.bmp")); int32 MarkerChanged=0; for(int32 I=0;I<A.Num();++I) { MarkerChanged+=FMath::Abs(int32(Arrest[I].B)-B[I].B)>8; }
-	TestTrue(TEXT("Actual handcuff marker is visible"),Receiver->Marker&&MarkerChanged>50);
+	TestTrue(TEXT("Actual crossed chain mesh is visible"),Receiver->Chains&&Receiver->Chains->GetInstanceCount()==Config->FX.Chains.LinksPerLoop*2&&MarkerChanged>50);
 	FWidgetRenderer Renderer(true,false); auto* Stars=Renderer.DrawWidget(SNew(SPursuitProofStars).Fraction(4.f/6),FVector2D(220,64)); TArray<FColor> Pixels; Stars->GameThread_GetRenderTargetResource()->ReadPixels(Pixels);
 	TestTrue(TEXT("Star proof saved"),FFileHelper::CreateBitmap(*(Output/TEXT("Pursuit_Stars_4of6.bmp")),220,64,Pixels.GetData()));
 	const auto Mean=[&](int32 Index){const int32 X=58+Index*21; int32 Total=0; for(int32 Y=30;Y<=34;++Y) for(int32 J=X-2;J<=X+2;++J) { Total+=Pixels[Y*220+J].G; } return Total/25;};

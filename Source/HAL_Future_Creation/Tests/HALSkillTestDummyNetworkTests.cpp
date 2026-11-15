@@ -14,11 +14,27 @@
 #include "../CombatResolver.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+
+struct FHALArrestChainNetworkAccess
+{
+	static bool Bound(const UHALPursuitTargetComponent& C)
+	{ return C.Chains&&C.Chains->IsVisible()&&C.Chains->GetInstanceCount()==C.State.FX.Chains.LinksPerLoop*2
+		&&C.Chains->GetCollisionEnabled()==ECollisionEnabled::NoCollision&&C.Chains->GetComponentQuat().Equals(C.GetOwner()->GetActorQuat(),.001f); }
+	static bool Any(const UHALPursuitTargetComponent& C) { return C.Chains&&C.Chains->IsVisible()&&C.Chains->GetInstanceCount()>0; }
+	static bool SampleFlow(const UHALPursuitTargetComponent& C,FVector& At)
+	{
+		if(!Bound(C)||!C.Material||!FMath::IsNearlyEqual(C.Material->K2_GetScalarParameterValue(TEXT("WireRadius")),C.State.FX.Chains.WireRadius)
+			||C.State.FX.Chains.FlowSpeed==0||C.PresentationTime()-C.State.ArrestStart<.8) { return false; }
+		FTransform T; C.Chains->GetInstanceTransform(0,T); At=T.GetLocation(); return true;
+	}
+};
 
 namespace
 {
@@ -43,6 +59,8 @@ namespace
 	class FSkillDummyLive : public IAutomationLatentCommand
 	{
 		FAutomationTestBase* Test; double Deadline=FPlatformTime::Seconds()+90,Start=-1,Done=-1; bool Announced=false,TargetAnnounced=false,Spawned=false,Casted=false,Ready=false,Damaged=false,Wanted=false,Arrested=false,Tail=false,HUD=false;
+		bool ChainSeen=false,ChainRelease=false,ChainGoneDuringProtection=false;
+		bool ChainFlowSeen=false; double ChainSampleTime=-1; FVector ChainSample=FVector::ZeroVector;
 	public:
 		explicit FSkillDummyLive(FAutomationTestBase* T):Test(T){}
 		bool Update() override
@@ -84,6 +102,21 @@ namespace
 				Ready|=D->CanReceiveSkillEffects()&&A&&A->GetAvatarActor()==D&&!D->GetController()&&!D->GetPlayerState();
 				Damaged|=H&&H->IsHealthReady()&&H->GetCurrentHP()<H->GetMaxHP();
 				const auto* C=D->FindComponentByClass<UHALPursuitTargetComponent>(); Arrested|=C&&C->GetState().bArrested&&A&&A->IsStunned(); Tail|=C&&!C->GetState().bArrested&&C->GetState().bProtected;
+				if(C)
+				{
+					ChainSeen|=C->GetState().bArrested&&FHALArrestChainNetworkAccess::Bound(*C);
+					FVector At;
+					if(C->GetState().bArrested&&FHALArrestChainNetworkAccess::SampleFlow(*C,At))
+					{
+						if(ChainSampleTime<0) { ChainSampleTime=Now; ChainSample=At; }
+						else if(Now-ChainSampleTime>.12) { ChainFlowSeen|=FVector::Distance(ChainSample,At)>1; }
+					}
+					if(!C->GetState().bArrested&&C->GetState().ReleaseStart>=0)
+					{
+						ChainRelease|=FHALArrestChainNetworkAccess::Any(*C);
+						ChainGoneDuringProtection|=C->GetState().bProtected&&Now>C->GetState().ReleaseStart+C->GetState().FX.Chains.ReleaseSeconds&&!FHALArrestChainNetworkAccess::Any(*C);
+					}
+				}
 				for(const auto& View:UHALPursuitHUDWidget::GatherViews(W)) { Wanted|=View.Target==D&&View.Fraction>0; }
 				if(auto* Component=D->FindComponentByClass<UWidgetComponent>()) if(auto* Widget=Cast<UHALSkillTestDummyWidget>(Component->GetUserWidgetObject())) { HUD|=Widget->GetDummyView().bReady; }
 				if(!Host&&Ready&&HUD&&!TargetAnnounced) { PC->SetName(TEXT("HAL_Dummy_Target_Ready")); TargetAnnounced=true; }
@@ -99,6 +132,14 @@ namespace
 				Test->TestTrue(TEXT("Native fallback health widget bound"),HUD);
 				Test->TestEqual(TEXT("Still exactly two real players"),Match->PlayerArray.Num(),2);
 				Test->TestTrue(TEXT("Destroyed dummy disappears from pursuit views"),UHALPursuitHUDWidget::GatherViews(W).IsEmpty());
+				if(FParse::Param(FCommandLine::Get(),TEXT("HALArrestChainFixture")))
+				{
+					Test->TestTrue(TEXT("Two non-colliding chains follow target orientation on this endpoint"),ChainSeen);
+					Test->TestTrue(TEXT("Short release is observed after actual Stun ended"),ChainRelease);
+					Test->TestTrue(TEXT("Chains finish before protection tail ends"),ChainGoneDuringProtection);
+					Test->TestTrue(TEXT("Independent wire radius is bound and actual chain links circulate on this endpoint"),ChainFlowSeen);
+					Test->AddInfo(FString::Printf(TEXT("Arrest chains role=%s active=%d release=%d hiddenWhileProtected=%d flowAndRadius=%d"),Host?TEXT("Host"):TEXT("Client"),ChainSeen,ChainRelease,ChainGoneDuringProtection,ChainFlowSeen));
+				}
 				Test->AddInfo(FString::Printf(TEXT("Skill dummy role=%s ready=%d damage=%d wanted=%d arrest=%d tail=%d hud=%d"),Host?TEXT("Host"):TEXT("Client"),Ready,Damaged,Wanted,Arrested,Tail,HUD)); Done=FPlatformTime::Seconds();
 			}
 			return false;

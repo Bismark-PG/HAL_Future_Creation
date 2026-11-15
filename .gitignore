@@ -317,3 +317,15 @@ Plugins/Monolith/
 !Source/HAL_Future_Creation/Tests/HALSkillTestDummyNetworkTests.cpp
 !Docs/Configuration/Skill_Test_Dummy_CN_v0.1.md
 !Docs/Configuration/Skill_Test_Dummy_Verification_20261115.json
+
+# Car06 crossed arrest chains: runtime geometry, art authoring and proofs.
+!Source/HAL_Future_Creation/HALArrestChainTypes.h
+!Source/HAL_Future_Creation/HALArrestChainTypes.cpp
+!Source/HAL_Future_Creation/HALArrestChainPresentation.cpp
+!Source/HAL_Future_Creation/Tests/HALArrestChainTests.cpp
+!Source/HAL_Future_Creation/Tests/HALArrestChainRenderTests.cpp
+!Source/HAL_Future_CreationEditor/Public/HALBuildArrestChainsFXCommandlet.h
+!Source/HAL_Future_CreationEditor/Private/HALBuildArrestChainsFXCommandlet.cpp
+!Docs/Presentation/Car06_Arrest_Chains_CN_v0.1.md
+!Docs/Presentation/Car06_Arrest_Chains_Verification_20261115.json
+!Docs/Presentation/Car06_Arrest_Chains_Flow_Verification_20261115.json

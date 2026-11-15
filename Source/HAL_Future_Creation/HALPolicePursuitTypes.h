@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "HALVehicleFXMount.h"
+#include "HALArrestChainTypes.h"
 #include "HALPolicePursuitTypes.generated.h"
 class UMaterialInterface; class UStaticMesh; class USoundBase; class UHALPursuitHUDWidget; class ATestVehiclePawn;
 
@@ -33,6 +34,7 @@ struct HAL_FUTURE_CREATION_API FHALPursuitFX
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Assets") TObjectPtr<UStaticMesh> ArrestMesh;
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Assets") TObjectPtr<USoundBase> SirenSound;
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="UI") TSubclassOf<UHALPursuitHUDWidget> WidgetClass;
+	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Arrest") FHALArrestChainFX Chains;
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Roof Lights") FHALVehicleFXMount RoofMount;
 	/** Default uses the registered visual mesh's roof; disable for a precise socket/offset. */
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Roof Lights") bool bAutomaticRoof=true;

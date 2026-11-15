@@ -20,7 +20,7 @@ bool UHALPolicePursuitConfig::Validate(FString& Error) const
 { if(FMath::IsFinite(CooldownSeconds)&&CooldownSeconds>=0&&CooldownSeconds<=120&&Rules.IsValid()) { Error.Reset(); return true; } Error=TEXT("Pursuit rules exceed finite documented ranges."); return false; }
 #if WITH_EDITOR
 EDataValidationResult UHALPolicePursuitConfig::IsDataValid(FDataValidationContext& Context) const
-{ FString Error; if(Validate(Error)&&FX.IsValid()) { return EDataValidationResult::Valid; } Context.AddError(FText::FromString(Error.IsEmpty()?TEXT("Invalid pursuit presentation ranges."):Error)); return EDataValidationResult::Invalid; }
+{ FString Error; if(Validate(Error)&&FX.IsValid()&&FX.Chains.IsValid()) { return EDataValidationResult::Valid; } Context.AddError(FText::FromString(Error.IsEmpty()?TEXT("Invalid pursuit presentation ranges; chain link count must be even."):Error)); return EDataValidationResult::Invalid; }
 #endif
 UHALPursuitCooldownEffect::UHALPursuitCooldownEffect()
 { DurationPolicy=EGameplayEffectDurationType::HasDuration; DurationMagnitude=FScalableFloat(1); Tags(*this,GEComponents,HALGameplayTags::Cooldown_Pursuit,false); }

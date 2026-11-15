@@ -86,19 +86,3 @@ void AHALPolicePursuit::StopPresentation()
 	for(const auto& B:Beacons) { if(B) { B->SetVisibility(false); } }
 	for(const auto& L:Lights) { if(L) { L->SetIntensity(0); } }
 }
-void UHALPursuitTargetComponent::UpdateMarker()
-{
-	if(!FApp::CanEverRender()||GetNetMode()==NM_DedicatedServer||!GetOwner()) { return; }
-	if(!State.bArrested) { if(Marker) { Marker->SetVisibility(false); } return; }
-	const auto& FX=State.FX; UHALPursuitHUDSubsystem::EnsureForWorld(GetWorld(),FX.WidgetClass);
-	if(!Marker&&FX.ArrestMesh&&FX.SignalMaterial)
-	{
-		Marker=Visual(*GetOwner(),FX.ArrestMesh,FX.SignalMaterial); Material=UMaterialInstanceDynamic::Create(FX.SignalMaterial,this); Marker->SetMaterial(0,Material);
-	}
-	if(!Marker) { return; } Marker->SetVisibility(true);
-	FVector Center,Extent; GetOwner()->GetActorBounds(true,Center,Extent); const FVector Position=Center+FVector(0,0,Extent.Z+FX.ArrestHeight);
-	Marker->SetWorldLocation(Position); Marker->SetWorldScale3D(FVector(FX.ArrestSize/100));
-	for(auto It=GetWorld()->GetPlayerControllerIterator();It;++It) if(auto* PC=It->Get(); PC&&PC->IsLocalController()&&PC->PlayerCameraManager)
-	{ Marker->SetWorldRotation(FQuat::FindBetweenNormals(FVector::UpVector,(PC->PlayerCameraManager->GetCameraLocation()-Position).GetSafeNormal())); break; }
-	if(Material) { Material->SetVectorParameterValue(TEXT("Color"),FMath::Lerp(FX.Red,FX.Blue,.5f)); Material->SetScalarParameterValue(TEXT("Glow"),FX.SignalGlow*(.8f+.2f*FMath::Sin(GetWorld()->GetTimeSeconds()*FX.ArrestPulseSpeed*2*UE_PI))); }
-}

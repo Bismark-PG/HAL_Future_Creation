@@ -3,7 +3,7 @@
 #include "GameplayEffectTypes.h"
 #include "HALPolicePursuitTypes.h"
 #include "HALPursuitTargetComponent.generated.h"
-class AHALPolicePursuit; class UHALAbilitySystemComponent; class UStaticMeshComponent; class UMaterialInstanceDynamic;
+class AHALPolicePursuit; class UHALAbilitySystemComponent; class UInstancedStaticMeshComponent; class UMaterialInstanceDynamic;
 USTRUCT()
 struct FHALPursuitTargetState
 {
@@ -11,6 +11,8 @@ struct FHALPursuitTargetState
 	UPROPERTY() bool bArrested=false;
 	UPROPERTY() bool bProtected=false;
 	UPROPERTY() double ProtectionEnd=-1;
+	UPROPERTY() double ArrestStart=-1;
+	UPROPERTY() double ReleaseStart=-1;
 	UPROPERTY() FHALPursuitFX FX;
 };
 /** Avatar-scoped arrest and shared Car06-only protection. Never gates ordinary Stun. */
@@ -30,13 +32,18 @@ private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend class FHALPursuitRenderTest;
 	friend struct FHALPursuitTestAccess;
+	friend class FHALArrestChainRenderTest;
+	friend struct FHALArrestChainTestAccess;
+	friend struct FHALArrestChainNetworkAccess;
 #endif
 	void UpdateProtection();
 	void StunChanged(FGameplayTag Tag,int32 Count);
 	void UpdateMarker();
+	void StopChains();
+	double PresentationTime() const;
 	UFUNCTION() void OnRep_State();
 	UPROPERTY(ReplicatedUsing=OnRep_State) FHALPursuitTargetState State;
-	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> Marker;
+	UPROPERTY(Transient) TObjectPtr<UInstancedStaticMeshComponent> Chains;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> Material;
 	TWeakObjectPtr<UHALAbilitySystemComponent> ASC;
 	FActiveGameplayEffectHandle Arrest,Protection;
