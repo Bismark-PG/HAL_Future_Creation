@@ -26,14 +26,16 @@
 #include "Misc/PackageName.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Misc/Parse.h"
+#include "UObject/UnrealType.h"
 #include "UObject/SavePackage.h"
 
 namespace
 {
 	const FString ShiftRoot(TEXT("/Game/Assets/FX/SideShift/"));
-	bool ShiftSave(UObject& Object)
+	bool ShiftSave(UObject& Object,bool bNew=true)
 	{
-		FAssetRegistryModule::AssetCreated(&Object); auto* Package=Object.GetPackage(); Package->MarkPackageDirty();
+		if(bNew) { FAssetRegistryModule::AssetCreated(&Object); } auto* Package=Object.GetPackage(); Package->MarkPackageDirty();
 		FSavePackageArgs Args; Args.TopLevelFlags=RF_Public|RF_Standalone; Args.SaveFlags=SAVE_NoError;
 		return UPackage::SavePackage(Package,&Object,*FPackageName::LongPackageNameToFilename(Package->GetName(),FPackageName::GetAssetPackageExtension()),Args);
 	}
@@ -122,9 +124,65 @@ namespace
 		S->PostEditChange(); S->RequestCompile(true); S->WaitForCompilationComplete(); return S;
 	}
 }
-int32 UHALBuildSideShiftFXCommandlet::Main(const FString&)
+int32 UHALBuildSideShiftFXCommandlet::Main(const FString& Params)
 {
 	const FString ConfigPath(TEXT("/Game/Data/Abilities/DA_Ability_Car07_SideShift"));
+	if(FParse::Param(*Params,TEXT("DriftArc")))
+	{
+		auto* Skill=LoadObject<UHALSideShiftConfig>(nullptr,*ConfigPath); if(!Skill) { return 20; }
+		auto* Before=DuplicateObject<UHALSideShiftConfig>(Skill,GetTransientPackage());
+		Skill->Motion.DriftLateralSpan=450; Skill->Motion.DriftArcBend=1; Skill->Motion.MaximumAcceleration=100000;
+		for(TFieldIterator<FProperty> It(Skill->GetClass());It;++It)
+		{ if(It->GetFName()!=TEXT("Motion")&&!It->Identical_InContainer(Before,Skill)) { return 21; } }
+		const TSet<FName> Allowed={TEXT("DriftLateralSpan"),TEXT("DriftArcBend"),TEXT("MaximumAcceleration")};
+		for(TFieldIterator<FProperty> It(FHALSideShiftMotion::StaticStruct());It;++It)
+		{ if(!Allowed.Contains(It->GetFName())&&!It->Identical_InContainer(&Before->Motion,&Skill->Motion)) { return 22; } }
+		FString Error; if(!Skill->Validate(Error)||!ShiftSave(*Skill,false)) { return 23; }
+		UE_LOG(LogTemp,Display,TEXT("DriftArc saved Span=%.1f Bend=%.2f Accel=%.1f Shift=%.3f; all other settings preserved"),Skill->Motion.DriftLateralSpan,Skill->Motion.DriftArcBend,Skill->Motion.MaximumAcceleration,Skill->Motion.DurationSeconds); return 0;
+	}
+	if(FParse::Param(*Params,TEXT("QuarterTurn90")))
+	{
+		auto* Skill=LoadObject<UHALSideShiftConfig>(nullptr,*ConfigPath); if(!Skill) { return 10; }
+		auto* Before=DuplicateObject<UHALSideShiftConfig>(Skill,GetTransientPackage());
+		Skill->Motion.DriftTurnDegrees=90; Skill->Motion.DriftInputThreshold=.2f; Skill->Motion.DriftYawRate=600;
+		for(TFieldIterator<FProperty> It(Skill->GetClass());It;++It)
+		{ if(It->GetFName()!=TEXT("Motion")&&!It->Identical_InContainer(Before,Skill)) { return 11; } }
+		const TSet<FName> Allowed={TEXT("DriftTurnDegrees"),TEXT("DriftInputThreshold"),TEXT("DriftYawRate")};
+		for(TFieldIterator<FProperty> It(FHALSideShiftMotion::StaticStruct());It;++It)
+		{ if(!Allowed.Contains(It->GetFName())&&!It->Identical_InContainer(&Before->Motion,&Skill->Motion)) { return 12; } }
+		FString Error; if(!Skill->Validate(Error)||!ShiftSave(*Skill,false)) { return 13; }
+		UE_LOG(LogTemp,Display,TEXT("QuarterTurn90 saved Angle=%.1f MaxYawRate=%.1f Shift=%.3f Drift=%.3f; all other settings preserved"),
+			Skill->Motion.DriftTurnDegrees,Skill->Motion.DriftYawRate,Skill->Motion.DurationSeconds,Skill->Motion.DriftSeconds); return 0;
+	}
+	if(FParse::Param(*Params,TEXT("Quicken30")))
+	{
+		// Explicit one-skill retune. Absolute targets make reruns idempotent, including
+		// fields previously omitted from the package because they matched native defaults.
+		auto* Skill=LoadObject<UHALSideShiftConfig>(nullptr,*ConfigPath); if(!Skill) { return 5; }
+		auto* Before=DuplicateObject<UHALSideShiftConfig>(Skill,GetTransientPackage());
+		Skill->Motion.DurationSeconds=.24f; Skill->Motion.DriftSeconds=.3f;
+		Skill->Motion.MaximumAcceleration=100000; Skill->Motion.DriftYawRate=600;
+		Skill->Motion.DriftResponse=33.333333f; Skill->Motion.MaximumYawAcceleration=444.44445f;
+		Skill->FX.SparkRate=666.6667f; Skill->FX.SparkSpeed=8000; Skill->FX.SparkLifetime=.048f;
+		Skill->FX.SmokeRate=116.6667f; Skill->FX.SmokeSpeed=2000; Skill->FX.SmokeLifetime=.12f;
+		Skill->FX.FadeSeconds=.018f; Skill->FX.TireFXPlayRate=3.333333f;
+		const auto Unchanged=[](UStruct* Type,const void* A,const void* B,const TSet<FName>& Allowed)
+		{
+			for(TFieldIterator<FProperty> It(Type);It;++It)
+			{ if(!Allowed.Contains(It->GetFName())&&!It->Identical_InContainer(A,B)) { UE_LOG(LogTemp,Error,TEXT("Quicken30 changed unauthorized field %s"),*It->GetName()); return false; } }
+			return true;
+		};
+		if(!Unchanged(Skill->GetClass(),Before,Skill,{TEXT("Motion"),TEXT("FX")})
+			||!Unchanged(FHALSideShiftMotion::StaticStruct(),&Before->Motion,&Skill->Motion,
+				{TEXT("DurationSeconds"),TEXT("DriftSeconds"),TEXT("MaximumAcceleration"),TEXT("DriftYawRate"),TEXT("DriftResponse"),TEXT("MaximumYawAcceleration")})
+			||!Unchanged(FHALSideShiftFX::StaticStruct(),&Before->FX,&Skill->FX,
+				{TEXT("SparkRate"),TEXT("SparkSpeed"),TEXT("SparkLifetime"),TEXT("SmokeRate"),TEXT("SmokeSpeed"),TEXT("SmokeLifetime"),TEXT("FadeSeconds"),TEXT("TireFXPlayRate")})) { return 6; }
+		FString Error; if(!Skill->Validate(Error)) { UE_LOG(LogTemp,Error,TEXT("Quicken30 invalid: %s"),*Error); return 7; }
+		if(!ShiftSave(*Skill,false)) { return 8; }
+		UE_LOG(LogTemp,Display,TEXT("Quicken30 saved: Shift=%.3fs Drift=%.3fs Distance=%.1f Accel=%.2f Sparks=%.3fs Smoke=%.3fs TireRate=%.3f; all other reflected settings unchanged"),
+			Skill->Motion.DurationSeconds,Skill->Motion.DriftSeconds,Skill->Motion.Distance,Skill->Motion.MaximumAcceleration,Skill->FX.SparkLifetime,Skill->FX.SmokeLifetime,Skill->FX.TireFXPlayRate);
+		return 0;
+	}
 	for(const FString& Path:{ShiftRoot+TEXT("M_SideShift_ToonSmoke"),ShiftRoot+TEXT("NS_SideShift_ToonSmoke"),ShiftRoot+TEXT("NS_SideShift_ToonSparks"),ConfigPath})
 	{ if(FPackageName::DoesPackageExist(Path)) { UE_LOG(LogTemp,Error,TEXT("Refusing to overwrite existing SideShift asset %s"),*Path); return 1; } }
 	auto* P=LoadObject<UHALVehiclePresentationConfig>(nullptr,TEXT("/Game/Data/Car_Presentation/DA_Car_07_Presentation"));

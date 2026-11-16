@@ -23,7 +23,7 @@ struct FHALSideShiftTestAccess
 	{
 		C.Visual={}; C.Visual.Activation=FGuid::NewGuid(); C.Visual.FX=FX; C.Visual.Side=Side;
 		C.Visual.Direction=FVector(0,Side,0); C.Visual.StartServerTime=C.ServerTime()-Age;
-		C.Visual.ShiftSeconds=.8f; C.Visual.DriftSeconds=1; C.Visual.bDriving=true; C.OnRep_Visual();
+		C.Visual.ShiftSeconds=FHALSideShiftMotion{}.DurationSeconds; C.Visual.DriftSeconds=FHALSideShiftMotion{}.DriftSeconds; C.Visual.bDriving=true; C.OnRep_Visual();
 	}
 	static const auto& Jets(const UHALSideShiftComponent& C) { return C.Jets; }
 	static void ClearFX(UHALSideShiftComponent& C) { C.ClearParticles(true); }
@@ -32,5 +32,7 @@ struct FHALSideShiftTestAccess
 	static void SetupMovement(UArcadeVehicleMovementComponent& M) { M.SetAsyncPhysicsTickEnabled(false); M.bShouldRunPhysics.Store(true); M.RecoveryRules.bEnabled=false; }
 	static void SetInput(ATestVehiclePawn& P,float Steering,bool Drift)
 	{ P.CurrentInputCommand.Steering=Steering; P.CurrentInputCommand.bHandbrake=Drift; P.PushInputCommand(); }
+	static void DriveInput(ATestVehiclePawn& P,float Steering,bool Drift,float Throttle)
+	{ P.CurrentInputCommand.Throttle=Throttle; SetInput(P,Steering,Drift); }
 };
 #endif

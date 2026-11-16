@@ -1,0 +1,240 @@
+﻿{
+    "schema":  1,
+    "date":  "2026-11-16",
+    "task":  "Car07 complete same-side drift arc with coupled tangent heading and driving exit momentum",
+    "branch":  "main",
+    "baseCommit":  "821034fb2680d906bcbaacd5e0376e1e7d71636d",
+    "engine":  "5.8.3-58210709",
+    "status":  "Code, both builds, listed native/render/network checks and diagnostic path inspection complete; human feel acceptance pending",
+    "userReport":  "Previous yaw-only sign correction left crossed/folded wheel paths and did not deliver a continuous maneuver around the side; input direction must match the maneuver and exit must not change direction suddenly.",
+    "cause":  [
+                  "Previous side-entry curve turned opposite to the corrected chassis yaw; keeping center positions does not preserve four-wheel tracks.",
+                  "Driving momentum stayed in the original world direction and the motor restored it after removing the scripted speed.",
+                  "Previous checks emphasized stationary center/end-yaw; no already-moving/drifting exit-speed or actual four-wheel path checks."
+              ],
+    "behavior":  {
+                     "curve":  "theta=pi/2*s; forward=span*bend*sin(theta); side=span*(1-cos(theta)); s=u*u*(3-2*u)",
+                     "heading":  "Same ellipse tangent atan2(sin(theta),bend*cos(theta)), signed by input; scaled by configured turn angle (default 90deg)",
+                     "entry":  "Keep actual initial driving momentum; smoothly rotate it with the path tangent",
+                     "exit":  "Remove only added scripted speed; initial driving momentum continues along new direction",
+                     "externalImpulses":  "Explicit known recoil/impacts remain world-directed, independent of rotated driving momentum",
+                     "earlyRelease":  "Freeze reached tangent progress, stop extra motion with bounded braking; no re-arm",
+                     "lateralSpanDefaultCm":  450,
+                     "bendDefault":  1,
+                     "ordinaryShiftCm":  300,
+                     "shiftSeconds":  0.24,
+                     "driftWindowSeconds":  0.3,
+                     "charges":  4,
+                     "sequentialRechargeSeconds":  5,
+                     "enemyLockOrAutoAimAdded":  false,
+                     "actorPoseTeleportAdded":  false,
+                     "assetEditRequired":  false,
+                     "formatBefore":  10,
+                     "formatAfter":  11,
+                     "matchingEndpointBuildsRequired":  true
+                 },
+    "builds":  [
+                   {
+                       "run":  "Editor_R1",
+                       "result":  "Succeeded",
+                       "exitCode":  0,
+                       "seconds":  208.58,
+                       "logSha256":  "A55C07FB06EE30F1D0AD950F1920216D9C62B2669D2C1FFF4330C1DDF361507E"
+                   },
+                   {
+                       "run":  "Game_R1",
+                       "result":  "Succeeded",
+                       "exitCode":  0,
+                       "seconds":  170.94,
+                       "logSha256":  "A7EAED3A2A61BE08FBEDC60FC872F4B930301C601F899DB2CD60FD375B584244"
+                   }
+               ],
+    "automation":  {
+                       "run":  "Final_R1",
+                       "RHI":  "D3D12",
+                       "passed":  35,
+                       "warnings":  0,
+                       "failed":  0,
+                       "notRun":  0,
+                       "inProcess":  0,
+                       "exitCode":  0,
+                       "reportSha256":  "553576647711A960B5FF8FE4F4BFA9341304E5130BEDD78B3FB29754B6EB39CA",
+                       "logSha256":  "BD1A7132158F0C18916896B7D3AE171082D3860FCA2B49049747FFA7FBA262BE",
+                       "coverage":  "Tangent/ellipse geometry, moving background vs world recoil, release freeze, angle/replay/history; actual Chaos stationary and already-driving/drifting casts both sides, actual Car07 reference wheel positions on full concentric arcs, continuous heading/velocity and exit momentum, tuned bend/span/COM/CCD walls; GAS/movement/input/tire/suspension and actual D3D12 effects",
+                       "solver":  {
+                                      "standingEndCm":  [
+                                                            450,
+                                                            450
+                                                        ],
+                                      "leftTurnDegrees":  -89.993,
+                                      "rightTurnDegrees":  89.993,
+                                      "movingEntrySpeedCmPerSecond":  1200,
+                                      "movingLeftExitVelocityCmPerSecond":  [
+                                                                                -0.638,
+                                                                                -1199.995
+                                                                            ],
+                                      "movingRightExitVelocityCmPerSecond":  [
+                                                                                 -0.638,
+                                                                                 1199.995
+                                                                             ],
+                                      "movingAfterOrdinaryStepX":  -3.273,
+                                      "movingAfterOrdinaryStepSideMagnitude":  1199.966,
+                                      "fullPathStats":  [
+                                                            {
+                                                                "case":  "-1_0",
+                                                                "samples":  24,
+                                                                "minimumHeadingVelocityDot":  0.996867013737386
+                                                            },
+                                                            {
+                                                                "case":  "-1_1200",
+                                                                "samples":  24,
+                                                                "minimumHeadingVelocityDot":  0.9972398136276186
+                                                            },
+                                                            {
+                                                                "case":  "1_0",
+                                                                "samples":  24,
+                                                                "minimumHeadingVelocityDot":  0.996867013737386
+                                                            },
+                                                            {
+                                                                "case":  "1_1200",
+                                                                "samples":  24,
+                                                                "minimumHeadingVelocityDot":  0.9972398136276186
+                                                            }
+                                                        ],
+                                      "referenceWheels":  "Four actual Car07 skeletal reference wheel transforms, applied to real production movement/Chaos body samples",
+                                      "fixture":  "Neutral cube contact body; real-model convex multiplayer checked separately",
+                                      "csvSha256":  "601E497C87AD56EBE84EF2F9CA61EDA84603C0F3C96A43F479671CAEA88A08D6"
+                                  }
+                   },
+    "network":  {
+                    "run":  "Network_R1",
+                    "mode":  "Actual Listen Server plus owning client",
+                    "RHI":  "D3D12",
+                    "hostOutboundLagMs":  80,
+                    "peers":  [
+                                  {
+                                      "role":  "Host",
+                                      "passed":  1,
+                                      "warnings":  0,
+                                      "failed":  0,
+                                      "exitCode":  0,
+                                      "standing":  {
+                                                       "inputAlignedTurnDegrees":  89.362,
+                                                       "lateralCm":  447.798,
+                                                       "forwardCm":  447.028
+                                                   },
+                                      "moving":  {
+                                                     "entrySpeedCmPerSecond":  660.187,
+                                                     "entryYawRateRadiansPerSecond":  0.171,
+                                                     "turnDegrees":  90.222,
+                                                     "exitSpeedCmPerSecond":  933.48,
+                                                     "exitHeadingDot":  0.99998,
+                                                     "oldForwardProjectionCmPerSecond":  1.687,
+                                                     "newSideProjectionCmPerSecond":  933.479
+                                                 },
+                                      "reportSha256":  "30AA25B5CEFB886A65AA972DEB473ECC3136147F707CB1C3B4C75096F28FB1C7",
+                                      "logSha256":  "2C2647AF3CCDF332AAD46E5BAF0046BBC3B5EAD882085D84D6852D00673AFA23"
+                                  },
+                                  {
+                                      "role":  "Client",
+                                      "passed":  1,
+                                      "warnings":  0,
+                                      "failed":  0,
+                                      "exitCode":  0,
+                                      "standing":  {
+                                                       "inputAlignedTurnDegrees":  90,
+                                                       "lateralCm":  447.69,
+                                                       "forwardCm":  447
+                                                   },
+                                      "moving":  {
+                                                     "entrySpeedCmPerSecond":  661.723,
+                                                     "entryYawRateRadiansPerSecond":  -0.183,
+                                                     "turnDegrees":  89.063,
+                                                     "exitSpeedCmPerSecond":  922.145,
+                                                     "exitHeadingDot":  1,
+                                                     "oldForwardProjectionCmPerSecond":  13.358,
+                                                     "newSideProjectionCmPerSecond":  922.048
+                                                 },
+                                      "reportSha256":  "0DFA1BCDE9CA5354E28DC14636B9AD41C4E54B32C873AE424E528C366E4D5B06",
+                                      "logSha256":  "5D32C0A3D24F9CDEACECA2D2B8C698B2342DF43E4FAA8CE4C69218D76A4237B9"
+                                  }
+                              ],
+                    "coverage":  "Actual Car07 convex body, both input signs and ordinary shift; stationary full arc; third cast after real throttle acceleration \u003e600cm/s and \u003e=0.06s held steering/handbrake, exit heading/speed rather than old-forward restoration; charges/recovery/observer/particles/marks/reliable release after expiry",
+                    "fixture":  "Transient opt-in grant, isolated floor and one-time initial placement only; no velocity/pose writes during measured standing or moving casts"
+                },
+    "diagnostic":  {
+                       "artifact":  "Car07_SideShift_CoupledArc_Paths_20261116.svg",
+                       "sha256":  "216EB17411BE3338018F8A25F1942085FEF0B2BD253C780B5495CE833C597D3B",
+                       "visuallyInspectedPng":  true,
+                       "leftTop":  "Analytic reconstruction of previous mismatched rule, not an old gameplay capture",
+                       "remainingPanels":  "New real Chaos root poses + actual Car07 reference wheel geometry; left/right stationary, already-moving right cast with exit continuation",
+                       "notGameplayScreenshot":  true
+                   },
+    "preservation":  {
+                         "protectedFiles":  1342,
+                         "unchanged":  1342,
+                         "changed":  [
+
+                                     ],
+                         "baselineSha256":  "1F70E6990F953E7A915EB4239B8BCA187101D6D30AFD770B41CB299C5ABB3E95",
+                         "sourceFilesBefore":  441,
+                         "sourceFilesChanged":  8,
+                         "runtimeFilesChanged":  4,
+                         "testFilesChanged":  4,
+                         "existingTeamAndPreviousUncommittedChangesPreserved":  true,
+                         "newThirdPartyPlugin":  false,
+                         "blueprintOrMapEdited":  false,
+                         "commitOrPush":  false
+                     },
+    "sourceHashes":  [
+                         {
+                             "path":  "Source\\HAL_Future_Creation\\ArcadeVehicleMovementComponent.cpp",
+                             "beforeSha256":  "72B8511D977B23960C6CD0DBC65ECCF848FED02F3BA04C8607630853A2A59D58",
+                             "sha256":  "3BB36335E16B78BB8BFA7541C60ABC4BC12EA538C0315F7E9FB15D79E4D9139F"
+                         },
+                         {
+                             "path":  "Source\\HAL_Future_Creation\\HALMovementTypes.h",
+                             "beforeSha256":  "794FBACF2A3BF82EAA4297EA2C333FF2051FFC3336925C7AFC86FB5036F8ED50",
+                             "sha256":  "72A4D333E63F4E0389401EFB3103BF030E722AC8B947F443853AA7E3869D79A4"
+                         },
+                         {
+                             "path":  "Source\\HAL_Future_Creation\\HALSideShiftMotion.h",
+                             "beforeSha256":  "90ED176D23CB78EAC1A554BB4C0A71AF8573046FE6D8543AB86B8105D8A6EB3A",
+                             "sha256":  "5BA0D5C616C37239005CE225C698F85D04F78EE75E6F4DB33D0BDA82A56B65FE"
+                         },
+                         {
+                             "path":  "Source\\HAL_Future_Creation\\HALSideShiftMotion.cpp",
+                             "beforeSha256":  "F3D78898577C714604ACD5B9B4E155B237155B28E31DF0C3DE3C5680A0B1A8CF",
+                             "sha256":  "1EB8DF20DC29BE51C10724790A78BC4500FF16F6DF6B7B91ED03AD2A1FC00D7A"
+                         },
+                         {
+                             "path":  "Source\\HAL_Future_Creation\\Tests\\HALSideShiftTestSupport.h",
+                             "beforeSha256":  "4DB14B7C0BB7E6D59777B92C4990524D692356FD0A84ED55DD0F2334A393BC43",
+                             "sha256":  "DE42F264922B7BA9AD542EA3D4413ED482094976B9149704426812E4F5717B74"
+                         },
+                         {
+                             "path":  "Source\\HAL_Future_Creation\\Tests\\HALSideShiftTests.cpp",
+                             "beforeSha256":  "55F5E939E85F9008A36CB6637823C8AD270AB5552B3D35C7F74C8C8DAEF3AE42",
+                             "sha256":  "723BF28EFA8F6923A5C86EC6B528532549EEE40C819F6BF603327136FFCE5FA7"
+                         },
+                         {
+                             "path":  "Source\\HAL_Future_Creation\\Tests\\HALSideShiftSolverTests.cpp",
+                             "beforeSha256":  "E1233E2CBD5E3481FE68DF21C2767BA5C5DCADBF1C8874F5A979F626F32C6D80",
+                             "sha256":  "22CBCAA328F85B580D7065E7C5301C8B6444085FF9A07526F60CD6A92EAF4BDF"
+                         },
+                         {
+                             "path":  "Source\\HAL_Future_Creation\\Tests\\HALSideShiftNetworkTests.cpp",
+                             "beforeSha256":  "81536EDB1E8BCF225066385C7E7ADB0130854EAE414006895BAEC4549D3AF48F",
+                             "sha256":  "0BBEBB7DBD8CA60B23A44CD079492A742D535D256FEBA33B6BD990183E9F741A"
+                         }
+                     ],
+    "notVerified":  [
+                        "Human feel under formal camera and real input timing",
+                        "Real ball targeting/contact during this revised maneuver",
+                        "Extreme late presses, high-speed/steep slope/corner/continuous-contact combinations",
+                        "Four machines, actual late join/loss and full room loop",
+                        "Cook, packaged multiplayer and performance"
+                    ],
+    "rawEvidenceDirectory":  "Saved/Car07SideShift/20261116_CoupledArc (local ignored reports)",
+    "specification":  "Car07_Extreme_LaneChange_CN_v0.1.md"
+}

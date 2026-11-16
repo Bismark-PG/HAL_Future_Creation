@@ -602,6 +602,7 @@ void ATestVehiclePawn::PushInputCommand()
 {
 	if (!HALGameFlow::Permissions(GetWorld(),this).bDrive) { CurrentInputCommand.Reset(); }
 	CurrentInputCommand.Sanitize();
+	SideShift->ObserveHandbrake(CurrentInputCommand.bHandbrake);
 	if ((HasAuthority() || bNetworkPhysicsHistoryActive) && ArcadeMovement)
 	{
 		ArcadeMovement->SetInputCommand(CurrentInputCommand);
@@ -752,6 +753,7 @@ void ATestVehiclePawn::ClientLaunchResult_Implementation(
 void ATestVehiclePawn::ResetInputCommand()
 {
 	CurrentInputCommand.Reset();
+	SideShift->ObserveHandbrake(false);
 	if (ArcadeMovement)
 	{
 		ArcadeMovement->ResetInputCommand();
@@ -870,7 +872,7 @@ bool ATestVehiclePawn::DispatchAbilityInput(const FVehicleInputCmd& Request)
 	// Discrete gameplay is dispatched once on the GT; it never enters the Chaos history/RPC payload.
 	const auto* State=GetPlayerState<AHALPlayerState>();
 	if(!ASC||!State||!State->AreVehicleAbilitiesReady(this)) { return false; }
-	if(SideShift->UsesPrimary()) { return SideShift->Request(Request.Steering); }
+	if(SideShift->UsesPrimary()) { return SideShift->Request(Request.Steering,Request.bHandbrake); }
 	return ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary);
 }
 

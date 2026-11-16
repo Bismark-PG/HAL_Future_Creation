@@ -24,10 +24,11 @@ bool FHALSideShiftProfileTest::RunTest(const FString&)
 	M.Stamp(nullptr,100,1.f/60); TestTrue(TEXT("Stamped state valid"),M.IsValid(true));
 	float Distance=0; for(int32 F=100;F<200;++F) { Distance+=M.StepSpeed(F,1.f/60)/60; }
 	TestTrue(TEXT("Average profile integrates to authored 300 cm"),FMath::IsNearlyEqual(Distance,300.f,.01f));
-	TestTrue(TEXT("Drift tail outlasts translation"),!M.IsSliding(150)&&M.IsDrifting(150));
-	TestFalse(TEXT("Window ends at one second"),M.IsDrifting(160));
-	TestTrue(TEXT("Standing-start steering has nonzero authority"),M.YawAcceleration(1,0)>10);
-	TestTrue(TEXT("Steering release brakes yaw"),M.YawAcceleration(0,2)<0);
+	const int32 TailFrame=M.StartFrame+M.ShiftFrames+1;
+	TestTrue(TEXT("Drift tail outlasts translation"),!M.IsSliding(TailFrame)&&M.IsDrifting(TailFrame));
+	TestFalse(TEXT("Window ends at configured drift time"),M.IsDrifting(M.StartFrame+M.DriftFrames));
+	TestTrue(TEXT("Heading error generates turn authority"),M.HeadingAcceleration(1,0,1.f/60)>10);
+	TestTrue(TEXT("At target the controller brakes yaw"),M.HeadingAcceleration(0,2,1.f/60)<0);
 	auto Invalid=M; Invalid.Distance=std::numeric_limits<float>::quiet_NaN(); TestFalse(TEXT("NaN rejected"),Invalid.IsValid(true));
 	Invalid=M; Invalid.Direction.Z=.5; TestFalse(TEXT("Nonhorizontal direction rejected"),Invalid.IsValid(true));
 	FHALMovementSnapshot S; S.Epoch=FGuid::NewGuid(); S.Revision=1; S.SideShift=M; S.Stamp(nullptr,100,1.f/60);
@@ -44,6 +45,81 @@ bool FHALSideShiftProfileTest::RunTest(const FString&)
 	auto* C=NewObject<UHALSideShiftConfig>(); FString Error; TestTrue(TEXT("Default skill configuration valid"),C->Validate(Error));
 	C->MaximumCharges=9; TestFalse(TEXT("Charge budget bounded"),C->Validate(Error)); C->MaximumCharges=4;
 	C->RechargeSeconds=0; TestFalse(TEXT("Zero recharge rejected"),C->Validate(Error)); return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSideShiftQuarterTurnTest,"HAL.FutureCreation.SideShift.QuarterTurnLatchReleaseAndReplay",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALSideShiftQuarterTurnTest::RunTest(const FString&)
+{
+	FHALSideShiftMotion M; M.Activation=FGuid::NewGuid(); M.bActive=true; M.Direction=FVector::RightVector; M.Stamp(nullptr,0,1.f/60);
+	for(float Sign:{-1.f,1.f})
+	{
+		M.InitialForward=FRotator(0,170,0).Vector(); M.Direction=FVector::CrossProduct(FVector::UpVector,M.InitialForward)*Sign;
+		FHALSideShiftTurnState State; float Yaw=170, Rate=0, Peak=0; FHALSideShiftTurnState Checkpoint; float SavedYaw=0,SavedRate=0,ExpectedA=0;
+		for(int32 Frame=0;Frame<90;++Frame)
+		{
+			float A=0; TestTrue(TEXT("Holding drift retains one captured target beyond activation window"),State.Update(M,Frame,Yaw,Rate,Sign,true,1.f/60,A));
+			if(Frame==7) { Checkpoint=State; SavedYaw=Yaw; SavedRate=Rate; ExpectedA=A; }
+			Rate+=A/60; Yaw=FMath::UnwindDegrees(Yaw+FMath::RadiansToDegrees(Rate/60)); Peak=FMath::Max(Peak,FMath::Abs(FMath::FindDeltaAngleDegrees(170,Yaw)));
+		}
+		TestTrue(TEXT("Left input turns left and right input turns right across the yaw wrap"),FMath::Abs(FMath::FindDeltaAngleDegrees(170,Yaw)-Sign*90)<1);
+		TestTrue(TEXT("No full spin or overshoot from held input"),Peak<92&&FMath::Abs(Rate)<.01);
+		FVehiclePhysicsHistoryState Stored; Stored.State.SideShiftTurn=Checkpoint; TArray<uint8> Bytes; bool OK=false;
+		{ FMemoryWriter Ar(Bytes); Stored.NetSerialize(Ar,nullptr,OK); } TestTrue(TEXT("Turn latch checkpoint serializes"),OK);
+		FVehiclePhysicsHistoryState Restored; { FMemoryReader Ar(Bytes); Restored.NetSerialize(Ar,nullptr,OK); }
+		TestTrue(TEXT("Turn checkpoint survives cold history restore"),OK&&Restored.State.SideShiftTurn.Equals(Checkpoint));
+		float Replayed=0; Restored.State.SideShiftTurn.Update(M,7,SavedYaw,SavedRate,Sign,true,1.f/60,Replayed);
+		TestEqual(TEXT("Rewind does not choose a new heading or spend another angle"),Replayed,ExpectedA);
+		auto Wrong=Restored; Wrong.State.SideShiftTurn.TargetYaw+=5;
+		TestFalse(TEXT("Different predicted target requests correction"),Stored.CompareData(Wrong));
+		float Brake=0; State.Update(M,90,Yaw,3,Sign,false,1.f/60,Brake); TestTrue(TEXT("Release brakes rather than restarting"),Brake<0&&State.bReleased);
+		State.Update(M,91,Yaw,0,-Sign,true,1.f/60,Brake); TestTrue(TEXT("Re-press cannot buy a second turn in the same activation"),State.bReleased);
+		State.Cancel(M.Activation); TestFalse(TEXT("Interrupt cannot resume the old turn"),State.Update(M,1,Yaw,0,Sign,true,1.f/60,Brake));
+	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSideShiftArcGeometryTest,"HAL.FutureCreation.SideShift.ArcSpanBendAndHistory",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALSideShiftArcGeometryTest::RunTest(const FString&)
+{
+	FHALSideShiftMotion M; M.Activation=FGuid::NewGuid(); M.bActive=true; M.Direction=FVector::RightVector; M.Stamp(nullptr,0,1.f/60);
+	for(float Bend:{0.f,.5f,1.f,2.f})
+	{
+		M.DriftArcBend=Bend; const auto End=M.ArcOffset(1,M.DriftLateralSpan);
+		TestTrue(TEXT("Bend never shrinks the configured lateral span"),FMath::Abs(End.Y-450)<.01);
+		TestTrue(TEXT("Bend controls independent forward wrapping depth"),FMath::Abs(End.X-450*Bend)<.01);
+	}
+	M.DriftArcBend=1; FHALSideShiftTurnState S; float A=0;
+	S.Update(M,0,0,0,1,true,1.f/60,A); FVector Sum=FVector::ZeroVector;
+	for(int32 F=0;F<=M.ShiftFrames;++F) { Sum+=S.ArcStepVelocity(M,F,1.f/60)/60; }
+	TestTrue(TEXT("Exact fixed-step curve integrates to 450cm side and forward"),Sum.Equals(FVector(450,450,0),.01));
+	const FVector Middle=M.ArcOffset(.5f,450);
+	TestTrue(TEXT("Vehicle-center arc enters forward and turns about the selected side"),FMath::Abs(FVector::Distance(Middle,FVector(0,450,0))-450)<.01);
+	for(float Bend:{.5f,1.f,2.f}) for(float P:{.1f,.3f,.5f,.7f,.9f})
+	{
+		M.DriftArcBend=Bend;
+		const FVector Tangent=(M.ArcOffset(P+.0001f,450)-M.ArcOffset(P-.0001f,450)).GetSafeNormal();
+		const FVector Heading=FRotator(0,90*M.ArcHeadingProgress(P),0).Vector();
+		TestTrue(TEXT("Heading reference follows the same ellipse tangent as translation"),FVector::DotProduct(Tangent,Heading)>.9999);
+	}
+	M.DriftArcBend=1; M.InitialVelocity=FVector(1200,0,0); S={}; S.Update(M,0,0,0,1,true,1.f/60,A);
+	TestTrue(TEXT("Forward entry preserves current driving direction"),S.ArcBackgroundVelocity(M,0).X>1199);
+	TestTrue(TEXT("Exit driving momentum follows the new heading instead of snapping to original forward"),S.ArcBackgroundVelocity(M,M.ShiftFrames).Equals(FVector(0,1200,0),.01));
+	S.TrackGameplayImpulse(M,4,FVector(-200,0,0));
+	TestTrue(TEXT("External recoil stays world-directed while driving momentum turns"),S.ArcBackgroundVelocity(M,M.ShiftFrames).Equals(FVector(-200,1200,0),.01));
+	const auto MidState=S; S.Cancel(M.Activation); TestFalse(TEXT("Cancelled arc never resumes its motor"),S.IsArcDriving(M,1));
+	TestTrue(TEXT("Captured arc itself validates"),MidState.IsValid());
+	M.bDriftAtStart=true; S={};
+	TestTrue(TEXT("Cast modifier starts the full arc despite stale continuous steering and handbrake"),S.Update(M,0,0,0,0,false,1.f/60,A));
+	TestTrue(TEXT("Stale continuous release cannot truncate a cast-time arc"),S.ArcFrames==M.ShiftFrames&&!S.bReleased);
+	M.bDriftReleased=true; S.Update(M,2,-5,-2,0,false,1.f/60,A);
+	TestTrue(TEXT("Reliable release brakes even if no continuous held packet ever arrived"),S.bReleased&&A>0&&S.ArcStepVelocity(M,2,1.f/60).IsZero());
+	TestTrue(TEXT("Early release freezes background heading instead of continuing the scripted turn"),S.ArcBackgroundVelocity(M,2).Equals(S.ArcBackgroundVelocity(M,12),.01));
+	M.bDriftReleased=false; S.Update(M,3,-5,0,1,true,1.f/60,A);
+	TestTrue(TEXT("Re-press after the edge cannot restart this arc"),S.bReleased);
+	TArray<uint8> Bytes; { FMemoryWriter Ar(Bytes); M.Serialize(Ar); }
+	FHALSideShiftMotion Read; { FMemoryReader Ar(Bytes); Read.Serialize(Ar); }
+	TestTrue(TEXT("Cast-time intent survives movement history transport"),Read==M);
+	return true;
 }
 
 namespace
@@ -86,7 +162,13 @@ bool FHALSideShiftGASTest::RunTest(const FString&)
 	auto* BallClass=LoadClass<ABasicBallActor>(nullptr,TEXT("/Game/Blueprints/Balls/BP_BasicBall.BP_BasicBall_C"));
 	auto* Ball=W->SpawnActor<ABasicBallActor>(BallClass,P->GetActorLocation()+FVector(200,0,0),FRotator::ZeroRotator,Params); Ball->PreInitializeComponents(); Ball->DispatchBeginPlay();
 	TestTrue(TEXT("Normal controlled ball acquired"),FHALSideShiftTestAccess::Acquire(P,Ball));
-	TestTrue(TEXT("Stationary left request dispatched"),C->Request(-1)); TestEqual(TEXT("One activation costs one charge"),C->GetChargeView().Charges,3);
+	TestTrue(TEXT("Stationary left request dispatched"),C->Request(-1,true)); TestEqual(TEXT("One activation costs one charge"),C->GetChargeView().Charges,3);
+	auto* Bridge=P->FindComponentByClass<UHALMovementEffectBridge>();
+	TestTrue(TEXT("GAS publishes the cast-time drift modifier"),FHALRoomTestAccess::Flush(Bridge).SideShift.bDriftAtStart);
+	C->ObserveHandbrake(false);
+	// This fixture does not advance Chaos: a second revision must wait for the
+	// first authority frame. The release must remain queued, not be discarded.
+	TestTrue(TEXT("A rapid release queues physics publication without a continuous input packet"),FHALRoomTestAccess::HasPendingPublication(Bridge));
 	TestTrue(TEXT("Ball remains controlled without skill launch/drop"),Ball->GetBallState()==EBasicBallState::Controlled);
 	TestFalse(TEXT("Side shift grants no impact immunity"),ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_ImpactImmune));
 	const double Due=C->GetChargeView().NextRechargeServerTime;
@@ -96,7 +178,7 @@ bool FHALSideShiftGASTest::RunTest(const FString&)
 	TestTrue(TEXT("Direction is locked to initial vehicle-left"),Motion.SideShift.Direction.Equals(FVector(0,-1,0)));
 	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FAdvanceSideShift>(Life,1.1f,[this,Life,P,C,ASC,Config,Due,Ball]()
 	{
-		FHALSideShiftTestAccess::Pose(P); C->Request(1); TestEqual(TEXT("Second activation costs one"),C->GetChargeView().Charges,2);
+		FHALSideShiftTestAccess::Pose(P); C->Request(1,true); TestEqual(TEXT("Second activation costs one"),C->GetChargeView().Charges,2);
 		TestEqual(TEXT("Further spending does not restart recharge clock"),C->GetChargeView().NextRechargeServerTime,Due);
 		C->Initialize(*ASC,*Config); TestEqual(TEXT("Idempotent binding does not refill"),C->GetChargeView().Charges,2);
 		P->SetActorRotation(FRotator(0,90,0)); FVector Recoil;
@@ -108,6 +190,8 @@ bool FHALSideShiftGASTest::RunTest(const FString&)
 		FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FAdvanceSideShift>(Life,4.05f,[this,Life,P,C,ASC,Config]()
 		{
 			TestEqual(TEXT("Five seconds restores only one charge"),C->GetChargeView().Charges,3);
+			C->ObserveHandbrake(false);
+			TestTrue(TEXT("Release remains queued even after the visual skill window expired"),FHALRoomTestAccess::HasPendingPublication(P->FindComponentByClass<UHALMovementEffectBridge>()));
 			FHALSideShiftTestAccess::Pose(P); C->Request(-1); TestEqual(TEXT("Third activation consumes exactly one"),C->GetChargeView().Charges,2);
 			TestTrue(TEXT("Shared stun interrupts immediately"),ASC->ApplyStun(6,P));
 			TestFalse(TEXT("Interrupted side shift presentation cannot resume"),FHALSideShiftTestAccess::Visual(*C).bDriving);

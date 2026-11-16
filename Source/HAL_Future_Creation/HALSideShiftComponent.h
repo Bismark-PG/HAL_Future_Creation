@@ -45,13 +45,16 @@ public:
 	void Shutdown();
 	bool UsesPrimary() const;
 	/** Input intent only; the server chooses direction from its own vehicle pose and executes GAS. */
-	bool Request(float Steering);
+	bool Request(float Steering,bool bHandbrake=false);
+	/** Preserve the release edge across the separate continuous-input transport. GT-only. */
+	void ObserveHandbrake(bool bHeld);
 	bool CanStart() const;
 	bool Start();
 	void Stop();
 	UFUNCTION(BlueprintPure, Category="Side Shift") FHALSideShiftView GetChargeView() const { return ChargeView; }
 	UFUNCTION(BlueprintPure, Category="Side Shift") float GetRechargeRemaining() const;
 	const FHALTireSkidConfig* GetActiveTireMarks() const;
+	float GetTireFXPlayRate() const { return IsSkidActive()?Visual.FX.TireFXPlayRate:1.f; }
 	bool IsSkidActive() const;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(EEndPlayReason::Type Reason) override;
@@ -61,8 +64,10 @@ private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALSideShiftTestAccess;
 #endif
-	UFUNCTION(Server,Reliable) void ServerRequest(int8 Side,uint32 Sequence);
-	void ProcessRequest(int8 Side,uint32 Sequence);
+	UFUNCTION(Server,Reliable) void ServerRequest(int8 Side,uint32 Sequence,bool bHandbrake);
+	UFUNCTION(Server,Reliable) void ServerReleaseDrift(uint32 Sequence);
+	void ProcessRequest(int8 Side,uint32 Sequence,bool bHandbrake=false);
+	void ProcessDriftRelease(uint32 Sequence);
 	void Recharge();
 	void PublishCharges();
 	void WatchActive(UWorld* World,ELevelTick TickType,float DeltaTime);
@@ -82,6 +87,7 @@ private:
 	FTimerHandle RechargeTimer, EndTimer;
 	uint32 NextRequest=0, LastRequest=0;
 	int8 PendingSide=0;
+	bool bPendingDrift=false, bAwaitingDriftRelease=false;
 	double ReadyAt=-1;
 	bool bStopping=false;
 	UPROPERTY(Replicated) FHALSideShiftView ChargeView;

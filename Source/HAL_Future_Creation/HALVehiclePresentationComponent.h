@@ -91,6 +91,7 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UNiagaraComponent> TireSkidComponents[4];
 	TArray<FHALFadingTireSkid> FadingTireSkids;
 	TWeakObjectPtr<UNiagaraSystem> CurrentTireSkidSystem;
+	float CurrentTireSkidPlayRate=1;
 	float CurrentSkidFadeSeconds=5;
 	FHALWheelSupportSample WheelSupports[4];
 	FVector LastTireSkidPoints[4] {};

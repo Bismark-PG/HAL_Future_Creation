@@ -31,7 +31,7 @@ bool FHALSideShiftFX::IsValid() const
 	for(const auto& M:LeftMounts) if(!M.IsValid()) { return false; }
 	for(const auto& M:RightMounts) if(!M.IsValid()) { return false; }
 	const auto Color=[&](FLinearColor C) { return R(C.R,0,10)&&R(C.G,0,10)&&R(C.B,0,10)&&R(C.A,0,1); };
-	return R(SparkRate,0,600)&&R(SparkSpeed,100,6000)&&R(SparkLifetime,.05,1)
+	return R(TireFXPlayRate,.1f,10)&&R(SparkRate,0,2000)&&R(SparkSpeed,100,12000)&&R(SparkLifetime,.01f,1)
 		&&R(SparkSize.X,1,100)&&R(SparkSize.Y,1,100)&&R(SpreadDegrees,1,60)
 		&&R(SmokeRate,0,150)&&R(SmokeSpeed,10,2000)&&R(SmokeLifetime,.1,2)&&R(SmokeSize,1,200)
 		&&Color(SparkColor)&&Color(SmokeColor)&&R(Glow,0,3)&&R(FadeSeconds,.01f,.3f);
@@ -112,7 +112,8 @@ void UHALSideShiftComponent::UpdateParticles()
 		auto* C=Jets[I].Get(); if(!C) { continue; }
 		C->SetRelativeTransform(Mount.Relative);
 		const float Speed=Smoke?FX.SmokeSpeed:FX.SparkSpeed;
-		const FVector Center=-Visual.Direction*Speed+(Smoke?FVector(0,0,Speed*.2):FVector::ZeroVector);
+		const FVector ReactionDirection=-GetOwner()->GetActorRightVector().GetSafeNormal2D()*Visual.Side;
+		const FVector Center=ReactionDirection*Speed+(Smoke?FVector(0,0,Speed*.2):FVector::ZeroVector);
 		const float Spread=Speed*FMath::Tan(FMath::DegreesToRadians(FX.SpreadDegrees))*.57735f;
 		C->SetVariableFloat(TEXT("User.SpawnRate"),(Smoke?FX.SmokeRate:FX.SparkRate)*Envelope);
 		C->SetVariableFloat(TEXT("User.LifetimeMin"),(Smoke?FX.SmokeLifetime:FX.SparkLifetime)*.65f);

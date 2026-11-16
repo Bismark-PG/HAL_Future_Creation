@@ -2,7 +2,7 @@
 #include "Commandlets/Commandlet.h"
 #include "HALBuildSideShiftFXCommandlet.generated.h"
 
-/** Creates new native skill/art assets only; never writes vehicle BP, Definition or existing effects. */
+/** Creates new native skill/art assets; -Quicken30 only retunes this skill DA, never BP/Definition/effects. */
 UCLASS()
 class UHALBuildSideShiftFXCommandlet : public UCommandlet
 {

@@ -2,6 +2,7 @@
 #include "Misc/AutomationTest.h"
 #include "HALVehiclePresentationTestSupport.h"
 #include "HALLegacyCombatTestRules.h"
+#include "HALSideShiftTestSupport.h"
 #include "../HALPlayerState.h"
 #include "Components/BoxComponent.h"
 #include "Engine/Engine.h"
@@ -9,6 +10,7 @@
 #include "GameFramework/PlayerController.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
+#include "NiagaraSystemInstanceController.h"
 
 namespace
 {
@@ -134,6 +136,7 @@ bool FHALTireSkidRHITest::RunTest(const FString&)
 	auto* FX = FHALPresentationTestAccess::TireSkid(F.Presentation,2);
 	if (!TestNotNull(TEXT("Requires real RHI: Niagara component created"), FX)) { return false; }
 	TestEqual(TEXT("Saved system assigned"), FX->GetAsset(), TireSystem());
+	TestEqual(TEXT("Ordinary drift retains normal Niagara playback"),FX->GetCustomTimeDilation(),1.f);
 	const auto& Skid = FHALPresentationTestAccess::Config(F.Presentation)->TireSkid;
 	const FVector Expected = FVector(-100,-100,50) + FVector::UpVector * Skid.SurfaceOffsetCm
 		+ F.Body->GetComponentQuat().RotateVector(Skid.ContactOffsetCm);
@@ -148,6 +151,20 @@ bool FHALTireSkidRHITest::RunTest(const FString&)
 	FHALPresentationTestAccess::Reset(F.Presentation);
 	TestFalse(TEXT("Reset destroys fading segment"), IsValid(FX));
 	TestEqual(TEXT("Reset clears fading ownership"),FHALPresentationTestAccess::FadingTireSkids(F.Presentation),0);
+	// Skill-only marks must also stop if the vehicle has ordinary drift FX disabled.
+	const auto SkillMarks=Skid;
+	FHALPresentationTestAccess::DisableBaseTireSkid(F.Presentation);
+	auto* Shift=F.Pawn->FindComponentByClass<UHALSideShiftComponent>(); FHALSideShiftFX SkillFX;
+	SkillFX.bEnabled=true; SkillFX.TireMarks=SkillMarks;
+	FHALSideShiftTestAccess::Visual(*Shift,SkillFX,1,.05); F.Tick(); F.Tick();
+	auto* Fast=FHALPresentationTestAccess::TireSkid(F.Presentation,2);
+	if(!TestNotNull(TEXT("Skill-only marks create a real Niagara component"),Fast)) { return false; }
+	TestTrue(TEXT("Skill marks use 3.33x simulation without editing shared Niagara"),FMath::IsNearlyEqual(Fast->GetCustomTimeDilation(),SkillFX.TireFXPlayRate));
+	FHALSideShiftTestAccess::EndFX(*Shift); F.Tick();
+	TestNull(TEXT("Ending skill-only demand retires live marks"),FHALPresentationTestAccess::TireSkid(F.Presentation,2));
+	if(auto Controller=Fast->GetSystemInstanceController())
+	{ TestTrue(TEXT("Ending skill-only demand stops further emission"),Controller->GetRequestedExecutionState()!=ENiagaraExecutionState::Active); }
+	FHALPresentationTestAccess::Reset(F.Presentation);
 	return true;
 }
 #endif

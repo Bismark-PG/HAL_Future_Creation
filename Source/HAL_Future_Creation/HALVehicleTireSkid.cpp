@@ -125,11 +125,6 @@ void UHALVehiclePresentationComponent::UpdateTireSkids(const FVector& Velocity, 
 {
 	const auto* Shift=GetOwner()->FindComponentByClass<UHALSideShiftComponent>();
 	const FHALTireSkidConfig* Skill=Shift?Shift->GetActiveTireMarks():nullptr;
-	if (!bTireSkidReady&&!Skill)
-	{
-		Frame.TireSkidReasons = Frame.TireSkidWheelMask = 0;
-		return;
-	}
 	const double Now = GetWorld()->GetTimeSeconds();
 	FadingTireSkids.RemoveAll([Now](const FHALFadingTireSkid& Old)
 	{
@@ -137,14 +132,22 @@ void UHALVehiclePresentationComponent::UpdateTireSkids(const FVector& Velocity, 
 		if (Now < Old.Deadline) { return false; }
 		Old.Component->DestroyComponent(); return true;
 	});
+	if (!bTireSkidReady&&!Skill)
+	{
+		for(int32 Slot=0;Slot<4;++Slot) { StopTireSkid(Slot,false); }
+		Frame.TireSkidReasons = Frame.TireSkidWheelMask = 0;
+		return;
+	}
 	const uint8 PreviousMask = Frame.TireSkidWheelMask, PreviousReasons = Frame.TireSkidReasons;
 	const auto& Settings = Skill?*Skill:Config->TireSkid;
-	if(CurrentTireSkidSystem.Get()!=Settings.System.Get())
+	const float PlayRate=Skill?Shift->GetTireFXPlayRate():1.f;
+	if(CurrentTireSkidSystem.Get()!=Settings.System.Get()||!FMath::IsNearlyEqual(CurrentTireSkidPlayRate,PlayRate))
 	{
 		for(int32 Slot=0;Slot<4;++Slot) { StopTireSkid(Slot,false); }
 		CurrentTireSkidSystem=Settings.System;
+		CurrentTireSkidPlayRate=PlayRate;
 	}
-	CurrentSkidFadeSeconds=Settings.MaximumFadeSeconds;
+	CurrentSkidFadeSeconds=Settings.MaximumFadeSeconds/PlayRate;
 	Frame.TireSkidReasons = HALVehiclePresentation::TireSkidReasons(Settings, ReadTireSkidInputs(),
 		Frame.ForwardSpeedCmPerSecond, FVector::DotProduct(Velocity, Body->GetRightVector()), PreviousReasons,
 		(bTireSkidReady||Skill) && bDrivingAllowed);
@@ -181,6 +184,7 @@ void UHALVehiclePresentationComponent::UpdateTireSkids(const FVector& Velocity, 
 					NextRibbonID = NextRibbonID == MAX_int32 ? 1 : NextRibbonID + 1;
 					Component->SetVariableInt(Settings.RibbonIDParameter, NextRibbonID);
 					Component->SetVariableFloat(Settings.SlipRatioParameter, Settings.SlipRatio);
+					Component->SetCustomTimeDilation(PlayRate);
 					if (!Settings.SurfaceNormalParameter.IsNone()) { Component->SetVariableVec3(Settings.SurfaceNormalParameter, Support.Normal); }
 					Component->Activate(true);
 				}
