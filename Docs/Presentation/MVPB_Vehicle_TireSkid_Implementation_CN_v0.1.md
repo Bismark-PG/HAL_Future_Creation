@@ -103,3 +103,32 @@
 ## 7. 团队初测反馈与后续入口（2026-10-28）
 
 用户随后反馈“经过测试暂时没有太大问题”，记录为拖尾基础初测正向反馈，下一项转为动态相机0.1方案讨论。`36ed9b4`已提交本轮拖尾代码／文档；当前团队在Car_01表现DA及NetTest地图仍有本地修改，全部保留。本代理未重新导出这些保存值、检查最新Niagara图或运行新的测试；一般反馈不扩写为逐车型／网络角色／斜坡Facing／所有组合已经验收，前节详细矩阵继续保留。
+
+## 8. 每车颜色与喷漆胎痕素材（2026-11-17）
+
+**参数契约**（`FHALTireSkidConfig`，`HALVehiclePresentationConfig.h`）：
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `ColorParameter` | `FName` | 空 | Niagara 的 LinearColor User 参数名；空＝沿用素材自身默认色。资产里填 `User.MarkColor`。 |
+| `MarkColor` | `FLinearColor`（线性） | (0.02,0.02,0.025,1) | 该车胎痕颜色，Alpha 缩放不透明度。纯外观身份，所有客户端从同一 DA 读取，不复制。 |
+
+- `Validate`：`ColorParameter` 非空时，素材必须声明同名 LinearColor User 参数，且 `MarkColor` 各分量有限、非负、Alpha ≤ 1，否则整条胎痕不就绪。
+- 颜色只在 Niagara 组件激活时推一次（组件生命周期内恒定），不逐帧写。
+
+**素材**：
+- `NS_VehicleTireSkid`：新的胎痕系统，替代旧 `NS_TireSkid` 作为 7 台车的 `System`；DA 引用其 `User.SlipRatio`、`User.RibbonID`、`User.SurfaceNormal`、`User.MarkColor`（本轮未逐一核对素材内的参数类型，待确认；类型不符时 `Validate` 会让胎痕不就绪）。
+- `M_FX_TireMark_Ribbon`：Unlit Translucent。遮罩只进 Opacity、颜色只进 Emissive（避免双重变暗）；Unlit 是刻意的——作为车辆身份的有色痕迹，阴影里与亮处要读成同一种颜色。颜色经 Particle Color 进入，一个材质、一张贴图服务所有车，无需每车材质实例。`TileAlong` 保持 1（Ribbon 渲染器已经负责沿长度重复）。
+- `T_TireMark_Spray_Worn_Mask`：由 `Tools/TireMarks/GenerateTireMarks.py` 的 `Spray_Worn` 变体生成（替换原 `Toon_Worn` 卡通变体）——磨损胎纹经模板喷涂：边缘渗开羽化、喷压不均、四周有过喷雾点。沿 X 无缝平铺。生成的 PNG 在 `SourceArt/TireMarks/`，被 `.gitignore` 排除，需要时重跑脚本生成。
+
+**脚本**（均为幂等，需开着 Editor 经 bridge 执行）：
+- `Tools/TireMarks/BuildTireMarkAssets.py`：导入遮罩、从零重建材质图。
+- `Tools/TireMarks/EnableTireSkid.py`：只改 7 个 `DA_Car_0X_Presentation` 的 `TireSkid` 区块与 Car_05 轮半径；重跑会把手工调整覆盖回脚本值。
+
+**每车颜色**（sRGB，脚本转线性）：Car_01 `#EA1E8C` 粉、Car_02 `#C4122F` 绯红、Car_03 `#F2B705` 琥珀黄、Car_04 `#10A698` 青、Car_05 `#1E9BE8` 天蓝、Car_06 `#24439A` 海军蓝、Car_07 `#F0561A` 橙。取自各车俯视渲染的主色并提亮；Car_02（三色接近）与 Car_06（白车，取其海军蓝条纹）是判断而非量测。
+
+**DA 其他实值**：仅后轮 BL/BR 出痕；`SlipRatio` 1、`SurfaceNormalParameter` `User.SurfaceNormal`（不填则斜坡上 ribbon 朝世界上方、陷进地面）、`MaximumFadeSeconds` 5（须大于粒子寿命 4 s）、`MaximumSegmentDistanceCm` 200、`SurfaceOffsetCm` 1、`MaximumGroundGapCm` 8。**Car_05 轮半径修正**：前 48.7、后 55.2 cm（原全为 47.5，后轮起步就吃掉 8 cm 离地预算的 7.7 cm，漂移一侧倾就判为腾空、不出痕；同值驱动视觉轮转，修正后大轮转速也对了）。
+
+> **坑：测试探针换素材时要清掉所有可选参数名。** `FHALPresentationTestAccess::EnableTireSkidProbe` 复制车型 DA 再换上旧 `NS_TireSkid`。DA 现在填了 `User.SurfaceNormal` 与 `User.MarkColor`，旧素材两者都没绑定，`Validate` 失败、`bTireSkidReady=false`，`TireSkid.GroundAndLifecycle` 两处期望 4 实得 0。夹具现在把 `ColorParameter`、`SurfaceNormalParameter` 都置空。以后 DA 再加可选参数，同样要在探针里清掉。
+
+**未覆盖**：`ColorParameter` 非空的 `Validate` 通过／拒绝路径还没有自动化测试；新 `NS_VehicleTireSkid` 本身也未被任何自动化测试加载。

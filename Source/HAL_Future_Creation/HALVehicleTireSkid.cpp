@@ -50,6 +50,11 @@ bool FHALTireSkidConfig::Validate(FString& Error) const
 		|| (!SurfaceNormalParameter.IsNone()
 			&& Parameters.IndexOf(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), SurfaceNormalParameter)) == INDEX_NONE))
 	{ return Fail(TEXT("Tire skid Niagara requires matching float SlipRatio, int RibbonID and optional vector SurfaceNormal User parameters.")); }
+	if (!ColorParameter.IsNone()
+		&& (Parameters.IndexOf(FNiagaraVariable(FNiagaraTypeDefinition::GetColorDef(), ColorParameter)) == INDEX_NONE
+			|| !FMath::IsFinite(MarkColor.R) || !FMath::IsFinite(MarkColor.G) || !FMath::IsFinite(MarkColor.B)
+			|| !FMath::IsFinite(MarkColor.A) || MarkColor.GetMin() < 0 || MarkColor.A > 1))
+	{ return Fail(TEXT("Tire skid colour needs a matching LinearColor User parameter and a finite, non-negative MarkColor with alpha at most 1.")); }
 	for (const auto& Handle : System->GetEmitterHandles())
 	{
 		if (const auto* Data = Handle.GetEmitterData(); Data && Data->bLocalSpace)
@@ -182,6 +187,8 @@ void UHALVehiclePresentationComponent::UpdateTireSkids(const FVector& Velocity, 
 					Component->SetVariableInt(Settings.RibbonIDParameter, NextRibbonID);
 					Component->SetVariableFloat(Settings.SlipRatioParameter, Settings.SlipRatio);
 					if (!Settings.SurfaceNormalParameter.IsNone()) { Component->SetVariableVec3(Settings.SurfaceNormalParameter, Support.Normal); }
+					// Constant for the life of the component, so it is pushed once here rather than every frame.
+					if (!Settings.ColorParameter.IsNone()) { Component->SetVariableLinearColor(Settings.ColorParameter, Settings.MarkColor); }
 					Component->Activate(true);
 				}
 			}

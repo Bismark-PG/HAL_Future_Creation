@@ -10,11 +10,15 @@ Writes to SourceArt/TireMarks/:
   TireMark_ContactSheet.png      every variant on a light floor, for side-by-side review.
 
 X is the travel direction; the strip variants tile seamlessly along X.
+
+Spray_Worn is the same worn tread laid down by a rattle can through a stencil
+instead of printed in rubber: bled and feathered edges, uneven fill from varying
+can pressure, and a mist of overspray dots around the shape.
 """
 import pathlib
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageFilter
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT = ROOT / 'SourceArt' / 'TireMarks'
@@ -79,6 +83,16 @@ def blur_x(a, k):
     c = np.cumsum(ap, axis=1, dtype=np.float32)
     c = np.concatenate([np.zeros((a.shape[0], 1), np.float32), c], axis=1)
     return ((c[:, k:] - c[:, :-k]) / k)[:, :a.shape[1]]
+
+
+def blur2d(a, radius):
+    """Isotropic blur with wrap-around in X."""
+    radius = max(0.6, float(radius))
+    pad = min(int(np.ceil(radius * 3.0)) + 2, a.shape[1] - 1)
+    ap = np.concatenate([a[:, -pad:], a, a[:, :pad]], axis=1)
+    img = Image.fromarray((np.clip(ap, 0.0, 1.0) * 255.0).astype(np.uint8), 'L')
+    img = img.filter(ImageFilter.GaussianBlur(radius))
+    return np.asarray(img, dtype=np.float32)[:, pad:pad + a.shape[1]] / 255.0
 
 
 def tread(w, h, rng, wobble=0.012, lug_scale=1.0, slit=None):
@@ -154,6 +168,10 @@ def save(name, ink):
     return m
 
 
+# --------------------------------------------------------------------------
+# Rubber-print variants
+# --------------------------------------------------------------------------
+
 def variant_heavy(w, h, seed):
     """Fresh, fully loaded print: almost solid, a few torn white chips."""
     rng = np.random.default_rng(seed)
@@ -214,139 +232,60 @@ def variant_scuff(w, h, seed):
 
 
 # --------------------------------------------------------------------------
-# Cartoon graffiti variant.
+# Spray-paint graffiti variant.
 #
-# Drawn from polygons instead of noise, to match the flat-fill / tapered-spike /
-# zigzag-notch language already used by T_SlipperyTrail_Graffiti_Strokes:
-# no grey, no fine speckle, chunky hand-drawn silhouettes only.
+# Same worn tread shape, but sprayed rather than printed: the edge bleeds under
+# the stencil and feathers out, the fill is uneven because can pressure and sweep
+# speed vary, and a mist of overspray dots surrounds the shape. Grey values are
+# correct here - spray paint has no hard edge.
 # --------------------------------------------------------------------------
 
-TOON_RIBS = [(0.355, 0.428), (0.458, 0.531), (0.561, 0.634)]
-TOON_LUGS = [(0.000, 0.300, +0.55), (0.700, 1.000, -0.55)]
+def _dots(w, h, rng, density, grow):
+    """Scattered round specks; each `grow` pass widens them by one pixel.
+
+    MaxFilter grows a square neighbourhood, so the result is rounded off with a
+    short blur and a soft cut - square overspray reads as a bug, not as paint.
+    """
+    d = ((rng.random((h, w), dtype=np.float32) < density).astype(np.uint8)) * 255
+    if grow > 0:
+        img = Image.fromarray(d, 'L')
+        for _ in range(int(grow)):
+            img = img.filter(ImageFilter.MaxFilter(3))
+        d = np.asarray(img)
+    f = d.astype(np.float32) / 255.0
+    return smoothstep(0.22, 0.72, blur2d(f, 0.55 + 0.35 * grow))
 
 
-def _jitter_ring(pts, rng, amp):
-    """Re-trace a polygon with kicked corners and kicked edge midpoints."""
-    out = []
-    n = len(pts)
-    for i in range(n):
-        ax, ay = pts[i]
-        bx, by = pts[(i + 1) % n]
-        out.append((ax + rng.uniform(-amp, amp), ay + rng.uniform(-amp, amp)))
-        out.append(((ax + bx) * 0.5 + rng.uniform(-amp, amp),
-                    (ay + by) * 0.5 + rng.uniform(-amp, amp)))
-    return out
-
-
-def _spike(x, y, length, thick, ang, flip=1.0):
-    """Tapered sliver with one notch, in the house graffiti-stroke shape."""
-    ca, sa = float(np.cos(ang)), float(np.sin(ang))
-
-    def p(u, v):
-        v *= flip
-        return (x + u * ca - v * sa, y + u * sa + v * ca)
-
-    return [p(0.0, 0.0),
-            p(length * 0.42, -thick * 0.50), p(length * 0.53, -thick * 0.16),
-            p(length * 0.78, -thick * 0.60), p(length * 1.00, -thick * 0.10),
-            p(length * 0.94, thick * 0.30), p(length * 0.58, thick * 0.26),
-            p(length * 0.28, thick * 0.12)]
-
-
-def _chip(cx, cy, r, rng):
-    """Angular bite taken out of the ink."""
-    n = int(rng.integers(5, 8))
-    pts = []
-    for i in range(n):
-        a = 2.0 * np.pi * i / n + rng.uniform(-0.25, 0.25)
-        rr = r * rng.uniform(0.45, 1.25)
-        pts.append((cx + rr * np.cos(a), cy + rr * np.sin(a)))
-    return pts
-
-
-def variant_toon_worn(w, h, seed):
-    """Worn tread, redrawn as flat cartoon graffiti. Tiles along X."""
+def variant_spray_worn(w, h, seed):
+    """Worn tread sprayed through a stencil. Tiles along X."""
     rng = np.random.default_rng(seed)
-    img = Image.new('L', (w, h), 0)
-    draw = ImageDraw.Draw(img)
-    base = (fbm1d(w, rng, rx=4) * 2.0 - 1.0) * 0.022 * h   # hand-drawn path wobble
+    pat = tread(w, h, rng, wobble=0.018)
 
-    def wy(x):
-        return float(base[int(np.clip(x, 0, w - 1))])
+    # Which parts of the stencil actually took paint.
+    f = wear_field(w, h, rng, streak=0.34, fine=0.10)
+    stencil = pat * smoothstep(0.30, 0.44, f)
 
-    def blit(pts, fill):
-        """Draw once per wrap copy so the strip still tiles."""
-        for dx in (-w, 0, w):
-            draw.polygon([(px + dx, py) for px, py in pts], fill=fill)
+    # Paint creeps under the stencil edge, then the edge is recovered softly.
+    body = smoothstep(0.26, 0.64, blur2d(stencil, 0.016 * h))
 
-    jit = 0.008 * h
-    period = 0.075 * w
-    count = int(round(w / period))
-    period = w / count
+    # Uneven can pressure, smeared along the sweep direction.
+    press = blur_x(fbm(w, h, rng, rx=22, ry=7, octaves=4), 9 * SS)
+    body = np.clip(body * (0.66 + 0.58 * press), 0.0, 1.0) ** 0.82
 
-    # --- tread blocks -----------------------------------------------------
-    for y0f, y1f, slope in TOON_LUGS:
-        y0, y1 = y0f * h, y1f * h
-        for i in range(count):
-            if rng.random() < 0.24:          # missing rubber = whole block gone
-                continue
-            x = i * period
-            bw = period * rng.uniform(0.76, 0.86)
-            top, bot = y0, y1
-            if rng.random() < 0.26:          # chewed block, only partly printed
-                cut = rng.uniform(0.28, 0.52) * (y1 - y0)
-                top, bot = (y0 + cut, y1) if rng.random() < 0.5 else (y0, y1 - cut)
-            sh = slope * (bot - top)
-            quad = [(x, top + wy(x)), (x + bw, top + wy(x + bw)),
-                    (x + bw + sh, bot + wy(x + bw)), (x + sh, bot + wy(x))]
-            blit(_jitter_ring(quad, rng, jit), 255)
+    # Denser passes where the can lingered.
+    lingered = smoothstep(0.58, 0.92, fbm(w, h, rng, rx=9, ry=4, octaves=3))
+    body = np.clip(body * (1.0 + 0.34 * lingered), 0.0, 1.0)
 
-    # --- centre ribs, broken into tapered segments ------------------------
-    for y0f, y1f in TOON_RIBS:
-        y0, y1 = y0f * h, y1f * h
-        swell = fbm1d(w, rng, rx=22)     # gentle hand-drawn thickness variation
-        x = rng.uniform(0.0, 0.12) * w
-        while x < w:
-            seg = rng.uniform(0.14, 0.32) * w
-            x1 = min(x + seg, w * 1.02)
-            steps = max(8, int(seg / (0.018 * w)))
-            tl = seg * rng.uniform(0.10, 0.22)
-            tr = seg * rng.uniform(0.10, 0.22)
-            top, bot = [], []
-            for u in np.linspace(x, x1, steps):
-                k = float(min(smoothstep(0.0, tl, u - x), smoothstep(0.0, tr, x1 - u)))
-                k = 0.04 + 0.96 * k
-                s = float(swell[int(np.clip(u, 0, w - 1))])
-                mid = (y0 + y1) * 0.5 + wy(u)
-                half = (y1 - y0) * 0.5 * k * (0.80 + 0.36 * s)
-                top.append((u, mid - half))
-                bot.append((u, mid + half))
-            blit(top + bot[::-1], 255)
-            x = x1 + rng.uniform(0.06, 0.18) * w
+    # Overspray mist, thickest right next to the paint.
+    halo = blur2d(stencil, 0.075 * h)
+    mist = _dots(w, h, rng, 0.0070, 1) * smoothstep(0.015, 0.30, halo)
+    grit = _dots(w, h, rng, 0.0016, 2) * smoothstep(0.050, 0.45, halo)
+    spit = _dots(w, h, rng, 0.00012, 4) * smoothstep(0.080, 0.55, halo)
+    out = np.maximum(body, np.maximum(mist * 0.80, np.maximum(grit * 0.90, spit)))
 
-    # --- chunky bites out of the ink --------------------------------------
-    for _ in range(int(rng.integers(9, 13))):
-        cx = rng.uniform(0.0, w)
-        cy = rng.uniform(-0.03, 1.03) * h
-        blit(_chip(cx, cy, rng.uniform(0.040, 0.100) * h, rng), 0)
-
-    # --- speed slivers flung clear of the tread edges ---------------------
-    for _ in range(int(rng.integers(4, 7))):
-        edge_top = rng.random() < 0.5
-        y = (rng.uniform(-0.03, 0.04) if edge_top else rng.uniform(0.96, 1.03)) * h
-        ang = np.deg2rad(rng.uniform(-5.0, 5.0))
-        blit(_spike(rng.uniform(0.0, w), y,
-                    rng.uniform(0.09, 0.18) * w, rng.uniform(0.05, 0.09) * h,
-                    ang, flip=-1.0 if edge_top else 1.0), 255)
-
-    # --- white scratch slivers cut back across the ink --------------------
-    for _ in range(int(rng.integers(3, 6))):
-        ang = np.deg2rad(rng.uniform(-5.0, 5.0))
-        blit(_spike(rng.uniform(0.0, w), rng.uniform(0.0, 1.0) * h,
-                    rng.uniform(0.10, 0.20) * w, rng.uniform(0.022, 0.045) * h,
-                    ang, flip=1.0 if rng.random() < 0.5 else -1.0), 0)
-
-    return np.asarray(img, dtype=np.float32) / 255.0
+    # Dry patches where the can was moving fast.
+    out *= 0.82 + 0.18 * fbm(w, h, rng, rx=14, ry=5, octaves=3)
+    return np.clip(out, 0.0, 1.0)
 
 
 def contact_sheet(items):
@@ -372,7 +311,7 @@ def main():
     jobs = [
         ('Tread_Heavy', variant_heavy, 2048, 512, 11),
         ('Tread_Worn', variant_worn, 2048, 512, 23),
-        ('Toon_Worn', variant_toon_worn, 2048, 512, 29),
+        ('Spray_Worn', variant_spray_worn, 2048, 512, 23),
         ('Skid_Long', variant_skid, 4096, 512, 37),
         ('Patch_Short', variant_patch, 1024, 512, 51),
         ('Scuff_Drift', variant_scuff, 2048, 512, 67),

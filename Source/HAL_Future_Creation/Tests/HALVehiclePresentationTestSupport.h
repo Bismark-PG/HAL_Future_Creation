@@ -81,6 +81,9 @@ struct FHALPresentationTestAccess
 		Result->Config->Suspension.bEnabled = false; // Skids must work independently of visual suspension.
 		Result->Config->TireSkid.bEnabled = true;
 		Result->Config->TireSkid.System = System;
+		// The probe system is swapped in and binds neither optional parameter the car assets now name.
+		Result->Config->TireSkid.ColorParameter = NAME_None;
+		Result->Config->TireSkid.SurfaceNormalParameter = NAME_None;
 		FString Error;
 		Result->bTireSkidReady = Result->Config->TireSkid.Validate(Error);
 		return Result;

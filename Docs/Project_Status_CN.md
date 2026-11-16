@@ -1,5 +1,21 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-17 胎痕改为每车有色喷漆痕迹（7 台车 DA 已启用新 `NS_VehicleTireSkid`、各配一种身份色），编辑器 Target 编译通过、全量 237/237 通过；PIE 实机画面、多车叠加观感与性能均未验收。** C++ 侧 `FHALTireSkidConfig` 新增 `ColorParameter`（Niagara LinearColor User 参数名，空＝沿用素材默认色）与 `MarkColor`（线性色，Alpha 缩放不透明度），`Validate` 检查参数存在与颜色合法，组件激活时推一次颜色；素材侧新增 `M_FX_TireMark_Ribbon`（Unlit Translucent，遮罩进 Opacity、颜色经 Particle Color 进 Emissive，一材质服务全部车）与 `T_TireMark_Spray_Worn_Mask`（`GenerateTireMarks.py` 的卡通 `Toon_Worn` 变体换成喷漆 `Spray_Worn`）；`Tools/TireMarks/BuildTireMarkAssets.py`、`EnableTireSkid.py` 两支幂等脚本重建材质并写 DA（只后轮出痕、`SurfaceNormalParameter=User.SurfaceNormal`、Car_05 后轮半径 47.5→55.2 cm 以免漂移侧倾时误判腾空）。为什么用 Unlit：胎痕颜色是车辆身份，阴影里和亮处必须读成同一种颜色。
+
+**刻意的边界**：前轮不出痕（四轮都冒在画面上读成 bug，不像漂移）；颜色是纯外观，不复制、不进权威逻辑；颜色只在组件激活时写一次，不逐帧写。重跑 `EnableTireSkid.py` 会把 DA 里手工改过的胎痕值覆盖回脚本值。
+
+> **坑：测试探针会继承 DA 里的可选参数名。** 首次全量 236 通过 1 失败：`HAL.FutureCreation.Presentation.TireSkid.GroundAndLifecycle` 期望发射掩码 4 实得 0。原因是 `EnableTireSkidProbe` 复制车型 DA 后换上旧 `NS_TireSkid`，而 DA 现已填 `User.SurfaceNormal`，旧素材未绑定，`Validate` 失败。已在夹具里与 `ColorParameter` 一起置空 `SurfaceNormalParameter`；生产代码未改。
+
+> **坑：`index.json` 的 `succeeded` 不含带警告的通过项。** 报告显示 `succeeded 236`，但 `tests` 共 237 项、全部 `Success`，差的那 1 项是 `succeededWithWarnings`（既有的 `VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar` 地图警告）。不要把 236 误读成少了一支测试。
+
+**已验证**：`HAL_Future_CreationEditor` Win64 Development **编译通过**（exit 0）；独立 `UnrealEditor-Cmd.exe` 无头全量 `HAL.FutureCreation` **237/237 通过、0 失败、0 未执行**（其中 1 项为既有警告；报告 `Saved/Automation/20261117/TireSkidColorFull2`，时间戳为本次产生）。
+
+**未验证**：PIE 实机里 7 种颜色在明亮场地上的可读性、与烟雾／其他 FX 叠加观感、四车同时漂移时的性能、双端观感、Cook；`ColorParameter` 非空路径与新 `NS_VehicleTireSkid` 尚无自动化测试覆盖；本轮未经特效评审。
+
+**提交**：本条与胎痕改动同一提交。
+
+**下一步入口**：PIE 开测试场，四车各漂一圈，先看 Car_06 海军蓝与 Car_02 绯红在场地地面上是否够醒目，再决定是否调 `MarkColor` 亮度（直接改 `Tools/TireMarks/EnableTireSkid.py` 的 `MARK_COLORS` 后重跑，不要只在 DA 里手改）。详见 [胎痕实现文档 §8](Presentation/MVPB_Vehicle_TireSkid_Implementation_CN_v0.1.md)。
+
 **2026-11-16 黑洞那支既有失败已定位并修复（只改测试夹具，生产逻辑未动）：根因是 `9addbe3` 把非 History 冲击改成物理线程消费，而黑洞测试仍停用移动组件；修正后全量 237/237 通过、0 失败、0 未执行。** 症状是 `HAL.FutureCreation.BlackHole.AuthorityPhysicsAndLifecycle` 13 个 Expected-true 失败、`Integrated V=X=0.000 Y=0.000 Z=0.000`，但同一行日志的 `Actions=` 一直递增——说明黑洞确实在排冲击，只是没有任何一笔落到刚体上。
 
 **根因链**：`AHALBlackHole::ApplyAttraction` 走 `Movement->QueueImpact(Action)`（`HALBlackHole.cpp:256`）。`9addbe3` 把非 History 分支从「GT 立即 `AddImpulse`」改成「排入 `PendingImpacts`、由 `ConsumeNonHistoryImpacts_Internal` 在 `AsyncPhysicsTickComponent` 里消费」，并加上守卫 `if (!IsRegistered() || !bShouldRunPhysics.Load()) { return false; }`。而 `UArcadeVehicleMovementComponent::Deactivate()` 正是把 `bShouldRunPhysics` 设为 false、同时清空 `PendingImpacts` 的地方——黑洞测试从 `a7a9853` 起就会 `Movement->Deactivate()`（目的是关掉街机驱动力，好量测纯黑洞贡献），于是改动之后每一次 `QueueImpact` 都回 false。第一条失败「registers Drag on entry」也由此连带解释：`HALBlackHole.cpp` 的 else 分支把 false 当成「车已离场」，`Receiver->UnregisterArea(this)` + `Inside.Remove(Vehicle)`，刚注册的 Drag 又被撤掉。
