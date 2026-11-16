@@ -84,6 +84,7 @@ void UHALVehiclePresentationComponent::Configure(UHALVehiclePresentationConfig* 
 void UHALVehiclePresentationComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	ResolveBurstMaterial();
 	SetComponentTickEnabled(bConfigured);
 }
 
@@ -105,6 +106,7 @@ void UHALVehiclePresentationComponent::StopPresentation()
 {
 	ClearStatusFXBindings();
 	ClearTireSkids();
+	ClearImpactBursts();
 	bTireSkidReady = false;
 	SetComponentTickEnabled(false);
 	if (bConfigured && Fallback)
@@ -201,6 +203,8 @@ void UHALVehiclePresentationComponent::TickComponent(float DeltaTime, ELevelTick
 {
 	Super::TickComponent(DeltaTime, TickType, TickFunction);
 	check(IsInGameThread());
+	// World anchored and pose independent: a teleport or configuration reset must not freeze a live burst.
+	UpdateImpactBursts(DeltaTime);
 	if (!bConfigured || !Config || !Body) { return; }
 	const FVector Position = Body->GetComponentLocation();
 	const APawn* Pawn = Cast<APawn>(GetOwner());

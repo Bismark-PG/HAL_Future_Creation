@@ -129,7 +129,7 @@ bool FHALStatusFXSelectionTest::RunTest(const FString&)
 	TestEqual(TEXT("Invalid override failed once"), A->GetCatalogState(Bad,Error), EHALStatusFXLoadState::Failed);
 	TestNull(TEXT("Invalid explicit override cannot silently use default recipe"), A->FindEffect(HALGameplayTags::State_Visual_Shocked,Vehicle));
 	TestEqual(TEXT("Shared authoring data unchanged"), Shared->Effects.Num(),2);
-	const auto* Saved=LoadObject<UVehicleDefinition>(nullptr,TEXT("/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.DA_Vehicle_Player_TestBaseline_v1"));
+	const auto* Saved=LoadObject<UVehicleDefinition>(nullptr,TEXT("/Game/Data/MVP_B/DA_Vehicle_Car_01.DA_Vehicle_Car_01"));
 	if (TestNotNull(TEXT("Saved driving definition"),Saved))
 	{
 		auto* Copy=DuplicateObject<UVehicleDefinition>(Saved,GetTransientPackage()); Copy->StatusFXCatalogOverride=Bad;

@@ -90,7 +90,7 @@ bool FHALGASPlayerAvatarTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("ASC is not initialized with guessed health"), ASC->IsHealthInitialized());
 	ATestVehiclePawn* First = Fixture.World->SpawnActor<ATestVehiclePawn>();
 	ATestVehiclePawn* Replacement = Fixture.World->SpawnActor<ATestVehiclePawn>();
-	const auto* Definition = LoadObject<UVehicleDefinition>(nullptr, TEXT("/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.DA_Vehicle_Player_TestBaseline_v1"));
+	const auto* Definition = LoadObject<UVehicleDefinition>(nullptr, TEXT("/Game/Data/MVP_B/DA_Vehicle_Car_01.DA_Vehicle_Car_01"));
 	UStaticMesh* Mesh = Definition ? Definition->CollisionMesh.Get() : nullptr;
 	if (!TestNotNull(TEXT("Saved convex test mesh"), Mesh)) { return false; }
 	CastChecked<UStaticMeshComponent>(First->GetRootComponent())->SetStaticMesh(Mesh);

@@ -369,5 +369,5 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 	// LastImpact is only a diagnostic snapshot. Publish after all physics/result checks and drop handling,
 	// including zero additional impulse when natural Chaos response already met the authored target.
 	if (auto* Presentation = GetOwner()->FindComponentByClass<UHALVehiclePresentationComponent>())
-	{ Presentation->PublishAcceptedImpact(Result, AcceptedDirection); }
+	{ Presentation->PublishAcceptedImpact(Result, AcceptedDirection, Hit.ImpactPoint); }
 }

@@ -1,5 +1,19 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-15 受击漫画打击特效（Impact Burst）已接通：程序化爆点画在真实接触点上，力道越强越大，全量 218/218 测试通过，实机画面未验收。** 没有贴图、没有图集、没有 Niagara——整个造型由一个 Custom HLSL 节点从精灵 UV 算出来（`Tools/ImpactBurst/ImpactBurst.hlsl`），资产由 `Tools/ImpactBurst/CreateImpactBurstAssets.py` 幂等建出 `M_FX_ImpactBurst` / `MI_FX_ImpactBurst`。权威端全部复用既有链路：`UHALImpactReceiverComponent::Resolve` 末尾的 `PublishAcceptedImpact` 多收一个 `Hit.ImpactPoint` 参数，内部改为**一次撞击配一个身份**，再分别发车身回弹与新的 `MulticastImpactBurst`；回弹原本的行为一个字没改（它仍然拒绝接近垂直的冲量，爆点不需要水平方向）。客户端由 `UMaterialBillboardComponent` 精灵池（每车 4 个、懒加载、**Absolute Location 钉在世界空间**）承载，**没有新增 Tick**，走表现组件既有那个。
+
+**力道怎么变成大小**：分级 Light/Medium/Heavy → 轮廓颜色（暖白／金黄／橙红）；`Summary.DesiredHorizontalDeltaSpeed` 映射 150～900 cm/s 到 0..1 → 尺寸 90～240cm、尖刺 7～13 根、寿命 0.22～0.28 秒、亮度。**诚实的限制**：`DesiredHorizontalDeltaSpeed` 是权威写入的目标推力，跟着分级和 PushPreset 走，实际接近「三档 + 少量变化」；要真正连续得把碰撞回调算出的 `NormalImpulse/Mass` 一路带进 `FHALImpactSummary`，本轮没做。形状种子由事件序号哈希而来，**所有客户端对同一次撞击画出一样的爆点**。
+
+**边界**：普通车对撞不扣血但有撞击分级，所以**照样有爆点**——漫画爆点代表「撞到了，有多重」，组员的 Damage Feedback 红闪才代表「我真的掉血了」，两个信号分工不同。免伤、被压制、分级降到 None 则完全不出现。整条路径不参与任何玩法判定。
+
+**调参不碰任何资产**：全部在新的 `UHALImpactBurstSettings`（Project Settings → Game → Vehicle Impact Burst FX，写进 `DefaultGame.ini`），`bEnabled=False` 一键关掉连广播都不发，`Material` 清空则逻辑照跑但不画。设定在 `BeginPlay` 读一次，改完要重开 PIE。调试 `hal.VehicleImpactBurstLog 1`。
+
+> **三个坑**：(1) **`pow` 指数小于 1 会把爆点变成雏菊**——第一版 `Sharpness=0.55` 把所有波瓣推向 1.0，画出来是一朵花，现在 4.0；两条谐波必须用 `max()` 合并，相加平均会填平谷底让尖角变钝。(2) **局部变量不能叫 `Config`**：表现组件已有同名成员，本专案把 C4458 当错误，5 处全炸，组件方法一律改用 `BurstConfig`。(3) **UE Python 读 bool 要去掉 `b` 前缀**（`bEnabled` → `enabled`），且 `unreal.<Class>` 模块属性不一定存在，用 `unreal.load_class(None, '/Script/Module.Class')` 稳。另外本机 `Tools/BuildEditor.ps1` 必须带 `-EngineRoot "C:\Program Files\Epic Games\UE_5.8"`，否则会以 `No usable engine for '5.8'` 失败。
+
+**已验证**：编辑器 Target 编译通过、9 个源文件零新增警告；`HAL.FutureCreation` **全量 218/218 通过**（0 失败、0 未运行、0 进行中，唯一一条警告是既有的 `VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar` 地图提示）；新增 `ImpactBurst.StrengthSeedAndPlacement` 与 `ImpactBurst.IdentityBudgetAndLifetime` 两条，既有的 `Presentation.Impact.IdentityPoseAndConfiguration` 同样通过（回弹没被重构碰坏）；材质在编辑器内与 headless 各建一次都是 0 讯息、215 指令、22 节点、17 参数全暴露；headless 探测确认设定真的从 ini 读进来（enabled、材质引用、尺寸、推力、寿命、上限、参数名全对）。**全程未提交。**
+
+**未验证**：PIE 实机画面（落点、俯视角可读性、关闭深度测试会不会穿墙难看）、双端延迟手感（**客户端晚一个 RTT，没有本地预测**）、与组员的受击红闪／电击／`BattleTop` 的叠加观感、效能与 Cook。另外**车对车互撞时两台车各发一个爆点**（两边都是被撞方），接触点几乎重合，预期是一记更大的爆点但没实测。细节见[受击漫画打击特效](Presentation/MVPB_Vehicle_Impact_Burst_CN_v0.1.md)。
+
 **2026-11-14 闪电新星第十二轮：收窄地面环，Loop 的边界对比翻倍拉回来，12.17 节的「已知未解」结案。** 两个改动：(1) 新增 **`MI_FX_NovaRing`** 并把 `GroundRing` 的渲染器改指向它——这层原本**直接用母材质** `M_FX_NovaRing`，是整个系统里唯一没有材质实例的一层（其余都有 `MI_FX_*`），调参不再需要动母材质预设；(2) **`RingWidth` 0.16 → 0.06**。`M_FX_NovaRing` 的环是 UV 平面上的径向带 `band = 1 - saturate(abs(r-Rad)/Wid)` 再平方，`Rad=0.8`／`Wid=0.16` 等于环跨 **r=0.64…0.96**（佔半径 ±20%），所以在 Loop 被电弧和雾淹掉时完全凸不出来；**`band` 峰值恆为 1.0、这材质没有亮度旋钮**，唯一能拉对比的手段就是收窄。
 
 | 阶段 | `RingWidth` | 峰值 | 外侧中位 | **阶梯** |

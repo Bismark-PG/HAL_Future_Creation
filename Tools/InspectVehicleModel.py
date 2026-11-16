@@ -199,7 +199,7 @@ def main():
         kind = str(data.asset_class_path.asset_name)
         if kind in ("AnimBlueprint", "HALVehiclePresentationConfig"):
             report["presentation_assets"].append({"package": str(data.package_name), "class": kind})
-    definition = unreal.load_asset("/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1")
+    definition = unreal.load_asset("/Game/Data/MVP_B/DA_Vehicle_Car_01")
     report["player_definition_presentation"] = object_path(definition.get_editor_property("presentation")) if definition else None
     after = manifest()
     changed = [p for p in set(before) | set(after) if before.get(p) != after.get(p)]

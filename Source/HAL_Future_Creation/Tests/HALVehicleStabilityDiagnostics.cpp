@@ -301,7 +301,7 @@ bool FHALVehicleStabilityDiagnostic::RunTest(const FString& Parameters)
 	{
 		if (!TestFalse(TEXT("Existing evidence is never overwritten"), IFileManager::Get().FileExists(*(Prefix+Suffix)))) { return false; }
 	}
-	auto* Definition = LoadObject<UVehicleDefinition>(nullptr, TEXT("/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.DA_Vehicle_Player_TestBaseline_v1"));
+	auto* Definition = LoadObject<UVehicleDefinition>(nullptr, TEXT("/Game/Data/MVP_B/DA_Vehicle_Car_01.DA_Vehicle_Car_01"));
 	auto* Combat = LoadObject<UCombatRulesDefinition>(nullptr, TEXT("/Game/Data/MVP_B/DA_Combat_TestBaseline_v1.DA_Combat_TestBaseline_v1"));
 	if (!TestNotNull(TEXT("Saved vehicle"), Definition) || !TestNotNull(TEXT("Saved combat rules"), Combat)
 		|| !TestNotNull(TEXT("Saved convex collision"), Definition->CollisionMesh.Get())) { return false; }

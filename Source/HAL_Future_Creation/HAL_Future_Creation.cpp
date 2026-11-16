@@ -4,6 +4,7 @@
 #include "Modules/ModuleManager.h"
 #if WITH_EDITOR
 #include "HALVehicleStatusFXSettings.h"
+#include "HALImpactBurstSettings.h"
 #include "GameDelegates.h"
 #endif
 
@@ -20,6 +21,8 @@ public:
 				TArray<FName> Roots; FString Error;
 				if (!GetDefault<UHALVehicleStatusFXSettings>()->CollectCookPackages(Roots, Error))
 				{ UE_LOG(LogTemp, Error, TEXT("Status FX cook configuration invalid: %s"), *Error); return; }
+				if (!GetDefault<UHALImpactBurstSettings>()->CollectCookPackages(Roots, Error))
+				{ UE_LOG(LogTemp, Error, TEXT("Impact burst cook configuration invalid: %s"), *Error); return; }
 				for (const FName Root : Roots)
 				{
 					if (NeverCook.Contains(Root)) { UE_LOG(LogTemp, Error, TEXT("Status FX catalog %s is also marked NeverCook."), *Root.ToString()); }
