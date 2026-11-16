@@ -18,6 +18,7 @@
 #include "GameFramework/Pawn.h"
 #include "VehicleWallEscapeMath.h"
 #include "Chaos/SimCallbackObject.h"
+#include "Chaos/Rotation.h"
 #include "Framework/Threading.h"
 #include "VehicleStabilityRules.h"
 
@@ -47,6 +48,8 @@ static TAutoConsoleVariable<int32> CVarHALVehicleHistoryLog(
 static TAutoConsoleVariable<int32> CVarHALImpactPhysicsLog(
 	TEXT("hal.ImpactPhysicsLog"), 0,
 	TEXT("Log History impacts and non-History GT queue/PT consumption plus bounded Internal samples. 0=off, 1=on."));
+static TAutoConsoleVariable<int32> CVarHALSideShiftArcLog(TEXT("hal.SideShiftArcLog"),0,
+	TEXT("Log captured arc basis, remaining span and initial/gameplay momentum. 0=off, 1=on."));
 #endif
 
 UArcadeVehicleMovementComponent::UArcadeVehicleMovementComponent()
@@ -370,6 +373,7 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 
 	if (bBouncing || !bGrounded || !bPoseDriveAllowed || CurrentMovement.bControlsBlocked || ForwardDirection.IsNearlyZero() || RightDirection.IsNearlyZero())
 	{
+		SideShiftTurn.Cancel(CurrentMovement.SideShift.Activation);
 		ResetWallEscape();
 		return;
 	}
@@ -378,12 +382,39 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	UpdateWallEscape(BodyTransform, GroundNormal, ForwardDirection, Velocity, DeltaTime);
 
 	const auto& Shift=CurrentMovement.SideShift;
-	const bool bShifting=Shift.IsSliding(CurrentMovementServerFrame);
-	float ShiftSpeed=0;
-	if(bShifting)
+	const FVector EffectiveV=PhysicsHandle->V()+PhysicsHandle->LinearImpulseVelocity();
+	const FVector COMOffset=GroundProbeRotation.RotateVector(PhysicsHandle->CenterOfMass());
+	const FVector EffectiveW=PhysicsHandle->W()+PhysicsHandle->AngularImpulseVelocity();
+#if !UE_BUILD_SHIPPING
+	const bool HadArc=SideShiftTurn.Activation==Shift.Activation&&SideShiftTurn.ArcFrames>0;
+#endif
+	bSideShiftTurnSteering=SideShiftTurn.Update(Shift,CurrentMovementServerFrame,GroundProbeRotation.Rotator().Yaw,FVector::DotProduct(PhysicsHandle->W(),GroundNormal),
+		InputCommand.Steering,InputCommand.bHandbrake,DeltaTime,SideShiftTurnAcceleration,BodyTransform.GetLocation(),RecoilDeltaVelocity);
+	const bool bArc=SideShiftTurn.IsArcDriving(Shift,CurrentMovementServerFrame);
+#if !UE_BUILD_SHIPPING
+	if(!HadArc&&bArc&&CVarHALSideShiftArcLog.GetValueOnAnyThread())
+	{ UE_LOG(LogTemp,Log,TEXT("Arc capture Player=%d Frame=%d Start=%d Steps=%d Span=%.3f Base=%s Initial=%s Pending=%s"),
+		MovementPlayerId.Load(),CurrentMovementServerFrame,Shift.StartFrame,SideShiftTurn.ArcFrames,SideShiftTurn.ArcSpan,*SideShiftTurn.ArcBaseVelocity.ToString(),*Shift.InitialVelocity.ToString(),*PhysicsHandle->LinearImpulseVelocity().ToString()); }
+#endif
+	const bool bShifting=Shift.IsSliding(CurrentMovementServerFrame)&&!SideShiftTurn.bConsumed;
+	FVector ScriptVelocity=FVector::ZeroVector;
+	if(bArc)
 	{
-		ShiftSpeed=Shift.StepSpeed(CurrentMovementServerFrame,DeltaTime)*CurrentMovementScales.Y;
-		const FVector EffectiveV=PhysicsHandle->V()+PhysicsHandle->LinearImpulseVelocity();
+		ScriptVelocity=SideShiftTurn.ArcStepVelocity(Shift,CurrentMovementServerFrame,DeltaTime)*CurrentMovementScales.Y;
+		// Chaos V is a COM velocity, but the authored path describes the vehicle's
+		// root position. Compensate the rotating COM offset using this step's yaw
+		// torque; asymmetric collision hulls must not shrink one side of the dodge.
+		const FVector NextW=EffectiveW+GroundNormal*SideShiftTurnAcceleration*DeltaTime;
+		const auto NextRotation=Chaos::FRotation3::IntegrateRotationWithAngularVelocity(PhysicsHandle->R(),NextW,DeltaTime);
+		const FVector COMStepVelocity=(NextRotation.RotateVector(PhysicsHandle->CenterOfMass())-COMOffset)/DeltaTime;
+		const FVector Target=SideShiftTurn.ArcBackgroundVelocity(Shift,CurrentMovementServerFrame)+ScriptVelocity+COMStepVelocity;
+		const FVector Delta=FVector(Target.X-EffectiveV.X,Target.Y-EffectiveV.Y,0).GetClampedToMaxSize(Shift.MaximumAcceleration*DeltaTime*CurrentMovementScales.X);
+		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(),Delta,true);
+	}
+	else if(bShifting)
+	{
+		const float ShiftSpeed=Shift.StepSpeed(CurrentMovementServerFrame,DeltaTime)*CurrentMovementScales.Y;
+		ScriptVelocity=Shift.Direction*ShiftSpeed;
 		const float Target=Shift.InitialLateralSpeed+ShiftSpeed;
 		const float Delta=FMath::Clamp(Target-float(FVector::DotProduct(EffectiveV,Shift.Direction)),
 			-Shift.MaximumAcceleration*DeltaTime*CurrentMovementScales.X,Shift.MaximumAcceleration*DeltaTime*CurrentMovementScales.X);
@@ -391,9 +422,10 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		// external impacts and Chaos contacts remain physical; walls can shorten travel.
 		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(),Shift.Direction*Delta,true);
 	}
-	const float DriveSpeed=ForwardSpeed-float(FVector::DotProduct(Shift.Direction*ShiftSpeed,ForwardDirection));
+	const float DriveSpeed=bArc?float(FVector::DotProduct(SideShiftTurn.ArcBackgroundVelocity(Shift,CurrentMovementServerFrame),ForwardDirection))
+		:ForwardSpeed-float(FVector::DotProduct(ScriptVelocity,ForwardDirection));
 	ApplyLongitudinalForces(*Body, ForwardDirection, DriveSpeed, DeltaTime);
-	if(!bShifting) { ApplyLateralGrip(*Body, RightDirection, LateralSpeed); }
+	if(!bShifting&&!bArc) { ApplyLateralGrip(*Body, RightDirection, LateralSpeed); }
 	const float AreaSway = bMovementDriveAllowed && !RecoveryPhysics.bActive
 		? CurrentMovement.EvaluateSway(CurrentMovementServerFrame, FMath::Sqrt(FMath::Square(ForwardSpeed) + FMath::Square(LateralSpeed))) : 0;
 	ApplySteering(*Body, GroundNormal, ForwardSpeed,
@@ -520,6 +552,7 @@ void UArcadeVehicleMovementComponent::BuildHistoryState(FVehicleNetStateData& Ou
 	OutState.PoseStableSeconds = PoseStableSeconds;
 	OutState.Recovery = RecoveryPhysics;
 	OutState.BounceBack = BounceBackPhysics;
+	OutState.SideShiftTurn = SideShiftTurn;
 }
 
 void UArcadeVehicleMovementComponent::ApplyHistoryState(const FVehicleNetStateData& InState)
@@ -536,6 +569,7 @@ void UArcadeVehicleMovementComponent::ApplyHistoryState(const FVehicleNetStateDa
 	WallEscapeNormals = InState.WallEscapeNormals;
 	if (InState.Recovery.IsValid()) { RecoveryPhysics = InState.Recovery; }
 	if (InState.BounceBack.IsValid()) { BounceBackPhysics = InState.BounceBack; }
+	if (InState.SideShiftTurn.IsValid()) { SideShiftTurn = InState.SideShiftTurn; }
 	bPoseDriveAllowed = InState.bPoseDriveAllowed;
 	PoseStableSeconds = FMath::Clamp(InState.PoseStableSeconds,0.f,RecoveryRules.DriveStableSeconds);
 }
@@ -615,6 +649,7 @@ void UArcadeVehicleMovementComponent::ApplyAction_Internal(
 			const FVector DeltaW = Impact->bSetPlanarAngularVelocity
 				? Impact->ResolveAngularVelocity(BeforeW) - BeforeW : FVector::ZeroVector;
 			FPhysicsInterface::AddVelocity_AssumesLocked(Handle, DeltaV, true);
+			SideShiftTurn.TrackGameplayImpulse(CurrentMovement.SideShift,CurrentMovementServerFrame,DeltaV);
 			if (Impact->bSetPlanarAngularVelocity)
 			{
 				FPhysicsInterface::AddAngularVelocityInRadians_AssumesLocked(Handle, DeltaW, true);
@@ -639,6 +674,7 @@ void UArcadeVehicleMovementComponent::ApplyAction_Internal(
 	if (Body && Body->GetBodyInstanceAsyncPhysicsTickHandle().IsValid())
 	{
 		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(), Recoil->DeltaVelocity, true);
+		SideShiftTurn.TrackGameplayImpulse(CurrentMovement.SideShift,CurrentMovementServerFrame,Recoil->DeltaVelocity);
 	}
 }
 
@@ -853,6 +889,7 @@ void UArcadeVehicleMovementComponent::ConsumeNonHistoryImpacts_Internal(int32 Ph
 			// step. A successful GT wake/readback does not prove PT consumed the hit.
 			if (bSleeping) { Handle->SetObjectState(Chaos::EObjectStateType::Dynamic, true); }
 			if (!DeltaV.IsNearlyZero()) { FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(), DeltaV, true); }
+			SideShiftTurn.TrackGameplayImpulse(CurrentMovement.SideShift,CurrentMovementServerFrame,DeltaV);
 			if (!DeltaW.IsNearlyZero()) { FPhysicsInterface::AddAngularVelocityInRadians_AssumesLocked(Body->GetPhysicsActor(), DeltaW, true); }
 		}
 #if !UE_BUILD_SHIPPING
@@ -1237,10 +1274,9 @@ void UArcadeVehicleMovementComponent::ApplySteering(
 	float DeltaTime,
 	float AreaSwayAcceleration)
 {
-	const auto& Shift=CurrentMovement.SideShift;
-	if(InputCommand.bHandbrake&&Shift.IsDrifting(CurrentMovementServerFrame))
+	if(bSideShiftTurnSteering)
 	{
-		const float Acceleration=Shift.YawAcceleration(InputCommand.Steering,CurrentYawRate)+AreaSwayAcceleration;
+		const float Acceleration=SideShiftTurnAcceleration+AreaSwayAcceleration;
 		FPhysicsInterface::AddTorque_AssumesLocked(Body.GetPhysicsActor(),GroundNormal*Acceleration,false,true,true);
 		return;
 	}

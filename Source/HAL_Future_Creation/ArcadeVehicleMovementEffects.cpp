@@ -66,6 +66,7 @@ void UArcadeVehicleMovementComponent::ApplyPendingMovementConfiguration()
 	MovementAuthorityTimeline = {};
 	MovementActions.Reset(); UsedMovementFrames.Reset(); ProcessedMovementStates.Reset();
 	CurrentMovement = {};
+	SideShiftTurn = {};
 	BounceBackPhysics = {}; PendingBounceBack = {}; PublishedBounceBack = {}; PublishedContact = {}; bPendingBounceBack=false; bPendingBounceHasEntry=false;
 	BounceAuthorityFrame.Store(INDEX_NONE); BounceAuthoritySequence.Store(0);
 	PendingBouncePredictionFrame=INDEX_NONE; PredictedBounceCount=0;

@@ -206,6 +206,9 @@ private:
 	FHALMovementTimeline MovementAuthorityTimeline;
 	TArray<FHALMovementSnapshot> MovementActions;
 	FHALMovementSnapshot CurrentMovement;
+	FHALSideShiftTurnState SideShiftTurn;
+	bool bSideShiftTurnSteering=false;
+	float SideShiftTurnAcceleration=0;
 	int32 CurrentMovementServerFrame = INDEX_NONE;
 	FVector CurrentMovementScales = FVector::OneVector;
 	struct FUsedMovementFrame

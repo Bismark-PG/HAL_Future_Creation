@@ -83,6 +83,8 @@ void UHALMovementEffectBridge::SetSideShiftMotion(const FHALSideShiftMotion& Mot
 { if(GetOwner()->HasAuthority()&&Motion.IsValid(false)) { SideShift=Motion; bDirty=true; } }
 void UHALMovementEffectBridge::EndSideShiftMotion()
 { if(SideShift.Activation.IsValid()) { SideShift.bActive=false; bDirty=true; } }
+void UHALMovementEffectBridge::ReleaseSideShiftDrift(FGuid Activation)
+{ if(GetOwner()->HasAuthority()&&Activation.IsValid()&&SideShift.Activation==Activation) { SideShift.bDriftReleased=true; bDirty=true; } }
 
 void UHALMovementEffectBridge::SetDragDrive(const FHALGravityDrive& Field)
 {

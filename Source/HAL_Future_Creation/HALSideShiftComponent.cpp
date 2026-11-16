@@ -111,7 +111,7 @@ bool UHALSideShiftComponent::CanStart() const
 	return Config&&BoundASC.IsValid()&&GetOwner()->HasAuthority()&&UsesPrimary()&&PendingSide!=0&&ResourceCount()>0
 		&&ServerTime()+.0001>=ReadyAt&&HasUsablePose()&&!UHALBattleTopComponent::IsActiveOn(GetOwner())&&!UHALBullChargeComponent::IsActiveOn(GetOwner());
 }
-bool UHALSideShiftComponent::Request(float Steering)
+bool UHALSideShiftComponent::Request(float Steering,bool bHandbrake)
 {
 	if(!FMath::IsFinite(Steering)||!UsesPrimary()) { return false; }
 	// Read the actual granted GA config on either endpoint, never a client-chosen class/config.
@@ -121,18 +121,34 @@ bool UHALSideShiftComponent::Request(float Steering)
 	for(const auto& S:ASC->GetActivatableAbilities()) if(S.Ability&&S.Ability->IsA<UHALSideShiftAbility>()&&S.SourceObject==P)
 	{ Settings=S.Ability->GetClass()->GetDefaultObject<UHALSideShiftAbility>()->SkillConfig; }
 	if(!Settings||FMath::Abs(Steering)<Settings->DirectionDeadZone) { return false; }
+	bHandbrake=bHandbrake&&FMath::Abs(Steering)>=Settings->Motion.DriftInputThreshold;
 	const int8 Side=Steering<0?-1:1; ++NextRequest; if(!NextRequest) { ++NextRequest; }
-	if(GetOwner()->HasAuthority()) { ProcessRequest(Side,NextRequest); }
-	else { ServerRequest(Side,NextRequest); }
+	bAwaitingDriftRelease=bHandbrake;
+	if(GetOwner()->HasAuthority()) { ProcessRequest(Side,NextRequest,bHandbrake); }
+	else { ServerRequest(Side,NextRequest,bHandbrake); }
 	return true;
 }
-void UHALSideShiftComponent::ServerRequest_Implementation(int8 Side,uint32 Sequence) { ProcessRequest(Side,Sequence); }
-void UHALSideShiftComponent::ProcessRequest(int8 Side,uint32 Sequence)
+void UHALSideShiftComponent::ServerRequest_Implementation(int8 Side,uint32 Sequence,bool bHandbrake) { ProcessRequest(Side,Sequence,bHandbrake); }
+void UHALSideShiftComponent::ProcessRequest(int8 Side,uint32 Sequence,bool bHandbrake)
 {
 	if(!GetOwner()->HasAuthority()||(Side!=-1&&Side!=1)||!Sequence||!FVehicleNetInputData::IsNewerSequence(Sequence,LastRequest)) { return; }
 	LastRequest=Sequence;
 	TGuardValue<int8> Direction(PendingSide,Side);
+	TGuardValue<bool> Drift(bPendingDrift,bHandbrake);
 	if(auto* ASC=BoundASC.Get();ASC&&UsesPrimary()) { ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary); }
+}
+void UHALSideShiftComponent::ObserveHandbrake(bool bHeld)
+{
+	if(bHeld||!bAwaitingDriftRelease) { return; }
+	bAwaitingDriftRelease=false;
+	if(GetOwner()->HasAuthority()) { ProcessDriftRelease(NextRequest); }
+	else { ServerReleaseDrift(NextRequest); }
+}
+void UHALSideShiftComponent::ServerReleaseDrift_Implementation(uint32 Sequence) { ProcessDriftRelease(Sequence); }
+void UHALSideShiftComponent::ProcessDriftRelease(uint32 Sequence)
+{
+	if(!GetOwner()->HasAuthority()||!Sequence||Sequence!=LastRequest||!Visual.Activation.IsValid()) { return; }
+	if(auto* Bridge=GetOwner()->FindComponentByClass<UHALMovementEffectBridge>()) { Bridge->ReleaseSideShiftDrift(Visual.Activation); }
 }
 bool UHALSideShiftComponent::Start()
 {
@@ -141,9 +157,17 @@ bool UHALSideShiftComponent::Start()
 	auto* M=GetOwner()->FindComponentByClass<UArcadeVehicleMovementComponent>();
 	if(!Bridge||!M) { return false; }
 	FHALSideShiftMotion Motion=Config->Motion; Motion.Activation=FGuid::NewGuid(); Motion.bActive=true;
+	Motion.bDriftAtStart=bPendingDrift;
 	const auto Pose=M->GetContactObservation();
 	if(!Pose.bValid) { return false; }
-	Motion.Direction=Pose.Rotation.GetRightVector().GetSafeNormal2D()*PendingSide;
+	Motion.InitialForward=Pose.Rotation.GetForwardVector().GetSafeNormal2D();
+	Motion.Direction=FVector::CrossProduct(FVector::UpVector,Motion.InitialForward)*PendingSide;
+	Motion.Origin=Pose.Position; Motion.InitialVelocity=Pose.Velocity;
+	if(const auto* Body=Cast<UPrimitiveComponent>(GetOwner()->GetRootComponent()))
+	{
+		const FVector LocalCOM=Body->GetComponentQuat().UnrotateVector(Body->GetCenterOfMass()-Body->GetComponentLocation());
+		Motion.InitialVelocity-=FVector::CrossProduct(Pose.AngularVelocity,Pose.Rotation.RotateVector(LocalCOM));
+	}
 	Motion.InitialLateralSpeed=FVector::DotProduct(Pose.Velocity,Motion.Direction);
 	if(!Motion.IsValid(false)) { return false; }
 	FGameplayEffectContextHandle Context=ASC->MakeEffectContext(); Context.AddSourceObject(GetOwner());
@@ -167,8 +191,8 @@ bool UHALSideShiftComponent::Start()
 	WorldHandle=FWorldDelegates::OnWorldPostActorTick.AddUObject(this,&ThisClass::WatchActive);
 	GetWorld()->GetTimerManager().SetTimer(EndTimer,this,&ThisClass::Stop,FMath::Max(Motion.DurationSeconds,Motion.DriftSeconds)+.02f,false);
 	OnRep_Visual(); GetOwner()->ForceNetUpdate();
-	UE_CLOG(HALAbilities::ShouldLog(),LogHALAbility,Log,TEXT("SideShift started Pawn=%s Side=%d Charges=%d Distance=%.2f Duration=%.3f Drift=%.3f RechargeAt=%.3f Origin=%s Direction=%s"),
-		*GetNameSafe(GetOwner()),int32(PendingSide),ResourceCount(),Motion.Distance,Motion.DurationSeconds,Motion.DriftSeconds,ChargeView.NextRechargeServerTime,*Pose.Position.ToString(),*Motion.Direction.ToString());
+	UE_CLOG(HALAbilities::ShouldLog(),LogHALAbility,Log,TEXT("SideShift started Pawn=%s Side=%d Charges=%d Distance=%.2f ArcSpan=%.2f Bend=%.2f Duration=%.3f Drift=%.3f RechargeAt=%.3f Origin=%s Direction=%s"),
+		*GetNameSafe(GetOwner()),int32(PendingSide),ResourceCount(),Motion.Distance,Motion.DriftLateralSpan,Motion.DriftArcBend,Motion.DurationSeconds,Motion.DriftSeconds,ChargeView.NextRechargeServerTime,*Pose.Position.ToString(),*Motion.Direction.ToString());
 	return true;
 }
 void UHALSideShiftComponent::WatchActive(UWorld* World,ELevelTick,float)
@@ -207,6 +231,8 @@ void UHALSideShiftComponent::Shutdown()
 	if(GetOwner()&&GetOwner()->HasAuthority())
 	{
 		Stop(); if(auto* World=GetWorld()) { World->GetTimerManager().ClearTimer(RechargeTimer); }
+		if(Visual.Activation.IsValid())
+		{ if(auto* Bridge=GetOwner()->FindComponentByClass<UHALMovementEffectBridge>()) { Bridge->SetSideShiftMotion({}); } }
 		if(auto* ASC=BoundASC.Get())
 		{
 			ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Stun,EGameplayTagEventType::NewOrRemoved).Remove(StunHandle);

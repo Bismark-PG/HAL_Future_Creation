@@ -100,7 +100,12 @@ bool FHALSideShiftRenderTest::RunTest(const FString&)
 		Jets[0]->SetVisibility(true);
 		AddInfo(FString::Printf(TEXT("Car07 FX side=%d sparks=%d smoke=%d sparkPixels=%d smokePixels=%d"),int32(Side),Counts[0],Counts[1],Difference(Both,SmokeOnly),Difference(SmokeOnly,Baseline)));
 		FHALSideShiftTestAccess::EndFX(*C); TestTrue(TEXT("End disables skill tire-mark demand"),C->GetActiveTireMarks()==nullptr);
-		for(const auto& Jet:Jets) { if(IsValid(Jet)) { Jet->AdvanceSimulation(60,1.f/60); } }
+		for(const auto& Jet:Jets) if(IsValid(Jet))
+		{
+			Jet->AdvanceSimulation(9,1.f/60);
+			if(auto Controller=Jet->GetSystemInstanceController()) if(auto* System=Controller->GetSystemInstance_Unsafe())
+			for(const auto& E:System->GetEmitters()) { TestEqual(TEXT("Short side jets leave no particles 0.15 seconds after stop"),E->GetNumParticles(),0); }
+		}
 	}
 	FHALSideShiftTestAccess::ClearFX(*C); const auto Clean=Pixels(TEXT("Car07_Cleaned.bmp"));
 	TestTrue(TEXT("Cleanup restores baseline image"),Difference(Clean,Baseline)<20);

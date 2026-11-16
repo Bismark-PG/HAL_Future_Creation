@@ -29,6 +29,7 @@ public:
 	void EndOverdriveMotion();
 	void SetSideShiftMotion(const FHALSideShiftMotion& Motion);
 	void EndSideShiftMotion();
+	void ReleaseSideShiftDrift(FGuid Activation);
 	/** Receiver-selected Drag flow; published only while GAS grants State.Movement.Drag. */
 	void SetDragDrive(const FHALGravityDrive& Field);
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;

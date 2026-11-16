@@ -105,8 +105,8 @@ struct HAL_FUTURE_CREATION_API FHALMovementTimeline
 {
 	GENERATED_BODY()
 	static constexpr int32 MaximumEntries = 256;
-	/** Version 7 adds authority-selected, frame-stamped gravity drive bending. */
-	static constexpr uint8 CurrentFormat = 8;
+	/** Version 10 adds side-shift arc geometry and authority launch basis. */
+	static constexpr uint8 CurrentFormat = 11;
 	UPROPERTY() uint8 FormatVersion = CurrentFormat;
 	UPROPERTY() FGuid Epoch;
 	UPROPERTY() int32 StartFrame = INDEX_NONE;
