@@ -377,8 +377,23 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	const float LateralSpeed = FVector::DotProduct(Velocity, RightDirection);
 	UpdateWallEscape(BodyTransform, GroundNormal, ForwardDirection, Velocity, DeltaTime);
 
-	ApplyLongitudinalForces(*Body, ForwardDirection, ForwardSpeed, DeltaTime);
-	ApplyLateralGrip(*Body, RightDirection, LateralSpeed);
+	const auto& Shift=CurrentMovement.SideShift;
+	const bool bShifting=Shift.IsSliding(CurrentMovementServerFrame);
+	float ShiftSpeed=0;
+	if(bShifting)
+	{
+		ShiftSpeed=Shift.StepSpeed(CurrentMovementServerFrame,DeltaTime)*CurrentMovementScales.Y;
+		const FVector EffectiveV=PhysicsHandle->V()+PhysicsHandle->LinearImpulseVelocity();
+		const float Target=Shift.InitialLateralSpeed+ShiftSpeed;
+		const float Delta=FMath::Clamp(Target-float(FVector::DotProduct(EffectiveV,Shift.Direction)),
+			-Shift.MaximumAcceleration*DeltaTime*CurrentMovementScales.X,Shift.MaximumAcceleration*DeltaTime*CurrentMovementScales.X);
+		// A bounded motor, not a pose/velocity teleport. Other velocity axes, gravity,
+		// external impacts and Chaos contacts remain physical; walls can shorten travel.
+		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(),Shift.Direction*Delta,true);
+	}
+	const float DriveSpeed=ForwardSpeed-float(FVector::DotProduct(Shift.Direction*ShiftSpeed,ForwardDirection));
+	ApplyLongitudinalForces(*Body, ForwardDirection, DriveSpeed, DeltaTime);
+	if(!bShifting) { ApplyLateralGrip(*Body, RightDirection, LateralSpeed); }
 	const float AreaSway = bMovementDriveAllowed && !RecoveryPhysics.bActive
 		? CurrentMovement.EvaluateSway(CurrentMovementServerFrame, FMath::Sqrt(FMath::Square(ForwardSpeed) + FMath::Square(LateralSpeed))) : 0;
 	ApplySteering(*Body, GroundNormal, ForwardSpeed,
@@ -1222,6 +1237,13 @@ void UArcadeVehicleMovementComponent::ApplySteering(
 	float DeltaTime,
 	float AreaSwayAcceleration)
 {
+	const auto& Shift=CurrentMovement.SideShift;
+	if(InputCommand.bHandbrake&&Shift.IsDrifting(CurrentMovementServerFrame))
+	{
+		const float Acceleration=Shift.YawAcceleration(InputCommand.Steering,CurrentYawRate)+AreaSwayAcceleration;
+		FPhysicsInterface::AddTorque_AssumesLocked(Body.GetPhysicsActor(),GroundNormal*Acceleration,false,true,true);
+		return;
+	}
 	const float AbsoluteSpeed = FMath::Abs(CurrentForwardSpeed);
 	float SteeringAuthority = FMath::Clamp(AbsoluteSpeed / FMath::Max(FullSteeringSpeed, 1.0f), 0.0f, 1.0f);
 

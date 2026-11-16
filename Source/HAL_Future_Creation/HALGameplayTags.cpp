@@ -2,6 +2,8 @@
 
 namespace HALGameplayTags
 {
+	UE_DEFINE_GAMEPLAY_TAG(Ability_SideShift,"Ability.SideShift");
+	UE_DEFINE_GAMEPLAY_TAG(State_SideShift,"State.Movement.SideShift");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pursuit,"Ability.Vehicle.PolicePursuit","Car06 siren pursuit.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_Pursuit,"Cooldown.Vehicle.PolicePursuit","Pursuit cooldown from activation.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Arrested,"State.Vehicle.Arrested","Pursuit arrest marker during shared Stun.");

@@ -16,6 +16,7 @@
 #include "TimerManager.h"
 #include "VehicleHealthComponent.h"
 #include "HALAbilitySystemComponent.h"
+#include "HALSideShiftComponent.h"
 #include "HALCombatAttributeSet.h"
 #include "HALImpactAttributeSet.h"
 #include "HALImpactReceiverComponent.h"
@@ -127,6 +128,11 @@ void UHALDebugHUDWidget::RefreshStatus()
 		const UHALCombatAttributeSet* Combat = ASC ? ASC->GetSet<UHALCombatAttributeSet>() : nullptr;
 		if (ASC)
 		{
+			if(const auto* Shift=Vehicle->FindComponentByClass<UHALSideShiftComponent>();Shift&&Shift->GetChargeView().bConfigured)
+			{
+				const auto View=Shift->GetChargeView();
+				Text+=FString::Printf(TEXT("Side shift: %d/%d  Next charge: %.1fs\n"),View.Charges,View.MaximumCharges,Shift->GetRechargeRemaining());
+			}
 			Text += FString::Printf(TEXT("Primary skill: Granted=%d Immune=%.1fs CD=%.1fs (-1=unknown)\n"),
 				ASC->HasAbilityForInput(HALGameplayTags::Input_Ability_Primary),
 				ASC->GetEffectTimeRemaining(HALGameplayTags::State_Combat_ImpactImmune),

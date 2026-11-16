@@ -16,6 +16,7 @@ class UArcadeVehicleMovementComponent;
 class UHALShockedPresentationComponent;
 class UHALBattleTopComponent;
 class UHALBullChargeComponent;
+class UHALSideShiftComponent;
 class UHALPursuitTargetComponent;
 class AHALPlayerState;
 class UArrowComponent;
@@ -53,6 +54,7 @@ class HAL_FUTURE_CREATION_API ATestVehiclePawn : public APawn, public IAbilitySy
 	GENERATED_BODY()
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALVehicleAbilityTestAccess;
+	friend struct FHALSideShiftTestAccess;
 	friend struct FHALCameraTestAccess;
 #endif
 
@@ -143,6 +145,8 @@ protected:
 	TObjectPtr<UHALBattleTopComponent> BattleTop;
 	UPROPERTY(VisibleAnywhere, Category="Vehicle|Abilities")
 	TObjectPtr<UHALBullChargeComponent> BullCharge;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vehicle", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UHALSideShiftComponent> SideShift;
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Vehicle|Components")
 	TObjectPtr<UHALPursuitTargetComponent> PursuitTarget;
 

@@ -11,6 +11,7 @@ class UPrimitiveComponent;
 class UStaticMeshComponent;
 class USkeletalMeshComponent;
 class UNiagaraComponent;
+class UNiagaraSystem;
 
 struct FHALFadingTireSkid
 {
@@ -89,6 +90,8 @@ private:
 	UPROPERTY(Replicated) uint8 ObserverTireSkidInputs = 0;
 	UPROPERTY(Transient) TObjectPtr<UNiagaraComponent> TireSkidComponents[4];
 	TArray<FHALFadingTireSkid> FadingTireSkids;
+	TWeakObjectPtr<UNiagaraSystem> CurrentTireSkidSystem;
+	float CurrentSkidFadeSeconds=5;
 	FHALWheelSupportSample WheelSupports[4];
 	FVector LastTireSkidPoints[4] {};
 	int32 NextRibbonID = 0;

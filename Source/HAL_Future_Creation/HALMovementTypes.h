@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "HALOverdriveMotion.h"
+#include "HALSideShiftMotion.h"
 #include "HALMovementTypes.generated.h"
 
 /** Optional regional yaw acceleration. Zero amplitude preserves the original slippery-area behavior. */
@@ -75,6 +76,7 @@ struct HAL_FUTURE_CREATION_API FHALMovementSnapshot
 	UPROPERTY() bool bControlsBlocked = false;
 	UPROPERTY() bool bHandbrakeBlocked = false;
 	UPROPERTY() FHALOverdriveMotion Overdrive;
+	UPROPERTY() FHALSideShiftMotion SideShift;
 	UPROPERTY() FHALGravityDrive GravityDrive;
 	UPROPERTY() float GripScale = 1;
 	/** Legacy/native callers may supply constant scales. The GAS bridge supplies all three channels. */
@@ -104,7 +106,7 @@ struct HAL_FUTURE_CREATION_API FHALMovementTimeline
 	GENERATED_BODY()
 	static constexpr int32 MaximumEntries = 256;
 	/** Version 7 adds authority-selected, frame-stamped gravity drive bending. */
-	static constexpr uint8 CurrentFormat = 7;
+	static constexpr uint8 CurrentFormat = 8;
 	UPROPERTY() uint8 FormatVersion = CurrentFormat;
 	UPROPERTY() FGuid Epoch;
 	UPROPERTY() int32 StartFrame = INDEX_NONE;

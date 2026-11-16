@@ -12,6 +12,7 @@
 #include "HALShockedPresentationComponent.h"
 #include "HALBattleTopComponent.h"
 #include "HALBullChargeComponent.h"
+#include "HALSideShiftComponent.h"
 #include "HALPursuitTargetComponent.h"
 #include "HALMovementEffectBridge.h"
 #include "HALMovementAreaReceiver.h"
@@ -117,6 +118,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	ShockedPresentation = CreateDefaultSubobject<UHALShockedPresentationComponent>(TEXT("ShockedPresentation"));
 	BattleTop = CreateDefaultSubobject<UHALBattleTopComponent>(TEXT("BattleTop"));
 	BullCharge = CreateDefaultSubobject<UHALBullChargeComponent>(TEXT("BullCharge"));
+	SideShift = CreateDefaultSubobject<UHALSideShiftComponent>(TEXT("SideShift"));
 	PursuitTarget = CreateDefaultSubobject<UHALPursuitTargetComponent>(TEXT("PursuitTarget"));
 	MovementAreaReceiver = CreateDefaultSubobject<UHALMovementAreaReceiver>(TEXT("MovementAreaReceiver"));
 
@@ -332,6 +334,7 @@ void ATestVehiclePawn::UninitializeAbilitySystem()
 	ResetLocalInputReadiness();
 	if (HasAuthority()) { BattleTop->Stop(); }
 	if (HasAuthority()) { BullCharge->Stop(); }
+	if (HasAuthority()) { SideShift->Shutdown(); }
 	PursuitTarget->Clear();
 	ShockedPresentation->Unbind();
 	StatusFXPresentation->Unbind();
@@ -866,7 +869,9 @@ bool ATestVehiclePawn::DispatchAbilityInput(const FVehicleInputCmd& Request)
 	UHALAbilitySystemComponent* ASC = Cast<UHALAbilitySystemComponent>(GetAbilitySystemComponent());
 	// Discrete gameplay is dispatched once on the GT; it never enters the Chaos history/RPC payload.
 	const auto* State=GetPlayerState<AHALPlayerState>();
-	return ASC && State && State->AreVehicleAbilitiesReady(this) && ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary);
+	if(!ASC||!State||!State->AreVehicleAbilitiesReady(this)) { return false; }
+	if(SideShift->UsesPrimary()) { return SideShift->Request(Request.Steering); }
+	return ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary);
 }
 
 void ATestVehiclePawn::OnPrimarySkillStarted(const FInputActionValue& Value)

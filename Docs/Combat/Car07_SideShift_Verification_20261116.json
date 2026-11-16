@@ -1,0 +1,279 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "task": "Car07 Extreme Lane Change / Side Shift v0.1",
+  "branch": "main",
+  "baseCommit": "9addbe36ce3a43804ada3bf50595df55ccde9aa8",
+  "engine": "5.8.3-58210709",
+  "status": "Code, native assets, builds and listed automation complete; manual GA Blueprint / Definition hookup and human acceptance pending",
+  "specification": "Car07_Extreme_LaneChange_CN_v0.1.md",
+  "acceptedDefaults": {
+    "maximumCharges": 4,
+    "rechargeSeconds": 5,
+    "sequentialRecharge": true,
+    "spendingDoesNotResetRecharge": true,
+    "distanceCm": 300,
+    "shiftSeconds": 0.8,
+    "driftSeconds": 1.0,
+    "standingAllowed": true,
+    "fixedWorldDirection": true,
+    "extraDamageOrImmunity": false
+  },
+  "builds": [
+    {
+      "target": "Editor",
+      "run": "Editor_R8",
+      "result": "Succeeded",
+      "exitCode": 0,
+      "seconds": 19.53,
+      "logSha256": "C8F97BDD701A7776E8830EF282D06FEF407CF0110B6A2ECA54AE5C750A1B338D"
+    },
+    {
+      "target": "Game",
+      "run": "Game_R3",
+      "result": "Succeeded",
+      "exitCode": 0,
+      "seconds": 22.66,
+      "logSha256": "FEC2083D53D20E84DC00954C03C2C00118FE1602B85BFEB09664A555920F0ADD"
+    }
+  ],
+  "regression": {
+    "run": "Final_R2",
+    "realRHI": "D3D12",
+    "passed": 122,
+    "passedWithoutWarnings": 120,
+    "passedWithWarnings": 2,
+    "failed": 0,
+    "notRun": 0,
+    "inProcess": 0,
+    "exitCode": 0,
+    "reportSha256": "E41E943FDE716FCF136A89DE7CF9A113EE4497BF984CB0DE7E114A4C627A1BAF",
+    "warningDetails": [
+      {
+        "test": "HAL.FutureCreation.SideShift.ChargesInputBallInterruptAndCleanup",
+        "messages": [
+          "LogRHICore: Total reserved resource allocated virtual size (258 GB) exceeds the budget (256 GB). Use `rhi.DumpMemory` and `rhi.DumpResourceMemory` console commands to investigate."
+        ]
+      },
+      {
+        "test": "HAL.FutureCreation.VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar",
+        "messages": [
+          "LogHALVehicleTest: Set Default Pawn Class to BP_VehiclePawn_Car_02; add alternatives to Test Vehicle Classes.",
+          "LogHALVehicleTest: PlayerStart is blocked. Raise it above the floor or clear surrounding geometry."
+        ]
+      }
+    ],
+    "includes": "SideShift 3 native + 1 render; movement/areas/history/boost; tire skid; BattleTop/BullCharge/Tornado/Pursuit; Stun/StatusFX/DamageFeedback/Impact/SkillDummy/VehicleTest/GF2/health"
+  },
+  "solver": {
+    "realTaskGraphChaos": true,
+    "actualGroundCollision": true,
+    "fixtureFriction": 0,
+    "leftDistanceCm": 300.0,
+    "rightDistanceCm": 300.0,
+    "initialAndFinalForwardSpeedCmPerSecond": 600.0,
+    "standingDriftAndWallBlockAssertions": "pass",
+    "noPositionOrVelocityWritesDuringMeasuredMotion": true
+  },
+  "render": {
+    "actualSavedCar07Mesh": true,
+    "actualSavedNiagara": true,
+    "sparkParticlesPerSide": 29,
+    "smokeParticlesPerSide": 6,
+    "leftSparkPixelDifference": 2345,
+    "rightSparkPixelDifference": 2940,
+    "leftSmokePixelDifference": 3908,
+    "rightSmokePixelDifference": 2582,
+    "cleanupMatchesBaseline": true,
+    "imagesLocal": "Saved/Car07SideShift/20261116/Render",
+    "preciseExhaustHoleFitClaimed": false
+  },
+  "network": {
+    "run": "Network_R4",
+    "hostOutboundLagMilliseconds": 80,
+    "rendering": "D3D12 offscreen",
+    "endpoints": [
+      {
+        "Role": "Host",
+        "ExitCode": 0,
+        "Passed": 1,
+        "Failed": 0,
+        "Warnings": 0,
+        "InProcess": 0
+      },
+      {
+        "Role": "Client",
+        "ExitCode": 0,
+        "Passed": 1,
+        "Failed": 0,
+        "Warnings": 0,
+        "InProcess": 0
+      }
+    ],
+    "hostFirstShiftDistanceCm": 289.932,
+    "clientFirstShiftDistanceCm": 289.943,
+    "normalFrictionCanShortenDistance": true,
+    "fixture": "One-time authority placement on identical isolated floor, far from old map gimmicks; settle before request; no placement or velocity writes during skill",
+    "covers": "Normal Primary input, server GAS approval, duplicate request cost, independent charges, original recharge cadence, observer phase, opposite exhaust attachment, real tire support, cleanup",
+    "summarySha256": "A72A6EB9CC7C6205E2B5853709C4D667324DE66B0A5CF466C8794ECA7E019E74",
+    "hostReportSha256": "EF72485AB04F6AC5D5CD0B64EA1102ED61A3E6AE317C9ACA9CC1441667EC2975",
+    "clientReportSha256": "9053FAA36E9F69C249EDC7DFAFA59BC00E837AA51A24DC6973950D3077BE9E50"
+  },
+  "preservation": {
+    "protectedFiles": 1337,
+    "unchanged": 1337,
+    "changed": 0,
+    "baselineSha256": "578ACEB192CE595A4E901DF11290B14AAB0C0C541A1A44EB88D79C53FACFD2E1",
+    "scope": "Existing Content, Config, uproject and launcher; all existing BP/Definition/presentation, skills, meshes, maps and team tuning remain unchanged",
+    "newAssets": [
+      {
+        "path": "Content/Data/Abilities/DA_Ability_Car07_SideShift.uasset",
+        "sha256": "9A8235194051C58A39F4183685D77C31AA9789452A005907381D136FE6ED3998"
+      },
+      {
+        "path": "Content/Assets/FX/SideShift/M_SideShift_ToonSmoke.uasset",
+        "sha256": "1C1B6770050AF9FDE0FB72DD48A3A254B8B3DDCEBF774ABF5FE9DCCB5F8B2EF4"
+      },
+      {
+        "path": "Content/Assets/FX/SideShift/NS_SideShift_ToonSmoke.uasset",
+        "sha256": "A9DEE855CE9FB56306E35415AC852FB383C073C92B5595F422CC99781A54C6E9"
+      },
+      {
+        "path": "Content/Assets/FX/SideShift/NS_SideShift_ToonSparks.uasset",
+        "sha256": "7BBC0025BF3C19061E243F9B8219CC636CE257A82248FC53E52BCB405F425FDA"
+      }
+    ]
+  },
+  "earlyResultsAndCorrections": [
+    "Editor_R2 failed on protected async-tick access and missing NiagaraNodeAssignment include; fixed and rebuilt.",
+    "Author_R1 used NullRHI; Niagara requires render-capable execution; Author_R2 real D3D12 created four new native assets. No Blueprint authored.",
+    "Native_R1: solver callback input only persisted one frame, and non-simulated GAS fixture asserted GT ball velocity. Fixed probe persistence and asserted actual launch transaction/recoil; no ball gameplay change. Native_R2 3/3.",
+    "Focused_R1 and Render_R2: particle data existed but spark image absent. Visibility flush alone did not fix. Explicit synchronous compilation of existing ToonSpark material in render fixture fixed Render_R3 1/1 and final render; no existing material edited.",
+    "Network_R1/R2 passed limited smoke assertions but distances were contaminated by old-map interactions and the measurement spanning the second shift. Network_R3/R4 use isolated ground and assert 260-330cm for the first shift; both endpoints ~290cm.",
+    "Final_R1 crashed during StatusFX garbage-collection regression in SideShift Stop after World release. Added nullable World guards in Stop/Shutdown, retained original regression; Final_R2 122/122."
+  ],
+  "limitations": [
+    "Team must manually create GA_Car07_SideShift and bind the existing Car07 Definition Primary grant. No Blueprint asset edited.",
+    "Exhaust offsets are initial bounds-derived placements; human fitting to side holes or team-authored sockets remains.",
+    "Configured 300cm is bounded physical target travel, not guaranteed teleport distance; collisions, friction, slowdown and acceleration cap affect result.",
+    "ServerOnly GAS startup awaits authority; no new speculative client activation prediction. Movement history format is now 8 and requires matching endpoint builds.",
+    "Ball test covers real control/launch transaction and recoil direction, not integrated flying-ball impact acceptance.",
+    "Human feel/style, four-machine LAN, real late join, complete room flow and Cook/release package not run."
+  ],
+  "sourceHashes": [
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp",
+      "sha256": "A376F880CE4A02E9C0A3E65723CCDBC1D78D38991726811A559D3A3E35A7C1C7"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h",
+      "sha256": "C77950B2DA77A9EDF53C65A15E48334D579F5DA5518DBCCD209F2D284EE5105F"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BallControlComponent.h",
+      "sha256": "B6B62DDA501A56060B2FC830855F356DBF1E3775394F21A8E21CFD84D31A5792"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDebugHUDWidget.cpp",
+      "sha256": "656591D729BC81FB2CAFF5057106B75EF5F4F9017692A7AFB2362B61EB3C66D5"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameplayTags.cpp",
+      "sha256": "AB8B57803467045CDF5A6C6EF8C548268CAB147E304BDEF81475349BB1BB4780"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameplayTags.h",
+      "sha256": "87724E3319171AD8387AFAAFCA3CCF7290FAEF374FF4DCD73274C9D6DDB8EA6C"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementEffectBridge.cpp",
+      "sha256": "3FB0153638DE2377662B8C6792B7460CBB2DACBC1509428FC0A35E6669538302"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementEffectBridge.h",
+      "sha256": "849C8D515A2FA5EBAF1D1EB2F29F384040AAF06D1AF780C28B404C5535C1E5D3"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementTypes.cpp",
+      "sha256": "3A8616EF857EB97D7D6A8A9F0859701E0167F9F6F993C2DF39D0EC15B3FD8116"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementTypes.h",
+      "sha256": "997F81E61E6E7A6C13398B4DA7B66128088AD0AB6D2F1231F1C2F0A86E953A86"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALSideShiftAbility.cpp",
+      "sha256": "954D0E2A44101BAECC275B436C4AD9410C02423A78C05B452AD865D0915E6790"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALSideShiftAbility.h",
+      "sha256": "42D7A737B5A21D4EBEA13259A3C8B8CAC158690135198F4FE95664E6B077FBDB"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALSideShiftComponent.cpp",
+      "sha256": "8775BC217D6C32E57BA1EF7EC66A2375D2D6DB17519715A9E7A7F367B8CD67E5"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALSideShiftComponent.h",
+      "sha256": "1AC86BD5461C136FBEDD7FA3B1DFAE7427657E34DEE8A3DCCD1DE09E94A7BB03"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALSideShiftMotion.cpp",
+      "sha256": "E758E5DD28EFA02D45D8F50F0C101C87503AFA283B7DB2730D39543D4DF7FE7A"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALSideShiftMotion.h",
+      "sha256": "C9B925F84A6E0C96789F2E05E3502F8C1FC00F3D5A836D9A283C7FCE2396B360"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALSideShiftPresentation.cpp",
+      "sha256": "AA9D72C983C5B9D2523B5F91854348C830E5D789675124E79E83DE9986D484BD"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehiclePresentationComponent.h",
+      "sha256": "786EF0C1D0EBC158236B0C3D2F77EFC4645331B3CE3808AE94610741C61C5901"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleTireSkid.cpp",
+      "sha256": "17C3497FBE78F3574BA18E5173A4C0A931767F72D19CE41BB32D512E51DC0BCB"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALSideShiftNetworkTests.cpp",
+      "sha256": "A32CEE0CFA645F2399BD1028F72E80A10B41BCB6EE68E2821142F01A00B0C107"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALSideShiftRenderTests.cpp",
+      "sha256": "A49EA03B2812CB78BBE0C231B24476DF1D9FA8D82225FF50C10078EF4D111A16"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALSideShiftSolverTests.cpp",
+      "sha256": "02AFE63CD763AEC60FAB95A9C21E40D3C9E0274CF3D1BFBAFEDDFB1D8840FF72"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALSideShiftTests.cpp",
+      "sha256": "420F5325545FE16AD7AED67D91D81A6F2A953D82F2A459DE38C00F4A87FE485E"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALSideShiftTestSupport.h",
+      "sha256": "AB2D9AF5588B3439FEDF17319D01311767BEE4785DC5DEA9BA7A62A3CF86877F"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+      "sha256": "348581C5BCA89CF06E2CD49369B396C797355E477DFC06E5B292612619076C03"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.h",
+      "sha256": "E31572E3FC38DE4286F69F4AD63275F21335B2FCFD316EA0605B0C49669943FB"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALBuildSideShiftFXCommandlet.cpp",
+      "sha256": "D544E77F0FF0B831E2E2069E709B1654DF10E8E6A0A587ADCB35B95961A4DA9A"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Public/HALBuildSideShiftFXCommandlet.h",
+      "sha256": "9441F999CA68E5F4FE1C5D13D6107EB9A7B0F9BEC2431C2E97053D413DBD2F0E"
+    }
+  ],
+  "rawEvidenceLocal": "Saved/Car07SideShift/20261116",
+  "committedOrPushed": false
+}
