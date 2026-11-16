@@ -4,6 +4,7 @@
 #include "HALRoomTestSupport.h"
 #include "../HALPracticeRoomGameMode.h"
 #include "../HALMatchGameState.h"
+#include "../HALMatchHUDWidget.h"
 #include "../HALPlayerController.h"
 #include "../HALPlayerState.h"
 #include "../HALAbilitySystemComponent.h"
@@ -128,6 +129,25 @@ bool FHALMatchForfeitTest::RunTest(const FString&)
 	F.HP(1,0); FHALMatchLoopTestAccess::Evaluate(F.Mode);
 	TestEqual(TEXT("One survivor ends round"),F.R->GetData().Match.Reason,EHALMatchEndReason::LastSurvivor);
 	TestTrue(TEXT("Only surviving fourth player wins"),F.R->GetData().Match.Players[3].bWinner);
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALMatchHUDDeadlineTest,"HAL.FutureCreation.GameFlow.GF7.MatchHUDServerDeadline",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALMatchHUDDeadlineTest::RunTest(const FString&)
+{
+	TestTrue(TEXT("No world means no fabricated countdown"),NewObject<UHALMatchHUDWidget>()->GetCountdownText().IsEmpty());
+	FMatchWorld F;
+	auto* HUD=NewObject<UHALMatchHUDWidget>(F.PCs[0]);
+	auto Match=F.R->GetData().Match;
+	const double Now=F.W->GetGameState<AHALMatchGameState>()->GetServerWorldTimeSeconds();
+	Match.EndServerTime=Now+60.01; F.R->SetMatchData(Match);
+	TestEqual(TEXT("Uses replicated deadline, rounding up"),HUD->GetCountdownText().ToString(),FString(TEXT("01:01")));
+	Match.EndServerTime=Now+60; F.R->SetMatchData(Match);
+	TestEqual(TEXT("Exact minute boundary"),HUD->GetCountdownText().ToString(),FString(TEXT("01:00")));
+	Match.EndServerTime=Now-1; F.R->SetMatchData(Match);
+	TestEqual(TEXT("Expired deadline never negative"),HUD->GetCountdownText().ToString(),FString(TEXT("00:00")));
+	TestFalse(TEXT("Rendering never completes authoritative round"),F.R->GetData().Match.bComplete);
+	Match.bComplete=true; F.R->SetMatchData(Match);
+	TestTrue(TEXT("Completed match hides countdown"),HUD->GetCountdownText().IsEmpty());
 	return true;
 }
 #endif

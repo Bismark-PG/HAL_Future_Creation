@@ -28,6 +28,8 @@ void AHALPlayerController::PreClientTravel(const FString& URL,ETravelType Type,b
 {
 	if (IsLocalController())
 	{
+		RemoveMatchHUD();
+		GetWorldTimerManager().ClearTimer(RoundReadyTimer);
 		ClearRoundSpectator();
 		if (auto* Vehicle=Cast<ATestVehiclePawn>(GetPawn()))
 		{ Vehicle->NeutralizeInputForMenu(); Vehicle->FindComponentByClass<UHALDynamicCameraComponent>()->ResetCamera(EHALCameraResetReason::Travel); }
@@ -49,6 +51,7 @@ void AHALPlayerController::PollRoundReadiness()
 	if (!IsLocalController() || !GetLocalPlayer() || IsActorBeingDestroyed() || GetWorld()->bIsTearingDown
 		|| (GetNetMode()==NM_Client && !GetNetConnection())) { return; }
 	CreateLocalDebugWidgets();
+	EnsureMatchHUD();
 	auto* S=GetWorld()->GetGameState<AHALMatchGameState>(); if (!S) { return; }
 	auto* R=S->GetRoom();
 	if (BoundRoom.Get()!=R)
