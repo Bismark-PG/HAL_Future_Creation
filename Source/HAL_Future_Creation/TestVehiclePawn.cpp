@@ -12,11 +12,14 @@
 #include "HALShockedPresentationComponent.h"
 #include "HALBattleTopComponent.h"
 #include "HALBullChargeComponent.h"
+#include "HALSideShiftComponent.h"
+#include "HALPursuitTargetComponent.h"
 #include "HALMovementEffectBridge.h"
 #include "HALMovementAreaReceiver.h"
 #include "HALVehiclePresentationComponent.h"
 #include "HALVehicleStatusFXSubsystem.h"
 #include "HALVehicleStatusFXComponent.h"
+#include "HALDamageFeedbackComponent.h"
 #include "Engine/GameInstance.h"
 #include "HALDynamicCameraComponent.h"
 #include "HALGameFlowPermissions.h"
@@ -96,6 +99,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	SkeletalVisual->SetHiddenInGame(true);
 	VehiclePresentation = CreateDefaultSubobject<UHALVehiclePresentationComponent>(TEXT("VehiclePresentation"));
 	StatusFXPresentation = CreateDefaultSubobject<UHALVehicleStatusFXComponent>(TEXT("StatusFXPresentation"));
+	DamageFeedback=CreateDefaultSubobject<UHALDamageFeedbackComponent>(TEXT("DamageFeedback"));
 
 	ForwardArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("ForwardArrow"));
 	ForwardArrow->SetupAttachment(CollisionRoot);
@@ -114,6 +118,8 @@ ATestVehiclePawn::ATestVehiclePawn()
 	ShockedPresentation = CreateDefaultSubobject<UHALShockedPresentationComponent>(TEXT("ShockedPresentation"));
 	BattleTop = CreateDefaultSubobject<UHALBattleTopComponent>(TEXT("BattleTop"));
 	BullCharge = CreateDefaultSubobject<UHALBullChargeComponent>(TEXT("BullCharge"));
+	SideShift = CreateDefaultSubobject<UHALSideShiftComponent>(TEXT("SideShift"));
+	PursuitTarget = CreateDefaultSubobject<UHALPursuitTargetComponent>(TEXT("PursuitTarget"));
 	MovementAreaReceiver = CreateDefaultSubobject<UHALMovementAreaReceiver>(TEXT("MovementAreaReceiver"));
 
 	BallControlPoint = CreateDefaultSubobject<USceneComponent>(TEXT("BallControlPoint"));
@@ -295,24 +301,41 @@ void ATestVehiclePawn::InitializeAbilitySystem()
 		return;
 	}
 	ASC->InitAbilityActorInfo(State, this);
+	BindVehicleAbilitySystem(ASC, State->GetPlayerId());
+	if (HasAuthority() && bConfigurationValid) { State->GrantVehicleAbilities(); }
+}
+
+void ATestVehiclePawn::BindVehicleAbilitySystem(UHALAbilitySystemComponent* ASC, int32 MovementOwnerId)
+{
+	if (!ASC || ASC->GetAvatarActor() != this || !IsConfigurationValid()) { return; }
+	if (Health->GetBoundAbilitySystem() != ASC) { UninitializeAbilitySystem(); }
 	Health->BindToAbilitySystem(ASC);
 	RefreshStatusFXBinding();
 	ShockedPresentation->Bind(ASC);
-	MovementEffectBridge->Bind(ASC, State->GetPlayerId());
+	MovementEffectBridge->Bind(ASC, MovementOwnerId);
 	MovementAreaReceiver->Bind(ASC);
 	if (HasAuthority() && bConfigurationValid)
 	{
 		ASC->InitializeCombat(RuntimeCombatConfig);
 		ASC->InitializeImpact(ImpactReceiver->GetConfiguration());
-		State->GrantVehicleAbilities();
 	}
+}
+
+bool ATestVehiclePawn::CanReceiveSkillEffects() const
+{
+	return !IsActorBeingDestroyed() && IsConfigurationValid() && Controller && Controller->GetPawn() == this
+		&& Health && Health->IsHealthReady() && Health->GetCurrentHP() > 0
+		&& HALGameFlow::Permissions(GetWorld(), this).bWorldInteractions;
 }
 
 void ATestVehiclePawn::UninitializeAbilitySystem()
 {
+	DamageFeedback->ClearPresentation();
 	ResetLocalInputReadiness();
 	if (HasAuthority()) { BattleTop->Stop(); }
 	if (HasAuthority()) { BullCharge->Stop(); }
+	if (HasAuthority()) { SideShift->Shutdown(); }
+	PursuitTarget->Clear();
 	ShockedPresentation->Unbind();
 	StatusFXPresentation->Unbind();
 	MovementAreaReceiver->Unbind();
@@ -846,7 +869,9 @@ bool ATestVehiclePawn::DispatchAbilityInput(const FVehicleInputCmd& Request)
 	UHALAbilitySystemComponent* ASC = Cast<UHALAbilitySystemComponent>(GetAbilitySystemComponent());
 	// Discrete gameplay is dispatched once on the GT; it never enters the Chaos history/RPC payload.
 	const auto* State=GetPlayerState<AHALPlayerState>();
-	return ASC && State && State->AreVehicleAbilitiesReady(this) && ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary);
+	if(!ASC||!State||!State->AreVehicleAbilitiesReady(this)) { return false; }
+	if(SideShift->UsesPrimary()) { return SideShift->Request(Request.Steering); }
+	return ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary);
 }
 
 void ATestVehiclePawn::OnPrimarySkillStarted(const FInputActionValue& Value)

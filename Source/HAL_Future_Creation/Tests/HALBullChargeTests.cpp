@@ -28,6 +28,12 @@
 
 struct FHALBullChargeTestAccess
 {
+	static uint32 FXCount(ATestVehiclePawn* Pawn)
+	{ return Pawn->FindComponentByClass<UHALBullChargeComponent>()->ReceivedImpactFXCount; }
+	static bool FXDriving(ATestVehiclePawn* Pawn)
+	{
+		auto* C = Pawn->FindComponentByClass<UHALBullChargeComponent>(); C->PublishDrivingVisual(); return C->VisualState.bDriving;
+	}
 	static void FlushContacts(ATestVehiclePawn* Pawn)
 	{ Pawn->FindComponentByClass<UHALBullChargeComponent>()->ResolveDeferredContacts(Pawn->GetWorld(), LEVELTICK_All, 0); }
 	static bool Acquire(ATestVehiclePawn* Pawn, ABasicBallActor* Ball)
@@ -187,6 +193,7 @@ bool FHALBullChargeGASTest::RunTest(const FString&)
 	auto Lifetime = MakeShared<FChargeTestLifetime>(World, Previous);
 	auto* Config = NewObject<UHALBullChargeConfig>(Ability);
 	Config->MinimumDamageMultiplier = Config->MaximumDamageMultiplier = 1;
+	Config->FX.bEnabled = true; // Exercise the real accepted-contact VFX boundary without requiring rendering.
 	Ability->SkillConfig = Config;
 	auto* Match = World->SpawnActor<AHALMatchGameState>(); World->SetGameState(Match); Match->SetMatchPhase(EHALMatchPhase::Playing);
 	int32 PlayerId = 0;
@@ -240,6 +247,7 @@ bool FHALBullChargeGASTest::RunTest(const FString&)
 	TestTrue(TEXT("Frontal free ball is launched through shared commit"), A->FindComponentByClass<UHALBullChargeComponent>()->HandleFreeBall(*Free, BallHit));
 	TestTrue(TEXT("Ball receives launcher attribution"), Free->GetLaunchedBy() == A && Free->GetBallState() == EBasicBallState::Launched);
 	TestFalse(TEXT("Already launched ball cannot be stolen"), A->FindComponentByClass<UHALBullChargeComponent>()->HandleFreeBall(*Free, BallHit));
+	TestEqual(TEXT("A ball launch does not emit the vehicle-impact burst"), FHALBullChargeTestAccess::FXCount(A), uint32(0));
 	for (const bool bSampleFirst : {false, true})
 	{
 		auto* Deferred = MakeBall();
@@ -265,8 +273,10 @@ bool FHALBullChargeGASTest::RunTest(const FString&)
 	TestTrue(TEXT("Pre-solve frontal hit accepted even when GT body is stopped"), UHALBullChargeComponent::HandleVehiclePair(*RootA, *RootB, FVector::ZeroVector, Hit));
 	const float FirstHP = TargetASC->GetSet<UHALHealthAttributeSet>()->GetCurrentHP();
 	TestTrue(TEXT("Hit removes HP through resolver/GAS"), FirstHP < InitialHP);
+	TestEqual(TEXT("One accepted vehicle contact emits one cosmetic event"), FHALBullChargeTestAccess::FXCount(A), uint32(1));
 	UHALBullChargeComponent::HandleVehiclePair(*RootA, *RootB, FVector::ZeroVector, Hit);
 	TestEqual(TEXT("Duplicate callback is inside target cooldown"), TargetASC->GetSet<UHALHealthAttributeSet>()->GetCurrentHP(), FirstHP);
+	TestEqual(TEXT("Target cooldown also prevents repeated impact flashes"), FHALBullChargeTestAccess::FXCount(A), uint32(1));
 	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FAdvanceChargeWorld>(Lifetime, Config->TargetCooldownSeconds + .05f,
 		[this, Lifetime, A, B, ASC, TargetASC, RootA, RootB, Hit, FirstHP]()
 		{
@@ -274,10 +284,12 @@ bool FHALBullChargeGASTest::RunTest(const FString&)
 			FHALBullChargeTestAccess::Contact(A, RootB, FVector(3000, 0, 0));
 			TestTrue(TEXT("Same target can be struck after internal cooldown"), UHALBullChargeComponent::HandleVehiclePair(*RootA, *RootB, FVector::ZeroVector, Hit));
 			TestTrue(TEXT("Second accepted hit removes HP"), TargetASC->GetSet<UHALHealthAttributeSet>()->GetCurrentHP() < FirstHP);
+			TestEqual(TEXT("New accepted hit produces a second cosmetic event"), FHALBullChargeTestAccess::FXCount(A), uint32(2));
 			TestTrue(TEXT("Stun accepted despite impact immunity"), ASC->ApplyStun(.2f, B));
 			TestTrue(TEXT("Stun does not end charge"), UHALBullChargeComponent::IsActiveOn(A));
 			FHALBullChargeTestAccess::Pose(A, 75);
 			TestTrue(TEXT("Stun reaches replayable motion"), A->FindComponentByClass<UArcadeVehicleMovementComponent>()->GetMovementEffectStatus().Definition.Overdrive.bStunned);
+			TestFalse(TEXT("Stun pauses propulsion presentation while retaining the skill"), FHALBullChargeTestAccess::FXDriving(A));
 			FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FAdvanceChargeWorld>(Lifetime, .3f, [this, Lifetime, A, ASC]()
 			{
 				TestTrue(TEXT("Charge survives stun expiry"), !ASC->IsStunned() && UHALBullChargeComponent::IsActiveOn(A));

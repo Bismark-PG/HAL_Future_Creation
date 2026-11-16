@@ -18,6 +18,7 @@
 #include "GameFramework/Pawn.h"
 #include "VehicleWallEscapeMath.h"
 #include "Chaos/SimCallbackObject.h"
+#include "Framework/Threading.h"
 #include "VehicleStabilityRules.h"
 
 // UE 5.8 deliberately omits frozen-game-thread callbacks (including the generic
@@ -45,7 +46,7 @@ static TAutoConsoleVariable<int32> CVarHALVehicleHistoryLog(
 	TEXT("Network Physics input source, at most once per 60 physics frames: 0=off, 1=on."));
 static TAutoConsoleVariable<int32> CVarHALImpactPhysicsLog(
 	TEXT("hal.ImpactPhysicsLog"), 0,
-	TEXT("Log consumed impact actions, physics frame, current Internal V/W and queued deltas. 0=off, 1=on."));
+	TEXT("Log History impacts and non-History GT queue/PT consumption plus bounded Internal samples. 0=off, 1=on."));
 #endif
 
 UArcadeVehicleMovementComponent::UArcadeVehicleMovementComponent()
@@ -97,11 +98,16 @@ void UArcadeVehicleMovementComponent::EndPlay(const EEndPlayReason::Type EndPlay
 	bShouldRunPhysics.Store(false);
 	SetAsyncPhysicsTickEnabled(false);
 	UnregisterRewindTick();
+	{ FScopeLock Lock(&PendingPhysicsDataLock); PendingImpacts.Reset(); bHasPendingImpacts.Store(false); }
+#if !UE_BUILD_SHIPPING
+	{ FScopeLock Lock(&PendingPhysicsDataLock); ImpactDiagnosticTraces.Reset(); bHasImpactDiagnosticTraces.Store(false); }
+#endif
 	Super::EndPlay(EndPlayReason);
 }
 
 void UArcadeVehicleMovementComponent::OnUnregister()
 {
+	{ FScopeLock Lock(&PendingPhysicsDataLock); PendingImpacts.Reset(); bHasPendingImpacts.Store(false); }
 	UnregisterRewindTick();
 	Super::OnUnregister();
 }
@@ -141,6 +147,7 @@ void UArcadeVehicleMovementComponent::Deactivate()
 {
 	bShouldRunPhysics.Store(false);
 	SetAsyncPhysicsTickEnabled(false);
+	{ FScopeLock Lock(&PendingPhysicsDataLock); PendingImpacts.Reset(); bHasPendingImpacts.Store(false); }
 	Super::Deactivate();
 }
 
@@ -189,7 +196,9 @@ void UArcadeVehicleMovementComponent::AsyncPhysicsTickComponent(float DeltaTime,
 	if (bUseNetworkPhysicsHistory.Load() && bHistoryInputBlocked.Load()) { StepInput.Cmd.Reset(); }
 	LastPhysicsInput = StepInput;
 	LastPhysicsFrame.Store(StepInput.PhysicsFrame);
+	if (!bIsResimming && !bUseNetworkPhysicsHistory.Load()) { ConsumeNonHistoryImpacts_Internal(CurrentPhysicsFrame); }
 #if !UE_BUILD_SHIPPING
+	SampleImpactDiagnostics_Internal(CurrentPhysicsFrame);
 	if (bUseNetworkPhysicsHistory.Load() && CVarHALVehicleHistoryLog.GetValueOnAnyThread() > 0
 		&& CurrentPhysicsFrame >= 0 && CurrentPhysicsFrame % 60 == 0)
 	{
@@ -368,8 +377,23 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	const float LateralSpeed = FVector::DotProduct(Velocity, RightDirection);
 	UpdateWallEscape(BodyTransform, GroundNormal, ForwardDirection, Velocity, DeltaTime);
 
-	ApplyLongitudinalForces(*Body, ForwardDirection, ForwardSpeed, DeltaTime);
-	ApplyLateralGrip(*Body, RightDirection, LateralSpeed);
+	const auto& Shift=CurrentMovement.SideShift;
+	const bool bShifting=Shift.IsSliding(CurrentMovementServerFrame);
+	float ShiftSpeed=0;
+	if(bShifting)
+	{
+		ShiftSpeed=Shift.StepSpeed(CurrentMovementServerFrame,DeltaTime)*CurrentMovementScales.Y;
+		const FVector EffectiveV=PhysicsHandle->V()+PhysicsHandle->LinearImpulseVelocity();
+		const float Target=Shift.InitialLateralSpeed+ShiftSpeed;
+		const float Delta=FMath::Clamp(Target-float(FVector::DotProduct(EffectiveV,Shift.Direction)),
+			-Shift.MaximumAcceleration*DeltaTime*CurrentMovementScales.X,Shift.MaximumAcceleration*DeltaTime*CurrentMovementScales.X);
+		// A bounded motor, not a pose/velocity teleport. Other velocity axes, gravity,
+		// external impacts and Chaos contacts remain physical; walls can shorten travel.
+		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(),Shift.Direction*Delta,true);
+	}
+	const float DriveSpeed=ForwardSpeed-float(FVector::DotProduct(Shift.Direction*ShiftSpeed,ForwardDirection));
+	ApplyLongitudinalForces(*Body, ForwardDirection, DriveSpeed, DeltaTime);
+	if(!bShifting) { ApplyLateralGrip(*Body, RightDirection, LateralSpeed); }
 	const float AreaSway = bMovementDriveAllowed && !RecoveryPhysics.bActive
 		? CurrentMovement.EvaluateSway(CurrentMovementServerFrame, FMath::Sqrt(FMath::Square(ForwardSpeed) + FMath::Square(LateralSpeed))) : 0;
 	ApplySteering(*Body, GroundNormal, ForwardSpeed,
@@ -378,6 +402,8 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 
 void UArcadeVehicleMovementComponent::SetUpdatedPrimitive(UPrimitiveComponent* InPrimitive)
 {
+	if (UpdatedPrimitive != InPrimitive)
+	{ FScopeLock Lock(&PendingPhysicsDataLock); PendingImpacts.Reset(); bHasPendingImpacts.Store(false); }
 	UpdatedPrimitive = InPrimitive;
 	ResetWallEscape();
 }
@@ -431,6 +457,7 @@ void UArcadeVehicleMovementComponent::SetNetworkInput(const FVehicleNetInputData
 
 void UArcadeVehicleMovementComponent::EnableNetworkPhysicsHistory()
 {
+	{ FScopeLock Lock(&PendingPhysicsDataLock); PendingImpacts.Reset(); bHasPendingImpacts.Store(false); }
 	bUseNetworkPhysicsHistory.Store(true);
 	RefreshPhysicsTick();
 }
@@ -719,7 +746,7 @@ bool UArcadeVehicleMovementComponent::QueueBounceBack(const FVector& Direction, 
 	return true;
 }
 
-bool UArcadeVehicleMovementComponent::QueueImpact(FVehicleImpactAction& Action)
+bool UArcadeVehicleMovementComponent::QueueImpact(FVehicleImpactAction& Action, const FGuid& AttackId, uint32 PulseSequence)
 {
 	if (!GetOwner()->HasAuthority() || !Action.IsValid() || !UpdatedPrimitive || !UpdatedPrimitive->IsSimulatingPhysics()) { return false; }
 	if (bUseNetworkPhysicsHistory.Load())
@@ -732,15 +759,148 @@ bool UArcadeVehicleMovementComponent::QueueImpact(FVehicleImpactAction& Action)
 	}
 	else
 	{
-		UpdatedPrimitive->AddImpulse(Action.ResolveLinearDelta(UpdatedPrimitive->GetPhysicsLinearVelocity()), NAME_None, true);
-		if (Action.bSetPlanarAngularVelocity)
+		if (!IsRegistered() || !bShouldRunPhysics.Load()) { return false; }
+#if !UE_BUILD_SHIPPING
+		const bool bTrace = CVarHALImpactPhysicsLog.GetValueOnGameThread() > 0;
+		FVector BeforePosition = FVector::ZeroVector, BeforeV = FVector::ZeroVector, BeforeW = FVector::ZeroVector;
+		int32 BeforeFrame = INDEX_NONE, AwakeBefore = -1;
+		if (bTrace)
 		{
-			UpdatedPrimitive->SetPhysicsAngularVelocityInRadians(
-				Action.ResolveAngularVelocity(UpdatedPrimitive->GetPhysicsAngularVelocityInRadians()));
+			const auto* Body = UpdatedPrimitive->GetBodyInstance();
+			BeforePosition = Body ? Body->GetUnrealWorldTransform().GetLocation() : UpdatedPrimitive->GetComponentLocation();
+			BeforeV = UpdatedPrimitive->GetPhysicsLinearVelocity();
+			BeforeW = UpdatedPrimitive->GetPhysicsAngularVelocityInRadians();
+			BeforeFrame = GetLastPhysicsFrame(); AwakeBefore = Body ? int32(Body->IsInstanceAwake()) : -1;
 		}
+#endif
+		{
+			FScopeLock Lock(&PendingPhysicsDataLock);
+			if (PendingImpacts.Num() >= MaximumPendingImpacts)
+			{
+#if !UE_BUILD_SHIPPING
+				if (bTrace) { UE_LOG(LogTemp, Log, TEXT("Vehicle impact trace: Phase=RejectedGT Actor=%s Attack=%s Pulse=%u Event=%u Reason=QueueFull128"),
+					*GetNameSafe(GetOwner()), *AttackId.ToString(), PulseSequence, Action.EventSequence); }
+#endif
+				return false;
+			}
+			auto& Pending = PendingImpacts.AddDefaulted_GetRef();
+			Pending.Action = Action;
+#if !UE_BUILD_SHIPPING
+			Pending.AttackId = AttackId; Pending.PulseSequence = PulseSequence; Pending.SubmitFrame = GetLastPhysicsFrame();
+#endif
+			bHasPendingImpacts.Store(true);
+		}
+#if !UE_BUILD_SHIPPING
+		if (bTrace)
+		{
+			// GT only queues the rule payload. The PT resolves minimum ascent and rotation
+			// against the actual body, including earlier impulses waiting in that same step.
+			FImpactDiagnosticTrace Trace; Trace.AttackId = AttackId; Trace.PulseSequence = PulseSequence;
+			Trace.EventSequence = Action.EventSequence; Trace.OwnerName = GetNameSafe(GetOwner());
+			Trace.SubmitFrame = BeforeFrame; Trace.SubmitPosition = BeforePosition;
+			{
+				FScopeLock Lock(&PendingPhysicsDataLock);
+				if (ImpactDiagnosticTraces.Num() >= 8)
+				{
+					const auto& Old = ImpactDiagnosticTraces[0];
+					UE_LOG(LogTemp, Log, TEXT("Vehicle impact trace: Phase=Evicted Actor=%s Attack=%s Pulse=%u Event=%u Reason=Budget8"),
+						*Old.OwnerName, *Old.AttackId.ToString(), Old.PulseSequence, Old.EventSequence);
+					ImpactDiagnosticTraces.RemoveAt(0);
+				}
+				ImpactDiagnosticTraces.Add(Trace); bHasImpactDiagnosticTraces.Store(true);
+			}
+			const auto* Body = UpdatedPrimitive->GetBodyInstance();
+			UE_LOG(LogTemp, Log, TEXT("Vehicle impact trace: Phase=SubmitGT Actor=%s Attack=%s Pulse=%u Event=%u Mode=QueuedPT FrameBefore=%d FrameAfter=%d PTEnabled=%d Mass=%.3f AwakeBefore=%d AwakeAfter=%d PosBefore=%s BeforeV=%s BeforeW=%s PreviewDV=%s TargetUp=%.3f SetW=%d PreviewW=%s ImmediateV=%s ImmediateW=%s"),
+				*Trace.OwnerName, *AttackId.ToString(), PulseSequence, Action.EventSequence, BeforeFrame, GetLastPhysicsFrame(), int32(bShouldRunPhysics.Load()), UpdatedPrimitive->GetMass(),
+				AwakeBefore, Body ? int32(Body->IsInstanceAwake()) : -1, *BeforePosition.ToString(), *BeforeV.ToString(), *BeforeW.ToString(),
+				*Action.ResolveLinearDelta(BeforeV).ToString(), Action.bMinimumUpwardSpeed ? Action.MinimumUpwardSpeed : 0.f, int32(Action.bSetPlanarAngularVelocity), *Action.ResolveAngularVelocity(BeforeW).ToString(),
+				*UpdatedPrimitive->GetPhysicsLinearVelocity().ToString(), *UpdatedPrimitive->GetPhysicsAngularVelocityInRadians().ToString());
+		}
+#endif
 	}
 	return true;
 }
+
+void UArcadeVehicleMovementComponent::ConsumeNonHistoryImpacts_Internal(int32 PhysicsFrame)
+{
+	if (!bHasPendingImpacts.Load()) { return; }
+	FBodyInstance* Body = UpdatedPrimitive ? UpdatedPrimitive->GetBodyInstance() : nullptr;
+	auto Handle = Body ? Body->GetBodyInstanceAsyncPhysicsTickHandle() : FBodyInstanceAsyncPhysicsTickHandle();
+	if (!Handle.IsValid()) { return; } // Retain until the body is ready; teardown/mode changes retire the queue.
+	TArray<FQueuedVehicleImpact> Impacts;
+	{
+		FScopeLock Lock(&PendingPhysicsDataLock);
+		Swap(Impacts, PendingImpacts);
+		bHasPendingImpacts.Store(false);
+	}
+	for (const auto& Pending : Impacts)
+	{
+		if (Handle->ObjectState() != Chaos::EObjectStateType::Sleeping
+			&& Handle->ObjectState() != Chaos::EObjectStateType::Dynamic) { continue; }
+		// Multiple contacts may share this step. Pending impulse velocity is part of
+		// the effective state: minimum ascent is a floor, and the last planar W wins.
+		const FVector BeforeV = Handle->V() + Handle->LinearImpulseVelocity();
+		const FVector BeforeW = Handle->W() + Handle->AngularImpulseVelocity();
+		const auto& Action = Pending.Action;
+		const FVector DeltaV = Action.ResolveLinearDelta(BeforeV);
+		const FVector DeltaW = Action.bSetPlanarAngularVelocity
+			? Action.ResolveAngularVelocity(BeforeW) - BeforeW : FVector::ZeroVector;
+		const bool bSleeping = Handle->ObjectState() == Chaos::EObjectStateType::Sleeping;
+		const bool bNoOp = DeltaV.IsNearlyZero() && DeltaW.IsNearlyZero();
+		if (!bNoOp)
+		{
+			// Wake and both impulses must address the same Internal body in this Solver
+			// step. A successful GT wake/readback does not prove PT consumed the hit.
+			if (bSleeping) { Handle->SetObjectState(Chaos::EObjectStateType::Dynamic, true); }
+			if (!DeltaV.IsNearlyZero()) { FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(), DeltaV, true); }
+			if (!DeltaW.IsNearlyZero()) { FPhysicsInterface::AddAngularVelocityInRadians_AssumesLocked(Body->GetPhysicsActor(), DeltaW, true); }
+		}
+#if !UE_BUILD_SHIPPING
+		if (CVarHALImpactPhysicsLog.GetValueOnAnyThread() > 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("Vehicle impact trace: Phase=ConsumePT Actor=%s Attack=%s Pulse=%u Event=%u Frame=%d SubmitFrame=%d PTContext=%d SleepingBefore=%d SleepingAfter=%d NoOp=%d EffectiveBeforeV=%s EffectiveBeforeW=%s AppliedDV=%s AppliedDW=%s PendingDV=%s PendingDW=%s"),
+				*GetNameSafe(GetOwner()), *Pending.AttackId.ToString(), Pending.PulseSequence, Action.EventSequence, PhysicsFrame, Pending.SubmitFrame,
+				int32(Chaos::IsInPhysicsThreadContext()), int32(bSleeping), int32(Handle->ObjectState() == Chaos::EObjectStateType::Sleeping), int32(bNoOp),
+				*BeforeV.ToString(), *BeforeW.ToString(), *DeltaV.ToString(), *DeltaW.ToString(),
+				*FVector(Handle->LinearImpulseVelocity()).ToString(), *FVector(Handle->AngularImpulseVelocity()).ToString());
+		}
+#endif
+	}
+}
+
+#if !UE_BUILD_SHIPPING
+void UArcadeVehicleMovementComponent::SampleImpactDiagnostics_Internal(int32 PhysicsFrame)
+{
+	if (!bHasImpactDiagnosticTraces.Load()) { return; }
+	FScopeLock Lock(&PendingPhysicsDataLock);
+	if (CVarHALImpactPhysicsLog.GetValueOnAnyThread() <= 0 || bUseNetworkPhysicsHistory.Load())
+	{ ImpactDiagnosticTraces.Reset(); bHasImpactDiagnosticTraces.Store(false); return; }
+	const auto* Body = UpdatedPrimitive ? UpdatedPrimitive->GetBodyInstance() : nullptr;
+	auto Handle = Body ? Body->GetBodyInstanceAsyncPhysicsTickHandle() : FBodyInstanceAsyncPhysicsTickHandle();
+	if (PhysicsFrame < 0 || !Handle.IsValid()) { return; }
+	constexpr int32 SampleAges[] = {0, 1, 2, 3, 7, 15, 31, 63, 95};
+	for (int32 I = ImpactDiagnosticTraces.Num()-1; I >= 0; --I)
+	{
+		auto& T = ImpactDiagnosticTraces[I];
+		if (T.FirstFrame == INDEX_NONE) { T.FirstFrame = PhysicsFrame; T.FirstPosition = Handle->X(); }
+		if (PhysicsFrame <= T.LastFrame || PhysicsFrame < T.FirstFrame) { continue; }
+		T.LastFrame = PhysicsFrame;
+		const int32 Age = PhysicsFrame-T.FirstFrame;
+		if (T.NextSample < UE_ARRAY_COUNT(SampleAges) && Age >= SampleAges[T.NextSample])
+		{
+			while (T.NextSample < UE_ARRAY_COUNT(SampleAges) && Age >= SampleAges[T.NextSample]) { ++T.NextSample; }
+			// This is the current pre-simulation Internal state: later frames contain previous
+			// integrated motion, never a second GT read mislabeled as PostSolve/consumption.
+			UE_LOG(LogTemp, Log, TEXT("Vehicle impact trace: Phase=SamplePT Actor=%s Attack=%s Pulse=%u Event=%u Frame=%d SubmitFrame=%d AgeFrames=%d PTContext=%d Sleeping=%d GroundedPrev=%d Pos=%s V=%s W=%s PendingImpulse=%s TravelFromGT=%s TravelFromFirstPT=%s"),
+				*T.OwnerName, *T.AttackId.ToString(), T.PulseSequence, T.EventSequence, PhysicsFrame, T.SubmitFrame, Age, int32(Chaos::IsInPhysicsThreadContext()),
+				int32(Handle->ObjectState() == Chaos::EObjectStateType::Sleeping), int32(bGrounded), *FVector(Handle->X()).ToString(), *FVector(Handle->V()).ToString(), *FVector(Handle->W()).ToString(),
+				*FVector(Handle->LinearImpulse()).ToString(), *FVector(Handle->X()-T.SubmitPosition).ToString(), *FVector(Handle->X()-T.FirstPosition).ToString());
+		}
+		if (Age >= SampleAges[UE_ARRAY_COUNT(SampleAges)-1]) { ImpactDiagnosticTraces.RemoveAtSwap(I); }
+	}
+	bHasImpactDiagnosticTraces.Store(!ImpactDiagnosticTraces.IsEmpty());
+}
+#endif
 
 bool UArcadeVehicleMovementComponent::CaptureNetState(FVehicleNetStateData& OutState) const
 {
@@ -1077,6 +1237,13 @@ void UArcadeVehicleMovementComponent::ApplySteering(
 	float DeltaTime,
 	float AreaSwayAcceleration)
 {
+	const auto& Shift=CurrentMovement.SideShift;
+	if(InputCommand.bHandbrake&&Shift.IsDrifting(CurrentMovementServerFrame))
+	{
+		const float Acceleration=Shift.YawAcceleration(InputCommand.Steering,CurrentYawRate)+AreaSwayAcceleration;
+		FPhysicsInterface::AddTorque_AssumesLocked(Body.GetPhysicsActor(),GroundNormal*Acceleration,false,true,true);
+		return;
+	}
 	const float AbsoluteSpeed = FMath::Abs(CurrentForwardSpeed);
 	float SteeringAuthority = FMath::Clamp(AbsoluteSpeed / FMath::Max(FullSteeringSpeed, 1.0f), 0.0f, 1.0f);
 

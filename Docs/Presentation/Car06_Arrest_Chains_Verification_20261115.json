@@ -1,0 +1,235 @@
+﻿{
+    "date":  "2026-11-15",
+    "branch":  "main",
+    "starting_commit":  "a105c89",
+    "engine":  "5.8.3-58210709",
+    "scope":  "Car06 cosmetic crossed arrest chains; gameplay rules, existing tuning, BP and maps preserved",
+    "builds":  {
+                   "editor":  "BuildEditor_R6: Succeeded",
+                   "game":  "BuildGame_R3: Succeeded"
+               },
+    "automation":  {
+                       "with_warnings":  2,
+                       "passed":  52,
+                       "warnings":  [
+                                        {
+                                            "test":  "HAL.FutureCreation.VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar",
+                                            "count":  2,
+                                            "messages":  [
+                                                             "LogHALVehicleTest: Set Default Pawn Class to BP_VehiclePawn_Car_02; add alternatives to Test Vehicle Classes.",
+                                                             "LogHALVehicleTest: PlayerStart is blocked. Raise it above the floor or clear surrounding geometry."
+                                                         ]
+                                        },
+                                        {
+                                            "test":  "HAL.RenderSmoke.Pursuit.ScanBeaconsArrestAndLeftToRightStars",
+                                            "count":  1,
+                                            "messages":  [
+                                                             "LogRHICore: Total reserved resource allocated virtual size (258 GB) exceeds the budget (256 GB). Use `rhi.DumpMemory` and `rhi.DumpResourceMemory` console commands to investigate."
+                                                         ]
+                                        }
+                                    ],
+                       "in_process":  0,
+                       "failed":  0,
+                       "clean":  50,
+                       "report":  "Saved/Car06Chains/20261115/Final_R2/index.json",
+                       "not_run":  0
+                   },
+    "network":  {
+                    "host_outgoing_delay_ms":  80,
+                    "report":  "Saved/Car06Chains/20261115/Network_R1",
+                    "observed_on_both":  [
+                                             "two non-colliding chain loops following vehicle orientation",
+                                             "release after actual shared Stun ends",
+                                             "chains absent during remaining protection",
+                                             "dummy health, wanted, Stun, protection and destruction; exactly two real players"
+                                         ],
+                    "rendering":  "D3D12 offscreen, two actual endpoints",
+                    "endpoints":  [
+                                      {
+                                          "role":  "Host",
+                                          "exit_code":  0,
+                                          "passed":  1,
+                                          "failed":  0,
+                                          "warnings":  0,
+                                          "in_process":  0
+                                      },
+                                      {
+                                          "role":  "Client",
+                                          "exit_code":  0,
+                                          "passed":  1,
+                                          "failed":  0,
+                                          "warnings":  0,
+                                          "in_process":  0
+                                      }
+                                  ],
+                    "fixture":  "HALSkillDummyFixture + HALArrestChainFixture"
+                },
+    "rendering":  {
+                      "checks":  [
+                                     "actual visible coverage",
+                                     "tightening geometry",
+                                     "owner pitch/yaw/roll",
+                                     "release ends and clear removes instances"
+                                 ],
+                      "max_instances":  192,
+                      "changed_pixels":  29176,
+                      "instances":  128,
+                      "triangles_per_link":  512,
+                      "report":  "Saved/Car06Chains/20261115/Render_R4",
+                      "images":  [
+                                     "Chain_00_Bare.bmp",
+                                     "Chain_01_Tight_Top.bmp",
+                                     "Chain_02_Entry_Loose.bmp",
+                                     "Chain_03_Side.bmp",
+                                     "Chain_04_Tilted.bmp",
+                                     "Chain_05_Release.bmp",
+                                     "Chain_06_Gone.bmp"
+                                 ],
+                      "target":  "Actual Car02 model on native skill dummy",
+                      "human_art_acceptance":  "pending"
+                  },
+    "preservation":  {
+                         "cooldown_seconds":  18.0,
+                         "preexisting_dirty_game_mode_preserved":  true,
+                         "existing_fx_snapshot":  {
+                                                      "RangeMesh":  "/Game/Assets/FX/PolicePursuit/SM_Pursuit_Range.SM_Pursuit_Range",
+                                                      "RangeMaterial":  "/Game/Assets/FX/PolicePursuit/M_Pursuit_Range.M_Pursuit_Range",
+                                                      "BeaconMesh":  "/Engine/BasicShapes/Sphere.Sphere",
+                                                      "SignalMaterial":  "/Game/Assets/FX/PolicePursuit/M_Pursuit_Signal.M_Pursuit_Signal",
+                                                      "ArrestMesh":  "/Game/Assets/FX/PolicePursuit/SM_Pursuit_Handcuffs.SM_Pursuit_Handcuffs",
+                                                      "SirenSound":  "/Game/Assets/FX/PolicePursuit/SW_Pursuit_Siren.SW_Pursuit_Siren",
+                                                      "WidgetClass":  null,
+                                                      "RoofMount":  "(PartId=\"Body\",SocketOrBone=\"\",Offset=(Rotation=(X=0.000000,Y=0.000000,Z=0.000000,W=1.000000),Translation=(X=0.000000,Y=0.000000,Z=0.000000),Scale3D=(X=1.000000,Y=1.000000,Z=1.000000)),bFallbackToMeshOrigin=False)",
+                                                      "bAutomaticRoof":  true,
+                                                      "RoofLift":  8.0,
+                                                      "LightSpacing":  35.0,
+                                                      "BeaconRadius":  9.0,
+                                                      "FlashHalfPeriod":  0.2199999988079071,
+                                                      "LightIntensity":  1800.0,
+                                                      "LightRadius":  180.0,
+                                                      "SignalGlow":  2.0,
+                                                      "Red":  "(R=1.000000,G=0.035000,B=0.060000,A=1.000000)",
+                                                      "Blue":  "(R=0.035000,G=0.180000,B=1.000000,A=1.000000)",
+                                                      "RangeOpacity":  0.11999999731779099,
+                                                      "RangeRingOpacity":  0.36000001430511475,
+                                                      "ScanSpeed":  0.6499999761581421,
+                                                      "ScanWidth":  0.11999999731779099,
+                                                      "ScanOpacity":  0.18000000715255737,
+                                                      "RingWidth":  0.02500000037252903,
+                                                      "GroundLift":  3.0,
+                                                      "ArrestSize":  65.0,
+                                                      "ArrestHeight":  55.0,
+                                                      "ArrestPulseSpeed":  1.5,
+                                                      "StarCount":  6,
+                                                      "StarSize":  18.0,
+                                                      "StarGap":  3.0,
+                                                      "StarsAboveHealth":  52.0,
+                                                      "StarColor":  "(R=0.650000,G=0.680000,B=0.730000,A=1.000000)",
+                                                      "StarOutline":  "(R=0.050000,G=0.060000,B=0.080000,A=1.000000)",
+                                                      "SirenVolume":  0.3499999940395355,
+                                                      "SirenInnerRadius":  200.0,
+                                                      "SirenFalloff":  2500.0
+                                                  },
+                         "new_art":  [
+                                         "Content/Assets/FX/PolicePursuit/SM_Pursuit_ChainLink.uasset",
+                                         "Content/Assets/FX/PolicePursuit/M_Pursuit_ChainToon.uasset"
+                                     ],
+                         "protected_before":  1334,
+                         "unchanged":  1333,
+                         "old_skill_fields_unchanged":  true,
+                         "changed":  [
+                                         "Content/Data/Abilities/DA_Ability_Car06_PolicePursuit.uasset"
+                                     ],
+                         "blueprints_or_maps_edited":  false,
+                         "rules_snapshot":  "(Duration=8.000000,Radius=900.000000,ExitBuffer=25.000000,MaximumHeightDifference=300.000000,Threshold=100.000000,GainPerSecond=25.000000,DecayPerSecond=40.000000,StunSeconds=3.000000,ProtectionSeconds=2.000000,ScanInterval=0.050000,bDrawBounds=False)",
+                         "chains_snapshot":  "(bEnabled=True,LinkMesh=\"/Script/Engine.StaticMesh\u0027/Game/Assets/FX/PolicePursuit/SM_Pursuit_ChainLink.SM_Pursuit_ChainLink\u0027\",Material=\"/Script/Engine.Material\u0027/Game/Assets/FX/PolicePursuit/M_Pursuit_ChainToon.M_Pursuit_ChainToon\u0027\",PartId=\"Body\",BoundsScale=(X=0.940000,Y=0.940000,Z=1.000000),CenterOffset=(X=0.000000,Y=0.000000,Z=-2.000000),VehicleFits=((VehicleDefinition=\"/Script/HAL_Future_Creation.VehicleDefinition\u0027/Game/Data/MVP_B/DA_Vehicle_Car_02.DA_Vehicle_Car_02\u0027\",CenterOffset=(X=50.000000,Y=0.000000,Z=-2.000000),BoundsScale=(X=0.800000,Y=0.780000,Z=0.750000)),(VehicleDefinition=\"/Script/HAL_Future_Creation.VehicleDefinition\u0027/Game/Data/Testing/DA_Vehicle_SkillDummy_Default.DA_Vehicle_SkillDummy_Default\u0027\",CenterOffset=(X=50.000000,Y=0.000000,Z=-2.000000),BoundsScale=(X=0.800000,Y=0.780000,Z=0.750000))),LowerHeightFraction=0.150000,UpperHeightFraction=1.000000,Clearance=18.000000,LinksPerLoop=64,CrossAngle=36.000000,ProfileExponent=4.000000,LinkWidth=18.000000,LinkOverlap=1.300000,WireScale=1.250000,CrossingSeparation=8.000000,TightenSeconds=0.240000,InitialLooseness=0.280000,ReboundAmount=0.025000,ReboundSeconds=0.300000,ReleaseSeconds=0.180000,ReleaseLooseness=0.180000,DarkColor=(R=0.055000,G=0.075000,B=0.090000,A=1.000000),MiddleColor=(R=0.240000,G=0.290000,B=0.340000,A=1.000000),LightColor=(R=0.720000,G=0.800000,B=0.860000,A=1.000000),LightDirection=(X=0.350000,Y=-0.550000,Z=0.750000),ShadowThreshold=-0.150000,HighlightThreshold=0.500000,ToneSoftness=0.160000,GlintStrength=0.350000)"
+                     },
+    "iteration_notes":  [
+                            "All six Editor builds and three Game builds succeeded; native resource creation completed with no errors or warnings.",
+                            "Focused_R1 and Focused_R2 each passed 4/4; Final_R1 and Final_R2 each passed 52/52.",
+                            "Fit iterations increased link density and rounded-rectangle profile, then applied per-Definition correction. Real-model render fixture waits for compilation and streaming to avoid incomplete material previews.",
+                            "Final preset uses Car02 and default dummy CenterOffset=(50,0,-2), BoundsScale=(0.8,0.78,0.75). Existing rules, roof lights, UI, range, siren and legacy serialized fields compare equal to the opening snapshot."
+                        ],
+    "limits":  [
+                   "Approximate visual bounds wrapping, no chain physics or exact surface fitting; other models may need VehicleFits.",
+                   "Cloned Vehicle Definitions require their own fit entry when a special override is needed.",
+                   "Late-join phase tested through server-clock mathematics, not a real late-join connection.",
+                   "No four-machine session, full room BP flow, Cook or packaged build acceptance in this task.",
+                   "Human Fred_TestScene art/feel acceptance and custom WBP acceptance remain with the team.",
+                   "Raw logs and BMPs remain local under Saved; this JSON and configuration document are Git-whitelisted. No commit or push performed."
+               ],
+    "files":  [
+                  {
+                      "path":  ".gitignore",
+                      "sha256":  "AD7CE5E57CBA82750F72E859BD7A80824D62085251143CABEB1E94C27D3C43EB"
+                  },
+                  {
+                      "path":  "Content/Assets/FX/PolicePursuit/M_Pursuit_ChainToon.uasset",
+                      "sha256":  "98379E2A5340128459A08F367B7B1B36673637CE8360F870676519923CE0DDEA"
+                  },
+                  {
+                      "path":  "Content/Assets/FX/PolicePursuit/SM_Pursuit_ChainLink.uasset",
+                      "sha256":  "2DE3EEC160AEE61D1EF7C0233A47CAAC6E5E66E1BA1888FC0322E536E43DA4F2"
+                  },
+                  {
+                      "path":  "Content/Data/Abilities/DA_Ability_Car06_PolicePursuit.uasset",
+                      "sha256":  "2E3EC90FC2ED08CA8DF62F62CA6BB3183CDC95F5B27C6B310E741259610031B3"
+                  },
+                  {
+                      "path":  "Source/HAL_Future_Creation/HALArrestChainTypes.h",
+                      "sha256":  "2173F16877BA5B4A0C321624B4F066352B3BB27E34E48E0CCFEEEDEFDB8B7D9F"
+                  },
+                  {
+                      "path":  "Source/HAL_Future_Creation/HALArrestChainTypes.cpp",
+                      "sha256":  "38611AA9FA525B40E9E0F92E92D15195D6B81E3F48DE571691AE7974C7B4EE0E"
+                  },
+                  {
+                      "path":  "Source/HAL_Future_Creation/HALArrestChainPresentation.cpp",
+                      "sha256":  "1EDDB531C5579A7D4E096569B8426B0B21E276B83D17933A299EF19CE05E6790"
+                  },
+                  {
+                      "path":  "Source/HAL_Future_Creation/HALPolicePursuitTypes.h",
+                      "sha256":  "1DF354CE9AF6DDE715716B7D9376C8DFA27026822B19211BF0196D0FED7F6C36"
+                  },
+                  {
+                      "path":  "Source/HAL_Future_Creation/HALPolicePursuitAbility.cpp",
+                      "sha256":  "E21E073822AD11866D49F18055F75CD4B4EFDF9F1AF88FB4BD1D06F39090A862"
+                  },
+                  {
+                      "path":  "Source/HAL_Future_Creation/HALPolicePursuitPresentation.cpp",
+                      "sha256":  "1F93C942F4647D0B960D4565AF239F884B0C676A5A93A1E96C361FE21D0FFEA9"
+                  },
+                  {
+                      "path":  "Source/HAL_Future_Creation/HALPursuitTargetComponent.h",
+                      "sha256":  "DDF06FAE5DCA445FC0466BFFF7CE8318EBBACBA8020E61588AC5689E12F4F325"
+                  },
+                  {
+                      "path":  "Source/HAL_Future_Creation/HALPursuitTargetComponent.cpp",
+                      "sha256":  "655BD5625C9AF68CF22F8CB0399FE449D0AAE263C2D3534BF55274AE3F2B9544"
+                  },
+                  {
+                      "path":  "Source/HAL_Future_Creation/Tests/HALArrestChainTests.cpp",
+                      "sha256":  "FAC17E9C2A53790F3FFB2E7A55E0162841623431288B0A5D7BA845BE7005EF1F"
+                  },
+                  {
+                      "path":  "Source/HAL_Future_Creation/Tests/HALArrestChainRenderTests.cpp",
+                      "sha256":  "AB644C374F027D302E98A40FA38080FF477E484E3DF7EEECB1FB4AE8C7B8D59F"
+                  },
+                  {
+                      "path":  "Source/HAL_Future_Creation/Tests/HALPursuitRenderTests.cpp",
+                      "sha256":  "B02E5DE7E4054BED823E42F0867EA2CFF91949423392092246E965702E9A5F8D"
+                  },
+                  {
+                      "path":  "Source/HAL_Future_Creation/Tests/HALSkillTestDummyNetworkTests.cpp",
+                      "sha256":  "A3D73A57EF7AF335FE944BEC5C9187577CB7D05B213E14D61A6BC131DA884E1F"
+                  },
+                  {
+                      "path":  "Source/HAL_Future_CreationEditor/Public/HALBuildArrestChainsFXCommandlet.h",
+                      "sha256":  "D80C8A1F6C89D18D802B21F0D6242280E84CCFB6C3C501C570E0760161DD08A1"
+                  },
+                  {
+                      "path":  "Source/HAL_Future_CreationEditor/Private/HALBuildArrestChainsFXCommandlet.cpp",
+                      "sha256":  "89835D445793F0C76060BC0BD8E4693AD504031C71981A53901198381C7EC8E8"
+                  }
+              ]
+}

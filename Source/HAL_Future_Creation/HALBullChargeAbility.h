@@ -5,6 +5,7 @@
 #include "GameplayEffect.h"
 #include "HALImpactTypes.h"
 #include "HALOverdriveMotion.h"
+#include "HALBullChargeFXTypes.h"
 #include "HALBullChargeAbility.generated.h"
 
 class UCurveFloat;
@@ -15,6 +16,7 @@ class HAL_FUTURE_CREATION_API UHALBullChargeConfig : public UDataAsset
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere, Category="Charge") FHALOverdriveMotion Motion;
+	UPROPERTY(EditAnywhere, Category="Presentation") FHALBullChargeFXConfig FX;
 	UPROPERTY(EditAnywhere, Category="Timing", meta=(Units="s", ClampMin="0", ClampMax="120")) float CooldownSeconds = 20.f;
 	UPROPERTY(EditAnywhere, Category="Contact", meta=(Units="s", ClampMin="0.05", ClampMax="10")) float TargetCooldownSeconds = .8f;
 	UPROPERTY(EditAnywhere, Category="Contact", meta=(Units="deg", ClampMin="1", ClampMax="89")) float FrontHalfAngle = 45.f;

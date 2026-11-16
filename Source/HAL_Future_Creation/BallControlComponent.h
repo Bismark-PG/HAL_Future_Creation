@@ -117,6 +117,7 @@ protected:
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALBullChargeTestAccess;
+	friend struct FHALSideShiftTestAccess;
 #endif
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALVehicleLifecycleTestAccess;

@@ -105,7 +105,7 @@ bool FHALMovementSnapshot::IsValidValues() const
 	return Epoch.IsValid() && Revision != 0 && FMath::IsFinite(AccelerationScale) && FMath::IsFinite(SpeedScale)
 		&& FMath::IsFinite(GripScale) && AccelerationScale >= 0 && AccelerationScale <= 3
 		&& SpeedScale >= 0 && SpeedScale <= 3 && GripScale >= 0 && GripScale <= 3
-		&& Overdrive.IsValidState(false) && GravityDrive.IsValid(false) && AreaSway.IsValid() && (bHasAreaState || AreaSway.Amplitude == 0)
+		&& Overdrive.IsValidState(false) && SideShift.IsValid(false) && GravityDrive.IsValid(false) && AreaSway.IsValid() && (bHasAreaState || AreaSway.Amplitude == 0)
 		&& (!bHasAreaState || (AreaAcceleration.IsValid(false) && AreaSpeed.IsValid(false) && AreaGrip.IsValid(false)));
 }
 bool FHALMovementSnapshot::IsValid() const
@@ -118,6 +118,7 @@ bool FHALMovementSnapshot::IsValid() const
 		|| (Overdrive.StartFrame <= EffectiveServerFrame && (!Overdrive.bStunned
 			|| (Overdrive.StunFrame >= Overdrive.StartFrame && Overdrive.StunFrame <= EffectiveServerFrame))));
 	return IsValidValues() && GravityDrive.IsValid(true) && (!GravityDrive.Source.IsValid() || GravityDrive.StartFrame <= EffectiveServerFrame)
+		&& SideShift.IsValid(true) && (!SideShift.Activation.IsValid() || SideShift.StartFrame<=EffectiveServerFrame)
 		&& bOverdriveValid && bSwayValid && EffectiveServerFrame >= 0 && (!bHasAreaState
 		|| (AreaAcceleration.IsValid(true) && AreaSpeed.IsValid(true) && AreaGrip.IsValid(true)
 			&& AreaAcceleration.StartFrame <= EffectiveServerFrame && AreaSpeed.StartFrame <= EffectiveServerFrame
@@ -127,7 +128,7 @@ bool FHALMovementSnapshot::IsUnset() const
 {
 	return !Epoch.IsValid() && Revision == 0 && EffectiveServerFrame == INDEX_NONE
 		&& AccelerationScale == 1 && SpeedScale == 1 && GripScale == 1 && !bHasAreaState && !bControlsBlocked && !bHandbrakeBlocked
-		&& Overdrive == FHALOverdriveMotion{} && GravityDrive == FHALGravityDrive{} && AreaSway == FHALMovementAreaSway{} && SwayStartFrame == INDEX_NONE && SwayPeriodFrames == 0 && SwayRampFrames == 0;
+		&& Overdrive == FHALOverdriveMotion{} && SideShift == FHALSideShiftMotion{} && GravityDrive == FHALGravityDrive{} && AreaSway == FHALMovementAreaSway{} && SwayStartFrame == INDEX_NONE && SwayPeriodFrames == 0 && SwayRampFrames == 0;
 }
 bool FHALMovementSnapshot::Equals(const FHALMovementSnapshot& Other) const
 {
@@ -138,7 +139,7 @@ bool FHALMovementSnapshot::Equals(const FHALMovementSnapshot& Other) const
 		&& bControlsBlocked == Other.bControlsBlocked && bHandbrakeBlocked == Other.bHandbrakeBlocked
 		&& (!bHasAreaState || (AreaAcceleration.Equals(Other.AreaAcceleration)
 			&& AreaSpeed.Equals(Other.AreaSpeed) && AreaGrip.Equals(Other.AreaGrip)))
-		&& Overdrive == Other.Overdrive && GravityDrive == Other.GravityDrive && AreaSway == Other.AreaSway && SwayStartFrame == Other.SwayStartFrame
+		&& Overdrive == Other.Overdrive && SideShift == Other.SideShift && GravityDrive == Other.GravityDrive && AreaSway == Other.AreaSway && SwayStartFrame == Other.SwayStartFrame
 		&& SwayPeriodFrames == Other.SwayPeriodFrames && SwayRampFrames == Other.SwayRampFrames;
 }
 void FHALMovementSnapshot::Serialize(FArchive& Ar)
@@ -146,6 +147,7 @@ void FHALMovementSnapshot::Serialize(FArchive& Ar)
 	Ar << Epoch << Revision << EffectiveServerFrame << AccelerationScale << SpeedScale << bControlsBlocked << GripScale << bHasAreaState;
 	Ar << bHandbrakeBlocked;
 	Overdrive.Serialize(Ar);
+	SideShift.Serialize(Ar);
 	GravityDrive.Serialize(Ar);
 	if (bHasAreaState) { AreaAcceleration.Serialize(Ar); AreaSpeed.Serialize(Ar); AreaGrip.Serialize(Ar); }
 	else if (Ar.IsLoading()) { AreaAcceleration = {}; AreaSpeed = {}; AreaGrip = {}; }
@@ -163,6 +165,7 @@ void FHALMovementSnapshot::Stamp(const FHALMovementSnapshot* Previous, int32 Fra
 {
 	EffectiveServerFrame = Frame;
 	Overdrive.Stamp(Previous ? &Previous->Overdrive : nullptr, Frame, FixedDeltaSeconds);
+	SideShift.Stamp(Previous ? &Previous->SideShift : nullptr, Frame, FixedDeltaSeconds);
 	GravityDrive.Stamp(Previous ? &Previous->GravityDrive : nullptr, Frame, FixedDeltaSeconds);
 	SwayStartFrame = INDEX_NONE;
 	SwayPeriodFrames = SwayRampFrames = 0;

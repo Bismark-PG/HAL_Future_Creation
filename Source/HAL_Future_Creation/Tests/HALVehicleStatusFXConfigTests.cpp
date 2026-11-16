@@ -3,6 +3,7 @@
 #include "../HALVehicleStatusFXDefinition.h"
 #include "../HALVehicleStatusFXCatalog.h"
 #include "../HALVehicleStatusFXSettings.h"
+#include "../HALDamageFeedbackConfig.h"
 #include "../HALVehicleStatusFXSubsystem.h"
 #include "../HALGameplayTags.h"
 #include "../VehicleDefinition.h"
@@ -161,6 +162,7 @@ bool FHALStatusFXCookTest::RunTest(const FString&)
 #if WITH_EDITOR
 	auto* Settings=GetMutableDefault<UHALVehicleStatusFXSettings>();
 	const TGuardValue<TSoftObjectPtr<UHALVehicleStatusFXCatalog>> Guard(Settings->DefaultCatalog,nullptr);
+	const TGuardValue<TSoftObjectPtr<UHALDamageFeedbackConfig>> DamageGuard(Settings->DamageFeedbackConfig,nullptr);
 	TArray<FName> Packages; FString Error;
 	TestTrue(TEXT("Unconfigured global path is optional"),Settings->CollectCookPackages(Packages,Error));
 	TestTrue(TEXT("No fictitious cook package added"),Packages.IsEmpty());

@@ -12,6 +12,7 @@ class UHALDebugHUDWidget;
 class UHALAbilitySystemComponent;
 class UHALCameraDebugWidget;
 class UHALRoomComponent;
+class UHALMatchHUDWidget;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHALRoomRequestCompleted, EHALRoomResult, Result);
 
 /** Local input, camera and match UI entry point for a single player. */
@@ -90,7 +91,13 @@ public:
 	UFUNCTION(Exec)
 	void HALClearMovementBoost();
 
+protected:
+	/** Optional Designer subclass. None uses the native countdown-only HUD. */
+	UPROPERTY(EditDefaultsOnly, Category="Match|UI") TSubclassOf<UHALMatchHUDWidget> MatchHUDClass;
 private:
+	void EnsureMatchHUD();
+	void RemoveMatchHUD();
+	UPROPERTY(Transient) TObjectPtr<UHALMatchHUDWidget> MatchHUD;
 	void UpdateRoundSpectator(float DeltaSeconds);
 	void ClearRoundSpectator();
 	UPROPERTY(Transient) TObjectPtr<class ACameraActor> RoundSpectatorCamera;

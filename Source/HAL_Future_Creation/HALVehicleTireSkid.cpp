@@ -1,6 +1,7 @@
 #include "HALVehiclePresentationComponent.h"
 #include "HALVehiclePresentationConfig.h"
 #include "HALAbilitySystemComponent.h"
+#include "HALSideShiftComponent.h"
 #include "ArcadeVehicleMovementComponent.h"
 #include "TestVehiclePawn.h"
 #include "Components/PrimitiveComponent.h"
@@ -103,7 +104,7 @@ void UHALVehiclePresentationComponent::StopTireSkid(int32 Slot, bool bImmediate)
 	if (!IsValid(Component)) { return; }
 	if (bImmediate) { Component->DestroyComponent(); return; }
 	Component->Deactivate();
-	FadingTireSkids.Add({ Component, GetWorld()->GetTimeSeconds() + Config->TireSkid.MaximumFadeSeconds });
+	FadingTireSkids.Add({ Component, GetWorld()->GetTimeSeconds() + CurrentSkidFadeSeconds });
 	// Bound retained segments even if a malformed effect never completes after Deactivate.
 	if (FadingTireSkids.Num() > 16)
 	{
@@ -122,7 +123,9 @@ void UHALVehiclePresentationComponent::ClearTireSkids()
 
 void UHALVehiclePresentationComponent::UpdateTireSkids(const FVector& Velocity, bool bDrivingAllowed)
 {
-	if (!bTireSkidReady)
+	const auto* Shift=GetOwner()->FindComponentByClass<UHALSideShiftComponent>();
+	const FHALTireSkidConfig* Skill=Shift?Shift->GetActiveTireMarks():nullptr;
+	if (!bTireSkidReady&&!Skill)
 	{
 		Frame.TireSkidReasons = Frame.TireSkidWheelMask = 0;
 		return;
@@ -135,10 +138,17 @@ void UHALVehiclePresentationComponent::UpdateTireSkids(const FVector& Velocity, 
 		Old.Component->DestroyComponent(); return true;
 	});
 	const uint8 PreviousMask = Frame.TireSkidWheelMask, PreviousReasons = Frame.TireSkidReasons;
-	const auto& Settings = Config->TireSkid;
+	const auto& Settings = Skill?*Skill:Config->TireSkid;
+	if(CurrentTireSkidSystem.Get()!=Settings.System.Get())
+	{
+		for(int32 Slot=0;Slot<4;++Slot) { StopTireSkid(Slot,false); }
+		CurrentTireSkidSystem=Settings.System;
+	}
+	CurrentSkidFadeSeconds=Settings.MaximumFadeSeconds;
 	Frame.TireSkidReasons = HALVehiclePresentation::TireSkidReasons(Settings, ReadTireSkidInputs(),
 		Frame.ForwardSpeedCmPerSecond, FVector::DotProduct(Velocity, Body->GetRightVector()), PreviousReasons,
-		bTireSkidReady && bDrivingAllowed);
+		(bTireSkidReady||Skill) && bDrivingAllowed);
+	if(Skill&&bDrivingAllowed) { Frame.TireSkidReasons|=4; } // Skill demand, including standing starts; support is still required.
 	Frame.TireSkidWheelMask = 0;
 	const FTransform WheelToWorld = GetWheelSampleTransform();
 	for (const auto& Wheel : Config->Wheels)
@@ -179,6 +189,7 @@ void UHALVehiclePresentationComponent::UpdateTireSkids(const FVector& Velocity, 
 		else
 		{
 			TireSkidComponents[Slot]->SetWorldLocationAndRotation(Point, Rotation);
+			TireSkidComponents[Slot]->SetVariableFloat(Settings.SlipRatioParameter,Settings.SlipRatio);
 			if (!Settings.SurfaceNormalParameter.IsNone())
 			{ TireSkidComponents[Slot]->SetVariableVec3(Settings.SurfaceNormalParameter, Support.Normal); }
 		}

@@ -1,0 +1,279 @@
+{
+  "SchemaVersion": 1,
+  "Task": "Car04 Bull Charge production VFX and reusable presentation socket/bone mounts",
+  "Date": "2026-11-14",
+  "Engine": "5.8.3-58210709",
+  "StartingBranch": "main",
+  "StartingCommit": "50f3237",
+  "ApprovedScope": [
+    "Monochrome frontal airflow",
+    "Stronger soft cartoon sparks plus localized flash and expanding impact ring",
+    "World-space rear propulsion sparks with multiple configurable mounts",
+    "All skill-facing art settings in the independent skill DA"
+  ],
+  "Builds": [
+    {
+      "Target": "Editor",
+      "Configuration": "Win64 Development",
+      "Passed": true,
+      "Log": "Saved/Car04FX/20261114/BuildEditor_R9.log"
+    },
+    {
+      "Target": "Game",
+      "Configuration": "Win64 Development",
+      "Passed": true,
+      "Log": "Saved/Car04FX/20261114/BuildGame_R4.log"
+    }
+  ],
+  "FinalNativeAndRender": {
+    "Report": "Saved/Car04FX/20261114/Final_R2/index.json",
+    "InProcess": 0,
+    "Warnings": 0,
+    "NotRun": 0,
+    "Failed": 0,
+    "Tests": [
+      {
+        "fullTestPath": "HAL.FutureCreation.BattleTop.AuthoritySkillContactsAndCleanup",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BattleTop.ContactSprayGeometryAndTuning",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BattleTop.SustainedContactIndependentCooldown",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BattleTop.TransitionTimelineAndSparkTangent",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BattleTop.WallResponseAndConfig",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BullCharge.FX.EventOrderingAndCleanup",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BullCharge.FX.SocketMountAndReplacement",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BullCharge.FX.SpeedPhaseAndVelocity",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BullCharge.FrontSpeedDamageAndCaps",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BullCharge.GASContactsCooldownStunAndBall",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BullCharge.MotionHistoryAndSerialization",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.RenderSmoke.BullCharge.ThreeLayersAndWorldSpaceExhaust",
+        "state": "Success"
+      }
+    ],
+    "Passed": 12
+  },
+  "FinalNetwork": {
+    "HostOutboundLagMs": 80,
+    "Render": "D3D12 offscreen, low quality, two processes",
+    "Roles": [
+      {
+        "Role": "Host",
+        "Passed": 1,
+        "Warnings": 0,
+        "Failed": 0,
+        "NotRun": 0,
+        "InProcess": 0,
+        "Report": "Saved/Car04FX/20261114/Network_Final/Host/index.json",
+        "MountedLayerLogCount": 6
+      },
+      {
+        "Role": "Client",
+        "Passed": 1,
+        "Warnings": 0,
+        "Failed": 0,
+        "NotRun": 0,
+        "InProcess": 0,
+        "Report": "Saved/Car04FX/20261114/Network_Final/Client/index.json",
+        "MountedLayerLogCount": 6
+      }
+    ],
+    "Checks": [
+      "Existing automatic drive and speed cap, stun and recovery remain valid",
+      "VFX activation identity, drive pause and resume",
+      "Both observed vehicles create front plus two active rear mounted layers",
+      "Server-originated impact RPC reaches own and observed vehicle components",
+      "Skill expiry and cooldown remain intact"
+    ],
+    "Map": "/Game/Maps/MVPB_NetTest",
+    "GameMode": "/Script/HAL_Future_Creation.HALMatchGameMode",
+    "ActualAcceptedContactBoundaryCoveredByNativeResolverFixture": true,
+    "ExitCodes": {
+      "ClientExitCode": 0,
+      "Lag": 80,
+      "HostPID": 15680,
+      "HostExitCode": 0,
+      "Render": true,
+      "ClientPID": 7144
+    },
+    "ImpactTransportUsesAuthorityFixtureProbe": true
+  },
+  "AssetIntegrity": {
+    "Preserved": 1284,
+    "ExistingAssetsConfigAndProjectChecked": 1285,
+    "NewAssets": [
+      {
+        "Path": "Content/Assets/FX/BullCharge/M_BullCharge_Flash.uasset",
+        "SHA256": "99A74701CAAD7E566CA38C00D5A26A74EEE05FA7BA1ED95DB3E5BEC8B5B594A9",
+        "Bytes": 8598
+      },
+      {
+        "Path": "Content/Assets/FX/BullCharge/M_BullCharge_FrontWind.uasset",
+        "SHA256": "64DA054909CEB45845C76B38F79E4BC923E66C2EEAA48B66FF0CDC17D519DD36",
+        "Bytes": 9267
+      },
+      {
+        "Path": "Content/Assets/FX/BullCharge/M_BullCharge_Shock.uasset",
+        "SHA256": "2479B494BD20F3B8A3AAB75B11637671078CAFE193D29A4FDCE00BEEABECEBDD",
+        "Bytes": 10018
+      },
+      {
+        "Path": "Content/Assets/FX/BullCharge/M_BullCharge_ToonSpark.uasset",
+        "SHA256": "67212E2C9A894548A995A5C4A4F29548D9280BC94A6AF19DBE4848A36E18EE39",
+        "Bytes": 9571
+      },
+      {
+        "Path": "Content/Assets/FX/BullCharge/NS_BullCharge_FrontWind.uasset",
+        "SHA256": "CCF74E4C8CF7CA067E4C7B62564A39ABC5DEC9973FA308D3885FF9CC5BB0B9C7",
+        "Bytes": 469916
+      },
+      {
+        "Path": "Content/Assets/FX/BullCharge/NS_BullCharge_RearSparks.uasset",
+        "SHA256": "08B6B9ACA1235D72DE2AFAB6622FDFB1ECF8ECA57BC756D7F2C631C034987BA5",
+        "Bytes": 623182
+      },
+      {
+        "Path": "Content/Assets/FX/BullCharge/NS_BullCharge_ToonImpact.uasset",
+        "SHA256": "B080DD4CBE530ABA4F3E81A6809807E2DCF255215A5D785FD8C249C60EF0ABE3",
+        "Bytes": 1283582
+      },
+      {
+        "Path": "Content/Assets/FX/BullCharge/SM_BullCharge_ShockRing.uasset",
+        "SHA256": "A5F4818D66D4BA0961830348A3AEA1BFC049186FBC54DCE4EF26884BDF8834D1",
+        "Bytes": 16823
+      },
+      {
+        "Path": "Content/Assets/FX/BullCharge/SM_BullCharge_WindStreaks.uasset",
+        "SHA256": "713C392F5027994E15A96FA24BFFDD6FC37F121F721B425314C32411A423138C",
+        "Bytes": 15951
+      }
+    ],
+    "AuthorizedExistingChange": [
+      {
+        "Path": "Content\\Data\\Abilities\\DA_Ability_Car04_BullCharge.uasset",
+        "Before": "2B52996F02C70CFA58521FE3CF5755B006495E14E3E04311A08D7036B9FC34E3",
+        "After": "0EA4EA6CF757DFC25FAC7E78E8B0C2DC398B41D65D85BC6028B491B8EC1637A0"
+      }
+    ],
+    "OnlyFXPropertyChangedVerifiedByReflection": true,
+    "ApplyLog": "Saved/Car04FX/20261114/ApplyRecipe_R1.log",
+    "ExistingGameModeBlueprintUserChangePreserved": true,
+    "Car03ResourcesPreserved": true
+  },
+  "ColdStartFix": {
+    "Resolution": "Create/register the component, set parameters and activate once. Let Niagara itself handle pending compilation/DDC/PSO; do not reset every frame. Apply the same creation policy to the one-shot component.",
+    "Evidence": "Saved/Car04FX/20261114/ColdAudit_R1.log",
+    "AssetsWereNotForceResavedToHideTheIssue": true,
+    "RootCause": "Rear system loaded with valid scripts but Pending=1. A pre-creation IsReadyToRun gate prevented UNiagaraComponent activation from polling compilation requests."
+  },
+  "IntermediateResults": [
+    "Editor R1 rejected unsupported unit metadata; fixed units/tooltips.",
+    "Editor R2 exposed a missing relative test include; fixed.",
+    "Generator R1 lacked module qualification and R2 had an unquoted PowerShell dot argument; R3 generated nine assets successfully.",
+    "Network R1 harness split concatenated arguments; R2 used the entry map without unique player-start slots; neither counts as gameplay acceptance.",
+    "Native_R1 11/11 and Render_R1 1/1 passed before final lifecycle fixes. Final_R2 reran all twelve after final changes.",
+    "Network_R3 NullRHI passed both endpoints before cold-start correction; it is not used as proof of rendered components.",
+    "Network_Lag_R1 startup timed out while UBT was compiling Game; test children were stopped and subsequent runs were sequential with builds.",
+    "Network_Lag_R2 passed with resource readiness warnings. Added mounted-component acceptance, then Network_Lag_R3 correctly failed because rear emitters never activated.",
+    "Editor R7 linked against a non-exported engine helper; replaced with first-creation activation, compiled successfully thereafter.",
+    "Network_Lag_R4 and final Network_Final passed actual mounted-component acceptance on both endpoints."
+  ],
+  "Limitations": [
+    "No fresh four-machine, cooked-package, complete room Blueprint loop or human art/game-feel acceptance in this task.",
+    "Native accepted-hit test injects pre-solve contact samples; the network impact test is a transport-only authority probe, not a full remote physical collision scenario.",
+    "Production socket placement on animated bones remains a team Editor configuration step; the initial recipe uses calibrated mesh-origin offsets.",
+    "Raw reports and images are local Saved artifacts; this JSON, source, documentation and new assets must be included in normal Git synchronization."
+  ],
+  "SourceHashes": [
+    {
+      "Path": "Source/HAL_Future_Creation/HALBullChargeAbility.h",
+      "SHA256": "EDA4DA4F2C93E8C17EFDCE0CF520915B8D04000AE0925D755B0958C19B29400D"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALBullChargeAbility.cpp",
+      "SHA256": "7994B873609E9C074A788247FEDF92ADE9F55A4EA4F2EA2C7A38FA7B3200FEC5"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALBullChargeComponent.h",
+      "SHA256": "B77CE611C742B6BC5098B2545171B60241CEE734108F95E2716AC96E4726BBB9"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALBullChargeComponent.cpp",
+      "SHA256": "F1C8F064D2AB419C82AA8323CB51DB0A51AD580CCF4D33B5A5324825812FA32D"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALBullChargeFXTypes.h",
+      "SHA256": "617699C38A9B5F47C0DD2EB4F3233BD6D99DD14B562CCFEB39160FA4898AE59C"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALBullChargePresentation.cpp",
+      "SHA256": "0396378BAB839F7DD8C9CA9C11A44BF68EFDD14CB9F5FD1E67BE148EFC0F50E3"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALVehicleFXMount.h",
+      "SHA256": "8FB5ADBD587A170A3D4889D81AF499A2668607F8A5AFD6DF58A3634680C85D82"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALVehicleFXMount.cpp",
+      "SHA256": "C4CFCF0F89A45FAD28C323EF0152E7EE04D255689E11AED06EEFD968B9FA2587"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALBullChargeFXTests.cpp",
+      "SHA256": "A00430BDFF729D3B3134546ED1480A7758838CC9A6C429F8F6ACEF72E07E9F6B"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALBullChargeFXRenderTests.cpp",
+      "SHA256": "58DFDF82219E49B79B21606011D812F181ED49E687251182E91C14BD117D6B9E"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALBullChargeTests.cpp",
+      "SHA256": "404C5A545ECD48E484F5D2F424E01CE3423CDD9B4A01CAFC5D291E8B01279B32"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALBullChargeNetworkTests.cpp",
+      "SHA256": "318DD678CAEB44EEF555E6244BE7D04B3014554410A4C9A5665FF6E83EC9637B"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALVehicleAbilityNetworkFixture.cpp",
+      "SHA256": "DFA34732D6E115493BBF63480BA26B386F4957B1D25E8E52AE495BE162A5478A"
+    },
+    {
+      "Path": "Source/HAL_Future_CreationEditor/Public/HALBuildBullChargeFXCommandlet.h",
+      "SHA256": "CCA90C52DF039B9D20D7EFD98FE1494CBF9D52F538F4314D8140A3B994A29217"
+    },
+    {
+      "Path": "Source/HAL_Future_CreationEditor/Private/HALBuildBullChargeFXCommandlet.cpp",
+      "SHA256": "132E57A4A2880B42820F89BBC4059466706EDACDEEDD074E2E218ED4EFE9C21B"
+    }
+  ]
+}

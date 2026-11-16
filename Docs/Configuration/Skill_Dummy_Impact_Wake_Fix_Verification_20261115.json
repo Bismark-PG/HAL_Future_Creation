@@ -1,0 +1,1728 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-15",
+  "branch": "main",
+  "startCommit": "5044110",
+  "engine": "5.8.3-58210709",
+  "objective": "Non-History skill dummy intermittently jitters without launch after accepted ball damage; retain diagnostics",
+  "implementation": {
+    "gameplayThread": "Authority validation and bounded lock-protected FIFO, no direct AddImpulse/angular setter",
+    "physicsThread": "Existing normal forward AsyncPhysicsTick: resolve against Internal V/W plus pending impulses, wake the same body, enqueue velocity and angular deltas once",
+    "simultaneousHits": "Horizontal deltas add; minimum ascent remains a floor; latest planar W target wins, yaw is retained",
+    "zeroDelta": "Consume without waking or injecting zero impulses",
+    "retirement": "Deactivate, unregister, EndPlay, body swap, or enabling History clear pending actions",
+    "ownership": "Dummy remains unpossessed, no PlayerState or owner NetworkPhysicsHistory; ordinary server body replication",
+    "newReflectedFields": 0,
+    "newTickOrRPC": 0,
+    "queueLimit": 128,
+    "diagnosticSwitch": "hal.ImpactPhysicsLog defaults 0; SubmitGT Mode=QueuedPT, ConsumePT, bounded SamplePT; compiled out of Shipping"
+  },
+  "builds": [
+    {
+      "name": "Editor_R1",
+      "result": "Succeeded",
+      "exitCode": 0,
+      "log": "Saved/ImpactWakeFix/20261115/Editor_R1.log",
+      "sha256": "C0C749B08D21692A4F3E51459A1A021527BEAF47E41C4353192BC07620E2EEEF"
+    },
+    {
+      "name": "Editor_R2",
+      "result": "Succeeded",
+      "exitCode": 0,
+      "log": "Saved/ImpactWakeFix/20261115/Editor_R2.log",
+      "sha256": "B17D49BB13FB768EFB3B7F39D7B3EC2AE3E603F6AFE7D2376F23D89DF1CB3377"
+    },
+    {
+      "name": "Editor_R3",
+      "result": "Succeeded",
+      "exitCode": 0,
+      "log": "Saved/ImpactWakeFix/20261115/Editor_R3.log",
+      "sha256": "8EFAFA88CE7A7751FAA50F91C98B221641EAF0DEB3285EBD7C1B5286C5E805F9"
+    },
+    {
+      "name": "Editor_R4",
+      "result": "Succeeded",
+      "exitCode": 0,
+      "log": "Saved/ImpactWakeFix/20261115/Editor_R4.log",
+      "sha256": "09DC58F15AA53E020AB5B93D6C100BE0DA4C7ADE2784D2DF84AC2B8951873739"
+    },
+    {
+      "name": "Game_R1",
+      "result": "Succeeded",
+      "exitCode": 0,
+      "log": "Saved/ImpactWakeFix/20261115/Game_R1.log",
+      "sha256": "13BBD6384DC0D920CB48310CDB5051F768436401E09397E62D7C784715AFF519"
+    },
+    {
+      "name": "Game_R2",
+      "result": "Succeeded",
+      "exitCode": 0,
+      "log": "Saved/ImpactWakeFix/20261115/Game_R2.log",
+      "sha256": "6C1C6DB385DF625895DF7F38BC10784969751C4D0E2652BFC91826EE5168D72E"
+    }
+  ],
+  "finalRegression": {
+    "report": "Saved/ImpactWakeFix/20261115/Final_R1/index.json",
+    "sha256": "325235903590F525D9A3FD584266D1ED2B3BDD20E8EFE1FFE66E55D9FCCE6C21",
+    "succeeded": 94,
+    "succeededWithWarnings": 2,
+    "failed": 0,
+    "notRun": 0,
+    "inProcess": 0,
+    "entries": [
+      {
+        "test": "HAL.FutureCreation.BattleTop.AuthoritySkillContactsAndCleanup",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.BattleTop.ContactSprayGeometryAndTuning",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.BattleTop.SustainedContactIndependentCooldown",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.BattleTop.TransitionTimelineAndSparkTangent",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.BattleTop.WallResponseAndConfig",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.BullCharge.FX.EventOrderingAndCleanup",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.BullCharge.FX.SocketMountAndReplacement",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.BullCharge.FX.SpeedPhaseAndVelocity",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.BullCharge.FrontSpeedDamageAndCaps",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.BullCharge.GASContactsCooldownStunAndBall",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.BullCharge.MotionHistoryAndSerialization",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.DamageFeedback.BoundedIndependentPulses",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.DamageFeedback.SharedRecipeAndCookRoot",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.GameFlow.GF2.ConfiguredCatalogAssets",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.GameFlow.GF2.PracticeDamageImpactAndConsumption",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.GameFlow.GF2.RoundIdentityAndFreshAvatar",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.GameFlow.GF2.VehicleSeedsSourcesAndRebinding",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.GAS.Health.BoundsAndIsolation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.GAS.Health.PlayerStateAvatarLifecycle",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Impact.PushPresets.CombinationsResistanceAndNaturalResponse",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Impact.PushPresets.DefaultsAndValidation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Impact.AllSourcesAndContactEpisodes",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Impact.AuthorityPhysicsReplayContract",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Impact.BallSnapshotDropAndCallbackMerge",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Impact.GASResistanceAndIndependentDamage",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Impact.NonHistoryGroundedSleepWakeAndBatch",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": [
+          {
+            "event": {
+              "type": "Info",
+              "message": "Actual grounded Chaos trials: sleeping=6 awake=6; batch, ascent floor, zero-contact sleep, once-only and retirement checked",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.17"
+          }
+        ]
+      },
+      {
+        "test": "HAL.FutureCreation.Impact.SolverThreadExecutionAndReplay",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Impact.TiersCalibrationAndEnergyBudget",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Pursuit.Chains.FlowClockDirectionAndIndependentWire",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Pursuit.Chains.GeometryAndInterlocking",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Pursuit.Chains.ServerClockEntryReleaseAndLateJoin",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Pursuit.AuthorityGASLifecycleArrestProtection",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Pursuit.CounterAndStars",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.SkillDummy.IndependentGASReceiversAndDamage",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.SkillDummy.PursuitStarsArrestAndTornado",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.SkillDummy.SingleVehicleSwapPreservesOnlyNewDummy",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.SlipperyTrail.DissolveClockAndValidation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.SlipperyTrail.FootprintAndSweep",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.SlipperyTrail.GroundMesh",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.SlipperyTrail.SingleSwayAndReplay",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Component.ExpiryAvatarAndOwnerCleanup",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Component.IndependentDormantResources",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Component.LateRecipeAndCancellation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Component.MeshGenerationAndGeometry",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Component.SharedShockHandoffAndCleanup",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Component.StaticSkeletalLayerPreparation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Component.WeakAvatarAndUnconfiguredCache",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Configuration.AsyncFailureIdempotencyAndShutdown",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Configuration.CookRootAndHardDependencies",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Configuration.ExactCatalogAndDiagnostics",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Configuration.InheritanceIsolationAndFailure",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Configuration.RecipeValidation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Observation.DebugGuardsAndDiagnostics",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Observation.ExactHierarchyAndDebugAggregation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Observation.InitialAndAggregateCounts",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Observation.PendingRecipeAndUnconfigured",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Observation.ReplacementAndStaleCallbacks",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Renderer.BoundsBudgetAndExplicitFallback",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Renderer.BoundsTemplateContract",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Renderer.DrivenShockPriorityAndRestore",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Renderer.InvalidContractAndShockReservation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Renderer.LayoutAndIndependentCapacity",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Renderer.LegacyLeaseAndOriginalRestore",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Renderer.PriorityResidueAndParameterReset",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Renderer.StaticSourceAndLOD",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Renderer.SurfaceSourceAndCPUDataGuard",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Renderer.TwoChannelsAndExitOrder",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Runtime.AggregationAndLeaseLifetime",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Runtime.BindingAndVehicleIsolation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Runtime.IndependentTagsAndDeterministicSnapshots",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Runtime.PhaseSchedulingAndTimePartition",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Runtime.RefreshFadeAndResidueReentry",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Runtime.RejectedInputIsAtomic",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Runtime.WaitingAvailabilityAndCancellation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.Runtime.ZeroDurationAndSkippedPhases",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.MultipartLifetimeAndFreshGeometry",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.PrimarySelectionAndReconfiguration",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.SavedVehiclesAndDiagnostics",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.StatusFX.SpacesAndInvalidGeometry",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Stun.DebugConsoleTargetAndValidation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Stun.DiscretePhysicsHistory",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Stun.NaturalGameTimeExpiry",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Stun.PermissionsDropAndLifecycle",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Tornado.AuthorityGASImpactBallsWallAndCleanup",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.Tornado.PhasesValidationAndSweptCylinder",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 2,
+        "events": [
+          {
+            "event": {
+              "type": "Warning",
+              "message": "LogHALVehicleTest: Set Default Pawn Class to BP_VehiclePawn_Car_02; add alternatives to Test Vehicle Classes.",
+              "context": "log",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.19"
+          },
+          {
+            "event": {
+              "type": "Warning",
+              "message": "LogHALVehicleTest: PlayerStart is blocked. Raise it above the floor or clear surrounding geometry.",
+              "context": "log",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.19"
+          }
+        ]
+      },
+      {
+        "test": "HAL.FutureCreation.VehicleTest.RuntimeSwapRetainsPlayerAndCleansOldAvatar",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.FutureCreation.VehicleTest.SideCameraPreservesPossessionAndGAS",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 1,
+        "events": [
+          {
+            "event": {
+              "type": "Warning",
+              "message": "LogRHICore: Total reserved resource allocated virtual size (258 GB) exceeds the budget (256 GB). Use `rhi.DumpMemory` and `rhi.DumpResourceMemory` console commands to investigate.",
+              "context": "log",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.19"
+          }
+        ]
+      },
+      {
+        "test": "HAL.FutureCreation.VehicleTest.StandalonePlayingGASAndAllInputPermissions",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": []
+      },
+      {
+        "test": "HAL.RenderSmoke.BullCharge.ContinuousPressureWind",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": [
+          {
+            "event": {
+              "type": "Info",
+              "message": "Soft shell surface color changed pixels: shadow=6856 mid=19573 light=24298; transition width=3136; contour coupling=0",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.19"
+          },
+          {
+            "event": {
+              "type": "Info",
+              "message": "Pressure wind persistent frames=358; shared apex vertices=7; wind contour pixels=443; moving silhouette=4978 rigid silhouette=3272; shell coverage on black=35810; low-contrast light floor difference=52",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.19"
+          }
+        ]
+      },
+      {
+        "test": "HAL.RenderSmoke.BullCharge.RuntimeLengthAndAccelerationEnvelope",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": [
+          {
+            "event": {
+              "type": "Info",
+              "message": "Acceleration sample 0.00s / 2s: envelope=0.000 rear rate=0.0 rendered RGB sum=965445",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.19"
+          },
+          {
+            "event": {
+              "type": "Info",
+              "message": "Acceleration sample 0.50s / 2s: envelope=0.250 rear rate=50.0 rendered RGB sum=7886546",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.19"
+          },
+          {
+            "event": {
+              "type": "Info",
+              "message": "Acceleration sample 1.00s / 2s: envelope=0.500 rear rate=100.0 rendered RGB sum=9468600",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.19"
+          },
+          {
+            "event": {
+              "type": "Info",
+              "message": "Acceleration sample 2.00s / 2s: envelope=1.000 rear rate=200.0 rendered RGB sum=11023808",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.19"
+          }
+        ]
+      },
+      {
+        "test": "HAL.RenderSmoke.BullCharge.ThreeLayersAndWorldSpaceExhaust",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": [
+          {
+            "event": {
+              "type": "Info",
+              "message": "Car04 render proof: D:/HAL_Future_Creation/Saved/ImpactWakeFix/20261115/BullCharge_Final_R1; exhaust particles checked=20",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.19"
+          }
+        ]
+      },
+      {
+        "test": "HAL.RenderSmoke.DamageFeedback.RealVehicleOutlineRGBIsolationAndOcclusion",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": [
+          {
+            "event": {
+              "type": "Info",
+              "message": "Damage renderer: target0=(R=240.000000,G=1.000000,B=1.000000,A=1.000000) volumes=2 post=1 materials=1",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.20"
+          },
+          {
+            "event": {
+              "type": "Info",
+              "message": "Damage proof: skeletal=42939 unhit=0 outline=8777 rgb=6473 output=D:/HAL_Future_Creation/Saved/ImpactWakeFix/20261115/Render_Final_R1",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.20"
+          }
+        ]
+      },
+      {
+        "test": "HAL.RenderSmoke.Pursuit.CrossedChainsOnVehicleEntryReleaseAndRotation",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": [
+          {
+            "event": {
+              "type": "Info",
+              "message": "Chain fit target=Body bounds=IsValid=true, Min=(X=-254.822 Y=-146.483 Z=-159.324), Max=(X=283.692 Y=146.483 Z=137.497)",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.20"
+          },
+          {
+            "event": {
+              "type": "Info",
+              "message": "Chain proof: changed=29447 instances=128 thin=11972 thick=29322 wireChanged=22475 flowChanged=19109 output=D:/HAL_Future_Creation/Saved/ImpactWakeFix/20261115/Chain_Final_R1",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.20"
+          }
+        ]
+      },
+      {
+        "test": "HAL.RenderSmoke.Pursuit.ScanBeaconsArrestAndLeftToRightStars",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": [
+          {
+            "event": {
+              "type": "Info",
+              "message": "Pursuit render: scan=135169 marker=1632 starCenters=231/231/231/231/14/14",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.20"
+          }
+        ]
+      },
+      {
+        "test": "HAL.RenderSmoke.Tornado.GatherSustainDissipateAndToonColors",
+        "state": "Success",
+        "errors": 0,
+        "warnings": 0,
+        "events": [
+          {
+            "event": {
+              "type": "Info",
+              "message": "Tornado local particle origin: X=0.000 Y=0.000 Z=0.000",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.20"
+          },
+          {
+            "event": {
+              "type": "Info",
+              "message": "Tornado local particle origin: X=0.000 Y=0.000 Z=0.000",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.20"
+          },
+          {
+            "event": {
+              "type": "Info",
+              "message": "Tornado local particle origin: X=0.000 Y=0.000 Z=0.000",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.20"
+          },
+          {
+            "event": {
+              "type": "Info",
+              "message": "Tornado visible gather=76367 active=135136; motion=127559; toon color changes=38182/45639/50783; retired difference=0",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.20"
+          },
+          {
+            "event": {
+              "type": "Info",
+              "message": "Tornado layered proof: outer=6928 gray=40492 differential=102068 internalWithoutSpin=86108",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.20"
+          },
+          {
+            "event": {
+              "type": "Info",
+              "message": "Tornado formation/glow proof: body pixels=10110/61048/117520 heights=99/243/346 brighter=69446",
+              "context": "",
+              "artifact": "00000000000000000000000000000000"
+            },
+            "filename": "",
+            "lineNumber": -1,
+            "timestamp": "2026.11.15-12.52.20"
+          }
+        ]
+      }
+    ]
+  },
+  "realSolverCoverage": {
+    "test": "HAL.FutureCreation.Impact.NonHistoryGroundedSleepWakeAndBatch",
+    "physics": "Real TaskGraph solver with physical static floor and gravity; arranged through GT APIs, Internal pre-hit state measured",
+    "sleepingTrials": 6,
+    "awakeTrials": 6,
+    "eachTrial": "Assert actual supported Z~50, sleeping/awake before consume, 12 integrated steps with rise >70 cm, horizontal >90 cm, Vz >400 cm/s",
+    "isolation": "Floor ignores only Visibility driving trace so continuous zero-input grip/steering cannot wake it; physical contacts remain",
+    "extra": [
+      "Two same-frame actions: horizontal 300+600, ascent 500 then 750 -> V=(900,0,750), W=(0,5.13,0.75)",
+      "Next 4 steps preserve V/W without reapplication",
+      "Existing ascent 900 is retained",
+      "Zero-delta support contact retains sleeping body",
+      "Deactivate retires queued impact; inactive submission rejected",
+      "Existing airborne History/replay and logging-off/on travel, four-frame samples and 96-frame retirement regressions"
+    ]
+  },
+  "network": {
+    "host": {
+      "report": "Saved/ImpactWakeFix/20261115/Network_R2/Host/index.json",
+      "sha256": "DFA161707274B4F91D214FAEC9C6ADB8C621C62F82370598A8B2FE6180508A1A",
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "inProcess": 0,
+      "entries": [
+        {
+          "test": "HAL.NetworkSmoke.SkillDummyImpact.SleepingAuthorityAndReplication",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0,
+          "events": [
+            {
+              "event": {
+                "type": "Info",
+                "message": "Dummy impact role=Host actualRise=108.986 actualHorizontal=92.094 HP=975.0",
+                "context": "",
+                "artifact": "00000000000000000000000000000000"
+              },
+              "filename": "",
+              "lineNumber": -1,
+              "timestamp": "2026.11.15-12.52.11"
+            }
+          ]
+        }
+      ]
+    },
+    "client": {
+      "report": "Saved/ImpactWakeFix/20261115/Network_R2/Client/index.json",
+      "sha256": "B2D8B66E9121CC94DAE08699374F7E5DA3A57F18D6B048F8A2CA5B102153C1F5",
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "inProcess": 0,
+      "entries": [
+        {
+          "test": "HAL.NetworkSmoke.SkillDummyImpact.SleepingAuthorityAndReplication",
+          "state": "Success",
+          "errors": 0,
+          "warnings": 0,
+          "events": [
+            {
+              "event": {
+                "type": "Info",
+                "message": "Dummy impact role=Client actualRise=145.520 actualHorizontal=84.153 HP=975.0",
+                "context": "",
+                "artifact": "00000000000000000000000000000000"
+              },
+              "filename": "",
+              "lineNumber": -1,
+              "timestamp": "2026.11.15-12.52.11"
+            }
+          ]
+        }
+      ]
+    },
+    "processResults": [
+      {
+        "Role": "Host",
+        "ExitCode": 0,
+        "Passed": 1,
+        "Failed": 0,
+        "Warnings": 0,
+        "InProcess": 0
+      },
+      {
+        "Role": "Client",
+        "ExitCode": 0,
+        "Passed": 1,
+        "Failed": 0,
+        "Warnings": 0,
+        "InProcess": 0
+      }
+    ],
+    "hostOutboundLagMilliseconds": 80,
+    "setup": "Saved formal convex skill dummy, native Match GameMode; existing shared Stun suspends continuous driving before sleep via normal GT API",
+    "trigger": "Server production CombatResolver explicit Heavy + 25 damage request; no client hit report; this is not a physical flying-ball collision fixture",
+    "consumptionEvidence": [
+      "[2026.11.15-12.52.11:164][ 85]LogTemp: Vehicle impact trace: Phase=ConsumePT Actor=HALSkillTestDummy_0 Attack=0B8CC0EF4089D5703B542C8FE949D545 Pulse=1 Event=1 Frame=1090 SubmitFrame=1089 PTContext=1 SleepingBefore=1 SleepingAfter=0 NoOp=0 EffectiveBeforeV=X=0.000 Y=0.000 Z=0.000 EffectiveBeforeW=X=0.000 Y=0.000 Z=0.000 AppliedDV=X=900.000 Y=0.000 Z=750.000 AppliedDW=X=0.000 Y=5.131 Z=0.000 PendingDV=X=900.000 Y=0.000 Z=750.000 PendingDW=X=0.000 Y=5.131 Z=0.000"
+    ],
+    "motionEvidence": [
+      "[2026.11.15-12.52.14:514][286]LogAutomationController: Dummy impact role=Host actualRise=108.986 actualHorizontal=92.094 HP=975.0",
+      "[2026.11.15-12.52.14:616][917]LogAutomationController: Dummy impact role=Client actualRise=145.520 actualHorizontal=84.153 HP=975.0"
+    ],
+    "checks": "Real motion on both endpoints, HP 975, no controller/player state, replicated destruction, exactly 2 real players",
+    "firstRunLimitation": "Network_R1 passed normal-state motion/replication but ConsumePT was already awake despite GT sleeping; not counted as Internal sleep coverage"
+  },
+  "earlyRuns": [
+    {
+      "report": {
+        "report": "Saved/ImpactWakeFix/20261115/Native_R1/index.json",
+        "sha256": "92B599051C45D5A8A0501E7B8F0218B37A01FEFEFB2D9AE97434DF81A8BDEFD5",
+        "succeeded": 13,
+        "succeededWithWarnings": 0,
+        "failed": 1,
+        "notRun": 0,
+        "inProcess": 0,
+        "entries": [
+          {
+            "test": "HAL.FutureCreation.DamageFeedback.BoundedIndependentPulses",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.DamageFeedback.SharedRecipeAndCookRoot",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.PushPresets.CombinationsResistanceAndNaturalResponse",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.PushPresets.DefaultsAndValidation",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.AllSourcesAndContactEpisodes",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.AuthorityPhysicsReplayContract",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.BallSnapshotDropAndCallbackMerge",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.GASResistanceAndIndependentDamage",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.NonHistoryGroundedSleepWakeAndBatch",
+            "state": "Fail",
+            "errors": 13,
+            "warnings": 0,
+            "events": [
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Pre-hit actual PT sleep state matches arranged case: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 336,
+                "timestamp": "2026.11.15-12.41.46"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Consumed from actual sleeping/awake body: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 340,
+                "timestamp": "2026.11.15-12.41.46"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Pre-hit actual PT sleep state matches arranged case: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 336,
+                "timestamp": "2026.11.15-12.41.46"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Consumed from actual sleeping/awake body: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 340,
+                "timestamp": "2026.11.15-12.41.46"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Pre-hit actual PT sleep state matches arranged case: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 336,
+                "timestamp": "2026.11.15-12.41.46"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Consumed from actual sleeping/awake body: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 340,
+                "timestamp": "2026.11.15-12.41.46"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Pre-hit actual PT sleep state matches arranged case: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 336,
+                "timestamp": "2026.11.15-12.41.46"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Consumed from actual sleeping/awake body: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 340,
+                "timestamp": "2026.11.15-12.41.46"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Pre-hit actual PT sleep state matches arranged case: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 336,
+                "timestamp": "2026.11.15-12.41.46"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Consumed from actual sleeping/awake body: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 340,
+                "timestamp": "2026.11.15-12.41.46"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Pre-hit actual PT sleep state matches arranged case: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 336,
+                "timestamp": "2026.11.15-12.41.46"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Consumed from actual sleeping/awake body: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 340,
+                "timestamp": "2026.11.15-12.41.46"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Expected 'Zero-delta support contact does not wake rested body' to be true.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 351,
+                "timestamp": "2026.11.15-12.41.46"
+              },
+              {
+                "event": {
+                  "type": "Info",
+                  "message": "Actual grounded Chaos trials: sleeping=6 awake=6; batch, ascent floor, zero-contact sleep, once-only and retirement checked",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "",
+                "lineNumber": -1,
+                "timestamp": "2026.11.15-12.41.46"
+              }
+            ]
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.SolverThreadExecutionAndReplay",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.TiersCalibrationAndEnergyBudget",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.SkillDummy.IndependentGASReceiversAndDamage",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.SkillDummy.PursuitStarsArrestAndTornado",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.SkillDummy.SingleVehicleSwapPreservesOnlyNewDummy",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          }
+        ]
+      },
+      "note": "13 pass, new test fails: contact/driving woke arranged sleeper; invalid sleep precondition, not accepted as sleep coverage"
+    },
+    {
+      "report": {
+        "report": "Saved/ImpactWakeFix/20261115/Native_R2/index.json",
+        "sha256": "121F02D85635126CDF01FF6EC8C878A3AB1CADE033A54C4F063CD617B6EF2818",
+        "succeeded": 13,
+        "succeededWithWarnings": 0,
+        "failed": 1,
+        "notRun": 0,
+        "inProcess": 0,
+        "entries": [
+          {
+            "test": "HAL.FutureCreation.DamageFeedback.BoundedIndependentPulses",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.DamageFeedback.SharedRecipeAndCookRoot",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.PushPresets.CombinationsResistanceAndNaturalResponse",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.PushPresets.DefaultsAndValidation",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.AllSourcesAndContactEpisodes",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.AuthorityPhysicsReplayContract",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.BallSnapshotDropAndCallbackMerge",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.GASResistanceAndIndependentDamage",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.NonHistoryGroundedSleepWakeAndBatch",
+            "state": "Fail",
+            "errors": 13,
+            "warnings": 0,
+            "events": [
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Trial 0 pre-hit PT sleep (V=X=0.000 Y=-0.000 Z=-0.000): The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 338,
+                "timestamp": "2026.11.15-12.45.11"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Consumed from actual sleeping/awake body: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 342,
+                "timestamp": "2026.11.15-12.45.11"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Trial 2 pre-hit PT sleep (V=X=0.000 Y=-0.000 Z=-0.000): The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 338,
+                "timestamp": "2026.11.15-12.45.11"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Consumed from actual sleeping/awake body: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 342,
+                "timestamp": "2026.11.15-12.45.11"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Trial 4 pre-hit PT sleep (V=X=0.000 Y=-0.000 Z=-0.000): The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 338,
+                "timestamp": "2026.11.15-12.45.11"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Consumed from actual sleeping/awake body: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 342,
+                "timestamp": "2026.11.15-12.45.11"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Trial 6 pre-hit PT sleep (V=X=0.000 Y=-0.000 Z=-0.000): The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 338,
+                "timestamp": "2026.11.15-12.45.11"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Consumed from actual sleeping/awake body: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 342,
+                "timestamp": "2026.11.15-12.45.11"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Trial 8 pre-hit PT sleep (V=X=0.000 Y=-0.000 Z=-0.000): The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 338,
+                "timestamp": "2026.11.15-12.45.11"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Consumed from actual sleeping/awake body: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 342,
+                "timestamp": "2026.11.15-12.45.11"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Trial 10 pre-hit PT sleep (V=X=0.000 Y=-0.000 Z=-0.000): The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 338,
+                "timestamp": "2026.11.15-12.45.11"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Consumed from actual sleeping/awake body: The two values are not equal.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 342,
+                "timestamp": "2026.11.15-12.45.11"
+              },
+              {
+                "event": {
+                  "type": "Error",
+                  "message": "Expected 'Zero-delta support contact does not wake rested body' to be true.",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "D:\\HAL_Future_Creation\\Source\\HAL_Future_Creation\\Tests\\HALImpactPhysicsThreadTests.cpp",
+                "lineNumber": 353,
+                "timestamp": "2026.11.15-12.45.11"
+              },
+              {
+                "event": {
+                  "type": "Info",
+                  "message": "Actual grounded Chaos trials: sleeping=6 awake=6; batch, ascent floor, zero-contact sleep, once-only and retirement checked",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "",
+                "lineNumber": -1,
+                "timestamp": "2026.11.15-12.45.11"
+              }
+            ]
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.SolverThreadExecutionAndReplay",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.Impact.TiersCalibrationAndEnergyBudget",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.SkillDummy.IndependentGASReceiversAndDamage",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.SkillDummy.PursuitStarsArrestAndTornado",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          },
+          {
+            "test": "HAL.FutureCreation.SkillDummy.SingleVehicleSwapPreservesOnlyNewDummy",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": []
+          }
+        ]
+      },
+      "note": "Settling alone did not isolate continuous zero-force grip/steering wake; same new precondition failure"
+    },
+    {
+      "report": {
+        "report": "Saved/ImpactWakeFix/20261115/Native_R3/index.json",
+        "sha256": "4090EBED4C3DE17FE277F8AEEF5F8CBC83F5D48C7F86B6627400AF7D9805B3CD",
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0,
+        "entries": [
+          {
+            "test": "HAL.FutureCreation.Impact.NonHistoryGroundedSleepWakeAndBatch",
+            "state": "Success",
+            "errors": 0,
+            "warnings": 0,
+            "events": [
+              {
+                "event": {
+                  "type": "Info",
+                  "message": "Actual grounded Chaos trials: sleeping=6 awake=6; batch, ascent floor, zero-contact sleep, once-only and retirement checked",
+                  "context": "",
+                  "artifact": "00000000000000000000000000000000"
+                },
+                "filename": "",
+                "lineNumber": -1,
+                "timestamp": "2026.11.15-12.49.02"
+              }
+            ]
+          }
+        ]
+      },
+      "note": "New real-ground sleeper test passed after isolating Visibility driving trace; then covered again in final regression"
+    }
+  ],
+  "sourceHashes": [
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h",
+      "sha256": "EB9F8AEBF0C0CAE93798AD1B8F71D30425BEDF98946068791ACAA117FA90B0DB"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp",
+      "sha256": "8F554706DE5427C0929CE4CD09AE511E91F77D6F2D70C01EB284089147DEEB9E"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactReceiverComponent.cpp",
+      "sha256": "53768A80BB9A6B39930C23DB856BD3C2F5823C8C290DF7596652C32CBFF9F752"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALImpactPhysicsThreadTests.cpp",
+      "sha256": "F878E2561EAA116CFCD0FAE8357288497B36A693A3EC15DA670C0CCD71BC96AA"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALSkillTestDummyNetworkTests.cpp",
+      "sha256": "7510D2F5DDF14B807FA4B45E7AE7EE17798A1969801A2A6FCB6003CA35F826F3"
+    }
+  ],
+  "preservation": {
+    "baselineFiles": 1337,
+    "unchanged": 1337,
+    "changed": 0,
+    "existingBlueprintAndDamageDATuningPreserved": true,
+    "assetsCreatedOrEditedThisTask": 0,
+    "passiveSourceUnchanged": true
+  },
+  "causalEvidence": {
+    "priorReproduction": "Docs/Configuration/Skill_Dummy_Impact_Reproduction_20261115.json",
+    "failedShots": [
+      1,
+      5,
+      7
+    ],
+    "confirmed": "GT claimed awake and requested normal Heavy; first real PT stayed sleeping with V/W and pending impulse all zero, no launch over bounded sample window",
+    "originalCode": "git show 5044110:Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp already contains non-History GT AddImpulse + SetPhysicsAngularVelocity",
+    "interpretation": "Pre-existing unsafe sleep/wake handoff; unify wake/resolution/impulses on Internal solver step",
+    "uncertainty": "Exact engine synchronization write causing the previous loss was not independently isolated. FX has no physics writes, but no FX-on/off timing A/B was performed.",
+    "earlierCoverageGap": "Previous native diagnostics used awake airborne unobstructed bodies; real stationary sleepy dummy differs from continuously driven player/History path"
+  },
+  "limits": [
+    "Fred real flying-ball repeated hits still await team testing",
+    "No claim of full wall/corner/high-speed/side-contact or all gimmick regression",
+    "No four-machine, late-join, Cook/package or Shipping target execution",
+    "No FX-on/off A/B",
+    "Network fixture arranges Stun for guaranteed PT sleep; plain-state network case was separately observed in R1"
+  ],
+  "nextStep": "Reopen Editor, keep BP/DA as configured, enable CombatLog/ImpactPhysicsLog/DamageFeedbackLog on authority, repeat 6-8 real ball hits including after settling; preserve full log",
+  "committedOrPushed": false
+}

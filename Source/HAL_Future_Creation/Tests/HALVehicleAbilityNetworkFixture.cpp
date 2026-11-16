@@ -27,6 +27,18 @@ namespace
 				{
 					auto* Ability = GetMutableDefault<UHALBullChargeAbility>();
 					Ability->SkillConfig = NewObject<UHALBullChargeConfig>(Ability);
+					if (FParse::Param(FCommandLine::Get(), TEXT("HALBullChargeFXFixture")))
+					{
+						if (const auto* Saved = LoadObject<UHALBullChargeConfig>(nullptr,
+							TEXT("/Game/Data/Abilities/DA_Ability_Car04_BullCharge.DA_Ability_Car04_BullCharge")))
+						{
+							Ability->SkillConfig->FX = Saved->FX;
+							// Non-default replicated length, confined to this opt-in transient fixture.
+							Ability->SkillConfig->FX.WindLengthScale = 1.6f;
+							Ability->SkillConfig->FX.PressureMidColor = FLinearColor(.61f, .66f, .72f);
+							Ability->SkillConfig->FX.PressureToneSoftness = .22f;
+						}
+					}
 				}
 				if (bTrail)
 				{
@@ -82,7 +94,7 @@ namespace
 								Config->FX.WindMaterial=LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Assets/FX/BattleTop/M_BattleTop_ToonWind.M_BattleTop_ToonWind"));
 								Config->FX.ContactSparks=LoadObject<UNiagaraSystem>(nullptr,TEXT("/Game/Assets/FX/BattleTop/NS_BattleTop_ToonContact.NS_BattleTop_ToonContact"));
 								Config->FX.GroundSparks=nullptr;Config->FX.ContactCount=7;
-								Config->FX.WindFlowDegreesPerSecond=315;Config->FX.WindBandCount=4;Config->FX.WindBandLifetime=1.5f;
+								Config->FX.WindFlowDegreesPerSecond=-1440;Config->FX.WindTiltDegrees=45;Config->FX.WindBandCount=4;Config->FX.WindBandLifetime=1.5f;
 								Config->FX.ContactGlowStrength=.75f;
 							}
 						}

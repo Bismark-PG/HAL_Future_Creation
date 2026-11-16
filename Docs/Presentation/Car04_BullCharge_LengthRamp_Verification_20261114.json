@@ -1,0 +1,224 @@
+{
+  "SchemaVersion": 1,
+  "Task": "Car04 independent airflow length and acceleration-timed progressive appearance",
+  "Date": "2026-11-14",
+  "Engine": "5.8.3-58210709",
+  "StartingCommit": "50f3237",
+  "PriorUncommittedWorkPreserved": true,
+  "Builds": [
+    {
+      "Run": "BuildEditor_R4",
+      "Target": "Editor",
+      "ExitCode": 0
+    },
+    {
+      "Run": "BuildGame_R1",
+      "Target": "Game",
+      "ExitCode": 0
+    }
+  ],
+  "Changes": {
+    "WindLengthScale": {
+      "ExistingUniformScaleStillApplies": true,
+      "Maximum": 4,
+      "Axis": "Wind local X, relative to the common nose apex",
+      "Minimum": 0.1,
+      "Default": 1
+    },
+    "WidthHeightPressureApexAndTurbulencePreserved": true,
+    "AccelerationClock": "Existing server-relative skill elapsed time / Motion.RampSeconds, clamped to 0..1",
+    "WindAndShellEnvelope": "Smoothed road-speed factor multiplied by acceleration phase",
+    "RearEmission": "Configured spawn rate multiplied by acceleration phase",
+    "NoSeparateFXRampDuration": true,
+    "ZeroRampMeansImmediateFullPhase": true,
+    "GameplayAndAcceptedImpactFeedbackUnchanged": true,
+    "NoSavedAssetsModified": true
+  },
+  "FinalTests": {
+    "Report": "Saved/Car04FX/LengthRamp_20261114/Final_R1/index.json",
+    "ExitCode": 0,
+    "Passed": 14,
+    "Warnings": 0,
+    "Failed": 0,
+    "NotRun": 0,
+    "InProcess": 0,
+    "ActualParticleLengthMultipliersChecked": [
+      0.5,
+      1,
+      2,
+      4
+    ],
+    "WindWidthHeightAndPressureUnchanged": true,
+    "CommonApexUnchanged": true,
+    "FullRoadSpeedActivation": true,
+    "Samples": [
+      {
+        "RenderedRGBSum": 965445,
+        "Phase": 0,
+        "ElapsedSeconds": 0,
+        "RearRate": 0
+      },
+      {
+        "RenderedRGBSum": 8390683,
+        "Phase": 0.25,
+        "ElapsedSeconds": 0.5,
+        "RearRate": 50
+      },
+      {
+        "RenderedRGBSum": 10036627,
+        "Phase": 0.5,
+        "ElapsedSeconds": 1,
+        "RearRate": 100
+      },
+      {
+        "RenderedRGBSum": 11605107,
+        "Phase": 1,
+        "ElapsedSeconds": 2,
+        "RearRate": 200
+      }
+    ],
+    "LateObserverUsesCurrentServerPhase": true,
+    "DrivePauseImmediatelyHidesWindAndShell": true,
+    "Tests": [
+      {
+        "fullTestPath": "HAL.FutureCreation.BattleTop.AuthoritySkillContactsAndCleanup",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BattleTop.ContactSprayGeometryAndTuning",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BattleTop.SustainedContactIndependentCooldown",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BattleTop.TransitionTimelineAndSparkTangent",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BattleTop.WallResponseAndConfig",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BullCharge.FX.EventOrderingAndCleanup",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BullCharge.FX.SocketMountAndReplacement",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BullCharge.FX.SpeedPhaseAndVelocity",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BullCharge.FrontSpeedDamageAndCaps",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BullCharge.GASContactsCooldownStunAndBall",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.BullCharge.MotionHistoryAndSerialization",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.RenderSmoke.BullCharge.ContinuousPressureWind",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.RenderSmoke.BullCharge.RuntimeLengthAndAccelerationEnvelope",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.RenderSmoke.BullCharge.ThreeLayersAndWorldSpaceExhaust",
+        "state": "Success"
+      }
+    ]
+  },
+  "Network": {
+    "Roles": [
+      {
+        "Role": "Host",
+        "PID": 11984,
+        "ExitCode": 0,
+        "Passed": 1,
+        "Warnings": 0,
+        "Failed": 0,
+        "NotRun": 0,
+        "InProcess": 0
+      },
+      {
+        "Role": "Client",
+        "PID": 52388,
+        "ExitCode": 0,
+        "Passed": 1,
+        "Warnings": 0,
+        "Failed": 0,
+        "NotRun": 0,
+        "InProcess": 0
+      }
+    ],
+    "HostOutboundLagMs": 80,
+    "Render": "D3D12 offscreen low quality",
+    "Map": "/Game/Maps/MVPB_NetTest",
+    "GameMode": "/Script/HAL_Future_Creation.HALMatchGameMode",
+    "TransientFixtureLengthMultiplier": 1.6,
+    "OwnerAndObservedLengthBindingChecked": true,
+    "ProgressiveMaterialEnvelopeChecked": true,
+    "PauseResumeAndLifecycleChecked": true,
+    "ImpactIsTransportOnlyAuthorityProbe": true
+  },
+  "Integrity": {
+    "ExistingFilesChecked": 1303,
+    "ChangedExistingAssetsAndConfiguration": 0,
+    "NewAssets": 0,
+    "AllCar03Car04AssetsAndTeamGameModeBPPreserved": true,
+    "SourceSHA256": [
+      {
+        "Path": "Source/HAL_Future_Creation/HALBullChargeFXTypes.h",
+        "SHA256": "89BF7CA34A123433DAC236AF6BD6E8A12D1EDA5F42B714B8C5392A6184D73DCE"
+      },
+      {
+        "Path": "Source/HAL_Future_Creation/HALBullChargePresentation.cpp",
+        "SHA256": "592F65737064119268262F277219D48BD8C8E3BC645C72399C63B2B2BECAFDEB"
+      },
+      {
+        "Path": "Source/HAL_Future_Creation/HALBullChargeComponent.h",
+        "SHA256": "E36EE93D56ACDD54B6E7E2F03CC1B25438BC56FA41D0AA1B1962A5F47E1A1E33"
+      },
+      {
+        "Path": "Source/HAL_Future_Creation/Tests/HALBullChargeFXTests.cpp",
+        "SHA256": "A96D8D4406A33130401A671A03A93F0CD642CCC76E6ECCD763F9CD100B69699A"
+      },
+      {
+        "Path": "Source/HAL_Future_Creation/Tests/HALBullChargeFXRenderTests.cpp",
+        "SHA256": "62BEDE9B1BC2032A284DFCFE0537E6ACA54502E7C3D45A143A4B8A5AF439DE2D"
+      },
+      {
+        "Path": "Source/HAL_Future_Creation/Tests/HALBullChargeNetworkTests.cpp",
+        "SHA256": "FCC3B1C92E15A1E42C005676CBBD7C26BABE76BEEC528D1F70C1FC5DB6DDFD35"
+      },
+      {
+        "Path": "Source/HAL_Future_Creation/Tests/HALVehicleAbilityNetworkFixture.cpp",
+        "SHA256": "DC6D172A7A17333C34AF79C4A07868A413EE2C04A4B246596E6BBF09788654A3"
+      }
+    ]
+  },
+  "IntermediateResults": [
+    "BuildEditor_R1: Build.bat reported waiting for its temporary lock; stopped before compilation.",
+    "BuildEditor_R2: sandbox UBT was denied access to Engine/Source; final normal engine builds used approved execution.",
+    "BuildEditor_R3: verification helper used a const pointer with the non-const K2 material getter; fixed in R4.",
+    "Final native and D3D12 combination passed on its first run; both network roles passed on their first run.",
+    "Existing engine deprecation and non-preferred Visual Studio version warnings remain build warnings, distinct from the zero automation warnings."
+  ],
+  "Limitations": [
+    "Human style and feel acceptance remains pending.",
+    "Network fixture uses two local processes, a native Match GameMode and an opt-in transient configuration.",
+    "No four-computer, cooked package, complete room Blueprint flow, or new real remote vehicle-collision acceptance.",
+    "No commit or push performed."
+  ],
+  "PreviewDirectory": "Saved/Car04FX/LengthRamp_20261114/Render_R1"
+}

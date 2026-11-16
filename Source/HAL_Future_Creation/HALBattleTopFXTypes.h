@@ -20,8 +20,8 @@ struct HAL_FUTURE_CREATION_API FHALBattleTopFXConfig
 	UPROPERTY(EditAnywhere, Category = "Look") FLinearColor HighlightColor = FLinearColor(1.f, .72f, .22f);
 	UPROPERTY(EditAnywhere, Category = "Look", meta = (ClampMin = "0", ClampMax = "1")) float Opacity = .55f;
 	UPROPERTY(EditAnywhere, Category = "Look", meta = (ClampMin = "1", ClampMax = "2")) float RadiusScale = 1.15f;
-	/** Independent cosmetic airflow speed; never changes vehicle spin or contact motion. */
-	UPROPERTY(EditAnywhere, Category = "Cartoon Wind", meta = (Units="deg/s", ClampMin="-720", ClampMax="720"))
+	/** Airflow speed magnitude. Direction follows skill spin; legacy negative values use their magnitude. */
+	UPROPERTY(EditAnywhere, Category = "Cartoon Wind", meta = (Units="deg/s", ClampMin="0", ClampMax="3600"))
 	float WindFlowDegreesPerSecond = 240.f;
 	/** Approximate steady number of independently living arc particles. */
 	UPROPERTY(EditAnywhere, Category = "Cartoon Wind", meta = (ClampMin="1", ClampMax="8"))
@@ -30,7 +30,8 @@ struct HAL_FUTURE_CREATION_API FHALBattleTopFXConfig
 	float WindBandLifetime = 1.2f;
 	UPROPERTY(EditAnywhere, Category = "Cartoon Wind", meta = (Units="cm", ClampMin="0", ClampMax="150"))
 	float WindLayerHeight = 45.f;
-	UPROPERTY(EditAnywhere, Category = "Cartoon Wind", meta = (Units="deg", ClampMin="0", ClampMax="30"))
+	/** Actual arc-plane tilt from world horizontal. Heading is randomized independently; zero is flat. */
+	UPROPERTY(EditAnywhere, Category = "Cartoon Wind", meta = (Units="deg", ClampMin="0", ClampMax="80"))
 	float WindTiltDegrees = 12.f;
 	UPROPERTY(EditAnywhere, Category = "Cartoon Wind", meta = (ClampMin="0.35", ClampMax="2.5"))
 	float WindBandWidthScale = 1.f;
@@ -78,6 +79,7 @@ struct HAL_FUTURE_CREATION_API FHALBattleTopFXConfig
 
 namespace HALBattleTopFX
 {
+	HAL_FUTURE_CREATION_API float WindAngularSpeed(float AuthoredSpeed, float SkillSpinRate);
 	struct HAL_FUTURE_CREATION_API FContactSprayMotion
 	{
 		FQuat Rotation = FQuat::Identity;

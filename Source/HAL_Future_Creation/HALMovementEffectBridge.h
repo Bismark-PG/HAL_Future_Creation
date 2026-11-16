@@ -27,6 +27,8 @@ public:
 	void SetAreaSway(const FHALMovementAreaSway& Sway);
 	void SetOverdriveMotion(const FHALOverdriveMotion& Motion);
 	void EndOverdriveMotion();
+	void SetSideShiftMotion(const FHALSideShiftMotion& Motion);
+	void EndSideShiftMotion();
 	/** Receiver-selected Drag flow; published only while GAS grants State.Movement.Drag. */
 	void SetDragDrive(const FHALGravityDrive& Field);
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
@@ -50,6 +52,7 @@ private:
 	FVector AreaRecoverySeconds = FVector::ZeroVector;
 	FHALMovementAreaSway AreaSway;
 	FHALOverdriveMotion Overdrive;
+	FHALSideShiftMotion SideShift;
 	FHALGravityDrive DragDrive;
 	FHALMovementSnapshot LastPublished;
 	int32 BoundPlayerId = INDEX_NONE;

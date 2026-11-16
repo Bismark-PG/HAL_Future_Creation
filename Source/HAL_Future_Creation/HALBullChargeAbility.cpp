@@ -53,7 +53,8 @@ float UHALBullChargeConfig::BallSpeed(float ForwardSpeed) const
 EDataValidationResult UHALBullChargeConfig::IsDataValid(FDataValidationContext& Context) const
 {
 	FString Error;
-	if (Validate(Error)) { return EDataValidationResult::Valid; }
+	if (Validate(Error) && (!FX.bEnabled || FX.IsValid())) { return EDataValidationResult::Valid; }
+	if (Error.IsEmpty()) { Error = TEXT("Bull Charge FX settings exceed the documented ranges or mount budget."); }
 	Context.AddError(FText::FromString(Error));
 	return EDataValidationResult::Invalid;
 }

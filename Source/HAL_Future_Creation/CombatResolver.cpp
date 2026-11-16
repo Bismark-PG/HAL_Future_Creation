@@ -16,6 +16,7 @@
 #include "HALHealthAttributeSet.h"
 #include "HALApplyDamageEffect.h"
 #include "HALCombatEffectContext.h"
+#include "HALDamageFeedbackComponent.h"
 #include "HALGameplayTags.h"
 #include "HALImpactReceiverComponent.h"
 #include "GameFramework/Pawn.h"
@@ -241,6 +242,8 @@ FHALCombatHitResult FCombatResolver::ResolveCombatHit(FHALCombatAction& Action, 
 		ASC->ApplyGameplayEffectSpecToSelf(*DamageSpec.Data.Get());
 		Result.ActualHPRemoved = FMath::Max(0.0f, PreviousHP - Health->GetCurrentHP());
 		ASC->GetOwner()->ForceNetUpdate();
+		if(Result.ActualHPRemoved>0&&IsValid(Target))
+		{ if(auto* Feedback=Target->FindComponentByClass<UHALDamageFeedbackComponent>()) { Feedback->NotifyResolvedDamage(Source.AttackId,Request.PulseSequence,Result.ActualHPRemoved); } }
 	}
 
 	// This branch never reads HP, damage amount or damage immunity.

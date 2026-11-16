@@ -4,12 +4,15 @@
 #include "Engine/EngineTypes.h"
 #include "GameplayEffectTypes.h"
 #include "HALCombatTypes.h"
+#include "HALBullChargeFXTypes.h"
 #include "HALBullChargeComponent.generated.h"
 
 class ABasicBallActor;
 class UHALAbilitySystemComponent;
 class UHALBullChargeConfig;
 class UPrimitiveComponent;
+class UNiagaraComponent;
+class UMaterialInstanceDynamic;
 struct FOnAttributeChangeData;
 namespace Chaos { struct FCollisionEventData; }
 
@@ -33,10 +36,34 @@ public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(EEndPlayReason::Type Reason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* TickFunction) override;
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALBullChargeTestAccess;
+	friend struct FHALBullChargeFXTestAccess;
+	friend struct FHALBullChargeFXNetworkAccess;
+	friend struct FHALBullChargeFXRenderAccess;
 #endif
+	void PublishDrivingVisual();
+	UFUNCTION() void OnRep_VisualState();
+	void UpdateParticles(float DeltaTime);
+	void ClearParticles();
+	void ConsumeImpactFX(const FHALBullChargeImpactFXEvent& Event);
+	void SpawnImpactFX(const FHALBullChargeImpactFXEvent& Event);
+	FHALBullChargeImpactFXEvent MakeImpactFX(const FHALPreparedCombatHit& Hit);
+	UFUNCTION(NetMulticast, Unreliable) void MulticastImpactFX(FHALBullChargeImpactFXEvent Event);
+	UPROPERTY(ReplicatedUsing=OnRep_VisualState) FHALBullChargeVisualState VisualState;
+	UPROPERTY(Transient) TObjectPtr<UNiagaraComponent> FrontWindComponent;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> FrontMaterial;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> PressureMaterial;
+	float SmoothedWind = 0;
+	UPROPERTY(Transient) TArray<TObjectPtr<UNiagaraComponent>> RearSparkComponents;
+	struct FImpactParticle { TWeakObjectPtr<UNiagaraComponent> Component; double Expires = 0; };
+	TArray<FImpactParticle> ImpactParticles;
+	TArray<FHALBullChargeImpactFXEvent> PendingImpactFX;
+	FGuid DrawActivation;
+	uint32 NextImpactFXSequence = 0, LastImpactFXSequence = 0, ReceivedImpactFXCount = 0;
+	TSet<FName> WarnedMounts;
 	struct FContactSample
 	{
 		FVector BeforeVelocity = FVector::ZeroVector;

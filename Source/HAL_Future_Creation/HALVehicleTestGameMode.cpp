@@ -7,6 +7,7 @@
 #include "HALVehicleLifecycleTypes.h"
 #include "TestVehiclePawn.h"
 #include "PassiveTestVehicle.h"
+#include "HALSkillTestDummy.h"
 #include "Components/PrimitiveComponent.h"
 #include "Engine/World.h"
 #include "Engine/OverlapResult.h"
@@ -45,7 +46,7 @@ TArray<TSubclassOf<ATestVehiclePawn>> AHALVehicleTestGameMode::GetTestVehicleCla
 	TArray<TSubclassOf<ATestVehiclePawn>> Result;
 	const auto Add=[&](UClass* Class)
 	{
-		if (Class && Class->IsChildOf(ATestVehiclePawn::StaticClass())
+		if (Class && Class->IsChildOf(ATestVehiclePawn::StaticClass()) && !Class->IsChildOf(AHALSkillTestDummy::StaticClass())
 			&& !Class->HasAnyClassFlags(CLASS_Abstract|CLASS_Deprecated|CLASS_NewerVersionExists)) { Result.AddUnique(Class); }
 	};
 	Add(DefaultPawnClass);
@@ -91,7 +92,7 @@ bool AHALVehicleTestGameMode::ChangeTestVehicle(AHALVehicleTestPlayerController*
 	// Inspect the actual configured Chaos body. Copied test vehicles are retired after a successful swap.
 	auto* Body=Cast<UPrimitiveComponent>(Next->GetRootComponent());
 	FComponentQueryParams Params(SCENE_QUERY_STAT(HALVehicleTestSpawn),Next);
-	for (TActorIterator<ATestVehiclePawn> It(GetWorld());It;++It) { Params.AddIgnoredActor(*It); }
+	for (TActorIterator<ATestVehiclePawn> It(GetWorld());It;++It) { if (!It->IsA<AHALSkillTestDummy>()) { Params.AddIgnoredActor(*It); } }
 	for (TActorIterator<APassiveTestVehicle> It(GetWorld());It;++It) { Params.AddIgnoredActor(*It); }
 	TArray<FOverlapResult> Hits;
 	if (!Body || !Body->IsQueryCollisionEnabled()) { Next->Destroy(); return Fail(TEXT("Selected vehicle has no queryable physics body.")); }
@@ -104,7 +105,7 @@ bool AHALVehicleTestGameMode::ChangeTestVehicle(AHALVehicleTestPlayerController*
 	PC->StartSpot=Start;
 	TestController=PC;
 	TArray<AActor*> Retire;
-	for (TActorIterator<ATestVehiclePawn> It(GetWorld());It;++It) { if (*It!=Next) { It->RetireForVehicleTransition(); Retire.Add(*It); } }
+	for (TActorIterator<ATestVehiclePawn> It(GetWorld());It;++It) { if (*It!=Next && !It->IsA<AHALSkillTestDummy>()) { It->RetireForVehicleTransition(); Retire.Add(*It); } }
 	for (TActorIterator<APassiveTestVehicle> It(GetWorld());It;++It) { Retire.Add(*It); }
 	for (auto* Actor:Retire) { Actor->Destroy(); }
 	PC->RefreshTestView();

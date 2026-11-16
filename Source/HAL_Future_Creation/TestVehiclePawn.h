@@ -16,6 +16,8 @@ class UArcadeVehicleMovementComponent;
 class UHALShockedPresentationComponent;
 class UHALBattleTopComponent;
 class UHALBullChargeComponent;
+class UHALSideShiftComponent;
+class UHALPursuitTargetComponent;
 class AHALPlayerState;
 class UArrowComponent;
 class UBallControlComponent;
@@ -32,9 +34,11 @@ class UStaticMeshComponent;
 class UVehicleHealthComponent;
 class UHALImpactReceiverComponent;
 class UHALMovementEffectBridge;
+class UHALAbilitySystemComponent;
 class UHALMovementAreaReceiver;
 class UHALVehiclePresentationComponent;
 class UHALVehicleStatusFXComponent;
+class UHALDamageFeedbackComponent;
 class UVehicleRecoveryComponent;
 class USkeletalMeshComponent;
 class UHALDynamicCameraComponent;
@@ -50,6 +54,7 @@ class HAL_FUTURE_CREATION_API ATestVehiclePawn : public APawn, public IAbilitySy
 	GENERATED_BODY()
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALVehicleAbilityTestAccess;
+	friend struct FHALSideShiftTestAccess;
 	friend struct FHALCameraTestAccess;
 #endif
 
@@ -64,6 +69,8 @@ public:
 	/** Immutable per-Avatar snapshot; not read back from a mutable source DA during binding. */
 	const FHALVehicleAbilityConfig& GetVehicleAbilityConfig() const { return RuntimeAbilities; }
 	bool IsConfigurationValid() const { return bConfigurationValid && !bLifecycleRetired; }
+	/** Receiving an effect is independent from owning input or being allowed to cast a skill. */
+	virtual bool CanReceiveSkillEffects() const;
 	bool GetLifecycleSeed(FHALVehicleLifecycleSeed& Out) const;
 	void RetireForVehicleTransition();
 	void RefreshAbilitySystemBinding() { InitializeAbilitySystem(); }
@@ -99,6 +106,10 @@ public:
 	void SetSelfRightHeld(bool bHeld);
 
 protected:
+	virtual void InitializeAbilitySystem();
+	/** Shared presentation/movement receivers; caller owns ASC identity and grants. */
+	void BindVehicleAbilitySystem(UHALAbilitySystemComponent* ASC, int32 MovementOwnerId);
+	void UninitializeAbilitySystem();
 	virtual void GatherCurrentMovement() override;
 
 	UPROPERTY(EditAnywhere, Category = "Vehicle|Configuration")
@@ -126,12 +137,18 @@ protected:
 	TObjectPtr<UHALVehiclePresentationComponent> VehiclePresentation;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vehicle|Components")
 	TObjectPtr<UHALVehicleStatusFXComponent> StatusFXPresentation;
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Vehicle|Components")
+	TObjectPtr<UHALDamageFeedbackComponent> DamageFeedback;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vehicle|Components")
 	TObjectPtr<UHALShockedPresentationComponent> ShockedPresentation;
 	UPROPERTY(VisibleAnywhere, Category="Vehicle|Abilities")
 	TObjectPtr<UHALBattleTopComponent> BattleTop;
 	UPROPERTY(VisibleAnywhere, Category="Vehicle|Abilities")
 	TObjectPtr<UHALBullChargeComponent> BullCharge;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vehicle", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UHALSideShiftComponent> SideShift;
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Vehicle|Components")
+	TObjectPtr<UHALPursuitTargetComponent> PursuitTarget;
 
 	/** Visible MVP marker for the physical forward / future launch direction. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
@@ -224,11 +241,9 @@ private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALPresentationTestAccess;
 #endif
-	void InitializeAbilitySystem();
 	void RefreshStatusFXBinding();
 	FVehicleCombatConfig RuntimeCombatConfig;
 	UPROPERTY(Transient) FHALVehicleAbilityConfig RuntimeAbilities;
-	void UninitializeAbilitySystem();
 	void AddDefaultInputContext();
 	void RemoveDefaultInputContext();
 	void PushInputCommand();

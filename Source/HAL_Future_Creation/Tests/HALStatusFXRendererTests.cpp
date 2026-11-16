@@ -262,11 +262,11 @@ bool FHALFXStaticSourceTest::RunTest(const FString&)
 	S->GetExposedParameters().AddParameter(V); auto* Prototype=NewObject<UNiagaraDataInterface>(S,Class);
 	S->GetExposedParameters().SetDataInterface(Prototype,V);
 	auto* C=NewObject<UNiagaraComponent>(F.Car); C->SetAutoActivate(false); C->SetAsset(S);
-	auto* Static=NewObject<UStaticMeshComponent>(F.Car); auto* Mesh=NewObject<UStaticMesh>(F.Car); Mesh->bAllowCPUAccess=true;
-	auto Data=MakeUnique<FStaticMeshRenderData>(); auto* LOD=new FStaticMeshLODResources(); Data->LODResources.Add(LOD);
-	LOD->IndexBuffer.SetIndices(TArray<uint32>{0,1,2},EIndexBufferStride::Force16Bit); LOD->IndexBuffer.TrySetAllowCPUAccess(true);
-	LOD->VertexBuffers.PositionVertexBuffer.Init(3,true); LOD->Sections.AddDefaulted_GetRef().NumTriangles=1;
-	Mesh->SetRenderData(MoveTemp(Data)); Static->SetStaticMesh(Mesh);
+	// Use initialized engine geometry in both NullRHI and real-RHI runs. A synthetic CPU-only
+	// render-data record cannot legally be assigned to a component when rendering is enabled.
+	auto* Static=NewObject<UStaticMeshComponent>(F.Car); UStaticMesh* Mesh=F.Mesh->GetStaticMesh();
+	const bool PreviousCPUAccess=Mesh->bAllowCPUAccess; Mesh->bAllowCPUAccess=true;
+	Static->SetStaticMesh(Mesh);
 	FHALVehicleFXTarget T; T.Mesh=Static; FHALStatusFXNiagaraLayer L; L.Binding=EHALStatusFXBinding::MeshSurface; FString Error;
 	const bool bBound=HALStatusFXParticle::Configure(C,T,L,Error);
 	TestTrue(FString(TEXT("Static adapter accepts retained CPU triangle LOD: "))+Error,bBound);
@@ -275,6 +275,7 @@ bool FHALFXStaticSourceTest::RunTest(const FString&)
 	TestTrue(TEXT("Local DI uses actual component and leaves prototype untouched"),DI && Source
 		&& Source->GetObjectPropertyValue_InContainer(DI)==Static && Source->GetObjectPropertyValue_InContainer(Prototype)==nullptr);
 	L.SamplingLOD=1; TestFalse(TEXT("Invalid sampling LOD is rejected"),HALStatusFXParticle::Configure(C,T,L,Error));
+	Mesh->bAllowCPUAccess=PreviousCPUAccess;
 	C->DestroyComponent(); return true;
 }
 

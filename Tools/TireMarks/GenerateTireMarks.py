@@ -279,7 +279,7 @@ def variant_toon_worn(w, h, seed):
         for dx in (-w, 0, w):
             draw.polygon([(px + dx, py) for px, py in pts], fill=fill)
 
-    jit = 0.013 * h
+    jit = 0.008 * h
     period = 0.075 * w
     count = int(round(w / period))
     period = w / count
@@ -288,12 +288,12 @@ def variant_toon_worn(w, h, seed):
     for y0f, y1f, slope in TOON_LUGS:
         y0, y1 = y0f * h, y1f * h
         for i in range(count):
-            if rng.random() < 0.34:          # missing rubber = whole block gone
+            if rng.random() < 0.24:          # missing rubber = whole block gone
                 continue
             x = i * period
-            bw = period * rng.uniform(0.66, 0.80)
+            bw = period * rng.uniform(0.76, 0.86)
             top, bot = y0, y1
-            if rng.random() < 0.30:          # chewed block, only partly printed
+            if rng.random() < 0.26:          # chewed block, only partly printed
                 cut = rng.uniform(0.28, 0.52) * (y1 - y0)
                 top, bot = (y0 + cut, y1) if rng.random() < 0.5 else (y0, y1 - cut)
             sh = slope * (bot - top)
@@ -304,45 +304,46 @@ def variant_toon_worn(w, h, seed):
     # --- centre ribs, broken into tapered segments ------------------------
     for y0f, y1f in TOON_RIBS:
         y0, y1 = y0f * h, y1f * h
+        swell = fbm1d(w, rng, rx=22)     # gentle hand-drawn thickness variation
         x = rng.uniform(0.0, 0.12) * w
         while x < w:
-            seg = rng.uniform(0.12, 0.30) * w
+            seg = rng.uniform(0.14, 0.32) * w
             x1 = min(x + seg, w * 1.02)
-            steps = max(6, int(seg / (0.012 * w)))
-            us = np.linspace(x, x1, steps)
-            tl = seg * rng.uniform(0.06, 0.16)
-            tr = seg * rng.uniform(0.06, 0.16)
+            steps = max(8, int(seg / (0.018 * w)))
+            tl = seg * rng.uniform(0.10, 0.22)
+            tr = seg * rng.uniform(0.10, 0.22)
             top, bot = [], []
-            for u in us:
-                k = min(smoothstep(0.0, tl, u - x), smoothstep(0.0, tr, x1 - u))
-                k = 0.06 + 0.94 * float(k)
+            for u in np.linspace(x, x1, steps):
+                k = float(min(smoothstep(0.0, tl, u - x), smoothstep(0.0, tr, x1 - u)))
+                k = 0.04 + 0.96 * k
+                s = float(swell[int(np.clip(u, 0, w - 1))])
                 mid = (y0 + y1) * 0.5 + wy(u)
-                half = (y1 - y0) * 0.5 * k
+                half = (y1 - y0) * 0.5 * k * (0.80 + 0.36 * s)
                 top.append((u, mid - half))
                 bot.append((u, mid + half))
-            blit(_jitter_ring(top + bot[::-1], rng, jit * 0.45), 255)
-            x = x1 + rng.uniform(0.05, 0.16) * w
+            blit(top + bot[::-1], 255)
+            x = x1 + rng.uniform(0.06, 0.18) * w
 
     # --- chunky bites out of the ink --------------------------------------
-    for _ in range(int(rng.integers(16, 22))):
+    for _ in range(int(rng.integers(9, 13))):
         cx = rng.uniform(0.0, w)
-        cy = rng.uniform(-0.05, 1.05) * h
-        blit(_chip(cx, cy, rng.uniform(0.045, 0.14) * h, rng), 0)
+        cy = rng.uniform(-0.03, 1.03) * h
+        blit(_chip(cx, cy, rng.uniform(0.040, 0.100) * h, rng), 0)
 
-    # --- speed slivers torn off the top and bottom edges ------------------
-    for _ in range(int(rng.integers(7, 11))):
+    # --- speed slivers flung clear of the tread edges ---------------------
+    for _ in range(int(rng.integers(4, 7))):
         edge_top = rng.random() < 0.5
-        y = (rng.uniform(-0.02, 0.10) if edge_top else rng.uniform(0.90, 1.02)) * h
-        ang = np.deg2rad(rng.uniform(-7.0, 7.0))
+        y = (rng.uniform(-0.03, 0.04) if edge_top else rng.uniform(0.96, 1.03)) * h
+        ang = np.deg2rad(rng.uniform(-5.0, 5.0))
         blit(_spike(rng.uniform(0.0, w), y,
-                    rng.uniform(0.10, 0.22) * w, rng.uniform(0.07, 0.16) * h,
+                    rng.uniform(0.09, 0.18) * w, rng.uniform(0.05, 0.09) * h,
                     ang, flip=-1.0 if edge_top else 1.0), 255)
 
     # --- white scratch slivers cut back across the ink --------------------
-    for _ in range(int(rng.integers(5, 8))):
-        ang = np.deg2rad(rng.uniform(-6.0, 6.0))
+    for _ in range(int(rng.integers(3, 6))):
+        ang = np.deg2rad(rng.uniform(-5.0, 5.0))
         blit(_spike(rng.uniform(0.0, w), rng.uniform(0.0, 1.0) * h,
-                    rng.uniform(0.12, 0.26) * w, rng.uniform(0.035, 0.075) * h,
+                    rng.uniform(0.10, 0.20) * w, rng.uniform(0.022, 0.045) * h,
                     ang, flip=1.0 if rng.random() < 0.5 else -1.0), 0)
 
     return np.asarray(img, dtype=np.float32) / 255.0

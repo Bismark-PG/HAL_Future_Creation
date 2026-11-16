@@ -340,7 +340,13 @@ bool FHALBattleTopSprayGeometryTest::RunTest(const FString&)
 	FX={};FX.WindBandCount=9;TestFalse(TEXT("Independent wind particle budget enforced"),FX.IsValid());
 	FX={};FX.WindBandLifetime=0;TestFalse(TEXT("Wind cannot divide by a zero lifetime"),FX.IsValid());
 	FX={};FX.WindBandWidthScale=.1f;TestFalse(TEXT("Near-zero wind width is rejected"),FX.IsValid());
-	FX={};FX.WindFlowDegreesPerSecond=-240;TestTrue(TEXT("Reverse airflow is cosmetic and valid"),FX.IsValid());
+	FX={};FX.WindFlowDegreesPerSecond=-240;TestTrue(TEXT("Legacy signed airflow speed remains loadable"),FX.IsValid());
+	TestEqual(TEXT("Legacy negative airflow speed follows clockwise skill spin"),HALBattleTopFX::WindAngularSpeed(-240,1500),240.f);
+	TestEqual(TEXT("Future opposite skill spin reverses airflow together"),HALBattleTopFX::WindAngularSpeed(240,-1500),-240.f);
+	TestEqual(TEXT("Zero airflow stays still"),HALBattleTopFX::WindAngularSpeed(0,1500),0.f);
+	FX={};FX.WindFlowDegreesPerSecond=3600;FX.WindTiltDegrees=80;TestTrue(TEXT("Expanded wind tuning range is usable"),FX.IsValid());
+	FX.WindFlowDegreesPerSecond=3601;TestFalse(TEXT("Wind speed range is validated"),FX.IsValid());
+	FX={};FX.WindTiltDegrees=81;TestFalse(TEXT("Wind tilt stays below inverted planes"),FX.IsValid());
 	FX={};TestTrue(TEXT("Invalid contact axes produce no arbitrary launch"),HALBattleTopFX::ContactSprayMotion(FX,FVector::ZeroVector,FVector::UpVector).VelocityMax.IsZero());
 	return true;
 }

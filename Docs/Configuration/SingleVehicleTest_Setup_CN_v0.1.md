@@ -55,7 +55,7 @@ Alt拖动仅在鼠标位于面板外且游戏视口具有焦点时开始。拖�
 - 每次应用车型都在PlayerStart重新生成一辆车，物理状态重新开始。PlayerController、PlayerState和ASC保留。
 - 复用 `HALPlayerState::ChangeVehicleAvatar`，清理旧车技能来源、Avatar效果、冷却、球权、区域状态与输入，按新车型种子初始化属性。
 - 独立观察相机在换车后继续存在，并重新聚焦新车；车辆相机模式则切到新车的Local Camera。
-- 成功切换后，运行时销毁该测试世界中的其他TestVehiclePawn和PassiveTestVehicle，使复制地图中遗留的车辆不继续参与测试。保存地图中的Actor不受修改。
+- 成功切换后，运行时销毁该测试世界中遗留的普通TestVehiclePawn和PassiveTestVehicle。2026-11-15起，新的HALSkillTestDummy作为显式技能目标保留，既不进入可驾驶车型列表，也不在出生碰撞预检中被忽略；见[技能木桩配置](Skill_Test_Dummy_CN_v0.1.md)。保存地图中的Actor不受修改。
 - 配置、候选列表或出生碰撞预检失败时保留当前车辆，原因显示在左上角。出生检查使用实际Chaos碰撞根，并忽略即将被替换的测试车辆。
 - 极端情况下GAS提交后失败，状态栏要求重新选择或重开Play，日志保留原因；不把已经Retired的旧Avatar重新接回ASC。
 

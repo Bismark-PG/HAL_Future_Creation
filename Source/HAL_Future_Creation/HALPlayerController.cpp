@@ -14,6 +14,7 @@
 #include "HALMatchGameState.h"
 #include "HALNetworkGameInstance.h"
 #include "HALDebugHUDWidget.h"
+#include "HALMatchHUDWidget.h"
 #include "HALCameraDebugWidget.h"
 #include "HALRoomComponent.h"
 #include "HALPlayerState.h"
@@ -71,6 +72,7 @@ void AHALPlayerController::BeginPlay()
 		}
 		RefreshRoomUI();
 		CreateLocalDebugWidgets();
+		EnsureMatchHUD();
 	}
 }
 void AHALPlayerController::CreateLocalDebugWidgets()
@@ -97,6 +99,7 @@ void AHALPlayerController::CreateLocalDebugWidgets()
 
 void AHALPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	RemoveMatchHUD();
 	ClearRoundSpectator();
 	GetWorldTimerManager().ClearTimer(RoundReadyTimer);
 	if (auto* State = GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr)
@@ -193,6 +196,24 @@ void AHALPlayerController::RefreshRoomUI()
 	const auto* S = GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr;
 	if (IsLocalController() && !IsActorBeingDestroyed() && !GetWorld()->bIsTearingDown && S && S->GetRoom()->GetData().bPracticeRoom)
 	{ if (auto* GI = GetGameInstance<UHALNetworkGameInstance>()) { GI->ShowPracticeRoom(this); } }
+}
+
+void AHALPlayerController::EnsureMatchHUD()
+{
+	if (MatchHUD || !IsLocalController() || !GetLocalPlayer() || !GetWorld() || GetWorld()->bIsTearingDown) { return; }
+	UClass* WidgetClass=MatchHUDClass.Get();
+	if (!WidgetClass || WidgetClass->HasAnyClassFlags(CLASS_Abstract|CLASS_Deprecated|CLASS_NewerVersionExists)) { WidgetClass=UHALMatchHUDWidget::StaticClass(); }
+	MatchHUD=CreateWidget<UHALMatchHUDWidget>(this,WidgetClass);
+	if (MatchHUD)
+	{
+		MatchHUD->SetAnchorsInViewport(FAnchors(0,0,1,1));
+		MatchHUD->SetVisibility(ESlateVisibility::HitTestInvisible);
+		MatchHUD->AddToPlayerScreen(10);
+	}
+}
+void AHALPlayerController::RemoveMatchHUD()
+{
+	if (MatchHUD) { MatchHUD->RemoveFromParent(); MatchHUD=nullptr; }
 }
 void AHALPlayerController::ClientRoomSelectionView_Implementation(FVector Location, FRotator Rotation)
 {

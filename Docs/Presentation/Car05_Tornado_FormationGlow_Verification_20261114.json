@@ -1,0 +1,375 @@
+{
+  "SchemaVersion": 1,
+  "Date": "2026-11-14",
+  "StartingBranch": "main",
+  "StartingCommit": "9c7640f; inherited earlier uncommitted implementation and user skill DA tuning",
+  "Engine": "5.8.3-58210709",
+  "Objective": "Visible bottom-up formation of the real tornado body, plus soft palette-colored rim emission; confirm authoritative size and visual size use the same Rules dimensions",
+  "Specification": "Docs/Combat/Car05_Tornado_CN_v0.1.md#第三轮主体逐渐成型与边缘提亮2026-11-14当前",
+  "Scope": {
+    "GameplayRuleChanges": false,
+    "NewAssets": 0,
+    "BlueprintSaves": 0,
+    "SkillDASaves": 0,
+    "MaterialUpdates": 2,
+    "HumanAcceptance": false,
+    "Commit": false,
+    "Push": false
+  },
+  "Implementation": {
+    "Formation": "Server phase progress powers a bottom-to-top soft reveal, with body volume expansion and separate floor-cue opacity; uses original GatherSeconds only",
+    "Glow": "View-dependent soft palette rim, weaker on continuous core, HDR emissive through existing Translucent/Unlit materials; no point light or project postprocess edit",
+    "NewDAFields": {
+      "FormationExponent": 0.85,
+      "FormationFeather": 0.16,
+      "GlowStrength": 1.1,
+      "GlowPower": 2.5
+    },
+    "NewDefaults": "Loaded from native defaults without resaving the user skill DA",
+    "PreservedUserSavedSnapshot": {
+      "SpinRate": 1800,
+      "FlowSpeed": 1.8,
+      "Turbulence": 5,
+      "CoreOpacity": 0.6,
+      "OuterOpacity": 0.8
+    },
+    "NativePolishLog": "Saved/Car05Tornado/FormationGlow_20261114/Polish_R1.log",
+    "MaterialCommand": "& 'D:/Program Files/Epic Games/UE_5.8/Engine/Binaries/Win64/UnrealEditor-Cmd.exe' 'D:/HAL_Future_Creation/HAL_Future_Creation.uproject' '-run=HAL_Future_CreationEditor.HALBuildTornadoFX' -PolishSurface -AllowCommandletRendering -d3d12 -RenderOffscreen -unattended"
+  },
+  "SizeContract": {
+    "Source": "Source/HAL_Future_Creation/HALTornadoPresentation.cpp: AHALTornado::UpdatePresentation",
+    "WindScale": "(Rules.Radius/100, Rules.Radius/100, Rules.Height/100)",
+    "PressureScale": "(Rules.Radius/100, Rules.Radius/100, Rules.Radius/100)",
+    "LogicalVolume": "finite-height circular cylinder; vehicles and balls include their physics body extent",
+    "DecorationOnly": [
+      "OuterRadiusScale",
+      "GatherRadiusScale"
+    ],
+    "SeparateStrength": "Heavy response / horizontal PushPreset independent from dimensions; no direct damage multiplier",
+    "Boundary": "Visual funnel silhouette does not equal every point of the cylindrical hit volume; use DrawBounds for exact rule volume"
+  },
+  "Builds": [
+    {
+      "Target": "HAL_Future_CreationEditor Win64 Development",
+      "Final": "BuildEditor_R1",
+      "Success": true,
+      "LocalLog": "Saved/Car05Tornado/FormationGlow_20261114/BuildEditor_R1.log"
+    },
+    {
+      "Target": "HAL_Future_Creation Win64 Development",
+      "Final": "BuildGame_R1",
+      "Success": true,
+      "LocalLog": "Saved/Car05Tornado/FormationGlow_20261114/BuildGame_R1.log"
+    }
+  ],
+  "NativeRenderRegression": {
+    "LocalPath": "Saved/Car05Tornado/FormationGlow_20261114/Final_R1/index.json",
+    "SHA256": "A7FB2AD26FF57F451D9BE4CC889A121B4413DFF7F2E6DFE9FB46907824BBA221",
+    "Passed": 17,
+    "Warnings": 0,
+    "Failed": 0,
+    "NotRun": 0,
+    "InProcess": 0,
+    "Tests": [
+      {
+        "Name": "HAL.FutureCreation.BattleTop.AuthoritySkillContactsAndCleanup",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BattleTop.ContactSprayGeometryAndTuning",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BattleTop.SustainedContactIndependentCooldown",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BattleTop.TransitionTimelineAndSparkTangent",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BattleTop.WallResponseAndConfig",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.FX.EventOrderingAndCleanup",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.FX.SocketMountAndReplacement",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.FX.SpeedPhaseAndVelocity",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.FrontSpeedDamageAndCaps",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.GASContactsCooldownStunAndBall",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.BullCharge.MotionHistoryAndSerialization",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.Tornado.AuthorityGASImpactBallsWallAndCleanup",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.FutureCreation.Tornado.PhasesValidationAndSweptCylinder",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.RenderSmoke.BullCharge.ContinuousPressureWind",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.RenderSmoke.BullCharge.RuntimeLengthAndAccelerationEnvelope",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.RenderSmoke.BullCharge.ThreeLayersAndWorldSpaceExhaust",
+        "State": "Success"
+      },
+      {
+        "Name": "HAL.RenderSmoke.Tornado.GatherSustainDissipateAndToonColors",
+        "State": "Success"
+      }
+    ]
+  },
+  "Render": {
+    "RHI": "real D3D12 offscreen, 768x768 oblique orthographic isolated scene",
+    "LocalDirectory": "Saved/Car05Tornado/FormationGlow_20261114/Render_R1",
+    "BodyOnlyFormationFractions": [
+      0.15,
+      0.5,
+      0.9
+    ],
+    "BodyOnlyVisiblePixels": [
+      3945,
+      24241,
+      47898
+    ],
+    "BodyOnlyVisibleHeights": [
+      70,
+      187,
+      289
+    ],
+    "GroundCueExplicitlyHiddenForFormationProof": true,
+    "BrighterWindPixelsWithGlow": 13333,
+    "VisibleGather": 25434,
+    "VisibleActive": 54292,
+    "MotionChangedPixels": 48739,
+    "ThreeColorsChangedPixels": [
+      13612,
+      16961,
+      23490
+    ],
+    "OuterOffChangedPixels": 3401,
+    "GrayOffChangedPixels": 13344,
+    "DifferentialVsCommonRatePixels": 41605,
+    "InternalFlowWithSpinAndGrayOffPixels": 31014,
+    "FinishedVsEmptyPixels": 0,
+    "RealParticleOrigins": [
+      "0,0,0",
+      "0,0,0",
+      "0,0,0"
+    ]
+  },
+  "Network": {
+    "Final": "Network_R1",
+    "HostOutgoingLagMilliseconds": 80,
+    "Host": {
+      "LocalPath": "Saved/Car05Tornado/FormationGlow_20261114/Network_R1/Host/index.json",
+      "SHA256": "129423C1D8DE77F7C296A5030AFC054F316922C2EC5EB7C82DC9596B9A1F6B88",
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0,
+      "Tests": [
+        {
+          "Name": "HAL.NetworkSmoke.Tornado.LifecycleWallUpdraftDisarmAndFX",
+          "State": "Success"
+        }
+      ]
+    },
+    "Client": {
+      "LocalPath": "Saved/Car05Tornado/FormationGlow_20261114/Network_R1/Client/index.json",
+      "SHA256": "24EFBF13D02A2318A874A3BA6075FD7141A19C234BA8A52C7027A5B7E5482F70",
+      "Passed": 1,
+      "Warnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "InProcess": 0,
+      "Tests": [
+        {
+          "Name": "HAL.NetworkSmoke.Tornado.LifecycleWallUpdraftDisarmAndFX",
+          "State": "Success"
+        }
+      ]
+    },
+    "Processes": [
+      {
+        "Role": "Host",
+        "PID": 18760,
+        "ExitCode": 0,
+        "Passed": 1,
+        "Warnings": 0,
+        "Failed": 0,
+        "NotRun": 0,
+        "InProcess": 0
+      },
+      {
+        "Role": "Client",
+        "PID": 44716,
+        "ExitCode": 0,
+        "Passed": 1,
+        "Warnings": 0,
+        "Failed": 0,
+        "NotRun": 0,
+        "InProcess": 0
+      }
+    ],
+    "AddedChecks": "Non-default FormationExponent 1.1 and GlowStrength .8 replicate and bind; three emitters actually produce one particle each",
+    "ExistingChecks": "Own/observed lifecycle, wall stop, cleanup, actual Chaos upward launch on host and real attack-ball disarm on both endpoints",
+    "Fixture": "Native HALMatchGameMode and opt-in transient HALTornadoFixture; no saved Blueprint, definition or room edits",
+    "LocalLauncher": "Saved/Car05Tornado/FormationGlow_20261114/RunNetwork.ps1"
+  },
+  "AssetIntegrity": {
+    "BaselineExisting": 1316,
+    "ExistingUnchanged": 1314,
+    "ExistingChanged": 2,
+    "Changed": [
+      {
+        "Path": "Content/Assets/FX/Tornado/M_Tornado_LayeredFlow.uasset",
+        "SHA256": "002ABA306DB77DF54355033E4ABEDDBE95A96191E1B2798DB27EEA0D91BDB0E1",
+        "Bytes": 29392
+      },
+      {
+        "Path": "Content/Assets/FX/Tornado/M_Tornado_OuterGusts.uasset",
+        "SHA256": "15F4606CBF4321F353C023CA443DC24214B9675392941410B78F49600C167E98",
+        "Bytes": 29387
+      }
+    ],
+    "UserSkillDABaselineSHA256": "515AC34EAEA7BFE9CD3D5454D1001CCF0524BED6930DE28F8E2C418589C2E6FA",
+    "UserSkillDAAfter": {
+      "Path": "Content/Data/Abilities/DA_Ability_Car05_Tornado.uasset",
+      "SHA256": "515AC34EAEA7BFE9CD3D5454D1001CCF0524BED6930DE28F8E2C418589C2E6FA",
+      "Bytes": 1926
+    },
+    "PreservedTeamAssets": [
+      {
+        "Path": "Content/Blueprints/GA/GA_Car05_Tornado.uasset",
+        "SHA256": "D343744B4793A6DA804688C411B7BCDF3734608D5B60A5844F58D94EAE2808C7",
+        "Bytes": 14433
+      },
+      {
+        "Path": "Content/Data/MVP_B/DA_Vehicle_Car_05.uasset",
+        "SHA256": "0985196708BC2791362E6DC45C41D0E131196E7E61103FFDD91CC63DD5A37FB3",
+        "Bytes": 4005
+      },
+      {
+        "Path": "Content/Blueprints/Gamemode/BP_MVPB_ListenGameMode.uasset",
+        "SHA256": "E42FD1EF8CB53EB7E5D5BF9E5FA0C17D314F86A301AD9DA25D73856B37EBF4FA",
+        "Bytes": 22173
+      }
+    ],
+    "BaselineManifestSHA256": "9C2E63FB57BA335048DB8CB5214BB41DC174483501FB2E9A4A23CB0E7E52B255",
+    "NiagaraMeshLegacyAndOtherVehicleAssetChanges": 0
+  },
+  "SourceSHA256": [
+    {
+      "Path": "Source/HAL_Future_Creation/HALTornadoTypes.h",
+      "SHA256": "3D825B2CB43E3B761628FD4507E4294B2ED012B46F7BD6677693CC6432B6B5EA",
+      "Bytes": 6425
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALTornado.h",
+      "SHA256": "DC79924D93DE7965F9B1845FBDB797C4379B3C63A9820332F63C5C6CA1252895",
+      "Bytes": 2517
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALTornado.cpp",
+      "SHA256": "B0B4B208F96AC639A31A349DB4DCC42DAA420F1FCECBA4060D86E87E846D66DA",
+      "Bytes": 16846
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALTornadoAbility.h",
+      "SHA256": "DEA3A34871AB4E4F1F41913D0D82F9B0E515DAF1AC78803875A99BD544868FDB",
+      "Bytes": 2131
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALTornadoAbility.cpp",
+      "SHA256": "0B4C165B6161ED218F9E95B2CC736E69035FC68A1633141E2F42C753A17D374E",
+      "Bytes": 6137
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALTornadoPresentation.cpp",
+      "SHA256": "E91DB05F81A2B26BFD23458B0FB36A05331C9CB82916BD30EFEA34979FB1BCDC",
+      "Bytes": 5571
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALTornadoTests.cpp",
+      "SHA256": "71D91598F2E34C59AAF34EBCE607EE89CB1A008C3A94F4925EC4A938EC55C6E8",
+      "Bytes": 11590
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALTornadoRenderTests.cpp",
+      "SHA256": "DD10B4530133E5A7D7004B5C0E6195F9259C5E27491F4791388EB49AFDE8A199",
+      "Bytes": 10972
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALTornadoNetworkTests.cpp",
+      "SHA256": "9F7667411DF29D4B97629462132C8407C4D9CCB56685F6C393DF9ED332071907",
+      "Bytes": 10050
+    },
+    {
+      "Path": "Source/HAL_Future_CreationEditor/Public/HALBuildTornadoFXCommandlet.h",
+      "SHA256": "FDCD99CEE91EF5E96087F7B738547BB186EF8F9E81BD41780741CF23C65F8B73",
+      "Bytes": 249
+    },
+    {
+      "Path": "Source/HAL_Future_CreationEditor/Private/HALBuildTornadoFXCommandlet.cpp",
+      "SHA256": "5EB34BD46C4DBC406FBF231C4AA02884F59B81B8ADF38DE7D26632749EF1A320",
+      "Bytes": 30136
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/BasicBallActor.h",
+      "SHA256": "A62897CA577836C0DEF24032587C99C82C0BF0466C6AAF1A6DCDB1E0F6CD2E1C",
+      "Bytes": 9083
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/BasicBallActor.cpp",
+      "SHA256": "8BE31E2407C44D5690D58238ADDF7505E092C09E448E76791BD9CF6F2164C477",
+      "Bytes": 24741
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALGameplayTags.h",
+      "SHA256": "F0BBA23834CC9365708CCADCE804D9ED3BE8FE3B267615207277BCE9A9DB949C",
+      "Bytes": 3709
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALGameplayTags.cpp",
+      "SHA256": "CDF9E190C33FBE245E2E11B378E7E771996F2D568714FA8434C0F2FFAFACDB84",
+      "Bytes": 6503
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h",
+      "SHA256": "25915D1B059C44AE6413A7AB8170793CE7A56427CD831604C3A3B2BB02880CFB",
+      "Bytes": 18281
+    }
+  ],
+  "IntermediateFailures": [],
+  "Limits": [
+    "Art/readability in the actual gameplay camera and environment still needs user acceptance; isolated render proves body growth and visible rim brightness only.",
+    "Bloom may add a halo when enabled; rim brightness itself does not require Bloom. No real lighting or global postprocess changes.",
+    "GatherSeconds also determines the harmless pre-attack window; increasing it delays gameplay activation. No separate hidden damaging formation clock was added.",
+    "Four-machine LAN, full room Blueprint flow, real late join, Cook and packaged build are not certified by this round.",
+    "Reports/BMPs/launchers under Saved are local ignored evidence. Source, material updates, docs and this summary require normal Git synchronization."
+  ]
+}
