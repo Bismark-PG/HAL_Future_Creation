@@ -1,5 +1,19 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-16 黑洞那支既有失败已定位并修复（只改测试夹具，生产逻辑未动）：根因是 `9addbe3` 把非 History 冲击改成物理线程消费，而黑洞测试仍停用移动组件；修正后全量 237/237 通过、0 失败、0 未执行。** 症状是 `HAL.FutureCreation.BlackHole.AuthorityPhysicsAndLifecycle` 13 个 Expected-true 失败、`Integrated V=X=0.000 Y=0.000 Z=0.000`，但同一行日志的 `Actions=` 一直递增——说明黑洞确实在排冲击，只是没有任何一笔落到刚体上。
+
+**根因链**：`AHALBlackHole::ApplyAttraction` 走 `Movement->QueueImpact(Action)`（`HALBlackHole.cpp:256`）。`9addbe3` 把非 History 分支从「GT 立即 `AddImpulse`」改成「排入 `PendingImpacts`、由 `ConsumeNonHistoryImpacts_Internal` 在 `AsyncPhysicsTickComponent` 里消费」，并加上守卫 `if (!IsRegistered() || !bShouldRunPhysics.Load()) { return false; }`。而 `UArcadeVehicleMovementComponent::Deactivate()` 正是把 `bShouldRunPhysics` 设为 false、同时清空 `PendingImpacts` 的地方——黑洞测试从 `a7a9853` 起就会 `Movement->Deactivate()`（目的是关掉街机驱动力，好量测纯黑洞贡献），于是改动之后每一次 `QueueImpact` 都回 false。第一条失败「registers Drag on entry」也由此连带解释：`HALBlackHole.cpp` 的 else 分支把 false 当成「车已离场」，`Receiver->UnregisterArea(this)` + `Inside.Remove(Vehicle)`，刚注册的 Drag 又被撤掉。
+
+**定位方法不是二分**：`git log -S 'if (!IsRegistered() || !bShouldRunPhysics.Load()) { return false; }'` 与 `git log -S 'PendingImpacts'` 都只命中 `9addbe3`；`git log -S` 也确认停用移动组件那行自 `a7a9853` 未变。`9addbe3` 同步更新了 `Tests/HALImpactPhysicsThreadTests.cpp`，那支还把新契约写死成断言（`Movement->Deactivate(); TestFalse(TEXT("No consumer means no false accepted impact"), Movement->QueueImpact(Heavy));`），但没有一起更新 `Tests/HALBlackHoleTests.cpp`。
+
+**修法**：沿用 `HALImpactPhysicsThreadTests` 的既有做法——保留「关掉街机 tick」的原意，但让测试探针自己跑生产的消费函式。`FBlackHoleVelocityProbe` 多订 `Chaos::ESimCallbackOptions::Presimulate`，在真正的物理线程上下文里调用 `ConsumeNonHistoryImpacts_Internal`；新增 `FHALBlackHoleImpactTestAccess`（`ArcadeVehicleMovementComponent.h` 的 friend 区加一行 `friend struct FHALBlackHoleImpactTestAccess;`，比照既有 `FHALPresentationTestAccess` 等）在 `Deactivate()` 之后重新打开 `bShouldRunPhysics`。**黑洞、移动组件的玩法逻辑一行未改**，街机力、姿态、转向在测试里依旧不参与，所以原本那些精确数值期望（-12、-700、-1600、-1400、(400,120,50) 等）全部原样通过。
+
+> **顺带发现、本轮未修的生产隐患**：`HALBlackHole.cpp:256` 把 `QueueImpact` 回 false 一律解读为「车已离场」，但 false 还有另一个原因——`PendingImpacts` 达到 `MaximumPendingImpacts = 128`。队列饱和时黑洞会把车误踢出 `Occupants` 并取消 Drag，下一 tick 又重新判定为入场、再触发一次入场减速（`EntrySpeedMultiplier`）。四人混战叠多机关时值得跟组员确认要不要把「拒绝」与「离场」分开。
+
+**已验证**：`HAL_Future_CreationEditor` Win64 Development **编译通过**（exit 0）；独立 `UnrealEditor-Cmd.exe` 无头行程单跑 `HAL.FutureCreation.BlackHole` **6/6 通过**（报告 `Saved/Automation/20261116/BlackHoleFixVerify`）；全量 `HAL.FutureCreation` **237/237 通过、0 失败、0 未执行**（报告 `Saved/Automation/20261116/BlackHoleFixFull`，`index.json` 时间戳为本次产生；唯一一条警告是既有的 `VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar` 地图提示）。
+
+**未验证**：黑洞的 PIE 实机手感未看（本轮不改黑洞行为，理论上无影响）；上面那条队列饱和隐患未修、未写回归；`HAL.RenderSmoke.*` 仍需真实渲染、未执行。**本轮改动（`ArcadeVehicleMovementComponent.h` 一行 friend、`Tests/HALBlackHoleTests.cpp` 夹具、本条状态记录）未提交、未推送。**
+
 **2026-11-16 FX-6 受击闪光与组员的 Damage Feedback 重工，团队决定采用组员版本：本机 FX-6 已全部撤下，Impact Burst 保留，已合并 `origin/main` 到 `27b3021`；编辑器 Target 编译通过，全量 237 项中 236 通过、1 失败，而该失败在合并前的纯 `origin/main` 上同样复现。** 两边做的是同一件事（受击时整台车红色剪影 + 白色轮廓 + 局部 RGB 色散），触发点也一样（`CombatResolver` 里 `ActualHPRemoved > 0`），但底层是两套不同系统：组员走 **NetMulticast 不可靠脉冲 + Custom Depth/Stencil + 后处理**（`UHALDamageFeedbackConfig` / `Component` / `Subsystem`、`M_FX_VehicleDamage_PP`、`r.CustomDepth=3`、入口在 Project Settings → Game → Vehicle Status FX → Shared Configuration → **Damage Feedback Config**），本机 FX-6 走 **GAS Tag + 车身 Overlay 材质**接 FX-1～FX-5 的共享状态 FX 管线（`DefaultCatalog` → `DA_VehicleStatusFX_Default` → `DA_StatusFX_Hit`）。
 
 **为什么不是「做一个同形状的 DA、把引用换掉」就能合**：`Damage Feedback Config` 这个栏位只收 `UHALDamageFeedbackConfig`，而且只有组员的 Subsystem 会读它；FX-6 的 `DA_StatusFX_Hit` 是 `UHALVehicleStatusFXDefinition`（配方），由渲染器从目录取用。两个 DA 不同类别、不同消费者，所以只能整条链二选一，不存在换引用这条路。团队选了组员那条，理由也成立：后处理 + stencil 能做出**车体轮廓外侧的描边**与**车窗框／门缝这类内部亮线**，这两件正是 Overlay 做不到的（Overlay 只画在车身自己的像素上、取不到 Scene Color）。代价是多一个 Tickable Subsystem、要开 `r.CustomDepth=3`、同时最多 8 台车、占用 stencil 240～247。

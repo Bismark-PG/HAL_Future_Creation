@@ -100,6 +100,7 @@ private:
 	friend class FVehicleWallEscapeContactTest;
 	friend class FHALImpactPhysicsThreadTest;
 	friend class FHALNonHistoryImpactWakeTest;
+	friend struct FHALBlackHoleImpactTestAccess;
 	friend class FHALMovementSolverTest;
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALVehicleStabilityTestAccess;

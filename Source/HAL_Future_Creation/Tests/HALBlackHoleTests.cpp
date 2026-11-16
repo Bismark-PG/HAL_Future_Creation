@@ -18,13 +18,22 @@
 #include "PhysicsProxy/SingleParticlePhysicsProxy.h"
 #include <limits>
 
+/** Reaches the production physics-thread impact consumer; the arcade tick stays off. */
+struct FHALBlackHoleImpactTestAccess
+{
+	static void EnableImpactConsumer(UArcadeVehicleMovementComponent* Movement) { Movement->bShouldRunPhysics.Store(true); }
+	static void ConsumeImpacts(UArcadeVehicleMovementComponent* Movement)
+	{ Movement->ConsumeNonHistoryImpacts_Internal(Movement->GetLastPhysicsFrame()); }
+};
+
 namespace
 {
 	struct FBlackHoleProbeInput : Chaos::FSimCallbackInput
 	{
 		UPrimitiveComponent* Body = nullptr;
+		UArcadeVehicleMovementComponent* Movement = nullptr;
 		int32 Sample = 0;
-		void Reset() { Body = nullptr; Sample = 0; }
+		void Reset() { Body = nullptr; Movement = nullptr; Sample = 0; }
 	};
 	struct FBlackHoleProbeOutput : Chaos::FSimCallbackOutput
 	{
@@ -32,9 +41,16 @@ namespace
 		int32 Sample = 0;
 		void Reset() { Sample = 0; }
 	};
-	class FBlackHoleVelocityProbe : public Chaos::TSimCallbackObject<FBlackHoleProbeInput, FBlackHoleProbeOutput, Chaos::ESimCallbackOptions::PostSolve>
+	class FBlackHoleVelocityProbe : public Chaos::TSimCallbackObject<FBlackHoleProbeInput, FBlackHoleProbeOutput,
+		Chaos::ESimCallbackOptions::Presimulate | Chaos::ESimCallbackOptions::PostSolve>
 	{
-		virtual void OnPreSimulate_Internal() override {}
+		// Authority impacts are consumed on the physics thread. The arcade tick is off here,
+		// so this probe runs only that production consumer: no arcade grip, steering or pose.
+		virtual void OnPreSimulate_Internal() override
+		{
+			const auto* Input = GetConsumerInput_Internal();
+			if (Input && Input->Movement) { FHALBlackHoleImpactTestAccess::ConsumeImpacts(Input->Movement); }
+		}
 		virtual void OnPostSolve_Internal() override
 		{
 			const auto* Input = GetConsumerInput_Internal();
@@ -178,7 +194,11 @@ bool FHALBlackHoleLifecycleTest::RunTest(const FString& Parameters)
 	Body->SetLinearDamping(0);
 	Body->SetAngularDamping(0);
 	Body->SetSimulatePhysics(true);
-	Vehicle->FindComponentByClass<UArcadeVehicleMovementComponent>()->Deactivate();
+	auto* Movement = Vehicle->FindComponentByClass<UArcadeVehicleMovementComponent>();
+	// Silence continuous arcade forces without retiring the impact consumer: deactivation
+	// alone makes every authority QueueImpact fail, which is not what this test measures.
+	Movement->Deactivate();
+	FHALBlackHoleImpactTestAccess::EnableImpactConsumer(Movement);
 	TestTrue(TEXT("Vehicle is valid"), Vehicle->IsConfigurationValid());
 	auto* Hole = World->SpawnActor<AHALBlackHole>(FVector(0,0,10000), FRotator::ZeroRotator, Spawn);
 	FHALBlackHoleConfig C; C.ExpansionSeconds = 0; C.SwirlAcceleration = 0; C.EntryCaptureSeconds = 0; C.EntrySpeedMultiplier = .4f; // Legacy instant-mode regression.
@@ -196,7 +216,7 @@ bool FHALBlackHoleLifecycleTest::RunTest(const FString& Parameters)
 	const auto ReadVelocity = [&]()
 	{
 		// Measure the integrated Internal velocity, without depending on GT interpolation snapshots.
-		auto* Input = Probe->GetProducerInputData_External(); Input->Body = Body; Input->Sample = ++Sample;
+		auto* Input = Probe->GetProducerInputData_External(); Input->Body = Body; Input->Movement = Movement; Input->Sample = ++Sample;
 		for (int32 Attempt = 0; Attempt < 4; ++Attempt)
 		{
 			Solver->AdvanceAndDispatch_External(1.f / 60.f); Solver->WaitOnPendingTasks_External();
