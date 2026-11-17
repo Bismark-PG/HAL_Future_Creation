@@ -37,7 +37,7 @@
 
 | 来源 | 值 | 用途 |
 |---|---|---|
-| `Summary.EffectiveTier` | Light / Medium / Heavy | 轮廓颜色（暖白 → 金黄 → 橙红） |
+| `Summary.EffectiveTier` | Light / Medium / Heavy | 造型（見 §3 三個等級）；分級色（暖白 → 金黃 → 橙紅）v2 起僅在 `FX_TierTint` > 0 時可見 |
 | `Summary.DesiredHorizontalDeltaSpeed` | cm/s，权威写入的目标推开速度 | 映射成 0..1 强度 → 尺寸、尖刺数、亮度、寿命 |
 
 `BurstStrength()` 把 `MinimumPushSpeed`(150) ~ `MaximumPushSpeed`(900) 线性映射到 0..1，量化成一个字节随事件复制。强度再线性插值出：
@@ -45,44 +45,72 @@
 - **尺寸** `MinimumSizeCm`(90) → `MaximumSizeCm`(240)，精灵直径，单位真的是 cm
 - **尖刺数** `MinimumSpikes`(7) → `MaximumSpikes`(13)，材质内部向下取整
 - **寿命** `LifetimeSeconds`(0.22) + `StrengthLifetimeSeconds`(0.06) × 强度
-- **亮度** `FX_StrengthGain`(1.6) 的插值
+- **亮度** `FX_StrengthGain`(v2 預設 1.0，即不變) 的插值
 
 > **诚实的限制**：`DesiredHorizontalDeltaSpeed` 是权威**写入的目标推力**，它跟着分级、PushPreset 和抗性减级走，所以实际上接近「三档 + 少量变化」，不是完全连续的碰撞速度。要做到真正连续，得把碰撞回调里算出的 `NormalImpulse.Size() / Mass` 一路带进 `FHALImpactSummary`——那是另一个改动，本轮没做。
 
 ---
 
-## 3. 造型怎么来的
+## 3. 造型怎麼來的（2026-11-17 v2：墨線碎片）
 
-`Tools/ImpactBurst/ImpactBurst.hlsl`，一个 Custom 节点，输入全是参数引脚：
+`Tools/ImpactBurst/ImpactBurst.hlsl`，仍是一個 Custom 節點、輸入全是參數引腳，沒有貼圖。造型依團隊提供的參考圖改為**手繪漫畫碎片**：純白填色、黑色墨線、右下側墨線較重，碎片由空心圓心向外甩出。舊版「實心星形爆點」已整個取代，C++ 與六個執行期參數的契約未變。
 
-```hlsl
-float2 p = UV * 2.0 - 1.0;
-p /= scale;                                  // 弹出 + 尾段微胀
-float r = length(p);
-float ang = atan2(p.y, p.x) + Seed * 6.2831853;
-float s1 = pow(abs(sin(ang * lobes * 0.5)), k);
-float s2 = pow(abs(sin(ang * (lobes * 0.5 + 1.0) + 2.3)), k) * Irregular;
-float shape = max(s1, s2);                   // max 而不是平均：尖刺才是尖的
-float rad = lerp(InnerRadius, 1.0, shape) * 0.98;
-float fill = 1.0 - smoothstep(rad - aa, rad + aa, r);   // aa = fwidth(r)，一像素硬边
-```
+動畫分三段，全靠形狀變化、不靠透明度淡出：
 
-**两个踩过的坑**，调参时别踩回去：
+1. **接觸瞬間**：碎片根部由一圈帶刺的環連在一起（`FX_RingWidth`），整體由 `FX_StartScale` 彈到滿尺寸。
+2. **散開**：環在 `FX_RingEnd` 前縮到消失，空心半徑由 `FX_HollowStart` 擴到 `FX_InnerRadius`，碎片各自向外飛。
+3. **收尾**：`FX_FadeStart` 之後碎片一邊縮短一邊變細成墨絲，最後 8% 壽命才做透明度收尾。
 
-1. **`Sharpness` 不能小于 1**。第一版用 0.55，`pow` 指数小于 1 会把所有波瓣推向 1.0，画出来是一朵**雏菊**不是爆点。现在预设 4.0，越大尖刺越细越长。
-2. **两条谐波要用 `max()` 合并，不能相加平均**。相加会互相填平谷底，尖刺变钝；`max()` 才能保留硬尖角，再用 `Irregular`(0.78) 把第二条压矮，长短交错才像手画的。
+每片碎片在自己的角度格內用四個雜湊值決定長度、傾斜、彎向與寬度；片數就是 C++ 寫入的 `FX_Spikes`。黑邊分兩層：`FX_InkWidth` 是輪廓內縮的描線，`FX_ShadowOffset` 把同一形狀往右下偏移再畫一次，形成參考圖那種一側較粗的墨線。
 
-形状是随机相位的：`FX_Seed` 由权威事件序号哈希而来，**所有客户端对同一次撞击画出一模一样的爆点**，但相邻两次撞击形状不同。
+### 三個等級各一種造型（2026-11-17）
 
-| 参数 | 预设 | 作用 |
+C++ 把 `EHALImpactTier` 的列舉值（1／2／3）寫進材質參數 `FX_Tier`（名稱可在 Project Settings 的 `TierParameter` 改），由材質選造型；等級本來就隨爆點事件複製，沒有新增網路資料。
+
+| 等級 | 造型 | 相關參數 |
 |---|---|---|
-| `FX_InnerRadius` | 0.34 | 谷底半径。越小尖刺越长 |
-| `FX_Sharpness` | 4.0 | 尖刺锐度。**低于 1 会变成花** |
-| `FX_Irregular` | 0.78 | 第二组尖刺的长度比，0 = 完全规则的星 |
-| `FX_EdgeWidth` | 0.2 | 轮廓带宽度。细尖刺会整根吃到轮廓色 |
-| `FX_StartScale` / `FX_PopFraction` | 0.5 / 0.18 | 弹出：前 18% 寿命从半尺寸弹到满尺寸 |
-| `FX_TailGrowth` / `FX_FadeStart` | 0.22 / 0.5 | 尾段：后半段一边胀一边淡出 |
-| `FX_FillGain` / `FX_EdgeGain` | 1.4 / 3.0 | 填充与轮廓亮度，轮廓要烫到吃 Bloom |
+| Light（1） | 沒有環，只有零星幾片較短的碎片，像擦撞 | `FX_LightDropout`(0.35) 省略的碎片比例、`FX_LightLength`(0.85) 碎片長度比 |
+| Medium（2） | 帶刺的環散開成放射碎片（上述基本造型） | — |
+| Heavy（3） | Medium 的環加粗 1.5 倍，另有一圈外緣帶鋸齒的衝擊環搶在碎片前面向外擴散 | `FX_WaveWidth`(0.035) 衝擊環半寬、`FX_WaveTeeth`(0.09) 鋸齒高度 |
+
+尺寸、片數、壽命仍由強度（推力）決定，與等級造型疊加。
+
+### 車輛代表色（2026-11-17）
+
+碎片填色改用**撞擊車的代表色**，也就是該車的胎痕顏色（車輛表現 DA 的 `TireSkid.MarkColor`），黑色墨線不變。
+
+| 情況 | 畫面 | `FX_ColorMode` |
+|---|---|---|
+| 兩車直接相撞 | 碎片交替使用兩台車的顏色；環與衝擊環用撞擊方的顏色 | 2 |
+| 被球命中 | 全部碎片用發射者的顏色 | 1 |
+| 自由球、機關、牆壁、自己的球打到自己、來源車沒有胎痕色 | 維持白色 | 0 |
+
+- **資料怎麼走**：權威端發布爆點時查來源車的代表色，以 sRGB `FColor` 連同模式一起放進 `FHALImpactBurstEvent`（多 5 個位元組）。直接送顏色而非車的參照，來源車被淘汰或換車後顏色仍正確。被撞車的顏色不送，由被撞車自己的表現元件在本地讀取。
+- **什麼算「有代表色」**：`TireSkid.bEnabled` 且 `ColorParameter` 非空。沒綁顏色參數的車，胎痕顯示的是 Niagara 預設色而非 `MarkColor`，不視為代表色。
+- **降飽和與提亮**：`FX_Desaturate`(0.15) 往灰階靠、`FX_ColorLift`(0.18) 往白色靠，在 `MI_FX_ImpactBurst` 上調。提亮同時讓深色車（如 Car_06 海軍藍）不至於糊成黑色。
+- **開關**：Project Settings → Vehicle Impact Burst FX → `bVehicleColors`。關閉後權威端不送顏色，客戶端也忽略收到的顏色。
+- **兩車互撞會有兩個爆點**（兩台車各是對方的被撞方），位置幾乎重合，兩個都是同一組雙色；重疊後的實機觀感尚未驗收。
+- 純外觀，不參與任何玩法判定。
+
+形狀仍由 `FX_Seed` 決定，**所有客戶端對同一次撞擊畫出一樣的碎片**。
+
+| 參數 | 預設 | 作用 |
+|---|---|---|
+| `FX_HollowStart` / `FX_InnerRadius` | 0.3 / 0.55 | 空心半徑：接觸瞬間 / 散開後（1 = 精靈邊緣） |
+| `FX_ShardWidth` | 1.15 | 碎片寬度，1 = 剛好填滿自己的角度格 |
+| `FX_TipPower` | 0.6 | 小於 1 時碎片到尖端前都保持肥厚 |
+| `FX_Bend` | 0.9 | 朝尖端的側向彎曲 |
+| `FX_Irregular` | 0.8 | 長度與傾斜的隨機量，0 = 完全規則 |
+| `FX_Notch` | 0.8 | 碎片根部的鋸齒撕裂感 |
+| `FX_RingWidth` / `FX_RingEnd` | 0.1 / 0.4 | 連接環的半寬 / 環消失的壽命比例 |
+| `FX_InkWidth` / `FX_ShadowOffset` | 0.018 / 0.022 | 描線粗細 / 右下重墨偏移 |
+| `FX_StartScale` / `FX_PopFraction` / `FX_TailGrowth` | 0.5 / 0.18 / 0.22 | 彈出與尾段外擴 |
+| `FX_FadeStart` | 0.55 | 碎片開始變細的壽命比例 |
+| `FX_FillGain` / `FX_StrengthGain` | 1.4 / 1.0 | 白色填色亮度 / 滿強度時的額外亮度倍率 |
+| `FX_TierTint` / `FX_TierBand` | 0.0 / 0.3 | 把分級色染在碎片根部的比例與範圍；**預設 0＝純黑白，分級改由造型表達** |
+| `FX_InkColor` | 黑 | 墨線顏色 |
+
+> **與 v1 的差別**：`FX_Sharpness`、`FX_EdgeWidth`、`FX_EdgeGain` 已移除。C++ 仍會寫入 `FX_EdgeColor`（分級色），但預設 `FX_TierTint=0` 時畫面上看不到；要恢復分級顏色提示，把 `FX_TierTint` 調高即可，不需改程式。
 
 材质本体是 **Unlit / Translucent / Two Sided / Disable Depth Test**。关掉深度测试是刻意的：漫画爆点是贴在画面上的「印章」，被自己的车切掉一半会很糟。如果实测发现它穿墙穿得难看，把 `M_FX_ImpactBurst` 的 Disable Depth Test 关掉，再把 `VerticalOffsetCm` 调高就好。
 

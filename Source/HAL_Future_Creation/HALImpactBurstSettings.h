@@ -30,6 +30,9 @@ struct HAL_FUTURE_CREATION_API FHALImpactBurstConfig
 	UPROPERTY(EditAnywhere, Category="Color") FLinearColor MediumColor = FLinearColor(1.f, .72f, .18f, 1.f);
 	UPROPERTY(EditAnywhere, Category="Color") FLinearColor HeavyColor = FLinearColor(1.f, .32f, .06f, 1.f);
 	UPROPERTY(EditAnywhere, Category="Color") FLinearColor FillColor = FLinearColor::White;
+	/** Paint the burst in the tire mark colour of the car that hit (or launched the ball); direct car contact shows both cars.
+	 * Off, or a car without a mark colour, keeps the plain fill. Cosmetic only. */
+	UPROPERTY(EditAnywhere, Category="Color") bool bVehicleColors = true;
 	/** Pushed off the contact surface, then lifted toward the top-down camera so the body never splits it. */
 	UPROPERTY(EditAnywhere, Category="Placement", meta=(ClampMin="0", ClampMax="200", Units="cm")) float SurfaceOffsetCm = 10;
 	UPROPERTY(EditAnywhere, Category="Placement", meta=(ClampMin="0", ClampMax="400", Units="cm")) float VerticalOffsetCm = 20;
@@ -45,8 +48,14 @@ struct HAL_FUTURE_CREATION_API FHALImpactBurstConfig
 	UPROPERTY(EditAnywhere, Category="Material Parameters") FName StrengthParameter = TEXT("FX_Strength");
 	UPROPERTY(EditAnywhere, Category="Material Parameters") FName SeedParameter = TEXT("FX_Seed");
 	UPROPERTY(EditAnywhere, Category="Material Parameters") FName SpikesParameter = TEXT("FX_Spikes");
+	/** Receives the impact tier as its enum value (1 light, 2 medium, 3 heavy); the material picks the look. */
+	UPROPERTY(EditAnywhere, Category="Material Parameters") FName TierParameter = TEXT("FX_Tier");
 	UPROPERTY(EditAnywhere, Category="Material Parameters") FName FillColorParameter = TEXT("FX_FillColor");
 	UPROPERTY(EditAnywhere, Category="Material Parameters") FName EdgeColorParameter = TEXT("FX_EdgeColor");
+	/** 0 plain fill, 1 source car colour, 2 source and target car colours on alternating shards. */
+	UPROPERTY(EditAnywhere, Category="Material Parameters") FName ColorModeParameter = TEXT("FX_ColorMode");
+	UPROPERTY(EditAnywhere, Category="Material Parameters") FName SourceColorParameter = TEXT("FX_SourceColor");
+	UPROPERTY(EditAnywhere, Category="Material Parameters") FName TargetColorParameter = TEXT("FX_TargetColor");
 	bool Validate(FString& Error) const;
 };
 

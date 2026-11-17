@@ -25,7 +25,7 @@ MAT = unreal.MaterialEditingLibrary
 ASSET = unreal.EditorAssetLibrary
 TOOLS = unreal.AssetToolsHelpers.get_asset_tools()
 
-MARKER = 'HAL Comic Impact Burst v1'
+MARKER = 'HAL Comic Impact Burst v2 (inked shards)'
 MATERIAL_PATH = '/Game/Assets/FX/Materials/M_FX_ImpactBurst'
 INSTANCE_PATH = '/Game/Assets/FX/Materials/MI_FX_ImpactBurst'
 
@@ -37,25 +37,46 @@ SCALARS = (
     ('FX_Strength', 'Strength', 0.5, 0.0, 1.0, '01 Driven By Runtime'),
     ('FX_Seed', 'Seed', 0.0, 0.0, 1.0, '01 Driven By Runtime'),
     ('FX_Spikes', 'Spikes', 9.0, 3.0, 24.0, '01 Driven By Runtime'),
-    ('FX_InnerRadius', 'InnerRadius', 0.34, 0.05, 0.95, '02 Shape'),
-    ('FX_Sharpness', 'Sharpness', 4.0, 0.5, 12.0, '02 Shape'),
-    ('FX_Irregular', 'Irregular', 0.78, 0.0, 1.0, '02 Shape'),
-    ('FX_EdgeWidth', 'EdgeWidth', 0.2, 0.0, 0.6, '02 Shape'),
-    ('FX_StartScale', 'StartScale', 0.5, 0.05, 1.0, '03 Envelope'),
-    ('FX_PopFraction', 'PopFraction', 0.18, 0.01, 1.0, '03 Envelope'),
-    ('FX_TailGrowth', 'TailGrowth', 0.22, 0.0, 1.0, '03 Envelope'),
-    ('FX_FadeStart', 'FadeStart', 0.5, 0.0, 1.0, '03 Envelope'),
-    ('FX_FillGain', 'FillGain', 1.4, 0.0, 8.0, '04 Brightness'),
-    ('FX_EdgeGain', 'EdgeGain', 3.0, 0.0, 12.0, '04 Brightness'),
-    ('FX_StrengthGain', 'StrengthGain', 1.6, 0.0, 4.0, '04 Brightness'),
-    ('FX_Opacity', 'Opacity', 1.0, 0.0, 1.0, '04 Brightness'),
+    ('FX_Tier', 'Tier', 2.0, 1.0, 3.0, '01 Driven By Runtime'),
+    ('FX_ColorMode', 'ColorMode', 0.0, 0.0, 2.0, '01 Driven By Runtime'),  # 0 plain, 1 source car, 2 source + target car         # EHALImpactTier: 1 light, 2 medium, 3 heavy
+    # Shape. Lengths are in sprite half extents (1 = the sprite edge).
+    ('FX_HollowStart', 'HollowStart', 0.3, 0.0, 0.9, '02 Shape'),      # hollow radius at the contact frame
+    ('FX_InnerRadius', 'InnerRadius', 0.55, 0.05, 0.95, '02 Shape'),   # hollow radius once the shards fly out
+    ('FX_ShardWidth', 'ShardWidth', 1.15, 0.1, 2.5, '02 Shape'),       # 1 = a shard fills its angular cell
+    ('FX_TipPower', 'TipPower', 0.6, 0.05, 3.0, '02 Shape'),           # below 1 stays fat until the tip
+    ('FX_Bend', 'Bend', 0.9, 0.0, 2.0, '02 Shape'),                    # sideways sweep toward the tip
+    ('FX_Irregular', 'Irregular', 0.8, 0.0, 1.0, '02 Shape'),          # length and lean variation
+    ('FX_Notch', 'Notch', 0.8, 0.0, 1.0, '02 Shape'),                  # torn sawtooth at the shard root
+    ('FX_RingWidth', 'RingWidth', 0.1, 0.0, 0.4, '02 Shape'),          # half width of the joining ring
+    ('FX_RingEnd', 'RingEnd', 0.4, 0.01, 1.0, '02 Shape'),             # age at which the ring is gone
+    ('FX_LightDropout', 'LightDropout', 0.35, 0.0, 0.9, '02 Tier Looks'),  # light: share of shards left out
+    ('FX_LightLength', 'LightLength', 0.85, 0.2, 1.0, '02 Tier Looks'),    # light: shard reach, 1 = same as medium
+    ('FX_WaveWidth', 'WaveWidth', 0.035, 0.0, 0.2, '02 Tier Looks'),       # heavy: shock ring half width
+    ('FX_WaveTeeth', 'WaveTeeth', 0.09, 0.0, 0.4, '02 Tier Looks'),        # heavy: tooth height on the ring's outer edge
+    ('FX_InkWidth', 'InkWidth', 0.018, 0.0, 0.2, '03 Ink'),            # contour thickness
+    ('FX_ShadowOffset', 'ShadowOffset', 0.022, 0.0, 0.2, '03 Ink'),    # heavy ink side, down-right
+    ('FX_StartScale', 'StartScale', 0.5, 0.05, 1.0, '04 Envelope'),
+    ('FX_PopFraction', 'PopFraction', 0.18, 0.01, 1.0, '04 Envelope'),
+    ('FX_TailGrowth', 'TailGrowth', 0.22, 0.0, 1.0, '04 Envelope'),
+    ('FX_FadeStart', 'FadeStart', 0.55, 0.0, 1.0, '04 Envelope'),      # age at which shards start thinning
+    ('FX_FillGain', 'FillGain', 1.4, 0.0, 8.0, '05 Brightness'),      # above 1 keeps white from greying under exposure
+    ('FX_StrengthGain', 'StrengthGain', 1.0, 0.0, 4.0, '05 Brightness'),
+    ('FX_Opacity', 'Opacity', 1.0, 0.0, 1.0, '05 Brightness'),
+    ('FX_Desaturate', 'Desaturate', 0.15, 0.0, 1.0, '06 Color'),       # car colour: 0 = as authored, 1 = grey
+    ('FX_ColorLift', 'ColorLift', 0.18, 0.0, 1.0, '06 Color'),         # car colour: blend toward white
+    ('FX_TierTint', 'TierTint', 0.0, 0.0, 1.0, '06 Color'),            # 0 = pure fill, 1 = tier coloured root
+    ('FX_TierBand', 'TierBand', 0.3, 0.0, 1.0, '06 Color'),            # how far up the shard the tint reaches
 )
 VECTORS = (
-    ('FX_FillColor', 'FillColor', unreal.LinearColor(1.0, 1.0, 1.0, 1.0), '05 Color'),
-    ('FX_EdgeColor', 'EdgeColor', unreal.LinearColor(1.0, 0.72, 0.18, 1.0), '05 Color'),
+    ('FX_FillColor', 'FillColor', unreal.LinearColor(1.0, 1.0, 1.0, 1.0), '06 Color'),
+    ('FX_EdgeColor', 'EdgeColor', unreal.LinearColor(1.0, 0.72, 0.18, 1.0), '06 Color'),
+    ('FX_SourceColor', 'SourceColor', unreal.LinearColor(1.0, 1.0, 1.0, 1.0), '01 Driven By Runtime'),
+    ('FX_TargetColor', 'TargetColor', unreal.LinearColor(1.0, 1.0, 1.0, 1.0), '01 Driven By Runtime'),
+    ('FX_InkColor', 'InkColor', unreal.LinearColor(0.0, 0.0, 0.0, 1.0), '06 Color'),
 )
 # Written per burst by C++; the contract check below fails if the compiler strips one of them.
-DRIVEN_NAMES = ('FX_Age01', 'FX_Strength', 'FX_Seed', 'FX_Spikes', 'FX_FillColor', 'FX_EdgeColor')
+DRIVEN_NAMES = ('FX_Age01', 'FX_Strength', 'FX_Seed', 'FX_Spikes', 'FX_Tier', 'FX_ColorMode',
+                'FX_FillColor', 'FX_EdgeColor', 'FX_SourceColor', 'FX_TargetColor')
 PINS = ('UV',) + tuple(pin for _, pin, _, _, _, _ in SCALARS) + tuple(pin for _, pin, _, _ in VECTORS)
 
 report = {'material': MATERIAL_PATH, 'instance': INSTANCE_PATH}
@@ -133,7 +154,7 @@ def build_material():
                       slider_min=low, slider_max=high, group=group)
         wire(scalar, custom, pin)
     for index, (name, pin, default, group) in enumerate(VECTORS):
-        vector = node(material, unreal.MaterialExpressionVectorParameter, -700, 1420 + index * 170,
+        vector = node(material, unreal.MaterialExpressionVectorParameter, -700, 20 + len(SCALARS) * 90 + index * 170,
                       parameter_name=name, default_value=default, group=group)
         wire(vector, custom, pin, 'RGB')
 

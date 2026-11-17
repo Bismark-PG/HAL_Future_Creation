@@ -43,7 +43,7 @@ namespace
 				if (const auto* Mode=PC->GetWorld()->GetAuthGameMode<AHALVehicleTestGameMode>())
 				{ for (const auto& Class:Mode->GetTestVehicleClasses()) { VehicleOptions.Add(MakeShared<TSubclassOf<ATestVehiclePawn>>(Class)); } }
 			}
-			if (!VehicleOptions.IsEmpty()) { SelectedVehicle=VehicleOptions[0]; }
+			if (!VehicleOptions.IsEmpty()) { SelectedVehicle=VehicleOptions[0]; SelectedOpponent=VehicleOptions[0]; }
 			ChildSlot
 			[
 				SNew(SOverlay).Visibility(EVisibility::SelfHitTestInvisible)
@@ -67,6 +67,26 @@ namespace
 							+SVerticalBox::Slot().AutoHeight().Padding(0,0,0,8)
 							[SNew(SButton).Tag(TEXT("HALVehicleTest.Apply")).IsFocusable(false).Text(FText::FromString(TEXT("Apply selected vehicle")))
 								.OnClicked_Lambda([this]{ if (auto* PC=Controller.Get();PC && SelectedVehicle.IsValid()) { PC->ApplyTestVehicle(*SelectedVehicle); } return FReply::Handled(); })]
+							+SVerticalBox::Slot().AutoHeight().Padding(0,4,0,4)
+							[SNew(STextBlock).Text(FText::FromString(TEXT("OPPONENT CAR (undriven, spawns ahead of you)")))]
+							+SVerticalBox::Slot().AutoHeight().Padding(0,0,0,8)
+							[
+								SNew(SComboBox<TSharedPtr<TSubclassOf<ATestVehiclePawn>>>).IsFocusable(false)
+								.OptionsSource(&VehicleOptions).InitiallySelectedItem(SelectedOpponent)
+								.OnGenerateWidget_Lambda([](const auto Option){ return SNew(STextBlock).Text(VehicleLabel(Option)); })
+								.OnSelectionChanged_Lambda([this](const auto Option,ESelectInfo::Type){ SelectedOpponent=Option; })
+								[SNew(STextBlock).Text_Lambda([this]{ return VehicleLabel(SelectedOpponent); })]
+							]
+							+SVerticalBox::Slot().AutoHeight().Padding(0,0,0,8)
+							[
+								SNew(SHorizontalBox)
+								+SHorizontalBox::Slot().FillWidth(1).Padding(0,0,4,0)
+								[SNew(SButton).Tag(TEXT("HALVehicleTest.Opponent")).IsFocusable(false).Text(FText::FromString(TEXT("Spawn / replace opponent")))
+									.OnClicked_Lambda([this]{ if (auto* PC=Controller.Get();PC && SelectedOpponent.IsValid()) { PC->ApplyOpponentVehicle(*SelectedOpponent); } return FReply::Handled(); })]
+								+SHorizontalBox::Slot().AutoWidth()
+								[SNew(SButton).Tag(TEXT("HALVehicleTest.OpponentRemove")).IsFocusable(false).Text(FText::FromString(TEXT("Remove")))
+									.OnClicked_Lambda([this]{ if (auto* PC=Controller.Get()) { PC->RemoveOpponentVehicle(); } return FReply::Handled(); })]
+							]
 							+SVerticalBox::Slot().AutoHeight().Padding(0,0,0,8)
 							[SNew(SButton).Tag(TEXT("HALVehicleTest.Camera")).IsFocusable(false)
 								.Text_Lambda([this]{ const auto* PC=Controller.Get(); return FText::FromString(PC && PC->IsObservationCameraActive()?TEXT("Switch to vehicle camera [F2]"):TEXT("Switch to observation camera [F2]")); })
@@ -81,7 +101,7 @@ namespace
 								const auto* PS=PC?PC->GetPlayerState<AHALPlayerState>():nullptr;
 								const auto* ASC=PS?PS->GetHALAbilitySystemComponent():nullptr;
 								const auto* HP=ASC?ASC->GetSet<UHALHealthAttributeSet>():nullptr;
-								return FText::FromString(FString::Printf(TEXT("%s\nPawn: %s\nGAS: %s  HP: %.0f / %.0f"),Mode?*Mode->GetTestStatus():TEXT("Vehicle Test GameMode required"),*GetNameSafe(PC?PC->GetPawn():nullptr),ASC && PC && ASC->GetAvatarActor()==PC->GetPawn() && ASC->IsHealthInitialized()?TEXT("Ready"):TEXT("Waiting"),HP?HP->GetCurrentHP():0.f,HP?HP->GetMaxHP():0.f));
+								return FText::FromString(FString::Printf(TEXT("%s\nOpponent: %s\nPawn: %s\nGAS: %s  HP: %.0f / %.0f"),Mode?*Mode->GetTestStatus():TEXT("Vehicle Test GameMode required"),Mode?*Mode->GetOpponentStatus():TEXT("none"),*GetNameSafe(PC?PC->GetPawn():nullptr),ASC && PC && ASC->GetAvatarActor()==PC->GetPawn() && ASC->IsHealthInitialized()?TEXT("Ready"):TEXT("Waiting"),HP?HP->GetCurrentHP():0.f,HP?HP->GetMaxHP():0.f));
 							})]
 							+SVerticalBox::Slot().AutoHeight()
 							[SNew(STextBlock).AutoWrapText(true).Text(FText::FromString(TEXT("Observation: Alt + LMB orbit, Alt + MMB zoom, Alt + RMB pan. Wheel: zoom. Release the gesture to drive.\nVehicle camera: hold RMB for mouse look.")))]
@@ -102,6 +122,7 @@ namespace
 		TSharedPtr<SBorder> PanelBorder;
 		TArray<TSharedPtr<TSubclassOf<ATestVehiclePawn>>> VehicleOptions;
 		TSharedPtr<TSubclassOf<ATestVehiclePawn>> SelectedVehicle;
+		TSharedPtr<TSubclassOf<ATestVehiclePawn>> SelectedOpponent;
 	};
 }
 
@@ -279,6 +300,18 @@ void AHALVehicleTestPlayerController::RefreshTestView()
 void AHALVehicleTestPlayerController::ApplyTestVehicle(TSubclassOf<ATestVehiclePawn> Class)
 {
 	if (auto* Mode=GetWorld()->GetAuthGameMode<AHALVehicleTestGameMode>()) { Mode->ChangeTestVehicle(this,Class); }
+	ApplyTestInputMode();
+}
+
+void AHALVehicleTestPlayerController::ApplyOpponentVehicle(TSubclassOf<ATestVehiclePawn> Class)
+{
+	if (auto* Mode=GetWorld()->GetAuthGameMode<AHALVehicleTestGameMode>()) { Mode->ChangeOpponentVehicle(this,Class); }
+	ApplyTestInputMode();
+}
+
+void AHALVehicleTestPlayerController::RemoveOpponentVehicle()
+{
+	if (auto* Mode=GetWorld()->GetAuthGameMode<AHALVehicleTestGameMode>()) { Mode->RemoveOpponentVehicle(); }
 	ApplyTestInputMode();
 }
 

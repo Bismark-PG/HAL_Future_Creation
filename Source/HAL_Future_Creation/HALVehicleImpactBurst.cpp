@@ -1,5 +1,6 @@
 #include "HALVehiclePresentationComponent.h"
 #include "HALImpactBurstSettings.h"
+#include "HALVehiclePresentationConfig.h"
 #include "HALCombatTypes.h"
 #include "Components/MaterialBillboardComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -45,6 +46,22 @@ FLinearColor HALVehiclePresentation::BurstEdgeColor(const FHALImpactBurstConfig&
 	}
 }
 
+bool HALVehiclePresentation::VehicleIdentityColor(const FHALTireSkidConfig& TireSkid, FLinearColor& OutColor)
+{
+	const FLinearColor& Mark = TireSkid.MarkColor;
+	// Without a bound colour parameter the marks keep the Niagara default, so MarkColor is not what players see.
+	if (!TireSkid.bEnabled || TireSkid.ColorParameter.IsNone() || !FMath::IsFinite(Mark.R) || !FMath::IsFinite(Mark.G)
+		|| !FMath::IsFinite(Mark.B) || Mark.GetMin() < 0) { return false; }
+	OutColor = FLinearColor(Mark.R, Mark.G, Mark.B, 1.f);
+	return true;
+}
+
+uint8 HALVehiclePresentation::BurstColorMode(const FHALImpactBurstConfig& Config, bool bSourceHasColor, bool bDirectVehicleContact)
+{
+	if (!Config.bVehicleColors || !bSourceHasColor) { return BurstColorNone; }
+	return bDirectVehicleContact ? BurstColorSourceAndTarget : BurstColorSource;
+}
+
 FVector HALVehiclePresentation::ResolveBurstPoint(const FHALImpactBurstConfig& Config, const FVector& RawPoint,
 	const FVector& TargetLocation, const FVector& PushDirection)
 {
@@ -85,6 +102,9 @@ bool HALVehiclePresentation::AcceptBurst(const FHALImpactBurstConfig& Config, co
 	Pulse.SizeCm = FMath::Lerp(Config.MinimumSizeCm, Config.MaximumSizeCm, Strength);
 	Pulse.Spikes = FMath::Lerp(Config.MinimumSpikes, Config.MaximumSpikes, Strength);
 	Pulse.EdgeColor = BurstEdgeColor(Config, Event.Tier);
+	// The mode is network input: clamp it, and let a local opt-out win over what the authority sent.
+	Pulse.ColorMode = Config.bVehicleColors ? FMath::Min(Event.ColorMode, BurstColorSourceAndTarget) : BurstColorNone;
+	Pulse.SourceColor = FLinearColor(FColor(Event.SourceColor.R, Event.SourceColor.G, Event.SourceColor.B, 255));
 	Pulse.Tier = Event.Tier;
 	++State.StartedCount;
 	return true;
@@ -118,6 +138,11 @@ void HALVehiclePresentation::ClearBursts(FHALImpactBurstState& State, TArray<int
 	OutReleasedSlots.Reset();
 	for (const FHALImpactBurstPulse& Pulse : State.Pulses) { ReleasePulseSlot(Pulse, OutReleasedSlots); }
 	State.Pulses.Reset();
+}
+
+bool UHALVehiclePresentationComponent::GetIdentityColor(FLinearColor& OutColor) const
+{
+	return Config && HALVehiclePresentation::VehicleIdentityColor(Config->TireSkid, OutColor);
 }
 
 const FHALImpactBurstConfig* UHALVehiclePresentationComponent::GetBurstConfig() const
@@ -204,14 +229,23 @@ void UHALVehiclePresentationComponent::ApplyBurstSlot(const FHALImpactBurstConfi
 	Instance->SetScalarParameterValue(BurstConfig.StrengthParameter, Pulse.Strength);
 	Instance->SetScalarParameterValue(BurstConfig.SeedParameter, Pulse.Seed);
 	Instance->SetScalarParameterValue(BurstConfig.SpikesParameter, Pulse.Spikes);
+	Instance->SetScalarParameterValue(BurstConfig.TierParameter, float(uint8(Pulse.Tier)));
 	Instance->SetScalarParameterValue(BurstConfig.AgeParameter, Pulse.Lifetime > 0 ? FMath::Clamp(Pulse.Age / Pulse.Lifetime, 0.f, 1.f) : 1.f);
 	Instance->SetVectorParameterValue(BurstConfig.FillColorParameter, BurstConfig.FillColor);
 	Instance->SetVectorParameterValue(BurstConfig.EdgeColorParameter, Pulse.EdgeColor);
+	// The car that was hit is this component's own car, so its colour never travels with the event.
+	FLinearColor OwnColor = Pulse.SourceColor;
+	uint8 ColorMode = Pulse.ColorMode;
+	if (ColorMode == HALVehiclePresentation::BurstColorSourceAndTarget && !GetIdentityColor(OwnColor))
+	{ ColorMode = HALVehiclePresentation::BurstColorSource; OwnColor = Pulse.SourceColor; }
+	Instance->SetScalarParameterValue(BurstConfig.ColorModeParameter, float(ColorMode));
+	Instance->SetVectorParameterValue(BurstConfig.SourceColorParameter, Pulse.SourceColor);
+	Instance->SetVectorParameterValue(BurstConfig.TargetColorParameter, OwnColor);
 	Sprite->SetVisibility(true);
 }
 
 void UHALVehiclePresentationComponent::PublishImpactBurst(const FHALCombatHitResult& Result, const FVector& WorldDirection,
-	const FVector& WorldImpactPoint, uint32 Sequence)
+	const FVector& WorldImpactPoint, uint32 Sequence, const AActor* SourceActor, const AActor* InstigatorActor)
 {
 	const FHALImpactBurstConfig* BurstConfig = GetBurstConfig();
 	if (!BurstConfig || !Sequence || !IsValid(GetOwner())) { return; }
@@ -223,6 +257,17 @@ void UHALVehiclePresentationComponent::PublishImpactBurst(const FHALCombatHitRes
 		HALVehiclePresentation::BurstStrength(*BurstConfig, Result.ImpactSummary.DesiredHorizontalDeltaSpeed));
 	Event.WorldPoint = HALVehiclePresentation::ResolveBurstPoint(*BurstConfig, WorldImpactPoint,
 		GetOwner()->GetActorLocation(), WorldDirection);
+	// The car that touched this one first, otherwise the car an attack such as a launched ball is attributed to.
+	for (const AActor* Candidate : { SourceActor, InstigatorActor })
+	{
+		if (!IsValid(Candidate) || Candidate == GetOwner()) { continue; }
+		const UHALVehiclePresentationComponent* Other = Candidate->FindComponentByClass<UHALVehiclePresentationComponent>();
+		FLinearColor Color;
+		if (!Other || !Other->GetIdentityColor(Color)) { continue; }
+		Event.ColorMode = HALVehiclePresentation::BurstColorMode(*BurstConfig, true, Candidate == SourceActor);
+		Event.SourceColor = Color.ToFColorSRGB();
+		break;
+	}
 	if (CVarImpactBurstLog.GetValueOnGameThread())
 	{
 		UE_LOG(LogTemp, Display, TEXT("HAL ImpactBurst: %s Publish Seq=%u Tier=%d Strength=%u Point=%s"),

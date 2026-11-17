@@ -58,7 +58,10 @@ public:
 	void ReceiveLaunchResult(uint32 Sequence, bool bAccepted, float ServerTimeSeconds);
 	/** Called once at the completed authority TieredV1 result boundary; no gameplay mutation.
 	 * The contact point is cosmetic: it is validated against the target and may be replaced by a fallback. */
-	void PublishAcceptedImpact(const FHALCombatHitResult& Result, const FVector& WorldDirection, const FVector& WorldImpactPoint);
+	void PublishAcceptedImpact(const FHALCombatHitResult& Result, const FVector& WorldDirection, const FVector& WorldImpactPoint,
+		const AActor* SourceActor = nullptr, const AActor* InstigatorActor = nullptr);
+	/** This car's cosmetic identity colour (its tire mark colour). False when the car has none configured. */
+	bool GetIdentityColor(FLinearColor& OutColor) const;
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALPresentationTestAccess;
@@ -88,7 +91,7 @@ private:
 	uint32 AllocateImpactSequence();
 	UFUNCTION(NetMulticast, Unreliable) void MulticastImpactBurst(FHALImpactBurstEvent Event);
 	void PublishImpactBurst(const FHALCombatHitResult& Result, const FVector& WorldDirection,
-		const FVector& WorldImpactPoint, uint32 Sequence);
+		const FVector& WorldImpactPoint, uint32 Sequence, const AActor* SourceActor, const AActor* InstigatorActor);
 	void ConsumeImpactBurst(const FHALImpactBurstEvent& Event);
 	/** World anchored and independent of the vehicle pose, so a teleport reset never freezes one. */
 	void UpdateImpactBursts(float DeltaTime);

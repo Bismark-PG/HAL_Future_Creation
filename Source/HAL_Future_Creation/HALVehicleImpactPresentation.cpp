@@ -121,7 +121,7 @@ uint32 UHALVehiclePresentationComponent::AllocateImpactSequence()
 }
 
 void UHALVehiclePresentationComponent::PublishAcceptedImpact(const FHALCombatHitResult& Result, const FVector& WorldDirection,
-	const FVector& WorldImpactPoint)
+	const FVector& WorldImpactPoint, const AActor* SourceActor, const AActor* InstigatorActor)
 {
 	check(IsInGameThread());
 	if (!IsValid(GetOwner()) || !GetOwner()->HasAuthority() || !bConfigured || !Config
@@ -134,7 +134,7 @@ void UHALVehiclePresentationComponent::PublishAcceptedImpact(const FHALCombatHit
 	if (!bRebound && !bBurst) { return; }
 	// One identity per accepted impact, shared by every cosmetic event it publishes.
 	const uint32 Sequence = AllocateImpactSequence();
-	if (bBurst) { PublishImpactBurst(Result, WorldDirection, WorldImpactPoint, Sequence); }
+	if (bBurst) { PublishImpactBurst(Result, WorldDirection, WorldImpactPoint, Sequence, SourceActor, InstigatorActor); }
 	if (!bRebound) { return; }
 	FHALImpactVisualEvent Event;
 	Event.Sequence = Sequence;

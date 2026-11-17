@@ -2,6 +2,7 @@
 #include "Misc/AutomationTest.h"
 #include "../HALVehiclePresentationTypes.h"
 #include "../HALImpactBurstSettings.h"
+#include "../HALVehiclePresentationConfig.h"
 #include <limits>
 
 namespace
@@ -30,6 +31,8 @@ bool FHALImpactBurstShapeTest::RunTest(const FString&)
 	Config = {}; Config.MaximumEventAgeSeconds = std::numeric_limits<float>::infinity();
 	TestFalse(TEXT("Finite event age required"), Config.Validate(Error));
 	Config = {}; Config.SeedParameter = NAME_None; TestFalse(TEXT("Material parameter names are required"), Config.Validate(Error));
+	Config = {}; Config.TierParameter = NAME_None; TestFalse(TEXT("Tier parameter name is required"), Config.Validate(Error));
+	Config = {}; Config.SourceColorParameter = NAME_None; TestFalse(TEXT("Car colour parameter names are required"), Config.Validate(Error));
 	Config = {}; Config.bEnabled = false; Config.LifetimeSeconds = -1;
 	TestTrue(TEXT("Disabled configuration is never rejected"), Config.Validate(Error));
 
@@ -49,6 +52,23 @@ bool FHALImpactBurstShapeTest::RunTest(const FString&)
 	TestEqual(TEXT("Heavy hits take the heavy colour"), BurstEdgeColor(Config, EHALImpactTier::Heavy), Config.HeavyColor);
 	TestEqual(TEXT("Medium hits take the medium colour"), BurstEdgeColor(Config, EHALImpactTier::Medium), Config.MediumColor);
 	TestEqual(TEXT("Light hits take the light colour"), BurstEdgeColor(Config, EHALImpactTier::Light), Config.LightColor);
+
+	FHALTireSkidConfig Skid;
+	FLinearColor Identity;
+	TestFalse(TEXT("A car without tire marks has no identity colour"), VehicleIdentityColor(Skid, Identity));
+	Skid.bEnabled = true;
+	TestFalse(TEXT("Marks that keep the Niagara default colour are not an identity"), VehicleIdentityColor(Skid, Identity));
+	Skid.ColorParameter = TEXT("User.MarkColor"); Skid.MarkColor = FLinearColor(.8f, .1f, .3f, .5f);
+	TestTrue(TEXT("A shown mark colour is the car identity"), VehicleIdentityColor(Skid, Identity));
+	TestEqual(TEXT("Mark opacity does not leak into the identity colour"), Identity, FLinearColor(.8f, .1f, .3f, 1.f));
+	Skid.MarkColor.R = std::numeric_limits<float>::quiet_NaN();
+	TestFalse(TEXT("A broken mark colour is not an identity"), VehicleIdentityColor(Skid, Identity));
+	TestEqual(TEXT("Car on car contact shows both cars"), int32(BurstColorMode(Config, true, true)), int32(BurstColorSourceAndTarget));
+	TestEqual(TEXT("An attributed hit shows only the car behind it"), int32(BurstColorMode(Config, true, false)), int32(BurstColorSource));
+	TestEqual(TEXT("A source without a colour stays plain"), int32(BurstColorMode(Config, false, true)), int32(BurstColorNone));
+	Config.bVehicleColors = false;
+	TestEqual(TEXT("Car colours can be switched off"), int32(BurstColorMode(Config, true, true)), int32(BurstColorNone));
+	Config = {};
 
 	const FVector Target(0, 0, 0), Push(1, 0, 0);
 	TestEqual(TEXT("Reported contact is lifted off the surface toward the source"),
@@ -89,6 +109,19 @@ bool FHALImpactBurstIdentityTest::RunTest(const FString&)
 	TestEqual(TEXT("The weakest hit uses the smallest sprite"), First.SizeCm, Config.MinimumSizeCm);
 	TestEqual(TEXT("The weakest hit uses the fewest spikes"), First.Spikes, Config.MinimumSpikes);
 	TestEqual(TEXT("Lifetime starts at the configured base"), First.Lifetime, Config.LifetimeSeconds);
+
+	TestEqual(TEXT("An event without a car stays plain"), int32(First.ColorMode), int32(BurstColorNone));
+
+	State = {}; Released.Reset();
+	FHALImpactBurstEvent Colored = BurstEvent(1);
+	Colored.SourceColor = FColor(255, 0, 0, 0); Colored.ColorMode = 9;
+	TestTrue(TEXT("Coloured hit accepted"), AcceptBurst(Config, Colored, 0, State, Released));
+	TestEqual(TEXT("An out of range colour mode is clamped"), int32(State.Pulses[0].ColorMode), int32(BurstColorSourceAndTarget));
+	TestEqual(TEXT("The source colour arrives opaque and linear"), State.Pulses[0].SourceColor, FLinearColor(1.f, 0.f, 0.f, 1.f));
+	State = {}; Config.bVehicleColors = false;
+	AcceptBurst(Config, Colored, 0, State, Released);
+	TestEqual(TEXT("A local opt-out ignores the replicated colour mode"), int32(State.Pulses[0].ColorMode), int32(BurstColorNone));
+	Config = {};
 
 	State = {}; Released.Reset();
 	TestTrue(TEXT("Strongest hit accepted"), AcceptBurst(Config, BurstEvent(1, 255), 0, State, Released));

@@ -33,8 +33,10 @@ bool FHALImpactBurstConfig::Validate(FString& Error) const
 		|| !FMath::IsFinite(SurfaceOffsetCm) || SurfaceOffsetCm < 0 || !FMath::IsFinite(VerticalOffsetCm) || VerticalOffsetCm < 0)
 	{ Error = TEXT("Placement distances must be finite and non-negative."); return false; }
 	return BurstParameter(AgeParameter, TEXT("Age"), Error) && BurstParameter(StrengthParameter, TEXT("Strength"), Error)
-		&& BurstParameter(SeedParameter, TEXT("Seed"), Error) && BurstParameter(SpikesParameter, TEXT("Spikes"), Error)
-		&& BurstParameter(FillColorParameter, TEXT("Fill color"), Error) && BurstParameter(EdgeColorParameter, TEXT("Edge color"), Error);
+		&& BurstParameter(SeedParameter, TEXT("Seed"), Error) && BurstParameter(SpikesParameter, TEXT("Spikes"), Error) && BurstParameter(TierParameter, TEXT("Tier"), Error)
+		&& BurstParameter(FillColorParameter, TEXT("Fill color"), Error) && BurstParameter(EdgeColorParameter, TEXT("Edge color"), Error)
+		&& BurstParameter(ColorModeParameter, TEXT("Color mode"), Error) && BurstParameter(SourceColorParameter, TEXT("Source color"), Error)
+		&& BurstParameter(TargetColorParameter, TEXT("Target color"), Error);
 }
 
 #if WITH_EDITOR

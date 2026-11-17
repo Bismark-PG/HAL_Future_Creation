@@ -46,6 +46,8 @@ public:
 	virtual bool CanReceiveSkillEffects() const override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 	const UHALSkillTestDummyConfig* GetTestConfig() const { return TestConfig; }
+	/** Deferred spawn only, before FinishSpawning: the config is read once while the actor is constructed. */
+	void SetTestConfigForSpawn(UHALSkillTestDummyConfig* InConfig) { TestConfig = InConfig; }
 protected:
 	virtual void InitializeAbilitySystem() override;
 	UPROPERTY(EditAnywhere, Replicated, Category="Skill Test") TObjectPtr<UHALSkillTestDummyConfig> TestConfig;
