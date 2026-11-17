@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-17 修正：持續甩尾約 5 秒後胎痕消失、只剩煙霧。資產已改並存檔，用戶實測後回報「修好了」。** 原因在素材而非 C++：`NS_VehicleTireSkid` 的 `TireSkid`（Ribbon）發射器 Emitter State 為 `Once`、Loop Duration 5 秒，而持續甩尾時 C++ 會沿用同一個 Niagara 組件，發射器跑完一輪即停發，已有胎痕在 4 秒粒子壽命內淡出；`Sparks`／`DriftSmoke` 為 `Infinite` 故繼續。舊 `NS_TireSkid` 的 Ribbon 發射器本來就是 `Infinite`。已經由編輯器連線把 `TireSkid` 的 Loop Behavior 改為 `Infinite`、重新編譯並存檔，回讀確認三個發射器皆為 `Infinite`；C++、DA 與其他素材未改。**未驗證**：本次沒有重新編譯 Target、沒有跑自動化測試；用戶的回報未附具體工況，不擴寫為逐車型／雙端驗收。
+
 **2026-11-17 胎痕改为每车有色喷漆痕迹（7 台车 DA 已启用新 `NS_VehicleTireSkid`、各配一种身份色），编辑器 Target 编译通过、全量 237/237 通过；PIE 实机画面、多车叠加观感与性能均未验收。** C++ 侧 `FHALTireSkidConfig` 新增 `ColorParameter`（Niagara LinearColor User 参数名，空＝沿用素材默认色）与 `MarkColor`（线性色，Alpha 缩放不透明度），`Validate` 检查参数存在与颜色合法，组件激活时推一次颜色；素材侧新增 `M_FX_TireMark_Ribbon`（Unlit Translucent，遮罩进 Opacity、颜色经 Particle Color 进 Emissive，一材质服务全部车）与 `T_TireMark_Spray_Worn_Mask`（`GenerateTireMarks.py` 的卡通 `Toon_Worn` 变体换成喷漆 `Spray_Worn`）；`Tools/TireMarks/BuildTireMarkAssets.py`、`EnableTireSkid.py` 两支幂等脚本重建材质并写 DA（只后轮出痕、`SurfaceNormalParameter=User.SurfaceNormal`、Car_05 后轮半径 47.5→55.2 cm 以免漂移侧倾时误判腾空）。为什么用 Unlit：胎痕颜色是车辆身份，阴影里和亮处必须读成同一种颜色。
 
 **刻意的边界**：前轮不出痕（四轮都冒在画面上读成 bug，不像漂移）；颜色是纯外观，不复制、不进权威逻辑；颜色只在组件激活时写一次，不逐帧写。重跑 `EnableTireSkid.py` 会把 DA 里手工改过的胎痕值覆盖回脚本值。
