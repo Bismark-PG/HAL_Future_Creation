@@ -1,4 +1,5 @@
 #include "HALSkillTestDummy.h"
+#include "HALSmokeScreenTypes.h"
 #include "HALAbilitySystemComponent.h"
 #include "VehicleHealthComponent.h"
 #include "Blueprint/WidgetTree.h"
@@ -23,7 +24,7 @@ void UHALSkillTestDummyWidget::NativeDestruct()
 void UHALSkillTestDummyWidget::Refresh() { ReceiveDummyView(GetDummyView()); }
 int32 UHALSkillTestDummyWidget::NativePaint(const FPaintArgs& A,const FGeometry& G,const FSlateRect& C,FSlateWindowElementList& E,int32 L,const FWidgetStyle& S,bool B) const
 {
-	const int32 Base=Super::NativePaint(A,G,C,E,L,S,B); if (!bNative) { return Base; } const auto V=GetDummyView();
+	const int32 Base=Super::NativePaint(A,G,C,E,L,S,B); if (!bNative||HALSmoke::IsConcealed(Dummy.Get())) { return Base; } const auto V=GetDummyView();
 	const FVector2D Size=G.GetLocalSize(); const auto* Brush=FCoreStyle::Get().GetBrush("WhiteBrush");
 	const auto Rect=[&](FVector2D At,FVector2D Ext,FLinearColor Color,int32 Layer)
 	{ FSlateDrawElement::MakeBox(E,Layer,G.ToPaintGeometry(Ext,FSlateLayoutTransform(At)),Brush,ESlateDrawEffect::None,Color); };

@@ -2,6 +2,9 @@
 
 namespace HALGameplayTags
 {
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_SmokeScreen,"Ability.Vehicle.SmokeScreen","Car08 upward exhaust smoke primary.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_SmokeScreen,"Cooldown.Vehicle.SmokeScreen","Smoke cooldown measured from activation.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Vision_SmokeObscured,"State.Vision.SmokeObscured","Authority smoke source contribution; no driving, damage or impact mutation.");
 	UE_DEFINE_GAMEPLAY_TAG(Ability_SideShift,"Ability.SideShift");
 	UE_DEFINE_GAMEPLAY_TAG(State_SideShift,"State.Movement.SideShift");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pursuit,"Ability.Vehicle.PolicePursuit","Car06 siren pursuit.");

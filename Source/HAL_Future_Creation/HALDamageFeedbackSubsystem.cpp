@@ -1,4 +1,5 @@
 #include "HALDamageFeedbackSubsystem.h"
+#include "HALSmokeScreenTypes.h"
 #include "HALVehicleStatusFXSettings.h"
 #include "HALVehiclePresentationComponent.h"
 #include "HALVehicleFXTargets.h"
@@ -111,7 +112,7 @@ void UHALDamageFeedbackSubsystem::UpdateRendering()
 		if(!A||A->IsActorBeingDestroyed()||A->IsHidden()||(V&&!V->IsConfigurationValid())||Now>=S.Playback.RetireAt(Config->Style))
 		{ RestoreMeshes(I); S={}; continue; }
 		const auto W=S.Playback.Weights(Config->Style,Now);
-		if(W.GetMax()>KINDA_SMALL_NUMBER) { RefreshTargets(I); Active|=!S.Meshes.IsEmpty(); }
+		if(W.GetMax()>KINDA_SMALL_NUMBER&&!HALSmoke::IsConcealed(A)) { RefreshTargets(I); Active|=!S.Meshes.IsEmpty(); }
 		else { RestoreMeshes(I); }
 	}
 	if(!Active) { if(Volume) { Volume->bEnabled=false; } return; }
