@@ -1,4 +1,5 @@
 #include "HALPursuitHUDWidget.h"
+#include "HALSmokeScreenTypes.h"
 #include "HALPolicePursuit.h"
 #include "HALPursuitTargetComponent.h"
 #include "TestVehiclePawn.h"
@@ -32,7 +33,7 @@ TArray<FHALPursuitView> UHALPursuitHUDWidget::GatherViews(UWorld* W)
 		if(!V&&(S.bArrested||S.bProtected)) { V=&Out.AddDefaulted_GetRef(); V->Target=*It; V->Style=S.FX; }
 		if(V) { V->bArrested=S.bArrested; V->bProtected=S.bProtected; }
 	}
-	Out.RemoveAll([](const FHALPursuitView& V){const auto* H=IsValid(V.Target)?V.Target->FindComponentByClass<UVehicleHealthComponent>():nullptr; return !H||!H->IsHealthReady()||H->GetCurrentHP()<=0;});
+	Out.RemoveAll([](const FHALPursuitView& V){const auto* H=IsValid(V.Target)?V.Target->FindComponentByClass<UVehicleHealthComponent>():nullptr; return !H||!H->IsHealthReady()||H->GetCurrentHP()<=0||HALSmoke::IsConcealed(V.Target);});
 	return Out;
 }
 TArray<FHALPursuitView> UHALPursuitHUDWidget::GetPursuitViews() const { return GatherViews(GetWorld()); }

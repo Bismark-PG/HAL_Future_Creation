@@ -1,0 +1,269 @@
+{
+  "Date": "2026-11-17",
+  "TimeZone": "Asia/Tokyo",
+  "Task": "Car08 smoke screen skill and first FX",
+  "Branch": "main",
+  "BaseCommit": "8a97ed1bbde42f1f69bd621f2e42631d21cc3b9c",
+  "Engine": "5.8.2-56702186",
+  "State": "Code, new assets, builds and programmatic checks complete; manual GA/Definition wiring, outlet calibration and team visual acceptance pending",
+  "Specification": "Docs/Combat/Car08_Smoke_Screen_CN_v0.1.md",
+  "Builds": [
+    {
+      "Result": "Succeeded",
+      "Run": "Editor_R11",
+      "Target": "HAL_Future_CreationEditor"
+    },
+    {
+      "Result": "Succeeded",
+      "Run": "Game_R6",
+      "Target": "HAL_Future_Creation"
+    }
+  ],
+  "FinalBuildDelta": "Editor_R10/Game_R5 contain final runtime. R11/R6 only delay the network proof screenshot until veil strength exceeds 0.65; assertions/runtime unchanged.",
+  "Reports": [
+    {
+      "Run": "FullNative_R2",
+      "Succeeded": 241,
+      "SucceededWithWarnings": 1,
+      "Failed": 0,
+      "NotRun": 0,
+      "Count": 242,
+      "Report": "Saved/Car08Smoke/20261117/FullNative_R2/index.json"
+    },
+    {
+      "Run": "Render_R5",
+      "Succeeded": 1,
+      "SucceededWithWarnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "Count": 1,
+      "Report": "Saved/Car08Smoke/20261117/Render_R5/index.json"
+    },
+    {
+      "Run": "Low_R2_Host",
+      "Succeeded": 1,
+      "SucceededWithWarnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "Count": 1,
+      "Report": "Saved/Car08Smoke/20261117/Low_R2_Host/index.json"
+    },
+    {
+      "Run": "Low_R2_Client",
+      "Succeeded": 1,
+      "SucceededWithWarnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "Count": 1,
+      "Report": "Saved/Car08Smoke/20261117/Low_R2_Client/index.json"
+    },
+    {
+      "Run": "Lag80_R1_Host",
+      "Succeeded": 1,
+      "SucceededWithWarnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "Count": 1,
+      "Report": "Saved/Car08Smoke/20261117/Lag80_R1_Host/index.json"
+    },
+    {
+      "Run": "Lag80_R1_Client",
+      "Succeeded": 1,
+      "SucceededWithWarnings": 0,
+      "Failed": 0,
+      "NotRun": 0,
+      "Count": 1,
+      "Report": "Saved/Car08Smoke/20261117/Lag80_R1_Client/index.json"
+    }
+  ],
+  "Rendering": {
+    "HUDChangedPixels": 0,
+    "Screenshots": [
+      "Coverage.bmp",
+      "Veil.bmp",
+      "Low_R2_Host.png",
+      "Low_R2_Client.png",
+      "Low_R2_Immune_Host.png",
+      "Low_R2_Immune_Client.png",
+      "Lag80_R1_Host.png",
+      "Lag80_R1_Client.png",
+      "Immune_Host.png",
+      "Immune_Client.png"
+    ],
+    "RHI": "D3D12 SM6 and real Slate/UI material readback",
+    "VisualInspection": "Inspected real owner-immunity and mature client-veil screenshots; world-projected smoke and unchanged foreground debug HUD visible.",
+    "AnimatedPixels": 14020,
+    "Method": "Paired contrasting backgrounds measured in decoded linear space; opaque center is background-independent; local veil removes at least 65 percent contrast outside HUD",
+    "BackgroundContrastAttenuatedPixels": 59392
+  },
+  "Network": {
+    "ProductionSavedAssetsModified": false,
+    "Fixture": "Spawned Pawn Definition copies receive native smoke GA; after both genuine requests server swaps the two cars into each other smoke. This is an overlap/replication test, not continuous driving validation.",
+    "LatencyRun": "Lag80_R1",
+    "InjectedHostOutboundLagMs": 80,
+    "MeasuredRTT": false,
+    "Assertions": [
+      "Owner and observer replicated smoke samples",
+      "Own-source screen immunity",
+      "Other-source authority vision Tag",
+      "Actual Niagara particles and input-transparent local view",
+      "Continued puffs after emission stops",
+      "No HP damage",
+      "Vision Tag, view and actor cleanup; cooldown expiry"
+    ],
+    "LowRun": "Low_R2",
+    "Method": "Two real Editor -game Listen processes, actual Car08 BP, saved smoke recipe, D3D12 offscreen",
+    "Map": "/Game/Maps/MVPB_NetTest"
+  },
+  "NativeCoverage": [
+    "Independent births/expiry and common fading strength",
+    "Finite tuning, bounded capacity and root outlet validation",
+    "Shared radius, height, clipping and fast-crossing geometry",
+    "GAS Primary request and duplicate/cooldown rejection",
+    "Own immunity and multiple independent source handles",
+    "Walls and an intervening floor block effects",
+    "Air/Stun pause while old smoke remains",
+    "Elimination and pre-BeginPlay destruction release source GEs",
+    "Retuned maximum retains configured fade duration",
+    "Saved Niagara parameter and UI-domain material contracts"
+  ],
+  "Preservation": {
+    "ExistingVehicleDataAssetEditedByAgent": false,
+    "MovementHistoryProtocolChanged": false,
+    "NewSourceFiles": 13,
+    "BlueprintEditedByAgent": false,
+    "MapEditedByAgent": false,
+    "Committed": false,
+    "OriginalSourceFiles": 447,
+    "Pushed": false,
+    "OriginalSourceFilesChanged": 7,
+    "ConfigFiles": 4,
+    "Changed": 0,
+    "Compared": 1356,
+    "NewAssets": 5,
+    "OriginalAssets": 1351,
+    "ProjectFiles": 1
+  },
+  "KnownWarning": "FullNative_R2 has one pre-existing warning in VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar; all 242 states Success.",
+  "Iterations": [
+    "Editor_R1 replication macro/TObjectPtr/parameter-store API errors fixed in R2",
+    "Generate_R1 failed UI VertexColor output binding and server-only commandlet filtered Niagara scripts; no resources saved; fixed in Generate_R2",
+    "Early native fixture backdated below zero because UWorld clamps large deltas; fixture now advances positive game time",
+    "Native_R3 exposed source destruction before BeginPlay bypassing EndPlay; idempotent Destroyed and EndPlay cleanup fixed it",
+    "Early render checks measured encoded brightness/contrast; final test uses actual background occlusion and decoded linear contrast",
+    "Low_R1 host exited after its earlier cooldown before client finished; fixture now waits until the latest cast cooldown plus margin. Low_R2 and Lag80_R1 both ends pass"
+  ],
+  "Pending": [
+    "Team create GA_Car08_SmokeScreen and assign Car08 Primary",
+    "Calibrate Rules.OutletOffset at the actual upward exhaust tip with hal.SmokeDebug 2, then return to 0",
+    "Designer world-target widgets wire ShouldHideWorldTarget; ordinary HUD stays above the -1000 smoke layer",
+    "Art/feel and continuously driven spray under normal camera, acceleration and sharp turns",
+    "Complex thin/moving walls, slopes/corners and visual clipping quality",
+    "Four physical wired PCs, combined FX performance, actual loss/jitter, full Entry/room/travel loop and late join",
+    "Cook and packaged multiplayer; this machine validated 5.8.2, recent other-device work used 5.8.3"
+  ],
+  "SourceHashes": [
+    {
+      "Path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h",
+      "SHA256": "CC04E0C06AD4CD9F83EF412A0A3815274729D4334BEE767AE767C38420489A79"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALDamageFeedbackSubsystem.cpp",
+      "SHA256": "7429F20DA99FD0E203EB908FB977F9FC0502718281B7433701CED32978295E32"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALGameplayTags.cpp",
+      "SHA256": "9B17ABB5C84CFD7AD59C64999D45464A76EE6DE40DD1A2C8177559615A7DBEDE"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALGameplayTags.h",
+      "SHA256": "0DB2E70E4F8715EC608E50C5062517BBE4A44B8DAD1F24A3C26A4B1332F33994"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALPracticeRoomWidget.cpp",
+      "SHA256": "D26E42E10CB4A4C529E9EA901D96A3FF6D2BA804BF3F05CFD1334712C74E2B6F"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALPursuitHUDWidget.cpp",
+      "SHA256": "E4066AD13EAEEC8EF00F8019CCB8F2A96F950AEBC1A99910E7880786D2354486"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALSkillTestDummyWidget.cpp",
+      "SHA256": "8AE83A2E5273D29A74D3E8D0CD2E328F867A81431F0A86B08C7986504B21F119"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALSmokeScreen.cpp",
+      "SHA256": "FA00BD7D41AB23C8B001F25632EAD2A1E3D93EE1B1E7F434F50F5B5E69715A4D"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALSmokeScreen.h",
+      "SHA256": "B78702ABE2B21DC10E9B613DF47C461AB0819642087FBD299250FC30A06E0356"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALSmokeScreenAbility.cpp",
+      "SHA256": "57E77E283C3CEB1E7F4AC3E29E893627B666344010CD7B4E6DC00D8D86DC59B8"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALSmokeScreenAbility.h",
+      "SHA256": "8EDBD436E271407B25561ED6E284F890888EB897FC47482238DE720078472E6B"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALSmokeScreenTypes.cpp",
+      "SHA256": "2981BB09179C41645C3D53AD37D2D9D90240C3D4E953488D055A794EB5556CBB"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALSmokeScreenTypes.h",
+      "SHA256": "B540148234D39746FD965D72CD336A55F77846DEFD947B9AAB7BE709F707505B"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALSmokeScreenView.cpp",
+      "SHA256": "F491F560137F2D93E184CDD192C504398F96C509C75DAD2A8ADE0DF1567B1CEF"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALSmokeScreenView.h",
+      "SHA256": "DDAA6868A5634F9B4B40A5439BCEB85BFC79E803920E506D2A68DA32F633D0B7"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALSmokeScreenNetworkTests.cpp",
+      "SHA256": "CA212A055468A0ED2840F11B5FD17F3CF1B43857D0283BC543F759D987D4D992"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALSmokeScreenRenderTests.cpp",
+      "SHA256": "8FA0F3211E04FCB881E67EC91F0E89F98C1E0CE0E2E021ACF63DEFCB345814B7"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/Tests/HALSmokeScreenTests.cpp",
+      "SHA256": "F32FE27583E31D5F8F2F7B83473CCF419434D22B4C70A92626726BACE9B54BB9"
+    },
+    {
+      "Path": "Source/HAL_Future_CreationEditor/Private/HALBuildSmokeScreenFXCommandlet.cpp",
+      "SHA256": "2FCAD5D861575D428B35BBD42593A9BF1363AAE15176CEA348F3A177FBE58AB3"
+    },
+    {
+      "Path": "Source/HAL_Future_CreationEditor/Public/HALBuildSmokeScreenFXCommandlet.h",
+      "SHA256": "492982AA54FDC91442DD9F00A955190EE1FD0A876D24370B34D5EF84DB8A4643"
+    }
+  ],
+  "NewAssetHashes": [
+    {
+      "Path": "Content/Assets/FX/SmokeScreen/M_SmokeScreen_CloudCoverage.uasset",
+      "SHA256": "EE3717D231776B8A5434D90B1366578FE4C3EB505208AA4AFA3108035A9CA273"
+    },
+    {
+      "Path": "Content/Assets/FX/SmokeScreen/M_SmokeScreen_LocalVeil.uasset",
+      "SHA256": "20AF3113C7622738529E4D912C86DB72F2D377BDE585816245C465E56FD62089"
+    },
+    {
+      "Path": "Content/Assets/FX/SmokeScreen/M_SmokeScreen_ToonPuff.uasset",
+      "SHA256": "A281385EE23AAEF06EF64E9FA3BC1C4A78F21062E990EAE907C062E016BD2002"
+    },
+    {
+      "Path": "Content/Assets/FX/SmokeScreen/NS_SmokeScreen_UpwardJet.uasset",
+      "SHA256": "C4BBEB0A81324556E85F4DC0CBDC7233D7B2DA8A7C84DD6621B28022C43FF52C"
+    },
+    {
+      "Path": "Content/Data/Abilities/DA_Ability_Car08_SmokeScreen.uasset",
+      "SHA256": "C2DE1F4B5B7A5F43A8A84C091A9AB205616C8F4E2C46783AB29A1E62E6EE31D1"
+    }
+  ]
+}
