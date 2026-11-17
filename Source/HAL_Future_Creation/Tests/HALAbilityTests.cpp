@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
 
 #include "Misc/AutomationTest.h"
+#include "HALVehicleAbilityTestSupport.h"
 #include "../HALAbilitySystemComponent.h"
 #include "../HALImpactImmunityEffects.h"
 #include "../HALImpactAttributeSet.h"
@@ -62,6 +63,7 @@ namespace
 			FActorSpawnParameters Params;
 			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			auto* Pawn = World->SpawnActor<ATestVehiclePawn>(Class, FVector(0, 0, 1000), FRotator::ZeroRotator, Params);
+			FHALVehicleAbilityTestAccess::UseLegacyAbilities(Pawn);
 			Pawn->PreInitializeComponents();
 			Pawn->InitializeComponents();
 			Pawn->PostInitializeComponents();

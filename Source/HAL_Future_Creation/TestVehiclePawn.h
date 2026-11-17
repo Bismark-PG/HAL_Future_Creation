@@ -17,6 +17,7 @@ class UHALShockedPresentationComponent;
 class UHALBattleTopComponent;
 class UHALBullChargeComponent;
 class UHALSideShiftComponent;
+class UHALHookComponent;
 class UHALPursuitTargetComponent;
 class AHALPlayerState;
 class UArrowComponent;
@@ -69,6 +70,8 @@ public:
 	/** Immutable per-Avatar snapshot; not read back from a mutable source DA during binding. */
 	const FHALVehicleAbilityConfig& GetVehicleAbilityConfig() const { return RuntimeAbilities; }
 	bool IsConfigurationValid() const { return bConfigurationValid && !bLifecycleRetired; }
+	/** GT input intent before control gates; the hook consumes only direction edges from this same pipeline. */
+	FVehicleInputCmd GetVehicleInputIntent() const { return CurrentInputCommand; }
 	/** Receiving an effect is independent from owning input or being allowed to cast a skill. */
 	virtual bool CanReceiveSkillEffects() const;
 	bool GetLifecycleSeed(FHALVehicleLifecycleSeed& Out) const;
@@ -147,6 +150,8 @@ protected:
 	TObjectPtr<UHALBullChargeComponent> BullCharge;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vehicle", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UHALSideShiftComponent> SideShift;
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Vehicle",meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UHALHookComponent> HookThrow;
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Vehicle|Components")
 	TObjectPtr<UHALPursuitTargetComponent> PursuitTarget;
 

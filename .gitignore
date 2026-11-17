@@ -353,6 +353,9 @@ Plugins/Monolith/
 !Docs/Configuration/Skill_Dummy_Impact_Reproduction_20261115.json
 !Docs/Configuration/Skill_Dummy_Impact_Wake_Fix_Verification_20261115.json
 
+# Hook throw skill design and team configuration handoff.
+!Docs/Combat/Hook_Throw_Ability_CN_v0.1.md
+
 # Car07 charge-based physical side shift and its handoff/proofs.
 !Docs/Combat/Car07_Extreme_LaneChange_CN_v0.1.md
 !Docs/Combat/Car07_SideShift_Verification_20261116.json

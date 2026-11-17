@@ -44,6 +44,7 @@ namespace
 			if (!Class) { return nullptr; }
 			FActorSpawnParameters Params; Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			auto* Pawn = World->SpawnActor<ATestVehiclePawn>(Class, FVector(0,0,1000), FRotator::ZeroRotator, Params);
+			FHALVehicleAbilityTestAccess::UseLegacyAbilities(Pawn);
 			Pawn->PreInitializeComponents(); Pawn->InitializeComponents(); Pawn->PostInitializeComponents(); return Pawn;
 		}
 		~FMovementAbilityWorld() { World->DestroyWorld(false); GEngine->DestroyWorldContext(World); }

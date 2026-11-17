@@ -1,4 +1,5 @@
 #include "HALImpactReceiverComponent.h"
+#include "HALHookComponent.h"
 #include "VehicleRecoveryComponent.h"
 #include "HALVehiclePresentationComponent.h"
 
@@ -350,6 +351,8 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 		Result.RuleDeltaVelocity = PhysicsAction.DeltaVelocity;
 		Result.RuleMinimumUpwardSpeed = PhysicsAction.bMinimumUpwardSpeed ? PhysicsAction.MinimumUpwardSpeed : 0;
 		Result.bImpactApplied = true;
+		if(PhysicsAction.bMinimumUpwardSpeed && PhysicsAction.MinimumUpwardSpeed>KINDA_SMALL_NUMBER)
+		{ if(auto* Hook=GetOwner()->FindComponentByClass<UHALHookComponent>()) { Hook->NotifyExternalLaunch(); } }
 		Result.ImpactOutcome = EHALImpactOutcome::Applied;
 		AcceptedDirection = Direction;
 		if (auto* Recovery = GetOwner()->FindComponentByClass<UVehicleRecoveryComponent>())

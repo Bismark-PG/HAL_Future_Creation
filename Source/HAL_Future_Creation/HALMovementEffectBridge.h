@@ -32,6 +32,8 @@ public:
 	void ReleaseSideShiftDrift(FGuid Activation);
 	/** Receiver-selected Drag flow; published only while GAS grants State.Movement.Drag. */
 	void SetDragDrive(const FHALGravityDrive& Field);
+	void SetHookMotion(const FHALHookMotion& Motion);
+	void EndHookMotion(FGuid Activation);
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 private:
@@ -55,6 +57,7 @@ private:
 	FHALOverdriveMotion Overdrive;
 	FHALSideShiftMotion SideShift;
 	FHALGravityDrive DragDrive;
+	FHALHookMotion HookMotion;
 	FHALMovementSnapshot LastPublished;
 	int32 BoundPlayerId = INDEX_NONE;
 	bool bDirty = false;

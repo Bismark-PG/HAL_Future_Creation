@@ -7,6 +7,7 @@
 #include "GameFramework/Pawn.h"
 #include "HALAbilitySystemComponent.h"
 #include "VehicleRecoveryComponent.h"
+#include "HALHookComponent.h"
 #include "VehicleKnockbackSettings.h"
 #include "VehicleConfigurationTypes.h"
 #include "VehicleConfigurationApplication.h"
@@ -133,6 +134,7 @@ bool UBallControlComponent::LaunchSkillHeldBall(float LaunchSpeed)
 
 bool UBallControlComponent::LaunchHeldBallWithVelocity(const FVector& InitialVelocity)
 {
+	if(UHALHookComponent::BlocksActionsOn(GetOwner())) { return false; }
 	AActor* Owner = GetOwner();
 	if (UHALAbilitySystemComponent::IsActorStunned(Owner)) { return false; }
 	if (const auto* Recovery = Owner ? Owner->FindComponentByClass<UVehicleRecoveryComponent>() : nullptr;

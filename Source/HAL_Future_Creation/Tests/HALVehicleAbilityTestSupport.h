@@ -24,5 +24,13 @@ struct FHALVehicleAbilityTestAccess
 		D->SetFlags(RF_Transient); D->ClearFlags(RF_Public|RF_Standalone); D->Abilities=Config(Ability); UseDefinition(Pawn,D); return D;
 	}
 	static void RuntimeConfig(ATestVehiclePawn* Pawn,const FHALVehicleAbilityConfig& C) { Pawn->RuntimeAbilities=C; }
+	/** Old GAS fixtures explicitly exercise the PlayerState fallback, regardless of the saved car's current production skill. */
+	static void UseLegacyAbilities(ATestVehiclePawn* Pawn)
+	{
+		if(!Pawn||!Pawn->GetVehicleDefinition()) { return; }
+		auto* D=DuplicateObject<UVehicleDefinition>(Pawn->GetVehicleDefinition(),GetTransientPackage());
+		D->SetFlags(RF_Transient); D->ClearFlags(RF_Public|RF_Standalone); D->Abilities={};
+		UseDefinition(Pawn,D); RuntimeConfig(Pawn,D->Abilities);
+	}
 };
 #endif

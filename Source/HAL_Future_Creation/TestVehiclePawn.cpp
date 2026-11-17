@@ -13,6 +13,7 @@
 #include "HALBattleTopComponent.h"
 #include "HALBullChargeComponent.h"
 #include "HALSideShiftComponent.h"
+#include "HALHookComponent.h"
 #include "HALPursuitTargetComponent.h"
 #include "HALMovementEffectBridge.h"
 #include "HALMovementAreaReceiver.h"
@@ -119,6 +120,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	BattleTop = CreateDefaultSubobject<UHALBattleTopComponent>(TEXT("BattleTop"));
 	BullCharge = CreateDefaultSubobject<UHALBullChargeComponent>(TEXT("BullCharge"));
 	SideShift = CreateDefaultSubobject<UHALSideShiftComponent>(TEXT("SideShift"));
+	HookThrow = CreateDefaultSubobject<UHALHookComponent>(TEXT("HookThrow"));
 	PursuitTarget = CreateDefaultSubobject<UHALPursuitTargetComponent>(TEXT("PursuitTarget"));
 	MovementAreaReceiver = CreateDefaultSubobject<UHALMovementAreaReceiver>(TEXT("MovementAreaReceiver"));
 
@@ -330,6 +332,7 @@ bool ATestVehiclePawn::CanReceiveSkillEffects() const
 
 void ATestVehiclePawn::UninitializeAbilitySystem()
 {
+	HookThrow->ClearForOwnerExit();
 	DamageFeedback->ClearPresentation();
 	ResetLocalInputReadiness();
 	if (HasAuthority()) { BattleTop->Stop(); }
@@ -602,6 +605,7 @@ void ATestVehiclePawn::PushInputCommand()
 {
 	if (!HALGameFlow::Permissions(GetWorld(),this).bDrive) { CurrentInputCommand.Reset(); }
 	CurrentInputCommand.Sanitize();
+	HookThrow->ObserveSteering(CurrentInputCommand.Steering);
 	SideShift->ObserveHandbrake(CurrentInputCommand.bHandbrake);
 	if ((HasAuthority() || bNetworkPhysicsHistoryActive) && ArcadeMovement)
 	{
@@ -810,6 +814,7 @@ void ATestVehiclePawn::OnHandbrakeCompleted(const FInputActionValue& Value)
 
 void ATestVehiclePawn::OnLaunchStarted(const FInputActionValue& Value)
 {
+	if (HookThrow->BlocksActions()) { return; }
 	if (UHALAbilitySystemComponent::IsActorStunned(this)) { return; }
 	if (VehicleRecovery && VehicleRecovery->IsExecuting()) { return; }
 	CurrentInputCommand.bLaunch = true;
@@ -889,6 +894,7 @@ void ATestVehiclePawn::OnPrimarySkillCompleted(const FInputActionValue& Value)
 
 void ATestVehiclePawn::SetSelfRightHeld(bool bHeld)
 {
+	if (HookThrow->BlocksActions()) { return; }
 	if (!IsLocallyControlled() || !Controller || !bConfigurationValid) { return; }
 	CurrentInputCommand.bSelfRight = bHeld; PushInputCommand();
 	if (!HasAuthority() && !bNetworkPhysicsHistoryActive) { SendInputSnapshot(); }

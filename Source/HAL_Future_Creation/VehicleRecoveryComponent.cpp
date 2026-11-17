@@ -1,4 +1,5 @@
 #include "VehicleRecoveryComponent.h"
+#include "HALHookComponent.h"
 #include "HALGameFlowPermissions.h"
 #include "HALAbilitySystemComponent.h"
 #include "ArcadeVehicleMovementComponent.h"
@@ -65,7 +66,7 @@ void UVehicleRecoveryComponent::LogTransition(EVehicleRecoveryPhase Before, FNam
 
 bool UVehicleRecoveryComponent::Start(const FVehicleStabilityObservation& Sample)
 {
-	if (UHALAbilitySystemComponent::IsActorStunned(GetOwner())) { return false; }
+	if (UHALAbilitySystemComponent::IsActorStunned(GetOwner()) || UHALHookComponent::BlocksActionsOn(GetOwner())) { return false; }
 	auto* Movement = GetOwner()->FindComponentByClass<UArcadeVehicleMovementComponent>();
 	FVehicleRecoveryPhysicsState Command;
 	Command.Sequence = ++NextSequence;
@@ -132,7 +133,7 @@ void UVehicleRecoveryComponent::UpdateRecovery()
 	const auto* Pawn = Cast<APawn>(GetOwner());
 	const auto* Health = GetOwner()->FindComponentByClass<UVehicleHealthComponent>();
 	const bool bPermitted = !bOwnerExiting && Pawn && Pawn->GetController() && Pawn->GetController()->GetPawn() == Pawn
-		&& !UHALAbilitySystemComponent::IsActorStunned(GetOwner())
+		&& !UHALAbilitySystemComponent::IsActorStunned(GetOwner()) && !UHALHookComponent::BlocksActionsOn(GetOwner())
 		&& HALGameFlow::Permissions(GetWorld(),Pawn).bRecovery
 		&& Health && Health->IsHealthReady() && Health->GetCurrentHP() > 0 && Sample.bValid && Now-LastPhysicsTime <= .25;
 	Status.bDrivingAllowed = Sample.bDrivingAllowed; Status.bNearGround = Sample.bNearGround;
