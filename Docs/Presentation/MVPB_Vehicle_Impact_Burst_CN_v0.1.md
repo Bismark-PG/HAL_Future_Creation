@@ -92,6 +92,24 @@ C++ 把 `EHALImpactTier` 的列舉值（1／2／3）寫進材質參數 `FX_Tier`
 - **兩車互撞會有兩個爆點**（兩台車各是對方的被撞方），位置幾乎重合，兩個都是同一組雙色；重疊後的實機觀感尚未驗收。
 - 純外觀，不參與任何玩法判定。
 
+### 車對車火花粒子（2026-11-17）
+
+兩台車直接相撞時，從接觸點噴出幾顆火花粒子。沿用甩尾胎痕的那種火花（`NS_VehicleTireSkid` 的 `Sparks` 發射器：橘色、沿速度方向拉長的條狀、`M_SparkAdditive`、受重力與阻力），但**單顆更大、數量更少**，數量跟著撞擊力道走。
+
+- **資產**：`/Game/Assets/FX/NS_VehicleImpactSparks`，由 `NS_VehicleTireSkid` 複製後修改，原系統未動。與原版的差別：
+  - 只留 `Sparks` 發射器（移除 `TireSkid` 胎痕帶與 `DriftSmoke`）。
+  - `SpawnRate`（每秒 50 顆、持續發射）換成 `SpawnBurst_Instantaneous`，數量綁定 `User.SparkCount`；Emitter State 的 Loop Behavior 改為 `Once`。
+  - 單顆尺寸由 1×4～1×15 cm 放大為 **5×24～9×48 cm**。
+  - 噴射方向由車尾窄錐（軸 -1,0,0.25、20°）改為**朝上的寬錐（軸 0,0,1、150°）**，向四周散開；移除繼承車速的第二個 `AddVelocity`。
+  - 移除胎痕用的七個 User 參數，只留 `SparkCount`。
+- **只有車對車才有**：來源 Actor 是另一台車（含對手車／技能木樁）才出火花；球、機關、牆壁沒有。與車輛代表色無關。
+- **數量**：權威端以強度 0..1 在 `MinimumSparks`(2) ～ `MaximumSparks`(6) 之間取整數，放進 `FHALImpactBurstEvent::Sparks`（多 1 個位元組）。強度與爆點尺寸同源，接近「三檔＋少量變化」。客戶端收到後再以自己的 `MaximumSparks` 夾限。
+- **兩車互撞時兩台車各發一個事件**，所以畫面上是兩組火花疊在同一個接觸點附近；預設數量已因此壓低。
+- **生成方式**：客戶端在爆點開始時於同一個世界座標 `SpawnSystemAtLocation`，使用 Niagara 物件池（`AutoRelease`），一次性爆發播完自行回收；沒有新增 Tick。系統在 `BeginPlay` 與爆點材質一起解析一次，撞擊當下不同步載入。
+- **設定**：Project Settings → Game → Vehicle Impact Burst FX → Sparks（`bSparks`、`SparkSystem`、`MinimumSparks`、`MaximumSparks`、`SparkCountParameter`）。`SparkSystem` 的路徑寫在 `Config/DefaultGame.ini`，清空即關閉火花；Cook 時會連同爆點材質一起收進根集合。
+- **調造型**：直接改 `NS_VehicleImpactSparks`（尺寸在 `InitializeParticle` 的 Sprite Size Min／Max，速度與散開角度在 `AddVelocity`）。
+- 純外觀，不參與任何玩法判定。
+
 形狀仍由 `FX_Seed` 決定，**所有客戶端對同一次撞擊畫出一樣的碎片**。
 
 | 參數 | 預設 | 作用 |

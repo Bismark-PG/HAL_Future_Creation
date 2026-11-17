@@ -7,6 +7,10 @@
 #include "Materials/MaterialInterface.h"
 #include "Engine/World.h"
 #include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 
 namespace
 {
@@ -54,6 +58,13 @@ bool HALVehiclePresentation::VehicleIdentityColor(const FHALTireSkidConfig& Tire
 		|| !FMath::IsFinite(Mark.B) || Mark.GetMin() < 0) { return false; }
 	OutColor = FLinearColor(Mark.R, Mark.G, Mark.B, 1.f);
 	return true;
+}
+
+uint8 HALVehiclePresentation::BurstSparkCount(const FHALImpactBurstConfig& Config, float Strength, bool bDirectVehicleContact)
+{
+	if (!Config.bSparks || !bDirectVehicleContact || !FMath::IsFinite(Strength)) { return 0; }
+	const float Count = FMath::Lerp(float(Config.MinimumSparks), float(Config.MaximumSparks), FMath::Clamp(Strength, 0.f, 1.f));
+	return uint8(FMath::Clamp(FMath::RoundToInt(Count), 0, 64));
 }
 
 uint8 HALVehiclePresentation::BurstColorMode(const FHALImpactBurstConfig& Config, bool bSourceHasColor, bool bDirectVehicleContact)
@@ -154,6 +165,7 @@ void UHALVehiclePresentationComponent::ResolveBurstMaterial()
 {
 	bBurstReady = false;
 	BurstMaterial = nullptr;
+	BurstSparkSystem = nullptr;
 	const FHALImpactBurstConfig& Settings = GetDefault<UHALImpactBurstSettings>()->Burst;
 	FString Error;
 	if (!Settings.bEnabled) { return; }
@@ -164,7 +176,15 @@ void UHALVehiclePresentationComponent::ResolveBurstMaterial()
 	}
 	// Authority only needs the configuration to publish; the sprite material is a client side cost.
 	bBurstReady = true;
-	if (GetNetMode() == NM_DedicatedServer || Settings.Material.IsNull()) { return; }
+	if (GetNetMode() == NM_DedicatedServer) { return; }
+	// Sparks are independent of the sprite: they still fly when the burst material is cleared.
+	if (Settings.bSparks && !Settings.SparkSystem.IsNull())
+	{
+		BurstSparkSystem = Settings.SparkSystem.LoadSynchronous();
+		if (!BurstSparkSystem)
+		{ UE_LOG(LogTemp, Warning, TEXT("HAL ImpactBurst: spark system %s could not be loaded."), *Settings.SparkSystem.ToString()); }
+	}
+	if (Settings.Material.IsNull()) { return; }
 	// Resolved once outside the hit path. A missing material leaves the path live but silent.
 	BurstMaterial = Settings.Material.LoadSynchronous();
 	if (!BurstMaterial)
@@ -244,6 +264,20 @@ void UHALVehiclePresentationComponent::ApplyBurstSlot(const FHALImpactBurstConfi
 	Sprite->SetVisibility(true);
 }
 
+void UHALVehiclePresentationComponent::SpawnBurstSparks(const FHALImpactBurstConfig& BurstConfig, const FVector& WorldPoint, uint8 Count)
+{
+	if (!Count || !BurstConfig.bSparks || !IsValid(BurstSparkSystem) || !GetWorld() || !FApp::CanEverRender()
+		|| GetNetMode() == NM_DedicatedServer) { return; }
+	// World anchored like the sprite, pooled, and released by Niagara itself once the one-shot burst is over.
+	UNiagaraComponent* Sparks = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), BurstSparkSystem, WorldPoint,
+		FRotator::ZeroRotator, FVector::OneVector, true, false, ENCPoolMethod::AutoRelease, true);
+	if (!Sparks) { return; }
+	// The count has to be in place before the first tick: the burst spawns everything at age zero.
+	// The count is network input: never spawn more than this client's own configured ceiling.
+	Sparks->SetVariableInt(BurstConfig.SparkCountParameter, FMath::Min(int32(Count), FMath::Clamp(BurstConfig.MaximumSparks, 0, 64)));
+	Sparks->Activate(true);
+}
+
 void UHALVehiclePresentationComponent::PublishImpactBurst(const FHALCombatHitResult& Result, const FVector& WorldDirection,
 	const FVector& WorldImpactPoint, uint32 Sequence, const AActor* SourceActor, const AActor* InstigatorActor)
 {
@@ -257,6 +291,10 @@ void UHALVehiclePresentationComponent::PublishImpactBurst(const FHALCombatHitRes
 		HALVehiclePresentation::BurstStrength(*BurstConfig, Result.ImpactSummary.DesiredHorizontalDeltaSpeed));
 	Event.WorldPoint = HALVehiclePresentation::ResolveBurstPoint(*BurstConfig, WorldImpactPoint,
 		GetOwner()->GetActorLocation(), WorldDirection);
+	// Any car counts, with or without an identity colour: a skill dummy sparks like a driven car.
+	const bool bVehicleContact = IsValid(SourceActor) && SourceActor != GetOwner()
+		&& SourceActor->FindComponentByClass<UHALVehiclePresentationComponent>() != nullptr;
+	Event.Sparks = HALVehiclePresentation::BurstSparkCount(*BurstConfig, float(Event.Strength) / 255.f, bVehicleContact);
 	// The car that touched this one first, otherwise the car an attack such as a launched ball is attributed to.
 	for (const AActor* Candidate : { SourceActor, InstigatorActor })
 	{
@@ -270,8 +308,8 @@ void UHALVehiclePresentationComponent::PublishImpactBurst(const FHALCombatHitRes
 	}
 	if (CVarImpactBurstLog.GetValueOnGameThread())
 	{
-		UE_LOG(LogTemp, Display, TEXT("HAL ImpactBurst: %s Publish Seq=%u Tier=%d Strength=%u Point=%s"),
-			*GetNameSafe(GetOwner()), Event.Sequence, int32(Event.Tier), Event.Strength, *FVector(Event.WorldPoint).ToCompactString());
+		UE_LOG(LogTemp, Display, TEXT("HAL ImpactBurst: %s Publish Seq=%u Tier=%d Strength=%u Sparks=%u ColorMode=%u Point=%s"),
+			*GetNameSafe(GetOwner()), Event.Sequence, int32(Event.Tier), Event.Strength, Event.Sparks, Event.ColorMode, *FVector(Event.WorldPoint).ToCompactString());
 	}
 	MulticastImpactBurst(Event);
 }
@@ -297,6 +335,7 @@ void UHALVehiclePresentationComponent::ConsumeImpactBurst(const FHALImpactBurstE
 		FHALImpactBurstPulse& Pulse = BurstState.Pulses.Last();
 		Pulse.Slot = AcquireBurstSlot(*BurstConfig);
 		ApplyBurstSlot(*BurstConfig, Pulse);
+		SpawnBurstSparks(*BurstConfig, Pulse.WorldPoint, Event.Sparks);
 	}
 	if (CVarImpactBurstLog.GetValueOnGameThread())
 	{

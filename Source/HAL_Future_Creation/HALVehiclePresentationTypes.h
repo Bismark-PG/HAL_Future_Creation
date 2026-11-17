@@ -62,6 +62,8 @@ struct FHALImpactBurstEvent
 	UPROPERTY() FColor SourceColor = FColor(0, 0, 0, 0);
 	/** HALVehiclePresentation::BurstColor*: 0 plain, 1 source car only, 2 source car and the car that was hit. */
 	UPROPERTY() uint8 ColorMode = 0;
+	/** Spark particles to throw. Zero unless two cars touched; the count follows the impact strength. */
+	UPROPERTY() uint8 Sparks = 0;
 };
 
 /** One live comic burst. Anchored in world space, so it stays where the contact happened. */
@@ -243,6 +245,8 @@ namespace HALVehiclePresentation
 	/** A car's identity colour is its tire mark colour, and only when that colour is really shown on its marks. */
 	HAL_FUTURE_CREATION_API bool VehicleIdentityColor(const FHALTireSkidConfig& TireSkid, FLinearColor& OutColor);
 	/** Direct car contact shows both cars; an attributed hit such as a launched ball shows only the car behind it. */
+	/** Sparks belong to car on car contact only. Strength 0..1 picks a whole count between the configured ends. */
+	HAL_FUTURE_CREATION_API uint8 BurstSparkCount(const FHALImpactBurstConfig& Config, float Strength, bool bDirectVehicleContact);
 	HAL_FUTURE_CREATION_API uint8 BurstColorMode(const FHALImpactBurstConfig& Config, bool bSourceHasColor, bool bDirectVehicleContact);
 	/** Unusable authority points fall back to the target's own edge on the source side. */
 	HAL_FUTURE_CREATION_API FVector ResolveBurstPoint(const FHALImpactBurstConfig& Config, const FVector& RawPoint,

@@ -130,6 +130,9 @@ private:
 	UPROPERTY(Transient) TArray<TObjectPtr<UMaterialInstanceDynamic>> BurstMaterials;
 	/** Resolved once outside the hit path; impacts never load the sprite material synchronously. */
 	UPROPERTY(Transient) TObjectPtr<UMaterialInterface> BurstMaterial;
+	/** Resolved with the sprite material; a missing system simply means no sparks. */
+	UPROPERTY(Transient) TObjectPtr<UNiagaraSystem> BurstSparkSystem;
+	void SpawnBurstSparks(const FHALImpactBurstConfig& BurstConfig, const FVector& WorldPoint, uint8 Count);
 	bool bBurstReady = false;
 	uint32 NextImpactVisualSequence = 0;
 	double LaunchResetLocalTime = 0;

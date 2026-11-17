@@ -33,6 +33,8 @@ bool FHALImpactBurstShapeTest::RunTest(const FString&)
 	Config = {}; Config.SeedParameter = NAME_None; TestFalse(TEXT("Material parameter names are required"), Config.Validate(Error));
 	Config = {}; Config.TierParameter = NAME_None; TestFalse(TEXT("Tier parameter name is required"), Config.Validate(Error));
 	Config = {}; Config.SourceColorParameter = NAME_None; TestFalse(TEXT("Car colour parameter names are required"), Config.Validate(Error));
+	Config = {}; Config.MaximumSparks = 1; TestFalse(TEXT("Spark range must ascend"), Config.Validate(Error));
+	Config = {}; Config.MaximumSparks = 65; TestFalse(TEXT("Spark count is bounded"), Config.Validate(Error));
 	Config = {}; Config.bEnabled = false; Config.LifetimeSeconds = -1;
 	TestTrue(TEXT("Disabled configuration is never rejected"), Config.Validate(Error));
 
@@ -68,6 +70,16 @@ bool FHALImpactBurstShapeTest::RunTest(const FString&)
 	TestEqual(TEXT("A source without a colour stays plain"), int32(BurstColorMode(Config, false, true)), int32(BurstColorNone));
 	Config.bVehicleColors = false;
 	TestEqual(TEXT("Car colours can be switched off"), int32(BurstColorMode(Config, true, true)), int32(BurstColorNone));
+	Config = {};
+
+	TestEqual(TEXT("The weakest car contact throws the fewest sparks"), int32(BurstSparkCount(Config, 0.f, true)), Config.MinimumSparks);
+	TestEqual(TEXT("The strongest car contact throws the most sparks"), int32(BurstSparkCount(Config, 1.f, true)), Config.MaximumSparks);
+	TestTrue(TEXT("Spark count rises with strength"), BurstSparkCount(Config, .5f, true) > BurstSparkCount(Config, 0.f, true)
+		&& BurstSparkCount(Config, .5f, true) < BurstSparkCount(Config, 1.f, true));
+	TestEqual(TEXT("Balls, gimmicks and walls never spark"), int32(BurstSparkCount(Config, 1.f, false)), 0);
+	TestEqual(TEXT("A broken strength throws no sparks"), int32(BurstSparkCount(Config, std::numeric_limits<float>::quiet_NaN(), true)), 0);
+	Config.bSparks = false;
+	TestEqual(TEXT("Sparks can be switched off"), int32(BurstSparkCount(Config, 1.f, true)), 0);
 	Config = {};
 
 	const FVector Target(0, 0, 0), Push(1, 0, 0);

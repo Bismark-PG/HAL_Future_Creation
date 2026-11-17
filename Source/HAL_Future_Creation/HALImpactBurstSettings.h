@@ -5,6 +5,7 @@
 #include "HALImpactBurstSettings.generated.h"
 
 class UMaterialInterface;
+class UNiagaraSystem;
 
 /** Comic impact burst: one camera-facing procedural sprite per accepted impact, drawn at the contact point.
  * Presentation only. Nothing here gates damage, impact, ball rules or the authority result. */
@@ -33,6 +34,15 @@ struct HAL_FUTURE_CREATION_API FHALImpactBurstConfig
 	/** Paint the burst in the tire mark colour of the car that hit (or launched the ball); direct car contact shows both cars.
 	 * Off, or a car without a mark colour, keeps the plain fill. Cosmetic only. */
 	UPROPERTY(EditAnywhere, Category="Color") bool bVehicleColors = true;
+	/** Spark particles thrown from the contact point when two cars touch. Balls, gimmicks and walls never spark. Cosmetic only. */
+	UPROPERTY(EditAnywhere, Category="Sparks") bool bSparks = true;
+	/** One-shot Niagara burst that reads its particle count from Spark Count Parameter. None keeps sparks off. */
+	UPROPERTY(EditAnywhere, Category="Sparks") TSoftObjectPtr<UNiagaraSystem> SparkSystem;
+	/** Particle count at zero and full impact strength. Few and large by design. */
+	UPROPERTY(EditAnywhere, Category="Sparks", meta=(ClampMin="0", ClampMax="64")) int32 MinimumSparks = 2;
+	UPROPERTY(EditAnywhere, Category="Sparks", meta=(ClampMin="0", ClampMax="64")) int32 MaximumSparks = 6;
+	/** Int32 User parameter on Spark System that receives the count. */
+	UPROPERTY(EditAnywhere, Category="Sparks") FName SparkCountParameter = TEXT("User.SparkCount");
 	/** Pushed off the contact surface, then lifted toward the top-down camera so the body never splits it. */
 	UPROPERTY(EditAnywhere, Category="Placement", meta=(ClampMin="0", ClampMax="200", Units="cm")) float SurfaceOffsetCm = 10;
 	UPROPERTY(EditAnywhere, Category="Placement", meta=(ClampMin="0", ClampMax="400", Units="cm")) float VerticalOffsetCm = 20;
