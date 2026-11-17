@@ -1,5 +1,13 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-17 Car08 扩散黑烟代码、五份新资源及本机程序验证完成，待团队手动接线与画面验收。** 开发接续 `main/8a97ed1`，保留团队 Car08、胎痕等提交及已有讨论稿／忽略规则。4 s 喷射／每段 6 s／18 s 冷却、100→350 cm 扩散，车头排气管向上喷；本人免疫自己的屏幕干扰但仍看见世界烟，墙／楼板阻断影响，烟内目标标识／描边隐藏、正常 HUD 保留。眩晕／腾空暂停新增，旧烟继续到期，淘汰／换车／离场清理。GA／GE、有限服务器烟段和本地 Niagara＋世界投影遮蔽层职责分离，不改车辆物理／球／伤害或网络历史格式。见[规则、参数、GA／Definition 接线与管口校准](Combat/Car08_Smoke_Screen_CN_v0.1.md)。
+
+开发时本机 **UE5.8.2-56702186** 最终 **Editor R11／Game R6** 成功；最终全量原生 **242/242**，0 失败／未执行，含一项既有地图警告；真实 D3D12／Slate **1/1**，0 测试警告／失败，背景遮蔽／动画及 HUD 保护通过。真实 NetTest 双进程低延迟和 Host 出站 80 ms 注入两轮，**双方均各 1/1**，四份报告 0 测试警告／失败、进程退出 0；80 ms 不是实测 RTT。已检查含 UI 的本人免疫／Client 充分遮蔽截图。夹具仅替换出生实例授予并互换位置进入烟区，不代替真实连续驾驶或房间全流程。开发时原 1351 资产＋4 Config＋uproject 共 **1356/1356** 哈希保持，仅新增 5 资源，未改 BP／地图／既有车型 DA；见[验证摘要](Combat/Car08_Smoke_Screen_Verification_20261117.json)。
+
+下一步由团队创建 `GA_Car08_SmokeScreen`，引用新技能 DA 并配置 Car08 唯一 Primary；以 `hal.SmokeDebug 2` 校准排气管顶端的 Root-space Outlet Offset，测试前恢复 0；自定义头顶 Widget 接入 `ShouldHideWorldTarget`。管口默认偏移仅为占位。真人观感、持续驾驶、复杂／移动墙、四机性能、晚加入／旅行、丢包抖动与 Cook／发布包仍待验收；近期另一设备用 5.8.3，须统一补丁并完整重编，不沿用本机 DLL。下方记录保持各自时点。
+
+**本次状态记录恢复核对**：当前 `main/2d474b4` 已提交上述代码与五份资源；规格／验证摘要的“未提交／Push”指开发验证当时。本次核对其中 20 份源码与 5 份资源的 SHA256 全部与验证留档一致，六份原始测试报告仍在；仅恢复本文件，不重新编译／运行测试，也不将历史报告扩写为本次复测或团队实测通过。
+
 **2026-11-17 用戶實測回報：Impact Burst v2（墨線碎片、三級造型、車輛代表色）與 SingleVehicleTest 對手車「測試結果成功」，隨後提交並推送。** 回報未附具體工況（測了哪些車型、哪幾種撞擊來源、是否雙端），不擴寫為逐項驗收；下方兩條各自列出的「未驗證」項目中，未被這句回報明確涵蓋的仍視為待驗。`Content/Maps/SingleVehicleTest/SingleVehicleTest.umap` 在測試期間另有未提交的本機改動，非本輪程式所改，未納入本次提交。
 
 **2026-11-17 SingleVehicleTest 新增「對手車」：編輯器 Target 編譯通過、全量 240/240 通過；PIE 實機未驗收。** 為了在單車測試場景驗收車對車的衝擊特效，測試面板多一組 OPPONENT CAR 選單：在玩家車前方 700 cm 生成第二台不會動的車，可隨時換車種或移除。做法是執行時生成一台 `HALSkillTestDummy`，並以所選車輛 BP 自己的 Vehicle Definition 組一份暫時的 `UHALSkillTestDummyConfig`——沿用既有木樁的 ASC／受擊／表現路徑，不新增資產、不改 Blueprint 或地圖。改動：`AHALVehicleTestGameMode::ChangeOpponentVehicle`／`RemoveOpponentVehicle`／`GetOpponentVehicle` 與三個 `Vehicle Test|Opponent` 調參、`AHALSkillTestDummy::SetTestConfigForSpawn`、測試 Controller 的兩個轉呼叫與 Slate 面板、新增自動化 `HAL.FutureCreation.VehicleTest.OpponentSpawnsReplacesAndSurvivesPlayerSwap`。**限制**：對手車沒有輸入、不會開也不放技能；HP 歸零後需重新生成。**已驗證**：`HAL_Future_CreationEditor` Win64 Development 編譯通過（exit 0，改動檔案無警告）；無頭全量 `HAL.FutureCreation` **240/240 通過、0 失敗、0 未執行**（2 項帶警告：既有的 `InvalidAndBlockedReplacementRetainsCurrentCar`，以及新測試刻意觸發的「拒絕未列出車型」訊息；報告 `Saved/Automation/20261117/VehicleTestOpponent`）。**未驗證**：PIE 實機的面板操作、對手車落地與實際對撞、各車型逐一生成（自動化只用 Car_02）、對撞時的車色爆點觀感（用戶其後回報實測成功，見上條）。 用法見[單車測試文件 §2.1](Configuration/SingleVehicleTest_Setup_CN_v0.1.md)。
