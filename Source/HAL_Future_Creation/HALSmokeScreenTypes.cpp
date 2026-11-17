@@ -7,16 +7,16 @@
 
 namespace
 {
-	bool Range(float V,float Min,float Max) { return FMath::IsFinite(V)&&V>=Min&&V<=Max; }
+	bool IsSmokeScreenValueInRange(float V,float Min,float Max) { return FMath::IsFinite(V)&&V>=Min&&V<=Max; }
 }
 bool FHALSmokeScreenRules::IsValid() const
 {
-	return Range(EmissionSeconds,.1f,15)&&Range(PuffSeconds,.5f,20)&&Range(DissolveSeconds,.1f,5)&&DissolveSeconds<PuffSeconds
-		&&Range(InitialRadius,20,500)&&Range(MaximumRadius,InitialRadius,1000)&&Range(ExpansionSeconds,.1f,5)
-		&&Range(Height,80,700)&&!OutletOffset.ContainsNaN()&&OutletOffset.GetAbsMax()<=1500
-		&&Range(UpdateSeconds,.03f,.15f)&&Range(SampleSpacing,30,300)&&Range(StationaryInterval,.1f,1)
+	return IsSmokeScreenValueInRange(EmissionSeconds,.1f,15)&&IsSmokeScreenValueInRange(PuffSeconds,.5f,20)&&IsSmokeScreenValueInRange(DissolveSeconds,.1f,5)&&DissolveSeconds<PuffSeconds
+		&&IsSmokeScreenValueInRange(InitialRadius,20,500)&&IsSmokeScreenValueInRange(MaximumRadius,InitialRadius,1000)&&IsSmokeScreenValueInRange(ExpansionSeconds,.1f,5)
+		&&IsSmokeScreenValueInRange(Height,80,700)&&!OutletOffset.ContainsNaN()&&OutletOffset.GetAbsMax()<=1500
+		&&IsSmokeScreenValueInRange(UpdateSeconds,.03f,.15f)&&IsSmokeScreenValueInRange(SampleSpacing,30,300)&&IsSmokeScreenValueInRange(StationaryInterval,.1f,1)
 		&&MaximumPuffs>=FMath::CeilToInt(EmissionSeconds/UpdateSeconds)+1&&MaximumPuffs<=128
-		&&WallRays>=12&&WallRays<=48&&Range(WallRefreshSeconds,.1f,1);
+		&&WallRays>=12&&WallRays<=48&&IsSmokeScreenValueInRange(WallRefreshSeconds,.1f,1);
 }
 float FHALSmokeScreenRules::Radius(float Age) const
 { return FMath::Lerp(InitialRadius,MaximumRadius,FMath::Clamp(Age/ExpansionSeconds,0.f,1.f)); }
@@ -27,12 +27,12 @@ float FHALSmokeScreenRules::Density(float Age) const
 }
 bool FHALSmokeScreenFX::IsValid() const
 {
-	const auto Color=[](FLinearColor C) { return Range(C.R,0,4)&&Range(C.G,0,4)&&Range(C.B,0,4); };
+	const auto Color=[](FLinearColor C) { return IsSmokeScreenValueInRange(C.R,0,4)&&IsSmokeScreenValueInRange(C.G,0,4)&&IsSmokeScreenValueInRange(C.B,0,4); };
 	const auto UI=[](const UMaterialInterface* M) { return !M||M->GetMaterial()->MaterialDomain==MD_UI; };
 	return Color(DarkColor)&&Color(LightColor)&&UI(CloudMaterial)&&UI(ScreenMaterial)
-		&&Range(CloudOpacity,.1f,1)&&Range(FlowSpeed,.1f,4)&&Range(MaximumObscuration,0,.95f)
-		&&Range(FadeInSeconds,.01f,2)&&Range(FadeOutSeconds,.01f,3)&&Range(JetRate,1,100)
-		&&Range(UpwardSpeed,20,1000)&&Range(BackwardSpeed,0,500);
+		&&IsSmokeScreenValueInRange(CloudOpacity,.1f,1)&&IsSmokeScreenValueInRange(FlowSpeed,.1f,4)&&IsSmokeScreenValueInRange(MaximumObscuration,0,.95f)
+		&&IsSmokeScreenValueInRange(FadeInSeconds,.01f,2)&&IsSmokeScreenValueInRange(FadeOutSeconds,.01f,3)&&IsSmokeScreenValueInRange(JetRate,1,100)
+		&&IsSmokeScreenValueInRange(UpwardSpeed,20,1000)&&IsSmokeScreenValueInRange(BackwardSpeed,0,500);
 }
 float FHALSmokePuff::Boundary(float Angle) const
 {

@@ -15,24 +15,24 @@
 #include "DrawDebugHelpers.h"
 #include "HAL/IConsoleManager.h"
 namespace { TAutoConsoleVariable<int32> LogPursuit(TEXT("hal.PursuitLog"),0,TEXT("Car06 pursuit start/arrest/cleanup."));
-bool Range(float V,float A,float B) { return FMath::IsFinite(V)&&V>=A&&V<=B; } }
+bool IsPursuitValueInRange(float V,float A,float B) { return FMath::IsFinite(V)&&V>=A&&V<=B; } }
 bool FHALPursuitRules::IsValid() const
 {
-	return Range(Duration,1,30)&&Range(Radius,100,3000)&&Range(ExitBuffer,0,100)&&Range(MaximumHeightDifference,50,1000)
-		&&Range(Threshold,1,1000)&&Range(GainPerSecond,1,1000)&&Range(DecayPerSecond,1,1000)&&Range(StunSeconds,.1,10)
-		&&Range(ProtectionSeconds,.1,10)&&Range(ScanInterval,.02,.2);
+	return IsPursuitValueInRange(Duration,1,30)&&IsPursuitValueInRange(Radius,100,3000)&&IsPursuitValueInRange(ExitBuffer,0,100)&&IsPursuitValueInRange(MaximumHeightDifference,50,1000)
+		&&IsPursuitValueInRange(Threshold,1,1000)&&IsPursuitValueInRange(GainPerSecond,1,1000)&&IsPursuitValueInRange(DecayPerSecond,1,1000)&&IsPursuitValueInRange(StunSeconds,.1,10)
+		&&IsPursuitValueInRange(ProtectionSeconds,.1,10)&&IsPursuitValueInRange(ScanInterval,.02,.2);
 }
 float FHALPursuitRules::Integrate(float V,float Dt,bool Inside,bool Stunned,bool Protected) const
 { return FMath::Clamp(V+FMath::Max(0.f,Dt)*(Protected||!Inside?-DecayPerSecond:Stunned?0:GainPerSecond),0.f,Threshold); }
 bool FHALPursuitFX::IsValid() const
 {
 	for(auto C:{Red,Blue,StarColor,StarOutline}) if(!FMath::IsFinite(C.R)||!FMath::IsFinite(C.G)||!FMath::IsFinite(C.B)||!FMath::IsFinite(C.A)) { return false; }
-	return RoofMount.IsValid()&&Range(RoofLift,0,100)&&Range(LightSpacing,5,100)&&Range(BeaconRadius,2,30)
-		&&Range(FlashHalfPeriod,.1,2)&&Range(LightIntensity,0,10000)&&Range(LightRadius,50,500)&&Range(SignalGlow,0,10)
-		&&Range(RangeOpacity,0,1)&&Range(RangeRingOpacity,0,1)&&Range(ScanSpeed,.05,4)&&Range(ScanWidth,.02,.5)
-		&&Range(ScanOpacity,0,1)&&Range(RingWidth,.005,.1)&&Range(SirenInnerRadius,50,1000)&&Range(SirenFalloff,100,5000)
-		&&Range(GroundLift,1,30)&&Range(ArrestSize,10,150)&&Range(ArrestHeight,10,200)&&Range(ArrestPulseSpeed,.1,5)
-		&&StarCount>=1&&StarCount<=10&&Range(StarSize,8,40)&&Range(StarGap,0,15)&&Range(StarsAboveHealth,20,150)&&Range(SirenVolume,0,2);
+	return RoofMount.IsValid()&&IsPursuitValueInRange(RoofLift,0,100)&&IsPursuitValueInRange(LightSpacing,5,100)&&IsPursuitValueInRange(BeaconRadius,2,30)
+		&&IsPursuitValueInRange(FlashHalfPeriod,.1,2)&&IsPursuitValueInRange(LightIntensity,0,10000)&&IsPursuitValueInRange(LightRadius,50,500)&&IsPursuitValueInRange(SignalGlow,0,10)
+		&&IsPursuitValueInRange(RangeOpacity,0,1)&&IsPursuitValueInRange(RangeRingOpacity,0,1)&&IsPursuitValueInRange(ScanSpeed,.05,4)&&IsPursuitValueInRange(ScanWidth,.02,.5)
+		&&IsPursuitValueInRange(ScanOpacity,0,1)&&IsPursuitValueInRange(RingWidth,.005,.1)&&IsPursuitValueInRange(SirenInnerRadius,50,1000)&&IsPursuitValueInRange(SirenFalloff,100,5000)
+		&&IsPursuitValueInRange(GroundLift,1,30)&&IsPursuitValueInRange(ArrestSize,10,150)&&IsPursuitValueInRange(ArrestHeight,10,200)&&IsPursuitValueInRange(ArrestPulseSpeed,.1,5)
+		&&StarCount>=1&&StarCount<=10&&IsPursuitValueInRange(StarSize,8,40)&&IsPursuitValueInRange(StarGap,0,15)&&IsPursuitValueInRange(StarsAboveHealth,20,150)&&IsPursuitValueInRange(SirenVolume,0,2);
 }
 AHALPolicePursuit::AHALPolicePursuit()
 {

@@ -4,7 +4,7 @@
 
 namespace
 {
-	bool Range(float X,float Min,float Max) { return FMath::IsFinite(X)&&X>=Min&&X<=Max; }
+	bool IsArrestChainValueInRange(float X,float Min,float Max) { return FMath::IsFinite(X)&&X>=Min&&X<=Max; }
 	float SignedPower(float X,float Power) { return FMath::Sign(X)*FMath::Pow(FMath::Abs(X),Power); }
 }
 bool FHALArrestChainFX::IsValid() const
@@ -16,12 +16,12 @@ bool FHALArrestChainFX::IsValid() const
 	{ if(!F.VehicleDefinition||F.CenterOffset.ContainsNaN()||F.CenterOffset.GetAbsMax()>500||F.BoundsScale.ContainsNaN()||F.BoundsScale.GetMin()<.25||F.BoundsScale.GetMax()>2||Seen.Contains(F.VehicleDefinition.Get())) { return false; } Seen.Add(F.VehicleDefinition.Get()); }
 	return !PartId.IsNone()&&!BoundsScale.ContainsNaN()&&BoundsScale.GetMin()>=.25f&&BoundsScale.GetMax()<=2
 		&&!CenterOffset.ContainsNaN()&&CenterOffset.GetAbsMax()<=500&&!LightDirection.ContainsNaN()&&!LightDirection.IsNearlyZero()
-		&&Range(LowerHeightFraction,0,.4f)&&Range(UpperHeightFraction,.6f,1.2f)&&Range(Clearance,0,40)
-		&&LinksPerLoop>=16&&LinksPerLoop<=96&&LinksPerLoop%2==0&&Range(CrossAngle,10,75)&&Range(ProfileExponent,2,6)
-		&&Range(LinkWidth,2,30)&&Range(LinkOverlap,1.05f,1.6f)&&Range(WireScale,.25f,3)&&Range(WireRadius,.25f,6)&&Range(CrossingSeparation,2,20)
-		&&Range(TightenSeconds,.05f,1)&&Range(InitialLooseness,0,.8f)&&Range(ReboundAmount,0,.1f)&&Range(ReboundSeconds,.05f,1)
-		&&Range(ReleaseSeconds,.05f,.6f)&&Range(ReleaseLooseness,0,.8f)&&Range(FlowSpeed,-200,200)&&Range(FlowRampSeconds,0,2)&&Range(ShadowThreshold,-.8f,.3f)
-		&&Range(HighlightThreshold,.1f,.95f)&&HighlightThreshold>ShadowThreshold&&Range(ToneSoftness,.02f,.4f)&&Range(GlintStrength,0,2);
+		&&IsArrestChainValueInRange(LowerHeightFraction,0,.4f)&&IsArrestChainValueInRange(UpperHeightFraction,.6f,1.2f)&&IsArrestChainValueInRange(Clearance,0,40)
+		&&LinksPerLoop>=16&&LinksPerLoop<=96&&LinksPerLoop%2==0&&IsArrestChainValueInRange(CrossAngle,10,75)&&IsArrestChainValueInRange(ProfileExponent,2,6)
+		&&IsArrestChainValueInRange(LinkWidth,2,30)&&IsArrestChainValueInRange(LinkOverlap,1.05f,1.6f)&&IsArrestChainValueInRange(WireScale,.25f,3)&&IsArrestChainValueInRange(WireRadius,.25f,6)&&IsArrestChainValueInRange(CrossingSeparation,2,20)
+		&&IsArrestChainValueInRange(TightenSeconds,.05f,1)&&IsArrestChainValueInRange(InitialLooseness,0,.8f)&&IsArrestChainValueInRange(ReboundAmount,0,.1f)&&IsArrestChainValueInRange(ReboundSeconds,.05f,1)
+		&&IsArrestChainValueInRange(ReleaseSeconds,.05f,.6f)&&IsArrestChainValueInRange(ReleaseLooseness,0,.8f)&&IsArrestChainValueInRange(FlowSpeed,-200,200)&&IsArrestChainValueInRange(FlowRampSeconds,0,2)&&IsArrestChainValueInRange(ShadowThreshold,-.8f,.3f)
+		&&IsArrestChainValueInRange(HighlightThreshold,.1f,.95f)&&HighlightThreshold>ShadowThreshold&&IsArrestChainValueInRange(ToneSoftness,.02f,.4f)&&IsArrestChainValueInRange(GlintStrength,0,2);
 }
 FHALArrestChainEnvelope HALArrestChains::Envelope(const FHALArrestChainFX& C,bool Arrested,double Now,double Start,double Release)
 {

@@ -1,5 +1,15 @@
 # 编译、重新构建并启动 Editor 工具
 
+## 2026-11-17：合并 Car08 后再次暴露的 Unity 私有函数重名
+
+用户拉新到`main/deee273`，经本机`Saved/LocalMCP/BuildAndLaunchWithMCP.cmd`触发真实构建。日志`Saved/BuildTool/BuildAndLaunch_20261117_202045_072_501ca0/UnrealBuildTool.log`的首个错误为C2084：新增`HALSmokeScreenTypes.cpp`和既有`HALTornado.cpp`都在匿名命名空间中定义了`Range(float,float,float)`，并被包含到同一个`Module.HAL_Future_Creation.4.cpp`，后续C4551／C2568为连带错误。编译工具正确返回6，本机包装器因此没有启动Editor。
+
+修复将四份运行时CPP中的同名范围校验函数分别改为`IsSmokeScreenValueInRange`、`IsTornadoValueInRange`、`IsPursuitValueInRange`和`IsArrestChainValueInRange`，避免另外两份旧实现随Unity分组变化再次冲突。逐文件反向替换核对：除辅助函数名称外内容一致（仅忽略换行格式），没有修改数值、校验边界、反射字段或技能逻辑；共享BuildAndLaunch、uproject及本机启动器不需要改动。
+
+这也解释了开发设备先前的增量编译为何可能通过：Adaptive Unity会把正在编辑的源码拆出Unity文件；提交或拉新后重新组合，会暴露之前未一起编译的同名函数。本页顶部的合并前测试不能替代当前合并结果的验证。新增辅助函数继续使用明确的文件／系统相关名称，验证时覆盖`-DisableAdaptiveUnity`，不要依靠禁用整个运行时模块的Unity来回避问题。构建机制参考[Epic Build Configuration](https://dev.epicgames.com/documentation/en-us/unreal-engine/build-configuration-for-unreal-engine)。
+
+本轮UE5.8.3-58210709已完成：Editor Target普通Unity编译通过（`-DisableAdaptiveUnity`，exit 0；实读确认黑烟和龙卷风在同一合并CPP）；黑烟3项、龙卷风2项、通缉与铁链5项原生专项共**10/10通过**，0测试警告／失败／未运行。使用NullRHI，没有重新验收视觉／多人或打包，保留既有MSVC优选版本、引擎弃用和浮点转换警告。默认一键启动的实测结果及文件保持核对见[本轮验证留档](Build_Unity_Range_Fix_Verification_20261117.json)。
+
 ## 2026-11-15：本次报错是项目的 Unity 函数重名，已修复
 
 用户常规入口日志`BuildAndLaunch_20261115_194627_009_688359`中，首个错误为C2084：`HALDamageFeedbackConfig.cpp`与`HALPolicePursuit.cpp`在匿名命名空间内各自定义了`Range(float,float,float)`。Unreal为加快编译将两份CPP合并到`Module.HAL_Future_Creation.3.cpp`，两者在这个编译单元内不再隔离，产生重复定义，随后连带出现C4551／C2568。BuildAndLaunch正确保留UBT退出6，并停止启动Editor；本次无需修改工具。

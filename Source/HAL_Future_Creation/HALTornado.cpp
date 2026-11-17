@@ -20,7 +20,7 @@
 namespace
 {
 	TAutoConsoleVariable<int32> LogTornado(TEXT("hal.TornadoLog"), 0, TEXT("Car05 authority phases, wall stops, vehicle hits and ball disarms."));
-	bool Range(float V, float Min, float Max) { return FMath::IsFinite(V) && V >= Min && V <= Max; }
+	bool IsTornadoValueInRange(float V, float Min, float Max) { return FMath::IsFinite(V) && V >= Min && V <= Max; }
 	FCollisionObjectQueryParams WorldObjects()
 	{ FCollisionObjectQueryParams O; O.AddObjectTypesToQuery(ECC_WorldStatic); O.AddObjectTypesToQuery(ECC_WorldDynamic); return O; }
 	bool Solid(const FHitResult& Hit)
@@ -49,11 +49,11 @@ namespace
 }
 bool FHALTornadoRules::IsValid() const
 {
-	return Range(GatherSeconds,.1,5) && Range(ActiveSeconds,.1,20) && Range(DissipateSeconds,.1,5)
-		&& Range(Speed,0,2000) && Range(FrontOffset,0,300) && Range(Radius,30,400) && Range(Height,60,600)
-		&& Range(GroundProbe,20,300) && Range(MaximumGroundStep,5,100) && Range(MinimumGroundNormalZ,.2,1)
-		&& Range(TargetCooldownSeconds,.1,5) && HALImpact::IsValidPushPreset(PushPreset)
-		&& Range(BallSpeed,100,12000) && Range(BallUpwardSpeed,0,2000) && Range(BallCooldownSeconds,.1,2) && Range(DisarmPickupLockSeconds,.1,2);
+	return IsTornadoValueInRange(GatherSeconds,.1,5) && IsTornadoValueInRange(ActiveSeconds,.1,20) && IsTornadoValueInRange(DissipateSeconds,.1,5)
+		&& IsTornadoValueInRange(Speed,0,2000) && IsTornadoValueInRange(FrontOffset,0,300) && IsTornadoValueInRange(Radius,30,400) && IsTornadoValueInRange(Height,60,600)
+		&& IsTornadoValueInRange(GroundProbe,20,300) && IsTornadoValueInRange(MaximumGroundStep,5,100) && IsTornadoValueInRange(MinimumGroundNormalZ,.2,1)
+		&& IsTornadoValueInRange(TargetCooldownSeconds,.1,5) && HALImpact::IsValidPushPreset(PushPreset)
+		&& IsTornadoValueInRange(BallSpeed,100,12000) && IsTornadoValueInRange(BallUpwardSpeed,0,2000) && IsTornadoValueInRange(BallCooldownSeconds,.1,2) && IsTornadoValueInRange(DisarmPickupLockSeconds,.1,2);
 }
 EHALTornadoPhase FHALTornadoRules::Phase(double Age) const
 {
@@ -73,14 +73,14 @@ float FHALTornadoRules::PhaseProgress(double Age) const
 }
 bool FHALTornadoFX::IsValid() const
 {
-	for (auto C : {ShadowColor, MidColor, LightColor, GrayColor}) if (!Range(C.R,0,10) || !Range(C.G,0,10) || !Range(C.B,0,10)) { return false; }
-	return Range(ToneSoftness,.02,.4) && Range(Opacity,0,1) && Range(SpinRate,0,3600) && Range(FlowSpeed,0,10)
-		&& Range(Turbulence,0,10) && Range(GatherRadiusScale,1,3) && Range(GroundLift,0,30)
-		&& Range(DifferentialRotation,0,.8) && Range(RiseSpeed,0,1) && Range(CoreOpacity,0,1)
-		&& Range(OuterOpacity,0,1) && Range(OuterRadiusScale,1,1.5) && Range(OuterSpeedScale,.1,2)
-		&& Range(GrayMix,0,1) && Range(ColorCycleSeconds,.2,10)
-		&& Range(FormationExponent,.4,3) && Range(FormationFeather,.03,.4) && Range(GlowStrength,0,4) && Range(GlowPower,1,8)
-		&& Range(ShadowThreshold,0,1) && Range(LightThreshold,0,1) && LightThreshold >= ShadowThreshold+.02f;
+	for (auto C : {ShadowColor, MidColor, LightColor, GrayColor}) if (!IsTornadoValueInRange(C.R,0,10) || !IsTornadoValueInRange(C.G,0,10) || !IsTornadoValueInRange(C.B,0,10)) { return false; }
+	return IsTornadoValueInRange(ToneSoftness,.02,.4) && IsTornadoValueInRange(Opacity,0,1) && IsTornadoValueInRange(SpinRate,0,3600) && IsTornadoValueInRange(FlowSpeed,0,10)
+		&& IsTornadoValueInRange(Turbulence,0,10) && IsTornadoValueInRange(GatherRadiusScale,1,3) && IsTornadoValueInRange(GroundLift,0,30)
+		&& IsTornadoValueInRange(DifferentialRotation,0,.8) && IsTornadoValueInRange(RiseSpeed,0,1) && IsTornadoValueInRange(CoreOpacity,0,1)
+		&& IsTornadoValueInRange(OuterOpacity,0,1) && IsTornadoValueInRange(OuterRadiusScale,1,1.5) && IsTornadoValueInRange(OuterSpeedScale,.1,2)
+		&& IsTornadoValueInRange(GrayMix,0,1) && IsTornadoValueInRange(ColorCycleSeconds,.2,10)
+		&& IsTornadoValueInRange(FormationExponent,.4,3) && IsTornadoValueInRange(FormationFeather,.03,.4) && IsTornadoValueInRange(GlowStrength,0,4) && IsTornadoValueInRange(GlowPower,1,8)
+		&& IsTornadoValueInRange(ShadowThreshold,0,1) && IsTornadoValueInRange(LightThreshold,0,1) && LightThreshold >= ShadowThreshold+.02f;
 }
 AHALTornado::AHALTornado()
 {

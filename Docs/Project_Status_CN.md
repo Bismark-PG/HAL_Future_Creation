@@ -1,5 +1,9 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-17 拉新后Build＋MCP入口报错已修复，实际编译、专项回归和MCP启动验证通过。** 当前`main/deee273`、UE5.8.3-58210709；首个错误是黑烟与龙卷风的匿名`Range(float,float,float)`进入同一Unity CPP后重复定义（C2084），C4551／C2568为连带错误，脚本正确保留退出6并停止。四份运行时CPP的范围校验辅助函数改用各自唯一名称，逐文件逆向替换确认仅更名、数值与逻辑不变；共享BuildAndLaunch、uproject及本机MCP入口均未改。见[原因与后续命名约束](Configuration/Build_Editor_Tool_CN.md#2026-11-17合并-car08-后再次暴露的-unity-私有函数重名)及[本轮验证](Configuration/Build_Unity_Range_Fix_Verification_20261117.json)。
+
+真实Editor普通Unity构建（`-DisableAdaptiveUnity`）Succeeded／0，确认黑烟与龙卷风在同一合并CPP中；黑烟／龙卷风／通缉／铁链原生专项 **10/10通过**，0测试警告／失败／未运行。随后实际执行本机`Saved/LocalMCP/BuildAndLaunchWithMCP.cmd`，默认构建Succeeded／0并打开MCP Editor；仅监听127.0.0.1:8000，HTTP握手200、工具发现及当前关卡`/Game/Maps/MVPB_NetTest`只读查询成功，PIE未运行。当前聊天没有原生Unreal工具目录，本次为直接本地HTTP验证，不冒充聊天工具已重载。**1373/1373** 份Content／Config／uproject／启动器／忽略文件及原有本机UBT配置SHA256保持，Editor留给用户接续。保留既有编译警告；未重跑全量、真实渲染、多人、Game Target或Cook／打包；未提交／Push。
+
 **2026-11-17 Impact Burst 新增車對車火花粒子（Niagara）：資產已建立並存檔，編輯器 Target 編譯通過、全量 240/240 通過；PIE 實機未驗收。** 兩車直接相撞時，從接觸點噴出 2～6 顆火花粒子（依撞擊強度取整數）；球、機關、牆壁沒有。新資產 `NS_VehicleImpactSparks` 由 `NS_VehicleTireSkid` 複製、只留 `Sparks` 發射器並改為一次性爆發，單顆尺寸由 1×4～1×15 cm 放大到 5×24～9×48 cm，數量由 `User.SparkCount` 控制；原胎痕系統未動。`FHALImpactBurstEvent` 新增 `Sparks`（1 位元組），設定新增 `bSparks`／`SparkSystem`／`MinimumSparks`／`MaximumSparks`／`SparkCountParameter`，`DefaultGame.ini` 填入系統路徑，Cook 根集合一併收錄。
 
 > **走過的岔路**：先前把「火花」誤解成畫在爆點精靈上的星形圖案並做了一版，用戶指出要的是既有的火花粒子後已整個撤回（原始碼、材質、文件皆還原到 `56d9670`），再向用戶確認參考對象是甩尾胎痕的火花。
