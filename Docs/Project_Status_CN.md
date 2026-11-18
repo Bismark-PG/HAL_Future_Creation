@@ -1,10 +1,12 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-18，临时比赛图中场钢盘、地灯和行车面已落地，待四人实测。** `MVPB_Match_Temp` 以可见钢板为高度基准，新拉丝盘和相邻地面在 Z −200.274 cm 齐平。`Floor` 连续承托车辆和球，`Path` 提供外围侧挡。四个出生点、主球和场内机关已分别校准。UE 5.8.3 重载后通过 1,216 条地面射线和 64 条护盾射线检查，单车和自由球实测穿过中心灯，电墙、弹簧拳、电球、打滑区和黑洞均在新高度生效。正式图保留原版。[同机位实拍、调参与物理验证](Presentation/ArenaFloor_SatinMetal_CN.md#arena-center-inlay)
+
 **2026-11-18，已修复本机复现的客户端持球漂移跳位，待学校四机画面验收。** 服务器优先发送各观察者的持有球更新，客户端在短暂缺样时继续随当前车头转动，收到发射、脱球或球权切换后结束旧跟随。UE 5.8.3 Editor 与 Game 构建通过，原生回归 248 项全部通过，其中 2 项有测试车配置警告。沿用默认发送预算和 Host 出站 80 ms 延迟，原先失败的双端专项连续三轮通过。本机一主三客同时漂移与观察时，三个客户端均未在持续持球中误切物理显示，发射后两球均正常交接。球定义由用户调整。[修复、数据与四机验收方法](Networking/MVPB_ControlledBall_RelativePresentation_CN_v0.1.md#held-ball-drift-fix)
 
 **2026-11-18，录像定位记录。** 正式比赛图的球定义使半径 50 cm 的物理根在游戏中可见，灰球网格半径约 160 cm，持球时独立显示。修复前，本机默认发送预算下连续三轮出现球姿态样本过期、来回切换显示。临时 Host 解除发送限流的诊断对照两端通过。11 月 17 日原场次缺少配对日志。[录像对照与修复前专项结果](Networking/MVPB_ControlledBall_RelativePresentation_CN_v0.1.md#6-2026-11-18-客户端持球漂移录像复核)
 
-**2026-11-18，已核实内场实车支撑面比可见钢板高约 2 m。** 正式图和临时图在九个灯位及一个行车采样点的结果一致。护盾 Actor `Path` 的单块简单凸包在 Z +1.65 cm 横跨所测内场，隐藏的 `Floor` 在 −160.50 cm，可见钢板在 −196.52 至 −200.27 cm。临时图中，车辆落地及行驶的 174 条向上支撑接触均来自 `Path`。此前的 36～40 cm 是 `Floor` 与钢板的间距。此次完成测量和留档。[碰撞分层与测量方法](Presentation/ArenaFloor_SatinMetal_CN.md#arena-deck-ground-heights)
+**2026-11-18，中场改造前的支撑面测量。** 正式图和当时的临时图在九个灯位及一个行车采样点的结果一致。护盾 Actor `Path` 的单块简单凸包在 Z +1.65 cm 横跨所测内场，隐藏的 `Floor` 在 −160.50 cm，可见钢板在 −196.52 至 −200.27 cm。当时车辆落地及行驶的 174 条向上支撑接触均来自 `Path`，比钢板高约 2 m。此前的 36～40 cm 是原 `Floor` 与钢板的间距。[碰撞分层与测量方法](Presentation/ArenaFloor_SatinMetal_CN.md#arena-deck-ground-heights)
 
 **2026-11-18，临时比赛图已完成整边防滑条、定向拉丝和九盏带局部照明的嵌地灯。** 打开 `/Game/Maps/MVPB_Match_Temp`，在 `MI_ArenaDeck_Center` 调拉丝，在 Outliner 的 `Presentation/Deck Inset Lights` 调灯位和点光源。当前灯距最近约 21.2 m，每盏为 3000 lm、半径 3.9 m。UE 5.8.3 D3D12 从磁盘重载检查通过，零错误、零警告。单车以约 9.5 m/s 驶过灯位，已做同一车位开关局部光的实机对照。下一步由团队在四车混战中验收地面高光和技能可读性，并评估目标机器的帧耗。[参数、钢板同机位对比与地灯实测图](Presentation/ArenaFloor_SatinMetal_CN.md#arena-deck-inset-lights)
 
