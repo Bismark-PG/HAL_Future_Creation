@@ -1,0 +1,283 @@
+﻿{
+    "schema":  1,
+    "date":  "2026-11-16",
+    "task":  "Car07 wide arc side dodge with inward heading and unchanged quick timing",
+    "baseCommit":  "821034fb2680d906bcbaacd5e0376e1e7d71636d",
+    "branch":  "main",
+    "engine":  "5.8.3-58210709",
+    "specification":  "Car07_Extreme_LaneChange_CN_v0.1.md",
+    "status":  "Code, both builds, listed native/render/network checks complete; human feel acceptance pending",
+    "preExistingWork":  "Preserved previous uncommitted Car07 quickening, quarter-turn work, team GameMode/Definition edits and untracked skill GA. No commit or push.",
+    "behavior":  {
+                     "enhancedLateralSpanCm":  450,
+                     "enhancedArcBend":  1,
+                     "spanRangeCm":  [
+                                         10,
+                                         2000
+                                     ],
+                     "bendRange":  [
+                                       0,
+                                       2
+                                   ],
+                     "defaultEnhancedForwardDepthCm":  450,
+                     "curve":  "side=span*sin(pi/2*s), forward=span*bend*(1-cos(pi/2*s)); s=u*u*(3-2*u)",
+                     "inwardTurnDegrees":  90,
+                     "ordinaryStraightShiftCm":  300,
+                     "shiftSeconds":  0.24,
+                     "driftStartWindowSeconds":  0.3,
+                     "fixedStepTranslationAt60HzSeconds":  0.25,
+                     "maximumAccelerationCmPerSecondSquared":  100000,
+                     "charges":  4,
+                     "rechargeSeconds":  5,
+                     "realLockTargetRequired":  false,
+                     "actorTeleportDuringSkill":  false,
+                     "lateHandbrake":  "Uses remaining span and original remaining travel time; does not extend duration or jump backwards",
+                     "release":  "Cancel remaining enhanced motion and turn, bounded braking; no re-arm in same activation",
+                     "baselineMomentum":  "Authority-authored initial root velocity plus explicit known gameplay recoil/impact impulses; do not infer from planned prior scripted speed or accumulate arbitrary correction velocity",
+                     "asymmetricCOM":  "Convert desired root step to COM velocity using current and next integrated rotation; no COM/inertia edits",
+                     "networkInput":  "Cast-time handbrake modifier shares directional skill request. Reliable release edge is sequence-bound and survives expiry/input reset. Later handbrake presses use existing continuous input."
+                 },
+    "history":  {
+                    "previousFormat":  9,
+                    "currentFormat":  10,
+                    "matchingBuildsRequired":  true,
+                    "state":  "Arc start/span/steps/origin/base momentum and inward-heading/release latch serialized, compared and restored with physics history",
+                    "extraModule":  "ChaosCore (built-in direct import dependency for engine rotation integration)"
+                },
+    "builds":  [
+                   {
+                       "run":  "Editor_R7",
+                       "target":  "Editor",
+                       "result":  "Succeeded",
+                       "exitCode":  0,
+                       "seconds":  60.64,
+                       "logSha256":  "7768D862C0C56E8003A3BB56D8FFD196D8B007D3D631FFC67B0E2E8238C83A46"
+                   },
+                   {
+                       "run":  "Game_R6",
+                       "target":  "Game",
+                       "result":  "Succeeded",
+                       "exitCode":  0,
+                       "seconds":  89.42,
+                       "logSha256":  "B9A2F4F8CEA594ED585FB2214CCB47156C57F86A3A57ED235F39F0B8D21B9553"
+                   }
+               ],
+    "regression":  {
+                       "run":  "Final_R4",
+                       "RHI":  "D3D12",
+                       "passed":  35,
+                       "warnings":  0,
+                       "failed":  0,
+                       "notRun":  0,
+                       "inProcess":  0,
+                       "exitCode":  0,
+                       "reportSha256":  "9FFE7B823063219D3189E0570A69782B25232786F8F654BF9A86B8A021F7E7BD",
+                       "logSha256":  "69592B06EB2CB43FE5AE390F738AEAA3EE6BEEF472A182A02011CAC63879915C",
+                       "coverage":  "Arc geometry, tuning, history serialization/replay, held/cancelled/released turn, cast intent/rapid release and queued expiry release; GAS charges/recovery/ball launch transaction/lifecycle; real Chaos normal shift/drift/recoil/offset COM/CCD wall; movement/areas/physics input/tire/suspension and real D3D12 effects",
+                       "solver":  {
+                                      "ordinarySideTravelCm":  300,
+                                      "existingForwardVelocityCmPerSecond":  600,
+                                      "defaultEnhancedRootEndCm":  [
+                                                                       450,
+                                                                       450
+                                                                   ],
+                                      "defaultInwardAngleAt20Steps":  89.993,
+                                      "offsetCOMLeftRootCm":  [
+                                                                  450.002,
+                                                                  -449.994
+                                                              ],
+                                      "offsetCOMRightRootCm":  [
+                                                                   450.002,
+                                                                   450.006
+                                                               ],
+                                      "tunedSpanCm":  600,
+                                      "tunedBend":  0.5,
+                                      "tunedForwardDepthCm":  300,
+                                      "recoilPreservedCmPerSecond":  -200,
+                                      "CCDWallBlocked":  true
+                                  }
+                   },
+    "network":  {
+                    "run":  "Network_R5",
+                    "RHI":  "D3D12",
+                    "mode":  "Actual Listen Server and owning client",
+                    "hostOutboundPacketLagMs":  80,
+                    "peers":  [
+                                  {
+                                      "role":  "Host",
+                                      "passed":  1,
+                                      "warnings":  0,
+                                      "failed":  0,
+                                      "inProcess":  0,
+                                      "exitCode":  0,
+                                      "inwardDegrees":  89.403,
+                                      "lateralCm":  447.098,
+                                      "forwardCm":  446.691,
+                                      "reportSha256":  "7C92D0126DD1788CCF90821632FD2EEF72876DBD7CD739A35AE73391F82AFB6E",
+                                      "logSha256":  "35F048D80A421BBF35102948B54E0D170C095795380B86C034B42FA3DB591B74"
+                                  },
+                                  {
+                                      "role":  "Client",
+                                      "passed":  1,
+                                      "warnings":  0,
+                                      "failed":  0,
+                                      "inProcess":  0,
+                                      "exitCode":  0,
+                                      "inwardDegrees":  90,
+                                      "lateralCm":  447.37,
+                                      "forwardCm":  446.67,
+                                      "reportSha256":  "65BDB606861D5D6888C854D39F601FE580FBF82E29871D9B572A65CC5CF641E7",
+                                      "logSha256":  "8CF76446C49C0844B734FFB302DA9F64B1F47BAC8E496AC0F4EF81A025E2DB8E"
+                                  }
+                              ],
+                    "coverage":  "Real Car07 BP/convex body and COM, ordinary 3m shift, full inward arc, owner charges/sequential recovery, observer/jets/actual tire rate, reliable release after skill expiry reaches physics history",
+                    "fixture":  "Opt-in transient native GA/config grant, one-time isolated floor/pose setup; saved BP and assets not edited; no pawn repositioning during measured skill",
+                    "actualLocalCOMCm":  [
+                                             34.233,
+                                             0,
+                                             -61.493
+                                         ]
+                },
+    "correctionsAndExcludedRuns":  [
+                                       "Focused_R1 34 pass/1 fail: test Box lacked production CCD. Match real vehicle CCD; solver then blocks wall.",
+                                       "Editor_R3 failed link: direct ChaosCore import missing. Added built-in dependency. Solver_R3 ran against stale DLL and is excluded from COM evidence.",
+                                       "COM and root reference mismatch corrected using engine rotation integration; Final_R2 35/35 verified offset COM.",
+                                       "Network_R2 Host failure revealed incorrect base velocity inference. Use authority initial root velocity and explicit gameplay impulse tracking. Network_R3 passed but client forward depth shortened by late handbrake transport.",
+                                       "Network_R4 passed with full 447cm side/forward on both endpoints after cast-time modifier and reliable release.",
+                                       "Final_R3 34 pass/1 fail: native non-simulating GAS fixture expected a second physics revision published before the first authority frame. Correct assertion checks queued publication; no production rule weakened. Final_R4 replaces this report."
+                                   ],
+    "preservation":  {
+                         "protectedFileCount":  1342,
+                         "unchangedCount":  1342,
+                         "changed":  [
+
+                                     ],
+                         "baselineSha256":  "1F70E6990F953E7A915EB4239B8BCA187101D6D30AFD770B41CB299C5ABB3E95",
+                         "includes":  "All existing Content/Config/uproject/build launcher including team-edited BP/Definition and untracked GA",
+                         "skillDA":  "Native restricted retune/re-save performed; all original asset hashes unchanged, cold native defaults apply",
+                         "blueprintOrMapEdited":  false,
+                         "thirdPartyPluginAdded":  false
+                     },
+    "rawEvidenceDirectory":  "Saved/Car07SideShift/20261116_DriftArc (local ignored reports, not required source assets)",
+    "notVerified":  [
+                        "Human feel/visual acceptance in Fred and formal camera",
+                        "Real moving-ball contact and aiming under arc drift",
+                        "Late press timing at varied speeds, slopes, corners and continuous collisions",
+                        "Four machines, real late join/loss and full room loop",
+                        "Cook, packaged multiplayer and release performance"
+                    ],
+    "sourceHashes":  [
+                         {
+                             "path":  "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp",
+                             "sha256":  "72B8511D977B23960C6CD0DBC65ECCF848FED02F3BA04C8607630853A2A59D58"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h",
+                             "sha256":  "1385C0086ADA6C4AB97AD41F663A13329CB8BDAC954F168E5558B3B5C7E55DB6"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/ArcadeVehicleMovementEffects.cpp",
+                             "sha256":  "798A4196E6CDC10CE6540F98E20B0A28DED7C656EC6F6259043523ABDF901BDE"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/HALMovementEffectBridge.cpp",
+                             "sha256":  "73C460DAEEF3794E10810F985B2EBD6BEBE76C9845524A2C3459F047656BB46A"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/HALMovementEffectBridge.h",
+                             "sha256":  "40192AF2A945441C7CC6C870D113FA547D82D5B5C0DA58F442F364BA39E42A7F"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/HALMovementTypes.h",
+                             "sha256":  "794FBACF2A3BF82EAA4297EA2C333FF2051FFC3336925C7AFC86FB5036F8ED50"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/HALSideShiftAbility.h",
+                             "sha256":  "4A9C000288786433E3CC64E8B684FB1B77F475DEA266B5CE7632B082F4593EB6"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/HALSideShiftComponent.cpp",
+                             "sha256":  "A56856DEE75BEDF30D059A9720A8564615FBCCBB48FE878C3A35EAA3B2997358"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/HALSideShiftComponent.h",
+                             "sha256":  "6AD9FAF72AC9B9340A2689463AD316928BC1E78085F0D4C7AA71BA0F4A62DB55"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/HALSideShiftMotion.cpp",
+                             "sha256":  "67BA44F9773EAAA63340BDD322123E1B205080967E51AF39BFFA3CCA1BFBCF7F"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/HALSideShiftMotion.h",
+                             "sha256":  "90ED176D23CB78EAC1A554BB4C0A71AF8573046FE6D8543AB86B8105D8A6EB3A"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/HALSideShiftPresentation.cpp",
+                             "sha256":  "A6017D1623DD60652FD3C15B2A3DBAD4FAB6C786ED0FCAAF4BA4BF69151A4872"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/HALVehiclePresentationComponent.h",
+                             "sha256":  "F95C61C8741741F21C5F2B7E290F38F0E37389B2B9F55E41A69B6486FBAD5662"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/HALVehicleTireSkid.cpp",
+                             "sha256":  "C73865706370C3EF02404999B8F87E7C710CFCC0E1A1A3C9FDE6AAC5A6529E22"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/HALVehicleVisualSuspension.cpp",
+                             "sha256":  "784170F198742985546297262DCD8CDB87D9726E005DE018D646E3F721116EF2"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/HAL_Future_Creation.Build.cs",
+                             "sha256":  "B23BFE0407627CB138C0168EAEA2C49DDD6D0304722F865DDFB8BA825F46E509"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+                             "sha256":  "FC5BD56FE530D59F5F7DB3385B70C674180EC511EF5394AF1EFF65C51F55615C"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/Tests/HALSideShiftNetworkTests.cpp",
+                             "sha256":  "755C85E73E473F91ED4AA68FDD3261F28AE660E7EE475635908C98FBED2083E2"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/Tests/HALSideShiftRenderTests.cpp",
+                             "sha256":  "CB6D3D8C2F3B228974A4DCA1083C6551A1397F5E88C04B1B57D44E86E7DE6387"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/Tests/HALSideShiftSolverTests.cpp",
+                             "sha256":  "D049B17FA2A6B0CCAC8A43DECB98E2DC5372B2C2CFFCCB6E73161BABB3E82384"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/Tests/HALSideShiftTestSupport.h",
+                             "sha256":  "4DB14B7C0BB7E6D59777B92C4990524D692356FD0A84ED55DD0F2334A393BC43"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/Tests/HALSideShiftTests.cpp",
+                             "sha256":  "CC88593BF0E38C25DC4A8EA0C26863003F784594924AE6E6C02732684710AA3E"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/Tests/HALVehiclePresentationTestSupport.h",
+                             "sha256":  "BCA460E44257AE0C9596553E56E564866A658C147627D56F87D51F314E9BFC87"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/Tests/HALVehicleTireSkidTests.cpp",
+                             "sha256":  "533D961BA7BF802CBE3D854CA5813A358DA5B2DD8ACBADCD83D7F3A842B8CC13"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/VehicleNetPhysicsData.cpp",
+                             "sha256":  "D8B5C02618847D47FA31307B26546B282D3D1897CEDADBEEB5481F421D616DD4"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_Creation/VehicleNetPhysicsData.h",
+                             "sha256":  "7FA30A06D6EF0870DF0E1B061C1F38516178B8113F1546A11D082E13538A1573"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_CreationEditor/Private/HALBuildSideShiftFXCommandlet.cpp",
+                             "sha256":  "7954F31184F19358CC04656FB87003BDE4D1F76F04FA3530F695DACAFCCC6721"
+                         },
+                         {
+                             "path":  "Source/HAL_Future_CreationEditor/Public/HALBuildSideShiftFXCommandlet.h",
+                             "sha256":  "A9639A9B3FA86A8A59B9C927611AD25DAA23D978771B62FE424CC3ABE8700D7D"
+                         }
+                     ]
+}

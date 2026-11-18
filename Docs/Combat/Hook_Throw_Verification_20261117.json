@@ -1,0 +1,411 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "task": "Authority hook capture and direct left/right throw with soft three-tone cartoon metal chain/hook",
+  "branch": "main",
+  "baseCommit": "40fed80087b3e6bb8f988877763c0b521c38d1c8",
+  "engine": "5.8.3-58210709",
+  "status": "Code, initial assets, both targets, full native suite, real D3D12 and listed two-process tests complete; manual GA/Definition wiring and human acceptance pending.",
+  "finalUserCorrection": "Capture grants ordinary Stun and immediately drops the held ball. No retain-ball exception.",
+  "architecture": {
+    "GA": "HALHookThrowAbility: server-only permission/cooldown/lifetime, no GA tick",
+    "process": "HALHookThrow replicated actor + per-avatar HALHookComponent claim/input bridge",
+    "physics": "Pure FHALHookMotion in existing Chaos history; finite planar forces, next-frame single release, explicit Internal API and wake",
+    "formatBefore": 11,
+    "formatAfter": 12,
+    "sameVersionEndpointsRequired": true,
+    "idleHookBitsPerSnapshot": 1,
+    "hookNetPriority": 3,
+    "oneSkillDA": "/Game/Data/Abilities/DA_Ability_HookThrow"
+  },
+  "builds": [
+    {
+      "run": "Editor_R16",
+      "result": "Succeeded",
+      "exitCode": 0,
+      "seconds": 66.11,
+      "proof": {
+        "path": "Saved/HookThrow/20261117/Editor_R16.log",
+        "sha256": "37995CCAA8FDCEF2C27995C60CC3BCB1A7490D17A1F49B49D4636B53B52AAC23"
+      }
+    },
+    {
+      "run": "Game_R4",
+      "result": "Succeeded",
+      "exitCode": 0,
+      "seconds": 58.93,
+      "proof": {
+        "path": "Saved/HookThrow/20261117/Game_R4.log",
+        "sha256": "6E876F35B601166A7F56FE752F9AF587638CEA6356661389AE83CE58099C603D"
+      }
+    }
+  ],
+  "native": {
+    "run": "Native_R6",
+    "succeeded": 245,
+    "succeededWithWarnings": 2,
+    "failed": 0,
+    "notRun": 0,
+    "inProcess": 0,
+    "proof": {
+      "path": "Saved/HookThrow/20261117/Native_R6/index.json",
+      "sha256": "20E775E66C37606AE3790AF7B80CB158D1C74EB659AB57B5E09397D907A7F0FB"
+    },
+    "exitCode": 0,
+    "coverage": "247 HAL.FutureCreation rules, GAS, ball, movement, history, vehicle skills and lifecycle tests, including 4 hook-specific tests; two existing vehicle-swap negative-case tests have warnings.",
+    "warnings": [
+      {
+        "fullTestPath": "HAL.FutureCreation.VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar",
+        "warnings": 2,
+        "errors": 0,
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.VehicleTest.OpponentSpawnsReplacesAndSurvivesPlayerSwap",
+        "warnings": 1,
+        "errors": 0,
+        "state": "Success"
+      }
+    ]
+  },
+  "render": {
+    "run": "Render_R2",
+    "succeeded": 1,
+    "succeededWithWarnings": 0,
+    "failed": 0,
+    "notRun": 0,
+    "inProcess": 0,
+    "proof": {
+      "path": "Saved/HookThrow/20261117/Render_R2/index.json",
+      "sha256": "77AFCE753005A414E4D9374735D8FB62D4B84474B342C03FAE816AC9C1D2BC06"
+    },
+    "exitCode": 0,
+    "RHI": "D3D12 SM6; real offscreen render, not NullRHI",
+    "coverage": "Actual interlocked link instances, hook mesh, dark/mid/light metal pixels and reduced link count on reel-in. Outbound image visually inspected.",
+    "images": [
+      {
+        "path": "Saved/HookThrow/20261117/Render/Hook_Outbound.bmp",
+        "sha256": "584271DD247897FC4C7E2D4FA6CBECFE8D8D8826607BA572F50BB258CBE9A0C3"
+      },
+      {
+        "path": "Saved/HookThrow/20261117/Render/Hook_Returning.bmp",
+        "sha256": "10C5752412CF3473546913FB1B81FBF55EBABAB7A75E9901FE660BF0F5553F16"
+      }
+    ]
+  },
+  "network": [
+    {
+      "run": "Network_R8",
+      "roles": [
+        {
+          "Role": "Host",
+          "Pid": 19684,
+          "ExitCode": 0,
+          "Passed": 1,
+          "Warnings": 0,
+          "Failed": 0,
+          "Clean": true,
+          "HostInjectedOutgoingLagMs": 0
+        },
+        {
+          "Role": "Client",
+          "Pid": 3292,
+          "ExitCode": 0,
+          "Passed": 1,
+          "Warnings": 0,
+          "Failed": 0,
+          "Clean": true,
+          "HostInjectedOutgoingLagMs": 0
+        }
+      ],
+      "hostReport": {
+        "run": "Network_R8/Host",
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0,
+        "proof": {
+          "path": "Saved/HookThrow/20261117/Network_R8/Host/index.json",
+          "sha256": "7B5712BAD51BCC22FFFACDD9C1A3B0B7350B89BD0D8BD4FED0C32551C9D9A716"
+        }
+      },
+      "clientReport": {
+        "run": "Network_R8/Client",
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0,
+        "proof": {
+          "path": "Saved/HookThrow/20261117/Network_R8/Client/index.json",
+          "sha256": "39FE6F327D1EEADA4C028E467DE1CE32CCD9935AE1E200BADED48CB1D48AA69B"
+        }
+      },
+      "hostMinimumLateralCm": -452.92,
+      "clientMinimumLateralCm": -452.33,
+      "physicsRelease": [
+        "[2026.11.17-13.43.55:591][619]LogTemp: Hook physics release Player=256 Activation=4BDF82F24B60EE94B960FC9AA8685849 Frame=798 Start=798 Internal=1 Sleeping=0 Before=X=-0.000 Y=-0.000 Z=-0.000 Delta=X=-0.024 Y=-1800.000 Z=250.000 Target=X=-0.024 Y=-1800.000 Z=250.000\r"
+      ],
+      "coverage": "Real client primary request and reliable neutral/left input; server and observer see capture Stun and physical sideways movement; external Stun interrupts second capture, target/caster cleanup and unchanged HP.",
+      "latencyMeaning": "Host outgoing injected packet lag only; no claim of measured RTT.",
+      "logs": [
+        {
+          "path": "Saved/HookThrow/20261117/Network_R8/Host.log",
+          "sha256": "6D5906FA0A3D9A01D5EF6B5409CC8CE615F1A0E0266F2E4B1F16ECD9A53F2872"
+        },
+        {
+          "path": "Saved/HookThrow/20261117/Network_R8/Client.log",
+          "sha256": "8611523720663223D0408121773926657EEDAEDA214D2132D2E85A1B10F79E61"
+        }
+      ]
+    },
+    {
+      "run": "Network_Lag80_R1",
+      "roles": [
+        {
+          "Role": "Host",
+          "Pid": 45680,
+          "ExitCode": 0,
+          "Passed": 1,
+          "Warnings": 0,
+          "Failed": 0,
+          "Clean": true,
+          "HostInjectedOutgoingLagMs": 80
+        },
+        {
+          "Role": "Client",
+          "Pid": 32696,
+          "ExitCode": 0,
+          "Passed": 1,
+          "Warnings": 0,
+          "Failed": 0,
+          "Clean": true,
+          "HostInjectedOutgoingLagMs": 80
+        }
+      ],
+      "hostReport": {
+        "run": "Network_Lag80_R1/Host",
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0,
+        "proof": {
+          "path": "Saved/HookThrow/20261117/Network_Lag80_R1/Host/index.json",
+          "sha256": "644BBB74E9F1FD9A96BE3FC08CFB1D3E555FE03A9C302CC39746E454550C60F4"
+        }
+      },
+      "clientReport": {
+        "run": "Network_Lag80_R1/Client",
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0,
+        "proof": {
+          "path": "Saved/HookThrow/20261117/Network_Lag80_R1/Client/index.json",
+          "sha256": "B6355A6CE665278A32CC3E8647DB5DC1AE10E0F331FCA28200A804E506C44BF6"
+        }
+      },
+      "hostMinimumLateralCm": -452.93,
+      "clientMinimumLateralCm": -461.76,
+      "physicsRelease": [
+        "[2026.11.17-13.44.56:361][659]LogTemp: Hook physics release Player=256 Activation=F51C9A45402325C74391758EFD804782 Frame=843 Start=843 Internal=1 Sleeping=0 Before=X=0.000 Y=0.000 Z=0.000 Delta=X=-0.024 Y=-1800.000 Z=250.000 Target=X=-0.024 Y=-1800.000 Z=250.000\r"
+      ],
+      "coverage": "Real client primary request and reliable neutral/left input; server and observer see capture Stun and physical sideways movement; external Stun interrupts second capture, target/caster cleanup and unchanged HP.",
+      "latencyMeaning": "Host outgoing injected packet lag only; no claim of measured RTT.",
+      "logs": [
+        {
+          "path": "Saved/HookThrow/20261117/Network_Lag80_R1/Host.log",
+          "sha256": "4FBA3B6D29D204DE87692B2C40826920CF263C1ADECF2C8850568C495F1D3D56"
+        },
+        {
+          "path": "Saved/HookThrow/20261117/Network_Lag80_R1/Client.log",
+          "sha256": "866C9506A0A8F887BB2DB351FB6CDA457BA62DEDA9A4C032DE102E5FFB3FC8E9"
+        }
+      ]
+    }
+  ],
+  "fixesFoundInRealRuns": [
+    "Native_R1 exposed cleanup before BeginPlay and a rules fixture lacking consumed-frame acknowledgement; Destroyed/EndPlay cleanup made idempotent and fixture follows production revision acknowledgement.",
+    "Network_R1 exposed External force access on PT; AddForce now explicitly uses Internal API and Internal mass. No earlier incomplete network run counted as pass.",
+    "Network_R2/R3/R4 showed no client hook; R4 network trace confirmed saturated channel. Idle Hook history is now one bit, active payload is mode-specific, consumed release is cleared, and short-lived hook has priority 3.",
+    "Network_R5/R6 showed authority direction accepted but same-frame one-shot missed when immediate action came after callback. Release now starts on next absolute authority frame; pure tests verify no early or repeated pulse. R6 diagnostic processes were stopped after identifying cause.",
+    "Network_R7 had host success and client failure because short capture Stun was skipped by low-frequency PlayerState replication. Stun boundaries now ForceReplication; no duration or gameplay permission was relaxed.",
+    "Editor_R1/R2 initial reflection/replication macro/component-access compilation issues and Editor_R12 diagnostic GetNetDormancy API mismatch were corrected before final builds."
+  ],
+  "preservation": {
+    "baselineProof": {
+      "path": "Saved/HookThrow/20261117/Protected_Before.json",
+      "sha256": "3EFF5222BC3AB5486B282E120E731B059386BCA4FA6EFA81F8ACE7C5FF73416A"
+    },
+    "checkedExistingFiles": 1370,
+    "unexpectedChanges": 0,
+    "expectedIgnoreChange": "Only new hook Markdown whitelist",
+    "preExistingUserWork": [
+      {
+        "path": "Content/Maps/MVPB_NetTest.umap",
+        "sha256": "231B4C960A4EB6F95FA59B9B460D2BAB46ABE6C2A8E06E528D8DA53A66B0FBB5"
+      },
+      {
+        "path": "Content/Blueprints/GA/GA_Car08_SmokeScreen.uasset",
+        "sha256": "280120FAF6E2601A298E427D3F68CE8A7D64D920E1EB1EA8AD4EC328876BD003"
+      }
+    ],
+    "sharedProjectAndLauncherUnchanged": true,
+    "newAssets": [
+      {
+        "path": "Content/Assets/FX/HookThrow/M_HookThrow_ToonMetal.uasset",
+        "sha256": "1FE62E09024830D8F8F6750D989E4D399487AD3A2C6A5C9E24FED7C22C8CE730"
+      },
+      {
+        "path": "Content/Assets/FX/HookThrow/SM_HookThrow_ChainLink.uasset",
+        "sha256": "F6F8D0BCCC9ED66A9E3A859E1D622E5617C33CF07F66608AE3E945ECF4B4A4D4"
+      },
+      {
+        "path": "Content/Assets/FX/HookThrow/SM_HookThrow_Head.uasset",
+        "sha256": "CD5F651672279DBD74A25A423BAED9DD54C6FAE6D24ABEC7AA1A044F9202486D"
+      },
+      {
+        "path": "Content/Data/Abilities/DA_Ability_HookThrow.uasset",
+        "sha256": "91C9F5CA8654B80E2E94FB26CCA509B0A8C33A100FFFD4C0D9838497BAE8244D"
+      }
+    ],
+    "directBlueprintOrMapEdits": false,
+    "commitOrPushPerformed": false
+  },
+  "source": [
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp",
+      "sha256": "741B61FD46F617FBAC210827ADC00D4F7E355A6AFCE48FA1746ED6224D3B5958"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h",
+      "sha256": "4540B959338917B39791563F27A2662505108AA11F9A9BA8D31D34F0E1E08412"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BallControlComponent.cpp",
+      "sha256": "2F1846AD7DB009A241319FD6A9F21EA45D137D4BB73684AA257F652F1BE7DCCF"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BallControlComponent.h",
+      "sha256": "0FAFAC7B99C4BE2ACEF7AA6CFBC31596AA0369AB1B640C4745838BF8CB21CF5A"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALAbilitySystemComponent.cpp",
+      "sha256": "C03FC1ECB61E982E739DF7DCBD1A364AE83F5636AC0FAB08D1FF2087EFB527D9"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameplayTags.cpp",
+      "sha256": "DEE29459358823C6988228B22949594804164A9C64A2BC953EBA3D36AEC5B526"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameplayTags.h",
+      "sha256": "958BE4D2DB2CB79CF02211E7D8777B0E89955942757FAA1CCD85C124470DB916"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookComponent.cpp",
+      "sha256": "E591DDC6ED918776477693D1BC95E279EDF889EA1CFD3B50FE7E8BBDB5A615F9"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookComponent.h",
+      "sha256": "81431D8A2FC4BC265C7C48DE9E48725AF6E5AFF7AE7965017AB4C5770AB19801"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookMotion.cpp",
+      "sha256": "227B9C8E28A4D21AF84CA49C6CDD1870CF007B80395D058F5EB14B0C56DCC385"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookMotion.h",
+      "sha256": "4B4A78A81C0D5AB19EBC76ECC3247F7FB228A575A9A2FD7F3CA14EFE6BAB5799"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookThrow.cpp",
+      "sha256": "74FC25AFE972637CCF5C7337DB0939097C7DD22FA70E4B16D63D71ADC9AA3A88"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookThrow.h",
+      "sha256": "44EFE3E4F4ACC15527F12D36B0BF1A63930D70817795AAF8ED57196F3BC91B55"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookThrowAbility.cpp",
+      "sha256": "D1C717D0EB3D27AA3DF134F604AD1491F5E94A2C60A50AA4D08A8B73E6277865"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookThrowAbility.h",
+      "sha256": "E948AA021C2A119445BD9A6BF26CF2E5817EF1CA185A2078B457A68A491396AE"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookThrowTypes.cpp",
+      "sha256": "B5EABFCA692D24C1250081DD37E8D9C2801823F1EB8E20349DF316CC03CB29FF"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookThrowTypes.h",
+      "sha256": "400048B62FDC18A7E8B2950FE3CF42153E2407430FBEA0AD40343FB3DD6B8DB6"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactReceiverComponent.cpp",
+      "sha256": "B9BA66D7549029920ACF6D5E6272A4EC68B93A420EB57FF9451E252791774A72"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementEffectBridge.cpp",
+      "sha256": "6D0DC8C79FB462F83B5C5BCF63CD19D9BABECDC55D8D02F76F44B7777B739173"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementEffectBridge.h",
+      "sha256": "ED037507C3810A96168902D9C6D62863808E3E949B7FE32A56F2A5ED7087090A"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementTypes.cpp",
+      "sha256": "7231CAD35A29AA94D181EECDE1DB2339B59E4DDEFCBFF829EDA3A10EB9974252"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementTypes.h",
+      "sha256": "DACAF28C5A06E9D5CD028548CDFCE5171BDC449442B78FF310D950B9ACF280FD"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALHookThrowNetworkTests.cpp",
+      "sha256": "82F98DE12E8E7C37B744D39B3791DA7A9CF4E0A434CED1C5D92629F3C7F6D666"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALHookThrowRenderTests.cpp",
+      "sha256": "B74C4DCE921971878862ACC6A7BF4E491AA4A32AFF5DEFD6F2814B9659B3D8ED"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALHookThrowTests.cpp",
+      "sha256": "5C949D8A903D9CECCB82EE313EE9923FCD6590780FCD40594BEBA8AE9D545394"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+      "sha256": "BBB0DAD1089EEA2F95B8EC756A267796E0810F2D8946A8ECAFB6FB9AF5282465"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.h",
+      "sha256": "A4247F058A32DE0177DAD17B8ECC1EB36264DE616A65157551B567894152C440"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleRecoveryComponent.cpp",
+      "sha256": "E783B266269B1097D331B219047F782FB65B3BFAACF272AE07FD16998C9BF34E"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALBuildHookThrowFXCommandlet.cpp",
+      "sha256": "F30CDCE4444A7C50FE6BA1B7CCC517A0E5C35593C8077334F8F42CA502BDF7BC"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Public/HALBuildHookThrowFXCommandlet.h",
+      "sha256": "FC71AF221F5C396F43C168365EE84E7A0455FCDF2DDC4431C8824D7075A8A624"
+    },
+    {
+      "path": "Tools/TestHookThrow.ps1",
+      "sha256": "101837883D2258FDE841737143793FE0E90ADA91C4FFA0BD3D6A44A1EB169C72"
+    }
+  ],
+  "limitations": [
+    "No specific production vehicle chosen; team must create lightweight GA BP and replace unique Primary grant manually per AGENTS.md.",
+    "Human left/right input feel, moving targets, visual mounts, full boundary matrix and four-player readability/performance remain unaccepted.",
+    "No actual Cook or packaged LAN build test in this task.",
+    "Logged displacement is one tested left-side path with friction, not a configured fixed throw distance.",
+    "No chain rigid-body simulation or wrapping around level obstacles; chain is presentation only."
+  ]
+}

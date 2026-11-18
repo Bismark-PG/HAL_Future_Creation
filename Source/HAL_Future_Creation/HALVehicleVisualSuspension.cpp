@@ -1,5 +1,6 @@
 #include "HALVehiclePresentationComponent.h"
 #include "HALVehiclePresentationConfig.h"
+#include "HALSideShiftComponent.h"
 #include "VehicleRecoveryComponent.h"
 #include "BallControlComponent.h"
 #include "BasicBallActor.h"
@@ -71,7 +72,9 @@ void UHALVehiclePresentationComponent::UpdateSuspension(float DeltaTime)
 	Frame.SuspensionTraceCount = 0;
 	Frame.SuspensionQueryMicroseconds = 0;
 	for (auto& Support : WheelSupports) { Support = {}; }
-	if ((!Config->Suspension.bEnabled && !bTireSkidReady) || !Mesh || !GetWorld())
+	const auto* Shift=GetOwner()->FindComponentByClass<UHALSideShiftComponent>();
+	const bool bSkillMarks=Shift&&Shift->GetActiveTireMarks();
+	if ((!Config->Suspension.bEnabled && !bTireSkidReady && !bSkillMarks) || !Mesh || !GetWorld())
 	{
 		for (auto& Wheel : Config->Wheels)
 		{

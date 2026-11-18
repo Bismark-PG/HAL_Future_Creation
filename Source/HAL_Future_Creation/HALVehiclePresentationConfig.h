@@ -33,6 +33,10 @@ struct HAL_FUTURE_CREATION_API FHALTireSkidConfig
 	UPROPERTY(EditAnywhere, Category="Niagara", meta=(ClampMin="0.01", ClampMax="1")) float SlipRatio = 1;
 	/** Optional vector User parameter, only after the Niagara asset binds it to RibbonFacing. */
 	UPROPERTY(EditAnywhere, Category="Niagara") FName SurfaceNormalParameter;
+	/** Optional LinearColor User parameter that receives MarkColor. Empty keeps the Niagara asset's own default colour. */
+	UPROPERTY(EditAnywhere, Category="Niagara") FName ColorParameter;
+	/** This car's mark colour, linear. Alpha scales the mark's opacity. Cosmetic identity only; every client reads it from the same Data Asset. */
+	UPROPERTY(EditAnywhere, Category="Niagara") FLinearColor MarkColor = FLinearColor(0.02f, 0.02f, 0.025f, 1.f);
 	/** Safety cleanup after emission stops. Must exceed the template's longest particle lifetime. */
 	UPROPERTY(EditAnywhere, Category="Lifecycle", meta=(ClampMin="0.1", ClampMax="30", Units="s")) float MaximumFadeSeconds = 5;
 	bool Validate(FString& Error) const;

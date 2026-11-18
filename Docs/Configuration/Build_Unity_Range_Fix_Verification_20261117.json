@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-17",
+  "branch": "main",
+  "startCommit": "deee273",
+  "engine": "5.8.3-58210709",
+  "task": "Post-merge Unity Range collision; validate local BuildAndLaunchWithMCP",
+  "rootCause": {
+    "log": "Saved/BuildTool/BuildAndLaunch_20261117_202045_072_501ca0/UnrealBuildTool.log",
+    "firstError": "C2084: anonymous namespace Range(float,float,float) duplicated by HALSmokeScreenTypes.cpp and HALTornado.cpp",
+    "secondaryErrors": [
+      "C4551",
+      "C2568"
+    ],
+    "combinedUnit": "Intermediate/Build/Win64/x64/UnrealEditor/Development/HAL_Future_Creation/Module.HAL_Future_Creation.4.cpp",
+    "observedTogetherWithAdaptiveDisabled": [
+      "HALSmokeScreenTypes.cpp",
+      "HALTornado.cpp"
+    ]
+  },
+  "fix": [
+    {
+      "path": "Source/HAL_Future_Creation/HALArrestChainTypes.cpp",
+      "helper": "IsArrestChainValueInRange",
+      "onlyHelperRenamed": true
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPolicePursuit.cpp",
+      "helper": "IsPursuitValueInRange",
+      "onlyHelperRenamed": true
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALSmokeScreenTypes.cpp",
+      "helper": "IsSmokeScreenValueInRange",
+      "onlyHelperRenamed": true
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALTornado.cpp",
+      "helper": "IsTornadoValueInRange",
+      "onlyHelperRenamed": true
+    }
+  ],
+  "editorUnity": {
+    "arguments": "HAL_Future_CreationEditor Win64 Development -WaitMutex -NoHotReload -NoLiveCoding -DisableAdaptiveUnity",
+    "result": "Succeeded",
+    "exitCode": 0,
+    "log": "Saved/LocalMCP/20261117/UnityRangeFix/Editor_Unity.log",
+    "runtimeUnityDisabled": false,
+    "globalBuildConfigurationChanged": false
+  },
+  "oneClick": {
+    "script": "Saved/LocalMCP/BuildAndLaunchWithMCP.cmd",
+    "scriptChanged": false,
+    "buildResult": "BuildSucceeded",
+    "buildExitCode": 0,
+    "builderExitCode": 0,
+    "builderResult": "Saved/BuildTool/BuildAndLaunch_20261117_202902_435_528078/Result.json",
+    "console": "Saved/LocalMCP/20261117/UnityRangeFix/OneClickConsole.log",
+    "editorStarted": true,
+    "editorPID": 24120,
+    "listenAddress": "127.0.0.1",
+    "port": 8000,
+    "httpInitializeStatus": 200,
+    "readOnlyLevel": "/Game/Maps/MVPB_NetTest",
+    "PIERunning": false,
+    "mcpEvidence": "Saved/LocalMCP/20261117/UnityRangeFix/OneClickMCP_Readonly.json",
+    "currentChatNativeMCPToolsAvailable": false
+  },
+  "regression": {
+    "Succeeded": 10,
+    "SucceededWithWarnings": 0,
+    "Failed": 0,
+    "NotRun": 0,
+    "InProcess": 0,
+    "Cases": [
+      {
+        "fullTestPath": "HAL.FutureCreation.Pursuit.Chains.FlowClockDirectionAndIndependentWire",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Pursuit.Chains.GeometryAndInterlocking",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Pursuit.Chains.ServerClockEntryReleaseAndLateJoin",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Pursuit.AuthorityGASLifecycleArrestProtection",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Pursuit.CounterAndStars",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.SmokeScreen.AuthorityGASWallsMultipleSourcesPauseAndCleanup",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.SmokeScreen.IndependentPuffClockAndConfiguration",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.SmokeScreen.SavedRenderingContract",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Tornado.AuthorityGASImpactBallsWallAndCleanup",
+        "state": "Success"
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.Tornado.PhasesValidationAndSweptCylinder",
+        "state": "Success"
+      }
+    ],
+    "RHI": "NullRHI",
+    "report": "Saved/LocalMCP/20261117/UnityRangeFix/Focused/index.json",
+    "exitCode": 0
+  },
+  "preservation": {
+    "protectedFileCount": 1373,
+    "unchanged": 1373,
+    "changed": [],
+    "includes": "Content, Config, .uproject, .gitignore, shared/local launchers and pre-existing local UBT XML",
+    "gameplayOrParametersChanged": false,
+    "sharedLauncherChanged": false,
+    "projectDescriptorChanged": false
+  },
+  "sourceHashes": [
+    {
+      "Path": "Source/HAL_Future_Creation/HALArrestChainTypes.cpp",
+      "SHA256": "89532344545D76DD73A39A9B0E12D908D45CBC561893A1D9AFD602C02541AE51"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALPolicePursuit.cpp",
+      "SHA256": "03D60F6A20FE5B597D53FA80C9B045180D312030E9B6C02166070B1CFA718078"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALSmokeScreenTypes.cpp",
+      "SHA256": "995390A4851FF302350B51254F88DF0EADD970D4EF44953B524FB3B06CDD8FB4"
+    },
+    {
+      "Path": "Source/HAL_Future_Creation/HALTornado.cpp",
+      "SHA256": "B091A00CD88EBEFA33179C154B54AC14F315D25F5B2DF01BA606C910498C75FF"
+    }
+  ],
+  "limits": [
+    "No Game Target, full suite, real-RHI visual, multiplayer, Cook or package rerun.",
+    "Existing MSVC preferred-version, engine deprecation and float conversion warnings remain.",
+    "Editor left running after local one-click validation. This session used direct local MCP HTTP because the current chat had no native Unreal tool catalog.",
+    "Changes not committed or pushed."
+  ]
+}

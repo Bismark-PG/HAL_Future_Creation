@@ -6,6 +6,7 @@
 #include "../HALGameplayTags.h"
 #include "../HALPlayerState.h"
 #include "../TestVehiclePawn.h"
+#include "HALVehicleAbilityTestSupport.h"
 #include "UObject/UnrealType.h"
 
 namespace HALMovementAbilityTests
@@ -14,6 +15,7 @@ namespace HALMovementAbilityTests
 	inline bool ConfigurePrimary(AHALPlayerState* State)
 	{
 		if (!State || !State->HasAuthority()) { return false; }
+		FHALVehicleAbilityTestAccess::UseLegacyAbilities(Cast<ATestVehiclePawn>(State->GetHALAbilitySystemComponent()->GetAvatarActor()));
 		auto* Property = FindFProperty<FArrayProperty>(State->GetClass(), TEXT("DefaultAbilities"));
 		if (!Property) { return false; }
 		auto& Grants = *Property->ContainerPtrToValuePtr<TArray<FHALAbilityGrant>>(State);

@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
 #include "HALVehicleLifecycleTestSupport.h"
+#include "HALVehicleAbilityTestSupport.h"
 #include "HALRoomTestSupport.h"
 #include "../HALPlayerState.h"
 #include "../HALPlayerController.h"
@@ -48,6 +49,7 @@ namespace
 			auto* Class = LoadClass<ATestVehiclePawn>(nullptr,TEXT("/Game/Blueprints/Vehicles/BP_RoundedVehiclePawn.BP_RoundedVehiclePawn_C"));
 			FActorSpawnParameters P; P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			auto* Pawn = World->SpawnActor<ATestVehiclePawn>(Class,FVector(0,0,1000),FRotator::ZeroRotator,P);
+			FHALVehicleAbilityTestAccess::UseLegacyAbilities(Pawn);
 			FHALVehicleLifecycleTestAccess::Configure(Pawn,B);
 			Pawn->PreInitializeComponents(); Pawn->InitializeComponents(); Pawn->PostInitializeComponents(); return Pawn;
 		}

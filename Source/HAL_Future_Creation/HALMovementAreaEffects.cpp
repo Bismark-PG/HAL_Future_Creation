@@ -36,3 +36,15 @@ UHALSlipperyAreaEffect::UHALSlipperyAreaEffect()
 	auto* AssetComponent = CreateDefaultSubobject<UAssetTagsGameplayEffectComponent>(TEXT("SlipperyAreaAssetTags"));
 	GEComponents.Add(AssetComponent); AssetComponent->SetAndApplyAssetTagChanges(Asset);
 }
+
+UHALDragAreaEffect::UHALDragAreaEffect()
+{
+	DurationPolicy = EGameplayEffectDurationType::Infinite;
+	Modifiers.Add(MakeAreaModifier(UHALMovementAttributeSet::GetAreaGripDeltaAttribute(), HALGameplayTags::Data_Movement_AreaGrip));
+	FInheritedTagContainer Granted; Granted.AddTag(HALGameplayTags::State_Movement_Drag);
+	auto* Grant = CreateDefaultSubobject<UTargetTagsGameplayEffectComponent>(TEXT("DragGrantedTags"));
+	GEComponents.Add(Grant); Grant->SetAndApplyTargetTagChanges(Granted);
+	FInheritedTagContainer Asset; Asset.AddTag(HALGameplayTags::Effect_Scope_Avatar); Asset.AddTag(HALGameplayTags::Effect_Movement_Area);
+	auto* Scope = CreateDefaultSubobject<UAssetTagsGameplayEffectComponent>(TEXT("DragAssetTags"));
+	GEComponents.Add(Scope); Scope->SetAndApplyAssetTagChanges(Asset);
+}

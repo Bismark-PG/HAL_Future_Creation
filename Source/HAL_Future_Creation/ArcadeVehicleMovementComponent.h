@@ -61,7 +61,7 @@ public:
 	void ApplyHistoryState(const FVehicleNetStateData& InState);
 	void ResetInputCommand();
 	void QueueRecoil(const FVector& DeltaVelocity);
-	bool QueueImpact(FVehicleImpactAction& Action);
+	bool QueueImpact(FVehicleImpactAction& Action, const FGuid& AttackId = FGuid(), uint32 PulseSequence = 0);
 	bool QueueBounceBack(const FVector& Direction, float Distance, float Duration, uint32 SourceId = 0, const FVector* EntryOrigin = nullptr);
 	bool PredictBounceBack(const FVector& Direction, float Distance, float Duration, uint32 SourceId, const FVector* EntryOrigin = nullptr);
 	void ObserveBounceAuthority(int32 LocalFrame, uint32 Sequence);
@@ -79,6 +79,8 @@ public:
 	FHALMovementStatus GetMovementEffectStatus() const;
 	/** Thread-safe copy of the last actually consumed input; for cosmetic observers only. */
 	FHALVehiclePresentationInput GetPresentationInput() const;
+	/** Authority gameplay query: last physics-consumed driving demand after control permission gates. */
+	FVehicleInputCmd GetAcceptedDrivingInput() const;
 	FVehicleStabilityObservation GetStabilityObservation() const;
 	FVehicleContactObservation GetContactObservation() const;
 	bool IsBounceBackActive() const;
@@ -97,11 +99,19 @@ private:
 	Chaos::FPBDRigidsSolver* RewindTickSolver = nullptr;
 	friend class FVehicleWallEscapeContactTest;
 	friend class FHALImpactPhysicsThreadTest;
+	friend class FHALNonHistoryImpactWakeTest;
+	friend struct FHALBlackHoleImpactTestAccess;
 	friend class FHALMovementSolverTest;
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALVehicleStabilityTestAccess;
 	friend struct FHALBattleTopTestAccess;
 	friend struct FHALBullChargeTestAccess;
+	friend struct FHALSideShiftTestAccess;
+	friend struct FHALTornadoTestAccess;
+	friend struct FHALSmokeTestAccess;
+	friend struct FHALHookTestAccess;
+	friend struct FHALHookSolverTestAccess;
+	friend struct FHALSkillTestDummyTestAccess;
 	friend struct FHALRecoveryTestAccess;
 	friend struct FHALPresentationTestAccess;
 	friend struct FHALCameraTestAccess;
@@ -113,6 +123,7 @@ private:
 	void CollectMovementAuthority(Chaos::FPBDRigidsSolver* Solver, int32 LocalFrame);
 	bool RequestMovementRewind(Chaos::FPBDRigidsSolver* Solver, int32 LocalFrame, int32 RequestedLocalFrame, bool bRequireCheckpoint = false);
 	void SimulateVehicleStep(const FVehicleNetInputData& StepInput, float DeltaTime);
+	void ConsumeNonHistoryImpacts_Internal(int32 PhysicsFrame);
 	bool UpdateGroundContact(const FVector& BodyLocation, FVector& OutGroundNormal) const;
 	bool UpdateRecoverySupport(const FVector& BodyLocation, FVector& OutGroundNormal) const;
 	FVehicleRecoveryConfig RecoveryRules;
@@ -145,6 +156,8 @@ private:
 		const FVector& Velocity, float DeltaTime);
 	void ResetWallEscape();
 	void ApplyLongitudinalForces(FBodyInstance& Body, const FVector& ForwardDirection, float CurrentForwardSpeed, float DeltaTime = 1.f / 60.f);
+	/** Optional Drag-only adapter. Leaves the caller's original driving frame untouched without active Drag propulsion. */
+	void ResolveDragDriveFrame(FBodyInstance& Body, FVector& InOutForwardDirection, float& InOutForwardSpeed) const;
 	void ApplyLateralGrip(FBodyInstance& Body, const FVector& RightDirection, float CurrentLateralSpeed);
 	void ApplySteering(FBodyInstance& Body, const FVector& GroundNormal, float CurrentForwardSpeed,
 		float CurrentYawRate, float DeltaTime, float AreaSwayAcceleration);
@@ -157,6 +170,7 @@ private:
 	mutable FCriticalSection PendingPhysicsDataLock;
 	FHALVehiclePresentationInput PublishedPresentationInput; // Protected by PendingPhysicsDataLock.
 	FVehicleInputCmd InputCommand;
+	FVehicleInputCmd PublishedAcceptedDrivingInput; // Protected by PendingPhysicsDataLock.
 	FVehicleNetInputData LastPhysicsInput;
 	FVehicleNetInputData AppliedHistoryInput;
 	TAtomic<bool> bUseNetworkPhysicsHistory{false};
@@ -168,6 +182,19 @@ private:
 	bool bWasResimulating = false; // Physics thread only.
 	mutable uint32 NextInputSequence = 0;
 	FVector PendingRecoilDeltaVelocity = FVector::ZeroVector;
+	struct FQueuedVehicleImpact
+	{
+		FVehicleImpactAction Action;
+#if !UE_BUILD_SHIPPING
+		FGuid AttackId;
+		uint32 PulseSequence = 0;
+		int32 SubmitFrame = INDEX_NONE;
+#endif
+	};
+	// Authority-only transfer to the existing physics tick, not owner input/history.
+	static constexpr int32 MaximumPendingImpacts = 128;
+	TArray<FQueuedVehicleImpact> PendingImpacts; // Protected by PendingPhysicsDataLock.
+	TAtomic<bool> bHasPendingImpacts{false};
 	UPROPERTY(Transient) TObjectPtr<UNetworkPhysicsComponent> MovementHistory;
 	FGuid MovementEpochExternal;
 	bool bMovementResetPending = false;
@@ -182,6 +209,9 @@ private:
 	FHALMovementTimeline MovementAuthorityTimeline;
 	TArray<FHALMovementSnapshot> MovementActions;
 	FHALMovementSnapshot CurrentMovement;
+	FHALSideShiftTurnState SideShiftTurn;
+	bool bSideShiftTurnSteering=false;
+	float SideShiftTurnAcceleration=0;
 	int32 CurrentMovementServerFrame = INDEX_NONE;
 	FVector CurrentMovementScales = FVector::OneVector;
 	struct FUsedMovementFrame
@@ -202,6 +232,18 @@ private:
 	bool bMovementDriveAllowed = true;
 #if !UE_BUILD_SHIPPING
 	bool bLoggedFirstPhysicsStep = false;
+	// Cosmetic diagnostics only. Shared with the GT under PendingPhysicsDataLock; never replayed.
+	struct FImpactDiagnosticTrace
+	{
+		FGuid AttackId;
+		FString OwnerName;
+		uint32 EventSequence = 0, PulseSequence = 0;
+		int32 SubmitFrame = INDEX_NONE, FirstFrame = INDEX_NONE, LastFrame = INDEX_NONE, NextSample = 0;
+		FVector SubmitPosition = FVector::ZeroVector, FirstPosition = FVector::ZeroVector;
+	};
+	TArray<FImpactDiagnosticTrace> ImpactDiagnosticTraces;
+	TAtomic<bool> bHasImpactDiagnosticTraces{false};
+	void SampleImpactDiagnostics_Internal(int32 PhysicsFrame);
 #endif
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Arcade Vehicle|Debug")

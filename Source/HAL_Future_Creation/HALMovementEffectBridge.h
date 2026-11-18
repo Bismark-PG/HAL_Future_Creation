@@ -27,6 +27,13 @@ public:
 	void SetAreaSway(const FHALMovementAreaSway& Sway);
 	void SetOverdriveMotion(const FHALOverdriveMotion& Motion);
 	void EndOverdriveMotion();
+	void SetSideShiftMotion(const FHALSideShiftMotion& Motion);
+	void EndSideShiftMotion();
+	void ReleaseSideShiftDrift(FGuid Activation);
+	/** Receiver-selected Drag flow; published only while GAS grants State.Movement.Drag. */
+	void SetDragDrive(const FHALGravityDrive& Field);
+	void SetHookMotion(const FHALHookMotion& Motion);
+	void EndHookMotion(FGuid Activation);
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 private:
@@ -44,10 +51,13 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UArcadeVehicleMovementComponent> Movement;
 	UPROPERTY(Transient) TObjectPtr<UNetworkPhysicsComponent> History;
 	TArray<TPair<FGameplayAttribute, FDelegateHandle>> AttributeHandles;
-	FDelegateHandle StunHandle, BattleTopHandle, WorldHandle;
+	FDelegateHandle StunHandle, BattleTopHandle, DragHandle, WorldHandle;
 	FVector AreaRecoverySeconds = FVector::ZeroVector;
 	FHALMovementAreaSway AreaSway;
 	FHALOverdriveMotion Overdrive;
+	FHALSideShiftMotion SideShift;
+	FHALGravityDrive DragDrive;
+	FHALHookMotion HookMotion;
 	FHALMovementSnapshot LastPublished;
 	int32 BoundPlayerId = INDEX_NONE;
 	bool bDirty = false;

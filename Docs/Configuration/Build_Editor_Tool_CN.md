@@ -1,5 +1,32 @@
 # 编译、重新构建并启动 Editor 工具
 
+## 2026-11-17：合并 Car08 后再次暴露的 Unity 私有函数重名
+
+用户拉新到`main/deee273`，经本机`Saved/LocalMCP/BuildAndLaunchWithMCP.cmd`触发真实构建。日志`Saved/BuildTool/BuildAndLaunch_20261117_202045_072_501ca0/UnrealBuildTool.log`的首个错误为C2084：新增`HALSmokeScreenTypes.cpp`和既有`HALTornado.cpp`都在匿名命名空间中定义了`Range(float,float,float)`，并被包含到同一个`Module.HAL_Future_Creation.4.cpp`，后续C4551／C2568为连带错误。编译工具正确返回6，本机包装器因此没有启动Editor。
+
+修复将四份运行时CPP中的同名范围校验函数分别改为`IsSmokeScreenValueInRange`、`IsTornadoValueInRange`、`IsPursuitValueInRange`和`IsArrestChainValueInRange`，避免另外两份旧实现随Unity分组变化再次冲突。逐文件反向替换核对：除辅助函数名称外内容一致（仅忽略换行格式），没有修改数值、校验边界、反射字段或技能逻辑；共享BuildAndLaunch、uproject及本机启动器不需要改动。
+
+这也解释了开发设备先前的增量编译为何可能通过：Adaptive Unity会把正在编辑的源码拆出Unity文件；提交或拉新后重新组合，会暴露之前未一起编译的同名函数。本页顶部的合并前测试不能替代当前合并结果的验证。新增辅助函数继续使用明确的文件／系统相关名称，验证时覆盖`-DisableAdaptiveUnity`，不要依靠禁用整个运行时模块的Unity来回避问题。构建机制参考[Epic Build Configuration](https://dev.epicgames.com/documentation/en-us/unreal-engine/build-configuration-for-unreal-engine)。
+
+本轮UE5.8.3-58210709已完成：Editor Target普通Unity编译通过（`-DisableAdaptiveUnity`，exit 0；实读确认黑烟和龙卷风在同一合并CPP）；黑烟3项、龙卷风2项、通缉与铁链5项原生专项共**10/10通过**，0测试警告／失败／未运行。使用NullRHI，没有重新验收视觉／多人或打包，保留既有MSVC优选版本、引擎弃用和浮点转换警告。默认一键启动的实测结果及文件保持核对见[本轮验证留档](Build_Unity_Range_Fix_Verification_20261117.json)。
+
+## 2026-11-15：本次报错是项目的 Unity 函数重名，已修复
+
+用户常规入口日志`BuildAndLaunch_20261115_194627_009_688359`中，首个错误为C2084：`HALDamageFeedbackConfig.cpp`与`HALPolicePursuit.cpp`在匿名命名空间内各自定义了`Range(float,float,float)`。Unreal为加快编译将两份CPP合并到`Module.HAL_Future_Creation.3.cpp`，两者在这个编译单元内不再隔离，产生重复定义，随后连带出现C4551／C2568。BuildAndLaunch正确保留UBT退出6，并停止启动Editor；本次无需修改工具。
+
+修复将新受击配置的三个辅助函数改为`DamageFeedbackInRange`、`DamageFeedbackColorValid`、`DamageFeedbackFade`，不更改函数计算、字段或参数。截图中的C4864是另一个非致命警告：警车HUD的泛型Lambda内调用模板成员；将Lambda参数明确写为`const FHALPursuitView&`，消除依赖类型歧义，筛选行为保持。
+
+本次UE5.8.3-58210709真实验证：
+
+- 原入口`.\BuildAndLaunch.cmd -NoLaunch -NoPopup`成功，`Result.json`为BuildSucceeded／BuildExitCode=0／ExitCode=0，没有启动交互Editor。
+- 额外对Editor及Game Target使用`-DisableAdaptiveUnity`构建，均Succeeded／退出0。运行时模块保留普通Unity构建，受击配置、警车逻辑、HUD明确在同一合并CPP中；没有用整个运行时模块禁用Unity来绕过冲突。Editor工具模块保留其此前的非Unity设置。
+- 在上述Unity Editor模块执行相关原生＋真实D3D12专项 **11/11通过**，测试警告／失败／未执行均0，覆盖受击配方／脉冲／实际扣血／遮挡／清理、通缉／六星／HUD及铁链。
+- 本轮开工1337份Content／Config／uproject和BuildAndLaunch文件 **1337/1337哈希一致**。没有代改BP、地图、技能／表现DA或工具脚本。保留MSVC优选版本及既有UE弃用警告，不把构建成功写作零编译警告。
+
+之前受击初版的95项／双端结果是各自历史证据，本轮未重跑完整95项、多人、Cook或打包，也未重新验收交互Editor启动。详细留档见[Unity兼容修复验证](Build_Unity_Fix_Verification_20261115.json)。
+
+日常继续使用根目录`BuildAndLaunch.cmd`。今后新增CPP内辅助函数采用明确的文件／模块相关命名；仅通过自适应增量构建可能漏检Unity重名，开发收尾需要同时覆盖关闭自适应拆分的普通Unity组合。`-DisableAdaptiveUnity`是本轮直接传给UBT的验证参数，没有加入启动器日常默认参数或改动全局构建配置。
+
 ## 2026-10-30：重新整合后的当前入口
 
 同日车辆蓝图引用显示补充：Input预览的Editor C++现已加入当前源码，由本入口构建的现有Editor模块注册；旧Build_Editor.cmd已由用户删除，无需恢复。运行`BuildAndLaunch.cmd`即可按需编译这些新源文件；`-Rebuild`仍可用于官方完整重新构建。已有Car_02与新生成车型使用同一套只读读取，详见[车辆输入引用显示](Vehicle_Input_Preview_CN_v0.1.md)。主工程新版DLL已完成编译／链接；UBA启用时收尾阻塞，最终以`-NoUBA`原生构建核对返回Succeeded／0。脚本隔离检查重新13/13通过，六项UE自动化及蓝图界面验收仍待完成；详细证据见引用显示说明的主工程收尾核对，不将隔离夹具或编译成功记作界面验收。

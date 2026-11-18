@@ -265,7 +265,7 @@ void AHALSlipperyTrail::UpdateReceivers(float Age)
 	for (TActorIterator<ATestVehiclePawn> It(GetWorld()); It; ++It)
 	{
 		auto* Vehicle = *It;
-		if (Vehicle == GetOwner() || !IsActiveVehicle(*Vehicle) || !HasGroundContact(*Vehicle)
+		if (Vehicle == GetOwner() || !Vehicle->CanReceiveSkillEffects() || !HasGroundContact(*Vehicle)
 			|| !HALGameFlow::Permissions(GetWorld(), Vehicle).bWorldInteractions) { continue; }
 		auto* Receiver = Vehicle->FindComponentByClass<UHALMovementAreaReceiver>();
 		const auto* Body = Cast<UPrimitiveComponent>(Vehicle->GetRootComponent());

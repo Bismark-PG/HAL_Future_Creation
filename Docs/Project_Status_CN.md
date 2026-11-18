@@ -1,5 +1,467 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-18 钩锁俯视金属表现与命中火花已实装，待真人验收。** 基线为 `main/853f5a1`，UE 5.8.3-58210709。实装资产为原 Hook 专用母材质和 `DA_Ability_HookThrow`。链节间距 35 cm、链节缩放 1.9、钩头缩放 2.12；钢蓝暗面、中间色、冷银反光配合可见曲面与斜向打光。服务器成功抓取后按实际车身接触点与法线播放一簇暖金色卡通火花。复用 Car03 的 `NS_BattleTop_ToonContact`，在钩锁技能 DA 独立调节，首测为 14 粒、最长 0.24 s。原工程实配射程 2500 cm、命中半径 28 cm、冷却 15 s。见[技能 DA 和表现配置](Combat/Hook_Throw_Ability_CN_v0.1.md#参数与首测默认值)。
+
+Editor、Game Target 构建成功。真实 D3D12 的 R3 专项 6/6（5 项钩锁原生、1 项含火花出现与消散的渲染测试），零测试警告及失败。早期渲染轮的火花可见性断言失败，修订播放与测试准备后复验通过。最终联机代码 Host 出站注入 80 ms 的双进程测试各 1/1，两次有效抓取在两端均各有一次事件，坐标只差网络量化精度；双端用 NullRHI 验事件，可见像素由另一次 D3D12 专项验证。最终色值、火花引用和技能规则已在重新开启的本机 Editor 中经 MCP 读回。本机证据在 `Saved/HookArt/R3/Report`、`Saved/HookArt/NetFinal` 及 `Saved/HookArt/Hook-Overview.png`。下一步在 Fred_TestScene 用实际比赛相机检查不同地面对钢色的衬托、链孔可读性及火花是否盖住钩尖。
+
+**2026-11-17 钩子技能第二轮“带链甩动 → 脱钩飞出”已完成代码、编译及专项工程验证，待真人手感验收。** 接续 `main/40fed80` 当前未提交工程，UE5.8.3-58210709。选择左／右后，目标从命中位置沿圆弧逐渐加速，期间保留钩取归属与 Stun，钩头跟随实际连接点；物理线程消费完甩动末帧后才解除本钩子的 Stun、脱钩、收钩。脱钩保留实际横向速度，仅补最低上抛；中断时保留当时动量、不补一次额外投掷。命中立即掉球、不先拉近、墙体真实阻挡、普通水平推动不中断，以及独立 Stun／生命周期清理规则继续沿用。
+
+原技能 **`DA_Ability_HookThrow`** 新增 Swing Seconds **0.3s**、Swing Angle **30°**、Swing Arc Length **250cm**、Swing Acceleration Power **2**、Swing Maximum Acceleration **20000cm/s²**。Horizontal Speed 作为甩动末端速度上限，实际弧线同时受扫角、弧长和速度限制，不会在脱钩时强制补齐固定速度。已配置 GA／车型引用沿用，无需重建；没有覆盖团队调过的 DA。移动历史 **12→13**，双端须同时更新。甩动／脱钩／中断增加可靠离散阶段通知和序号保护，避免短阶段被延迟合并跳过或旧包倒退。详见[当前规则和调参](Combat/Hook_Throw_Ability_CN_v0.1.md#第二轮带链圆弧甩动与连续脱钩2026-11-17)。
+
+最终 **Editor_R7／Game_R2 构建成功**；**Native_R3：248/248**（246无警告、2项带既有换车负例警告，失败／未运行0）。真实 Chaos 对左右扫弧均得到约 `(708.718,±245.396)` cm 末点（圆心0、半径750cm），脱钩前后横向速度约 `(-502.497,±1540.394)` cm/s保持；中断保留动量，CCD墙阻挡在Y=-100cm通过。**Render_R1：真实D3D12 1/1**、0测试警告／失败，移动目标后实际钩头与链节保持连接，已检查渲染图。
+
+实际 Listen **Network_R2（普通）／Network_Lag80_R3（Host出站注入80ms）** 均双端各1/1、零测试警告／失败、退出0。覆盖客户端选向、连接中甩动、Stun时序、非零速度连续脱钩、甩动中外部Stun中断和双方清理；80ms不代表实测RTT。延迟首轮暴露的短阶段跳过已通过可靠通知修复。首轮宽回归另暴露旧测试隐式依赖Car01主技能，现只在临时实例上明确使用测试所需的Legacy授予，不改生产DA；PostSolve测试取样改读本帧求解位置、按实际物理末帧验收，未放宽轨迹断言。见[第二轮证据](Combat/Hook_Swing_Verification_20261117.json)。
+
+**1376/1376** 份开工时资产／Config／uproject／共享入口／gitignore哈希保持，包括团队当前Car01配置、Fred测试GameMode、新建GA和原技能DA；未新增或保存美术／蓝图／地图资产，未提交／Push。**下一步：完整编译后沿用现有接线，打开原技能DA的Rules → Swing调节并真人验收。** 扫角、弧长和速度上限会共同限幅；不以这些专项替代四机、实际Cook／发布包、所有地形／碰撞与真人观感验收。以下保留首轮历史，首轮直接水平投掷行为已由本条取代。
+
+**2026-11-17 铁链钩取／原地侧向投掷技能：逻辑、初版卡通金属表现及工程验证完成，待团队接线与真人验收。** 从 `main/40fed80` 接续，实际 UE **5.8.3-58210709**。施法车有限制动驻车，向前出钩；命中位置直接侧甩，不先拉近。用户最终更正已落实：**钩中施加通用 Stun，立即掉球，没有保球特例**。命中后先中立、再首次左／右输入决定投掷；左右基准在命中时锁定。超时不自动投掷；空钩／墙阻挡／正常甩出后均收钩，正常收钩结束才解锁驾驶。有效击飞、Stun、强制反弹、翻覆／自救等外部失控立即中断；普通水平推动不打断。投掷不扣血、不受冲击免疫阻止，只移除本钩子的 Stun；淘汰／换车／离场按来源清理。
+
+GAS 负责许可、冷却和状态；服务器 Hook Actor 负责扫掠、唯一抓取归属及阶段，既有 Chaos 移动步执行有限驻车／目标保持与一次投掷。移动历史格式 **11→12**，Host／Client 必须同时更新编译。全部玩法／特效参数在新 **`/Game/Data/Abilities/DA_Ability_HookThrow`**；新交错链节、收尖钩头和柔和三档金属材质位于 `/Game/Assets/FX/HookThrow`，没有改 Car06 铁链或指定任何车型。见[规则、GA／Definition 接线与完整调参](Combat/Hook_Throw_Ability_CN_v0.1.md)。
+
+最终 **Editor_R16／Game_R4 完整构建成功**；最终原生 **Native_R6：247/247**（245无警告、2项既有换车负例警告；失败／未运行0）；真实 **D3D12 Render_R2：1/1**、0测试警告／失败，检查实际链节、钩头、三阶像素和收回。实际 Listen **Network_R8** 以及 **Network_Lag80_R1** 均双端各1/1、0测试警告／失败、退出0；后者只向 Host 出站注入80ms，不冒充实测 RTT。实测投掷内部物理帧约1800 cm/s横向＋250 cm/s最低上抛；普通连接 Host／Client 最大向左位移约452.92／452.33 cm，80ms轮约452.93／461.76 cm；第二次捕获被外部 Stun 中断及双方状态清理通过。详见[本轮可同步验证摘要](Combat/Hook_Throw_Verification_20261117.json)。
+
+本轮真实双端暴露并修复了三个工程边界：空闲 Hook 历史原先全量传输造成带宽饱和，现只占一标记位、活动按模式发送且消费后清空；短生命周期钩子提高复制优先级；一次投掷预约下一权威物理帧，避免立即动作晚于同帧移动回调而漏执行。低频 PlayerState 上短 Stun 的起止也强制同步，独立 Stun 剩余时间比较继续按来源处理。首轮原生销毁清理／夹具帧推进错误、物理力内部线程 API 标志和诊断编译错误均已修正，早期失败轮未冒充通过。
+
+**下一步：团队按文档创建父类 `HALHookThrowAbility` 的 `GA_HookThrow`，Skill Config 引用新 DA，再替换所选车辆 Definition 的唯一 `Input.Ability.Primary`。** 车型尚未指定，不擅自改任何车辆技能配置。原有1370份资产／Config／uproject／共享入口哈希一致（`.gitignore` 仅新增本说明文档白名单）；开工时已有的 `MVPB_NetTest.umap` 与 `GA_Car08_SmokeScreen.uasset` 用户改动原样保留。未修改 Blueprint／地图／旧技能 DA；未提交／Push。左右真人输入、木桩与移动目标、各阶段受击／淘汰／换车、极端参数、四机表现与实际 Cook／发布包仍待团队，不能把上述专项冒充全部场景验收。
+
+**以下保留此前进度与验证历史。**
+
+**2026-11-17 拉新后Build＋MCP入口报错已修复，实际编译、专项回归和MCP启动验证通过。** 当前`main/deee273`、UE5.8.3-58210709；首个错误是黑烟与龙卷风的匿名`Range(float,float,float)`进入同一Unity CPP后重复定义（C2084），C4551／C2568为连带错误，脚本正确保留退出6并停止。四份运行时CPP的范围校验辅助函数改用各自唯一名称，逐文件逆向替换确认仅更名、数值与逻辑不变；共享BuildAndLaunch、uproject及本机MCP入口均未改。见[原因与后续命名约束](Configuration/Build_Editor_Tool_CN.md#2026-11-17合并-car08-后再次暴露的-unity-私有函数重名)及[本轮验证](Configuration/Build_Unity_Range_Fix_Verification_20261117.json)。
+
+真实Editor普通Unity构建（`-DisableAdaptiveUnity`）Succeeded／0，确认黑烟与龙卷风在同一合并CPP中；黑烟／龙卷风／通缉／铁链原生专项 **10/10通过**，0测试警告／失败／未运行。随后实际执行本机`Saved/LocalMCP/BuildAndLaunchWithMCP.cmd`，默认构建Succeeded／0并打开MCP Editor；仅监听127.0.0.1:8000，HTTP握手200、工具发现及当前关卡`/Game/Maps/MVPB_NetTest`只读查询成功，PIE未运行。当前聊天没有原生Unreal工具目录，本次为直接本地HTTP验证，不冒充聊天工具已重载。**1373/1373** 份Content／Config／uproject／启动器／忽略文件及原有本机UBT配置SHA256保持，Editor留给用户接续。保留既有编译警告；未重跑全量、真实渲染、多人、Game Target或Cook／打包；未提交／Push。
+
+**2026-11-17 Impact Burst 新增車對車火花粒子（Niagara）：資產已建立並存檔，編輯器 Target 編譯通過、全量 240/240 通過；PIE 實機未驗收。** 兩車直接相撞時，從接觸點噴出 2～6 顆火花粒子（依撞擊強度取整數）；球、機關、牆壁沒有。新資產 `NS_VehicleImpactSparks` 由 `NS_VehicleTireSkid` 複製、只留 `Sparks` 發射器並改為一次性爆發，單顆尺寸由 1×4～1×15 cm 放大到 5×24～9×48 cm，數量由 `User.SparkCount` 控制；原胎痕系統未動。`FHALImpactBurstEvent` 新增 `Sparks`（1 位元組），設定新增 `bSparks`／`SparkSystem`／`MinimumSparks`／`MaximumSparks`／`SparkCountParameter`，`DefaultGame.ini` 填入系統路徑，Cook 根集合一併收錄。
+
+> **走過的岔路**：先前把「火花」誤解成畫在爆點精靈上的星形圖案並做了一版，用戶指出要的是既有的火花粒子後已整個撤回（原始碼、材質、文件皆還原到 `56d9670`），再向用戶確認參考對象是甩尾胎痕的火花。
+
+**已驗證**：`NS_VehicleImpactSparks` 編譯 0 錯誤（唯一警告「SpriteSize 未偵測到初始化」在原 `NS_VehicleTireSkid` 上同樣出現，屬檢查工具的既有誤報）；編輯器內預覽擷取到 4 顆橘色條狀火花。`M_FX_ImpactBurst.uasset` 已還原為已推送的檔案。`HAL_Future_CreationEditor` Win64 Development 編譯通過（exit 0，改動檔案無警告）；無頭全量 `HAL.FutureCreation` **240/240 通過、0 失敗、0 未執行**（2 項既有警告；報告 `Saved/Automation/20261117/ImpactSparksNiagara`），ImpactBurst 測試已補火花數量、開關與範圍檢查的斷言。**未驗證**：實際生成 Niagara 元件的路徑沒有自動化覆蓋（測試跑 NullRHI，`SpawnBurstSparks` 在不能渲染時直接返回）；PIE 實機的火花大小、速度、亮度與俯視角可讀性；兩車互撞時兩組火花疊加的數量觀感；Cook。用戶其後要求全部提交並推送；`SingleVehicleTest.umap` 的本機改動依用戶指示一併提交（內容為用戶在編輯器內的修改，非本輪程式所改）。細節見[受擊漫畫打擊特效 §3](Presentation/MVPB_Vehicle_Impact_Burst_CN_v0.1.md)。 **合併後未重新建置**：推送前合併了組員的 Car08 黑煙技能（含新增 C++）、字型與 devlog；上述編譯與 240/240 是合併前的結果，合併後的建置在本機超過 10 分鐘未完成，用戶指示先不建置直接推送，因此合併結果本身未經本機編譯或測試。
+
+**2026-11-17 Car08 扩散黑烟代码、五份新资源及本机程序验证完成，待团队手动接线与画面验收。** 开发接续 `main/8a97ed1`，保留团队 Car08、胎痕等提交及已有讨论稿／忽略规则。4 s 喷射／每段 6 s／18 s 冷却、100→350 cm 扩散，车头排气管向上喷；本人免疫自己的屏幕干扰但仍看见世界烟，墙／楼板阻断影响，烟内目标标识／描边隐藏、正常 HUD 保留。眩晕／腾空暂停新增，旧烟继续到期，淘汰／换车／离场清理。GA／GE、有限服务器烟段和本地 Niagara＋世界投影遮蔽层职责分离，不改车辆物理／球／伤害或网络历史格式。见[规则、参数、GA／Definition 接线与管口校准](Combat/Car08_Smoke_Screen_CN_v0.1.md)。
+
+开发时本机 **UE5.8.2-56702186** 最终 **Editor R11／Game R6** 成功；最终全量原生 **242/242**，0 失败／未执行，含一项既有地图警告；真实 D3D12／Slate **1/1**，0 测试警告／失败，背景遮蔽／动画及 HUD 保护通过。真实 NetTest 双进程低延迟和 Host 出站 80 ms 注入两轮，**双方均各 1/1**，四份报告 0 测试警告／失败、进程退出 0；80 ms 不是实测 RTT。已检查含 UI 的本人免疫／Client 充分遮蔽截图。夹具仅替换出生实例授予并互换位置进入烟区，不代替真实连续驾驶或房间全流程。开发时原 1351 资产＋4 Config＋uproject 共 **1356/1356** 哈希保持，仅新增 5 资源，未改 BP／地图／既有车型 DA；见[验证摘要](Combat/Car08_Smoke_Screen_Verification_20261117.json)。
+
+下一步由团队创建 `GA_Car08_SmokeScreen`，引用新技能 DA 并配置 Car08 唯一 Primary；以 `hal.SmokeDebug 2` 校准排气管顶端的 Root-space Outlet Offset，测试前恢复 0；自定义头顶 Widget 接入 `ShouldHideWorldTarget`。管口默认偏移仅为占位。真人观感、持续驾驶、复杂／移动墙、四机性能、晚加入／旅行、丢包抖动与 Cook／发布包仍待验收；近期另一设备用 5.8.3，须统一补丁并完整重编，不沿用本机 DLL。下方记录保持各自时点。
+
+**本次状态记录恢复核对**：当前 `main/2d474b4` 已提交上述代码与五份资源；规格／验证摘要的“未提交／Push”指开发验证当时。本次核对其中 20 份源码与 5 份资源的 SHA256 全部与验证留档一致，六份原始测试报告仍在；仅恢复本文件，不重新编译／运行测试，也不将历史报告扩写为本次复测或团队实测通过。
+
+**2026-11-17 用戶實測回報：Impact Burst v2（墨線碎片、三級造型、車輛代表色）與 SingleVehicleTest 對手車「測試結果成功」，隨後提交並推送。** 回報未附具體工況（測了哪些車型、哪幾種撞擊來源、是否雙端），不擴寫為逐項驗收；下方兩條各自列出的「未驗證」項目中，未被這句回報明確涵蓋的仍視為待驗。`Content/Maps/SingleVehicleTest/SingleVehicleTest.umap` 在測試期間另有未提交的本機改動，非本輪程式所改，未納入本次提交。
+
+**2026-11-17 SingleVehicleTest 新增「對手車」：編輯器 Target 編譯通過、全量 240/240 通過；PIE 實機未驗收。** 為了在單車測試場景驗收車對車的衝擊特效，測試面板多一組 OPPONENT CAR 選單：在玩家車前方 700 cm 生成第二台不會動的車，可隨時換車種或移除。做法是執行時生成一台 `HALSkillTestDummy`，並以所選車輛 BP 自己的 Vehicle Definition 組一份暫時的 `UHALSkillTestDummyConfig`——沿用既有木樁的 ASC／受擊／表現路徑，不新增資產、不改 Blueprint 或地圖。改動：`AHALVehicleTestGameMode::ChangeOpponentVehicle`／`RemoveOpponentVehicle`／`GetOpponentVehicle` 與三個 `Vehicle Test|Opponent` 調參、`AHALSkillTestDummy::SetTestConfigForSpawn`、測試 Controller 的兩個轉呼叫與 Slate 面板、新增自動化 `HAL.FutureCreation.VehicleTest.OpponentSpawnsReplacesAndSurvivesPlayerSwap`。**限制**：對手車沒有輸入、不會開也不放技能；HP 歸零後需重新生成。**已驗證**：`HAL_Future_CreationEditor` Win64 Development 編譯通過（exit 0，改動檔案無警告）；無頭全量 `HAL.FutureCreation` **240/240 通過、0 失敗、0 未執行**（2 項帶警告：既有的 `InvalidAndBlockedReplacementRetainsCurrentCar`，以及新測試刻意觸發的「拒絕未列出車型」訊息；報告 `Saved/Automation/20261117/VehicleTestOpponent`）。**未驗證**：PIE 實機的面板操作、對手車落地與實際對撞、各車型逐一生成（自動化只用 Car_02）、對撞時的車色爆點觀感（用戶其後回報實測成功，見上條）。 用法見[單車測試文件 §2.1](Configuration/SingleVehicleTest_Setup_CN_v0.1.md)。
+
+**2026-11-17 Impact Burst（接觸點漫畫爆點）造型改為 v2「墨線碎片」：資產已在編輯器內重建並存檔，材質編譯 0 訊息，編輯器 Target 編譯通過、全量 239/239 通過；PIE 實機畫面未驗收。** 依用戶提供的兩張參考圖（白色碎片＋黑色墨線、放射飛散），重寫 `Tools/ImpactBurst/ImpactBurst.hlsl`：碎片先由帶刺的環連在一起，再散開外飛、變細成墨絲收尾；仍是純程序化、無貼圖。`CreateImpactBurstAssets.py` 的造型參數表同步更換（移除 `FX_Sharpness`／`FX_EdgeWidth`／`FX_EdgeGain`，新增碎片、墨線與 `FX_TierTint` 等），並經編輯器連線重跑，重建 `M_FX_ImpactBurst`、`MI_FX_ImpactBurst`（實例 0 覆寫）。原有六個執行期參數名稱與 Config 未改。
+
+**三個等級各一種造型（同日追加）**：Light＝無環、零星短碎片；Medium＝帶刺環散開；Heavy＝加粗的環＋外緣鋸齒的衝擊環。`FHALImpactBurstConfig` 新增 `TierParameter`（預設 `FX_Tier`），`ApplyBurstSlot` 寫入 `EHALImpactTier` 列舉值，`Validate` 同步檢查；等級原本就隨事件複製，無新增網路資料。
+
+**車輛代表色（同日追加）**：碎片填色改用撞擊車的胎痕色（`TireSkid.MarkColor`），略降飽和並提亮；兩車直接相撞時碎片交替兩台車的顏色，球命中用發射者的顏色，無車來源維持白色。`FHALImpactBurstEvent` 新增 `SourceColor`（sRGB `FColor`）與 `ColorMode`，`PublishAcceptedImpact` 多收來源與發起者 Actor（預設 nullptr，既有呼叫不受影響），設定新增 `bVehicleColors` 與三個材質參數名稱；材質新增 `FX_ColorMode`／`FX_SourceColor`／`FX_TargetColor`／`FX_Desaturate`／`FX_ColorLift`，已在編輯器內重建（0 訊息、335 PS 指令），並以暫時實例擷取一張雙色預覽確認。既有 ImpactBurst 兩支測試已補代表色、模式與網路輸入夾限的斷言。加入代表色後已重新驗證：編輯器 Target **編譯通過**（exit 0，改動檔案無警告），無頭全量 `HAL.FutureCreation` **239/239 通過、0 失敗、0 未執行**（1 項既有警告；報告 `Saved/Automation/20261117/ImpactBurstCarColors`）。**未驗證**：來源車顏色的查找與複製只有純函式層的斷言，沒有雙端網路測試；PIE 實機的雙色觀感、兩車互撞兩個爆點重疊、深色車可讀性均未看。
+
+**行為差異**：預設為純黑白，分級色（`FX_EdgeColor`）只在 `FX_TierTint` > 0 時染在碎片根部；預設 0。
+
+**已驗證**：材質編譯 0 訊息、最終 306 PS 指令、實例暴露全部 29 個純量＋3 個向量參數；以暫時材質實例在編輯器內擷取一張平面預覽，確認引擎實際輸出為帶刺白環＋黑墨線，與離線預覽一致（暫時資產已刪除）。另以暫時實例擷取 Light 與 Heavy 各一張，與離線預覽一致。`HAL_Future_CreationEditor` Win64 Development **編譯通過**（exit 0，本次改動的三個檔案無新增警告）；獨立 `UnrealEditor-Cmd.exe` 無頭全量 `HAL.FutureCreation` **239/239 通過、0 失敗、0 未執行**（其中 1 項為既有的 `VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar` 警告；報告 `Saved/Automation/20261117/ImpactBurstTiers`，時間戳為本次產生）。**未驗證**：`FX_Tier` 寫入路徑沒有專屬自動化測試（既有兩支 ImpactBurst 測試只涵蓋事件與壽命邏輯）；PIE 實機落點／俯視角可讀性、亮場地上白色碎片的對比、與受擊紅閃疊加、雙端、效能與 Cook 均未看。**未提交。** 細節見[受擊漫畫打擊特效 §3](Presentation/MVPB_Vehicle_Impact_Burst_CN_v0.1.md)。
+
+**2026-11-17 修正：持續甩尾約 5 秒後胎痕消失、只剩煙霧。資產已改並存檔，用戶實測後回報「修好了」。** 原因在素材而非 C++：`NS_VehicleTireSkid` 的 `TireSkid`（Ribbon）發射器 Emitter State 為 `Once`、Loop Duration 5 秒，而持續甩尾時 C++ 會沿用同一個 Niagara 組件，發射器跑完一輪即停發，已有胎痕在 4 秒粒子壽命內淡出；`Sparks`／`DriftSmoke` 為 `Infinite` 故繼續。舊 `NS_TireSkid` 的 Ribbon 發射器本來就是 `Infinite`。已經由編輯器連線把 `TireSkid` 的 Loop Behavior 改為 `Infinite`、重新編譯並存檔，回讀確認三個發射器皆為 `Infinite`；C++、DA 與其他素材未改。**未驗證**：本次沒有重新編譯 Target、沒有跑自動化測試；用戶的回報未附具體工況，不擴寫為逐車型／雙端驗收。
+
+**2026-11-17 胎痕改为每车有色喷漆痕迹（7 台车 DA 已启用新 `NS_VehicleTireSkid`、各配一种身份色），编辑器 Target 编译通过、全量 237/237 通过；PIE 实机画面、多车叠加观感与性能均未验收。** C++ 侧 `FHALTireSkidConfig` 新增 `ColorParameter`（Niagara LinearColor User 参数名，空＝沿用素材默认色）与 `MarkColor`（线性色，Alpha 缩放不透明度），`Validate` 检查参数存在与颜色合法，组件激活时推一次颜色；素材侧新增 `M_FX_TireMark_Ribbon`（Unlit Translucent，遮罩进 Opacity、颜色经 Particle Color 进 Emissive，一材质服务全部车）与 `T_TireMark_Spray_Worn_Mask`（`GenerateTireMarks.py` 的卡通 `Toon_Worn` 变体换成喷漆 `Spray_Worn`）；`Tools/TireMarks/BuildTireMarkAssets.py`、`EnableTireSkid.py` 两支幂等脚本重建材质并写 DA（只后轮出痕、`SurfaceNormalParameter=User.SurfaceNormal`、Car_05 后轮半径 47.5→55.2 cm 以免漂移侧倾时误判腾空）。为什么用 Unlit：胎痕颜色是车辆身份，阴影里和亮处必须读成同一种颜色。
+
+**刻意的边界**：前轮不出痕（四轮都冒在画面上读成 bug，不像漂移）；颜色是纯外观，不复制、不进权威逻辑；颜色只在组件激活时写一次，不逐帧写。重跑 `EnableTireSkid.py` 会把 DA 里手工改过的胎痕值覆盖回脚本值。
+
+> **坑：测试探针会继承 DA 里的可选参数名。** 首次全量 236 通过 1 失败：`HAL.FutureCreation.Presentation.TireSkid.GroundAndLifecycle` 期望发射掩码 4 实得 0。原因是 `EnableTireSkidProbe` 复制车型 DA 后换上旧 `NS_TireSkid`，而 DA 现已填 `User.SurfaceNormal`，旧素材未绑定，`Validate` 失败。已在夹具里与 `ColorParameter` 一起置空 `SurfaceNormalParameter`；生产代码未改。
+
+> **坑：`index.json` 的 `succeeded` 不含带警告的通过项。** 报告显示 `succeeded 236`，但 `tests` 共 237 项、全部 `Success`，差的那 1 项是 `succeededWithWarnings`（既有的 `VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar` 地图警告）。不要把 236 误读成少了一支测试。
+
+**已验证**：`HAL_Future_CreationEditor` Win64 Development **编译通过**（exit 0）；独立 `UnrealEditor-Cmd.exe` 无头全量 `HAL.FutureCreation` **237/237 通过、0 失败、0 未执行**（其中 1 项为既有警告；报告 `Saved/Automation/20261117/TireSkidColorFull2`，时间戳为本次产生）。
+
+**未验证**：PIE 实机里 7 种颜色在明亮场地上的可读性、与烟雾／其他 FX 叠加观感、四车同时漂移时的性能、双端观感、Cook；`ColorParameter` 非空路径与新 `NS_VehicleTireSkid` 尚无自动化测试覆盖；本轮未经特效评审。
+
+**提交**：本条与胎痕改动同一提交。
+
+**下一步入口**：PIE 开测试场，四车各漂一圈，先看 Car_06 海军蓝与 Car_02 绯红在场地地面上是否够醒目，再决定是否调 `MarkColor` 亮度（直接改 `Tools/TireMarks/EnableTireSkid.py` 的 `MARK_COLORS` 后重跑，不要只在 DA 里手改）。详见 [胎痕实现文档 §8](Presentation/MVPB_Vehicle_TireSkid_Implementation_CN_v0.1.md)。
+
+**2026-11-16 黑洞那支既有失败已定位并修复（只改测试夹具，生产逻辑未动）：根因是 `9addbe3` 把非 History 冲击改成物理线程消费，而黑洞测试仍停用移动组件；修正后全量 237/237 通过、0 失败、0 未执行。** 症状是 `HAL.FutureCreation.BlackHole.AuthorityPhysicsAndLifecycle` 13 个 Expected-true 失败、`Integrated V=X=0.000 Y=0.000 Z=0.000`，但同一行日志的 `Actions=` 一直递增——说明黑洞确实在排冲击，只是没有任何一笔落到刚体上。
+
+**根因链**：`AHALBlackHole::ApplyAttraction` 走 `Movement->QueueImpact(Action)`（`HALBlackHole.cpp:256`）。`9addbe3` 把非 History 分支从「GT 立即 `AddImpulse`」改成「排入 `PendingImpacts`、由 `ConsumeNonHistoryImpacts_Internal` 在 `AsyncPhysicsTickComponent` 里消费」，并加上守卫 `if (!IsRegistered() || !bShouldRunPhysics.Load()) { return false; }`。而 `UArcadeVehicleMovementComponent::Deactivate()` 正是把 `bShouldRunPhysics` 设为 false、同时清空 `PendingImpacts` 的地方——黑洞测试从 `a7a9853` 起就会 `Movement->Deactivate()`（目的是关掉街机驱动力，好量测纯黑洞贡献），于是改动之后每一次 `QueueImpact` 都回 false。第一条失败「registers Drag on entry」也由此连带解释：`HALBlackHole.cpp` 的 else 分支把 false 当成「车已离场」，`Receiver->UnregisterArea(this)` + `Inside.Remove(Vehicle)`，刚注册的 Drag 又被撤掉。
+
+**定位方法不是二分**：`git log -S 'if (!IsRegistered() || !bShouldRunPhysics.Load()) { return false; }'` 与 `git log -S 'PendingImpacts'` 都只命中 `9addbe3`；`git log -S` 也确认停用移动组件那行自 `a7a9853` 未变。`9addbe3` 同步更新了 `Tests/HALImpactPhysicsThreadTests.cpp`，那支还把新契约写死成断言（`Movement->Deactivate(); TestFalse(TEXT("No consumer means no false accepted impact"), Movement->QueueImpact(Heavy));`），但没有一起更新 `Tests/HALBlackHoleTests.cpp`。
+
+**修法**：沿用 `HALImpactPhysicsThreadTests` 的既有做法——保留「关掉街机 tick」的原意，但让测试探针自己跑生产的消费函式。`FBlackHoleVelocityProbe` 多订 `Chaos::ESimCallbackOptions::Presimulate`，在真正的物理线程上下文里调用 `ConsumeNonHistoryImpacts_Internal`；新增 `FHALBlackHoleImpactTestAccess`（`ArcadeVehicleMovementComponent.h` 的 friend 区加一行 `friend struct FHALBlackHoleImpactTestAccess;`，比照既有 `FHALPresentationTestAccess` 等）在 `Deactivate()` 之后重新打开 `bShouldRunPhysics`。**黑洞、移动组件的玩法逻辑一行未改**，街机力、姿态、转向在测试里依旧不参与，所以原本那些精确数值期望（-12、-700、-1600、-1400、(400,120,50) 等）全部原样通过。
+
+> **顺带发现、本轮未修的生产隐患**：`HALBlackHole.cpp:256` 把 `QueueImpact` 回 false 一律解读为「车已离场」，但 false 还有另一个原因——`PendingImpacts` 达到 `MaximumPendingImpacts = 128`。队列饱和时黑洞会把车误踢出 `Occupants` 并取消 Drag，下一 tick 又重新判定为入场、再触发一次入场减速（`EntrySpeedMultiplier`）。四人混战叠多机关时值得跟组员确认要不要把「拒绝」与「离场」分开。
+
+**已验证**：`HAL_Future_CreationEditor` Win64 Development **编译通过**（exit 0）；独立 `UnrealEditor-Cmd.exe` 无头行程单跑 `HAL.FutureCreation.BlackHole` **6/6 通过**（报告 `Saved/Automation/20261116/BlackHoleFixVerify`）；全量 `HAL.FutureCreation` **237/237 通过、0 失败、0 未执行**（报告 `Saved/Automation/20261116/BlackHoleFixFull`，`index.json` 时间戳为本次产生；唯一一条警告是既有的 `VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar` 地图提示）。
+
+**未验证**：黑洞的 PIE 实机手感未看（本轮不改黑洞行为，理论上无影响）；上面那条队列饱和隐患未修、未写回归；`HAL.RenderSmoke.*` 仍需真实渲染、未执行。**本轮改动（`ArcadeVehicleMovementComponent.h` 一行 friend、`Tests/HALBlackHoleTests.cpp` 夹具、本条状态记录）未提交、未推送。**
+
+**2026-11-16 FX-6 受击闪光与组员的 Damage Feedback 重工，团队决定采用组员版本：本机 FX-6 已全部撤下，Impact Burst 保留，已合并 `origin/main` 到 `27b3021`；编辑器 Target 编译通过，全量 237 项中 236 通过、1 失败，而该失败在合并前的纯 `origin/main` 上同样复现。** 两边做的是同一件事（受击时整台车红色剪影 + 白色轮廓 + 局部 RGB 色散），触发点也一样（`CombatResolver` 里 `ActualHPRemoved > 0`），但底层是两套不同系统：组员走 **NetMulticast 不可靠脉冲 + Custom Depth/Stencil + 后处理**（`UHALDamageFeedbackConfig` / `Component` / `Subsystem`、`M_FX_VehicleDamage_PP`、`r.CustomDepth=3`、入口在 Project Settings → Game → Vehicle Status FX → Shared Configuration → **Damage Feedback Config**），本机 FX-6 走 **GAS Tag + 车身 Overlay 材质**接 FX-1～FX-5 的共享状态 FX 管线（`DefaultCatalog` → `DA_VehicleStatusFX_Default` → `DA_StatusFX_Hit`）。
+
+**为什么不是「做一个同形状的 DA、把引用换掉」就能合**：`Damage Feedback Config` 这个栏位只收 `UHALDamageFeedbackConfig`，而且只有组员的 Subsystem 会读它；FX-6 的 `DA_StatusFX_Hit` 是 `UHALVehicleStatusFXDefinition`（配方），由渲染器从目录取用。两个 DA 不同类别、不同消费者，所以只能整条链二选一，不存在换引用这条路。团队选了组员那条，理由也成立：后处理 + stencil 能做出**车体轮廓外侧的描边**与**车窗框／门缝这类内部亮线**，这两件正是 Overlay 做不到的（Overlay 只画在车身自己的像素上、取不到 Scene Color）。代价是多一个 Tickable Subsystem、要开 `r.CustomDepth=3`、同时最多 8 台车、占用 stencil 240～247。
+
+**撤下的东西**（全部已从 `main` 移除）：GE `UHALHitFlashEffect`、Tag `State.Visual.Hit` 与 `Effect.Visual.Hit`、`UHALAbilitySystemComponent::MarkHitFlash`、`UHALVehicleStatusFXSettings::HitFlashSeconds`、`CombatResolver` 的呼叫点、材质 `M_FX_VehicleHit_Overlay` / `MI_FX_VehicleHit_Overlay`、配方 `DA_StatusFX_Hit`、`DA_VehicleStatusFX_Default` 的 `State.Visual.Hit` 目录项（已还原成只剩 `State.Visual.Shocked`）、编辑器模块的 `UHALStatusFXAuthoringLibrary` 与 Build.cs 的 `GameplayTags` 依赖、`Tests/HALVehicleHitFlashTests.cpp`、`Tools/VehicleHitFlash/`（HLSL 与建资产脚本）以及 FX-6 的设计留档。**完整快照留在本机分支 `backup/fx6-hitflash-20261116`（commit `214b595`，未推送）**，HLSL 与脚本要回看都在那里。
+
+**保留的东西**：**Impact Burst**（接触点漫画爆点）整套不动——它回答的是另一个问题，**爆点代表「撞到了，有多重」（含不扣血的车对车互撞），组员的红闪代表「我真的掉血了」**，两个信号分工不同，且只与组员的改动撞到 `HALImpactReceiverComponent.cpp` 的不同行。另外保留：测试车辆定义路径更新、Python 远端执行工具通道、以及进行中的 nova／spark 材质改动。
+
+**合并冲突的解法**（`6dddfe8`）：`.gitignore` 两边白名单都留；`HALVehiclePresentationComponent.h` 两边的前向声明都留；`Docs/Project_Status_CN.md` 两边条目按日期并存。**有一项需要跟组员确认**：`HALHealthGASTests.cpp` 与 `HALVehicleStatusFXConfigTests.cpp` 的测试车辆，本机取 `DA_Vehicle_Car_01`、`origin/main` 取 `DA_Vehicle_Car_02`，本轮按 `83a1e60`「Rename Car_01 DA」把 `DA_Vehicle_Player_TestBaseline_v1` 改名成 `Car_01` 的事实选了 **Car_01**（其余五支测试与 `Tools/Inspect*.py` 也都是 Car_01，这样全树一致）；两者都只需要 `CollisionMesh` 存在，所以测试结果不受影响，但谁才是团队想要的基线车要讲清楚。另外 `Tools/TireMarks/GenerateTireMarks.py` 本机与 `origin/main` 的调参不同（`0.26`→`0.20`、线段长度等），**刻意留成未提交改动**，不替组员决定，待确认后再处理。
+
+> **唯一的失败项不是本轮造成的**：`HAL.FutureCreation.BlackHole.AuthorityPhysicsAndLifecycle` 13 个 Expected-true 失败（`HALBlackHoleTests.cpp` 行 218～274，含「registers Drag on entry」「Instant pull adds authored delta speed」，日志里 `Integrated V=X=0.000 Y=0.000 Z=0.000 Actions=1`，积分结果为 0）。**已做基线对照**：checkout 纯 `origin/main`（`27b3021`）重新编译后单跑 `HAL.FutureCreation.BlackHole`，同一支测试以同样 13 个错误失败、其余 5 支通过（报告在 `Saved/Automation/20261116/OriginBaselineBlackHole`）。所以这是团队分支上既有的问题，与 FX-6 撤下、与合并都无关。`HALBlackHole.cpp:256` 走的是 `Movement->QueueImpact(Action)`，而 `9addbe3` 正好把非 History 冲击改成物理线程消费，**嫌疑最大但本轮未定位到具体提交**（没有逐提交二分）。
+
+**已验证**：`HAL_Future_CreationEditor` Win64 Development **编译通过**（exit 0，98.9 秒），保留的 Impact Burst 程序**零警告**，现存警告全在 `origin/main` 带进来的档案（`HALDamageFeedbackTests` 的 C4305、`HALDamageFeedbackRenderTests` 的 `UWorld::PostProcessVolumes` C4996 弃用、`HALPolicePursuit`、`HALTornado`、`HALSkillTestDummyWidget` 等）；以独立 `UnrealEditor-Cmd.exe` 无头行程跑全量 `HAL.FutureCreation`，**236 通过 / 1 失败 / 0 未执行**（报告 `Saved/Automation/20261116/PostFX6Withdrawal`，`index.json` 时间戳为本次产生）；组员的 `DamageFeedback.BoundedIndependentPulses` 与 `DamageFeedback.SharedRecipeAndCookRoot` 通过，本机的 `Presentation.ImpactBurst.StrengthSeedAndPlacement` 与 `Presentation.ImpactBurst.IdentityBudgetAndLifetime` 通过，两套表现同时编译、同时通过；全树 grep 确认 `HitFlash` / `State.Visual.Hit` / `StatusFXAuthoring` / `VehicleHit_Overlay` / `DA_StatusFX_Hit` **零残留**，237 个测试名称里也没有 HitFlash 相关项；`Config/DefaultGame.ini` 同时带 `DamageFeedbackConfig` 与 `HALImpactBurstSettings`、`DefaultEngine.ini` 带 `r.CustomDepth=3`。
+
+**未验证**：**PIE 实机画面全部未看**——组员的红闪在本机的实际观感、Impact Burst 与红闪同时出现的叠加读性、俯视角下 stencil 轮廓与爆点会不会互相盖掉；双端延迟（两套都是权威确认后才播，客户端各晚一个 RTT）；`HAL.RenderSmoke.DamageFeedback.RealVehicleOutlineRGBIsolationAndOcclusion` 需要真实渲染，不在 `HAL.FutureCreation` 前缀内、本轮**未执行**；效能与 Cook；黑洞那支既有失败未定位、未修。**本轮的三个提交（`214b595` 备份、`3849dd1` 撤下、`6dddfe8` 合并）都在本机，未推送。**
+
+**下一步入口**：先在 `Content/Maps/Test` 跑一次 PIE，确认组员的受击红闪 + Impact Burst 叠在一起读不读得出来，并按[受击漫画打击特效](Presentation/MVPB_Vehicle_Impact_Burst_CN_v0.1.md)定爆点参数；再决定黑洞那支既有失败要不要开一轮定位（建议从 `5044110` 与 `9addbe3` 之间二分）。
+
+**2026-11-16 Car07进度与验证白名单已恢复。** 当前`main/27b3021`（Add match HUD UI），UE **5.8.3-58210709**。用户丢弃本页及`.gitignore`后，从现有规格、第二～六轮验证JSON和当前源码恢复，保留下方队友新增的倒计时HUD记录与既有白名单。当前第六轮验证摘要中的 **8/8** 份源码哈希与工程一致，恢复后另核对 **2126/2126** 份其他文件哈希不变、原状态文档既有内容完整保留；本次不改运行时源码、资产、`.uproject`或Agent配置，不重跑编译／自动化，也不将历史测试冒充本次复测。MCP当前仅讨论本机接入方式，未启用或配置连接，团队开发规则保持。未提交／Push。
+
+**2026-11-16 Car07第六轮用户实测反馈：明显改善，进入弧线长度／朝内姿态调参。** 用户反馈“好多了”，希望保持时间、增加弧线路程并让车头更朝圆心。现有Span放大同一90°弧线；Turn Degrees仅缩放车头累计转角，没有独立的轨迹扫角或固定朝内偏角。建议先对照Span600／Bend1.0、Turn105（再试110）／Yaw Rate800，其余时长保持；这些是试调建议而非已验证配方，当前用户DA调参保留，不以原生默认冒充资产实值。“改善”不扩大为全面真人验收通过。见[调参边界](Combat/Car07_Extreme_LaneChange_CN_v0.1.md#第六轮调参弧线路程与朝内姿态)。
+
+**2026-11-16 Car07第六轮：完整弧线、车头与收尾速度统一修正，待真人复测。** 用户否定第五轮仅翻转车头后的轮痕和动作连贯性：旧中心曲率与新车头转向相反，原驾驶速度始终沿起手世界方向。当前改为向前进入、沿操作侧完整转弯的四分之一椭圆，车头跟随同一曲线切线，驾驶动量随之转向并沿新方向退出；显式发射反作用／受击冲量保持世界方向。原生默认450cm跨距／Bend1.0、0.24s／0.30s、4次／5秒及原GA／DA／IMC引用保留，无敌人锁定或自动瞄准。早松键冻结当前动量朝向并纳入历史，格式 **10→11**，双端需同版。见[当前规则与验收](Combat/Car07_Extreme_LaneChange_CN_v0.1.md#第六轮整段弧线车头与收尾速度耦合2026-11-16当前)。
+
+第六轮此前 **Editor R1／Game R1** 成功，**Final_R1共35/35** 原生＋真实D3D12相关回归通过，零测试警告／失败／未执行。真实Chaos左右静止终点450cm向前／±450cm横向、车头±89.993°；新增Car07实际参考四轮采样，静止／已行驶漂移时最小速度车头点积 **0.996867／0.997240**，四轮保持完整同心弧。1200cm/s且已漂移起手时，出口约`(-0.638,±1199.995)cm/s`，普通步继续约`(-3.273,±1199.966)cm/s`，未回到旧向前轴；偏心COM、外部反作用、Bend／Span、早松键及CCD墙阻挡通过。见[轨迹对照图](Combat/Car07_SideShift_CoupledArc_Paths_20261116.svg)：左上为旧公式解析示意，其余为真实物理姿态＋模型参考轮位，不冒充游戏截图。
+
+第六轮此前实际Listen **Network_R1双端各1/1**，Host出站80ms，零测试警告／失败、退出0。第三次施放前真实驾驶至 **660.187／661.723cm/s**，先按方向＋漂移至少0.06s后施放；收尾转角 **90.222／89.063°**、继续驾驶 **933.480／922.145cm/s**，速度与新车头点积 **0.99998／1.00000**、旧向前投影仅1.687／13.358cm/s。次数恢复、观察者、喷口／轮痕及到期松键同时通过。该轮1342/1342份资产／Config／uproject／入口哈希保持，仅4份运行时文件＋4份测试／支持变化。见[第六轮证据](Combat/Car07_SideShift_CoupledArc_Verification_20261116.json)。**下一步：沿用原接线，分别验收静止、行驶中、已漂移后施放的左右完整弧线和收尾；先对照原生Span450／Bend1.0，再调空间及姿态参数。** 带球瞄准、斜坡／墙角／连续碰撞、极端参数、四机与Cook／发布包仍待团队。
+
+**以下恢复第二～五轮历史；以第六轮和用户最新反馈为准。**
+
+**第五轮（2026-11-16）：车头符号修正曾完成，但真人实测否定其整体动作。** 仅把车头目标改为左右同向，保留反向曲率，造成四轮交叉／折返；旧验收只覆盖中心及最终90°。当时Editor R1／Game R1、原生＋D3D12 35/35、80ms实际Listen双端各1/1通过，均保留当时范围，不作为当前手感通过。该轮1342份资产哈希一致，只1份运行时CPP＋3份测试变化。见[历史规则](Combat/Car07_Extreme_LaneChange_CN_v0.1.md#第五轮转头方向与左右操作一致2026-11-16历史)及[第五轮证据](Combat/Car07_SideShift_SteerDirection_Verification_20261116.json)。
+
+**第四轮（2026-11-16）：宽弧侧闪＋朝内转头完成，方向及整段耦合规则后被替换。** 新增同一技能DA的Drift Lateral Span450cm／Drift Arc Bend1.0；0.24s／0.30s、普通300cm直移及4次／5秒沿用。增加COM换算、显式冲量基础动量、同请求漂移修饰意图／可靠松键与内置ChaosCore依赖，格式9→10。最终Editor R7／Game R6，Final_R4 35/35，实际Listen Network_R5双端各1/1、80ms、零测试警告／失败；Host／Client横向447.098／447.370cm、向前446.691／446.670cm、当时朝内89.403／90.000°。1342份既有资产哈希一致。早期夹具缺CCD、Editor链接依赖、根／COM参考、基础速度推断及连续输入晚到已修正；旧DLL上的Solver_R3明确排除。见[第四轮留档](Combat/Car07_Extreme_LaneChange_CN_v0.1.md#第四轮宽弧侧闪与朝内转头2026-11-16历史)及[证据](Combat/Car07_SideShift_DriftArc_Verification_20261116.json)。
+
+**第三轮（2026-11-16）：单次90°转头、到位制动及长按锁存完成（历史）。** 替换恒定高速转圈；松开取消并制动，同次不重启，转向锁存纳入历史，格式8→9。当时0.24s／3米直移保留，转速上限600°/s。Editor R2／Game R1，原生＋D3D12 34/34，真实Chaos约0.33s达±89.652°、长按后±90°；实际Listen Network_R1双端各1/1、80ms、零测试警告／失败，转角89.344／90.000°、侧移292.777／292.790cm。1342份资产哈希一致。见[第三轮规则](Combat/Car07_Extreme_LaneChange_CN_v0.1.md#第三轮一次90度漂移与到位制动2026-11-16历史)及[证据](Combat/Car07_SideShift_QuarterTurn90_Verification_20261116.json)。
+
+**第二轮（2026-11-16）：逻辑／表现压缩至30%完成（历史）。** 侧移0.8→0.24s、漂移强化1.0→0.30s，3米／4次／5秒保留；火花／烟尘寿命0.048／0.12s、渐变0.018s，技能轮痕3.333倍速、普通漂移1倍，并补独立轮位采样／结束淡出。Editor R4／Game R3，原生＋D3D12 31/31，真实Solver左右300cm并保留600cm/s前进，实际Listen Network_R1双端各1/1、80ms、零测试警告／失败，首移292.783／292.790cm。1342份资产哈希一致。见[第二轮留档](Combat/Car07_Extreme_LaneChange_CN_v0.1.md#第二轮压缩到30时长2026-11-16历史)及[证据](Combat/Car07_SideShift_Quicken30_Verification_20261116.json)。
+
+**以下保留队友倒计时HUD与Car07首轮等已有记录。**
+
+**2026-11-16 正式比赛倒计时 HUD 代码、Editor 构建与相关自动化完成，待画面验收。** 从 `main/821034f` 接续，实际 UE5.8.3-58210709。新增可继承 `HALMatchHUDWidget`，本地 Controller 独立创建，复用 RoomComponent 的本局服务器截止时间；顶部居中仅显示黑色 `MM:SS` 与白色 0.5 Alpha 背景。正式 Playing 才显示，赛前／结束／无有效数据隐藏，不抢焦点或改变输入；旅行清理。用户随后明确旧顶栏只用于 Practice：代码已限定 Open 且菜单关闭，Host 开始后加载／倒计时／比赛均隐藏旧顶栏，新 HUD 仅 Playing 显示；该单行收窄后的 Editor R4 构建及 Tests_R4 回归 9/9 通过、0 测试警告／失败，实际切换画面待验收；自定义 WBP 需团队自行检查重复顶栏。本轮不改 Blueprint／地图资产。详情见[应用与验证](Presentation/Match_Countdown_HUD_CN.md)。首轮 Slate 括号错误已修复；第二轮 Editor 占用 DLL 导致链接失败，用户保存关闭后第三轮 Editor 构建成功。新 DLL 的 NullRHI 相关自动化 9/9、0 测试警告／失败，覆盖倒计时专项及比赛／回房间／UI 接口。既有编译警告与启动布局警告保留。实际 Match 画面、双端真人输入、Game Target／打包未验收，未提交／Push。
+
+**2026-11-16 Car07“极限换线”逻辑、初版特效及工程验证完成，待团队手动接线／真人验收。** 接续 `main/9addbe3`、UE **5.8.3-58210709**。用户已确认满4次、每5s依次恢复1次、不重置已有恢复计时；每次300cm／0.8s侧移，允许静止，漂移强化同起持续1.0s。服务器锁定起手水平左右方向，漂移可改变车头而不改本次路径；保留物理阻挡、球权／按实际车头发射、普通反作用及冲击，无额外伤害／免疫。腾空／翻覆／眩晕／自救等独立许可阻止或终止额外驱动；淘汰、换车、离场清理。
+
+GAS 管次数层数与技能状态，既有 Chaos 移动步执行有限横移驱动／强化漂移；动作纳入移动历史，格式 **7→8**，双端必须同版。全部玩法／表现参数统一在新 **DA_Ability_Car07_SideShift**；复用 `NS_TireSkid` 的真实轮位痕迹，同一轮组槽避免重复发痕；反侧排气挂点播放独立世界空间卡通火花＋三阶立体烟团。提供只读次数／恢复视图及原生调试HUD，继续原生回退＋WBP替换。见[设计、GA／Definition接线、挂点和调参](Combat/Car07_Extreme_LaneChange_CN_v0.1.md)。
+
+最终 **Editor R8／Game R3** 完整构建成功；原生＋真实D3D12相关回归 **122/122**（120无警告、2带D3D12预算／既有换车负例警告；失败／未运行0）。真实Solver左右300.000cm，原前进600.000cm/s保留，静止／漂移／墙阻挡通过；实际Car07模型图确认火花／烟团及清理。最终 **Network_R4** 实际Listen双端各1/1、零测试警告／失败、退出0，Host出站80ms；隔离平地实际首移Host／Client **289.932／289.943cm**，摩擦允许缩短行程，独立次数／恢复时钟／观察者／轮痕通过。首轮宽回归暴露的World释放后计时器清理崩溃已修复并重跑；夹具输入、材质预编译与网络场景隔离修正均保留记录。见[可同步验证摘要](Combat/Car07_SideShift_Verification_20261116.json)。
+
+开工 **1337/1337** 份既有资产／Config／uproject／启动入口哈希不变，仅新增四份Car07技能DA及特效资源。**下一步：团队手动创建父类HALSideShiftAbility的GA_Car07_SideShift，引用新DA，在DA_Vehicle_Car_07唯一Primary Grant替换原技能。** 当前喷口仅为按模型范围估算的偏移，须在同一技能DA的Left／Right Mounts精确对孔；不要求改Presentation DA或BP图。真人手感／孔位／真实飞行球联动、四机、真实晚加入及Cook／发布包仍待团队，不扩大自动化结论；未提交／Push。以下保留此前历史，木桩Fred真人复测仍待结论。
+
+**历史讨论：2026-11-16 Car07选择方案3“极限换线”，当时尚未授权施工，已由上方确认及施工记录取代。** 用户考虑圆形混战场地，选择侧向换线而非跟车超车；要求主动技能采用随时间补充的次数资源（最多4次为当前举例），每次发动仅消耗1次；侧移中按漂移键时显著提高漂移操控，用于改变车头、带球侧切后发射。当前讨论建议将起手侧移方向与后续车头转向分离，按次恢复／短重用间隔分别定义，保留物理碰撞及原球发射规则。恢复周期、初始次数、无方向输入处理、侧移／强化时窗与异常中断当时待定；本条为当时只读审计／设计记录，未改代码／资产，未构建或运行测试。
+
+**2026-11-15 受击漫画打击特效（Impact Burst）已接通：程序化爆点画在真实接触点上，力道越强越大，全量 218/218 测试通过，实机画面未验收。** 没有贴图、没有图集、没有 Niagara——整个造型由一个 Custom HLSL 节点从精灵 UV 算出来（`Tools/ImpactBurst/ImpactBurst.hlsl`），资产由 `Tools/ImpactBurst/CreateImpactBurstAssets.py` 幂等建出 `M_FX_ImpactBurst` / `MI_FX_ImpactBurst`。权威端全部复用既有链路：`UHALImpactReceiverComponent::Resolve` 末尾的 `PublishAcceptedImpact` 多收一个 `Hit.ImpactPoint` 参数，内部改为**一次撞击配一个身份**，再分别发车身回弹与新的 `MulticastImpactBurst`；回弹原本的行为一个字没改（它仍然拒绝接近垂直的冲量，爆点不需要水平方向）。客户端由 `UMaterialBillboardComponent` 精灵池（每车 4 个、懒加载、**Absolute Location 钉在世界空间**）承载，**没有新增 Tick**，走表现组件既有那个。
+
+**力道怎么变成大小**：分级 Light/Medium/Heavy → 轮廓颜色（暖白／金黄／橙红）；`Summary.DesiredHorizontalDeltaSpeed` 映射 150～900 cm/s 到 0..1 → 尺寸 90～240cm、尖刺 7～13 根、寿命 0.22～0.28 秒、亮度。**诚实的限制**：`DesiredHorizontalDeltaSpeed` 是权威写入的目标推力，跟着分级和 PushPreset 走，实际接近「三档 + 少量变化」；要真正连续得把碰撞回调算出的 `NormalImpulse/Mass` 一路带进 `FHALImpactSummary`，本轮没做。形状种子由事件序号哈希而来，**所有客户端对同一次撞击画出一样的爆点**。
+
+**边界**：普通车对撞不扣血但有撞击分级，所以**照样有爆点**——漫画爆点代表「撞到了，有多重」，组员的 Damage Feedback 红闪才代表「我真的掉血了」，两个信号分工不同。免伤、被压制、分级降到 None 则完全不出现。整条路径不参与任何玩法判定。
+
+**调参不碰任何资产**：全部在新的 `UHALImpactBurstSettings`（Project Settings → Game → Vehicle Impact Burst FX，写进 `DefaultGame.ini`），`bEnabled=False` 一键关掉连广播都不发，`Material` 清空则逻辑照跑但不画。设定在 `BeginPlay` 读一次，改完要重开 PIE。调试 `hal.VehicleImpactBurstLog 1`。
+
+> **三个坑**：(1) **`pow` 指数小于 1 会把爆点变成雏菊**——第一版 `Sharpness=0.55` 把所有波瓣推向 1.0，画出来是一朵花，现在 4.0；两条谐波必须用 `max()` 合并，相加平均会填平谷底让尖角变钝。(2) **局部变量不能叫 `Config`**：表现组件已有同名成员，本专案把 C4458 当错误，5 处全炸，组件方法一律改用 `BurstConfig`。(3) **UE Python 读 bool 要去掉 `b` 前缀**（`bEnabled` → `enabled`），且 `unreal.<Class>` 模块属性不一定存在，用 `unreal.load_class(None, '/Script/Module.Class')` 稳。另外本机 `Tools/BuildEditor.ps1` 必须带 `-EngineRoot "C:\Program Files\Epic Games\UE_5.8"`，否则会以 `No usable engine for '5.8'` 失败。
+
+**已验证**：编辑器 Target 编译通过、9 个源文件零新增警告；`HAL.FutureCreation` **全量 218/218 通过**（0 失败、0 未运行、0 进行中，唯一一条警告是既有的 `VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar` 地图提示）；新增 `ImpactBurst.StrengthSeedAndPlacement` 与 `ImpactBurst.IdentityBudgetAndLifetime` 两条，既有的 `Presentation.Impact.IdentityPoseAndConfiguration` 同样通过（回弹没被重构碰坏）；材质在编辑器内与 headless 各建一次都是 0 讯息、215 指令、22 节点、17 参数全暴露；headless 探测确认设定真的从 ini 读进来（enabled、材质引用、尺寸、推力、寿命、上限、参数名全对）。**全程未提交。**
+
+**未验证**：PIE 实机画面（落点、俯视角可读性、关闭深度测试会不会穿墙难看）、双端延迟手感（**客户端晚一个 RTT，没有本地预测**）、与组员的受击红闪／电击／`BattleTop` 的叠加观感、效能与 Cook。另外**车对车互撞时两台车各发一个爆点**（两边都是被撞方），接触点几乎重合，预期是一记更大的爆点但没实测。细节见[受击漫画打击特效](Presentation/MVPB_Vehicle_Impact_Burst_CN_v0.1.md)。
+
+**2026-11-15 木桩偶发只抖动不击飞：物理执行修复已完成，待Fred真人复测。** 用户确认关闭Editor后，非History冲击改为服务器线程安全排队，在既有正常物理步中依据同一Internal刚体的V/W及待积分冲量计算、必要时唤醒并消费一次；木桩仍用普通服务器刚体复制、不启用玩家History。保留诊断并新增`ConsumePT`，SubmitGT改为QueuedPT预览；同帧多次命中不重复累加最低上抛／角速度目标，零补量不主动唤醒，生命周期清理。未调整伤害、档位、抗性、支撑分类或现有特效。
+
+本轮UE **5.8.3-58210709** 最终 **Editor R4／Game R2** 构建成功；最终原生＋D3D12 **96/96通过**（94无警告＋2带既有警告，失败／未执行0）。新增真实地面Chaos夹具覆盖6次PT休眠／6次清醒、实际升高／横移、同帧两动作、连续步不重放及停用清理；隔离持续零输入驾驶唤醒，保留真实重力／地面碰撞。**Network_R2实际Listen双端各1/1、零测试警告／失败、退出0，Host出站80ms**：正式凸包木桩先用既有Stun暂停驾驶辅助再安排休眠，ConsumePT确认Sleeping=1→0，生产解析器Heavy伤害后Host／Client实际升高约109／146cm、横移92／84cm。攻击为解析器请求，未冒充真实飞行球碰撞或Fred验收。
+
+开工 **1337/1337** 份资产／Config／uproject／入口哈希保持，BP、地图、团队受击DA调参和旧Passive保留。旧GT施力分支在开工HEAD中已存在；当前证据支持原有休眠GT→PT交接缺陷被暴露，未独立锁定底层具体丢写语句，未做FX关闭A/B。早期两轮地面夹具未达成PT休眠前置条件的失败已保留，修正测试隔离后完成最终回归。见[修复、原因与复测步骤](Configuration/Skill_Test_Dummy_CN_v0.1.md#11-2026-11-15非history休眠冲击修复待fred真人复测)及[验证摘要](Configuration/Skill_Dummy_Impact_Wake_Fix_Verification_20261115.json)。**下一步：重开Editor，无需改BP／DA，在Fred按原三个日志开关复测6～8次真实球命中，尤其静止数秒后的首击。** 代码／构建／列明自动化已完成；真人、墙角／复杂接触、四机／发布包仍待验收。未提交／Push，以下为此前历史。
+
+**2026-11-15 真人日志确认：7次球命中中第1／5／7次未击飞，第6次正常。** 已检查团队JST21:09～21:10的完整Standalone Listen日志；7次均扣25HP、Heavy且无冲击免疫／支撑抑制。三次失败均GT提交前休眠、提交后显示已唤醒，但下一真实PT帧仍Sleeping=1、V/W及PendingImpulse全0；之后没有请求的上抛。成功的2／3／4／6次则先在PT见到冲量与角速度，随后Vz≈731.833cm/s及明显位移。这证实非History休眠目标的请求未可靠落实到物理状态，不能再把Applied当作实际施力证明；尚未独立复现到底是哪一底层同步写入丢失。受击表现无物理写入，本轮未做FX关闭A/B，不能扩展为排除所有间接时序影响。第7次窗口末尾另有车撞，其少量移动不计为原球击飞。
+
+**下一环节建议：非History冲击经线程安全队列，在明确物理步内唤醒同一刚体并依据Internal V/W一次性施加；木桩仍不启用玩家History。** 新增真实地面休眠／清醒目标、连续攻击和同帧接触回归；旧13项的无阻挡Box对照未覆盖本次睡眠地面同步边界。本轮仅分析／留档，没有改运行时代码、资产或重编／复测，未声称已修复。见[逐发对照](Configuration/Skill_Test_Dummy_CN_v0.1.md#10-2026-11-15真人复现7次球命中的逐发结论)及[可同步证据](Configuration/Skill_Dummy_Impact_Reproduction_20261115.json)。以下保留日志开发及此前历史。
+
+**2026-11-15 木桩／非History冲击诊断日志已补齐，待团队采集异常。** 用户授权只补日志、不改冲击行为。扩展默认关闭的`hal.ImpactPhysicsLog`：SubmitGT记录原AddImpulse／角速度调用前后代理读数、请求DV、质量、休眠和启用状态；SamplePT在既有真实物理回调采样Internal V/W／位置、待积分冲量及位移，并通过Attack／Pulse／Event关联Combat。每组件最多8条记录，每次最多9个采样点、覆盖96物理帧；非同帧PostSolve或动作消费确认。没有新增Tick、定时器、RPC或反射调参，原History日志保持。
+
+最终 **Editor R2／Game R2**普通Unity构建通过，原生 **Native_R2共13/13通过**，零测试警告／失败／未执行。真实TaskGraph Solver对照日志关／开的直接冲击V/W与三维位移一致，关联、观察／关闭清理和96帧归还通过；首轮新夹具的3个位移预期未计第一帧待积分冲量，按实际PT证据对齐后复编通过，未为测试调整运行时施力。**1337/1337**份Content／Config／uproject及BuildAndLaunch哈希保持，用户DA／BP／地图改动保留。源码只增加诊断及攻击关联，不改变HP、档位、冲量、翻滚或接触规则；既有编译警告保留。见[测试命令与日志字段](Configuration/Skill_Test_Dummy_CN_v0.1.md#9-2026-11-15新增非history冲击物理日志)及[本轮摘要](Configuration/Skill_Dummy_Impact_Diagnostics_Verification_20261115.json)。
+
+**下一步：重开Editor，在Fred的Host／Standalone逐条执行`hal.CombatLog 1`、`hal.ImpactPhysicsLog 1`、`hal.DamageFeedbackLog 1`，每发间隔至少2秒测试6～8次并记录异常发数。** 根因仍待这一真实地面碰撞样本；本轮未复现Fred抖动或执行FX开关A/B，未重跑D3D12／多人／完整95项／Cook包。以下保留此前检查和功能验证历史，未提交／Push。
+
+**2026-11-15 新增待定位问题：Fred技能木桩被球命中后，有时只闪红／抖动而缺少明显击退。** 本轮仅检查最新两次真实运行日志和源码，未修改运行时代码或资产、未编译／复测。最新`Saved/Logs/HAL_Future_Creation.log`（本地20:24～20:25）5次球命中均Actual=25、Impact=Applied、SourceTier／EffectiveTier=Heavy、ImpactImmune=0、SupportSuppressed=0，规则请求水平补速805.28～839.62cm/s、最低上抛750cm/s；Applied表示动作已提交，不是下一物理帧速度／位移证据。上一轮备份`HAL_Future_Creation-backup-2026.11.15-11.24.24.log`另有Frame4432命中、4433再次接触Floor_0的样本。新受击表现只写可见Mesh的CustomDepth／Stencil与局部PP，当前没有其直接取消冲击的证据，但未做Enabled开关A/B，不能宣布完全排除间接时序影响。重点待查非History木桩的直接AddImpulse／角速度写入和触地／翻滚接触响应；现有ImpactPhysicsLog仅覆盖History动作，不能假作木桩执行后观测。后续先补实际物理帧V/W／位移及表现开关对照，再决定执行层修复；见[木桩待定位记录](Configuration/Skill_Test_Dummy_CN_v0.1.md#8-2026-11-15球命中后偶发缺少击退待定位)。下方编译／11项／95项通过均保留原范围，不代表此真人问题已修复。
+
+**2026-11-15 常规BuildAndLaunch暴露的项目Unity重名错误已修复。** 当前仍为`main/5044110`、UE5.8.3-58210709。首错C2084来自新受击配置和旧警车CPP内同签名`Range`被Unity合并，C4551／C2568是连带错误，工具正确报告退出6。新受击配置三个辅助函数增加明确命名，警车HUD泛型Lambda改为明确View类型以消除C4864；计算、参数、玩法及表现规则不变。此前增量构建没有覆盖这一合并组合，本次补齐验证，不用旧编译通过覆盖用户本次失败。
+
+原根目录入口 **Launcher_R1（NoLaunch／NoPopup）成功／退出0**；额外 **EditorUnity_R1／GameUnity_R1**使用`-DisableAdaptiveUnity`真实构建均成功，已确认受击配置、警车逻辑及HUD处于同一运行时Unity编译单元。当前Unity Editor模块上专项 **11/11通过**（原生＋实际D3D12），零测试警告／失败／未执行；本轮1337/1337份Content／Config／uproject及BuildAndLaunch文件哈希保持，用户既有改动保留。源码只修上述命名／语法，没有改BP／地图／DA、工具脚本或全局编译设置。保留既有UE／工具链编译警告，未重跑完整95项、双端、交互启动或Cook／包；下方受击初版证据仍按历史时点保留。见[原因、验证与后续构建约束](Configuration/Build_Editor_Tool_CN.md)及[本轮摘要](Configuration/Build_Unity_Fix_Verification_20261115.json)。
+
+**下一步：继续运行原`BuildAndLaunch.cmd`打开Editor，真人验收通用受击效果。** 本次临时验证参数不需要团队加入日常命令。文档／修复源码未提交或Push。
+
+**2026-11-15 全局通用受击表现程序／资源／工程验证完成，待团队画风验收。** 接续`main/5044110`、UE5.8.3-58210709；全局DA＋车辆遮罩局部后处理，统一CombatResolver实际扣血结果触发红色车身、白色轮廓与轻微RGB分离。冲击免疫仍扣血照常播放，0伤害／伤害免疫／纯击退／普通无伤碰撞／纯逮捕不播放。每目标独立包络、连续命中限幅，有效事件从各端收到时起播，避免网络延迟吃掉短白边／RGB；不写基础材质或电击／状态Overlay，不占FX-4两个显示通道。正式Pawn及新技能木桩自动具备接收组件，旧Passive保留原用途。见[全局配置、调参与团队验收](Presentation/Vehicle_Damage_Feedback_CN_v0.1.md)。
+
+最终 **Editor R14／Game R6**编译成功；**Final_R8共95/95通过**（93项无警告、2项带既有换车负例／D3D12虚拟资源预算警告；失败／未执行均0），Host出站80ms的真实D3D12 Listen双端 **Network_R1各1/1**，零测试警告／失败、退出0。原Car02模型／材质实际画面：组合37070像素、独立白边2658、RGB2314，未受击目标及邻近地面0变化，整图遮挡及到期清理对照通过；双端观测到接收、Pass、短强调及清理。离屏夹具的ViewState／曝光／AA与后缓冲量化抖动已隔离，最终未改测试颜色阈值或排除边框。扩展回归另修旧逮捕GC空World防守和旧Static采样夹具初始化，玩法规则未改。开工1336份受保护文件中 **1334份哈希一致**，只有两份Config按任务变更，新增共享DA／PP材质各1份；用户GameMode BP、所有既有车／技能DA、材质／Mesh／地图及Passive保留。见[本轮验证摘要](Presentation/Vehicle_Damage_Feedback_Verification_20261115.json)。
+
+**下一步：完整重开Editor，在`DA_DamageFeedback_Default`调参与真人验收。** 项目设置Vehicle Status FX → Damage Feedback Config已引用，Stencil已启用，不需要逐车接BP。先试原球／伤害机关及`hal.DamageFeedbackPreview all`，再检查与电击／眩晕／玻璃／UI重叠。正式相机画风、四机、真实晚加入／丢包、专项GPU耗时和Cook／打包均待团队；本轮Cook根验证不冒充打包成功。文档／摘要已进入Git白名单，未提交／Push。下方保留Car06铁链验收及此前历史。
+
+**2026-11-15 用户接受Car06逮捕铁链（含独立线径与沿链圈流动）作为暂定初版特效。** 当前`main/5044110`（`[mainDev] update chain vfx`）、UE5.8.3-58210709；仅有团队GameMode BP未提交改动，予以保留。本次为用户画风验收结论和只读设计审计，没有重新构建或运行测试，下方53项／双端结果仍是此前工程证据。初版接受不扩大为全部车型贴合、四机、真实晚加入或Cook／包通过。见[铁链配置与验证](Presentation/Car06_Arrest_Chains_CN_v0.1.md)。
+
+**历史讨论（已由上方施工记录取代）：全局通用受击反馈。** 此前用户参考NFS Unbound截图，提出车身闪红、白色边缘高亮及轻微RGB偏移，触发、免疫、限幅及电击叠加规则当时待定；如今已确认并实现，以上方本轮证据为准。Car07的主动空力／尾流等仍为灵感候选，未定技能或开工。
+
+**2026-11-15 Car06铁链独立线径与循环流动完成，待真人手感／画风验收。** 接续仍为`main/a105c89`、UE5.8.3-58210709。用户实测铁链偏细并确认沿链圈流动，本轮在原技能DA的 **Presentation → FX → Arrest → Chains** 新增Wire Radius=2.8cm、Flow Speed=45cm/s、Opposite Loop Flow=true、Flow Ramp Seconds=0.25s。金属半径独立于链环中心线，材质WPO按实例世界变换重建截面；小链环有保孔安全上限。链环沿固定包裹路径行进，车顶X交叉位置保持，收紧后渐入、解除时减速；服务器时钟解析相位，未新增逐帧复制。旧Wire Scale移至Advanced兼容保留，日常使用Wire Radius。自动Body尺寸适配及现有车型Fit、规则／Stun／保护／球权均保持。见[调参与当前验证](Presentation/Car06_Arrest_Chains_CN_v0.1.md#6-独立线径与沿链圈流动2026-11-15当前)。
+
+最终 **Editor R2／Game R1** 成功；专项 **5/5**，受影响回归 **53/53**（51项无警告、2项带既有负例／D3D12预算警告；失败／未执行0），80ms出站延迟的真实D3D12 Listen双端 **各1/1**，0测试警告／失败、退出0。实际画面细／粗金属覆盖13887／34661像素，线径变化不改变实例中心线，流动0.13s改变20569像素并移动实际链环；双端验证线径绑定、流动和解除清理。开工1336项中仅铁链母材质修改，**1335项哈希一致**，包括技能DA完整文件、Mesh、BP／地图／Config／uproject及Passive；所有旧调参逐项不变，新字段重载使用已记录默认值。首轮Editor头文件引用错误已修正并复编，见[本轮可同步验证摘要](Presentation/Car06_Arrest_Chains_Flow_Verification_20261115.json)。
+
+**下一步：完整重开Editor，用原Car06技能验收粗细与沿链圈流动。** Geometry调Wire Radius，Animation调Flow Speed（0停止、负值反向）及渐入；修改后重新施放。若增粗触及保孔上限，适量增加Link Width或减少偶数Links Per Loop。复杂车型仍可补Vehicle Fits，未新增每车必配步骤。真人美术／手感、真实晚加入、四机、完整房间和Cook／发布包仍待团队；未提交／Push。以下保留初版铁链及此前项目历史。
+
+**2026-11-15 Car06逮捕铁链首版程序／资源／专项完成，待团队画风验收。** 接续 `main/a105c89`、UE5.8.3-58210709；粉色悬浮手铐替换为两道立体金属链圈绕车身、车顶X交叉，柔和暗／中／亮三阶、快速收紧与阻尼回弹、实际Stun结束后0.18s松开。链条随完整车辆姿态，无碰撞／伤害／真实链物理；通缉、眩晕、保护、驾驶和球权规则未改。全部新参数仍在同一Car06技能DA的 **Presentation → FX → Arrest → Chains**，提供按实际Vehicle Definition匹配的Vehicle Fits；Car02和默认木桩已保存驾驶室贴合修正，复制Definition需另加匹配项。旧Arrest Mesh／Size／Height／Pulse仅兼容保留，不再控制显示。见[引用、调参及团队验收步骤](Presentation/Car06_Arrest_Chains_CN_v0.1.md)。
+
+最终 **Editor R6／Game R3** 编译成功，**Final_R2共52/52通过**（50项无警告、2项带既有负例／D3D12虚拟资源预算警告；失败／未执行均0）。实际Car02模型的D3D12截图确认128个链环、俯视X交叉、收紧／侧面／翻滚跟随及解除清理，链条改变29176像素。80ms Host出站延迟的真实Listen双端 **Network_R1各1/1**，零测试警告／失败、退出0；两端观察到逮捕、短松开、保护尾段已无铁链，及木桩HP／通缉／血条／销毁清理。开工1334份既有受保护文件中，仅技能DA写入新增Chains配置，旧Rules／Cooldown／全部原有FX逐项不变，其余 **1333份哈希一致**，团队既有GameMode BP改动保留；新增单环Mesh和卡通金属母材质，没有代改BP或地图。见[可同步验证摘要](Presentation/Car06_Arrest_Chains_Verification_20261115.json)。
+
+**下一步：完整重开Editor，在Fred／正式俯视相机中真人验收铁链贴合与画风；特殊车型或复制Definition在同一技能DA补Vehicle Fits。** 当前为近似Bounds包裹，侧面可有间隙，不宣称真实贴面。真实晚加入、四机、完整房间及Cook／发布包未在本轮验证，晚加入仅验证服务器时钟相位数学。未提交／Push。以下保留此前木桩、Car06及团队地面材质历史记录。
+
+**2026-11-15 Car06／技能木桩的Git白名单及进度记录已恢复。** 当前 `main/16ef3ab`、UE5.8.3-58210709；保留下方地面材质团队记录及既有源码／资产改动。本次仅修复 `.gitignore` 与本页，按木桩验证摘要核对的 **21/21** 份源码／工具／示例DA文件哈希一致，没有重新构建或执行自动化。以下构建／测试数据均为此前留档。当前已见团队新增 `BP_SkillTestDummy` 和 `BP_FredSkillTestGameMode`，只确认文件存在，尚未核对保存接线或真人测试，不重复要求团队创建。**下一步：按[配置文档](Configuration/Skill_Test_Dummy_CN_v0.1.md)核对TestConfig、Fred的GameMode与单人Playing流程，验收目标血条、六星及各技能接收。** 未提交／Push。
+
+**2026-11-15 新技能测试木桩代码／示例DA／验证完成。** 新增HALSkillTestDummy与测试DA包装，派生正式车辆Pawn，以独立ASC承接伤害、三档冲击、油膜、龙卷风、通缉／逮捕及状态表现；无Controller／PlayerState／主动技能授予／吸球，不占房间席位或胜负统计。HP归零清理区域及Avatar状态，保留可读0HP；首版无自动回血／复位。原生TARGET＋血条可由HALSkillTestDummyWidget的WBP替换，六星复用警车只读Overlay。新增独立 `CanReceiveSkillEffects` 目标接口并修正逮捕保护定时器，施放者资格不放宽。单车测试初始生成和换车保留新木桩、排除其可驾驶候选资格，旧Passive的源码／BP／DA及清理边界保持。见[完整BP／DA及Fred配置](Configuration/Skill_Test_Dummy_CN_v0.1.md)。
+
+此前最终 **Editor R8／Game R4** 构建通过，**Final_R2共49/49通过**（47项无警告、2项带警告：既有出生负例日志及D3D12虚拟资源预算；失败／未执行均0）；真实Listen双端 **Network_R2各1/1**，零测试警告／失败、退出0，Host出站80ms。确认复制初始化、扣血、六星、Stun、保护尾段、原生血条Widget绑定与销毁清理，始终仅2个真实玩家。施工时 **1327/1327** 份既有资产／地图／Config／uproject及Passive源码哈希保持，新增两份原生DA；旧Health自动化仅将已删除的碰撞基线引用更新为Car02。早期编译、空Primary校验、夹具初始化、保护资格及客户端就绪问题均已修正并记录，见[木桩验证摘要](Configuration/Skill_Test_Dummy_Verification_20261115.json)。当时未代改BP／地图；团队此后新增BP不等于已完成接线验收。真人摆放／新血条像素效果、自制WBP、真实晚加入、四机和Cook／包仍待团队验证。
+
+**2026-11-15 Car06追捕已完成程序及表现首版，原“未施工”记录为历史。** 每来源独立通缉、离开衰减、单次每目标一次逮捕、共用Stun与跨警车保护（实际Stun结束后2秒）已实现；施放警车眩晕／自救不取消已运行追捕。红蓝车顶发光灯体与点光、扫描范围、循环警笛、手铐、血条上方六星从左向右填充均由同一技能DA配置。追捕UI继续原生回退＋HALPursuitHUDWidget的WBP替换。精确挂点支持Socket／骨骼；原模型灯罩材质自动交替发光尚未实现。见[规则、灯光、六星及接线](Combat/Car06_Police_Pursuit_CN_v0.1.md)。
+
+Car06首轮此前 **Editor R7／Game R4** 构建、**Final_R3 24/24** 原生／D3D12／Stun及Car03～05回归、出站80ms双端 **Network_R4各1/1** 通过，零测试警告／失败。施工时1316/1316份既有资产／Config／uproject保持，新增六份uasset与WAV；见[Car06首版验证](Combat/Car06_Police_Pursuit_Verification_20261115.json)。后续木桩施工修改了目标接收及保护资格，当前源码验证以木桩49项／双端报告为准。此前只读加载已确认 `GA_Car06_PolicePursuit → DA_Ability_Car06_PolicePursuit` 及Car06 Definition唯一Primary Grant接通，当时保存DecayPerSecond=40／StunSeconds=3，未改写；这些为当时快照，不冒充本次最新DA检查。警灯位置、六星、音量及正式房间／包验收仍待团队结论。
+
+**2026-11-15 用户已接受Car05龙卷风为暂定初版，后续优化暂缓。** 这项接受不扩大为四机、真实晚加入或打包验收通过。下方Car05施工与测试仍按各自历史时点保留。以下继续保留地面材质团队更新与此前阶段记录。
+
+**2026-11-15 MVPB_Match 地面法线已换成随机凹凸。** M_ArenaFloor_Metal 的主纹理两路和细节一路改用 1024 × 1024 的无缝 T_ArenaFloor_RandomRelief_N，实例重载验证参数继承。UE 5.8.3 SM6 编译无材质错误，DX12 同俯视角对比了 850 cm 与 2300 cm，确认条带变为不规则凹点与凸起，软边和细节层仍可见。正式比赛镜头待复核，见[当前法线与验证](Presentation/ArenaFloor_SatinMetal_CN.md#随机凹凸法线)。
+
+**2026-11-15 MVPB_Match 地面波纹过渡和放大细节已修正。** 核对团队保存的 M_ArenaFloor_Metal，把默认六层有符号噪声调整为一层 0～1，覆盖使用可调渐变并共同淡出主、细两层斜率。新增独立 200 cm 细节法线采样，同图复用。UE 5.8.3 最终重载未报材质编译错误，DX12 核对俯视下软边及 2300 cm 放大对比。资产修改仅涉及母材质，地图、实例和法线贴图哈希一致。下一步从 MI_ArenaFloor_Metal 在正式比赛镜头中复核，见[接线、调参与验证](Presentation/ArenaFloor_SatinMetal_CN.md#波纹区域过渡和近看细节)。
+
+**2026-11-15 MVPB_Match 波纹缎面金属地面已制作并完成 DX12 预览，待关卡接线与比赛镜头验收。** 新增独立母材质、材质实例和 512 × 512 周期波纹法线。确认中央可见地面为 base_circle_inflatable_007_1374，Floor 关闭可见性。最终预览保留场地图案，约 −75° 时可见宽幅波纹高光，专用面光在抽样机关区域未新增近白像素。资产生成正常结束，临时 Editor 在截图写出后退出异常。保存的 MVPB_Match 保留开工哈希，既有用户改动保留。下一步在关卡配置中央地面槽和面光，复核正式相机和曝光，见[配置与验证](Presentation/ArenaFloor_SatinMetal_CN.md)。
+
+**2026-11-14 Car05 主体逐层成型／柔和边缘提亮完成，待用户场景实测。** 用户确认多层重做明显改善后，本轮把整体淡入升级为从下往上逐层显形并扩展体积，仍复用 `Rules.GatherSeconds`，边缘提亮沿用当前三阶配色；新增 Formation Exponent／Feather 和 Glow Strength／Power 均在原技能 DA。主体及外围两份材质已更新，不需重新接线。**尺寸只在 Rules.Radius/Height 配置，判定圆柱与主体基准尺寸自动联动；OuterRadiusScale/GatherRadiusScale 只改装饰外扩，冲击强度与范围独立。** 见[当前调参、尺寸说明及验证](Combat/Car05_Tornado_CN_v0.1.md#第三轮主体逐渐成型与边缘提亮2026-11-14当前)。
+
+本轮 UE5.8.3 **Editor R1／Game R1** 编译、原生／真实 D3D12／Car03及04回归 **17/17**、80 ms Host 出站延迟双端 **各1/1** 通过，零测试警告／失败。隐藏地面提示后，主体早／中／晚可见高度 **70／187／289 px**，提亮使 **13333** 个风体像素更亮；三层出粒子、新字段复制／材质绑定、停墙／上抛／防御球及清理回归通过。开工1316份既有资产／Config／uproject仅两份当前风材质变化，其余1314份哈希一致，**用户刚调过的技能DA完整文件未改写**，GA／Definition／NS／Mesh及其他车型保留。见[验证摘要](Presentation/Car05_Tornado_FormationGlow_Verification_20261114.json)。下一步：重开本轮 Editor，用原技能验证生成过程及环境可见度，再在同一 DA 调参。四机／发布包／完整房间／真实晚加入仍待团队测试，未提交／Push。以下为此前阶段记录。
+
+**2026-11-14 Car05 龙卷风多层气流重做完成，待用户画风验收；Car06 已留档、未施工。** “螺旋弹簧”替换为低透明度漏斗底层＋22 条以不同速度环绕／上升的短气流片＋5 条外围游离风，内部保留柔和三阶明暗并局部青蓝／灰白渐变；原聚风／消散时序沿用。新增九个表现参数仍在同一技能 DA，已切换 `FX.System` 为 `NS_Tornado_LayeredFlow`，原 GA／Definition 无需重接，玩法、冷却和原表现调参保留。见[当前配方／调参／制作约束](Combat/Car05_Tornado_CN_v0.1.md#第二轮多层独立气流重做2026-11-14当前)。
+
+本轮 UE5.8.3 **Editor R3／Game R2** 构建通过，最终原生＋Car03／04 回归＋实际 D3D12 **17/17**、双端 **各 1/1**，零测试警告／失败，Host 出站 80 ms。三层实际出粒子且局部原点为零；外围／灰白／不同角速度／关闭整体转速后的内部流动分别改变 **2314／13265／42966／34426** 像素。首轮16/17捕获外围层未出粒子，并修复顶点色 sRGB 坐标失真，保留断言复测通过。开工1310份既有资产／Config／uproject仅技能DA引用变化，其余1309份哈希一致，用户 Car05 GA／Definition／GameMode BP 保留；新增六份独立资源。见[验证摘要](Presentation/Car05_Tornado_Layered_FX_Verification_20261114.json)。下一步：完整重开 Editor，用原 Car05 主技能真人验收画风及实际相机／地板上的可读性；四机、Cook／发布包等仍待团队验收，未提交／Push。以下首版结果保留为历史。
+
+**Car06 追捕已确认的重点：施放警车受到眩晕或执行自救时，追捕仍继续，不与驾驶许可耦合。** 其余边界沿用每目标累计／离开衰减、单次结束清理、每目标每次最多逮捕一次、墙／高度限制、多警车独立记录与短逮捕保护；“被追捕目标已 Stun 时暂停累计”是独立规则。已留档[Car06 设计](Combat/Car06_Police_Pursuit_CN_v0.1.md)，具体首测数值尚未定，本轮没有开发 Car06 程序。
+
+**2026-11-14 Car05 龙卷风的代码、原生特效资源与专项完成，待团队手动接线及真人验收。** 按用户要求先完成逻辑 13/13 验证，再制作特效。当前 GAS 主技能生成独立龙卷风，生成／活跃／消散共用服务器时钟；向前贴地推进，普通墙停住但不提前消散、不重置周期；每目标 CD 下 Heavy 向外推＋上抛，无直接伤害。Free 球发射归属 Car05，Launched 球弹飞后原子转 Free、清空攻击归属与资格；连续处于同一风内不重新武装。淘汰、换车、离场和比赛结束清理。青蓝柔和三阶曲面风带、先行聚风提示及收矮／淡出／减速消散，全部由同一 `DA_Ability_Car05_Tornado` 配置，不放回车辆 Presentation DA。
+
+UE **5.8.3-58210709** 最终 **Editor BuildFX_R5／Game BuildGame_R3** 成功；原生＋Car03／04 回归＋实际 D3D12 **Final_R2 17/17**，零测试警告／失败。Host 出站 80 ms 的实际渲染双端 **Network_R3 各 1/1**，零测试警告／失败、进程退出 0，覆盖双方生命周期、停墙、Niagara 挂接、攻击球解除，服务器另确认真实车辆 Chaos 上抛。原生／渲染通过后仅修网络夹具空材质，再编译两 Target 并重跑双端。模板出生偏移及早期测试球追踪／材质警告均已修复，未屏蔽警告。开工 **1303/1303** 份既有 Content／Config／uproject 哈希不变，新增六份独立资源，团队 GameMode BP 改动保留；接续 `main/9c7640f`，未提交／Push。见[规则、接线、调参和特效制作约束](Combat/Car05_Tornado_CN_v0.1.md)及[可同步验证摘要](Combat/Car05_Tornado_Verification_20261114.json)。
+
+**下一步：团队创建父类 HALTornadoAbility 的 `GA_Car05_Tornado`，引用已生成技能 DA，在 `DA_Vehicle_Car_05` 唯一 Primary Grant 替换 GA，并核对房间车型目录。** 本轮没有修改 Blueprint 或替团队完成该接线。之后真人复测停墙、上抛、防御球及三阶段画风；四机、真实晚加入、完整房间 BP、Cook／发布包与连续受击平衡仍待验收，不包含在上述通过结论内。原始报告／BMP 在本机 `Saved/Car05Tornado/20261114`，以下保留历史记录。
+
+**2026-11-14 Car04 第五轮完成，待真人画风复测：破风罩整体柔和三阶明暗。** 取消罩子外围深色硬边与边缘加深，改为类似 TireSkid 的轻微暗／中／亮曲面分色。技能 DA 的 `Pressure Shell → Toon Shading` 增加三色、暗／亮阈值与过渡宽度；气流轮廓独立，罩子外缘透明渐隐，保留扰动和加速渐进出现。已用原生 API 更新现有罩子母材质，无需改引用或 BP 接线。
+
+本轮 UE5.8.3-58210709 **Editor R2／Game R2** 完整编译通过；原生／Car03 回归／实际 D3D12 最终 **14/14**，80 ms Host 延迟双端各 **1/1**，零测试警告／失败。深色背景上三色各改变 6856／19573／24298 像素，过渡宽度改变 3136 像素，气流勾边对罩面的影响为 0；默认轻柔色阶在浅色地板上对比很轻，已保留该预览。首轮 13/14 后仅调整验收背景以分离罩面覆盖／过渡，保留材质和原数字阈值，最终复验通过。只保存 `M_BullCharge_ContourShell`，其余 **1302/1303** 份既有资产／Config／uproject 哈希不变，保留团队技能 DA／GameMode BP、全部既有 Niagara 和先前未提交改动。见[配置与当前入口](Presentation/Car04_BullCharge_FX_CN_v0.1.md#第五轮破风罩整体柔和三阶明暗当前)及[第五轮验证摘要](Presentation/Car04_BullCharge_SoftShell_Verification_20261114.json)。下一步：重开 Editor，在原技能 DA 调三色／过渡，真人复核实际相机与场地。未提交／Push；四机、Cook／发布包、完整房间 BP 与真实远端物理撞击未在本轮验收。
+
+**2026-11-14 Car04 第四轮完成，待真人观感复测：独立气流长度＋跟随加速时间渐进显现。** 新增技能 DA 的 `Presentation → FX → Front Wind → Wind Length Scale`，默认 1、范围 0.1～4，只额外拉伸风带 X，保留宽高、罩尖连接、扰动幅度和罩子尺寸。持续风／罩子透明度与尾喷数量复用 `Charge → Motion → Ramp Seconds` 从零渐进增强；去除原先 65%／40% 的入场阶段下限。实际车速响应平滑与加速时钟分开处理，保留驱动暂停立即隐藏、后到观察者接续原阶段及原技能规则。
+
+本轮 UE5.8.3-58210709 **Editor R4／Game R1** 完整编译通过；原生／Car03 回归／实际 D3D12 **14/14**，80 ms Host 延迟的双端各 **1/1**，零测试警告／失败。实际粒子覆盖 0.5／1／2／4 长度倍率；满路速发动时，0／0.5／1／2 秒的风／罩子权重为 0／0.25／0.5／1，尾喷量同阶段渐增，实际渲染亮度逐步增加。网络覆盖非默认 1.6 长度复制与挂接绑定、渐进阶段及暂停恢复。开工 **1303** 份既有资产／Config／uproject 全部 SHA256 不变，未新增或重存特效资产、BP、地图或技能 DA，保留全部先前未提交改动与团队调参。首次验证 helper 的 const 编译错误已修正；完整过程见[第四轮验证摘要](Presentation/Car04_BullCharge_LengthRamp_Verification_20261114.json)。下一步：重开 Editor，在原 DA 调独立长度，从静止／满速发动真人复核渐进观感。见[配置与验收入口](Presentation/Car04_BullCharge_FX_CN_v0.1.md#第四轮独立长度与加速渐进显现)。未提交／Push；未进行本轮四机、Cook／发布包、完整房间 BP 或真实远端车辆物理撞击验收。
+
+**2026-11-14 Car04 表现第三轮已完成：罩尖连接、几何扰动、深灰色阶勾边、短尾喷，待真人复测。** 当前配方 `NS_BullCharge_ContourWind`：七个风带根部收拢并随罩子深度自动定位到罩尖，根部形变为零；显式运行时钟驱动风带 **8 cm**／罩子 **2.5 cm** 的轻微几何摆动。风带和罩子加入暗／中／亮色阶及可调深灰勾边。尾喷速度保持 **2600 cm/s**，仅将寿命 **0.38 → 0.18 s** 收紧距离。参数仍统一在原技能 DA，无需改 BP 接线，玩法、挂点、暖色、尾喷数量／尺寸和撞击配置保持。
+
+本轮 UE **5.8.3-58210709** 最终 **Editor R4／Game R1** 构建通过；最终原生＋Car03 回归＋D3D12 **13/13**，零测试警告／失败。确认七个共同根部、358 帧无生灭空档；浅色地板上勾边有 **8080** 个明显变暗像素，显式时钟驱动的轮廓变化 **4978** 对比关闭形变后的 **3272**，罩子开关变化 **7702**。短尾喷停发后 0.267 秒无残粒子。80 ms 延迟的实际渲染双端各 **1/1**，退出 0，阶段／挂接／暂停恢复与传输回归通过。首次浅色背景对比检查失败后实际加强材质，保留阈值复测通过；详情与中间编译结果见[第三轮验证摘要](Presentation/Car04_BullCharge_ContourWind_Verification_20261114.json)。
+
+开工 **1299** 份既有资产／Config／uproject 仅技能 DA 授权表现字段变化，其余 **1298** 份哈希一致；前两轮、Car03 和已有 GameMode BP 用户改动均保留。新增四份独立资源，不覆盖旧配方。下一步：重开 Editor 释放 Car04 原技能，真人复核起点连贯、扰动感、浅色场地勾边和尾喷距离。见[当前配置及第三轮实测](Presentation/Car04_BullCharge_FX_CN_v0.1.md#第三轮验证与接续当前)。网络撞击仍为表现传输探针，未冒充真实远端撞车、四机、发布包或完整房间 BP 验收；本轮未提交／Push。
+
+**2026-11-14 Car04 表现第二轮：连续强气流、软边破风罩与强化尾喷已完成，待真人观感复测。** 用户已确认首轮基本逻辑正确，要求解决气流弱、断续，增加漫画突进的车头压力罩并强化尾喷。当前配方改用 `NS_BullCharge_PressureWind`：七条持续曲面风带＋一层灰白半透明软边罩子，材质连续流动，风力作帧率无关平滑，暂停仍立即隐藏。尾喷每口 **200 个／秒、2600 cm/s、16 × 50 cm**。新增流速、响应时间、罩子尺寸／透明度／柔边等 DA 参数，均在原独立技能 DA；已接入，无需新增 BP 接线。挂点、颜色、撞击及玩法数值保持。
+
+本轮 UE **5.8.3-58210709** **Editor R1／Game R1** 构建通过；原生＋Car03 回归＋D3D12 **13/13**、零测试警告／失败。六秒内 **358** 帧持续保持两个网格粒子，无生灭空档，罩子额外覆盖 39063 个变化像素；30／120 fps 平滑、流速调节、暂停隐藏、尾喷轨迹与撞击回归通过。80 ms 延迟的实际渲染双端各 **1/1**，两端各确认六个挂接组件，退出 0。网络撞击仍为表现传输探针，不冒充真实远端撞车或四机／发布包／完整房间流程验收。
+
+本轮 **1294** 份既有资产／Config／uproject 仅技能 DA 的授权表现字段变化，其余 **1293** 份哈希一致；首轮九份资源、Car03 和已有 GameMode BP 改动保留，另新增五份压力风资源。下一步：重开 Editor，用 Car04 原主技能复测流畅度、破风罩与尾喷力度／遮挡，再在 DA 调参。见[二轮配方、参数与复测](Presentation/Car04_BullCharge_FX_CN_v0.1.md#第二轮验证与接续历史)及[验证摘要](Presentation/Car04_BullCharge_PressureWind_Verification_20261114.json)。本轮未提交／Push，以下保留首轮及其他团队的历史记录。
+
+**2026-11-14 Car04 蛮牛冲撞生产特效初版已完成，待团队真人验收。** 从 `main/50f3237` 接续，UE **5.8.3-58210709**。已制作无明显色相的车头曲面风带、世界空间双尾喷卡通火星，以及有效撞车时的火花＋局部闪光＋扩张冲击环；新增可复用的表现 Mesh／Socket／骨骼挂点配置与明确回退，资源引用和可调项统一在 `DA_Ability_Car04_BullCharge → Presentation → FX`，已接入，初版无需改 BP 或新增骨骼。原驾驶、球发射、伤害、冲击与每目标 CD 规则沿用；持续表现快照与驱动许可复制，接触表现由服务器接受入口发出。Car03 保持用户接受的初版。
+
+最终 **Editor R9／Game R4** 构建成功；原生＋Car03 回归＋D3D12 **12/12**、零测试警告／失败。最终 80 ms 延迟的实际渲染双端各 **1/1**，两进程退出 0，两端分别确认两辆车合计六个挂接组件实际创建，覆盖眩晕暂停／恢复、结束、冷却和一次性事件传输。冷启动尾喷的就绪检查曾阻止 Niagara 自己完成编译等待，已改为组件首次激活后由 UE 管等待，并用实际挂接断言复测通过；旧轮次事件不会在退场后重新点亮特效。原始证据在本机 `Saved/Car04FX/20261114`，可同步[验证摘要](Presentation/Car04_BullCharge_FX_Verification_20261114.json)。网络撞击事件使用表现传输探针，真实接受入口由原生碰撞样本夹具验证；不冒充远端真实物理撞车／四机／发布包／完整房间 BP 验收。
+
+开工 **1285** 份既有资产／Config／uproject 中只修改授权的 Car04 技能 DA，逐反射属性确认仅 `FX` 变化，其余 **1284** 份哈希一致；Car03、骨架、车型和已有 GameMode BP 用户改动保持。新增九份 Car04 特效资产。**下一步：重开 Editor，选 Car04 释放原主技能，真人验收气流／尾喷方向、强度、真实撞车及暂停清理，再调 DA；需要精确喷口时由团队手动加 Socket。** 配置与后续制作约束见[Car04 特效配置／挂点文档](Presentation/Car04_BullCharge_FX_CN_v0.1.md)。本轮未提交／Push，新增代码、资产、文档与白名单需随正常 Git 同步。以下保留讨论与其他团队阶段的历史记录。
+
+**2026-11-14 Car03 特效由用户接受为初版，后续优化暂缓；Car04 进入生产特效方案讨论。** 本轮从 `main/50f3237` 核对现有冲锋技能与表现接口，用户提出车头无明显色相的破风气流、车辆接触时更强的卡通火花／闪光／冲击、车尾推进火星三层需求。建议沿用独立技能 DA 配置，并补轻量 Socket／骨骼挂接及 Car04 表现同步入口；具体建议见[Car04 特效讨论草案](Combat/Car04_Bull_Charge_CN_v0.1.md#生产特效讨论草案2026-11-14)。当前仅方案讨论，没有开始 Car04 特效施工，没有修改代码／资产或重跑构建／测试；本轮不将 Car03 的用户初版接受扩大为四机／发布包验收通过。开工已有 GameMode BP 改动，原样保留。以下为各环节历史记录。
+
+**2026-11-14 被丢弃的 Car03 气流 Git 白名单与进度记录已恢复。** 当前 `main/10d7723`，保留以下闪电新星等团队更新，仅补回本页两轮气流入口及 `.gitignore` 中两份验证摘要／三张实图的白名单。只读核对：最新气流源码、ToonWind资源及实图与调参验证记录一致；技能DA此后已有修改，原样保留，下面保存值属于当时验证快照，不冒充当前配置。本次只恢复文档／忽略规则，没有重新构建或执行测试，没有修改代码／资产／其他配置，未提交／Push。
+
+**2026-11-14 Car03 气流调参范围与实际倾角已修复，程序／资源／构建／专项完成，待团队目测。** 速度UI及校验范围同步扩大至0～3600°/s，倾角至0～80°，默认值不变。旧算法将随机起始方位与倾角耦合在轴角向量内，请求30°时实际只有约0.555～24.282°；上轮只验不越上限，未验证达到配置角度。本轮出生姿态改为独立方位四元数×配置倾角四元数，持续阶段沿世界Z同向推进。30°现在实际约30°；当时保存的720／30°／弧段6／寿命0.8／宽度0.8／火花28原样保留。见[当前配置、原因与0°／30°实图](Presentation/Car03_BattleTop_Cartoon_FX_CN_v0.1.md#倾角真实值与调参范围2026-11-14-修正)。
+
+该轮UE5.8.3 Editor R2／Game R1构建成功；原生＋D3D12 **16/16**，0测试警告／失败。0／12／30／60／80°共3000次姿态、2935次推进均达到配置角度并保持竖直轴，1440及3600°/s推进正确；高参数隔离双端 **各1/1** 验证同向1440、45°参数、显示与清理。测试使用原生Match GameMode及低渲染设置，不覆盖房间BP完整流程／四机／发布包。1282份开工资产／Config／uproject仅授权ToonWind改变，其余1281份哈希一致。原始证据在 `Saved/BattleTop/WindTilt_20261114`，见[调参验证摘要](Presentation/Car03_BattleTop_Wind_Tuning_Verification_20261114.json)。这是此前验证结果，本次恢复操作未重跑。
+
+**2026-11-14 Car03 气流轴向约束的前一轮记录。** 从 `main/2a5bfac` 接续，UE5.8.3-58210709。修复初始Random全方向翻转及绕粒子局部轴推进，改为沿技能主自转方向绕世界竖直轴，底盘转向／翻滚不再额外旋转气流；历史负速度按大小兼容读取。当时采用12°默认、0～30°上限和旋转向量算法，该倾角实现及范围现已被上面的独立实际倾角方案替代。见[轴向修复历史](Presentation/Car03_BattleTop_Cartoon_FX_CN_v0.1.md#气流方向与总倾角2026-11-14-修正)。该轮Editor R7／Game R4构建、16项专项及隔离双端各1/1通过；1200次姿态／1179次推进观察到最大9.078°和最小顺时针步进4.000°。早期房间BP直进超时未计作通过，最终双端使用原生Match GameMode及低渲染设置、Host出站80ms。原始证据在 `Saved/BattleTop/WindAxis_20261114`，见[轴向验证摘要](Presentation/Car03_BattleTop_Wind_Axes_Verification_20261114.json)。本段保留历史时点，不代表当前倾角定义或本次复测。
+
+**2026-11-14 闪电新星第十二轮：收窄地面环，Loop 的边界对比翻倍拉回来，12.17 节的「已知未解」结案。** 两个改动：(1) 新增 **`MI_FX_NovaRing`** 并把 `GroundRing` 的渲染器改指向它——这层原本**直接用母材质** `M_FX_NovaRing`，是整个系统里唯一没有材质实例的一层（其余都有 `MI_FX_*`），调参不再需要动母材质预设；(2) **`RingWidth` 0.16 → 0.06**。`M_FX_NovaRing` 的环是 UV 平面上的径向带 `band = 1 - saturate(abs(r-Rad)/Wid)` 再平方，`Rad=0.8`／`Wid=0.16` 等于环跨 **r=0.64…0.96**（佔半径 ±20%），所以在 Loop 被电弧和雾淹掉时完全凸不出来；**`band` 峰值恆为 1.0、这材质没有亮度旋钮**，唯一能拉对比的手段就是收窄。
+
+| 阶段 | `RingWidth` | 峰值 | 外侧中位 | **阶梯** |
+|---|---|---|---|---|
+| Loop | 0.16 | 241.1 | 178.0 | **63.1** |
+| Loop | **0.06** | 241.5 | 111.6 | **129.9** |
+| Loop | 0.035 | 241.5 | 107.0 | 134.5 |
+| Begin | 0.16 | 207.8 | 54.9 | **152.9** |
+| Begin | **0.06** | 209.6 | 53.3 | **156.3** |
+
+**Loop 的阶梯翻了一倍，Begin 完全没有被牺牲**（峰值位置 x=111/448 不变）。**停在 0.06 而不是更窄是量出来的决定**：0.035 只多拿到 4.6，因为那时外侧剩下的 107 已经不是环的宽度而是**电弧餵出来的 bloom**，收窄对它无效；同时环的半高宽由 53px 掉到 22px，再窄就要开始担心 12.15 节记的 TAA 门槛。**0.06 拿到九成好处又留着安全馀裕。**
+
+**三阶段状态**：Begin 地面环清楚、−60° 下是躺在地面的椭圆（车子真正要闪的足迹）；Loop 地面环在球体下缘与左右两侧明显分离出来；Over 0.55 前后只差 3,109 个像素（火花随机抖动，不是环），**仍然没有边界线，这是刻意的**（场正在关闭，见 12.17 节）。
+
+**已验证**：上述量测；`validate_system` `valid: true`，警告仍是既有那七笔 `Particles.MeshScale`（12.12 节，不是误报）；两个资产已存档；`User.Radius` 400 / Phase 0 / PhaseElapsed 0 已还原，`list_dirty_packages` 为 0。**全程未提交。** **未验证**：PIE 实际画面——**地面环是贴在地板上的，它的对比最容易被场地底色吃掉，黑底预览裡的数字偏乐观**；本轮未重拍四张正俯视正式截图（同 12.16 节理由）。
+
+**现行值（12.16–12.18 三轮净结果）**：`MI_FX_NovaShell.RingBoost` = **0**（外圈白线关闭）、`VeilGroundZ`/`VeilFadeZ` = **−0.16**/**+0.19**、`FillGlow` = 0.15（未改，12.16 节留的待决项）；`MI_FX_NovaRing`（新）`RingWidth` = **0.06**、`RingRadius` = 0.8（未改）。
+
+**下一步入口**：进 PIE 用 −60° 看真场地底色下的地面环对比（黑底数字偏乐观），并决定 12.16 节留下的 `FillGlow` 要不要调高。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.18 节。
+
+**2026-11-14 闪电新星第十一轮：拿掉壳层的外圈白线（`RingBoost` 1.5 → 0）。Begin 没问题，但 Loop 的边界对比掉到三分之一，这一项未解。** 团队要求「不要显示最外围那个白色圆形，也就是遮罩的轮廓」。那条线是壳层材质的 `edge` 项（`smoothstep(RingS, RingS+rbw, r) * RingB`），12.15 节已用两个测试确认过归属，所以只要 `RingBoost = 0`，不必改 HLSL。
+
+> **这和 12.15 节独立评审的建议方向一致**：球壳剪影画在**球心**高度、`GroundRing` 画在**地面**高度，−60° 下两者会分离成两个半径，评审说「让 `GroundRing` 当唯一边界，不要让球壳剪影跟地面圈抢『半径在哪』」。团队这个要求刚好把那件事做掉了。
+
+**用 −60° 真实俯角逐阶段量边界**（沿通过环最宽处的水平扫描线，量峰值与刚好在外侧的中位数，差值即边界阶梯）：
+
+| 阶段 | 峰值位置 | 峰值 | 外侧中位 | **阶梯** |
+|---|---|---|---|---|
+| Loop（改前，有 `edge`） | x=108/449 | 243.5 | 45.8 | **198.2** |
+| Loop（改后） | x=141/412 | 234.7 | 178.0 | **63.1** |
+| Begin（改后） | x=110/449 | 206.8 | 50.8 | **157.2** |
+
+**Begin 没问题**：`GroundRing` 完整接手，阶梯 157.2，位置与改前的 `edge` 几乎重合，而且在 −60° 下它读起来是**躺在地面的椭圆**——那才是车子真正要闪的足迹。**Loop 是问题所在**：边界阶梯由 198.2 掉到 **63.1**（剩约三分之一），峰值位置还向内移到 x=141/412，那已经不是边界而是壳层本体与电弧。原因是 Loop 的 `rim` 闸门全开、细丝与缠绕弧把能量堆在外圈，内部中位衝到 202、外侧中位 178，`GroundRing` 淹在里面凸不出来。**Loop 正是碰到会中的阶段**，AGENTS.md 第 12 节要求危险区域必须能被快速识别——**此项尚未解决，本轮只记录不自行处理**（团队要的是拿掉那条线，不是换一条）。
+
+**可用的修法（未做，待决定）**：(1) **收窄 `GroundRing` 的 `RingWidth`**——`M_FX_NovaRing` 的 band 是 `1 - saturate(abs(r-Rad)/Wid)` 再平方、峰值恆为 1.0、**没有亮度旋钮**，只能靠收窄让它更锐利；注意 `GroundRing` 直接用母材质 `M_FX_NovaRing`、**没有 MI**，要嘛建实例要嘛改母材质预设。(2) **给 `M_FX_NovaRing` 加一个亮度参数**，比收窄直接，但要动母材质。(3) 把 `RingBoost` 设成 0.3–0.5 而非 0——与本次要求相反，列出只为完整。
+
+**Over 段**：`GroundRing` 在 Over 被 spawn 阶段的 Phase 阵列关掉（12.15 节），`edge` 现在也没了，所以 Over 0.55 完全没有边界线，只剩塌缩中的电弧球。**这是合理的**——场已在关闭，不再需要告诉玩家闪哪裡，也符合 12.1 节「全部向中心塌缩归零」。
+
+**已验证**：上述三阶段的 −60° 撷取与量测（`capture_scene_preview`、`rotation: [-60,0,0]`、`fov 60`、560×420、`User.Radius` 110）。`MI_FX_NovaShell` 已存档；`User.Radius` 400 / Phase 0 / PhaseElapsed 0 已还原，`list_dirty_packages` 为 0。**全程未提交。** **未验证**：PIE 实际画面；本轮未重拍四张正俯视正式截图（同 12.16 节理由）。
+
+**下一步入口**：决定怎么把 Loop 的边界对比拉回来（收窄 `RingWidth` 或给 `M_FX_NovaRing` 加亮度参数），以及 12.16 节留下的 `FillGlow` 要不要调高。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.17 节。
+
+**2026-11-14 闪电新星第十轮：雾感遮罩改为随高度淡出，并第一次用真实的 −60° 相机俯角验证。** 团队回馈「外围半透明遮罩太显眼，希望越往穹顶顶点越透明，只有大概由地面往上 30% 是可视的白色雾感遮罩」。`M_FX_NovaShell` 的 Custom 节点新增两个输入与两个纯量参数：`VeilGroundZ`（预设 **−0.16**，此局部高度以下雾是满值）与 `VeilFadeZ`（预设 **+0.19**，此高度以上雾完全消失），`rim` 项乘上 `1.0 - smoothstep(VeilLo, VeilHi, d.z)`。**座标换算**：`d.z` 是 `normalize(LPos).z`、球底 −1 顶点 +1，**不是世界高度**；`z_local = (h_world − 球心高度) / Radius`，球心在车身高度（约 65cm）、Radius 400 时地面是 −0.16、穹顶可见高度 30% 是 +0.19——**球心高度或 Radius 改了这两个值要重算**。
+
+> **这是整个壳层材质里唯一以世界上方向为基准的项。** 其余五项（`rim` 的 `r`、`edge`、`core`、`fil`、`gc`）全部活在视线基底上——这正是 12.15 节必改 1 讲的「这颗球从任何角度看都是同一个正圆、没有线索把它绑在地面」。这个高度淡出让壳层**第一次有了地面锚点**，附带解掉一部分那个问题。
+
+**验证方式本身也换了**：`editor_query / capture_scene_preview` 可以指定 `camera: {location, rotation, fov}`，所以这轮第一次用游戏真正的俯角拍（`rotation: [-60,0,0]`、`fov 60`、Loop、`User.Radius` 110）。`preview_system` 只有 front／top／three_quarter／side 四个预设，拍不出 −60°。**机制正确**：开关淡出相差 64,812 个像素、单点最大差 462；逐列平均亮度在接近顶点处 59.0→28.9（**−30.1**），接近地面处 90.2→92.5（**+2.3**）——顶点掉最多、地面不动，方向完全正确。把 `FillGlow` 暂拉到 0.6 再拍一张诊断图，梯度形状一眼可见。**形状对，剩下的只是强度问题。**
+
+**但使用者看到的「外围遮罩」大部分不是这一层。** 把 `FillGlow` 设 0 重拍，那层外围雾几乎没变。拆出来是两个来源：(1) **`GroundRing`**（12.15 节量到佔全图 46% 亮度），它的渲染器用 `M_FX_NovaRing`，是一个**躺在地面的 UV 平面环**——**它没有「穹顶顶点」可言，「越往上越透明」对它没有意义**，要收只能直接降亮度或宽度；(2) **Bloom**，近白细丝与 242 亮度的边界环喂出来的后处理光晕。所以 `FillGlow` 停在 0.15（12.9 节定的值，本轮没改）时，这个改动在正式设定下**看得出来但幅度不大**。
+
+**两个方向待团队决定，本轮未做**：(a) **把 `FillGlow` 调高**（例如 0.4–0.6）——雾现在被限制在底部 30%、上半部不会再被填满，12.9 节「盘面会洗白开进去的车」的理由**部分**失效，但底部 30% 正好是车子所在的高度带，这个取捨必须在 PIE 看真场地底色才能判；(b) **降 `GroundRing` 的亮度或宽度**——它是外围雾的真正主力，但 12.15 节刚确认它不是那条硬白边界（那是壳层的 `edge`）。
+
+**已验证**：27 个输入脚位逐一确认 `connected: true`（`inputs` 整组取代会全部断线，见 12.13 节）、`recompile_material` 无错误、`validate_material` 只剩既有 warning、两个资产都已存档；上述 −60° 量测。`FillGlow` 已还原 0.15、`User.Radius` 400 / Phase 0 / PhaseElapsed 0 已还原，`list_dirty_packages` 为 0。**全程未提交。**
+
+**未验证**：PIE 实际画面与真实场地底色下的对比；本轮**未重拍四张正俯视的正式截图**——那四张是正俯视验收用，这个改动在正俯视下会变成「中间透明、外圈一圈雾」，不是这个效果该被判读的角度（见 12.15 节）。
+
+**下一步入口**：决定 `FillGlow` 要不要调高、`GroundRing` 要不要收，两者都建议在 PIE 用 −60° 看真场地底色再定。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.16 节。
+
+**2026-11-14 闪电新星第九轮：没有改造型，查了两个方法学问题——截图角度与 `GroundRing`。迴圈未停止。** 独立评审（刻意不给前次结论、用同一组画面重量一次）提出两项必改，两项都不是「数字调错」，而是**前面六轮的验收方法本身有盲点**。
+
+**必改 1：四张截图都是正俯视（−90°），而游戏相机是 −60°。** 前提已从工程核对：`VehicleDefinition.h` 的 `FVehicleCameraConfig::BoomTransform` 预设 `FRotator(-60,0,0)`、`TestVehiclePawn.cpp:136` 也硬写 −60（`HALRoundMatchTypes.h` 的 `SpectatorPitch=-65` 是**观战**相机，别混用）；`Docs/Combat/Electric_Sphere_CN_v0.1.md` 写明 Actor 原点是**球心**、且「测试时将球心放到车身高度」；`M_FX_NovaShell` 的 Custom 节点第 2 行是 `V = normalize(Parameters.CameraVector)`，**rim／edge／core／fil／gc 五项全部活在视线基底上**，所以这颗球从任何角度看都是同一个正圆，**没有任何透视线索把它绑在地面上**。亮边界圆画在**球心**的萤幕投影位置，而 `camera_angle=top` 正是球心与其地面投影重合的**唯一**角度——12.9～12.14 六轮所有「边界没变动／边界够硬」的结论，都是在一个**系统性隐藏此问题的角度**下得到的。
+
+> **我不同意评审给的修法方向。** 它建议把 `RingBoost` 降到 0.6–0.8、让 `GroundRing` 当唯一边界。但**车身中心也在同一个高度**（球心就是放在车身高度），两者投影偏移相同，所以「环画在球心」对判断「车能不能进去」其实是**对的**。真正的风险是球壳剪影（球心高度）与 `GroundRing`（地面高度）在 −60° 下**分离成两个不同半径**，玩家不知道该信哪一个。**这必须在 PIE 用真实相机角度看，不能在黑底预览拍板。**
+
+**必改 2：`GroundRing` 查清楚了，12.12 留下的印象是错的。** 两个直接测试：(A) `RingBoost=0` 重拍 Begin——只有 r=123 的尖峰塌掉（242.7→211.1），**r=126–150 整段完全没变**，那段在球壳剪影之外，既不是 `rim` 也不是亮环的 bloom。(B) 直接停用 `GroundRing` 重拍——r=130 由 174.5 掉到 **10.0**、r=136 由 131.5 掉到 **1.9**、r=144 由 63.0 掉到 **0.9**，**全图总亮度 8.357M → 4.475M，少掉 46%**；而 r=123 的尖峰只由 242.7 动到 240.4。
+
+**结论两条都要记住**：(1) 那条硬白尖峰**确实**是壳层的 `edge`，12.12 这点是对的；(2) **但 `GroundRing` 绝不是「白做」的一层——它贡献全图 46% 的亮度，r=126–150 整圈外晕几乎全来自它。** 12.12／12.14 读起来会让人以为这层没有画面，**那个印象是错的**，下一个接手的人若照那印象把它停用，会直接少掉一半的光。**它在 Over 会消失是因为阶段闸门不在曲线上而在 spawn**：`emitter_update / SpawnRate` 的 `Spawn Probability` 挂 `SelectFloatFromArray`，`Direct Array Index` 绑 **`User.Phase`**。所以 12.12 说它的 `ScaleMeshSize` 曲线是死的**仍然成立**，只是那不等于这层没有阶段行为——**同一个系统裡有两套完全不同的阶段机制，这是目前最容易让人误判的地方。**
+
+**已验证**：上述两组量测；相机俯角与球心高度已从 C++ 与 `Docs/Combat` 核对。两个探针截图已删除、**四张正式截图没有被覆盖**；`RingBoost` 已还原 1.5、`GroundRing` 已重新启用、`User.Radius` 400 / Phase 0 / PhaseElapsed 0 已还原，存档后 `list_dirty_packages` 为 0。**全程未提交。**
+
+**本轮判定不处理**：`Sparks` 飞出半径——独立评审自己量完认为可结案（Loop 在 r>1.14×R 只有 5 个离散亮点、最远 1.41×R，是几颗火星不是误导边界的光带），此项已连续列出三轮，就此标记「已量测、不处理」。另外边界光晕外溢到 1.22×R（误差方向保守，不急）、细丝 TAA 门槛（**球在萤幕上小于约 100px 直径**就照 12.9 节降 `FilamentCount` 22→14，不要加粗）。
+
+**下一步入口**：造型本身两轮量测都达标，但**停止条件尚未满足**（第九轮有必改项）。剩下的必改只有 PIE 验得掉——请在 `Content/Maps/Test` 用 −60° 实拍 Begin 与 Loop，量亮环中心与地面危险圈是否重合，并一併看 additive 蓝叠在实际场地底色上的对比、车开进 Loop 的遮挡、球的萤幕直径。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.15 节。
+
+**2026-11-14 闪电新星第八轮：核心的饱和白盘与剪影硬圆已修，三项门槛全部达标，硬边界环没动。** 评审只给一项必改，但底下两个症状同一个病根——第六轮为了放大核心把 `CoreFalloff` 设成 **1.0**，`body = pow(1-r, fo)` 在 `fo=1` 时是线性的，乘上 `CoreGlow 2.4` 后蓝通道在核心网格七成半径以内全部 clip：核心不是柔光球，是**硬边的饱和白盘**。为什么是必改不是美术洁癖：12.9 节当初把 `FillGlow` 0.28 砍到 0.15 的理由是「盘面 150–170 会洗白开进去的车」，改前盘心是 **209–255**，换算 `User.Radius = 400` 就是**一块直径约 350cm 的近饱和白盘压在区域正中心**；而 Over 0.55 那道硬圆落在 0.45×R，是危险区里的**第二条同心硬边**，正是 12.10 节花一整轮修掉的失败模式。
+
+**两个改动**：**(1)** `MI_FX_NovaCore`：`CoreFalloff` 1.0→**2.0**、`CoreGlow` 2.4→**1.8**、`HaloAmount` 0.5→**0.45**。**(2)** `M_FX_NovaCore` 的 HLSL：halo 项乘上 `(1.0 - smoothstep(0.86, 1.0, r))`——硬阶梯不是 `body` 画的是 `halo` 画的，`pow(1 - r*0.85, fo*0.35)` 在 `r=1`（正好是网格剪影）仍残留约 **0.26**，additive 把它画成一条贴着核心剪影的硬圆。**没有回头缩小核心网格**，第六轮「核心太小」的回馈仍然有效，这轮动的是亮度分布的形状不是尺寸。
+
+| 量测（球半径 123px） | 改前 | 门槛 | 改后 |
+|---|---|---|---|
+| 核心 luma≥220 连续半径 | 44px (0.36×R) | ≤31px | **29px** |
+| 剪影处相邻 1px 环带 G 落差 | 117（Over055 达 163） | <40 | **26** |
+| 核心可读半径 luma≥128 | 55px | 50–58px | **51px** |
+
+> **两个门槛必须同时看，只盯一个会来回摆荡。** `HaloAmount` 没有照评审建议降到 0.30——实测 0.30 会让 luma≥128 半径掉到 **48px**，低于评审自己订的 50–58 下限，等于把「核心太小」换个方式带回来。smoothstep 起点也一样：先试 0.78（阶差降到 17，但可读半径掉到 48），改成 **0.86** 后阶差 26、可读半径 51，两项才同时进窗。
+>
+> **材质参数与 HLSL 都是资料／编译层的改动，不是 Niagara 改图，所以不必重开 Editor 就会进 `preview_system`**——这点与 12.10 节的限制不同，12.11 节改壳层 HLSL 时已确认过一次。`update_custom_hlsl_node` 只送 `code` 不送 `inputs` 时脚位不会断线（`updated_fields` 只有 `code`、`input_count` 仍是 7），但仍核对过连线才编译。
+
+**已验证**：`recompile_material` 无错误、`validate_material` 只剩既有的 `translucent_no_opacity` warning、两个材质资产都已存档；四张截图重拍覆盖，三项门槛如上表。**硬边界环完全没动**：环峰值 Begin **242.7** / Loop **242.4**、位置 r=123/122，与 12.11 节的 243.0/243.2 在误差内。**Over 段仍收乾净**：Over055 环峰 202.2 @ r=92、Over090 核心 ≥220 只到 r=1。Begin 白心由 ≥220 r=14 缩到 r=9，但 ≥128 范围由 19px 扩到 **28px**——falloff 由线性改平方的预期结果。拍完 `User.Radius` 已还原 400 / Phase 0 / PhaseElapsed 0，`list_dirty_packages` 为 0。**全程未提交。**
+
+**未验证**：PIE 实际画面、效能、双端、Cook；本轮未跑自动化测试（只改资产未改 C++）。
+
+**评审留下、本轮刻意没做的四件事**：(1) **`User.Color.A` 现在是核心的静默相依**，闸门实际值 = `User.Color.A × 曲线`，哪天被填 0 整颗核心会消失且极难追查——建议在参数契约测试补一条 `User.Color.A == 1` 断言；(2) Over 收束由 `FieldShell` 与 `CoreSphere` 两条曲线分别描述、刻意错开做「壳先塌、核心后收」，这是第二个维护点；(3) `CoreSphere` 曲线尾段 30.9→31.0 只有 0.1 个曲线单位、小于 LUT 格宽（21.2÷128≈0.166），之后精修尾段时**最小有意义的 key 间距是 0.17**；(4) **`Sparks` 仍飞出危险半径**（Loop 最远 1.44×R、Over 0.9 达 1.82×R），第三轮就被指出、第三次没处理。
+
+**下一步入口**：评审复验中，若连续两轮无必改项就跑 `ElectricSphere` + `ElectricWall` 收尾。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.14 节。
+
+**2026-11-14 闪电新星第七轮：补掉 Over 段残留的亮球，上一轮记下的回归已修并重开 Editor 验证。** 第六轮把核心放大 2.2 倍之后，Over `3 / 0.9` 会剩下一颗不会缩小也不会变暗的亮球悬在已经塌掉的壳层里。根因查清楚了：`M_FX_NovaCore` 的白炽中心 `c += hot * Hot` **刻意不乘 `PColor`**（12.3 节为了让中心保持白炽不被蓝色染掉），而 `Color` 模组的 `Scale Color` 通道走的正是 `PColor`——**所以 `Scale Color` 永远调不暗那颗白心**。两个改动：**(1)** 材质加第七个输入 `Amt`，接 `ParticleColor` 的 `A` 输出（output index 4），末段改成 `return c * saturate(Amt);`——additive 忽略 alpha，这个通道是免费的逐粒子乘数，壳层早就这样用，核心本来漏掉。**(2)** `CoreSphere` 的 `particle_update` 加 `Color` 模组（`Color` 绑 `User.Color`，不绑会把 `InitializeParticle` 给的蓝色洗掉），`Scale Alpha` 挂 `FloatFromCurve`，`CurveIndex = User.Phase*10 + User.PhaseElapsed`，线性键 `9.8:0 / 10:0.3 / 12:0.85 / 20:1.0 / 22:1.0 / 30:1.0 / 30.25:1.0 / 30.55:0.45 / 30.9:0.12 / 31:0`。这是绕开第六轮查出的 `ScaleMeshSize` 死通道，不是修好它。
+
+> **三个设定上的陷阱，接手前先看**：
+> 1. **`set_dynamic_input_value` 设不出参数绑定。** 对 `MakeFloatFromInt002.Int` 送 `value: "User.Phase"` 会回报成功，但 `get_dynamic_input_tree` 显示 `source: "literal", value: "User.Phase"`——那是字串字面值，整条索引链会算成 0。要绑定必须改用 **`set_module_input_binding`**，`module_node` 填 dynamic input 的 GUID，接完用 `get_dynamic_input_tree` 核对必须看到 `source: "linked"`。
+> 2. **重开 Editor 后头几张 `preview_system` 可能全黑，即使 `ShaderCompileWorker` 已经是 0。** 本轮 Begin 连拍两张全黑，改 `User.Phase` 拍 Loop 正常，再回头拍 Begin 就正常了。比 11.5 节原本写的「等编译」更精确：**等进程数归零还不够，要先丢一次参数变更＋重拍**，别看到黑画面就以为改坏了。
+> 3. `update_custom_hlsl_node` 的 `inputs` 是**整组取代**，送出后七个脚位全断线，必须逐一重接并用 `get_expression_connections` 核对。`Amt` 漏接读到 0，整颗核心会全黑且**不会报错**。
+
+**已验证**：材质七个输入逐一确认 `connected: true`、重编译、`validate_material` 只剩既有的 `translucent_no_opacity` warning、已存档；`NS_LightningNova` `request_compile` + `validate_system` `valid: true`，警告仍是既有那七笔 `Particles.MeshScale`（第六轮已查明不是误报）、已存档。重开 Editor（改图不重开验不掉）、等 `ShaderCompileWorker` 归零并连续四次确认后重拍四张截图：**Over 0.9 的亮球已变成很暗的小点加稀疏火花**、Over 0.55 读得到「壳层向核心收进去」（核心曲线 0.45 对壳层约 0.27）、**Begin 与 Loop 都没有被误调暗**（充能光点／边界环／放射细丝都在）。拍完 `User.Radius` 已还原 400 / Phase 0 / PhaseElapsed 0，存档后 `list_dirty_packages` 为 0。**全程未提交。**
+
+**未验证**：`ScaleMeshSize` → `Particles.Scale` 的绑定问题仍在（本轮是绕开）；PIE 实际画面、效能、双端、Cook；本轮未跑自动化测试（第五轮的 12/12 仍是最近一次绿灯，本轮只改资产未改 C++）。
+
+**下一步入口**：造型评审若连续两轮无必改项，就跑 `ElectricSphere` + `ElectricWall` 做最后确认并收尾；另外待决定是否修 `ScaleMeshSize` → `Particles.Scale` 的绑定。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.13 节。
+
+**2026-11-14 闪电新星第六轮：核心放大、细丝改为由核心长出；同时查出 `ScaleMeshSize` 的曲线是死的，并更正上一轮留档的一个错误结论。** 团队回馈「中间可视的核心太小」「希望电弧像由核心散发出去」——这两件事是同一个决定的后果：12.8 节为了让核心看得见，用 `FilamentInner = 0.3` 在核心外围挖了一圈空隙，那圈「护城河」正是让电弧看起来与核心断开的原因。本轮反过来做：`FilamentInner` 0.30→**0.12**（细丝起点落在核心辉光内部）、`CoreSphere` 的 `Mesh Uniform Scale` 係数 0.009→**0.020**、`MI_FX_NovaCore` 的 `CoreFalloff` 2.6→**1.0**／`CoreGlow` 1.6→**2.4**／`HaloAmount` 0.35→**0.5**。量测（Loop，球半径 123px）：白炽核心 7→**13px**、核心辉光 22→**35px**（占球半径 18%→**28%**），边界环峰值 243.2→242.4 不变。
+
+> **本轮最重要的发现，比造型本身重要：`CoreSphere` 与 `GroundRing` 的 `ScaleMeshSize` 曲线完全没有作用。** 证据：`CoreSphere` 的缩放曲线**整条设 0** 与**设 4.0** 的徑向剖面几乎逐格相同（d00:255 d05:246 d10:225），而 `MI_FX_NovaCore` 三个参数整组设 0 则核心确实消失；`GroundRing` 缩放曲线整条设 0，Begin 的白环依然在，但把 `MI_FX_NovaShell.RingBoost` 设 0 白环就消失。**结论有二**：(1) 实际决定网格大小的是 `InitializeParticle` 的 `Mesh Uniform Scale`（spawn 阶段），`ScaleMeshSize` 写的 `Particles.MeshScale` 没被 renderer 读取——`validate_system` 那七笔一直被当成「既有误报」的 `MeshScale` warning **不是误报**；(2) 那条硬白边界环是壳层材质的 `edge` 项，不是 `GroundRing`。
+
+**更正上一轮留档**：12.10 节写「把 `GroundRing` 的 Over 段改成 30.3 就归零，修掉了双同心环」——**那项改动其实无效**，双环消失只能归功于同一轮的 `FieldShell / Scale Alpha` 改动。12.4 节写的 `CoreSphere` Over「0.95 爆闪」也从来没发生过。12.4／12.8 的 `CoreSphere` 数值冲突（0.36↔0.44 对 0.58）到此结案：**两个都没生效过**。`FieldShell` 是例外，Over 时球确实变小（环半径 Loop 123px、Over 0.55 为 92px），三者差异还没查清。
+
+**本轮引入的回归（尚未修）**：核心尺寸现在三阶段恒定（本来就是，但 `k` 放大 2.2 倍后明显了）。最明显的是 **Over `3 / 0.9`：壳层已收乾净，核心却还是一颗不会缩小的亮球悬在那里**，与 12.1 节「全部向中心塌缩归零」不符。**正确修法**：照 `FieldShell` 的模式给 `CoreSphere` 加一个 `Color` 模组，`Scale Alpha` 与 `Scale Color` 各挂一条以 `Phase*10 + PhaseElapsed` 为索引的曲线——Color 模组的曲线是确定有效的，这是目前唯一验证过能让 `CoreSphere` 随阶段变化的通道。那是改图，**必须重开 Editor 才验得掉**。
+
+**已验证**：四张截图重拍覆盖，Begin 仍无电弧、边界环不变，Loop 的核心与细丝如上。拍完 `User.Radius` 已还原 400 / Phase 0 / PhaseElapsed 0，存档后读回确认，`list_dirty_packages` 为 0。**未验证**：Over 0.9 的回归、PIE 实际画面、效能、双端、Cook；**本轮未跑自动化测试**。
+
+**下一步入口**：给 `CoreSphere` 加 `Color` 模组修掉 Over 0.9 的回归（需重开 Editor 验），并决定是否一併修 `ScaleMeshSize` → `Particles.Scale` 的绑定问题。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.12 节。
+
+**2026-11-14 闪电新星外观第五轮：补上外围缠绕电弧，参考图的三项要求到齐，自动化 12/12，PIE 画面与效能待验。** 这是评审排第一的参考图差距——细电弧缠绕在最外围的半透遮罩上。卡住它的不是参数值，是两个结构问题：**(1)** HLSL 迴圈写死 `for (int k = 0; k < 6; k++)`，`BoltCount` 的实际上限是 6，设 8 不会多出任何一条；本轮把上限改成 10 并把 `n` 改成 `clamp(Count, 1, 10)`。**(2)** `az` 是大圆**平面法线**的 Z 分量，俯视下 `az→±1` 贴着剪影跑、`az→0` 变成横过盘面的直线；原本均匀分布在 ±0.8，中间多数横过盘面，而且**大圆由平面决定、`ax` 与 `−ax` 是同一个圆**，正负成对重复、有效条数再打对折。改成只取正值、在 `0.735…0.945`（相对赤道倾斜约 19°–43°）铺开，每条都在外圈绕行，正好补在放射细丝留下的空档上。参数：`BoltCount` 5→8、`BoltDropout` 0.35→0.20、`BoltSpan` 1.25→1.8、`ArcBoost` 1.1→1.4。
+
+**已验证**：`recompile_material` 无错误、`validate_material` 仅剩既有的 `translucent_no_opacity` warning；四张截图重拍覆盖——Loop 外圈出现数条沿剪影绕行的弧并与放射细丝交织，**Begin 仍完全没有电弧**（`Amt` 闸门没漏），Over 0.55 弧与细丝一起淡掉、Over 0.9 仍在 1 秒内归零。**边界可读性**（AGENTS.md 第 12 节）量了徑向剖面：环峰值 243.0→243.2 不变，环内侧低点 139.8→150.8 被弧提亮，**对比 103.3→92.4**，约降一成但仍是清楚的硬阶梯。拍完 `User.Radius` 已还原 400 / Phase 0 / PhaseElapsed 0，存档后读回确认，`list_dirty_packages` 为 0。
+
+**自动化测试**：`ElectricSphere` + `ElectricWall` **12/12**，0 失败／0 警告／0 未执行，报告在 `Saved/ElectricSphere/20261114/NovaLook_R5`（`reportCreatedOn` 为 UTC `2026.11.13-21.33.35`，即本地 06:33，不是旧报告）。其中 `ElectricSphere.NovaFXParameterContract` 通过，等于由测试独立确认 `User` 参数契约没有被这几轮的截图操作破坏。用另开的 `UnrealEditor-Cmd.exe … -nullrhi` 行程跑，没有动到开着的 Editor；本轮只改资产、未改 C++，不需要重编译。
+
+**本轮唯一的效能风险**：大圆迴圈由实际执行 5 次变成 8 次（+60%），`BoltDropout` 降低让 `continue` 提早跳出的机会变少，`BoltSpan` 加大也让更多像素进入线宽计算。请在 PIE 用 `stat GPU` 看 `M_FX_NovaShell` 的成本；要退优先降 `BoltCount` 回 6。**自动化测试涵盖不到这一项**——它跑在 `-nullrhi` 下，根本没有绘制。**仍未验证**：PIE 实际画面、效能、双端、Cook。
+
+**下一步入口**：照第 8 节在 `Content/Maps/Test` 进 PIE，一次验四件事——盘面降亮后范围还读不读得到、细丝与缠绕弧在实机相机距离会不会抖、车辆开进 Loop 区域的遮挡、以及 `stat GPU` 下 `M_FX_NovaShell` 的成本。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.11 节。
+
+**2026-11-14 闪电新星外观第三、四轮：盘面降亮、细丝收细、Over 段收束已全部修好并验证（含重开 Editor 后的复验）。** 由特效评审逐轮比对截图与参考图驱动。**第三轮**（留档 12.9 节）：`FillGlow` 0.28→0.15 并把材质 `rim` 项挂上 `Amt` 阶段闸门 `(0.40 + 0.60*saturate(Amt))`，让 Begin 盘面只剩 Loop 的 40%、Over 跟着变暗——additive 圆盘在实机是 8 公尺直径，原亮度会把开进去的车洗白；`FilamentThickness` 0.0075→0.0030、`FilamentBoost` 1.25→1.55，原本 `hwf = FilT*FilN/r` 在 r=0.5 时单条细丝就吃掉角度格距的 66%，必然糊成亮面。**第四轮**（留档 12.10 节）：`FieldShell` 的 `Scale Alpha` 与 `GroundRing` 的缩放曲线整条重写，Over 段提早起跌、地面环 30.3 就归零——原本 Over 0.55 只读得到「变小」、读不到「已经安全」，且两层脱钩裂成两道等亮同心环。
+
+**第三项改动**：材质回传 `(arcs + rim + edge + core) * PColor`，`edge`（硬白环）与 `core` 刻意不吃 `Amt`（Begin 的 `Amt` 是 0，挂上去会让 Begin 失去危险边界），所以场已关掉的 Over 那条边界环仍是 100% 亮度。已在 `FieldShell / Color / Scale Color` 接上同索引的 `VectorFromCurve`（结构与 `Scale Alpha` 同形），重开 Editor 后复验生效：Over 0.55 的壳层本体相对 Loop 的同正规化半径降到约 **26%**，而 Begin 与 Loop 逐格不变。
+
+> **本轮最重要的两个工具发现**：
+> 1. 曲线 DI 的**资料**改动会即时进到 `preview_system`，**改图**（新增 dynamic input）不会。把新曲线整条压成 0.3 重拍，像素与改动前逐格相同（环峰值 226.6 两次一致），而 `get_system_diagnostics` 同时回报该 script 为 `UpToDate`——**资产编译状态与预览画面是两回事**。要验证任何改图必须重开 Editor 或进 PIE。这是 11.5 节第 1 点的精确版本。
+> 2. 重开 Editor 后著色器编译完成前，`preview_system` 会拍出**全黑**图（诊断一切正常）。拍摄前先等 `ShaderCompileWorker` 行程归零。
+> 3. **环峰值不是好指标**：Over 0.55 的环峰值只从 243 掉到 200，但环两侧掉了约 74%——additive 高光在 sRGB 下已近饱和。判断有没有变暗要看剖面，不要看峰值。
+
+**已验证**：材质 `recompile_material` 无错误、`validate_material` 仅剩既有的 `translucent_no_opacity` warning；`validate_system` 无 error；四张截图重拍覆盖并量徑向亮度剖面——Loop 细丝已是细硬折线、盘面中段由 150–170 降到约 105，Over 0.55 的双同心环消失、细丝降到约 27%、环峰值 243→226.6，Begin／Over 0.9 行为不变（`Saved/Screenshots/Monolith/20261114_NovaLook_*.png`，`User.Radius` 暂设 110 拍摄，拍完已还原 400 / Phase 0 / PhaseElapsed 0 并读回确认）。**本轮未跑自动化测试**（Editor 保持开启，依 12.7 节禁止用 Monolith 在 Editor 内跑）。**仍未验证**：PIE 实际画面、双端、效能、Cook；**本轮未跑自动化测试**。
+
+**下一步入口**：跑一次 `ElectricSphere` + `ElectricWall` 确认资产改动没影响玩法测试；接着处理评审排第一的参考图差距——外围剪影的缠绕电弧不足（`BoltCount` 5→8、`BoltDropout` 0.35→0.20、`BoltSpan` 1.25→1.8，并把 HLSL 内 `az` 分布往 ±0.5 以外偏）。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.9、12.10 节。
+
+**2026-11-14 闪电新星细丝已改为折线、核心可见度已修正，自动化 12/12，PIE 画面待验。** 团队回馈两点：细丝没有明确折线、太像触须；细丝出现后中心核心变得不太可见。**折线**：原本的中心偏移是两个 `sin()` 叠加，数学上就是平滑曲线，振幅再大也只会变成更夸张的触须；改成分段线性杂讯——把 `r` 切成 `FilamentKinks` 段，取节点杂凑值、段内 `lerp`（不是 `smoothstep`），每段是直线、节点是硬转折。每条细丝的节点间距与相位各自乘上自己的杂凑，否则所有细丝会在同一半径同时转折、形成同心圆纹路。**核心可见度**三处一起改：`FilamentInner` 0.3 在核心周围留空隙、细丝从空隙外缘才开始；壳层自身的中心柔光收窄（`CoreGlow` 0.5→0.22、`CorePower` 4.5→6.0）以免填满空隙；核心球本体加大（`CoreSphere` Loop 缩放 0.44→0.58）并把白炽中心加亮（新建 `MI_FX_NovaCore` 实例，`HotCenter` 2.5→3.5）。同时细丝数量由 34 降到 22、线稍微加粗到 0.0075——34 条在这个半径下会互相叠成一片亮面，反而让折线和核心都读不出来；`FillGlow` 0.55→0.28 让盘面中段暗下来。未改 C++、Blueprint 或 `User` 参数契约。详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12.8 节。
+
+**已验证**：材质重建 `has_errors: false`；三段截图重拍并逐张确认——Loop 的细丝有明确硬转折、白炽核心清楚可辨，Begin 仍只有范围提示与核心、无电弧，Over 仍在 1 秒内收乾净（`Saved/Screenshots/Monolith/20261114_NovaLook_*.png`，`User.Radius` 暂设 110 拍摄、拍完已还原 400）；`ElectricSphere` + `ElectricWall` **12/12**，0 失败／警告／未运行，报告在 `Saved/ElectricSphere/20261114/NovaLook_R2`。**仍未验证**：PIE 实际游戏画面、双端、效能、Cook。
+
+**2026-11-14 闪电新星已改为等离子球造型，三段截图通过、自动化 12/12，PIE 画面待验。** 团队提供参考图，要求「最外围有向内渐淡的范围提示、中间由发光体散出细电弧、细电弧缠绕在最外围的半透遮罩上」，并明确漸层是**外缘最亮、向核心渐淡**（因此不存在模糊危险边界的问题），同时给出三段对应：Begin 只显示范围提示与核心、Loop 为参考图完整样貌、Over 让范围显示与电弧一起收进核心内缩小消失。本轮重写 `M_FX_NovaShell` 的 Custom HLSL：边界渐层改为 `pow(r, RimFalloff)`（`r` 为投影半径，边界 1、中心 0），新增以视线轴对齐、用**角度域重复**而非迴圈逐条绘制的放射细丝（34 条与 6 条成本几乎相同；若改用迴圈，条数会直接变成每像素成本），原有的球面大圆电弧调细后保留作为缠绕层。核心球另建 `M_FX_NovaCore`（Additive／Unlit／双面）取代 `MI_FX_ToonNova_Core`——后者父材质是三阶色卡通烟、设计目的就是制造色块分界，与参考图柔和外扩的白炽球本质冲突，调参数救不回来；旧材质保留未删，可随时切回。三段的分别用一个新通道完成：`FieldShell` 的 `particle_update` 加一个 `Color` 模块，`Scale Alpha` 由 `FloatFromCurve(User.Phase * 10 + User.PhaseElapsed)` 推，材质把 `ParticleColor.A` 接到 `Amt` 只乘在电弧项上，`rim`／`edge`／`core` 不受影响（Additive 混合不使用 alpha，此通道安全）；Over 的「收进核心」由 `FieldShell`／`CoreSphere` 的缩放曲线在 31.05 归零完成。`ArcSpokes` 与 `MicroArcs` 已停用——放射与缠绕都改由壳层材质绘制，这两层在新造型里没有存在意义，关掉剛好抵销壳层变复杂的开销，第 9.2 节「ArcSpokes 从上方被遮住」因此成为历史条目。未改 C++、未改 Blueprint、未改 `User` 参数契约、未新增贴图（全部程序化）。规格、HLSL 要点与参数值见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 12 节。
+
+**已验证**：两份材质 `build_material_graph` 回报 `has_errors: false`，材质属性（Additive／Unlit／双面／Niagara Mesh）在重建后保留；`validate_system` 无 error（七笔 `MeshScale`／`SpriteSize` warning 为既有误报，改版前即存在）；三段俯视截图取得并逐张确认——Begin 为外围亮环向内渐淡加白炽核心、**无电弧**，Loop 为细丝由核心放射至边界、外围亮环包覆（与参考图接近），Over 0.55 秒时范围与电弧一起缩小、火花向外散开，0.9 秒只剩一个小点，1 秒内归零（`Saved/Screenshots/Monolith/20261114_NovaLook_Begin`／`_Loop`／`_Over055`／`_Over090.png`，`User.Radius` 暂设 110 拍摄、拍完已还原 400）；`ElectricSphere` 与 `ElectricWall` 合并复测 **12/12**（含 `NovaFXParameterContract`），0 失败／警告／未运行，NullRHI、单进程，报告在 `Saved/ElectricSphere/20261114/NovaLook_R1`。**仍未验证**：PIE 实际游戏画面（场地亮度下 additive 蓝的对比、细线在远距离的 TAA 闪烁）、双端、效能、Cook。细丝若在远距离抖动，先调 `FilamentThickness` 加粗或降 `FilamentCount`。**新增一个工具坑**：不要用 Monolith 在开着的 Editor 里跑 `run_automation_tests`——本轮这样做让 Editor 直接 assert 崩溃（`Assertion failed: LatentCommands.IsEmpty()`，`AutomationTest.cpp:1370`），资产在崩溃前已存档、没有损失，但自动化测试请一律用 `UnrealEditor-Cmd.exe … -nullrhi` 另开行程跑；Editor 目前是关闭状态，需要重开才能继续在编辑器内作业。下一步：重开 Editor，开 `Content/Maps/Test` 跑 PIE，确认三段在真实场地亮度与相机距离下仍然好读。
+
+**2026-11-14 闪电新星三阶段视觉已重编曲线并存档，画面待重开 Editor／PIE 验收。** 团队反馈「整个新星看不出明显的三阶段」。根因有二：其一，曲线索引 `Phase * 1000` 让曲线 Key 区间横跨 0～3002，而 Niagara 曲线 DI 预设用 **128 格 LUT** 覆盖整个 Key 区间，每格约 23.5 个单位，阶段内 0～2 秒的形状整段塞在一格以内被抹平，三段于是取到几乎相同的值；其二，`7648c5d` 停用了 `GroundRing`，俯视角下没有任何一层把范围画在地面，区域提示读不出来。本轮把七个 emitter 的索引倍率由 `1000` 改为 `10`、曲线 Key 全部改编在 **9.8～32**（Idle 0／Begin 10–12／Loop 20–22／Over 30–32，每格约 0.17 单位），按新的视觉规格重写七层曲线，并重新启用 `GroundRing` 当作区域底盘；`ArcSpokes` 的 Loop 值压到 0.62，避免放射臂伸出危险边界之外（AGENTS.md 第 12 节）。`User` 参数名称／型别、Blueprint 推送与 `HALNovaFX::Contract` 都没有改，倍率与曲线必须同时改、只改一边会让该层永远取到 0。规格与各层数值见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 11 节。
+
+**已验证**：七个 emitter 的倍率读回皆为 `10.0`；存档后的 `.uasset` 内可找到各曲线特征 Key 时间与电墙色 `0.438499`；`User.Phase`／`PhaseElapsed` 预设已还原为 0、七层全部启用；`ElectricSphere` 与 `ElectricWall` 合并复测 **12/12**，0 测试警告／失败／未运行，NullRHI、单进程，报告在 `Saved/ElectricSphere/20261114/ThreeStage_R1`。重开 Editor 后已取得可信的三段俯视截图（`Saved/Screenshots/Monolith/20261114_045840`／`045851`／`045910`／`045920`）：Begin 为地面环撑满半径、粒子向中心落、中央只有小蓄力球；Loop 为环内整片电弧填满；Over 在 1 秒内收乾净，先核心爆闪、后地面环消失只剩散开火花，三段在俯视角下可明确区分。**截图注意**：`preview_system` 相机固定、可见范围仅约 440 cm 宽，用预设 `User.Radius = 400` 拍会把球壳与地面环拍到画面外、看起来像没变化，截图时需暂时把半径调到 110 左右再改回。**仍未验证**：PIE 实际游戏画面与手感、双端、晚加入、效能、Cook。**两个工具坑已留档**：Monolith 的 `preview_system` 会持续回传旧编译结果，即使 `request_compile` 回报 `UpToDate`、`save_system` 已存档也一样，本轮曾因此误判写入没生效、来回改了多轮，资产内容只能用读取动作确认、画面要重开 Editor 或 PIE 才可信；`EditorLoadingAndSavingUtils.reload_packages` 会跳对话框卡住 Editor 主执行绪、Monolith 整个连不上，要重载资产请直接重开 Editor。过程中资产一度处于半套状态，已用 `git checkout` 还原、重开 Editor 后一次写完并重新套用电墙色。下一步：重开 Editor 后开 `Content/Maps/Test` 跑 PIE，确认 Begin 只有地面环、Loop 满径、Over 在 1 秒内收乾净。
+
+**2026-11-14 闪电新星配色已统一到电墙色系，两份资产已保存，待团队 PIE 画面复核。** 用户指出两者造成的效果相同、颜色应属同一色系。实读确认 `NS_LightningNova` 七个发射器的 `InitializeParticle.Color` 全部链接到 `User.Color`，而 `BP_ElectricSphereGimmick` 不推送该参数（与 11-11 的 T3D 逐节点核对一致），因此资产默认值即实际主色；电墙侧 `NS_ElectricArc` 的 `Core`／`ArcInner`／`ArcOuter` 三层 `Color` 模块同为 `(0, 0.438499, 1, 1)`。本轮把 `NS_LightningNova` 的 `User.Color` 默认值从 `(0.35, 0.72, 1)` 改为与电墙同值；核心球另有硬编码的卡通三段分色，`MI_FX_ToonNova_Core` 的 `MidColor` 改为同一电墙色、`ShadowColor` 改为 `(0, 0.298, 0.68)`、`LitColor` 改为 `(0.88, 0.96, 1)`，使三段落在同一色相。其余 Nova 材质（`M_FX_NovaRing`／`M_FX_NovaSpokes`／`M_FX_NovaMicroArc`／`M_FX_NovaShell`）没有颜色参数，`ChargeMotes`／`Sparks` 用引擎默认 Sprite 材质，全部跟随粒子颜色，无需另改。
+
+改动透过 Monolith 编辑器 API 完成，只改两份资产的参数值：`Content/Assets/FX/NS_LightningNova.uasset` 与 `Content/Assets/FX/Materials/MI_FX_ToonNova_Core.uasset`；没有改 Blueprint、发射器堆叠、曲线、C++ 或 Config，`HALNovaFX::Contract` 的名称／型别名单不受影响。**已验证**：改后读回两份资产的参数值与目标一致，`MI_FX_ToonNova_Core` 缩图渲染为电墙同色；`ElectricSphere` 与 `ElectricWall` 合并复测 **12/12**（含 `NovaFXParameterContract`，确认改后的 `NS_LightningNova` 仍可载入且五个参数名称／型别不变），0 测试警告／失败／未运行，NullRHI、单进程，报告在 `Saved/ElectricSphere/20261114/NovaColor_R2`。首轮我多加 `-NoShaderCompile`，引擎在初始化即 `Null assigned to TNotNull` 崩溃，与本次资产改动无关，移除该旗标后 R2 通过。**未验证**：PIE 实际画面、三阶段、双端、效能、Cook。Niagara 系统预览只能在 `User.Phase=0` 的 Idle 状态截图、画面为空，不能当作验收。下一步由团队在 `Content/Maps/Test` 的 PIE 内同时看电墙与新星确认色系一致，必要时再微调 `MI_FX_ToonNova_Core` 的三段分色；详见[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 2.4 节。
+
+**2026-11-14 Car03 柔和卡通火花＋立体气流施工、保存资源、DA 迁移与本机专项完成，下一步团队画风验收。** 从 `main/69a16d5` 接续，UE5.8.3-58210709。接触火花改圆润笔触与概括分色，保留已认可的数量7和全部运动参数；气流改 Niagara 曲面弧网格，支持独立流速、数量／寿命、高低错层、倾角、宽度、上升及发光，所有新增控制仍在技能 DA。只切换现有 DA 的 Wind／Wind Material／Contact Sparks 三项，Ground=None、原暖色及其他调参保留。五个新资源与旧资源并存；玩法接触／伤害／推送／技能规则未改，未编辑 BP。
+
+最终 Editor R13／Game R4 编译链接成功；最终统一原生＋D3D12 渲染 **16/16**、0 测试警告／失败；当前地图双进程 Host 出站额外80ms，拥有者／观察者、原 ObserveContact 的合成权威接触→真实 multicast、数量7、参数复制和到期清理均各 **1/1**。已查看真实车辆与独立粒子图片。开工1277份资产／Config／uproject只有授权技能DA改变，其余1276份哈希一致，保留团队监听GameMode BP和地图修改。早期空Mesh槽、透明内外面条纹与副本编译数据未就绪的失败记录均保留，最终测试已复验；没有四机／发布包／全量历史套件或新真人风格验收结论，未提交／Push。下一入口：重开Editor，在技能DA的 Presentation→FX 调流速／层高／倾角／宽度，验真实撞墙、擦碰和遮挡。见[配置、实际截图与验收](Presentation/Car03_BattleTop_Cartoon_FX_CN_v0.1.md)和[验证摘要](Presentation/Car03_BattleTop_Cartoon_Verification_20261113.json)。下方“讨论／未施工”保留历史时点。
+
+**2026-11-13 Car03 接触专用资源已由团队切换，当前进入柔和卡通造型与立体气流方案讨论，尚未施工。** 只读确认保存技能 DA 的 Contact Sparks 现为 `NS_BattleTop_ContactSpray`，Contact Count仍为7；用户反馈效果有进步且粒子强度可以，因此不再将迁移数量32作为本轮必须动作。新反馈是火花样式偏写实，暖色风环也偏光效且缺乏立体气流层次。保存材质复核与生成源码确认：接触火花采用高发光、热芯及连续渐变；风环为单个平面Sprite上的三组径向细弧，颜色图案整体跟随外观自转。建议保留已认可强度／触发／散射，改圆润短粗飞溅笔触和概括分色；风环升级为Niagara弧面网格粒子，使用错落高度、开放弧段、独立推进／消退和三档方向明暗，新增美术控制仍集中技能DA。见[风格反馈与方案](Presentation/Car03_BattleTop_Polish_FX_CN_v0.1.md#柔和卡通造型与立体气流方案讨论2026-11-13)。本轮只读资源／源码检查与文档同步，无代码／资产修改、构建或新渲染／联机测试；保留团队技能DA、监听GameMode BP和地图修改。下方“仍引用旧系统／下一步数量32”为切换前快照。
+
+**2026-11-13 Car03 特效进度重新核对：接触飞溅加强的代码／资源已提交，保存技能 DA 尚未切换，当前处于接线与本版验证前。** 当前 `main/69a16d5`（add battleTop vfx），本机 UE5.8.3-58210709。只读加载确认 `NS_BattleTop_ContactSpray`／`M_BattleTop_ContactSpray` 均已存在，修正下方“未生成资源”的历史时点；新尺寸／寿命／散射等反射字段可读取。但实际 `DA_Ability_Car03_BattleTop` 的 Contact Sparks 仍为 `NS_BattleTop_Sparks`、Contact Count=7，尚未按加强方案切换为专用 ContactSpray／32。Ground Sparks=None 保持团队隔离选择；已保存风环 Radius Scale=1.45、Opacity=0.55、转速1500°/s、持续10 s、进入0.15 s／退出0.2 s、目标CD0.8 s。完整核对见[当前接续入口](Presentation/Car03_BattleTop_Polish_FX_CN_v0.1.md#当前接续核对2026-11-13)。
+
+原16/16及双端通过属于 `eb1079c`／UE5.8.2 的首版记录；现版渲染测试源码哈希已不同，不能当作加强版或本机UE5.8.3复验通过。下一步只迁移 Contact Sparks 引用及数量，保留底部None和其他调参，再完成匹配现版的构建核对、接触飞溅渲染／运动专项、相关规则与双端清理验证，最后验收真人画面。本轮仅Git／源码／只读保存配方核对及文档同步，未改代码／资产、未运行新构建或玩法／渲染测试；保留监听GameMode BP及NetTest地图已有修改，未提交／Push。早先Editor PID及“资源未生成”记录不代表当前运行状态。只读报告在 `Saved/BattleTop/Progress_20261113/Saved_Recipe_Audit.json`。
+
+**2026-11-13 丢弃后的 Movement／Git 忽略规则已恢复。** 当前 `main/c697601`，保留后续 Black Hole 提交及其他工作区修改，仅恢复 `ArcadeVehicleMovementComponent.cpp` 发布碰撞前角速度的一行，以及 BattleTop 源码／工具／测试／说明文档的七条 Git 白名单。旧验证摘要基于 `eb1079c`，其整文件哈希不能替代当前已合入黑洞功能的版本；本轮按当前提交做最小补回，不回滚后续代码。仅检查恢复差异、忽略规则和文件保护，没有重编或运行新测试；接触飞溅加强仍未收尾，下方构建／施工记录保留各自时点。
+
+**2026-11-13 Car03 接触飞溅加强施工中：源码／新 Niagara 配方及验证代码已写，待关闭 Editor 后完成资源与验证。** 用户确认放大后可见，要求更大、更密、更分散；主方向继续保留反向接触切向，新增表面法线驱动朝外／向上散射、随机大小／寿命／速度、视觉重力和阻力。新建接触专用资源，计划仅迁移技能 DA 的 Contact Sparks 与 Contact Count=32，保留原火花、底部设置及其他调参。参数与验证入口见[施工留档](Presentation/Car03_BattleTop_Polish_FX_CN_v0.1.md)。当前未生成新资源／迁移保存 DA，未宣称构建或新测试通过；Editor（PID 43740）仍运行。下方记录保留早先时点。
+
+**2026-11-13 团队确认接触火花粒子数 > 0，但看不见；当前转查表现可见性。** 用户按手动检查回报该结果，优先级由“触发链缺失”调整为尺寸／寿命、位置、遮挡、材质与渲染器。此前脚本未观察到火花不足以证明没触发，旧结论以本段修正；不将该案例当成需要放宽碰撞资格的证据。下一步由团队复制接触专用 `NS_BattleTop_ContactSparks`，先试 10×50 cm／0.35 s，Contact Count=16，仅 Contact Sparks 引用副本；调试筛选同步改为副本名，底部火花隔离后恢复原资源。见[可见度对照步骤](Presentation/Car03_BattleTop_Polish_FX_CN_v0.1.md)。当前资源哈希仍与上轮真实像素复核一致，本轮无代码／资产修改、构建或新测试通过结论；尚未确认不可见的最终原因，也未标为修复。以下保留早先排查记录。
+
+**2026-11-13 Car03 已由团队接线，撞墙接触火花缺失已复现，尚未修复；气流增强参数已说明。** 当前仍为 `main/eb1079c` 及上轮未提交施工，新增保留团队技能 DA 修改。只读加载确认四个 FX 槽正确，保存转速 1500°/s、持续 10 s、Opacity=0.55／Radius Scale=1.15。独立 Editor 当前地图／配方对照中，排除机关并保持原生碰撞委托后，风环及底部火花正常，普通围墙接触仍未观察到接触火花；具体拒绝点需补原生 Hit→分类／阈值→RPC→Spawn 诊断，不能当作只需放大粒子。现有严格普通静态墙分类对部分机关的适用边界是可疑点，未宣称为最终根因。本轮无源码／保存资产修改或新构建；当前资源像素复核结果见下段，以前的 16/16 不覆盖此次缺失。见[复现结论、下一入口和增强配置](Presentation/Car03_BattleTop_Polish_FX_CN_v0.1.md#配置后反馈撞墙火花与气流强度2026-11-13)。下一步先定位接触触发；风环可先在技能 DA 试 Radius Scale=1.45、Opacity=0.85，再增亮 RGB。同名 MI 参数会被运行时覆盖。未提交／Push。
+
+**同轮资源复核补充：** `NS_BattleTop_Sparks` 在检查期间于 16:26 保存，已不同于原哈希，保留未覆盖；针对当前资源的 D3D12 像素专项 **1/1**、0 测试警告／失败，证明粒子可输出，仍不能证明普通墙触发。详见上方说明文档。没有重跑原 16 项全组合，没有将此次触发缺失标为修复。
+
+**手动排查步骤已补充：** 先暂时清空 Ground Sparks，使用内置 `fx.Niagara.Debug.Hud` 筛选接触火花，结合 `hal.AbilityLog 1` 的 started 区分技能请求、组件创建、粒子输出与可见性。见[手动检查说明](Presentation/Car03_BattleTop_Polish_FX_CN_v0.1.md)。命令／参数仅按本机引擎源码核对，本轮无代码或资产修改、新构建／场景测试，也未增加专用火花日志；缺失仍未修复。
+
+**2026-11-13 Car03 过渡／重复命中／暖色 Niagara 首版代码、资源和程序验证完成，下一步团队接线。** 从 `main/eb1079c` 接续，保留已有监听 GameMode BP 修改。进入 0.15 s／退出 0.2 s 可配置且包含于原持续时间；外观平滑归位，玩法窗口不缩短。每目标独立 0.8 s CD，服务器每 0.05 s 用真实凸包复核持续接触；伤害与额外规则推送共用 CD。接触火花按包含外观自转的撞前相对切向运动反向喷出，底部稀疏火花按近地／移动门槛显示；眩晕、自救和清理沿用已确认边界。新增 `/Game/Assets/FX/BattleTop` 下四个 Niagara／材质资源；风环依实际外观中心和 Bounds 显式适配尺寸。见[接线、参数与验收边界](Presentation/Car03_BattleTop_Polish_FX_CN_v0.1.md)。
+
+本机 UE **5.8.2-56702186** 最终 Editor R13／Game R2 构建成功；最终统一专项＋D3D12 渲染 **16/16**，0 测试警告／失败。当前地图双进程低延迟及 Host 出站 80 ms 注入两轮，双方实际请求、拥有者／观察者自转与气流、到期归位／清理、冷却均各 **1/1**，报告均无测试警告／失败，已检查实际 Car03 截图。原有保存资产、Config／uproject 共 **1270** 项逐份哈希一致，仅新增四个 FX 资源；未改保存的技能 DA／GA／BP／地图，未提交／Push。见[验证摘要](Presentation/Car03_BattleTop_Polish_Verification_20261113.json)。团队下一步重开 Editor，在现有技能 DA 的 Presentation → FX 填入 Wind、Contact Sparks、Ground Sparks 和 Wind Material，按文档验收手感及真实接触／近地火花；四机与发布包仍待项目收尾。本轮未重跑全量历史套件，不扩大为全量通过。
+
+以下为施工前及更早时点记录。
+
+**2026-11-13 Car03 过渡、重复命中和暖色 Niagara 首版规格已确认，尚未施工。** 当前 `main/eb1079c`，保留监听 GameMode BP 的已有修改。进入 0.15 s／退出 0.2 s 均可配置且计入既定持续时间；只平滑自转／气流和结束归位，规则仍从发动至到期生效。用户确认每目标独立 **0.8 s** CD，持续贴靠到期可再次伤害／推送；不是整次只能攻击一辆车，也不照搬 Car04 的车头角度限制。真实接触火花独立限频，按包含视觉自转的相对切向运动反向喷出；底部火花只在技能期间接近地面且移动时少量出现。气流改为琥珀橙／珊瑚红／浅金暖色层次，眩晕、腾空、自救与退场按已确认边界处理。见[已确认规格与施工顺序](Combat/Car03_Battle_Top_Ability_Design_CN_v0.1.md)。本轮仅代码核对、方案与状态留档，无 C++／配置／资产改动、构建或新测试；现有实现仍为固定自转和每目标每次技能仅受击一次。下一施工先做过渡／归位与持续接触 CD，再接三类粒子和实际画面验证。
+
 **2026-11-12 Car04 冲锋接触球不发射已修复代码、构建与程序验证，待真人画面复测。** 从 `main/8af4c4d` 接续，保留团队技能 DA／GA、Car04 Definition 和监听 GameMode 改动。真实碰撞复现确认 UE 在自身 Chaos 处理器中直接触发组件碰撞，技能采样可能尚未到达；原实现因此持续缺少／拒绝同帧采样。现在将相关接触预约至同帧全部事件收齐后，仍由原服务器入口校验并提交，保留角度／速度／拾取锁、规则冲击与自然碰撞边界；无新增 Tick／RPC／复制字段，格式 **6** 不变，球速公式和保存参数未改。新增默认关闭的 `hal.BullChargeContactLog`，见[修复、日志与团队复测](Combat/Car04_Bull_Charge_CN_v0.1.md#接触发射修复与复测2026-11-12)。
 
 本机 UE **5.8.2-56702186** 最终 ContactFix Editor R5／Game R2 成功；原生专项 **11/11**。保存配方真实单 Host 碰撞从修复前失败转为 **1/1**，实际发射 **9000 cm/s**。低延迟及 Host 出站 **80 ms** 注入的真实双进程接触，两端均各 **1/1**，覆盖双方车辆经本人技能请求、真实 Chaos 接触出球和两端归属；服务器确认两球均为 9000 cm/s。既有眩晕／恢复／冷却双端也各 **1/1**，测试报告均 0 警告／失败。全量另记 **199 通过、1 带告警通过、4 失败**；四项均依赖已重命名的旧玩家 DA 路径，本轮未修这些夹具，未宣称全量通过。该轮 1251 保存资产及 Config／uproject 共 **1256** 项与开工逐份一致。无代理资产修改／接线或提交／Push；同机 NullRHI 不替代真人画面、校园四机或发布包。团队下一步重开 Editor 按原保存配方复测，无新增接线。详见[修复验证摘要](Combat/Car04_Bull_Charge_ContactFix_Verification_20261112.json)；下方排查中记录保留原时点。
@@ -55,6 +517,18 @@ UE5.8.3-58210709 最终 Editor／Game R2 构建通过，原生专项 **13/13**�
 **2026-11-11 通用地面隆起／波动程序及验证完成，已接入 SlipperyTrail，待团队补母材质 WPO 接线。** 从 `main/b06ecae` 接续并保留上一轮进度文档改动。新增可复用的 `FHALGroundSurfaceDeformation`、地面条带／圆端细分及 `UHALGroundSurfaceComponent`，输出中央到边缘权重、独立 MID、服务器相位与 WPO 包围盒。技能 DA 的 `Presentation → Deformation` 管统一参数，默认 8 cm 隆起、2 cm 起伏、3 s 周期，通过 Enabled 显式启用。UE5.8.3 Editor／Game R3 编译链接通过，原生专项 **11/11**，D3D12 测试材质实际轮廓／波动像素检查 **1/1**，D3D12 本机双端专项各 **1/1**。1243 份保存资产／Config／uproject 保护基线逐份一致。日志位于 `Saved/GroundSurface/20261111`。团队按[通用地面隆起与波动](Presentation/Ground_Surface_Deformation_CN_v0.1.md)在 Editor 接母材质 WPO，再启用 DA 并验收实际油膜画面。
 
 **2026-11-11 SlipperyTrail 联合开发进度核对，当前进入油膜观感调参与保存配方验收。** 核对基点为干净 `main/b06ecae`，本机 UE 5.8.3-58210709。程序已接入按服务器轨迹、地面法线和时间扩宽的动态地面网格，技能 DA 提供 `Presentation → Ground Material / Ground Lift / Texture Tile Size`。`987a129` 已提交遮罩、母材质、实例和技能 DA 的更新，本次只读确认保存的 `DA_Ability_SlipperyTrail` 包引用 `MI_SlipperyTrail_OilSheen`。团队留档已记录游戏内看到油膜，后续完成暗绿底纹与绿紫高光的独立流动接线；最新一版实际观感、急弯／绕回叠色、断段和双端到期清理待复测。当前先按[油膜特效速查](Presentation/Slippery_Trail_OilSheen_QuickGuide_CN.md)调参并在比赛镜头下验收。既有构建、隔离原生 188/188 和 D3D12 双端专项属于 11-10 UE 5.8.2 的地面表现施工记录，本轮为 Git、源码、保存包引用与文档核对。
+
+**2026-11-11 闪电新星接线已核对，参数契约已用自动化测试锁住；团队 PIE 已确认三个阶段都有。** 本机从落后 73 个提交快进到 `main/b06ecae` 后接续。**开工第一个发现是本机 binary 停留在 11/02，`HALElectricSphereGimmick` 不在 DLL 内**，导致 `BP_ElectricSphereGimmick` 的 generated class 为 `None`、Blueprint Status 为 `BS_UNKNOWN`，`MVPB_NetTest` 与 `Test` 两张图里摆好的球一起载入失败，而且只有 LogLinker 警告、没有错误弹窗。重编后恢复，接续这个环节必须先重编再开 Editor。
+
+`NS_LightningNova` 实际宣告的五个参数型别已实读确认：`User.Phase` 为 **Int32**，`PhaseElapsed`／`Radius`／`Intensity` 为 Float，`Color` 为 Linear Color。把 `BP_ElectricSphereGimmick` 导出 T3D 逐节点核对，存档接线与 `b06ecae` 说明**一致**、无 guard：四个推送节点的名称字符串与型别全部正确，`User.Color` 与 `User.Intensity` 目前无推送。查引擎源码 `FNiagaraUserRedirectionParameterStore` 确认 `User.` 前缀与裸名等价，commit 里「拼法未确认」一项结案；真正的风险是 `SetVariable*` 的 `bAdd=true` 在名称或型别对不上时静默新增参数、特效安静不动，新增测试即针对这一点。
+
+新增 `HAL.FutureCreation.ElectricSphere.NovaFXParameterContract`（并入既有 `HALElectricWallTests.cpp`，沿用该档世界夹具），锁住：两个存档资产可载入（直接抓未重编状况）、五个名称均已宣告、元件指向 `NS_LightningNova` 且 Auto Activate 关闭、**override store 内不存在未宣告或型别不符的参数**、以及夹具自检。该夹具**无法驱动 Blueprint 事件本体**——Loop 转换后世界时钟已到 0.15 秒而 Blueprint 自己的 `PhaseStartTime` 仍为精确的 0——所以推送的值不做断言，只锁契约；已逐一排除延后队列、`Activate()` 重置、名称型别错误与元件抓错，**未发现接线缺陷**；随后**团队在 PIE 内确认三个阶段都有**，确定这纯粹是夹具限制。该限制对任何「原生事件→Blueprint 表现」的接线都成立，若要让自动化涵盖这类推送需另立课题。
+
+本机 UE **5.8.2-56702186** Editor Target 编译通过（警告仅既有 `HALCameraTests.cpp` 的 C4305）。`ElectricSphere` 与 `ElectricWall` 合并复测 **12/12**（球体 3 项含本轮新增 1 项，电墙既有回归 9 项），0 测试警告／失败／未运行。NullRHI、单进程；报告在 `Saved/ElectricSphere/20261111/NovaFX_R3`，过程诊断留在同目录 `NovaFX`、`NovaFX_Diag`～`NovaFX_Diag3`。团队 PIE 三阶段为实际画面观察，非本机量测。**仍未验证**：双端、晚加入、效能、Cook。本轮未修改任何 `.uasset`／`.umap`／Config。
+
+下一步入口：[闪电新星参数契约与验收](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md)第 7 节的移除 Event Tick（改推 `User.PhaseStartTime`、Niagara 侧用 `Engine.Time` 相减，同一次变更要改测试里的 `HALNovaFX::Contract` 名单；**必须先改 Niagara 再改 Blueprint**，只删 Tick 会让曲线停在每个阶段第一帧）与第 9 节两个缺口（`User.Intensity` 未接线、`ArcSpokes` 俯视被遮）。Niagara 与 Blueprint 的实际编修一律由团队在 Editor 执行：本轮重新确认 UE 5.8 的 Python 无法编写 emitter 堆叠，新的 `NiagaraExt_*` 外部编辑 API 只有 USTRUCT 进了 Python、函式没有 `UFUNCTION`。
+
+开工时本机有 5 份未提交改动，其中 `BP_MVPB_ListenGameMode.uasset` 与 `BP_ElectricWallGimmick.uasset` 与上游同档冲突（二进制无法合并），用户已确认两份都不保留，改动留在 `git stash` 未还原；`DefaultEngine.ini` 的 Python 远程执行设定及其余不冲突改动保持未提交。
 
 **2026-11-11 单车测试观察摄像机已改为Alt鼠标操作，Editor编译链接通过。** 从干净`main/19b5bf5`接续。在现有测试Controller中实现Alt左键绕观察中心旋转、Alt中键缩放、Alt右键平移及无需Alt的滚轮缩放；面板提示已同步，原观察模式右键WASD飞行移除。观察拖动期间暂时释放车辆输入，松开／失焦／切换镜头／换车恢复，车辆自身摄像机继续沿用原右键观察。未增加公共Controller接口或源码文件；现有四项测试中的相机用例扩充轨道半径、同步平移、距离缩放／限制、重新聚焦及Alt／滚轮绑定检查。UE5.8.3 R1发现局部Player变量遮蔽基类成员，改名后NoLink R2成功；Editor释放DLL后完整Editor R3成功，运行／工具模块均已写入。专项进程退出0但无UE日志／报告，实际执行及鼠标操作仍未验证；未重做Game Target。本轮1245份保护基线逐份一致，保存资产／Config／公共Controller／公共相机和车辆源码保持，未提交／Push。日志与基线位于`Saved/VehicleTest/20261111/AltMouseNavigation`；详见[接线与操作](Configuration/SingleVehicleTest_Setup_CN_v0.1.md)。
 

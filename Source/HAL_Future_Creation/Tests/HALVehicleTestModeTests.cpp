@@ -13,6 +13,7 @@
 #include "../HALPlayerStart.h"
 #include "../TestVehiclePawn.h"
 #include "../PassiveTestVehicle.h"
+#include "../HALSkillTestDummy.h"
 #include "HALCameraTestSupport.h"
 #include "Camera/CameraActor.h"
 #include "Components/BoxComponent.h"
@@ -212,6 +213,40 @@ bool FHALVehicleTestFailure::RunTest(const FString&)
 	TestTrue(TEXT("Original possession and GAS preserved before commit"),F.PC->GetPawn()==Original && F.ASC()->GetAvatarActor()==Original);
 	TestEqual(TEXT("Rejected requests do not consume lifecycle serial"),F.State()->GetVehicleLifecycle().ChangeSerial,Serial);
 	TestEqual(TEXT("Rejected candidate is destroyed"),F.VehicleCount(),1);
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALVehicleTestOpponent,"HAL.FutureCreation.VehicleTest.OpponentSpawnsReplacesAndSurvivesPlayerSwap",
+	EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALVehicleTestOpponent::RunTest(const FString&)
+{
+	FVehicleTestWorld F;
+	if (!TestNotNull(TEXT("Player Car_02 spawned"),F.Vehicle())) { return false; }
+	ATestVehiclePawn* Player=F.Vehicle();
+	TestNull(TEXT("No opponent until one is requested"),F.Mode->GetOpponentVehicle());
+	TestFalse(TEXT("Unlisted class is refused as an opponent"),F.Mode->ChangeOpponentVehicle(F.PC,ATestVehiclePawn::StaticClass()));
+	TestNull(TEXT("A refused request spawns nothing"),F.Mode->GetOpponentVehicle());
+
+	TestTrue(TEXT("Car_02 opponent spawns"),F.Mode->ChangeOpponentVehicle(F.PC,F.Car02));
+	AHALSkillTestDummy* First=F.Mode->GetOpponentVehicle();
+	if (!TestNotNull(TEXT("Opponent exists"),First)) { return false; }
+	TestTrue(TEXT("Opponent is built from the chosen car's own Definition"),
+		First->GetVehicleDefinition()==F.Car02->GetDefaultObject<ATestVehiclePawn>()->GetVehicleDefinition());
+	TestTrue(TEXT("Opponent passed the formal vehicle configuration"),First->IsConfigurationValid());
+	TestNull(TEXT("Opponent is never possessed"),First->GetController());
+	TestTrue(TEXT("Player keeps the original car"),F.PC->GetPawn()==Player);
+	TestEqual(TEXT("Opponent stands the configured distance ahead"),
+		float(FVector::Dist2D(First->GetActorLocation(),Player->GetActorLocation())),700.f,1.f);
+
+	TestTrue(TEXT("Applying again replaces the opponent"),F.Mode->ChangeOpponentVehicle(F.PC,F.Car02));
+	AHALSkillTestDummy* Second=F.Mode->GetOpponentVehicle();
+	TestTrue(TEXT("Replacement is a new actor"),Second && Second!=First);
+	int32 Dummies=0; for (TActorIterator<AHALSkillTestDummy> It(F.World);It;++It) { if (!It->IsActorBeingDestroyed()) { ++Dummies; } }
+	TestEqual(TEXT("Only one opponent stays on the floor"),Dummies,1);
+
+	TestTrue(TEXT("Player car swap still works with an opponent present"),F.Mode->ChangeTestVehicle(F.PC,F.Car02));
+	TestTrue(TEXT("Opponent survives the player's car swap"),F.Mode->GetOpponentVehicle()==Second);
+	F.Mode->RemoveOpponentVehicle();
+	TestNull(TEXT("Remove clears the opponent"),F.Mode->GetOpponentVehicle());
 	return true;
 }
 #endif

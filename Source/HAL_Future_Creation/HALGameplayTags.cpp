@@ -2,6 +2,21 @@
 
 namespace HALGameplayTags
 {
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_HookThrow,"Ability.Vehicle.HookThrow","Stationary hook and directional throw.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_HookThrow,"Cooldown.Vehicle.HookThrow","Consumed on successful outbound launch, including misses and interrupts.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_HookCasting,"State.Vehicle.HookCasting","Own stationary action lock, independent of external Stun.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_SmokeScreen,"Ability.Vehicle.SmokeScreen","Car08 upward exhaust smoke primary.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_SmokeScreen,"Cooldown.Vehicle.SmokeScreen","Smoke cooldown measured from activation.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Vision_SmokeObscured,"State.Vision.SmokeObscured","Authority smoke source contribution; no driving, damage or impact mutation.");
+	UE_DEFINE_GAMEPLAY_TAG(Ability_SideShift,"Ability.SideShift");
+	UE_DEFINE_GAMEPLAY_TAG(State_SideShift,"State.Movement.SideShift");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pursuit,"Ability.Vehicle.PolicePursuit","Car06 siren pursuit.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_Pursuit,"Cooldown.Vehicle.PolicePursuit","Pursuit cooldown from activation.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Arrested,"State.Vehicle.Arrested","Pursuit arrest marker during shared Stun.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_PursuitProtected,"State.Vehicle.PursuitProtected","Blocks Car06 arrest only; never blocks ordinary Stun.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Tornado,"Ability.Vehicle.Tornado","Car05 moving tornado primary ability.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_Tornado,"Cooldown.Vehicle.Tornado","Tornado cooldown from successful activation.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_Tornado,"Combat.Source.Tornado","Independent tornado impact, no direct damage.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_BattleTop, "Ability.Vehicle.BattleTop", "Car03 primary ability.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_BullCharge, "Ability.Vehicle.BullCharge", "Car04 primary ability.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_BullCharge, "State.Vehicle.BullCharge", "Avatar overdrive charge is active.");
@@ -34,6 +49,7 @@ namespace HALGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Movement_Boost, "State.Movement.Boost", "Movement boost is active; actual scales are consumed from per-physics-frame history.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Movement_SlowArea, "State.Movement.SlowArea", "A selected slowing-area GE is active; recovery after exit is stored in physics history.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Movement_SlipperyArea, "State.Movement.SlipperyArea", "A selected slippery-area GE is active; does not change chassis mass or collision.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Movement_Drag, "State.Movement.Drag", "A Drag field reduces lateral grip without adding slippery sway.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Movement_Area, "Effect.Vehicle.MovementArea", "Avatar-scoped, selected regional contribution; separate from ordinary movement buffs.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Data_Movement_AreaAcceleration, "Data.Movement.AreaAcceleration", "Reserved selected regional acceleration delta.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Data_Movement_AreaSpeed, "Data.Movement.AreaSpeed", "Reserved selected regional speed-limit delta.");

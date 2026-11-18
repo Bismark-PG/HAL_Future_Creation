@@ -1,4 +1,5 @@
 #include "HALImpactReceiverComponent.h"
+#include "HALHookComponent.h"
 #include "VehicleRecoveryComponent.h"
 #include "HALVehiclePresentationComponent.h"
 
@@ -151,6 +152,8 @@ void UHALImpactReceiverComponent::HandleContact(UPrimitiveComponent* Body, AActo
 	{
 		return;
 	}
+	if (auto* Top = GetOwner()->FindComponentByClass<UHALBattleTopComponent>(); Top && Top->IsActive())
+	{ Top->ObserveContact(*Body, *OtherBody, NormalImpulse, Hit); }
 	if (auto* Charge = GetOwner()->FindComponentByClass<UHALBullChargeComponent>();
 		Charge && Charge->DeferContact(Body, OtherBody, NormalImpulse, Hit)) { return; }
 	// Active attack owns its one response. Controlled balls cannot attack through their constraints.
@@ -337,7 +340,7 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 			}
 		}
 		bool bQueued = false;
-		if (Movement) { bQueued = Movement->QueueImpact(PhysicsAction); }
+		if (Movement) { bQueued = Movement->QueueImpact(PhysicsAction, Request.AttackId, Request.PulseSequence); }
 		else
 		{
 			Body->AddImpulse(PhysicsAction.ResolveLinearDelta(Body->GetPhysicsLinearVelocity()), NAME_None, true);
@@ -348,6 +351,8 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 		Result.RuleDeltaVelocity = PhysicsAction.DeltaVelocity;
 		Result.RuleMinimumUpwardSpeed = PhysicsAction.bMinimumUpwardSpeed ? PhysicsAction.MinimumUpwardSpeed : 0;
 		Result.bImpactApplied = true;
+		if(PhysicsAction.bMinimumUpwardSpeed && PhysicsAction.MinimumUpwardSpeed>KINDA_SMALL_NUMBER)
+		{ if(auto* Hook=GetOwner()->FindComponentByClass<UHALHookComponent>()) { Hook->NotifyExternalLaunch(); } }
 		Result.ImpactOutcome = EHALImpactOutcome::Applied;
 		AcceptedDirection = Direction;
 		if (auto* Recovery = GetOwner()->FindComponentByClass<UVehicleRecoveryComponent>())
@@ -367,5 +372,5 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 	// LastImpact is only a diagnostic snapshot. Publish after all physics/result checks and drop handling,
 	// including zero additional impulse when natural Chaos response already met the authored target.
 	if (auto* Presentation = GetOwner()->FindComponentByClass<UHALVehiclePresentationComponent>())
-	{ Presentation->PublishAcceptedImpact(Result, AcceptedDirection); }
+	{ Presentation->PublishAcceptedImpact(Result, AcceptedDirection, Hit.ImpactPoint, Hit.SourceActor, Hit.InstigatorActor); }
 }

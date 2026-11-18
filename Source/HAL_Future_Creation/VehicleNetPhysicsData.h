@@ -225,6 +225,7 @@ struct HAL_FUTURE_CREATION_API FVehicleNetStateData
 	UPROPERTY() float PoseStableSeconds = 0;
 	UPROPERTY() FVehicleRecoveryPhysicsState Recovery;
 	UPROPERTY() FVehicleBounceBackState BounceBack;
+	UPROPERTY() FHALSideShiftTurnState SideShiftTurn;
 };
 
 /** UE 5.8 Network Physics frame history. Continuous controls only; launch keeps its idempotent RPC. */

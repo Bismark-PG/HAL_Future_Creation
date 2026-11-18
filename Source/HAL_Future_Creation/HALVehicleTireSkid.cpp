@@ -1,6 +1,7 @@
 #include "HALVehiclePresentationComponent.h"
 #include "HALVehiclePresentationConfig.h"
 #include "HALAbilitySystemComponent.h"
+#include "HALSideShiftComponent.h"
 #include "ArcadeVehicleMovementComponent.h"
 #include "TestVehiclePawn.h"
 #include "Components/PrimitiveComponent.h"
@@ -49,6 +50,11 @@ bool FHALTireSkidConfig::Validate(FString& Error) const
 		|| (!SurfaceNormalParameter.IsNone()
 			&& Parameters.IndexOf(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), SurfaceNormalParameter)) == INDEX_NONE))
 	{ return Fail(TEXT("Tire skid Niagara requires matching float SlipRatio, int RibbonID and optional vector SurfaceNormal User parameters.")); }
+	if (!ColorParameter.IsNone()
+		&& (Parameters.IndexOf(FNiagaraVariable(FNiagaraTypeDefinition::GetColorDef(), ColorParameter)) == INDEX_NONE
+			|| !FMath::IsFinite(MarkColor.R) || !FMath::IsFinite(MarkColor.G) || !FMath::IsFinite(MarkColor.B)
+			|| !FMath::IsFinite(MarkColor.A) || MarkColor.GetMin() < 0 || MarkColor.A > 1))
+	{ return Fail(TEXT("Tire skid colour needs a matching LinearColor User parameter and a finite, non-negative MarkColor with alpha at most 1.")); }
 	for (const auto& Handle : System->GetEmitterHandles())
 	{
 		if (const auto* Data = Handle.GetEmitterData(); Data && Data->bLocalSpace)
@@ -103,7 +109,7 @@ void UHALVehiclePresentationComponent::StopTireSkid(int32 Slot, bool bImmediate)
 	if (!IsValid(Component)) { return; }
 	if (bImmediate) { Component->DestroyComponent(); return; }
 	Component->Deactivate();
-	FadingTireSkids.Add({ Component, GetWorld()->GetTimeSeconds() + Config->TireSkid.MaximumFadeSeconds });
+	FadingTireSkids.Add({ Component, GetWorld()->GetTimeSeconds() + CurrentSkidFadeSeconds });
 	// Bound retained segments even if a malformed effect never completes after Deactivate.
 	if (FadingTireSkids.Num() > 16)
 	{
@@ -122,11 +128,8 @@ void UHALVehiclePresentationComponent::ClearTireSkids()
 
 void UHALVehiclePresentationComponent::UpdateTireSkids(const FVector& Velocity, bool bDrivingAllowed)
 {
-	if (!bTireSkidReady)
-	{
-		Frame.TireSkidReasons = Frame.TireSkidWheelMask = 0;
-		return;
-	}
+	const auto* Shift=GetOwner()->FindComponentByClass<UHALSideShiftComponent>();
+	const FHALTireSkidConfig* Skill=Shift?Shift->GetActiveTireMarks():nullptr;
 	const double Now = GetWorld()->GetTimeSeconds();
 	FadingTireSkids.RemoveAll([Now](const FHALFadingTireSkid& Old)
 	{
@@ -134,11 +137,26 @@ void UHALVehiclePresentationComponent::UpdateTireSkids(const FVector& Velocity, 
 		if (Now < Old.Deadline) { return false; }
 		Old.Component->DestroyComponent(); return true;
 	});
+	if (!bTireSkidReady&&!Skill)
+	{
+		for(int32 Slot=0;Slot<4;++Slot) { StopTireSkid(Slot,false); }
+		Frame.TireSkidReasons = Frame.TireSkidWheelMask = 0;
+		return;
+	}
 	const uint8 PreviousMask = Frame.TireSkidWheelMask, PreviousReasons = Frame.TireSkidReasons;
-	const auto& Settings = Config->TireSkid;
+	const auto& Settings = Skill?*Skill:Config->TireSkid;
+	const float PlayRate=Skill?Shift->GetTireFXPlayRate():1.f;
+	if(CurrentTireSkidSystem.Get()!=Settings.System.Get()||!FMath::IsNearlyEqual(CurrentTireSkidPlayRate,PlayRate))
+	{
+		for(int32 Slot=0;Slot<4;++Slot) { StopTireSkid(Slot,false); }
+		CurrentTireSkidSystem=Settings.System;
+		CurrentTireSkidPlayRate=PlayRate;
+	}
+	CurrentSkidFadeSeconds=Settings.MaximumFadeSeconds/PlayRate;
 	Frame.TireSkidReasons = HALVehiclePresentation::TireSkidReasons(Settings, ReadTireSkidInputs(),
 		Frame.ForwardSpeedCmPerSecond, FVector::DotProduct(Velocity, Body->GetRightVector()), PreviousReasons,
-		bTireSkidReady && bDrivingAllowed);
+		(bTireSkidReady||Skill) && bDrivingAllowed);
+	if(Skill&&bDrivingAllowed) { Frame.TireSkidReasons|=4; } // Skill demand, including standing starts; support is still required.
 	Frame.TireSkidWheelMask = 0;
 	const FTransform WheelToWorld = GetWheelSampleTransform();
 	for (const auto& Wheel : Config->Wheels)
@@ -171,7 +189,10 @@ void UHALVehiclePresentationComponent::UpdateTireSkids(const FVector& Velocity, 
 					NextRibbonID = NextRibbonID == MAX_int32 ? 1 : NextRibbonID + 1;
 					Component->SetVariableInt(Settings.RibbonIDParameter, NextRibbonID);
 					Component->SetVariableFloat(Settings.SlipRatioParameter, Settings.SlipRatio);
+					Component->SetCustomTimeDilation(PlayRate);
 					if (!Settings.SurfaceNormalParameter.IsNone()) { Component->SetVariableVec3(Settings.SurfaceNormalParameter, Support.Normal); }
+					// Constant for the life of the component, so it is pushed once here rather than every frame.
+					if (!Settings.ColorParameter.IsNone()) { Component->SetVariableLinearColor(Settings.ColorParameter, Settings.MarkColor); }
 					Component->Activate(true);
 				}
 			}
@@ -179,6 +200,7 @@ void UHALVehiclePresentationComponent::UpdateTireSkids(const FVector& Velocity, 
 		else
 		{
 			TireSkidComponents[Slot]->SetWorldLocationAndRotation(Point, Rotation);
+			TireSkidComponents[Slot]->SetVariableFloat(Settings.SlipRatioParameter,Settings.SlipRatio);
 			if (!Settings.SurfaceNormalParameter.IsNone())
 			{ TireSkidComponents[Slot]->SetVariableVec3(Settings.SurfaceNormalParameter, Support.Normal); }
 		}

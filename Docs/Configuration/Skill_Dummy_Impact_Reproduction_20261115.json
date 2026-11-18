@@ -1,0 +1,413 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-15",
+  "branch": "main",
+  "startCommit": "5044110",
+  "engine": "5.8.3-58210709",
+  "sourceLog": "Saved/Logs/HAL_Future_Creation.log",
+  "snapshot": "Saved/VehicleIssues/20261115_DummyImpact/Run_20261115_211056.log",
+  "logSHA256": "CC6CC2C01CB184E389F2F75E159368E9020B72B974900837D729D8E946210E3E",
+  "userObservation": "About 6-7 attempts; remembered failures 1, 5, and 6 or 7",
+  "verifiedBallHitCount": 7,
+  "verifiedFailureShots": [
+    1,
+    5,
+    7
+  ],
+  "successfulShots": [
+    2,
+    3,
+    4,
+    6
+  ],
+  "shots": [
+    {
+      "shot": 1,
+      "hitLine": 1675,
+      "timeUTC": "2026.11.15-12.09.13:793",
+      "timeJST": "2026-11-15 21:09:13.793 +09:00",
+      "attack": "547B1AB4471976669AB578B37507B942",
+      "event": 2,
+      "submitFrame": 3864,
+      "awakeBefore": 0,
+      "awakeAfter": 1,
+      "actualDamage": 25.0,
+      "effectiveTier": 3,
+      "requestedDV": [
+        -491.674,
+        -735.842,
+        750.0
+      ],
+      "requestedW": [
+        4.266,
+        -2.851,
+        0.0
+      ],
+      "sampleCount": 9,
+      "firstPhysicsFrame": 3865,
+      "firstSleeping": 1,
+      "firstV": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "firstW": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "firstPendingImpulse": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "nextV": [
+        0.246,
+        2.599,
+        -0.264
+      ],
+      "observedMaxUp": 0.0,
+      "observedMaxTravelFromGT": 0.145,
+      "observedMaxRise": 0.004,
+      "observedMaxPendingImpulse": 0.0,
+      "result": "Failed knockup",
+      "submitEvidence": "[2026.11.15-12.09.13:793][181]LogTemp: Vehicle impact trace: Phase=SubmitGT Actor=BP_SkillTestDummy_C_1 Attack=547B1AB4471976669AB578B37507B942 Pulse=1 Event=2 FrameBefore=3864 FrameAfter=3864 PTEnabled=1 Mass=800.000 AwakeBefore=0 AwakeAfter=1 PosBefore=X=970.000 Y=-410.000 Z=134.000 BeforeV=X=0.000 Y=0.000 Z=0.000 BeforeW=X=0.000 Y=0.000 Z=0.000 RequestedDV=X=-491.674 Y=-735.842 Z=750.000 TargetUp=750.000 SetW=1 RequestedW=X=4.266 Y=-2.851 Z=0.000 ImmediateV=X=0.000 Y=0.000 Z=0.000 ImmediateW=X=4.266 Y=-2.851 Z=0.000",
+      "firstPhysicsEvidence": "[2026.11.15-12.09.13:804][183]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=BP_SkillTestDummy_C_1 Attack=547B1AB4471976669AB578B37507B942 Pulse=1 Event=2 Frame=3865 SubmitFrame=3864 AgeFrames=0 PTContext=1 Sleeping=1 GroundedPrev=1 Pos=X=970.001 Y=-410.145 Z=134.004 V=X=0.000 Y=0.000 Z=0.000 W=X=0.000 Y=0.000 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=0.001 Y=-0.145 Z=0.004 TravelFromFirstPT=X=0.000 Y=0.000 Z=0.000",
+      "nextPhysicsEvidence": "[2026.11.15-12.09.13:822][186]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=BP_SkillTestDummy_C_1 Attack=547B1AB4471976669AB578B37507B942 Pulse=1 Event=2 Frame=3866 SubmitFrame=3864 AgeFrames=1 PTContext=1 Sleeping=0 GroundedPrev=1 Pos=X=970.011 Y=-410.064 Z=134.004 V=X=0.246 Y=2.599 Z=-0.264 W=X=-0.010 Y=-0.005 Z=0.002 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=0.011 Y=-0.064 Z=0.004 TravelFromFirstPT=X=0.010 Y=0.081 Z=-0.000"
+    },
+    {
+      "shot": 2,
+      "hitLine": 1777,
+      "timeUTC": "2026.11.15-12.09.39:242",
+      "timeJST": "2026-11-15 21:09:39.242 +09:00",
+      "attack": "473FCE4142EA4215A966A0A051E9110B",
+      "event": 4,
+      "submitFrame": 5391,
+      "awakeBefore": 1,
+      "awakeAfter": 1,
+      "actualDamage": 25.0,
+      "effectiveTier": 3,
+      "requestedDV": [
+        16.84,
+        -835.301,
+        750.0
+      ],
+      "requestedW": [
+        5.13,
+        0.103,
+        0.0
+      ],
+      "sampleCount": 9,
+      "firstPhysicsFrame": 5392,
+      "firstSleeping": 0,
+      "firstV": [
+        -0.0,
+        -0.0,
+        0.0
+      ],
+      "firstW": [
+        5.13,
+        0.103,
+        0.0
+      ],
+      "firstPendingImpulse": [
+        13472.204,
+        -668240.525,
+        599999.954
+      ],
+      "nextV": [
+        16.798,
+        -833.213,
+        731.833
+      ],
+      "observedMaxUp": 731.833,
+      "observedMaxTravelFromGT": 602.639,
+      "observedMaxRise": 237.903,
+      "observedMaxPendingImpulse": 898179.739,
+      "result": "Launched",
+      "submitEvidence": "[2026.11.15-12.09.39:242][476]LogTemp: Vehicle impact trace: Phase=SubmitGT Actor=BP_SkillTestDummy_C_1 Attack=473FCE4142EA4215A966A0A051E9110B Pulse=1 Event=4 FrameBefore=5391 FrameAfter=5391 PTEnabled=1 Mass=800.000 AwakeBefore=1 AwakeAfter=1 PosBefore=X=970.409 Y=-413.297 Z=134.000 BeforeV=X=-0.000 Y=-0.000 Z=0.000 BeforeW=X=0.000 Y=0.000 Z=0.000 RequestedDV=X=16.840 Y=-835.301 Z=750.000 TargetUp=750.000 SetW=1 RequestedW=X=5.130 Y=0.103 Z=0.000 ImmediateV=X=-0.000 Y=-0.000 Z=0.000 ImmediateW=X=5.130 Y=0.103 Z=0.000",
+      "firstPhysicsEvidence": "[2026.11.15-12.09.39:252][478]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=BP_SkillTestDummy_C_1 Attack=473FCE4142EA4215A966A0A051E9110B Pulse=1 Event=4 Frame=5392 SubmitFrame=5391 AgeFrames=0 PTContext=1 Sleeping=0 GroundedPrev=1 Pos=X=970.327 Y=-413.627 Z=134.000 V=X=-0.000 Y=-0.000 Z=0.000 W=X=5.130 Y=0.103 Z=0.000 PendingImpulse=X=13472.204 Y=-668240.525 Z=599999.954 TravelFromGT=X=-0.081 Y=-0.329 Z=-0.000 TravelFromFirstPT=X=0.000 Y=0.000 Z=0.000",
+      "nextPhysicsEvidence": "[2026.11.15-12.09.39:270][481]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=BP_SkillTestDummy_C_1 Attack=473FCE4142EA4215A966A0A051E9110B Pulse=1 Event=4 Frame=5393 SubmitFrame=5391 AgeFrames=1 PTContext=1 Sleeping=0 GroundedPrev=1 Pos=X=970.611 Y=-427.682 Z=146.190 V=X=16.798 Y=-833.213 Z=731.833 W=X=5.062 Y=0.102 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=0.202 Y=-14.385 Z=12.190 TravelFromFirstPT=X=0.283 Y=-14.055 Z=12.190"
+    },
+    {
+      "shot": 3,
+      "hitLine": 1905,
+      "timeUTC": "2026.11.15-12.10.07:726",
+      "timeJST": "2026-11-15 21:10:07.726 +09:00",
+      "attack": "410145494370E12D7C6529AA64145AC1",
+      "event": 6,
+      "submitFrame": 7100,
+      "awakeBefore": 0,
+      "awakeAfter": 1,
+      "actualDamage": 25.0,
+      "effectiveTier": 3,
+      "requestedDV": [
+        -13.528,
+        -806.933,
+        750.0
+      ],
+      "requestedW": [
+        5.131,
+        -0.086,
+        0.0
+      ],
+      "sampleCount": 9,
+      "firstPhysicsFrame": 7101,
+      "firstSleeping": 0,
+      "firstV": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "firstW": [
+        5.131,
+        -0.086,
+        0.0
+      ],
+      "firstPendingImpulse": [
+        -10822.416,
+        -645546.191,
+        599999.954
+      ],
+      "nextV": [
+        -13.494,
+        -804.915,
+        731.833
+      ],
+      "observedMaxUp": 731.833,
+      "observedMaxTravelFromGT": 1116.706,
+      "observedMaxRise": 242.729,
+      "observedMaxPendingImpulse": 881389.218,
+      "result": "Launched",
+      "submitEvidence": "[2026.11.15-12.10.07:726][489]LogTemp: Vehicle impact trace: Phase=SubmitGT Actor=BP_SkillTestDummy_C_1 Attack=410145494370E12D7C6529AA64145AC1 Pulse=1 Event=6 FrameBefore=7100 FrameAfter=7100 PTEnabled=1 Mass=800.000 AwakeBefore=0 AwakeAfter=1 PosBefore=X=982.144 Y=-1016.093 Z=129.500 BeforeV=X=0.000 Y=0.000 Z=0.000 BeforeW=X=0.000 Y=0.000 Z=0.000 RequestedDV=X=-13.528 Y=-806.933 Z=750.000 TargetUp=750.000 SetW=1 RequestedW=X=5.131 Y=-0.086 Z=0.000 ImmediateV=X=0.000 Y=0.000 Z=0.000 ImmediateW=X=5.131 Y=-0.086 Z=0.000",
+      "firstPhysicsEvidence": "[2026.11.15-12.10.07:737][491]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=BP_SkillTestDummy_C_1 Attack=410145494370E12D7C6529AA64145AC1 Pulse=1 Event=6 Frame=7101 SubmitFrame=7100 AgeFrames=0 PTContext=1 Sleeping=0 GroundedPrev=1 Pos=X=982.200 Y=-1017.897 Z=129.555 V=X=0.000 Y=0.000 Z=0.000 W=X=5.131 Y=-0.086 Z=0.000 PendingImpulse=X=-10822.416 Y=-645546.191 Z=599999.954 TravelFromGT=X=0.056 Y=-1.804 Z=0.055 TravelFromFirstPT=X=0.000 Y=0.000 Z=0.000",
+      "nextPhysicsEvidence": "[2026.11.15-12.10.07:754][494]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=BP_SkillTestDummy_C_1 Attack=410145494370E12D7C6529AA64145AC1 Pulse=1 Event=6 Frame=7102 SubmitFrame=7100 AgeFrames=1 PTContext=1 Sleeping=0 GroundedPrev=1 Pos=X=981.975 Y=-1031.319 Z=141.920 V=X=-13.494 Y=-804.915 Z=731.833 W=X=5.062 Y=-0.085 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=-0.169 Y=-15.226 Z=12.420 TravelFromFirstPT=X=-0.225 Y=-13.422 Z=12.366"
+    },
+    {
+      "shot": 4,
+      "hitLine": 1929,
+      "timeUTC": "2026.11.15-12.10.12:823",
+      "timeJST": "2026-11-15 21:10:12.823 +09:00",
+      "attack": "33FF848A4A393E83138E5FBF7A68BC0F",
+      "event": 8,
+      "submitFrame": 7406,
+      "awakeBefore": 0,
+      "awakeAfter": 1,
+      "actualDamage": 25.0,
+      "effectiveTier": 3,
+      "requestedDV": [
+        -8.734,
+        -813.64,
+        750.0
+      ],
+      "requestedW": [
+        5.131,
+        -0.055,
+        0.0
+      ],
+      "sampleCount": 9,
+      "firstPhysicsFrame": 7407,
+      "firstSleeping": 0,
+      "firstV": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "firstW": [
+        5.131,
+        -0.055,
+        0.0
+      ],
+      "firstPendingImpulse": [
+        -6986.94,
+        -650911.718,
+        599999.954
+      ],
+      "nextV": [
+        -8.712,
+        -811.606,
+        731.833
+      ],
+      "observedMaxUp": 731.833,
+      "observedMaxTravelFromGT": 998.063,
+      "observedMaxRise": 250.968,
+      "observedMaxPendingImpulse": 885287.991,
+      "result": "Launched",
+      "submitEvidence": "[2026.11.15-12.10.12:823][521]LogTemp: Vehicle impact trace: Phase=SubmitGT Actor=BP_SkillTestDummy_C_1 Attack=33FF848A4A393E83138E5FBF7A68BC0F Pulse=1 Event=8 FrameBefore=7406 FrameAfter=7406 PTEnabled=1 Mass=800.000 AwakeBefore=0 AwakeAfter=1 PosBefore=X=955.538 Y=-2385.781 Z=129.500 BeforeV=X=0.000 Y=0.000 Z=0.000 BeforeW=X=0.000 Y=0.000 Z=0.000 RequestedDV=X=-8.734 Y=-813.640 Z=750.000 TargetUp=750.000 SetW=1 RequestedW=X=5.131 Y=-0.055 Z=0.000 ImmediateV=X=0.000 Y=0.000 Z=0.000 ImmediateW=X=5.131 Y=-0.055 Z=0.000",
+      "firstPhysicsEvidence": "[2026.11.15-12.10.12:837][524]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=BP_SkillTestDummy_C_1 Attack=33FF848A4A393E83138E5FBF7A68BC0F Pulse=1 Event=8 Frame=7407 SubmitFrame=7406 AgeFrames=0 PTContext=1 Sleeping=0 GroundedPrev=1 Pos=X=955.386 Y=-2390.280 Z=129.532 V=X=0.000 Y=0.000 Z=0.000 W=X=5.131 Y=-0.055 Z=0.000 PendingImpulse=X=-6986.940 Y=-650911.718 Z=599999.954 TravelFromGT=X=-0.152 Y=-4.499 Z=0.032 TravelFromFirstPT=X=0.000 Y=0.000 Z=0.000",
+      "nextPhysicsEvidence": "[2026.11.15-12.10.12:853][527]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=BP_SkillTestDummy_C_1 Attack=33FF848A4A393E83138E5FBF7A68BC0F Pulse=1 Event=8 Frame=7408 SubmitFrame=7406 AgeFrames=1 PTContext=1 Sleeping=0 GroundedPrev=1 Pos=X=955.241 Y=-2403.814 Z=141.897 V=X=-8.712 Y=-811.606 Z=731.833 W=X=5.063 Y=-0.054 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=-0.298 Y=-18.033 Z=12.397 TravelFromFirstPT=X=-0.145 Y=-13.534 Z=12.366"
+    },
+    {
+      "shot": 5,
+      "hitLine": 1964,
+      "timeUTC": "2026.11.15-12.10.16:942",
+      "timeJST": "2026-11-15 21:10:16.942 +09:00",
+      "attack": "835AEF5044C7870A3CED0AB938760D03",
+      "event": 11,
+      "submitFrame": 7653,
+      "awakeBefore": 0,
+      "awakeAfter": 1,
+      "actualDamage": 25.0,
+      "effectiveTier": 3,
+      "requestedDV": [
+        79.229,
+        -811.383,
+        750.0
+      ],
+      "requestedW": [
+        5.107,
+        0.499,
+        0.0
+      ],
+      "sampleCount": 9,
+      "firstPhysicsFrame": 7654,
+      "firstSleeping": 1,
+      "firstV": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "firstW": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "firstPendingImpulse": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "nextV": [
+        0.888,
+        0.365,
+        -1.259
+      ],
+      "observedMaxUp": 0.003,
+      "observedMaxTravelFromGT": 0.579,
+      "observedMaxRise": 0.012,
+      "observedMaxPendingImpulse": 0.0,
+      "result": "Failed knockup",
+      "submitEvidence": "[2026.11.15-12.10.16:942][360]LogTemp: Vehicle impact trace: Phase=SubmitGT Actor=BP_SkillTestDummy_C_1 Attack=835AEF5044C7870A3CED0AB938760D03 Pulse=1 Event=11 FrameBefore=7653 FrameAfter=7653 PTEnabled=1 Mass=800.000 AwakeBefore=0 AwakeAfter=1 PosBefore=X=960.195 Y=-3665.581 Z=129.500 BeforeV=X=0.000 Y=0.000 Z=0.000 BeforeW=X=0.000 Y=0.000 Z=0.000 RequestedDV=X=79.229 Y=-811.383 Z=750.000 TargetUp=750.000 SetW=1 RequestedW=X=5.107 Y=0.499 Z=0.000 ImmediateV=X=0.000 Y=0.000 Z=0.000 ImmediateW=X=5.107 Y=0.499 Z=0.000",
+      "firstPhysicsEvidence": "[2026.11.15-12.10.16:952][362]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=BP_SkillTestDummy_C_1 Attack=835AEF5044C7870A3CED0AB938760D03 Pulse=1 Event=11 Frame=7654 SubmitFrame=7653 AgeFrames=0 PTContext=1 Sleeping=1 GroundedPrev=1 Pos=X=960.226 Y=-3666.073 Z=129.496 V=X=0.000 Y=0.000 Z=0.000 W=X=0.000 Y=0.000 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=0.032 Y=-0.492 Z=-0.004 TravelFromFirstPT=X=0.000 Y=0.000 Z=0.000",
+      "nextPhysicsEvidence": "[2026.11.15-12.10.16:971][366]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=BP_SkillTestDummy_C_1 Attack=835AEF5044C7870A3CED0AB938760D03 Pulse=1 Event=11 Frame=7655 SubmitFrame=7653 AgeFrames=1 PTContext=1 Sleeping=0 GroundedPrev=1 Pos=X=960.229 Y=-3666.159 Z=129.503 V=X=0.888 Y=0.365 Z=-1.259 W=X=0.005 Y=0.016 Z=-0.003 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=0.034 Y=-0.578 Z=0.003 TravelFromFirstPT=X=0.003 Y=-0.087 Z=0.007"
+    },
+    {
+      "shot": 6,
+      "hitLine": 2021,
+      "timeUTC": "2026.11.15-12.10.28:476",
+      "timeJST": "2026-11-15 21:10:28.476 +09:00",
+      "attack": "B91861264D8C5290DB91C298B45A6FEB",
+      "event": 14,
+      "submitFrame": 8345,
+      "awakeBefore": 0,
+      "awakeAfter": 1,
+      "actualDamage": 25.0,
+      "effectiveTier": 3,
+      "requestedDV": [
+        421.666,
+        -699.577,
+        750.0
+      ],
+      "requestedW": [
+        4.395,
+        2.649,
+        0.0
+      ],
+      "sampleCount": 9,
+      "firstPhysicsFrame": 8346,
+      "firstSleeping": 0,
+      "firstV": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "firstW": [
+        4.395,
+        2.649,
+        0.0
+      ],
+      "firstPendingImpulse": [
+        337332.884,
+        -559661.334,
+        599999.954
+      ],
+      "nextV": [
+        420.612,
+        -697.828,
+        731.833
+      ],
+      "observedMaxUp": 731.833,
+      "observedMaxTravelFromGT": 583.661,
+      "observedMaxRise": 242.698,
+      "observedMaxPendingImpulse": 887138.224,
+      "result": "Launched",
+      "submitEvidence": "[2026.11.15-12.10.28:476][745]LogTemp: Vehicle impact trace: Phase=SubmitGT Actor=BP_SkillTestDummy_C_1 Attack=B91861264D8C5290DB91C298B45A6FEB Pulse=1 Event=14 FrameBefore=8345 FrameAfter=8345 PTEnabled=1 Mass=800.000 AwakeBefore=0 AwakeAfter=1 PosBefore=X=918.543 Y=-3774.272 Z=129.500 BeforeV=X=0.000 Y=0.000 Z=0.000 BeforeW=X=0.000 Y=0.000 Z=0.000 RequestedDV=X=421.666 Y=-699.577 Z=750.000 TargetUp=750.000 SetW=1 RequestedW=X=4.395 Y=2.649 Z=0.000 ImmediateV=X=0.000 Y=0.000 Z=0.000 ImmediateW=X=4.395 Y=2.649 Z=0.000",
+      "firstPhysicsEvidence": "[2026.11.15-12.10.28:486][747]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=BP_SkillTestDummy_C_1 Attack=B91861264D8C5290DB91C298B45A6FEB Pulse=1 Event=14 Frame=8346 SubmitFrame=8345 AgeFrames=0 PTContext=1 Sleeping=0 GroundedPrev=1 Pos=X=918.990 Y=-3774.550 Z=129.525 V=X=0.000 Y=0.000 Z=0.000 W=X=4.395 Y=2.649 Z=0.000 PendingImpulse=X=337332.884 Y=-559661.334 Z=599999.954 TravelFromGT=X=0.447 Y=-0.278 Z=0.025 TravelFromFirstPT=X=0.000 Y=0.000 Z=0.000",
+      "nextPhysicsEvidence": "[2026.11.15-12.10.28:502][750]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=BP_SkillTestDummy_C_1 Attack=B91861264D8C5290DB91C298B45A6FEB Pulse=1 Event=14 Frame=8347 SubmitFrame=8345 AgeFrames=1 PTContext=1 Sleeping=0 GroundedPrev=1 Pos=X=926.004 Y=-3786.186 Z=141.890 V=X=420.612 Y=-697.828 Z=731.833 W=X=4.336 Y=2.614 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=7.461 Y=-11.915 Z=12.390 TravelFromFirstPT=X=7.014 Y=-11.637 Z=12.366"
+    },
+    {
+      "shot": 7,
+      "hitLine": 2162,
+      "timeUTC": "2026.11.15-12.10.48:205",
+      "timeJST": "2026-11-15 21:10:48.205 +09:00",
+      "attack": "8330DE83443F465DA02DC1B869C5ECB3",
+      "event": 20,
+      "submitFrame": 9529,
+      "awakeBefore": 0,
+      "awakeAfter": 1,
+      "actualDamage": 25.0,
+      "effectiveTier": 3,
+      "requestedDV": [
+        589.32,
+        -569.978,
+        750.0
+      ],
+      "requestedW": [
+        3.567,
+        3.688,
+        0.0
+      ],
+      "sampleCount": 9,
+      "firstPhysicsFrame": 9530,
+      "firstSleeping": 1,
+      "firstV": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "firstW": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "firstPendingImpulse": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "nextV": [
+        -2.066,
+        1.919,
+        -0.704
+      ],
+      "observedMaxUp": 1.074,
+      "observedMaxTravelFromGT": 7.278,
+      "observedMaxRise": 0.003,
+      "observedMaxPendingImpulse": 0.0,
+      "result": "Failed knockup",
+      "submitEvidence": "[2026.11.15-12.10.48:205][839]LogTemp: Vehicle impact trace: Phase=SubmitGT Actor=BP_SkillTestDummy_C_1 Attack=8330DE83443F465DA02DC1B869C5ECB3 Pulse=1 Event=20 FrameBefore=9529 FrameAfter=9529 PTEnabled=1 Mass=800.000 AwakeBefore=0 AwakeAfter=1 PosBefore=X=-468.916 Y=-3970.332 Z=129.500 BeforeV=X=0.000 Y=0.000 Z=0.000 BeforeW=X=0.000 Y=0.000 Z=0.000 RequestedDV=X=589.320 Y=-569.978 Z=750.000 TargetUp=750.000 SetW=1 RequestedW=X=3.567 Y=3.688 Z=0.000 ImmediateV=X=0.000 Y=0.000 Z=0.000 ImmediateW=X=3.567 Y=3.688 Z=0.000",
+      "firstPhysicsEvidence": "[2026.11.15-12.10.48:219][842]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=BP_SkillTestDummy_C_1 Attack=8330DE83443F465DA02DC1B869C5ECB3 Pulse=1 Event=20 Frame=9530 SubmitFrame=9529 AgeFrames=0 PTContext=1 Sleeping=1 GroundedPrev=1 Pos=X=-463.809 Y=-3975.518 Z=129.497 V=X=0.000 Y=0.000 Z=0.000 W=X=0.000 Y=0.000 Z=0.000 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=5.107 Y=-5.186 Z=-0.003 TravelFromFirstPT=X=0.000 Y=0.000 Z=0.000",
+      "nextPhysicsEvidence": "[2026.11.15-12.10.48:236][845]LogTemp: Vehicle impact trace: Phase=SamplePT Actor=BP_SkillTestDummy_C_1 Attack=8330DE83443F465DA02DC1B869C5ECB3 Pulse=1 Event=20 Frame=9531 SubmitFrame=9529 AgeFrames=1 PTContext=1 Sleeping=0 GroundedPrev=1 Pos=X=-463.852 Y=-3975.461 Z=129.499 V=X=-2.066 Y=1.919 Z=-0.704 W=X=-0.013 Y=0.002 Z=-0.003 PendingImpulse=X=0.000 Y=0.000 Z=0.000 TravelFromGT=X=5.064 Y=-5.129 Z=-0.001 TravelFromFirstPT=X=-0.043 Y=0.057 Z=0.002"
+    }
+  ],
+  "finding": "All three failed submissions report asleep-before/awake-after on GT; next PT sample is still sleeping, V/W/pending impulse all zero. Successful hits have nonzero PT pending impulse and requested angular motion followed by about 731.833 cm/s upward speed.",
+  "confidence": "Failure mode and shot mapping confirmed by run. Non-History sleep/wake GT-to-PT transfer is the repair focus; exact engine write/drop operation not reproduced independently yet.",
+  "fxRelation": "No physics writes in damage feedback. This run did not disable FX for A/B, so indirect timing influence was not experimentally isolated. Increasing visual strength or impact magnitude is not a repair for the missing PT impulse.",
+  "proposedRepair": "Keep dummy without player History; queue accepted non-History actions, wake and apply once against current Internal body V/W in an explicit physics step. Add grounded sleeping-target and same-frame contact regressions.",
+  "limits": [
+    "Observations at nine sample frames, not a continuous maximum",
+    "Shot 7 final sample overlaps a later vehicle contact; its small late motion is not credited to the original ball launch",
+    "No code/asset change, build or simulation rerun in this diagnosis turn",
+    "Previous airborne awake Box diagnostics tests did not cover this sleeping ground-contact handoff"
+  ]
+}

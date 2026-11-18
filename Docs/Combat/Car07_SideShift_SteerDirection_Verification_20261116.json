@@ -1,0 +1,167 @@
+﻿{
+    "schema":  1,
+    "date":  "2026-11-16",
+    "task":  "Car07 enhanced drift heading follows left/right input, preserving accepted arc",
+    "branch":  "main",
+    "baseCommit":  "821034fb2680d906bcbaacd5e0376e1e7d71636d",
+    "engine":  "5.8.3-58210709",
+    "status":  "Code/builds/listed native/render/network checks complete; human steering acceptance pending",
+    "userClarification":  "Vehicle-center trajectory is accepted. Only chassis yaw turns opposite to left/right input.",
+    "cause":  "Previous arc revision intentionally used originYaw - side*turnDegrees to face inward. That reverses ordinary steering semantics; previous tests asserted that former design.",
+    "fix":  "Use originYaw + side*turnDegrees. Preserve captured side and single-turn latch. Do not invert arc displacement, input mappings or exhaust mount side.",
+    "preserved":  {
+                      "lateralSpanDefaultCm":  450,
+                      "arcBendDefault":  1,
+                      "shiftSeconds":  0.24,
+                      "driftWindowSeconds":  0.3,
+                      "ordinaryShiftCm":  300,
+                      "charges":  4,
+                      "sequentialRechargeSeconds":  5,
+                      "movementHistoryFormat":  10,
+                      "curve":  "side=span*sin(pi/2*s), forward=span*bend*(1-cos(pi/2*s))",
+                      "steeringAngleDegrees":  90,
+                      "COMCompensation":  true,
+                      "recoilAndImpacts":  true,
+                      "finiteForcesAndCCD":  true,
+                      "reliableModifierAndRelease":  true,
+                      "jetMounts":  "Opposite side to displacement, outwards along actual chassis side axis",
+                      "assetsAndConfigEdited":  false,
+                      "newReflectionFields":  false,
+                      "matchingEndpointBuildsRequired":  true
+                  },
+    "builds":  [
+                   {
+                       "run":  "Editor_R1",
+                       "result":  "Succeeded",
+                       "exitCode":  0,
+                       "seconds":  65.09,
+                       "logSha256":  "18C904A6B7174F1B33628997227B0B179569DCF248CD1800D520468E50A526A7"
+                   },
+                   {
+                       "run":  "Game_R1",
+                       "result":  "Succeeded",
+                       "exitCode":  0,
+                       "seconds":  73.14,
+                       "logSha256":  "CFBDDC275E4807185663BCEC75986BCA64D37C56656826990172CA720C8128DE"
+                   }
+               ],
+    "automation":  {
+                       "run":  "Final_R1",
+                       "RHI":  "D3D12",
+                       "passed":  35,
+                       "warnings":  0,
+                       "failed":  0,
+                       "notRun":  0,
+                       "inProcess":  0,
+                       "exitCode":  0,
+                       "reportSha256":  "C636EF302E38689C1AE23A7A5F20EEE0B9B5B30A3753D766387F87B8862F2131",
+                       "logSha256":  "DF3F6B726057AD538D0C82213FF2C08849D552B33A3C6E55791D7B38605267D3",
+                       "coverage":  "Left/right steering across +/-180, held/release/interrupt/history restoration, actual Chaos root arc and heading/COM/recoil/wall; GAS charges/ball launch/lifecycle, movement/input/tire/suspension and actual D3D12 effects",
+                       "realSolver":  {
+                                          "leftHeadingDegrees":  -89.993,
+                                          "rightHeadingDegrees":  89.993,
+                                          "leftRootEndCm":  [
+                                                                450,
+                                                                -450
+                                                            ],
+                                          "rightRootEndCm":  [
+                                                                 450,
+                                                                 450
+                                                             ],
+                                          "offsetCOMLeftRootCm":  [
+                                                                      450.002,
+                                                                      -449.994
+                                                                  ],
+                                          "offsetCOMRightRootCm":  [
+                                                                       450.002,
+                                                                       450.006
+                                                                   ],
+                                          "sameIntermediateRootSamplesAsPreviousRevision":  true,
+                                          "ordinarySideTravelCm":  300,
+                                          "ordinaryForwardSpeedRetainedCmPerSecond":  600,
+                                          "wallBlocked":  true
+                                      }
+                   },
+    "network":  {
+                    "run":  "Network_R1",
+                    "mode":  "Actual Listen Server plus owning client",
+                    "RHI":  "D3D12",
+                    "hostOutboundLagMs":  80,
+                    "peers":  [
+                                  {
+                                      "role":  "Host",
+                                      "passed":  1,
+                                      "warnings":  0,
+                                      "failed":  0,
+                                      "exitCode":  0,
+                                      "inputSide":  1,
+                                      "headingDeltaDegrees":  89.363,
+                                      "lateralCm":  447.627,
+                                      "forwardCm":  447.092,
+                                      "reportSha256":  "C94ACFB27BC3C60DD9F70D0A3586757CDA7692649E9B156FFD9074B13C2B4FDE",
+                                      "logSha256":  "BC772845B4A084D19423C8EBA93571FACEA5B22484C2AABB26098252AA9888B6"
+                                  },
+                                  {
+                                      "role":  "Client",
+                                      "passed":  1,
+                                      "warnings":  0,
+                                      "failed":  0,
+                                      "exitCode":  0,
+                                      "inputSide":  -1,
+                                      "headingDeltaDegrees":  -90,
+                                      "lateralCm":  447.67,
+                                      "forwardCm":  447.02,
+                                      "reportSha256":  "50D7CEA13E201E37CB11BAF1352721359C5AB5046F3D02C34B8BF5E47372CC4E",
+                                      "logSha256":  "F466BFC0392780B6F4C97854C68AC14CF4CF731DAB502C2E8566AADE849984F7"
+                                  }
+                              ],
+                    "coverage":  "Both input signs, unchanged lateral and forward arc, ordinary shift/charges/recharge, observer phases/mounted jets/tire rate, reliable release after expiry",
+                    "fixture":  "Transient opt-in GA grant and isolated floor/initial pose; no repositioning during measured action, no saved BP/DA edits"
+                },
+    "preservation":  {
+                         "protectedFiles":  1342,
+                         "unchanged":  1342,
+                         "changed":  [
+
+                                     ],
+                         "baselineSha256":  "1F70E6990F953E7A915EB4239B8BCA187101D6D30AFD770B41CB299C5ABB3E95",
+                         "sourceFilesBefore":  441,
+                         "sourceFilesChanged":  4,
+                         "runtimeFilesChanged":  1,
+                         "testFilesChanged":  3,
+                         "beforeSourceHashesSha256":  "DC9D61B59AC5FCAD5A8CF1C2DDC5CDB001D35C79B0B6852D97D9EEE8E9BA60CD",
+                         "existingUncommittedTeamAndPreviousChangesPreserved":  true,
+                         "gitCommitOrPush":  false
+                     },
+    "sourceHashes":  [
+                         {
+                             "path":  "Source\\HAL_Future_Creation\\Tests\\HALSideShiftTests.cpp",
+                             "beforeSha256":  "CC88593BF0E38C25DC4A8EA0C26863003F784594924AE6E6C02732684710AA3E",
+                             "sha256":  "55F5E939E85F9008A36CB6637823C8AD270AB5552B3D35C7F74C8C8DAEF3AE42"
+                         },
+                         {
+                             "path":  "Source\\HAL_Future_Creation\\Tests\\HALSideShiftSolverTests.cpp",
+                             "beforeSha256":  "D049B17FA2A6B0CCAC8A43DECB98E2DC5372B2C2CFFCCB6E73161BABB3E82384",
+                             "sha256":  "E1233E2CBD5E3481FE68DF21C2767BA5C5DCADBF1C8874F5A979F626F32C6D80"
+                         },
+                         {
+                             "path":  "Source\\HAL_Future_Creation\\Tests\\HALSideShiftNetworkTests.cpp",
+                             "beforeSha256":  "755C85E73E473F91ED4AA68FDD3261F28AE660E7EE475635908C98FBED2083E2",
+                             "sha256":  "81536EDB1E8BCF225066385C7E7ADB0130854EAE414006895BAEC4549D3AF48F"
+                         },
+                         {
+                             "path":  "Source\\HAL_Future_Creation\\HALSideShiftMotion.cpp",
+                             "beforeSha256":  "67BA44F9773EAAA63340BDD322123E1B205080967E51AF39BFFA3CCA1BFBCF7F",
+                             "sha256":  "F3D78898577C714604ACD5B9B4E155B237155B28E31DF0C3DE3C5680A0B1A8CF"
+                         }
+                     ],
+    "notTested":  [
+                      "Human steering/feel in Fred and formal camera",
+                      "Real ball/held-ball aiming during this revised heading",
+                      "Varied late presses/high speed/slopes/corners/continuous contacts",
+                      "Four machines/late join/loss/full room loop",
+                      "Cook/packaged build/performance"
+                  ],
+    "rawEvidenceDirectory":  "Saved/Car07SideShift/20261116_SteerDirection (local ignored logs)",
+    "specification":  "Car07_Extreme_LaneChange_CN_v0.1.md"
+}

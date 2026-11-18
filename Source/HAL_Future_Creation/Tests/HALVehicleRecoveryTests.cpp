@@ -300,7 +300,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALRecoverySolverTest,"HAL.FutureCreation.Reco
 bool FHALRecoverySolverTest::RunTest(const FString& Parameters)
 {
 	using namespace HALRecoverySolverTest;
-	auto* Def=LoadObject<UVehicleDefinition>(nullptr,TEXT("/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.DA_Vehicle_Player_TestBaseline_v1"));
+	auto* Def=LoadObject<UVehicleDefinition>(nullptr,TEXT("/Game/Data/MVP_B/DA_Vehicle_Car_01.DA_Vehicle_Car_01"));
 	if (!TestNotNull(TEXT("Saved collision definition"),Def) || !TestNotNull(TEXT("Saved convex"),Def->CollisionMesh.Get())) { return false; }
 	TArray<FString> Trace{TEXT("case,step,x,y,z,up_dot,vx,vy,vz,drive,active,elapsed,worker")};
 	float DefaultSideSeconds=0, DefaultRoofSeconds=0;

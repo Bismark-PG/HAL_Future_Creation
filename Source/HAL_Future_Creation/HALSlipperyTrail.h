@@ -119,6 +119,7 @@ public:
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALSlipperyTrailNetworkAccess;
+	friend struct FHALSkillTestDummyTestAccess;
 	friend class FHALSlipperyTrailGroundMeshTest;
 #endif
 	double ServerTime() const;

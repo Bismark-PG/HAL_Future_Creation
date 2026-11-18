@@ -113,16 +113,31 @@ bool UHALVehiclePresentationComponent::IsImpactPoseAllowed() const
 	return !Movement || !Movement->GetStabilityObservation().Recovery.bActive;
 }
 
-void UHALVehiclePresentationComponent::PublishAcceptedImpact(const FHALCombatHitResult& Result, const FVector& WorldDirection)
+uint32 UHALVehiclePresentationComponent::AllocateImpactSequence()
+{
+	uint32 Sequence = ++NextImpactVisualSequence;
+	if (!Sequence) { Sequence = ++NextImpactVisualSequence; }
+	return Sequence;
+}
+
+void UHALVehiclePresentationComponent::PublishAcceptedImpact(const FHALCombatHitResult& Result, const FVector& WorldDirection,
+	const FVector& WorldImpactPoint, const AActor* SourceActor, const AActor* InstigatorActor)
 {
 	check(IsInGameThread());
-	if (!IsValid(GetOwner()) || !GetOwner()->HasAuthority() || !bConfigured || !Config || !Config->ImpactRebound.bEnabled
+	if (!IsValid(GetOwner()) || !GetOwner()->HasAuthority() || !bConfigured || !Config
 		|| !HALVehiclePresentation::IsImpactReboundEligible(Result)) { return; }
 	FVector Local;
-	if (!HALVehiclePresentation::ImpactLocalDirection(WorldDirection, GetOwner()->GetActorQuat(), Config->ImpactRebound.MinimumHorizontalDirection, Local)) { return; }
+	// The rebound still refuses almost vertical impulses; the burst does not need a horizontal direction.
+	const bool bRebound = Config->ImpactRebound.bEnabled && HALVehiclePresentation::ImpactLocalDirection(
+		WorldDirection, GetOwner()->GetActorQuat(), Config->ImpactRebound.MinimumHorizontalDirection, Local);
+	const bool bBurst = GetBurstConfig() != nullptr;
+	if (!bRebound && !bBurst) { return; }
+	// One identity per accepted impact, shared by every cosmetic event it publishes.
+	const uint32 Sequence = AllocateImpactSequence();
+	if (bBurst) { PublishImpactBurst(Result, WorldDirection, WorldImpactPoint, Sequence, SourceActor, InstigatorActor); }
+	if (!bRebound) { return; }
 	FHALImpactVisualEvent Event;
-	Event.Sequence = ++NextImpactVisualSequence;
-	if (!Event.Sequence) { Event.Sequence = ++NextImpactVisualSequence; }
+	Event.Sequence = Sequence;
 	Event.ServerTimeSeconds = float(GetLaunchServerTime()); Event.Tier = Result.ImpactSummary.EffectiveTier; Event.LocalDirection = Local;
 	if (CVarImpactVisualLog.GetValueOnGameThread())
 	{ UE_LOG(LogTemp, Display, TEXT("HAL ImpactVisual: %s Publish Seq=%u Tier=%d Local=%s Attack=%s Pulse=%u"), *GetNameSafe(GetOwner()), Event.Sequence, int32(Event.Tier), *Local.ToCompactString(), *Result.AttackId.ToString(), Result.PulseSequence); }

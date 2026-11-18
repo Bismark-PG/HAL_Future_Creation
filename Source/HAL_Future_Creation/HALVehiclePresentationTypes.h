@@ -12,6 +12,7 @@ UENUM(BlueprintType)
 enum class EHALBoneAxis : uint8 { X, Y, Z };
 
 struct FHALImpactReboundConfig;
+struct FHALImpactBurstConfig;
 struct FHALImpactReboundTier;
 struct FHALCombatHitResult;
 struct FHALTireSkidConfig;
@@ -44,6 +45,44 @@ struct FHALImpactVisualOutput
 {
 	FVector2D Degrees = FVector2D::ZeroVector;
 	FVector2D Weights = FVector2D::ZeroVector;
+};
+
+/** Authority accepted impact, cosmetic only. The point is already validated against the target. */
+USTRUCT()
+struct FHALImpactBurstEvent
+{
+	GENERATED_BODY()
+	UPROPERTY() uint32 Sequence = 0;
+	UPROPERTY() float ServerTimeSeconds = 0;
+	UPROPERTY() EHALImpactTier Tier = EHALImpactTier::None;
+	UPROPERTY() FVector_NetQuantize WorldPoint = FVector::ZeroVector;
+	/** Authored push intent, quantized: 0 is the weakest accepted hit and 255 the strongest. */
+	UPROPERTY() uint8 Strength = 0;
+	/** sRGB identity colour of the car that hit or launched the ball. Only meaningful when ColorMode is not zero. */
+	UPROPERTY() FColor SourceColor = FColor(0, 0, 0, 0);
+	/** HALVehiclePresentation::BurstColor*: 0 plain, 1 source car only, 2 source car and the car that was hit. */
+	UPROPERTY() uint8 ColorMode = 0;
+	/** Spark particles to throw. Zero unless two cars touched; the count follows the impact strength. */
+	UPROPERTY() uint8 Sparks = 0;
+};
+
+/** One live comic burst. Anchored in world space, so it stays where the contact happened. */
+struct FHALImpactBurstPulse
+{
+	FVector WorldPoint = FVector::ZeroVector;
+	float Age = 0, Lifetime = 0, Strength = 0, Seed = 0, SizeCm = 0, Spikes = 0;
+	FLinearColor EdgeColor = FLinearColor::White;
+	FLinearColor SourceColor = FLinearColor::White;
+	uint8 ColorMode = 0;
+	EHALImpactTier Tier = EHALImpactTier::None;
+	/** Sprite pool index owned by the presentation component; INDEX_NONE while the pool is unavailable. */
+	int32 Slot = INDEX_NONE;
+};
+
+struct FHALImpactBurstState
+{
+	TArray<FHALImpactBurstPulse> Pulses;
+	uint32 LastSeenSequence = 0, StartedCount = 0;
 };
 
 struct FHALChassisPresentationConfig;
@@ -196,6 +235,27 @@ namespace HALVehiclePresentation
 	HAL_FUTURE_CREATION_API FRotator ComposeImpactRotation(const FHALChassisPresentationConfig& Chassis,
 		const FHALChassisPresentationState& Driving, const FHALLaunchReboundConfig& LaunchConfig, float LaunchPitch,
 		const FHALImpactVisualOutput& Impact, float& OutPitch, float& OutRoll);
+	/** Authored push intent to 0..1. Below the minimum still shows the smallest burst, never nothing. */
+	HAL_FUTURE_CREATION_API float BurstStrength(const FHALImpactBurstConfig& Config, float DesiredHorizontalDeltaSpeed);
+	HAL_FUTURE_CREATION_API uint8 QuantizeBurstStrength(float Strength);
+	/** Derived from the authority sequence so every client draws the same shape for the same hit. */
+	HAL_FUTURE_CREATION_API float BurstSeed(uint32 Sequence);
+	HAL_FUTURE_CREATION_API FLinearColor BurstEdgeColor(const FHALImpactBurstConfig& Config, EHALImpactTier Tier);
+	inline constexpr uint8 BurstColorNone = 0, BurstColorSource = 1, BurstColorSourceAndTarget = 2;
+	/** A car's identity colour is its tire mark colour, and only when that colour is really shown on its marks. */
+	HAL_FUTURE_CREATION_API bool VehicleIdentityColor(const FHALTireSkidConfig& TireSkid, FLinearColor& OutColor);
+	/** Direct car contact shows both cars; an attributed hit such as a launched ball shows only the car behind it. */
+	/** Sparks belong to car on car contact only. Strength 0..1 picks a whole count between the configured ends. */
+	HAL_FUTURE_CREATION_API uint8 BurstSparkCount(const FHALImpactBurstConfig& Config, float Strength, bool bDirectVehicleContact);
+	HAL_FUTURE_CREATION_API uint8 BurstColorMode(const FHALImpactBurstConfig& Config, bool bSourceHasColor, bool bDirectVehicleContact);
+	/** Unusable authority points fall back to the target's own edge on the source side. */
+	HAL_FUTURE_CREATION_API FVector ResolveBurstPoint(const FHALImpactBurstConfig& Config, const FVector& RawPoint,
+		const FVector& TargetLocation, const FVector& PushDirection);
+	HAL_FUTURE_CREATION_API bool AcceptBurst(const FHALImpactBurstConfig& Config, const FHALImpactBurstEvent& Event,
+		float Age, FHALImpactBurstState& State, TArray<int32>& OutReleasedSlots);
+	HAL_FUTURE_CREATION_API void AdvanceBursts(const FHALImpactBurstConfig& Config, float DeltaSeconds,
+		FHALImpactBurstState& State, TArray<int32>& OutReleasedSlots);
+	HAL_FUTURE_CREATION_API void ClearBursts(FHALImpactBurstState& State, TArray<int32>& OutReleasedSlots);
 	HAL_FUTURE_CREATION_API FRotator AxisRotation(EHALBoneAxis Axis, float Degrees);
 	HAL_FUTURE_CREATION_API float AdvanceWheel(float Angle, float SpeedCmPerSecond, float RadiusCm, float Sign, float DeltaSeconds);
 	HAL_FUTURE_CREATION_API float SmoothSteering(float Current, float Target, float ResponseSeconds, float DeltaSeconds);

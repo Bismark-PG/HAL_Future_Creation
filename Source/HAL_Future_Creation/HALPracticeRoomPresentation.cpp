@@ -198,7 +198,7 @@ TSharedRef<SWidget> UHALPracticeRoomWidget::RebuildWidget()
 		+SVerticalBox::Slot().AutoHeight().Padding(38,0,38,10)[SNew(STextBlock).Text_UObject(this,&ThisClass::StatusText).AutoWrapText(true).ColorAndOpacity(Config->Accent).Font(FCoreStyle::GetDefaultFontStyle("Bold",17))]
 		+SVerticalBox::Slot().AutoHeight().Padding(38,0,38,18)[HALArcade::Text(TEXT("D-PAD / ARROWS : NAVIGATE    LEFT / RIGHT : VEHICLE    A / ENTER : SELECT    B / ESC / START : RESUME"),12,HALArcade::Muted())]]]]]]
 		+SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Top).Padding(12)
-		[SNew(SBorder).Visibility_Lambda([this]{ return MenuVisible()?EVisibility::Collapsed:EVisibility::HitTestInvisible; }).BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")).BorderBackgroundColor(HALArcade::Panel()).Padding(FMargin(20,8))
+		[SNew(SBorder).Visibility_Lambda([this]{ return !MenuVisible() && GetRoomView().Phase==EHALRoomPhase::Open?EVisibility::HitTestInvisible:EVisibility::Collapsed; }).BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")).BorderBackgroundColor(HALArcade::Panel()).Padding(FMargin(20,8))
 		[SNew(STextBlock).Text_Lambda([this]
 		{ return DrivingText(); }).ColorAndOpacity_Lambda([this]{ const auto* PS=GetOwningPlayerState<AHALPlayerState>(); return PS?PS->GetRoomData().Color:FLinearColor::White; }).Font(FCoreStyle::GetDefaultFontStyle("Bold",15))]]
 		+SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Bottom).Padding(12)

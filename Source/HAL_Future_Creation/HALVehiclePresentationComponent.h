@@ -11,6 +11,11 @@ class UPrimitiveComponent;
 class UStaticMeshComponent;
 class USkeletalMeshComponent;
 class UNiagaraComponent;
+class UMaterialBillboardComponent;
+class UMaterialInstanceDynamic;
+class UMaterialInterface;
+struct FHALImpactBurstConfig;
+class UNiagaraSystem;
 
 struct FHALFadingTireSkid
 {
@@ -51,8 +56,12 @@ public:
 	/** Authority accepted shot, cosmetic multicast; owner also gets the existing reliable result. */
 	void PublishAcceptedLaunch(uint32 Sequence, float ServerTimeSeconds);
 	void ReceiveLaunchResult(uint32 Sequence, bool bAccepted, float ServerTimeSeconds);
-	/** Called once at the completed authority TieredV1 result boundary; no gameplay mutation. */
-	void PublishAcceptedImpact(const FHALCombatHitResult& Result, const FVector& WorldDirection);
+	/** Called once at the completed authority TieredV1 result boundary; no gameplay mutation.
+	 * The contact point is cosmetic: it is validated against the target and may be replaced by a fallback. */
+	void PublishAcceptedImpact(const FHALCombatHitResult& Result, const FVector& WorldDirection, const FVector& WorldImpactPoint,
+		const AActor* SourceActor = nullptr, const AActor* InstigatorActor = nullptr);
+	/** This car's cosmetic identity colour (its tire mark colour). False when the car has none configured. */
+	bool GetIdentityColor(FLinearColor& OutColor) const;
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALPresentationTestAccess;
@@ -78,6 +87,22 @@ private:
 	void ConsumeImpactRebound(const FHALImpactVisualEvent& Event);
 	bool IsImpactPoseAllowed() const;
 	FHALImpactVisualOutput UpdateImpactRebound(float DeltaTime);
+	/** Allocated once per accepted impact and shared by every cosmetic event it publishes. */
+	uint32 AllocateImpactSequence();
+	UFUNCTION(NetMulticast, Unreliable) void MulticastImpactBurst(FHALImpactBurstEvent Event);
+	void PublishImpactBurst(const FHALCombatHitResult& Result, const FVector& WorldDirection,
+		const FVector& WorldImpactPoint, uint32 Sequence, const AActor* SourceActor, const AActor* InstigatorActor);
+	void ConsumeImpactBurst(const FHALImpactBurstEvent& Event);
+	/** World anchored and independent of the vehicle pose, so a teleport reset never freezes one. */
+	void UpdateImpactBursts(float DeltaTime);
+	void ClearImpactBursts();
+	void ReleaseBurstSlots(const TArray<int32>& Slots);
+	void ApplyBurstSlot(const FHALImpactBurstConfig& BurstConfig, const FHALImpactBurstPulse& Pulse);
+	/** Settings are read once outside the hit path; changing them needs a session restart. */
+	void ResolveBurstMaterial();
+	int32 AcquireBurstSlot(const FHALImpactBurstConfig& BurstConfig);
+	/** Null whenever the feature is disabled, misconfigured or its material is not loaded. */
+	const FHALImpactBurstConfig* GetBurstConfig() const;
 	UPROPERTY(Transient) TObjectPtr<UHALVehiclePresentationConfig> Config;
 	UPROPERTY(Transient) TObjectPtr<UPrimitiveComponent> Body;
 	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> Fallback;
@@ -89,6 +114,9 @@ private:
 	UPROPERTY(Replicated) uint8 ObserverTireSkidInputs = 0;
 	UPROPERTY(Transient) TObjectPtr<UNiagaraComponent> TireSkidComponents[4];
 	TArray<FHALFadingTireSkid> FadingTireSkids;
+	TWeakObjectPtr<UNiagaraSystem> CurrentTireSkidSystem;
+	float CurrentTireSkidPlayRate=1;
+	float CurrentSkidFadeSeconds=5;
 	FHALWheelSupportSample WheelSupports[4];
 	FVector LastTireSkidPoints[4] {};
 	int32 NextRibbonID = 0;
@@ -97,6 +125,15 @@ private:
 	FHALChassisPresentationState ChassisState;
 	FHALLaunchVisualState LaunchState;
 	FHALImpactVisualState ImpactState;
+	FHALImpactBurstState BurstState;
+	UPROPERTY(Transient) TArray<TObjectPtr<UMaterialBillboardComponent>> BurstSprites;
+	UPROPERTY(Transient) TArray<TObjectPtr<UMaterialInstanceDynamic>> BurstMaterials;
+	/** Resolved once outside the hit path; impacts never load the sprite material synchronously. */
+	UPROPERTY(Transient) TObjectPtr<UMaterialInterface> BurstMaterial;
+	/** Resolved with the sprite material; a missing system simply means no sparks. */
+	UPROPERTY(Transient) TObjectPtr<UNiagaraSystem> BurstSparkSystem;
+	void SpawnBurstSparks(const FHALImpactBurstConfig& BurstConfig, const FVector& WorldPoint, uint8 Count);
+	bool bBurstReady = false;
 	uint32 NextImpactVisualSequence = 0;
 	double LaunchResetLocalTime = 0;
 	FVector ReferenceWheelCenters[4] {};

@@ -81,6 +81,9 @@ struct FHALPresentationTestAccess
 		Result->Config->Suspension.bEnabled = false; // Skids must work independently of visual suspension.
 		Result->Config->TireSkid.bEnabled = true;
 		Result->Config->TireSkid.System = System;
+		// The probe system is swapped in and binds neither optional parameter the car assets now name.
+		Result->Config->TireSkid.ColorParameter = NAME_None;
+		Result->Config->TireSkid.SurfaceNormalParameter = NAME_None;
 		FString Error;
 		Result->bTireSkidReady = Result->Config->TireSkid.Validate(Error);
 		return Result;
@@ -99,6 +102,7 @@ struct FHALPresentationTestAccess
 	}
 	static UNiagaraComponent* TireSkid(UHALVehiclePresentationComponent* Component, int32 Slot) { return Component->TireSkidComponents[Slot]; }
 	static int32 FadingTireSkids(UHALVehiclePresentationComponent* Component) { return Component->FadingTireSkids.Num(); }
+	static void DisableBaseTireSkid(UHALVehiclePresentationComponent* Component) { Component->Config->TireSkid.bEnabled=false; Component->bTireSkidReady=false; }
 	static void Reset(UHALVehiclePresentationComponent* Component) { Component->ResetPose(); }
 	static void DisableChassis(UHALVehiclePresentationComponent* Component) { Component->Config->Chassis.bEnabled = false; }
 	/** Read-only runtime config, so placement tests assert the documented formula instead of a tuned constant. */

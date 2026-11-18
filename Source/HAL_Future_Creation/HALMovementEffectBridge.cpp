@@ -54,6 +54,8 @@ void UHALMovementEffectBridge::Bind(UHALAbilitySystemComponent* InASC, int32 Pla
 			.AddUObject(this, &ThisClass::StunChanged);
 		BattleTopHandle = ASC->RegisterGameplayTagEvent(HALGameplayTags::State_BattleTop, EGameplayTagEventType::NewOrRemoved)
 			.AddUObject(this, &ThisClass::StunChanged);
+		DragHandle = ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Movement_Drag, EGameplayTagEventType::NewOrRemoved)
+			.AddUObject(this, &ThisClass::StunChanged);
 		GetOwner()->ForceNetUpdate();
 	}
 	WorldHandle = FWorldDelegates::OnWorldPostActorTick.AddUObject(this, &ThisClass::Flush);
@@ -77,22 +79,44 @@ void UHALMovementEffectBridge::EndOverdriveMotion()
 	bDirty = true;
 }
 
+void UHALMovementEffectBridge::SetSideShiftMotion(const FHALSideShiftMotion& Motion)
+{ if(GetOwner()->HasAuthority()&&Motion.IsValid(false)) { SideShift=Motion; bDirty=true; } }
+void UHALMovementEffectBridge::EndSideShiftMotion()
+{ if(SideShift.Activation.IsValid()) { SideShift.bActive=false; bDirty=true; } }
+void UHALMovementEffectBridge::ReleaseSideShiftDrift(FGuid Activation)
+{ if(GetOwner()->HasAuthority()&&Activation.IsValid()&&SideShift.Activation==Activation) { SideShift.bDriftReleased=true; bDirty=true; } }
+
+void UHALMovementEffectBridge::SetDragDrive(const FHALGravityDrive& Field)
+{
+	if (!GetOwner()->HasAuthority() || !Field.IsValid(false) || DragDrive == Field) { return; }
+	DragDrive = Field; bDirty = true;
+}
+
+void UHALMovementEffectBridge::SetHookMotion(const FHALHookMotion& Motion)
+{ if(GetOwner()->HasAuthority()&&Motion.IsValid(false)&&HookMotion!=Motion) { HookMotion=Motion; bDirty=true; } }
+void UHALMovementEffectBridge::EndHookMotion(FGuid Activation)
+{ if(GetOwner()->HasAuthority()&&HookMotion.Activation==Activation&&!HookMotion.bThrow) { HookMotion={}; bDirty=true; } }
+
 void UHALMovementEffectBridge::Unbind()
 {
 	if (ASC)
 	{
 		ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Stun, EGameplayTagEventType::NewOrRemoved).Remove(StunHandle);
 		ASC->RegisterGameplayTagEvent(HALGameplayTags::State_BattleTop, EGameplayTagEventType::NewOrRemoved).Remove(BattleTopHandle);
+		ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Movement_Drag, EGameplayTagEventType::NewOrRemoved).Remove(DragHandle);
 		for (const auto& Pair : AttributeHandles) { ASC->GetGameplayAttributeValueChangeDelegate(Pair.Key).Remove(Pair.Value); }
 	}
 	FWorldDelegates::OnWorldPostActorTick.Remove(WorldHandle);
-	WorldHandle.Reset(); AttributeHandles.Reset(); StunHandle.Reset(); BattleTopHandle.Reset();
+	WorldHandle.Reset(); AttributeHandles.Reset(); StunHandle.Reset(); BattleTopHandle.Reset(); DragHandle.Reset();
 	ASC = nullptr;
 	bDirty = false;
 	LastPublished = {};
 	AreaRecoverySeconds = FVector::ZeroVector;
 	AreaSway = {};
 	Overdrive = {};
+	SideShift = {};
+	DragDrive = {};
+	HookMotion = {};
 	if (GetOwner()->HasAuthority() && Epoch.IsValid()) { Epoch.Invalidate(); GetOwner()->ForceNetUpdate(); }
 	if (Movement) { Movement->ConfigureMovementEffects({}, History, GetOwner()->HasAuthority(), BoundPlayerId); }
 }
@@ -102,6 +126,14 @@ void UHALMovementEffectBridge::StunChanged(FGameplayTag Tag, int32 Count) { bDir
 void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float DeltaSeconds)
 {
 	if (World != GetWorld() || !ASC || ASC->GetAvatarActor() != GetOwner() || !Movement) { return; }
+	if(GetOwner()->HasAuthority()&&HookMotion.Activation.IsValid()&&HookMotion.bThrow)
+	{
+		const auto Status=Movement->GetMovementEffectStatus(); const auto& Consumed=Status.Definition.Hook;
+		// Clear only after PT has consumed this release lease. Its preceding definition
+		// remains in history for replay, without bloating every future current snapshot.
+		if(Status.bReady&&Consumed.Activation==HookMotion.Activation&&Consumed.bThrow&&Status.ServerFrame>=Consumed.EndFrame)
+		{ HookMotion={}; bDirty=true; }
+	}
 	// Tick-offset readiness belongs to the GT API; the physics thread only reads this atomic flag.
 	Movement->SetMovementTickOffsetReady(GetOwner()->HasAuthority() || !History || History->IsNetworkPhysicsTickOffsetAssigned());
 	const bool bFlowBlocked = !HALGameFlow::Permissions(World,Cast<APawn>(GetOwner())).bDrive;
@@ -110,10 +142,13 @@ void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float D
 	const auto* Values = ASC->GetSet<UHALMovementAttributeSet>();
 	FHALMovementSnapshot Snapshot;
 	Snapshot.Epoch = Epoch;
-	Snapshot.bControlsBlocked = ASC->IsStunned() || bFlowBlocked;
+	Snapshot.bControlsBlocked = ASC->IsStunned() || bFlowBlocked || (HookMotion.Activation.IsValid()&&!HookMotion.bThrow);
 	Snapshot.bHandbrakeBlocked = ASC->HasMatchingGameplayTag(HALGameplayTags::State_BattleTop);
 	Snapshot.Overdrive = Overdrive;
+	Snapshot.SideShift = SideShift;
+	Snapshot.Hook = HookMotion;
 	Snapshot.Overdrive.bStunned = Overdrive.bActive && ASC->IsStunned();
+	Snapshot.GravityDrive = ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Drag) ? DragDrive : FHALGravityDrive{};
 	if (!Values) { return; }
 	Snapshot.bHasAreaState = true;
 	Snapshot.AreaSway = AreaSway;
@@ -135,6 +170,9 @@ void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float D
 	if (LastPublished.IsValidValues() && LastPublished.bControlsBlocked == Snapshot.bControlsBlocked
 		&& LastPublished.bHandbrakeBlocked == Snapshot.bHandbrakeBlocked
 		&& LastPublished.Overdrive == Snapshot.Overdrive
+		&& LastPublished.SideShift == Snapshot.SideShift
+		&& LastPublished.Hook == Snapshot.Hook
+		&& LastPublished.GravityDrive == Snapshot.GravityDrive
 		&& LastPublished.AreaSway == Snapshot.AreaSway
 		&& SameTarget(LastPublished.AreaAcceleration, Snapshot.AreaAcceleration)
 		&& SameTarget(LastPublished.AreaSpeed, Snapshot.AreaSpeed) && SameTarget(LastPublished.AreaGrip, Snapshot.AreaGrip))

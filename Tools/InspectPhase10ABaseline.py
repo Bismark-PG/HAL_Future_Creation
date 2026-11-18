@@ -17,7 +17,7 @@ import unreal
 
 PROJECT = pathlib.Path(unreal.Paths.project_dir()).resolve()
 ASSETS = {
-    "player_vehicle": ("/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1", [
+    "player_vehicle": ("/Game/Data/MVP_B/DA_Vehicle_Car_01", [
         "bReadyForUse", "CollisionShape", "CollisionMesh", "BoxExtent",
         "Physics", "Movement", "BallControl", "Health", "LocalConfig", "Visual",
     ]),

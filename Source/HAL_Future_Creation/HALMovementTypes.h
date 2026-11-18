@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "HALOverdriveMotion.h"
+#include "HALSideShiftMotion.h"
+#include "HALHookMotion.h"
 #include "HALMovementTypes.generated.h"
 
 /** Optional regional yaw acceleration. Zero amplitude preserves the original slippery-area behavior. */
@@ -38,6 +40,30 @@ struct HAL_FUTURE_CREATION_API FHALMovementAreaChannel
 	void Serialize(FArchive& Ar);
 };
 
+/** Authority-selected gravity field. Physics derives local flow from its own replayed position. */
+USTRUCT()
+struct HAL_FUTURE_CREATION_API FHALGravityDrive
+{
+	GENERATED_BODY()
+	UPROPERTY() FGuid Source;
+	UPROPERTY() FVector Center = FVector::ZeroVector;
+	UPROPERTY() float Radius = 1;
+	UPROPERTY() float HalfHeight = 1;
+	UPROPERTY() float SofteningRadius = 100;
+	UPROPERTY() float Inward = 1;
+	UPROPERTY() float Tangential = 0;
+	UPROPERTY() float Strength = 0;
+	UPROPERTY() float SteeringResistance = .75f;
+	UPROPERTY() float RampSeconds = .4f;
+	UPROPERTY() int32 StartFrame = INDEX_NONE;
+	UPROPERTY() int32 RampFrames = 0;
+	bool IsValid(bool bStamped) const;
+	bool operator==(const FHALGravityDrive& Other) const = default;
+	void Stamp(const FHALGravityDrive* Previous, int32 Frame, float FixedDeltaSeconds);
+	void Serialize(FArchive& Ar);
+	FVector Bend(const FVector& Position, const FVector& Forward, float Steering, int32 Frame) const;
+};
+
 /** Absolute parameters for one Avatar; no GAS/UObject data crosses into physics. */
 USTRUCT()
 struct HAL_FUTURE_CREATION_API FHALMovementSnapshot
@@ -51,6 +77,9 @@ struct HAL_FUTURE_CREATION_API FHALMovementSnapshot
 	UPROPERTY() bool bControlsBlocked = false;
 	UPROPERTY() bool bHandbrakeBlocked = false;
 	UPROPERTY() FHALOverdriveMotion Overdrive;
+	UPROPERTY() FHALSideShiftMotion SideShift;
+	UPROPERTY() FHALGravityDrive GravityDrive;
+	UPROPERTY() FHALHookMotion Hook;
 	UPROPERTY() float GripScale = 1;
 	/** Legacy/native callers may supply constant scales. The GAS bridge supplies all three channels. */
 	UPROPERTY() bool bHasAreaState = false;
@@ -78,8 +107,8 @@ struct HAL_FUTURE_CREATION_API FHALMovementTimeline
 {
 	GENERATED_BODY()
 	static constexpr int32 MaximumEntries = 256;
-	/** Version 6 adds frame-stamped overdrive, steering recovery and stun entry. */
-	static constexpr uint8 CurrentFormat = 6;
+	/** Version 13 adds the connected hook swing and momentum-preserving release. */
+	static constexpr uint8 CurrentFormat = 13;
 	UPROPERTY() uint8 FormatVersion = CurrentFormat;
 	UPROPERTY() FGuid Epoch;
 	UPROPERTY() int32 StartFrame = INDEX_NONE;

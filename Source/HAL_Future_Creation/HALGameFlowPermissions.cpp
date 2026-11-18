@@ -3,6 +3,21 @@
 #include "HALRoomComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
+#include "HALSkillTestDummy.h"
+
+namespace
+{
+	FHALFlowPermissions ForTarget(FHALFlowPermissions P, const APawn* Pawn)
+	{
+		if (Cast<AHALSkillTestDummy>(Pawn))
+		{
+			// No room membership or input owner. Keep global interaction/damage phase gates.
+			P.bDrive=P.bWorldInteractions;
+			P.bBallControl=P.bAbilities=P.bRecovery=P.bObserve=false;
+		}
+		return P;
+	}
+}
 
 FHALFlowPermissions HALGameFlow::Permissions(const UWorld* World, const APawn* Pawn)
 {
@@ -14,7 +29,7 @@ FHALFlowPermissions HALGameFlow::Permissions(const UWorld* World, const APawn* P
 		// Preserve legacy: waiting already permits driving/ball/ordinary combat, while abilities and observation have phase checks.
 		P.bAbilities = Match && Match->GetMatchPhase() == EHALMatchPhase::Playing;
 		P.bRecovery = P.bObserve = !Match || Match->GetMatchPhase() == EHALMatchPhase::Playing;
-		return P;
+		return ForTarget(P,Pawn);
 	}
 	P.bRoomEnabled = true;
 	const auto Phase = Room->GetData().Phase;
@@ -25,5 +40,5 @@ FHALFlowPermissions HALGameFlow::Permissions(const UWorld* World, const APawn* P
 	const auto& M=Room->GetData().Match;
 	if (M.bActive && (M.bComplete || Match->GetServerWorldTimeSeconds()>=M.EndServerTime))
 	{ P.bDrive=P.bBallControl=P.bAbilities=P.bRecovery=P.bObserve=P.bWorldInteractions=P.bDamage=false; }
-	return P;
+	return ForTarget(P,Pawn);
 }

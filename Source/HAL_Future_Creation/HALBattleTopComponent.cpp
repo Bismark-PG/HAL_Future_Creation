@@ -26,6 +26,9 @@
 #include "VehicleKnockbackSettings.h"
 #include "VehicleRecoveryComponent.h"
 #include "VehicleStabilityRules.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "Engine/OverlapResult.h"
+#include "TimerManager.h"
 
 namespace
 {
@@ -38,7 +41,7 @@ namespace
 
 bool FHALBattleTopVisualState::NetSerialize(FArchive& Ar, UPackageMap*, bool& bOutSuccess)
 {
-	Ar << StartServerTime << SpinRate;
+	Ar << StartServerTime << SpinRate << DurationSeconds << EnterSeconds << ExitSeconds << Activation;
 	bOutSuccess = !Ar.IsError();
 	return true;
 }
@@ -55,6 +58,7 @@ void UHALBattleTopComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UHALBattleTopComponent, VisualState);
+	DOREPLIFETIME(UHALBattleTopComponent, VisualFX);
 }
 
 bool UHALBattleTopComponent::CanStart() const
@@ -109,6 +113,14 @@ bool UHALBattleTopComponent::Start(UHALAbilitySystemComponent& ASC, UHALBattleTo
 	LastWallContact = -1.0;
 	VisualState.StartServerTime = BattleTopServerTime(*GetWorld());
 	VisualState.SpinRate = InConfig.ResolveSpinRate();
+	VisualState.DurationSeconds = InConfig.DurationSeconds;
+	const float TransitionScale = FMath::Min(1.f, InConfig.DurationSeconds / FMath::Max(.001f, InConfig.SpinEnterSeconds + InConfig.SpinExitSeconds));
+	VisualState.EnterSeconds = InConfig.SpinEnterSeconds * TransitionScale;
+	VisualState.ExitSeconds = InConfig.SpinExitSeconds * TransitionScale;
+	VisualState.Activation = FGuid::NewGuid();
+	VisualFX = InConfig.FX;
+	NextTargetHit.Reset(); TrackedContacts.Reset();
+	GetWorld()->GetTimerManager().SetTimer(ContactTimer, this, &ThisClass::RefreshContacts, .05f, true);
 	OnRep_VisualState();
 	Pawn->ForceNetUpdate();
 	if (auto* BallControl = Pawn->FindComponentByClass<UBallControlComponent>())
@@ -143,6 +155,8 @@ void UHALBattleTopComponent::Stop()
 	OnRep_VisualState();
 	Action.Reset(); // A pair already accepted can still finish both sides with its captured references.
 	Config = nullptr;
+	NextTargetHit.Reset(); TrackedContacts.Reset();
+	if (GetWorld()) { GetWorld()->GetTimerManager().ClearTimer(ContactTimer); }
 	if (auto* ASC = BoundASC.Get())
 	{
 		ASC->RegisterGameplayTagEvent(HALGameplayTags::State_BattleTop, EGameplayTagEventType::NewOrRemoved).Remove(TagChangedHandle);
@@ -185,9 +199,15 @@ FHALPreparedCombatHit UHALBattleTopComponent::PrepareVehicleHit(UPrimitiveCompon
 	const FVector& Impulse, const FHitResult& Hit)
 {
 	FHALPreparedCombatHit Pending;
-	const auto* Top = Source.GetOwner()->FindComponentByClass<UHALBattleTopComponent>();
+	auto* Top = Source.GetOwner()->FindComponentByClass<UHALBattleTopComponent>();
 	if (!Top || !Top->CanResolveContacts()) { return Pending; }
-	Pending.Action = Top->Action;
+	Top->TrackContact(Target, Hit);
+	const double Now = Top->GetWorld()->GetTimeSeconds();
+	if (const auto* Next = Top->NextTargetHit.Find(Target.GetOwner()); Next && Now < *Next) { return Pending; }
+	if (Top->NextTargetHit.Num() >= 256 && !Top->NextTargetHit.Contains(Target.GetOwner())) { return Pending; }
+	Pending.Action = MakeShared<FHALCombatAction>();
+	if (!Pending.Action->Begin(*Source.GetOwner(), Top->Action->GetSnapshot())) { Pending.Action.Reset(); return Pending; }
+	Top->NextTargetHit.Add(Target.GetOwner(), Now + Top->Config->TargetCooldownSeconds);
 	auto& Request = Pending.Request;
 	Request.AttackId = Pending.Action->GetSnapshot().AttackId;
 	Request.PulseSequence = Pending.Action->GetPulseSequence();
@@ -214,11 +234,15 @@ bool UHALBattleTopComponent::HandleVehiclePair(UPrimitiveComponent& Body, UPrimi
 	auto* Other = OtherBody.GetOwner();
 	if (!Owner || !Other || &OtherBody != Other->GetRootComponent()
 		|| !Other->FindComponentByClass<UHALImpactReceiverComponent>()) { return false; }
+	const auto* First = Owner->FindComponentByClass<UHALBattleTopComponent>();
+	const auto* Second = Other->FindComponentByClass<UHALBattleTopComponent>();
+	const bool bOwnsContact = (First && First->CanResolveContacts()) || (Second && Second->CanResolveContacts());
 	auto Incoming = PrepareVehicleHit(OtherBody, Body, NormalImpulse, Hit);
 	auto Outgoing = PrepareVehicleHit(Body, OtherBody, -NormalImpulse, Hit);
 	if (Incoming.Action) { FCombatResolver::ResolveCombatHit(*Incoming.Action, Incoming.Request); }
 	if (Outgoing.Action) { FCombatResolver::ResolveCombatHit(*Outgoing.Action, Outgoing.Request); }
-	return Incoming.Action.IsValid() || Outgoing.Action.IsValid();
+	// Cooldown suppresses extra rule impacts, while Chaos still supplies natural contact.
+	return bOwnsContact;
 }
 bool UHALBattleTopComponent::HandleFreeBall(ABasicBallActor& Ball)
 {
@@ -264,7 +288,7 @@ void UHALBattleTopComponent::OnRep_VisualState()
 {
 	const bool bDraw = IsActive() && GetNetMode() != NM_DedicatedServer && FApp::CanEverRender();
 	SetComponentTickEnabled(bDraw);
-	if (!bDraw) { RestoreVisual(); }
+	if (!bDraw) { RestoreVisual(); ClearParticles(); }
 }
 
 void UHALBattleTopComponent::RestoreVisual()
@@ -286,7 +310,7 @@ void UHALBattleTopComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 {
 	Super::TickComponent(DeltaTime, TickType, TickFunction);
 	const auto* Presentation = GetOwner()->FindComponentByClass<UHALVehiclePresentationComponent>();
-	if (!IsActive() || !GetWorld() || !Presentation) { RestoreVisual(); return; }
+	if (!IsActive() || !GetWorld() || !Presentation) { RestoreVisual(); ClearParticles(); return; }
 	FHALVehicleFXTargetSnapshot Snapshot;
 	Presentation->CaptureStatusFXTargets(Snapshot);
 	auto* Mesh = !Snapshot.Targets.IsEmpty() && Snapshot.Targets[0].Id == TEXT("Body") ? Snapshot.Targets[0].Mesh.Get() : nullptr;
@@ -296,13 +320,60 @@ void UHALBattleTopComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		RotatingMesh = Mesh;
 		if (Mesh) { VisualBase = LastVisualTransform = Mesh->GetRelativeTransform(); }
 	}
-	if (!Mesh) { return; }
+	if (!Mesh) { ClearParticles(); return; }
 	if (!Mesh->GetRelativeTransform().Equals(LastVisualTransform)) { VisualBase = Mesh->GetRelativeTransform(); }
 	const double Seconds = FMath::Max(0.0, BattleTopServerTime(*GetWorld()) - VisualState.StartServerTime);
-	const FQuat Spin(FVector::UpVector, FMath::DegreesToRadians(FMath::Fmod(Seconds * VisualState.SpinRate, 360.0)));
+	const float Angle = VisualState.AngleAt(Seconds);
+	const FQuat Spin(FVector::UpVector, FMath::DegreesToRadians(FMath::Fmod(Angle, 360.f)));
 	FTransform Animated = VisualBase;
 	Animated.SetRotation(Spin * VisualBase.GetRotation());
 	Animated.SetLocation(Spin.RotateVector(VisualBase.GetLocation()));
 	Mesh->SetRelativeTransform(Animated);
 	LastVisualTransform = Mesh->GetRelativeTransform();
+	UpdateParticles(DeltaTime, Angle, VisualState.EnvelopeAt(Seconds));
+}
+
+void UHALBattleTopComponent::TrackContact(UPrimitiveComponent& Other, const FHitResult& Hit)
+{
+	if (!TrackedContacts.Contains(&Other) && TrackedContacts.Num() >= 64) { return; }
+	TrackedContacts.FindOrAdd(&Other).Hit = Hit;
+}
+
+void UHALBattleTopComponent::RefreshContacts()
+{
+	if (!IsActive() || !GetOwner()->HasAuthority()) { return; }
+	auto* Body = Cast<UPrimitiveComponent>(GetOwner()->GetRootComponent());
+	if (!Body || !Body->GetBodyInstance()) { return; }
+	for (auto It = NextTargetHit.CreateIterator(); It; ++It) { if (!It.Key().IsValid()) { It.RemoveCurrent(); } }
+	TArray<TWeakObjectPtr<UPrimitiveComponent>> Keys; TrackedContacts.GenerateKeyArray(Keys);
+	for (const auto& Key : Keys)
+	{
+		if (!IsActive()) { break; }
+		auto* Other = Key.Get(); auto* Contact = TrackedContacts.Find(Key);
+		if (!Contact) { continue; }
+		if (!Other || !Other->IsQueryCollisionEnabled() || !Other->GetBodyInstance()) { TrackedContacts.Remove(Key); continue; }
+		FVector Normal = Contact->Hit.ImpactNormal.GetSafeNormal();
+		if (Normal.IsNearlyZero()) { Normal = (Body->GetComponentLocation() - Other->GetComponentLocation()).GetSafeNormal(); }
+		// Scene queries avoid locking a pair of bodies while the async solver updates them.
+		const auto* Movement = GetOwner()->FindComponentByClass<UArcadeVehicleMovementComponent>();
+		const auto Pose = Movement ? Movement->GetContactObservation() : FVehicleContactObservation();
+		const FVector Position = Pose.bValid ? Pose.Position : Body->GetComponentLocation();
+		const FQuat Rotation = Pose.bValid ? Pose.Rotation : Body->GetComponentQuat();
+		const auto TouchesAt = [&](const FVector& QueryPosition)
+		{
+			TArray<FOverlapResult> Hits; FComponentQueryParams Query(SCENE_QUERY_STAT(BattleTopContact),GetOwner());
+			GetWorld()->ComponentOverlapMulti(Hits,Body,QueryPosition,Rotation,Query);
+			return Hits.ContainsByPredicate([&](const FOverlapResult& H){return H.GetComponent()==Other;});
+		};
+		// Query the actual hull with 2 cm contact-skin tolerance, never resize its collision.
+		const bool bTouching = TouchesAt(Position) || TouchesAt(Position-Normal*2);
+		if (!bTouching) { TrackedContacts.Remove(Key); continue; }
+		FHitResult Hit = Contact->Hit;
+		FVector Point;
+		if (Other->GetClosestPointOnCollision(Body->GetComponentLocation(), Point) > KINDA_SMALL_NUMBER)
+		{ Hit.ImpactPoint = Point; Hit.ImpactNormal = (Body->GetComponentLocation() - Point).GetSafeNormal(); }
+		ObserveContact(*Body, *Other, FVector::ZeroVector, Hit);
+		if (Other->GetOwner()->FindComponentByClass<UHALImpactReceiverComponent>() && CanResolveContacts())
+		{ HandleVehiclePair(*Body, *Other, FVector::ZeroVector, Hit); }
+	}
 }

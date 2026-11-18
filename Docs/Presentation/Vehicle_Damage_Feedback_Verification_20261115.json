@@ -1,0 +1,517 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-15",
+  "task": "Global actual-damage silhouette, white outline and local RGB feedback",
+  "branch": "main",
+  "startCommit": "5044110",
+  "engine": "5.8.3-58210709",
+  "committedOrPushed": false,
+  "implementation": {
+    "authority": "CombatResolver ActualHPRemoved > 0 after GE application",
+    "transport": "Per-avatar monotonic sequence, Unreliable NetMulticast, stale-age rejection, local receipt-time envelopes",
+    "configuration": "/Game/Data/StatusFX/DA_DamageFeedback_Default",
+    "material": "/Game/Assets/FX/Materials/M_FX_VehicleDamage_PP",
+    "rendering": "One local unbound Post Process pass per rendering Game World; independent targets; visible registered mesh CustomDepth/Stencil leases; existing owners preserved; no base material or status Overlay writes",
+    "enabledStencilRange": "240..247, avoiding current local owners",
+    "maximumConcurrentTargets": 8,
+    "maximumEventAgeSeconds": 0.5,
+    "bodySeconds": 0.2,
+    "whiteSeconds": 0.065,
+    "rgbSeconds": 0.09,
+    "minimumAccentInterval": 0.14,
+    "maximumContinuousSeconds": 0.55,
+    "restSeconds": 0.15,
+    "gameplayChanges": "None to damage, impact, HP, movement, control, skills or cooldown. Existing pursuit PresentationTime null-World teardown defense added."
+  },
+  "finalBuilds": [
+    {
+      "target": "HAL_Future_CreationEditor Win64 Development",
+      "run": "BuildEditor_R14",
+      "exitCode": 0,
+      "result": "Succeeded",
+      "log": "Saved/DamageFeedback/20261115/BuildEditor_R14_Console.log",
+      "sha256": "42A71FDC906196C9166EE5367D41819D39A77AD2860A25311CA94AB5D3912C1F"
+    },
+    {
+      "target": "HAL_Future_Creation Win64 Development",
+      "run": "BuildGame_R6",
+      "exitCode": 0,
+      "result": "Succeeded",
+      "log": "Saved/DamageFeedback/20261115/BuildGame_R6_Console.log",
+      "sha256": "5BC7F9015E381F2C56FE44A11F447040D1B198DD7A18104CB994BD174558BDFF"
+    }
+  ],
+  "regression": {
+    "run": "Final_R8",
+    "exitCode": 0,
+    "succeeded": 93,
+    "succeededWithWarnings": 2,
+    "total": 95,
+    "failed": 0,
+    "notRun": 0,
+    "inProcess": 0,
+    "rhi": "D3D12, offscreen, real rendering",
+    "report": "Saved/DamageFeedback/20261115/Final_R8/index.json",
+    "reportSHA256": "33A48E0AC7D7965A08FFD8D6B553C712957EEABB9905A23129D418D73B48DA2E",
+    "warnings": [
+      {
+        "test": "HAL.FutureCreation.VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar",
+        "count": 2,
+        "messages": [
+          "LogHALVehicleTest: Set Default Pawn Class to BP_VehiclePawn_Car_02; add alternatives to Test Vehicle Classes.",
+          "LogHALVehicleTest: PlayerStart is blocked. Raise it above the floor or clear surrounding geometry."
+        ]
+      },
+      {
+        "test": "HAL.FutureCreation.VehicleTest.SideCameraPreservesPossessionAndGAS",
+        "count": 1,
+        "messages": [
+          "LogRHICore: Total reserved resource allocated virtual size (258 GB) exceeds the budget (256 GB). Use `rhi.DumpMemory` and `rhi.DumpResourceMemory` console commands to investigate."
+        ]
+      }
+    ],
+    "tests": [
+      "HAL.FutureCreation.BattleTop.AuthoritySkillContactsAndCleanup",
+      "HAL.FutureCreation.BattleTop.ContactSprayGeometryAndTuning",
+      "HAL.FutureCreation.BattleTop.SustainedContactIndependentCooldown",
+      "HAL.FutureCreation.BattleTop.TransitionTimelineAndSparkTangent",
+      "HAL.FutureCreation.BattleTop.WallResponseAndConfig",
+      "HAL.FutureCreation.BullCharge.FX.EventOrderingAndCleanup",
+      "HAL.FutureCreation.BullCharge.FX.SocketMountAndReplacement",
+      "HAL.FutureCreation.BullCharge.FX.SpeedPhaseAndVelocity",
+      "HAL.FutureCreation.BullCharge.FrontSpeedDamageAndCaps",
+      "HAL.FutureCreation.BullCharge.GASContactsCooldownStunAndBall",
+      "HAL.FutureCreation.BullCharge.MotionHistoryAndSerialization",
+      "HAL.FutureCreation.DamageFeedback.BoundedIndependentPulses",
+      "HAL.FutureCreation.DamageFeedback.SharedRecipeAndCookRoot",
+      "HAL.FutureCreation.GameFlow.GF2.ConfiguredCatalogAssets",
+      "HAL.FutureCreation.GameFlow.GF2.PracticeDamageImpactAndConsumption",
+      "HAL.FutureCreation.GameFlow.GF2.RoundIdentityAndFreshAvatar",
+      "HAL.FutureCreation.GameFlow.GF2.VehicleSeedsSourcesAndRebinding",
+      "HAL.FutureCreation.GAS.Health.BoundsAndIsolation",
+      "HAL.FutureCreation.GAS.Health.PlayerStateAvatarLifecycle",
+      "HAL.FutureCreation.Impact.PushPresets.CombinationsResistanceAndNaturalResponse",
+      "HAL.FutureCreation.Impact.PushPresets.DefaultsAndValidation",
+      "HAL.FutureCreation.Impact.AllSourcesAndContactEpisodes",
+      "HAL.FutureCreation.Impact.AuthorityPhysicsReplayContract",
+      "HAL.FutureCreation.Impact.BallSnapshotDropAndCallbackMerge",
+      "HAL.FutureCreation.Impact.GASResistanceAndIndependentDamage",
+      "HAL.FutureCreation.Impact.SolverThreadExecutionAndReplay",
+      "HAL.FutureCreation.Impact.TiersCalibrationAndEnergyBudget",
+      "HAL.FutureCreation.Pursuit.Chains.FlowClockDirectionAndIndependentWire",
+      "HAL.FutureCreation.Pursuit.Chains.GeometryAndInterlocking",
+      "HAL.FutureCreation.Pursuit.Chains.ServerClockEntryReleaseAndLateJoin",
+      "HAL.FutureCreation.Pursuit.AuthorityGASLifecycleArrestProtection",
+      "HAL.FutureCreation.Pursuit.CounterAndStars",
+      "HAL.FutureCreation.SkillDummy.IndependentGASReceiversAndDamage",
+      "HAL.FutureCreation.SkillDummy.PursuitStarsArrestAndTornado",
+      "HAL.FutureCreation.SkillDummy.SingleVehicleSwapPreservesOnlyNewDummy",
+      "HAL.FutureCreation.SlipperyTrail.DissolveClockAndValidation",
+      "HAL.FutureCreation.SlipperyTrail.FootprintAndSweep",
+      "HAL.FutureCreation.SlipperyTrail.GroundMesh",
+      "HAL.FutureCreation.SlipperyTrail.SingleSwayAndReplay",
+      "HAL.FutureCreation.StatusFX.Component.ExpiryAvatarAndOwnerCleanup",
+      "HAL.FutureCreation.StatusFX.Component.IndependentDormantResources",
+      "HAL.FutureCreation.StatusFX.Component.LateRecipeAndCancellation",
+      "HAL.FutureCreation.StatusFX.Component.MeshGenerationAndGeometry",
+      "HAL.FutureCreation.StatusFX.Component.SharedShockHandoffAndCleanup",
+      "HAL.FutureCreation.StatusFX.Component.StaticSkeletalLayerPreparation",
+      "HAL.FutureCreation.StatusFX.Component.WeakAvatarAndUnconfiguredCache",
+      "HAL.FutureCreation.StatusFX.Configuration.AsyncFailureIdempotencyAndShutdown",
+      "HAL.FutureCreation.StatusFX.Configuration.CookRootAndHardDependencies",
+      "HAL.FutureCreation.StatusFX.Configuration.ExactCatalogAndDiagnostics",
+      "HAL.FutureCreation.StatusFX.Configuration.InheritanceIsolationAndFailure",
+      "HAL.FutureCreation.StatusFX.Configuration.RecipeValidation",
+      "HAL.FutureCreation.StatusFX.Observation.DebugGuardsAndDiagnostics",
+      "HAL.FutureCreation.StatusFX.Observation.ExactHierarchyAndDebugAggregation",
+      "HAL.FutureCreation.StatusFX.Observation.InitialAndAggregateCounts",
+      "HAL.FutureCreation.StatusFX.Observation.PendingRecipeAndUnconfigured",
+      "HAL.FutureCreation.StatusFX.Observation.ReplacementAndStaleCallbacks",
+      "HAL.FutureCreation.StatusFX.Renderer.BoundsBudgetAndExplicitFallback",
+      "HAL.FutureCreation.StatusFX.Renderer.BoundsTemplateContract",
+      "HAL.FutureCreation.StatusFX.Renderer.DrivenShockPriorityAndRestore",
+      "HAL.FutureCreation.StatusFX.Renderer.InvalidContractAndShockReservation",
+      "HAL.FutureCreation.StatusFX.Renderer.LayoutAndIndependentCapacity",
+      "HAL.FutureCreation.StatusFX.Renderer.LegacyLeaseAndOriginalRestore",
+      "HAL.FutureCreation.StatusFX.Renderer.PriorityResidueAndParameterReset",
+      "HAL.FutureCreation.StatusFX.Renderer.StaticSourceAndLOD",
+      "HAL.FutureCreation.StatusFX.Renderer.SurfaceSourceAndCPUDataGuard",
+      "HAL.FutureCreation.StatusFX.Renderer.TwoChannelsAndExitOrder",
+      "HAL.FutureCreation.StatusFX.Runtime.AggregationAndLeaseLifetime",
+      "HAL.FutureCreation.StatusFX.Runtime.BindingAndVehicleIsolation",
+      "HAL.FutureCreation.StatusFX.Runtime.IndependentTagsAndDeterministicSnapshots",
+      "HAL.FutureCreation.StatusFX.Runtime.PhaseSchedulingAndTimePartition",
+      "HAL.FutureCreation.StatusFX.Runtime.RefreshFadeAndResidueReentry",
+      "HAL.FutureCreation.StatusFX.Runtime.RejectedInputIsAtomic",
+      "HAL.FutureCreation.StatusFX.Runtime.WaitingAvailabilityAndCancellation",
+      "HAL.FutureCreation.StatusFX.Runtime.ZeroDurationAndSkippedPhases",
+      "HAL.FutureCreation.StatusFX.MultipartLifetimeAndFreshGeometry",
+      "HAL.FutureCreation.StatusFX.PrimarySelectionAndReconfiguration",
+      "HAL.FutureCreation.StatusFX.SavedVehiclesAndDiagnostics",
+      "HAL.FutureCreation.StatusFX.SpacesAndInvalidGeometry",
+      "HAL.FutureCreation.Stun.DebugConsoleTargetAndValidation",
+      "HAL.FutureCreation.Stun.DiscretePhysicsHistory",
+      "HAL.FutureCreation.Stun.NaturalGameTimeExpiry",
+      "HAL.FutureCreation.Stun.PermissionsDropAndLifecycle",
+      "HAL.FutureCreation.Tornado.AuthorityGASImpactBallsWallAndCleanup",
+      "HAL.FutureCreation.Tornado.PhasesValidationAndSweptCylinder",
+      "HAL.FutureCreation.VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar",
+      "HAL.FutureCreation.VehicleTest.RuntimeSwapRetainsPlayerAndCleansOldAvatar",
+      "HAL.FutureCreation.VehicleTest.SideCameraPreservesPossessionAndGAS",
+      "HAL.FutureCreation.VehicleTest.StandalonePlayingGASAndAllInputPermissions",
+      "HAL.RenderSmoke.BullCharge.ContinuousPressureWind",
+      "HAL.RenderSmoke.BullCharge.RuntimeLengthAndAccelerationEnvelope",
+      "HAL.RenderSmoke.BullCharge.ThreeLayersAndWorldSpaceExhaust",
+      "HAL.RenderSmoke.DamageFeedback.RealVehicleOutlineRGBIsolationAndOcclusion",
+      "HAL.RenderSmoke.Pursuit.CrossedChainsOnVehicleEntryReleaseAndRotation",
+      "HAL.RenderSmoke.Pursuit.ScanBeaconsArrestAndLeftToRightStars",
+      "HAL.RenderSmoke.Tornado.GatherSustainDissipateAndToonColors"
+    ]
+  },
+  "rendering": {
+    "geometry": "Actual saved Car02 skeletal model and original materials, plus static target. Temporary stable material experiment was removed.",
+    "resolution": [
+      768,
+      512
+    ],
+    "combinedChangedPixels": 37070,
+    "unhitVehicleAndGroundChangedPixels": 0,
+    "outlineOnlyChangedPixels": 2658,
+    "rgbOnlyChangedPixels": 2314,
+    "occlusionWholeImageChangedPixels": 0,
+    "expiryCurrentCleanBaselineChangedPixels": 0,
+    "contracts": [
+      "independent mesh-kind target IDs",
+      "other CustomDepth owner retained",
+      "collision in reserved range skips foreign ID",
+      "captured lease restored after global stencil edit",
+      "electric Overlay pointer retained",
+      "stale event rejected",
+      "expired pass and mesh leases cleaned"
+    ],
+    "pixelRule": "sum of absolute RGB differences > 9 per pixel; full-image occlusion and cleanup; no excluded raster border",
+    "fixture": "Persistent ViewState, manual nonphysical exposure, AA/AO/SSR/motion blur/grain off. Scoped r.BackbufferQuantizationDitheringOverride=32 restored afterward; no production render-setting change. Neutral/active weights use identical PP chain; expiry compares current geometry after occluder removal.",
+    "images": [
+      {
+        "path": "Saved/DamageFeedback/20261115/Render_Final_R8/Damage_00_Bare.bmp",
+        "sha256": "2F479FD95006772B43A6439B2E4361BBD82E77B078662FA8B893D777555CD03A"
+      },
+      {
+        "path": "Saved/DamageFeedback/20261115/Render_Final_R8/Damage_01_Full.bmp",
+        "sha256": "8DC053007EF312DCC066BDA0A30A70164F1FB3EC7ACCADC69754CF1B873680E3"
+      },
+      {
+        "path": "Saved/DamageFeedback/20261115/Render_Final_R8/Damage_02_RedOnly.bmp",
+        "sha256": "CFFE9A7AB52804557691CF9AEC2D22901EE556FDF5E7010973E175169F9D0FB4"
+      },
+      {
+        "path": "Saved/DamageFeedback/20261115/Render_Final_R8/Damage_03_WhiteOnly.bmp",
+        "sha256": "AC40B6E5FC8FEBE31FB18B6AE704E22023F32B1BCC7F0564C23DFB81F2B70ACE"
+      },
+      {
+        "path": "Saved/DamageFeedback/20261115/Render_Final_R8/Damage_04_RGBOnly.bmp",
+        "sha256": "626966B23D9088CE868679F34211264A43999CFEC16612D64E2FED534130D526"
+      },
+      {
+        "path": "Saved/DamageFeedback/20261115/Render_Final_R8/Damage_05_TwoTargets.bmp",
+        "sha256": "383F7F7AE63C655C382C720590A5B98FB6DB517F0B8D207D523CD718CAB7FFF4"
+      },
+      {
+        "path": "Saved/DamageFeedback/20261115/Render_Final_R8/Damage_06_OccludedBare.bmp",
+        "sha256": "F14A04D94B5D0A4E5C8DBC668A9E50961E71490C8AF7FCD7269FC8D40DCE24E8"
+      },
+      {
+        "path": "Saved/DamageFeedback/20261115/Render_Final_R8/Damage_06b_OccludedNeutralPass.bmp",
+        "sha256": "62273A35FE5152B5CA342AE5679ED4D61F033AB82A2AC70A35140748070D6535"
+      },
+      {
+        "path": "Saved/DamageFeedback/20261115/Render_Final_R8/Damage_07_OccludedHit.bmp",
+        "sha256": "A47DBA4C054FBB0329BF008DABB555E9B6D61ADC473174B37548A29A6F268947"
+      },
+      {
+        "path": "Saved/DamageFeedback/20261115/Render_Final_R8/Damage_08_Gone.bmp",
+        "sha256": "6C85C511565087E2EC1D4B1F268D0064AE5D580374186708FC9C92452E3EBFB6"
+      },
+      {
+        "path": "Saved/DamageFeedback/20261115/Render_Final_R8/Damage_08a_BeforeFinalHit.bmp",
+        "sha256": "34949348B74D814A28A741DA625E6628F37F66A1C3EBC8FDAF496A9AF8A91E5F"
+      }
+    ]
+  },
+  "network": {
+    "run": "Network_R1",
+    "rhi": "Two real D3D12 offscreen UnrealEditor -game processes",
+    "port": 7997,
+    "hostOutgoingLagMs": 80,
+    "lagProof": "[2026.11.15-09.55.22:834][  0]LogNet: PktLag set to 80",
+    "endpoints": [
+      {
+        "role": "Host",
+        "exitCode": 0,
+        "succeeded": 1,
+        "warnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0,
+        "observation": "[2026.11.15-09.55.54:640][894]LogAutomationController: Damage feedback role=Host received=1 rendered=1 cleanup=1 accent=1",
+        "report": "Saved/DamageFeedback/20261115/Network_R1/Host/index.json",
+        "reportSHA256": "7E838E6BBC22B95002449AD33B875CBA9E599B17C92F2F880305084BFB1E7249"
+      },
+      {
+        "role": "Client",
+        "exitCode": 0,
+        "succeeded": 1,
+        "warnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0,
+        "observation": "[2026.11.15-09.55.54:732][505]LogAutomationController: Damage feedback role=Client received=1 rendered=1 cleanup=1 accent=1",
+        "report": "Saved/DamageFeedback/20261115/Network_R1/Client/index.json",
+        "reportSHA256": "8A9551FFB77424B90E7A7C7EB6CFE4227C1B55946CB5B8AE44EBF01FA40E296D"
+      }
+    ],
+    "limits": "Short accents observed through live component/material weights on both endpoints. Pixel comparisons are separate local RHI tests, not simultaneous endpoint frame captures. No packet-loss or real late-join test."
+  },
+  "preservation": {
+    "baselineCount": 1336,
+    "unchanged": 1334,
+    "changed": [
+      {
+        "path": "Config/DefaultGame.ini",
+        "beforeSHA256": "35E378E2D1D9CBD349D9C757197EF91BAD5C5A4D6884E08B5F29F591925D98AC",
+        "afterSHA256": "98457379CB86E36FAC9E4FF9225A1086A06C07EE83884EC9B9E19F8AE7664DEE"
+      },
+      {
+        "path": "Config/DefaultEngine.ini",
+        "beforeSHA256": "C671501D82AB3BD959F92AED3B5A849B4A313EFDD969212B680A0333D241F4E7",
+        "afterSHA256": "AB40A22115D36905B8B13C9D1732276204D28EA8A6F38B4E53EAFE8DB8891B4F"
+      }
+    ],
+    "newAssets": [
+      "Content/Assets/FX/Materials/M_FX_VehicleDamage_PP.uasset",
+      "Content/Data/StatusFX/DA_DamageFeedback_Default.uasset"
+    ],
+    "userDirtyGameModeBPPreserved": true,
+    "allPriorContentAssetsUnchanged": true,
+    "oldPassiveSourceAndAssetsUnchanged": true,
+    "blueprintsOrMapsEdited": false,
+    "existingVehicleSkillAndPresentationDAsEdited": false,
+    "initialManifestSHA256": "37FBE6537802434BC3F6DAFD9D5A03AC223DB36F1CD7B57602159B0FB24A1772"
+  },
+  "developmentHistory": {
+    "builds": [
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildEditor_R1_Console.log",
+        "result": "Result: Failed (OtherCompilationError)"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildEditor_R2_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildGame_R1_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildEditor_R3_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildGame_R2_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildEditor_R4_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildEditor_R5_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildGame_R3_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildEditor_R6_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildGame_R4_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildEditor_R7_Console.log",
+        "result": "Result: Failed (OtherCompilationError)"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildEditor_R8_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildEditor_R9_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildEditor_R10_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildEditor_R11_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildGame_R5_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildEditor_R12_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildEditor_R13_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildEditor_R14_Console.log",
+        "result": "Result: Succeeded"
+      },
+      {
+        "log": "Saved/DamageFeedback/20261115/BuildGame_R6_Console.log",
+        "result": "Result: Succeeded"
+      }
+    ],
+    "failuresAndCorrections": [
+      "Editor R1 exposed old anonymous helper-name collisions in unity-combined authoring tools; editor tool module now builds per translation unit.",
+      "Focused R1..R3 exposed missing capture ViewState, physical exposure, and a neutral-gray edge pixel. No event receipt was accepted as rendered success.",
+      "Final R1 crashed in existing pursuit PresentationTime during weak-owner GC; null World guard fixed and later StatusFX 39/39 and merged 95/95 passed.",
+      "Final R2 asserted on old StaticSourceAndLOD synthetic uninitialized RenderData under real RHI. Fixture now uses initialized engine Cube, restores temporary CPU flag. Editor R7 fixture type errors corrected before R8 success.",
+      "Final R3..R7 and Focused R4 found neutral-gray/chromatic quantization differences in image comparisons. Isolating AA, geometry state and a temporary stable material did not remove the cause. Engine PostProcessTonemap identified independent 8-bit backbuffer dither. Scoped bit-depth override removed it; temporary stable material and raster-border exclusion were removed. Final R8 uses original vehicle materials and strict entire-image comparisons."
+    ]
+  },
+  "fileSHA256": [
+    {
+      "path": ".gitignore",
+      "sha256": "DC32676C9C6A854E83A465806967D8C193700B5FF4795F1756EC859CB11D8883"
+    },
+    {
+      "path": "Config/DefaultEngine.ini",
+      "sha256": "AB40A22115D36905B8B13C9D1732276204D28EA8A6F38B4E53EAFE8DB8891B4F"
+    },
+    {
+      "path": "Config/DefaultGame.ini",
+      "sha256": "98457379CB86E36FAC9E4FF9225A1086A06C07EE83884EC9B9E19F8AE7664DEE"
+    },
+    {
+      "path": "Content/Assets/FX/Materials/M_FX_VehicleDamage_PP.uasset",
+      "sha256": "9939143F2D4C82934CF2CF8E6B49A4C8B138675C29B259BCFF4FAEA44CBE9F65"
+    },
+    {
+      "path": "Content/Data/StatusFX/DA_DamageFeedback_Default.uasset",
+      "sha256": "E260FDEC01C5668478AA2460654A852A1044C854C3DB8414E1C092796FCEB414"
+    },
+    {
+      "path": "Docs/Presentation/Vehicle_Damage_Feedback_CN_v0.1.md",
+      "sha256": "57DC1012D3BAC0C0B7FF2EE2A680212612B14CFF10F52409FF9F8AFFF39D8BCB"
+    },
+    {
+      "path": "Docs/Project_Status_CN.md",
+      "sha256": "26C1F70E9B8B41C789BE7FA7A12A6CD85072588EEB7E6376894B01315AC68B71"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/CombatResolver.cpp",
+      "sha256": "37C66C771F6431FC537328B01F4C1ACB35DFB3BB278C339BEAD955029C60661E"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDamageFeedbackComponent.cpp",
+      "sha256": "A0D9B26558D41C3711FAA1C174CD70303E1A515465D6A96F54AE5495B4D85D1D"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDamageFeedbackComponent.h",
+      "sha256": "79DF3218686AE812DF0A3DFB17EC17D6A05F8D6CA9990FAE8F17A48073441536"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDamageFeedbackConfig.cpp",
+      "sha256": "07A50B16B00DDE10FEEA680D18232146D9D03B99AF02875B14E30715E69DB2A1"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDamageFeedbackConfig.h",
+      "sha256": "1C80C51815D8B6EE45364C9B7FC2D25AA55E5835B4DD7C935D2EEED9B7CB8533"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDamageFeedbackSubsystem.cpp",
+      "sha256": "A53D9DB5573139560543DA497F10226B534ABDBBE6CE141FD9BED103E6317E9E"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDamageFeedbackSubsystem.h",
+      "sha256": "71C2EBD7C04B82AED0889F1C0D2BA409A3CFF85226082A97B380BDE8449C32A6"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPursuitTargetComponent.cpp",
+      "sha256": "4FC5975F8E35C043A5F55670305AD5618B10F4CCAABB5A6F608633B0B594ABCB"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleStatusFXSettings.cpp",
+      "sha256": "0126BD8472BBF04A2530615CC2F38E57EE43938F04D9ACAB0DEE97177714ACA8"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleStatusFXSettings.h",
+      "sha256": "289AF2E817D6255F5C337282107FF51A0BFDF368523E9DAC9290CDCB2EADEB84"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALDamageFeedbackRenderTests.cpp",
+      "sha256": "F20032347BADAA9B9BE1A28D1FF32C5A56BE03EE9D6BFE608E6EDF5CB4BF3973"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALDamageFeedbackTests.cpp",
+      "sha256": "3D9D8F82479B6BC005A214C7810B5D8EDCEAACBE330788E1CA75166B91367240"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALSkillTestDummyNetworkTests.cpp",
+      "sha256": "6A372BECA842A7C809B3C6DD38EBDD0AA860F3E19E870119083D3EC2CAC33297"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALSkillTestDummyTests.cpp",
+      "sha256": "821C00D2A4723731AA10295760D59C7E6AA154AB944AFADC263394E617DFDF0F"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALStatusFXRendererTests.cpp",
+      "sha256": "8B5BD5E182FB1EA964FBE0B26AE121B0AD90E1078C810ECD9398B71C6CFB86C2"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleStatusFXConfigTests.cpp",
+      "sha256": "06AC7184C8666E4650AAEB9AD16E1A3B0576621DAB75C786476E4097963B14F3"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+      "sha256": "43B311925575A60BDD54B11FEF0BEB5927DDA628E4B190A184B3B5DBDF691B12"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.h",
+      "sha256": "A9A324388978570DA4F8D6D9B785B2F4CA4B9CAE7034AE13B85F09D982C206A8"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/HAL_Future_CreationEditor.Build.cs",
+      "sha256": "E91F022B1926E584DBAC03614B155350E82F2599DB9884CEC159E40EAF86DE38"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALBuildDamageFeedbackFXCommandlet.cpp",
+      "sha256": "3CC97E3F9D6ED51C1026223FCD4376682FA30F4211AC413026087A146A82DE35"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Public/HALBuildDamageFeedbackFXCommandlet.h",
+      "sha256": "3D363E5AA7D90A64F152A3813ADB732E66BF4F053C38858626F9235C2B8A8E9B"
+    }
+  ],
+  "pendingTeamAcceptance": [
+    "style and timing in real match camera/map",
+    "all vehicle glass and attached parts",
+    "transparent FX and world-space UI overlap",
+    "four machines",
+    "real late join and packet loss",
+    "GPU timing/performance",
+    "Cook/package run; only cook-root dependency validation performed",
+    "instant lethal retirement may remove visible mesh before flash; no gameplay delay introduced"
+  ],
+  "rawEvidencePolicy": "Saved outputs stay local and ignored. This JSON and the Markdown guide/status are Git-whitelisted and require normal commit/push to sync."
+}

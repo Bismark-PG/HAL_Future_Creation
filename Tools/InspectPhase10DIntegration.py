@@ -22,7 +22,7 @@ def main():
     report = {"engine_version": unreal.SystemLibrary.get_engine_version(),
               "scope": "saved_assets_only_no_compile_no_save", "assets": {}}
     fields = {
-        "DA_Vehicle_Player_TestBaseline_v1": ("impact", "combat", "physics", "movement", "ball_control", "health"),
+        "DA_Vehicle_Car_01": ("impact", "combat", "physics", "movement", "ball_control", "health"),
         "DA_Vehicle_Passive_TestBaseline_v1": ("impact", "combat", "physics", "health"),
         "DA_Ball_Normal_TestBaseline_v1": ("gameplay", "physics"),
         "DA_Combat_TestBaseline_v1": ("collision_impacts", "ball_impacts"),

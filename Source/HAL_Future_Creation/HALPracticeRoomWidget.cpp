@@ -1,4 +1,5 @@
 #include "HALPracticeRoomWidget.h"
+#include "HALSmokeScreenTypes.h"
 #include "HALArcadeStyle.h"
 #include "HALNetworkGameInstance.h"
 #include "HALFrontEndConfig.h"
@@ -191,7 +192,7 @@ int32 UHALPracticeRoomWidget::NativePaint(const FPaintArgs& Args, const FGeometr
 	constexpr float Border=1.f, LabelGap=6.f;
 	for (const auto& PS : R->GetData().Members)
 	{
-		const auto* Pawn=PS ? PS->GetPawn() : nullptr; if (!Pawn) { continue; }
+		const auto* Pawn=PS ? PS->GetPawn() : nullptr; if (!Pawn||HALSmoke::IsConcealed(Pawn)) { continue; }
 		FVector Center,Extent; Pawn->GetActorBounds(true,Center,Extent); FVector2D Screen;
 		if (UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(PC,Center+FVector(0,0,Extent.Z+30),Screen,true))
 		{

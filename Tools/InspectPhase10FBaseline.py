@@ -10,7 +10,7 @@ import unreal
 
 PROJECT = pathlib.Path(unreal.Paths.project_dir()).resolve()
 FIELDS = {
-    "DA_Vehicle_Player_TestBaseline_v1": ("bReadyForUse", "CollisionShape", "CollisionMesh", "BoxExtent", "Physics", "Movement", "BallControl", "BallControlPoint", "Health", "Combat", "Impact", "LocalConfig", "Visual"),
+    "DA_Vehicle_Car_01": ("bReadyForUse", "CollisionShape", "CollisionMesh", "BoxExtent", "Physics", "Movement", "BallControl", "BallControlPoint", "Health", "Combat", "Impact", "LocalConfig", "Visual"),
     "DA_Vehicle_Passive_TestBaseline_v1": ("bReadyForUse", "CollisionShape", "BoxExtent", "Physics", "Movement", "BallControl", "Health", "Combat", "Impact", "Visual"),
     "DA_Ball_Normal_TestBaseline_v1": ("bReadyForUse", "Radius", "Physics", "Gameplay", "Visual"),
     "DA_Combat_TestBaseline_v1": ("bReadyForUse", "BallImpacts", "CollisionImpacts"),

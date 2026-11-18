@@ -50,12 +50,28 @@ Alt拖动仅在鼠标位于面板外且游戏视口具有焦点时开始。拖�
 
 已有驾驶、刹车、手刹、发射、主技能、自救及相机Action仍由车型Local Config读取。测试模式跳过房间Ready／网络确认门槛，但保留配置有效性、真实GAS绑定、物理绑定就绪及技能自身冷却／眩晕等玩法条件。测试模式没有赋予未配置的技能，也不会绕过角色配置错误。
 
+## 2.1 對手車（2026-11-17 新增；編譯與自動化通過，PIE 實機未驗收）
+
+面板在車型選單下方多一組 **OPPONENT CAR**：用來在場上放第二台不會自己動的車，測試車對車碰撞。
+
+| 操作 | 行為 |
+|---|---|
+| 選擇車型 → Spawn / replace opponent | 在玩家車正前方 700 cm 生成該車型，車頭朝向玩家；已有對手車時直接換成新車型 |
+| Remove | 移除對手車 |
+
+- **車型清單與玩家車相同**（Default Pawn Class＋Test Vehicle Classes），不需要另外設定，也不需要新的 Blueprint 或 DA。
+- **它是什麼**：一台 `HALSkillTestDummy`，執行時以所選車輛 BP 自己的 Vehicle Definition 建立，所以碰撞體、質量、外觀、HP、抗性、胎痕代表色都是那台車的真實設定。它自帶 ASC，能正常接受撞擊、傷害與技能效果，頭上顯示 `OPPONENT` 與血條。
+- **它不是什麼**：沒有玩家、沒有輸入、不會開、不會放技能、不吸球。要測「兩台都在動」的對撞，只能由玩家車去撞它。
+- **換玩家車不影響對手車**；對手車也不會被換車時的清理移除。對手車 HP 歸零後不再是有效目標，按一次 Spawn / replace 即可重生。
+- **生成失敗時保留原本的對手車**，原因顯示在面板的 `Opponent:` 一行。常見原因：前方 700 cm 有牆或其他車（把車頭轉向空地再按一次）、所選車輛 BP 不是 Definition 設定來源、或碰撞形狀不是 ConvexMesh。
+- 距離與抬升高度可在 `BP_VehicleTestGameMode` 的 **Vehicle Test → Opponent**（`OpponentSpawnDistanceCm`、`OpponentSpawnLiftCm`）調整；`OpponentClass` 留預設即可。
+
 ## 3. 换车行为与失败处理
 
 - 每次应用车型都在PlayerStart重新生成一辆车，物理状态重新开始。PlayerController、PlayerState和ASC保留。
 - 复用 `HALPlayerState::ChangeVehicleAvatar`，清理旧车技能来源、Avatar效果、冷却、球权、区域状态与输入，按新车型种子初始化属性。
 - 独立观察相机在换车后继续存在，并重新聚焦新车；车辆相机模式则切到新车的Local Camera。
-- 成功切换后，运行时销毁该测试世界中的其他TestVehiclePawn和PassiveTestVehicle，使复制地图中遗留的车辆不继续参与测试。保存地图中的Actor不受修改。
+- 成功切换后，运行时销毁该测试世界中遗留的普通TestVehiclePawn和PassiveTestVehicle。2026-11-15起，新的HALSkillTestDummy作为显式技能目标保留，既不进入可驾驶车型列表，也不在出生碰撞预检中被忽略；见[技能木桩配置](Skill_Test_Dummy_CN_v0.1.md)。保存地图中的Actor不受修改。
 - 配置、候选列表或出生碰撞预检失败时保留当前车辆，原因显示在左上角。出生检查使用实际Chaos碰撞根，并忽略即将被替换的测试车辆。
 - 极端情况下GAS提交后失败，状态栏要求重新选择或重开Play，日志保留原因；不把已经Retired的旧Avatar重新接回ASC。
 

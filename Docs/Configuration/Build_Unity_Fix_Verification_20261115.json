@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-15",
+  "task": "Runtime Unity build collision and launcher diagnosis",
+  "branch": "main",
+  "startCommit": "5044110",
+  "engine": "5.8.3-58210709",
+  "committedOrPushed": false,
+  "rootCause": {
+    "category": "Project C++ Unity compatibility; launcher correctly reported compiler failure",
+    "initialFailureLog": "Saved/BuildTool/BuildAndLaunch_20261115_194627_009_688359/UnrealBuildTool.log",
+    "firstError": "C2084 duplicate anonymous-namespace Range(float,float,float) in HALDamageFeedbackConfig.cpp and HALPolicePursuit.cpp",
+    "dependentErrors": [
+      "C4551",
+      "C2568"
+    ],
+    "priorIncrementalCoverage": "Earlier adaptive builds did not exercise the same combined unit. A prior successful build did not invalidate the user failure."
+  },
+  "fix": {
+    "configHelpers": [
+      "DamageFeedbackInRange",
+      "DamageFeedbackColorValid",
+      "DamageFeedbackFade"
+    ],
+    "hud": "Explicit const FHALPursuitView& lambda parameter removes dependent-template C4864 warning",
+    "gameplayOrParameterChanges": false,
+    "launcherChanged": false,
+    "globalBuildConfigChanged": false,
+    "runtimeUnityDisabled": false
+  },
+  "launcher": {
+    "command": ".\\BuildAndLaunch.cmd -NoLaunch -NoPopup",
+    "status": "BuildSucceeded",
+    "buildExitCode": 0,
+    "exitCode": 0,
+    "editorLaunched": false,
+    "result": "Saved/BuildTool/BuildAndLaunch_20261115_194858_771_861128/Result.json",
+    "resultSHA256": "A296C32A04DE631904422C1BB7C12C76DDF5D5D9CD2E59637D2F66AC36782B99",
+    "consoleSHA256": "4399B4762EE2237C28F1F9697DB8CFD4CFB5FDE17EDC65A5996C640844D2D52A",
+    "seconds": 157.67
+  },
+  "unityBuilds": [
+    {
+      "target": "HAL_Future_CreationEditor Win64 Development",
+      "run": "EditorUnity_R1",
+      "arguments": "-WaitMutex -NoHotReload -NoLiveCoding -DisableAdaptiveUnity -MaxParallelActions=6",
+      "result": "Succeeded",
+      "exitCode": 0,
+      "seconds": 112.41,
+      "log": "Saved/BuildFix/20261115/EditorUnity_R1.log",
+      "logSHA256": "D4F021446D75E57444476A34746FF30C2C3C4C52EAFF24C5325F281FABFC43D9"
+    },
+    {
+      "target": "HAL_Future_Creation Win64 Development",
+      "run": "GameUnity_R1",
+      "arguments": "-WaitMutex -NoHotReload -NoLiveCoding -DisableAdaptiveUnity -MaxParallelActions=4",
+      "result": "Succeeded",
+      "exitCode": 0,
+      "seconds": 131.11,
+      "log": "Saved/BuildFix/20261115/GameUnity_R1.log",
+      "logSHA256": "CD2C3BCF2DDB385C042083BB8896A20023FDD7D9A1CEB9B673FB7439ECC6F84E"
+    }
+  ],
+  "combinedUnit": {
+    "path": "Intermediate/Build/Win64/x64/UnrealEditor/Development/HAL_Future_Creation/Module.HAL_Future_Creation.3.cpp",
+    "includes": [
+      "#include \"D:/HAL_Future_Creation/Source/HAL_Future_Creation/HALDamageFeedbackConfig.cpp\"",
+      "#include \"D:/HAL_Future_Creation/Source/HAL_Future_Creation/HALPolicePursuit.cpp\"",
+      "#include \"D:/HAL_Future_Creation/Source/HAL_Future_Creation/HALPursuitHUDWidget.cpp\""
+    ],
+    "meaning": "New helper and existing pursuit definitions really compiled together. Generated file was read only, not edited or checked in."
+  },
+  "regression": {
+    "run": "Focused_R1",
+    "exitCode": 0,
+    "rhi": "Actual D3D12 offscreen",
+    "succeeded": 11,
+    "succeededWithWarnings": 0,
+    "failed": 0,
+    "notRun": 0,
+    "inProcess": 0,
+    "report": "Saved/BuildFix/20261115/Focused_R1/index.json",
+    "reportSHA256": "E6FA6E1D690F622A32ED9966D190941C7B433F830622C6A5D41209F1EB24B936",
+    "tests": [
+      "HAL.FutureCreation.DamageFeedback.BoundedIndependentPulses",
+      "HAL.FutureCreation.DamageFeedback.SharedRecipeAndCookRoot",
+      "HAL.FutureCreation.Pursuit.Chains.FlowClockDirectionAndIndependentWire",
+      "HAL.FutureCreation.Pursuit.Chains.GeometryAndInterlocking",
+      "HAL.FutureCreation.Pursuit.Chains.ServerClockEntryReleaseAndLateJoin",
+      "HAL.FutureCreation.Pursuit.AuthorityGASLifecycleArrestProtection",
+      "HAL.FutureCreation.Pursuit.CounterAndStars",
+      "HAL.FutureCreation.SkillDummy.IndependentGASReceiversAndDamage",
+      "HAL.RenderSmoke.DamageFeedback.RealVehicleOutlineRGBIsolationAndOcclusion",
+      "HAL.RenderSmoke.Pursuit.CrossedChainsOnVehicleEntryReleaseAndRotation",
+      "HAL.RenderSmoke.Pursuit.ScanBeaconsArrestAndLeftToRightStars"
+    ]
+  },
+  "preservation": {
+    "protectedFiles": 1337,
+    "unchanged": 1337,
+    "changed": [],
+    "baselineSHA256": "554F2DC097D3F732EDFB9BDAAF5A2CEF5EA552363A7CE237782DD6C7830C255A",
+    "includes": "All Content uasset/umap/wav, Config ini, uproject and original BuildAndLaunch.cmd, including pre-existing dirty GameMode BP and new damage assets",
+    "launcherSHA256": "A049F995CF22406B19A06BCBDDE39E897B71987E6F1E121E4C9B6DF4E77CE657"
+  },
+  "warningPolicy": "C4864 removed in touched HUD. Existing UE deprecation, camera-conversion and preferred-MSVC warnings retained; successful compilation is not claimed as warning-free.",
+  "scopeSHA256": [
+    {
+      "path": ".gitignore",
+      "sha256": "93477913CD170BDD3A67846C4C0B7C4C06BAFE9E6EFA4CA3B98AAB5325678AB3"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALDamageFeedbackConfig.cpp",
+      "sha256": "075C941B96CA3C2C362E46073000A7F8B9A6B22B669C48A8FE5D91C5743EEA98"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPursuitHUDWidget.cpp",
+      "sha256": "C32D955F34533E8B20FADBAB7ED088ED92ECFDBAB58A93A88D190D8BFA34129A"
+    },
+    {
+      "path": "Docs/Configuration/Build_Editor_Tool_CN.md",
+      "sha256": "03687179147A0075E2BC7F0FCCAB7D3CDA13B9EDF300D6562B111ECA2DF279ED"
+    },
+    {
+      "path": "Docs/Presentation/Vehicle_Damage_Feedback_CN_v0.1.md",
+      "sha256": "C528B5CE9AE29E4B946C264EEDCE458088596FCB73487E1A5BA258118C24D35C"
+    },
+    {
+      "path": "Docs/Project_Status_CN.md",
+      "sha256": "B385673EB984F4D9719ECA0CC6504F5E1EE232BFD9614015FE163B74F79BF85D"
+    }
+  ],
+  "limits": [
+    "No interactive Editor launch in this run; launcher deliberately used NoLaunch",
+    "No full 95-case, multiplayer, packet-loss, Cook or package rerun in this build-only fix",
+    "Original damage-feedback 95-case and dual-endpoint proof remains historical and unchanged; its prior source hashes refer to the earlier snapshot",
+    "No human visual acceptance claimed"
+  ],
+  "evidencePolicy": "Raw logs stay local in ignored Saved. This proof, current status and build guide are Git-whitelisted; normal commit/push is required for team synchronization."
+}

@@ -21,7 +21,7 @@ def main():
     before = manifest()
     report = {"engine_version": unreal.SystemLibrary.get_engine_version(),
               "scope": "saved_assets_only_no_PIE_no_compile_no_save", "assets": {}, "maps": {}}
-    for name in ("DA_Vehicle_Player_TestBaseline_v1", "DA_Vehicle_Passive_TestBaseline_v1", "DA_Ball_Normal_TestBaseline_v1"):
+    for name in ("DA_Vehicle_Car_01", "DA_Vehicle_Passive_TestBaseline_v1", "DA_Ball_Normal_TestBaseline_v1"):
         asset = unreal.load_asset("/Game/Data/MVP_B/" + name)
         if not asset:
             raise RuntimeError("Missing saved asset: " + name)

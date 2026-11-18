@@ -69,7 +69,7 @@ bool FHALVehicleGeneratedInputInitializationTest::RunTest(const FString&)
 	}
 	auto* Definition = Cast<UVehicleDefinition>(F.Generated.Assets[2].Get());
 	auto* Blueprint = Cast<UBlueprint>(F.Generated.Assets[3].Get());
-	const auto* Baseline = LoadObject<UVehicleDefinition>(nullptr, TEXT("/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.DA_Vehicle_Player_TestBaseline_v1"));
+	const auto* Baseline = LoadObject<UVehicleDefinition>(nullptr, TEXT("/Game/Data/MVP_B/DA_Vehicle_Car_01.DA_Vehicle_Car_01"));
 	if (!TestTrue(TEXT("Read the project's real convex mesh without copying another model's tuning"), Baseline && Baseline->CollisionMesh)) { return false; }
 	// A valid static fallback isolates input initialization from the team's empty AnimGraph/wheel calibration.
 	Definition->CollisionMesh = Baseline->CollisionMesh;

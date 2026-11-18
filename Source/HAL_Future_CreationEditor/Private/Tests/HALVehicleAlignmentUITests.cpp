@@ -80,7 +80,7 @@ bool FHALAlignmentUITest::RunTest(const FString&)
 	const FToolMenuSection* Section = Menu->FindSection(TEXT("HALTools"));
 	if (!TestNotNull(TEXT("HAL tools section"),Section)) { return false; }
 	TestNotNull(TEXT("Alignment menu entry"),Section->FindEntry(TEXT("HALVehicleAlignment")));
-	auto* Vehicle = LoadObject<UVehicleDefinition>(nullptr,TEXT("/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.DA_Vehicle_Player_TestBaseline_v1"));
+	auto* Vehicle = LoadObject<UVehicleDefinition>(nullptr,TEXT("/Game/Data/MVP_B/DA_Vehicle_Car_01.DA_Vehicle_Car_01"));
 	if (!TestNotNull(TEXT("Select actual vehicle definition"),Vehicle)) { return false; }
 	auto& Browser = FModuleManager::LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser")).Get();
 	TArray<FAssetData> Selection; Browser.GetSelectedAssets(Selection);

@@ -30,6 +30,9 @@ public:
 	void ToggleTestCamera();
 	void FocusObservationCamera();
 	void ApplyTestVehicle(TSubclassOf<ATestVehiclePawn> Class);
+	/** Second, undriven car for collision tests; see AHALVehicleTestGameMode::ChangeOpponentVehicle. */
+	void ApplyOpponentVehicle(TSubclassOf<ATestVehiclePawn> Class);
+	void RemoveOpponentVehicle();
 	void FinishCameraNavigation();
 	void RefreshTestView();
 	bool IsObservationCameraActive() const { return bObservationView; }

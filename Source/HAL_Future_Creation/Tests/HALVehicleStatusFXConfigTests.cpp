@@ -3,6 +3,7 @@
 #include "../HALVehicleStatusFXDefinition.h"
 #include "../HALVehicleStatusFXCatalog.h"
 #include "../HALVehicleStatusFXSettings.h"
+#include "../HALDamageFeedbackConfig.h"
 #include "../HALVehicleStatusFXSubsystem.h"
 #include "../HALGameplayTags.h"
 #include "../VehicleDefinition.h"
@@ -129,7 +130,7 @@ bool FHALStatusFXSelectionTest::RunTest(const FString&)
 	TestEqual(TEXT("Invalid override failed once"), A->GetCatalogState(Bad,Error), EHALStatusFXLoadState::Failed);
 	TestNull(TEXT("Invalid explicit override cannot silently use default recipe"), A->FindEffect(HALGameplayTags::State_Visual_Shocked,Vehicle));
 	TestEqual(TEXT("Shared authoring data unchanged"), Shared->Effects.Num(),2);
-	const auto* Saved=LoadObject<UVehicleDefinition>(nullptr,TEXT("/Game/Data/MVP_B/DA_Vehicle_Player_TestBaseline_v1.DA_Vehicle_Player_TestBaseline_v1"));
+	const auto* Saved=LoadObject<UVehicleDefinition>(nullptr,TEXT("/Game/Data/MVP_B/DA_Vehicle_Car_01.DA_Vehicle_Car_01"));
 	if (TestNotNull(TEXT("Saved driving definition"),Saved))
 	{
 		auto* Copy=DuplicateObject<UVehicleDefinition>(Saved,GetTransientPackage()); Copy->StatusFXCatalogOverride=Bad;
@@ -161,6 +162,7 @@ bool FHALStatusFXCookTest::RunTest(const FString&)
 #if WITH_EDITOR
 	auto* Settings=GetMutableDefault<UHALVehicleStatusFXSettings>();
 	const TGuardValue<TSoftObjectPtr<UHALVehicleStatusFXCatalog>> Guard(Settings->DefaultCatalog,nullptr);
+	const TGuardValue<TSoftObjectPtr<UHALDamageFeedbackConfig>> DamageGuard(Settings->DamageFeedbackConfig,nullptr);
 	TArray<FName> Packages; FString Error;
 	TestTrue(TEXT("Unconfigured global path is optional"),Settings->CollectCookPackages(Packages,Error));
 	TestTrue(TEXT("No fictitious cook package added"),Packages.IsEmpty());

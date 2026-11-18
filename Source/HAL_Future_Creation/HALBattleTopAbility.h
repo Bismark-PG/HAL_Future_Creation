@@ -4,6 +4,7 @@
 #include "Engine/DataAsset.h"
 #include "GameplayEffect.h"
 #include "HALImpactTypes.h"
+#include "HALBattleTopFXTypes.h"
 #include "HALBattleTopAbility.generated.h"
 
 /** Battle Top gameplay and skill-specific visual tuning. */
@@ -16,6 +17,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="Timing", meta=(Units="s", ClampMin="0.1", ClampMax="30")) float DurationSeconds = 5.f;
 	UPROPERTY(EditAnywhere, Category="Timing", meta=(Units="s", ClampMin="0", ClampMax="120")) float CooldownSeconds = 20.f;
 	UPROPERTY(EditAnywhere, Category="Contact", meta=(ClampMin="0", ClampMax="100")) float ContactDamage = 5.f;
+	UPROPERTY(EditAnywhere, Category="Contact", meta=(Units="s",ClampMin="0.05",ClampMax="10")) float TargetCooldownSeconds = .8f;
 	UPROPERTY(EditAnywhere, Category="Contact") EHALImpactTier ContactTier = EHALImpactTier::Medium;
 	UPROPERTY(EditAnywhere, Category="Contact") EHALImpactPushPreset ContactPush = EHALImpactPushPreset::Long;
 	UPROPERTY(EditAnywhere, Category="Wall", meta=(ClampMin="0", ClampMax="2")) float WallReboundScale = 1.15f;
@@ -28,6 +30,9 @@ public:
 	/** Cosmetic angular speed. Snapshotted at activation for owners and observers. */
 	UPROPERTY(EditAnywhere, Category="Presentation", meta=(Units="deg/s", ClampMin="90", ClampMax="2160"))
 	float SpinRate = DefaultSpinRate;
+	UPROPERTY(EditAnywhere, Category="Presentation", meta=(Units="s",ClampMin="0",ClampMax="2")) float SpinEnterSeconds = .15f;
+	UPROPERTY(EditAnywhere, Category="Presentation", meta=(Units="s",ClampMin="0",ClampMax="2")) float SpinExitSeconds = .2f;
+	UPROPERTY(EditAnywhere, Category="Presentation") FHALBattleTopFXConfig FX;
 	float ResolveSpinRate() const { return FMath::IsFinite(SpinRate) ? FMath::Clamp(SpinRate, 90.f, 2160.f) : DefaultSpinRate; }
 	bool Validate(FString& Error) const;
 #if WITH_EDITOR
