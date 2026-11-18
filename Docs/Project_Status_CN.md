@@ -1,5 +1,6 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-19 MatchHUD／玩家行最新保存版本复核完成，剩余四个编号输入与客户端初始化重试。** 基线 main/e3e9abe、UE5.8.3-58210709；读取HUD 01:19:35、Row 01:21:05。四个SetPlayerData的HP／MaxHP／VehicleId／Catalog共16个输入已正确连接，Player {Number}与白色Barlow字体也已修复。四个InNumber仍悬空默认0，当前标题将显示Player 00；Construct初次GameState失败仍无重试。事件／目录／HP／车图主链有效；左下锚点与Designer行显隐仍待调整。详见[最新结论与引脚修正](Presentation/MatchHUD_DataFlow_Review_20261119_CN.md)。R3独立只读导出和参数读取均退出0、0引擎汇总错误／警告，8份读取资产最终SHA256一致；本次未Play或编译／保存Blueprint，未提交／Push。前两轮历史检查保留。
 **2026-11-18，临时比赛图中场钢盘、地灯和行车面已落地，待四人实测。** `MVPB_Match_Temp` 以可见钢板为高度基准，新拉丝盘和相邻地面在 Z −200.274 cm 齐平。`Floor` 连续承托车辆和球，`Path` 提供外围侧挡。四个出生点、主球和场内机关已分别校准。UE 5.8.3 重载后通过 1,216 条地面射线和 64 条护盾射线检查，单车和自由球实测穿过中心灯，电墙、弹簧拳、电球、打滑区和黑洞均在新高度生效。正式图保留原版。[同机位实拍、调参与物理验证](Presentation/ArenaFloor_SatinMetal_CN.md#arena-center-inlay)
 
 **2026-11-18，已修复本机复现的客户端持球漂移跳位，待学校四机画面验收。** 服务器优先发送各观察者的持有球更新，客户端在短暂缺样时继续随当前车头转动，收到发射、脱球或球权切换后结束旧跟随。UE 5.8.3 Editor 与 Game 构建通过，原生回归 248 项全部通过，其中 2 项有测试车配置警告。沿用默认发送预算和 Host 出站 80 ms 延迟，原先失败的双端专项连续三轮通过。本机一主三客同时漂移与观察时，三个客户端均未在持续持球中误切物理显示，发射后两球均正常交接。球定义由用户调整。[修复、数据与四机验收方法](Networking/MVPB_ControlledBall_RelativePresentation_CN_v0.1.md#held-ball-drift-fix)
