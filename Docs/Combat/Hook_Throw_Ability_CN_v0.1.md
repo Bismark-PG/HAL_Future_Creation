@@ -74,16 +74,22 @@
 | Gameplay → Interrupt | Airborne Upward Speed | 100 cm/s | 自然接触观测的腾空中断补充门槛 |
 | Gameplay → Debug | Draw Bounds | false | 临时显示钩头权威范围 |
 | Presentation → Assets | Chain Mesh／Hook Mesh／Metal Material | 三份新资源 | 可替换美术，组件无物理碰撞 |
-| Presentation → Geometry | Link Pitch／Link Scale | 22 cm／1.15 | 链节间距与粗细尺寸 |
-| Presentation → Geometry | Hook Scale／Hook Chain Offset | 1.2／(-45,0,0) cm | 钩头大小与链条连接点 |
+| Presentation → Geometry | Link Pitch／Link Scale | 35 cm／1.9 | 链节间距与整体尺寸；放大时配合调整间距，保留可见环孔 |
+| Presentation → Geometry | Hook Scale／Hook Chain Offset | 2.12／(-45,0,0) cm | 钩头大小与模型局部连接点；显示时连接点自动随尺寸缩放 |
 | Presentation → Geometry | Maximum Links | 256 | 单次表现链节预算，上限512 |
 | Presentation → Motion | Sag／Wobble／Wobble Frequency | 12 cm／3 cm／3 Hz | 链条弧垂和轻微扰动；抓住时自动绷紧 |
 | Presentation → Motion | Enter Seconds | 0.06 s | 钩子出现的短过渡 |
 | Presentation → Metal | Dark／Middle／Light Color | 冷色金属三档 | 柔和卡通配色 |
 | Presentation → Metal | Light Direction／Shadow Threshold／Highlight Threshold | DA内可见 | 体积明暗方向及色阶分界 |
-| Presentation → Metal | Tone Softness／Glint Strength／Glint Power／Contour Strength | 0.16／0.35／20／0.35 | 过渡、金属反光和轻微轮廓压暗 |
+| Presentation → Metal | Tone Softness／Glint Strength／Glint Power／Contour Strength | 0.125／0.5／18／0.48 | 柔和三阶过渡、高光强度、集中程度、轮廓压暗 |
+| Presentation → FX → Contact → Capture Sparks | System／Count | NS_BattleTop_ToonContact／14 | 成功钩中的单次卡通火花；清空 System 或将 Count 设为 0 可关闭 |
+| 同上 | Size Scale／Lifetime／Speed／Color | 1／0.24 s／620 cm/s／暖金色 | 火花宽长倍率、最长寿命、外喷速度和颜色 |
 
 参数会在每次释放时捕获快照；调整 DA 后重新释放。范围／速度／窗口还需满足总寿命不超过29秒的校验，不应把高速移动改成无限驻车。颜色、模型、命中范围分别可调，修改视觉模型不会偷偷改变命中。
+
+**2026-11-18 美术调参。** 当前 DA 的链环与钩头共用 `M_HookThrow_ToonMetal`。生产 DA 的光向为 (0.20, -0.95, 0.25)，暗部／亮部分界为 0.12／0.69。暗钢蓝、中间钢色和冷银高光随曲面朝向分布，反光带随观察方向变化；表中 Metal 一行记录本次保存的调色值。链环交错角与钩头的末端连接由原组件计算。真人调试建议在普通比赛镜头下分别顺着屏幕横向、纵向出钩，重点看环孔、钩尖和目标轮廓能否分开。
+
+火花复用 Car03 的卡通接触 Niagara，钩子通过自己的技能 DA 调参。服务器扫中有效车辆并成功抓取后，将球形扫掠的实际表面接触点、法线和这一次的表现参数发给各端。火花留在命中时的世界位置，车辆甩动或中断后可自行消散。出钩落空、碰墙、收钩和抓取被拒绝都不触发。新 System 要复用本页的调参，应实现 `User.BurstCount`、`User.SizeMin/Max`、`User.LifetimeMin/Max`、`User.VelocityMin/Max`、`User.SparkColor` 和 `User.Gravity`，采用本地空间、沿局部 Z 外喷的单次爆发。
 
 编辑器与运行时范围一致：Range 200～4000 cm；Outbound Speed 200～10000、Return Speed 500～15000 cm/s；Hit Radius 5～80 cm；Choice Seconds 0.2～3 s；Horizontal Speed 100～6000、Upward Speed 0～1500 cm/s；Cooldown 0～120 s。驻车 Damping 1～80、Capture Stiffness 0～300、Maximum Acceleration 100～50000 cm/s²。Link Pitch 8～80 cm，两个 Scale 0.3～4，Maximum Links 16～512；Sag 0～80、Wobble 0～30 cm，Wobble Frequency 0～20 Hz。三档颜色 RGB 0～4；Tone Softness 0.02～0.4，Glint Strength 0～2，Glint Power 2～80。先调投掷速度与方向窗口，再调整粗细／颜色，最后调整链节密度，避免同时改动多项而无法定位原因。
 

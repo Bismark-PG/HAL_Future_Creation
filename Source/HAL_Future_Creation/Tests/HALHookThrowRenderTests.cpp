@@ -20,6 +20,8 @@
 #include "Misc/Paths.h"
 #include "Misc/FileHelper.h"
 #include "HAL/FileManager.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALHookMetalRenderTest,"HAL.RenderSmoke.HookThrow.InterlockedMetalOutboundAndReturn",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FHALHookMetalRenderTest::RunTest(const FString&)
@@ -31,7 +33,7 @@ bool FHALHookMetalRenderTest::RunTest(const FString&)
 	if(!TestNotNull(TEXT("Toon metal"),Material)) { return false; }
 	Material->ForceRecompileForRendering(EMaterialShaderPrecompileMode::Synchronous);
 	FAssetCompilingManager::Get().FinishAllCompilation(); if(GShaderCompilingManager) { GShaderCompilingManager->FinishAllCompilation(); }
-	const auto Options=UWorld::InitializationValues().AllowAudioPlayback(false).CreatePhysicsScene(false).CreateNavigation(false).CreateAISystem(false).CreateFXSystem(false).SetTransactional(false);
+	const auto Options=UWorld::InitializationValues().AllowAudioPlayback(false).CreatePhysicsScene(false).CreateNavigation(false).CreateAISystem(false).CreateFXSystem(true).SetTransactional(false);
 	auto* W=UWorld::CreateWorld(EWorldType::Game,false,NAME_None,nullptr,true,ERHIFeatureLevel::SM6,&Options);
 	GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(W);
 	ON_SCOPE_EXIT { W->DestroyWorld(false); GEngine->DestroyWorldContext(W); };
@@ -68,6 +70,30 @@ bool FHALHookMetalRenderTest::RunTest(const FString&)
 	H->State.Target=nullptr;
 	H->State.Phase=EHALHookPhase::Returning; H->State.Point=H->Outlet()+FVector(1000,0,0);
 	Sample(.1,TEXT("Hook_Returning.bmp")); TestTrue(TEXT("Reel-in retracts physical-looking links"),H->Chain->GetInstanceCount()<Count);
+	const auto& Sparks=C->FX.CaptureSparks;
+	if(!TestNotNull(TEXT("Production hook DA supplies capture sparks"),Sparks.System.Get())) { return false; }
+	Sparks.System->WaitForCompilationComplete();
+	auto* SparkMaterial=LoadObject<UMaterial>(nullptr,TEXT("/Game/Assets/FX/BattleTop/M_BattleTop_ToonContact"));
+	if(!TestNotNull(TEXT("Shared capture spark material"),SparkMaterial)) { return false; }
+	SparkMaterial->ForceRecompileForRendering(EMaterialShaderPrecompileMode::Synchronous);
+	FAssetCompilingManager::Get().FinishAllCompilation();
+	const FVector Point(200,0,140);
+	H->State.Phase=EHALHookPhase::Choosing;
+	H->State.Point=Point-FVector::ForwardVector*C->Rules.HitRadius;
+	auto* Burst=H->SpawnCaptureSparks(Point,-FVector::ForwardVector,Sparks);
+	if(!TestNotNull(TEXT("Capture spawns Niagara at the surface"),Burst)) { return false; }
+	TestTrue(TEXT("Sparks start at the contact point"),Burst->GetComponentLocation().Equals(Point,.1));
+	const auto WarmPixels=[&](const TCHAR* Name)
+	{
+		int32 N=0;
+		for(const FColor P:Sample(.1,Name)) { N+=P.R>50 && P.R>1.35f*P.B; }
+		return N;
+	};
+	Burst->AdvanceSimulation(6,1.f/60);
+	const int32 Warm=WarmPixels(TEXT("Hook_CaptureSparks.bmp"));
+	TestTrue(TEXT("Warm toon sparks are visible at gameplay scale"),Warm>30);
+	Burst->AdvanceSimulation(FMath::CeilToInt(Sparks.Lifetime*60)+4,1.f/60);
+	TestTrue(TEXT("One-shot clears after the configured lifetime"),WarmPixels(TEXT("Hook_CaptureSparks_Gone.bmp"))<10);
 	return true;
 }
 #endif

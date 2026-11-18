@@ -7,6 +7,7 @@
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Engine/StaticMesh.h"
+#include "NiagaraSystem.h"
 #include "MeshDescription.h"
 #include "StaticMeshAttributes.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -34,11 +35,31 @@ namespace
 		Color(TEXT("LightDirection"),FLinearColor(FX.LightDirection.GetSafeNormal())); Scalar(TEXT("ShadowThreshold"),FX.ShadowThreshold);
 		Scalar(TEXT("HighlightThreshold"),FX.HighlightThreshold); Scalar(TEXT("ToneSoftness"),FX.ToneSoftness); Scalar(TEXT("GlintStrength"),FX.GlintStrength);
 		Scalar(TEXT("GlintPower"),FX.GlintPower); Scalar(TEXT("ContourStrength"),FX.ContourStrength);
-		H->Code=TEXT("float3 n=normalize(N),v=normalize(V),l=normalize(LightDirection.rgb); float s=dot(n,l); "
-			"float3 c=lerp(DarkColor.rgb,MiddleColor.rgb,smoothstep(ShadowThreshold-ToneSoftness,ShadowThreshold+ToneSoftness,s)); "
-			"c=lerp(c,LightColor.rgb,smoothstep(HighlightThreshold-ToneSoftness,HighlightThreshold+ToneSoftness,s)); "
-			"float rim=smoothstep(.65,.96,1-abs(dot(n,v))); c=lerp(c,DarkColor.rgb,rim*ContourStrength); "
-			"float3 h=normalize(l+v+float3(.0001,0,0)); return c+LightColor.rgb*pow(saturate(dot(n,h)),GlintPower)*GlintStrength;");
+		H->Code=TEXT(R"HOOK(float3 n = normalize(N), v = normalize(V), l = normalize(LightDirection.rgb);
+n *= dot(n,v) < 0.0 ? -1.0 : 1.0;
+// Use the actual visible tube facets as well as the imported smooth normals.
+float3 p = GetTranslatedWorldPosition(Parameters);
+float3 facet = cross(ddx(p),ddy(p));
+facet *= rsqrt(max(dot(facet,facet),1.e-12));
+facet *= dot(facet,v) < 0.0 ? -1.0 : 1.0;
+n = normalize(facet * 0.85 + n * 0.15);
+float facing = dot(n, l);
+float3 reflected = reflect(-v, n);
+// A broad sky reflection separated from steel by a darker horizon.
+float horizon = dot(reflected, normalize(float3(l.xy * 0.45, 1.0)));
+float softness = max(ToneSoftness, 0.02);
+float shade = smoothstep(ShadowThreshold - softness, ShadowThreshold + softness, facing);
+float3 steel = lerp(DarkColor.rgb, MiddleColor.rgb, shade);
+float darkBand = 1.0 - smoothstep(0.09, 0.36, abs(horizon + 0.16));
+steel = lerp(steel, DarkColor.rgb, darkBand * 0.72);
+float sky = smoothstep(0.12 - softness, 0.30 + softness, horizon);
+float lit = smoothstep(HighlightThreshold - softness, HighlightThreshold + softness, facing);
+steel = lerp(steel, LightColor.rgb, lit * (0.24 + 0.76 * sky));
+float contour = smoothstep(0.68, 0.97, 1.0 - saturate(dot(n, v)));
+steel = lerp(steel, DarkColor.rgb, contour * ContourStrength);
+float3 h = normalize(l + v + float3(0.0001, 0, 0));
+float glint = pow(saturate(dot(n, h)), GlintPower);
+return steel + LightColor.rgb * glint * GlintStrength;)HOOK");
 		M->GetEditorOnlyData()->EmissiveColor.Connect(0,H); M->PostEditChange(); return M;
 	}
 	UStaticMesh* HookTube(const FString& Name,UMaterial& Material,bool Link)
@@ -101,6 +122,7 @@ int32 UHALBuildHookThrowFXCommandlet::Main(const FString&)
 	auto* M=HookMetal(); auto* Link=HookTube(TEXT("SM_HookThrow_ChainLink"),*M,true); auto* Head=HookTube(TEXT("SM_HookThrow_Head"),*M,false);
 	if(!Link||!Head) { return 2; }
 	auto* C=HookAsset<UHALHookThrowConfig>(HookDAPath); C->FX.ChainMesh=Link; C->FX.HookMesh=Head; C->FX.MetalMaterial=M;
+	C->FX.CaptureSparks.System=LoadObject<UNiagaraSystem>(nullptr,TEXT("/Game/Assets/FX/BattleTop/NS_BattleTop_ToonContact.NS_BattleTop_ToonContact"));
 	FString Error; if(!C->Validate(Error)) { UE_LOG(LogTemp,Error,TEXT("Hook config: %s"),*Error); return 3; }
 	if(!HookSave(*M)||!HookSave(*Link)||!HookSave(*Head)||!HookSave(*C)) { return 4; }
 	UE_LOG(LogTemp,Display,TEXT("Created hook toon metal, interlocking link, tapered hook head and one skill DA. Existing BPs/maps/DA untouched.")); return 0;

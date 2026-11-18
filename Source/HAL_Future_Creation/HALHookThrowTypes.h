@@ -4,6 +4,7 @@
 
 class UStaticMesh;
 class UMaterialInterface;
+class UNiagaraSystem;
 
 UENUM(BlueprintType)
 enum class EHALHookPhase : uint8 { Outbound, Choosing, Returning, Interrupted, Finished, Swinging };
@@ -42,6 +43,23 @@ struct HAL_FUTURE_CREATION_API FHALHookRules
 	float MaximumSeconds() const;
 };
 
+/** One burst at the vehicle surface when a hook successfully latches. */
+USTRUCT(BlueprintType)
+struct HAL_FUTURE_CREATION_API FHALHookCaptureSparks
+{
+	GENERATED_BODY()
+	/** Optional one-shot system. The default asset uses Battle Top's toon spark user parameters. */
+	UPROPERTY(EditAnywhere, Category="Sparks") TObjectPtr<UNiagaraSystem> System;
+	UPROPERTY(EditAnywhere, Category="Sparks", meta=(ClampMin="0",ClampMax="64")) int32 Count=14;
+	/** Multiplier for the width and length of the cartoon strokes. */
+	UPROPERTY(EditAnywhere, Category="Sparks", meta=(ClampMin="0.25",ClampMax="4")) float SizeScale=1;
+	/** Longest particle lifetime. Shorter strokes live for 65% of this value. */
+	UPROPERTY(EditAnywhere, Category="Sparks", meta=(ClampMin="0.08",ClampMax="1",Units="s")) float Lifetime=.24f;
+	/** Outward emission speed along the contact normal before sideways spread. */
+	UPROPERTY(EditAnywhere, Category="Sparks", meta=(ClampMin="100",ClampMax="2500",Units="cm/s")) float Speed=620;
+	UPROPERTY(EditAnywhere, Category="Sparks") FLinearColor Color=FLinearColor(1.f,.67f,.22f);
+};
+
 USTRUCT(BlueprintType)
 struct HAL_FUTURE_CREATION_API FHALHookFX
 {
@@ -50,9 +68,10 @@ struct HAL_FUTURE_CREATION_API FHALHookFX
 	UPROPERTY(EditAnywhere,Category="Assets") TObjectPtr<UStaticMesh> ChainMesh;
 	UPROPERTY(EditAnywhere,Category="Assets") TObjectPtr<UStaticMesh> HookMesh;
 	UPROPERTY(EditAnywhere,Category="Assets") TObjectPtr<UMaterialInterface> MetalMaterial;
-	UPROPERTY(EditAnywhere,Category="Geometry",meta=(ClampMin="8",ClampMax="80",Units="cm")) float LinkPitch=22;
-	UPROPERTY(EditAnywhere,Category="Geometry",meta=(ClampMin="0.3",ClampMax="4")) float LinkScale=1.15f;
-	UPROPERTY(EditAnywhere,Category="Geometry",meta=(ClampMin="0.3",ClampMax="4")) float HookScale=1.2f;
+	UPROPERTY(EditAnywhere,Category="Contact") FHALHookCaptureSparks CaptureSparks;
+	UPROPERTY(EditAnywhere,Category="Geometry",meta=(ClampMin="8",ClampMax="80",Units="cm")) float LinkPitch=35;
+	UPROPERTY(EditAnywhere,Category="Geometry",meta=(ClampMin="0.3",ClampMax="4")) float LinkScale=1.9f;
+	UPROPERTY(EditAnywhere,Category="Geometry",meta=(ClampMin="0.3",ClampMax="4")) float HookScale=2.12f;
 	/** Connection point in the hook mesh's local coordinates. */
 	UPROPERTY(EditAnywhere,Category="Geometry") FVector HookChainOffset=FVector(-45,0,0);
 	UPROPERTY(EditAnywhere,Category="Geometry",meta=(ClampMin="16",ClampMax="512")) int32 MaximumLinks=256;
@@ -60,16 +79,16 @@ struct HAL_FUTURE_CREATION_API FHALHookFX
 	UPROPERTY(EditAnywhere,Category="Motion",meta=(ClampMin="0",ClampMax="30",Units="cm")) float Wobble=3;
 	UPROPERTY(EditAnywhere,Category="Motion",meta=(ClampMin="0",ClampMax="20")) float WobbleFrequency=3;
 	UPROPERTY(EditAnywhere,Category="Motion",meta=(ClampMin="0.02",ClampMax="0.3",Units="s")) float EnterSeconds=.06f;
-	UPROPERTY(EditAnywhere,Category="Metal") FLinearColor DarkColor=FLinearColor(.055f,.075f,.09f);
-	UPROPERTY(EditAnywhere,Category="Metal") FLinearColor MiddleColor=FLinearColor(.24f,.29f,.34f);
-	UPROPERTY(EditAnywhere,Category="Metal") FLinearColor LightColor=FLinearColor(.72f,.8f,.86f);
+	UPROPERTY(EditAnywhere,Category="Metal") FLinearColor DarkColor=FLinearColor(.028f,.042f,.064f);
+	UPROPERTY(EditAnywhere,Category="Metal") FLinearColor MiddleColor=FLinearColor(.23f,.32f,.44f);
+	UPROPERTY(EditAnywhere,Category="Metal") FLinearColor LightColor=FLinearColor(.95f,1.02f,1.12f);
 	UPROPERTY(EditAnywhere,Category="Metal") FVector LightDirection=FVector(.35f,-.55f,.75f);
-	UPROPERTY(EditAnywhere,Category="Metal",meta=(ClampMin="-0.8",ClampMax="0.3")) float ShadowThreshold=-.15f;
-	UPROPERTY(EditAnywhere,Category="Metal",meta=(ClampMin="0.1",ClampMax="0.95")) float HighlightThreshold=.5f;
-	UPROPERTY(EditAnywhere,Category="Metal",meta=(ClampMin="0.02",ClampMax="0.4")) float ToneSoftness=.16f;
-	UPROPERTY(EditAnywhere,Category="Metal",meta=(ClampMin="0",ClampMax="2")) float GlintStrength=.35f;
-	UPROPERTY(EditAnywhere,Category="Metal",meta=(ClampMin="2",ClampMax="80")) float GlintPower=20;
-	UPROPERTY(EditAnywhere,Category="Metal",meta=(ClampMin="0",ClampMax="1")) float ContourStrength=.35f;
+	UPROPERTY(EditAnywhere,Category="Metal",meta=(ClampMin="-0.8",ClampMax="0.3")) float ShadowThreshold=-.04f;
+	UPROPERTY(EditAnywhere,Category="Metal",meta=(ClampMin="0.1",ClampMax="0.95")) float HighlightThreshold=.48f;
+	UPROPERTY(EditAnywhere,Category="Metal",meta=(ClampMin="0.02",ClampMax="0.4")) float ToneSoftness=.125f;
+	UPROPERTY(EditAnywhere,Category="Metal",meta=(ClampMin="0",ClampMax="2")) float GlintStrength=.75f;
+	UPROPERTY(EditAnywhere,Category="Metal",meta=(ClampMin="2",ClampMax="80")) float GlintPower=13;
+	UPROPERTY(EditAnywhere,Category="Metal",meta=(ClampMin="0",ClampMax="1")) float ContourStrength=.48f;
 	bool IsValid() const;
 };
 

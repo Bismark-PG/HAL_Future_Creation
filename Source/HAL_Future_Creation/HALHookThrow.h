@@ -10,6 +10,7 @@ class UHALAbilitySystemComponent;
 class UInstancedStaticMeshComponent;
 class UStaticMeshComponent;
 class UMaterialInstanceDynamic;
+class UNiagaraComponent;
 
 USTRUCT()
 struct FHALHookState
@@ -65,6 +66,8 @@ private:
 	void Sweep(const FVector& From,const FVector& To);
 	void CasterStun(FGameplayTag Tag,int32 Count);
 	void UpdateVisual();
+	UFUNCTION(NetMulticast,Reliable) void MulticastCaptureSparks(FVector_NetQuantize10 Point,FVector_NetQuantizeNormal Normal,FHALHookCaptureSparks Settings);
+	UNiagaraComponent* SpawnCaptureSparks(const FVector& Point,const FVector& Normal,const FHALHookCaptureSparks& Settings);
 	void PublishState(bool Reliable=false);
 	void AcceptReplicatedState(const FHALHookState& Value);
 	UFUNCTION(NetMulticast,Reliable) void MulticastPhase(FHALHookState Value);

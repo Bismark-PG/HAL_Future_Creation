@@ -19,6 +19,10 @@
 #include "Net/UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
 #include "HAL/IConsoleManager.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+#include "TimerManager.h"
 
 namespace
 {
@@ -125,6 +129,12 @@ void AHALHookThrow::Sweep(const FVector& From,const FVector& To)
 			{
 				if(B!=V->GetRootComponent()) { Q.AddIgnoredComponent(B); Retried=true; break; }
 				if(!Capture(*V,H.Location)) { State.Point=H.Location; Return(false); }
+				else if(FX.bEnabled && FX.CaptureSparks.System && FX.CaptureSparks.Count>0)
+				{
+					// Location is the swept sphere centre; ImpactPoint is on the struck surface.
+					const FVector Normal=H.ImpactNormal.GetSafeNormal(UE_SMALL_NUMBER,-State.Forward);
+					MulticastCaptureSparks(H.ImpactPoint,Normal,FX.CaptureSparks);
+				}
 				return;
 			}
 			if(B->IsPhysicsCollisionEnabled()&&(B->GetCollisionResponseToChannel(ECC_Pawn)==ECR_Block||B->GetCollisionResponseToChannel(ECC_PhysicsBody)==ECR_Block))
@@ -296,6 +306,46 @@ void AHALHookThrow::AcceptReplicatedState(const FHALHookState& Value)
 void AHALHookThrow::MulticastPhase_Implementation(FHALHookState Value)
 { if(!HasAuthority()) { AcceptReplicatedState(Value); } }
 void AHALHookThrow::OnRep_State() { AcceptReplicatedState(State); }
+
+void AHALHookThrow::MulticastCaptureSparks_Implementation(FVector_NetQuantize10 Point,FVector_NetQuantizeNormal Normal,FHALHookCaptureSparks Settings)
+{
+	UE_CLOG(HookLog.GetValueOnGameThread(),LogTemp,Log,TEXT("Hook capture spark cue LocalRole=%d Point=%s Count=%d"),int32(GetLocalRole()),*Point.ToString(),Settings.Count);
+	SpawnCaptureSparks(Point,Normal,Settings);
+}
+
+UNiagaraComponent* AHALHookThrow::SpawnCaptureSparks(const FVector& Point,const FVector& Normal,const FHALHookCaptureSparks& Settings)
+{
+	UWorld* World=GetWorld();
+	if(!World || !FApp::CanEverRender() || GetNetMode()==NM_DedicatedServer || !World->FXSystem.IsValid() ||
+		!Settings.System || Settings.Count<=0 || !FMath::IsFinite(Settings.Lifetime) ||
+		!FMath::IsFinite(Settings.SizeScale) || !FMath::IsFinite(Settings.Speed)) { return nullptr; }
+
+	// Local Z points out of the contacted panel, with an upward bias for overhead readability.
+	const FVector Axis=(Normal+FVector::UpVector*.45).GetSafeNormal(UE_SMALL_NUMBER,FVector::UpVector);
+	const FQuat Facing=FRotationMatrix::MakeFromZ(Axis).ToQuat();
+	const float Size=FMath::Clamp(Settings.SizeScale,.25f,4.f);
+	const float Speed=FMath::Clamp(Settings.Speed,100.f,2500.f);
+	const float Lifetime=FMath::Clamp(Settings.Lifetime,.08f,1.f);
+	// World-owned so even an immediate interruption/retraction lets this short burst finish.
+	auto* Burst=UNiagaraFunctionLibrary::SpawnSystemAtLocation(this,Settings.System,Point,Facing.Rotator(),
+		FVector::OneVector,true,false,ENCPoolMethod::None,false);
+	if(!Burst) { return nullptr; }
+	Burst->SetVariableInt(TEXT("User.BurstCount"),FMath::Min(Settings.Count,64));
+	Burst->SetVariableLinearColor(TEXT("User.SparkColor"),Settings.Color);
+	Burst->SetVariableVec2(TEXT("User.SizeMin"),FVector2D(9,26)*Size);
+	Burst->SetVariableVec2(TEXT("User.SizeMax"),FVector2D(16,52)*Size);
+	Burst->SetVariableFloat(TEXT("User.LifetimeMin"),Lifetime*.65f);
+	Burst->SetVariableFloat(TEXT("User.LifetimeMax"),Lifetime);
+	Burst->SetVariableVec3(TEXT("User.VelocityMin"),FVector(-.7,-.7,.35)*Speed);
+	Burst->SetVariableVec3(TEXT("User.VelocityMax"),FVector(.7,.7,1)*Speed);
+	Burst->SetVariableVec3(TEXT("User.Gravity"),Facing.UnrotateVector(FVector(0,0,-980)));
+	Burst->SetVariableVec4(TEXT("User.StyleParameters"),FVector4(1,0,0,0));
+	Burst->Activate(true);
+	// Shared systems can have long emitter loops even though these particles are short-lived.
+	FTimerHandle CleanupTimer;
+	World->GetTimerManager().SetTimer(CleanupTimer,FTimerDelegate::CreateWeakLambda(Burst,[Burst] { Burst->DestroyComponent(); }),Lifetime+.12f,false);
+	return Burst;
+}
 void AHALHookThrow::Cleanup()
 {
 	if(bCleaning) { return; }
