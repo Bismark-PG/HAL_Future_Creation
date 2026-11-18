@@ -161,7 +161,33 @@ void UHALBallPresentationComponent::RestoreVisual()
 		Visual->SetAbsolute(bAuthoredAbsoluteLocation,bAuthoredAbsoluteRotation,Visual->IsUsingAbsoluteScale());
 		Visual->SetRelativeTransform(AuthoredVisual);
 	}
-	bVisualOverride=false; DisplayHolder.Reset(); DisplaySequence=0; Mode=EHALBallVisualMode::Physics;
+	bVisualOverride=false; DisplayHolder.Reset(); DisplaySequence=0; SetMode(EHALBallVisualMode::Physics);
+}
+
+void UHALBallPresentationComponent::BlendRelativeSample(const FTransform& HolderPose, bool bContinuingPossession, float DeltaTime)
+{
+	FTransform Target = HALBallPresentation::Extrapolate(AcceptedPose, SampleAge, Config.MaximumExtrapolationSeconds);
+	Target.SetLocation(Target.GetLocation().GetClampedToMaxSize(Config.MaximumRelativeDistance));
+	if (!bContinuingPossession || Mode == EHALBallVisualMode::RelativeHold)
+	{
+		// On recovery the start point turns with the car throughout the blend, even during a fast drift.
+		EntryStartRelative = bContinuingPossession ? RelativePose : DisplayPose.GetRelativeTransform(HolderPose);
+		EntryAge = 0.f;
+		DisplayHolder = AcceptedPose.Holder;
+		DisplaySequence = AcceptedPose.StateSequence;
+	}
+
+	if (EntryAge < Config.HandoffSeconds)
+	{
+		const float Alpha = FMath::SmoothStep(0.f, Config.HandoffSeconds, EntryAge);
+		RelativePose = HALBallPresentation::Blend(EntryStartRelative, Target, Alpha);
+		EntryAge += DeltaTime;
+	}
+	else
+	{
+		const float Alpha = Config.RelativeBlendSeconds > 0.f ? 1.f - FMath::Exp(-DeltaTime / Config.RelativeBlendSeconds) : 1.f;
+		RelativePose = HALBallPresentation::Blend(RelativePose, Target, Alpha);
+	}
 }
 
 void UHALBallPresentationComponent::UpdateClient(float DeltaTime)
@@ -174,37 +200,35 @@ void UHALBallPresentationComponent::UpdateClient(float DeltaTime)
 	if (const auto* GS=GetWorld()->GetGameState()) { ServerNow=GS->GetServerWorldTimeSeconds(); }
 	SampleAge=FMath::Max(0.f,ServerNow-AcceptedPose.ServerPublishSeconds);
 	AActor* Holder=Ball->GetControlledBy();
-	const bool bUsable=Config.bEnabled && CVarBallRelativeVisual.GetValueOnGameThread()>0
+	const bool bMatchingSample=Config.bEnabled && CVarBallRelativeVisual.GetValueOnGameThread()>0
 		&& Ball->GetBallState()==EBasicBallState::Controlled && IsValid(Holder) && AcceptedPose.Holder==Holder
 		&& AcceptedPose.StateSequence==Ball->GetBallStateSequence() && AcceptedPose.IsValid(Config.MaximumRelativeDistance)
-		&& LastReceiveSeconds>=0 && Now-LastReceiveSeconds<=Config.StaleSeconds && SampleAge<=Config.StaleSeconds
+		&& LastReceiveSeconds>=0
 		&& !Visual->IsSimulatingPhysics() && !bAuthoredAbsoluteLocation && !bAuthoredAbsoluteRotation;
+	const bool bContinuingPossession = (Mode == EHALBallVisualMode::Relative || Mode == EHALBallVisualMode::RelativeHold)
+		&& DisplayHolder.Get() == Holder && DisplaySequence == Ball->GetBallStateSequence();
+	const float Age = FMath::Max(SampleAge, Now - LastReceiveSeconds);
+	const bool bFresh = Age <= Config.StaleSeconds;
+	const bool bCanHold = bContinuingPossession && Age <= 2.f * Config.StaleSeconds;
 	const FTransform PhysicsPose(Ball->GetActorQuat(),Ball->GetActorLocation());
 	if (!bVisualOverride) { DisplayPose=PhysicsPose; }
-	if (bUsable)
+	if (bMatchingSample && (bFresh || bCanHold))
 	{
-		FTransform TargetRelative=HALBallPresentation::Extrapolate(AcceptedPose,SampleAge,Config.MaximumExtrapolationSeconds);
-		TargetRelative.SetLocation(TargetRelative.GetLocation().GetClampedToMaxSize(Config.MaximumRelativeDistance));
-		const bool bEntering=Mode!=EHALBallVisualMode::Relative || DisplayHolder.Get()!=Holder || DisplaySequence!=AcceptedPose.StateSequence;
-		if (bEntering) { RelativePose=TargetRelative; }
-		else { RelativePose=HALBallPresentation::Blend(RelativePose,TargetRelative,Config.RelativeBlendSeconds>0 ? 1.f-FMath::Exp(-DeltaTime/Config.RelativeBlendSeconds) : 1.f); }
-		const FTransform Target=HALBallPresentation::Compose(Holder->GetActorTransform(),RelativePose);
-		if (bEntering)
+		const FTransform HolderPose(Holder->GetActorQuat(), Holder->GetActorLocation());
+		if (bFresh)
 		{
-			EntryOffset=DisplayPose.GetLocation()-Target.GetLocation();
-			EntryRotation=(DisplayPose.GetRotation()*Target.GetRotation().Inverse()).GetNormalized(); EntryAge=0;
-			DisplayHolder=Holder; DisplaySequence=AcceptedPose.StateSequence;
+			BlendRelativeSample(HolderPose, bContinuingPossession, DeltaTime);
 		}
-		const float Weight=1.f-FMath::SmoothStep(0.f,Config.HandoffSeconds,EntryAge);
-		DisplayPose=FTransform((FQuat::Slerp(FQuat::Identity,EntryRotation,Weight)*Target.GetRotation()).GetNormalized(),Target.GetLocation()+EntryOffset*Weight);
-		EntryAge+=DeltaTime; ++RelativeFrames; SetMode(EHALBallVisualMode::Relative);
+		DisplayPose = HALBallPresentation::Compose(HolderPose, RelativePose);
+		++RelativeFrames;
+		SetMode(bFresh ? EHALBallVisualMode::Relative : EHALBallVisualMode::RelativeHold);
 	}
 	else if (bVisualOverride)
 	{
 		if (Mode!=EHALBallVisualMode::Handoff) { HandoffStart=DisplayPose; HandoffAge=0; SetMode(EHALBallVisualMode::Handoff); }
+		else { HandoffAge += DeltaTime; }
+		if (HandoffAge >= Config.HandoffSeconds) { RestoreVisual(); DisplayPose=PhysicsPose; return; }
 		DisplayPose=HALBallPresentation::Blend(HandoffStart,PhysicsPose,FMath::SmoothStep(0.f,Config.HandoffSeconds,HandoffAge));
-		HandoffAge+=DeltaTime;
-		if (HandoffAge>Config.HandoffSeconds+DeltaTime) { RestoreVisual(); DisplayPose=PhysicsPose; return; }
 	}
 	else { return; }
 	if (!bVisualOverride) { Visual->SetAbsolute(true,true,Visual->IsUsingAbsoluteScale()); bVisualOverride=true; }

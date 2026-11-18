@@ -14,6 +14,7 @@ struct HAL_FUTURE_CREATION_API FHALBallPresentationConfig
 	UPROPERTY(EditAnywhere, Category="Controlled", meta=(ClampMin="5",ClampMax="60")) float SendRateHz = 20;
 	UPROPERTY(EditAnywhere, Category="Controlled", meta=(ClampMin="0",ClampMax="0.25",Units="s")) float RelativeBlendSeconds = .05f;
 	UPROPERTY(EditAnywhere, Category="Controlled", meta=(ClampMin="0.01",ClampMax="0.5",Units="s")) float HandoffSeconds = .12f;
+	/** After this sample age, hold the last displayed offset for one more such interval while possession still matches. */
 	UPROPERTY(EditAnywhere, Category="Controlled", meta=(ClampMin="0.1",ClampMax="2",Units="s")) float StaleSeconds = .5f;
 	UPROPERTY(EditAnywhere, Category="Controlled", meta=(ClampMin="0",ClampMax="0.2",Units="s")) float MaximumExtrapolationSeconds = .1f;
 	UPROPERTY(EditAnywhere, Category="Controlled", meta=(ClampMin="100",ClampMax="10000",Units="cm")) float MaximumRelativeDistance = 2000;
@@ -38,7 +39,7 @@ struct HAL_FUTURE_CREATION_API FHALBallRelativePose
 	bool IsNewerThan(const FHALBallRelativePose& Previous) const;
 };
 
-enum class EHALBallVisualMode : uint8 { Physics, Relative, Handoff };
+enum class EHALBallVisualMode : uint8 { Physics, Relative, Handoff, RelativeHold };
 
 namespace HALBallPresentation
 {

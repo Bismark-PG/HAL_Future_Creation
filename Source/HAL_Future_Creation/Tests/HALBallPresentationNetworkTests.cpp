@@ -13,6 +13,8 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerState.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 
 struct FHALBallRelativeNetworkAccess
 {
@@ -31,6 +33,8 @@ namespace
 		bool bPrepared=false,bSetup=false,bDriving=false,bShot=false,bObservedOwn=false,bObservedRemote=false;
 		float DriveStart=0; FVector InitialOwn=FVector::ZeroVector;
 		TWeakObjectPtr<ABasicBallActor> OwnBall,RemoteBall;
+		bool bRequestedDrift=FParse::Param(FCommandLine::Get(),TEXT("HALBallDrift"));
+		bool bHandbrakeApplied=false, bLostHeldDisplay=false;
 	public:
 		explicit FBallRelativeLiveTest(FAutomationTestBase* T):Test(T){}
 		virtual bool Update() override
@@ -45,10 +49,8 @@ namespace
 			AHALPlayerController* PC=nullptr;
 			for (auto It=World->GetPlayerControllerIterator();It;++It) { if (auto* C=Cast<AHALPlayerController>(It->Get());C && C->IsLocalController()) { PC=C;break; } }
 			auto* Own=PC ? Cast<ATestVehiclePawn>(PC->GetPawn()) : nullptr;
-			ATestVehiclePawn* Other=nullptr;
-			for (TActorIterator<ATestVehiclePawn> It(World);It;++It) { if (*It!=Own && It->GetPlayerState()) { Other=*It;break; } }
 			auto* Match=World->GetGameState<AHALMatchGameState>();
-			if (!Own || !Other || !Own->GetPlayerState() || !Other->GetPlayerState() || !Match) { return false; }
+			if (!Own || !Own->GetPlayerState() || !Match) { return false; }
 			if (!bPrepared)
 			{
 				auto* A=World->SpawnActor<AActor>(); auto* Floor=NewObject<UStaticMeshComponent>(A); A->AddInstanceComponent(Floor); A->SetRootComponent(Floor);
@@ -56,8 +58,15 @@ namespace
 				Floor->SetCollisionProfileName(TEXT("BlockAll")); Floor->SetWorldLocation(FVector(0,0,9950)); Floor->SetWorldScale3D(FVector(80,80,1)); Floor->RegisterComponent();
 				PC->SetName(Host ? TEXT("HAL_BallRReadyH") : TEXT("HAL_BallRReadyC")); bPrepared=true;
 			}
+			// Other connected players may observe both drivers in a four-player run.
+			ATestVehiclePawn* Other=nullptr;
+			for (TActorIterator<ATestVehiclePawn> It(World); It; ++It)
+			{
+				const APlayerState* State=It->GetPlayerState();
+				if (*It!=Own && State && State->GetPlayerName().StartsWith(TEXT("HAL_BallR"))) { Other=*It; break; }
+			}
+			if (!Other) { return false; }
 			const FString OtherName=Other->GetPlayerState()->GetPlayerName();
-			if (!OtherName.StartsWith(TEXT("HAL_BallR"))) { return false; }
 			if (Match->GetMatchPhase()!=EHALMatchPhase::Playing) { if (Host) { PC->HALStartMatch(); } return false; }
 			if (Host && !bSetup)
 			{
@@ -104,6 +113,21 @@ namespace
 			}
 			if (!bDriving) { return false; }
 			const float Elapsed=World->GetTimeSeconds()-DriveStart;
+			if (bRequestedDrift && !bHandbrakeApplied && Elapsed>.6f)
+			{
+				FHALPresentationTestAccess::SetInput(Own,Host ? -.7f:.7f,1,true);
+				bHandbrakeApplied=true;
+			}
+			if (!Host && !bShot)
+			{
+				for (const auto* View : {Local,Remote})
+				{
+					const auto* Ball=CastChecked<ABasicBallActor>(View->GetOwner());
+					const auto Mode=View->GetVisualMode();
+					if (Ball->GetBallState()==EBasicBallState::Controlled && Mode!=EHALBallVisualMode::Relative && Mode!=EHALBallVisualMode::RelativeHold)
+					{ bLostHeldDisplay=true; }
+				}
+			}
 			if (!bShot && Elapsed>2)
 			{
 				Test->TestTrue(TEXT("Actual driving input moves owning car"),FVector::Dist2D(InitialOwn,Own->GetActorLocation())>100);
@@ -114,6 +138,9 @@ namespace
 					Test->TestTrue(TEXT("Both local and remote holder paths rendered"),bObservedOwn && bObservedRemote);
 					Test->TestTrue(TEXT("Repeated physics samples reached client"),Local->GetReceivedSampleCount()>10 && Remote->GetReceivedSampleCount()>10);
 					Test->TestTrue(TEXT("Held presentation persists while steering"),Local->GetRelativeDisplayFrames()>30 && Remote->GetRelativeDisplayFrames()>30);
+					Test->TestFalse(TEXT("Neither confirmed possession switches back to physics while steering"),bLostHeldDisplay);
+					UE_LOG(LogTemp,Display,TEXT("HAL held-ball drive: LocalSamples=%u RemoteSamples=%u LostHeldDisplay=%d Handbrake=%d"),
+						Local->GetReceivedSampleCount(),Remote->GetReceivedSampleCount(),bLostHeldDisplay,bHandbrakeApplied);
 				}
 				FHALPresentationTestAccess::SetInput(Own,0); FHALPresentationTestAccess::StartLaunch(Own); bShot=true;
 			}

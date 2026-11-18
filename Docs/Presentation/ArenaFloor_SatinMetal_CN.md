@@ -1,5 +1,57 @@
 # MVPB_Match 波纹缎面金属地面
 
+临时比赛图 `MVPB_Match_Temp` 当前采用整边防滑条、定向拉丝钢板和九盏内场嵌地灯。[当前调参、同机位对照和车辆过灯实测](#arena-deck-inset-lights)
+
+<a id="arena-deck-inset-lights"></a>
+
+## 2026-11-18 内场钢板与嵌地灯
+
+打开 `/Game/Maps/MVPB_Match_Temp`。中央六边形采用 800 cm 的对边距，每条边长约 462 cm。被选中的接缝从一个顶点铺到另一个顶点，三板交汇处按边的方向拼合。板心的拉丝通过定向高光、粗糙度和细微法线起伏显现。相邻钢板的加工方向有小幅差异，移动车辆或相机时可以看到高光变化。[同机位钢板对比](Images/ArenaDeck_FullEdge_Brushing_20261118.jpg)
+
+### 调钢板
+
+打开 `/Game/Assets/Materials/ArenaDeck/MI_ArenaDeck_Center`，在 **02 Central plates** 勾选相应参数即可覆盖母材质默认值。
+
+| 想调的效果 | 参数 | 当前值与用法 |
+|---|---|---|
+| 拉丝更明显或更柔和 | `Brush Strength` | 0.62，可调 0～1。先调这个。设为 0 可以单独对比去掉拉丝后的板面。 |
+| 拉丝更细或更宽 | `Brush Pitch Cm` | 4.5 cm，可调 2～14 cm。减小会让纹理更细密。远景会逐渐过滤过密的纹理。 |
+| 有多少条边铺防滑条 | `Grip Insert Coverage` | 0.31，控制被选中的接缝比例。长度随六边形边长变化。 |
+| 防滑条横向宽度 | `Grip Strip Width Cm` | 40 cm。设为 0 可隐藏防滑条。 |
+
+### 调一盏地灯
+
+九盏灯分别嵌在内场九块钢板上，最近两盏间距约 21.2 m。单盏灯壳尺寸为 108 × 44 cm，带金属倒角和分段琥珀灯片。它们按可见板面定位，灯壳关闭碰撞与重叠事件。每盏灯的真实照明由一个原生 Point Light 提供。[全场灯位](Images/ArenaDeck_InsetLights_Layout_20261118.jpg) · [灯壳近景和同一车位的局部光开关对比](Images/ArenaDeck_InsetLights_20261118.jpg)
+
+| 在哪里调 | 可以改什么 |
+|---|---|
+| World Outliner → `Presentation/Deck Inset Lights` → `DeckLamp_01`～`09` | 选择灯壳 Actor 来移动、旋转整组。展开灯壳可以选中对应的 `DeckLamp_XX_Light`。 |
+| 子灯 → **Light** | `Intensity` 为 3000 lm，`Attenuation Radius` 为 390 cm，`Light Color` 为 sRGB 255 / 180 / 100。改变半径调光能照多远，改变流明调经过灯位时的亮度。可多选九个子灯统一调节。 |
+| 子灯 → **Transform / Light** | 灯光中心位于灯壳上方 105 cm，`Source Radius` 为 16 cm，`Specular Scale` 为 0.18。地面高光过亮时可先降低 `Specular Scale`。九盏灯使用 Movable，关闭投影和体积雾散射。 |
+| `/Game/Assets/Materials/ArenaDeck/MI_ArenaDeck_InsetLamp` | `Lens Tint` 和 `Lens Emission` 控制所有内场灯片的颜色与自发光。当前自发光倍率为 5。改变整套灯的色相时，应同步调整子灯的 `Light Color`。 |
+
+灯壳使用 `/Game/Assets/Meshes/ArenaDeck/SM_ArenaDeck_InsetLamp`，单个模型 54 个三角形。外圈材质内的短灯仍在 `MI_ArenaDeck_Perimeter` 中调节。
+
+### 本轮验证
+
+UE 5.8.3、D3D12 SM6。独立 Unreal 进程从磁盘重载，核对钢板的 23 个输入与 7 个着色输出、地灯材质、九组父子关系、光强、颜色、衰减半径和无碰撞设置，零错误、零警告。对照正式图，原有 122 个 Actor 中仅有前两轮已设置的两个地板材质覆盖，本次临时图新增 9 个灯壳和 9 个点光源。整边抽查覆盖三种板宽、三个方向和 6,561 对跨缝位置，含距端点约边长万分之一处的两侧采样。
+
+单车 PIE 使用实际 `BP_RoundedVehiclePawn` 和油门输入，以约 9.5 m/s 驶过 01 号灯。定格车辆后仅切换该盏点光源，车侧与邻近钢板出现局部暖光，车顶的变化很轻。四车同时释放技能时的可读性和帧耗待团队实测。
+
+<a id="arena-deck-ground-heights"></a>
+
+### 内场钢板与车辆接触面的高度复核
+
+2026-11-18 在正式图 `MVPB_Match` 和临时图 `MVPB_Match_Temp` 分别取九个灯位坐标与 01 号灯旁的行车采样点。两图的十处结果逐点一致。下表为 UE 世界 Z，单位为厘米。
+
+| 层次 | 采样高度 | 核对结果 |
+|---|---:|---|
+| 护盾 Actor `Path` 的简单碰撞顶面 | +1.65 | 使用 `/Game/Meshes/Wall`，`BlockAll`，一块凸包。凸包横跨所测内场，向下的 Visibility 简单射线先命中这里。 |
+| 隐藏的 `Floor` 顶面 | −160.50 | 组件关闭可见性并启用 `BlockAll`。同一位置改用复杂射线，首先命中这层。 |
+| 可见中央钢板 `base_circle_inflatable_007_1374` 的上表面 | −196.52 或 −200.27 | 由可见三角面求得，单独检测该钢板也得到相同高度。嵌地灯壳按此面定位。 |
+
+临时图单车 PIE 中，让车辆落到 01 号灯附近，再沿内场开过灯位。从车辆物理根 `VehiclePhysicsBody` 收到的 174 条向上支撑接触全部来自 `Path.StaticMeshComponent0`，其中行驶中的 99 条接触点 Z 约为 +1.51～+1.52 cm。实车支撑面因此比可见钢板高约 **1.98～2.02 m**。此前提到的 **36～40 cm** 仅是隐藏 `Floor` 与可见钢板之间的距离。这个高度差描述的是两个表面，视觉轮胎的位置还取决于车型和挂接偏移。本机逐点数据和接触记录位于 `Saved/ArenaDeckLights/support-inspection.json`。
+
 ## 资产与接线
 
 | 项目 | 路径或值 |
@@ -9,7 +61,7 @@
 | 当前法线 | /Game/Assets/Textures/T_ArenaFloor_RandomRelief_N |
 | 竞技场中央可见网格 | base_circle_inflatable_007_1374 → Static Mesh Component → Materials → Element 0 |
 
-关卡中名为 Floor 的组件关闭了可见性，中心位置的碰撞 Trace 命中该组件。Path 使用半透明竞技场护盾材质。预览时仅在内存里替换中央可见网格的 Element 0，并创建测试面光。
+关卡中名为 `Floor` 的组件关闭了可见性，`Path` 使用半透明竞技场护盾材质。早期记录的 `Floor` 命中可以在内场用复杂射线复现。简单射线和实车接触的分层结果见上文。预览时仅在内存里替换中央可见网格的 Element 0，并创建测试面光。[内场高度复核](#arena-deck-ground-heights)
 
 材质使用 Opaque / Default Lit，Metallic 为 1，Roughness 为 0.54，Metal Color 为线性 RGB 0.16 / 0.21 / 0.29。Arena Pattern Amount 默认 0.50，从原场地颜色图集的 UV0 采样并与底色混合。设为 0 可得到纯色金属。
 
@@ -58,3 +110,55 @@
 UE 5.8.3-58210709，DX12。通过引擎接口创建三份资产，关闭后重载验证贴图压缩、sRGB、实例 Parent、四项标量与四条输出。渲染稳定后报告贴图 512 × 512。临时场景捕获涵盖波纹法线强度 0 与 0.58、Rect Light 开关、约 −75° 与 −84°。固定曝光、关闭 Bloom 的截图抽样中，加灯后中央地面区域亮度平均增加 100.43 / 255，峰值 216 / 255；机关抽样区域平均变化 −3.42 / 255，前后均无亮度 ≥248 / 255 的像素。对比固定相机下的平法线，观察到波纹形成的高光变化。
 
 素材生成命令正常退出。最终截图序列全部写出后，预览 Editor 在 Python 回调退出阶段异常退出。正式关卡无保存，现有地图 SHA-256 与开工一致。本轮证据位于 Saved/Inspections/ArenaMetalFloor；实机比赛摄像机、自动曝光、整场周围物体与打包仍待复核。
+
+<a id="arena-deck-hex"></a>
+
+## 2026-11-18 临时图中央六边形钢板首版留档
+
+打开 `/Game/Maps/MVPB_Match_Temp`。中央圆盘 `base_circle_inflatable_007_1374` 的 Element 0 引用 `/Game/Assets/Materials/ArenaDeck/MI_ArenaDeck_Center`。中央使用正六边形大板，板心留白。部分接缝的中段嵌有一截带斜纹的防滑压条，两块相邻钢板共用这截压条，中间能看到板缝，两端在三板交点前收住。外圈由 `MI_ArenaDeck_Perimeter` 绘制同心压条和琥珀短灯。[上版与本版的同机位实拍](Images/ArenaDeck_Hex_Comparison_20261118.jpg)
+
+中央板面采用均匀的钢蓝底色和细微的无方向粗糙度变化。场馆灯光能在板面上形成整片冷色反光，切削倒角上的高光更窄，防滑纹表面更哑。六边形、压条和倒角均在材质着色阶段生成。
+
+| 在中央实例中调节 | 本版值 | 实际作用 |
+|---|---|---|
+| `Plate Length Cm`、`Plate Angle Deg` | 800 cm、15° | 长度表示正六边形两条相对平边之间的距离。角度旋转整片拼板。 |
+| `Grip Insert Coverage` | 0.31 | 控制带防滑条的接缝比例。设为 0 可预览只有拼缝的钢板。 |
+| `Grip Strip Width Cm` | 40 cm | 控制整条防滑条横跨板缝的总宽。设为 0 隐藏压条。 |
+| `Face Metallic`、`Panel Roughness` | 0.975、0.375 | 前者调中央板面的金属响应，后者调高光宽度。 |
+| `Trim Roughness`、`Bevel Depth Cm` | 0.22、3.4 cm | 前者调切削边的反光宽度，后者调倒角的法线起伏。普通暗缝宽 `Seam Width Cm` 为 9 cm。 |
+| `Finish Grain Strength` | 0.42 | 调节细微的无方向粗糙度，设为 0 可单看整板反射与倒角。 |
+| `Steel Color`、`Trim Color` | (0.126, 0.181, 0.234)、(0.370, 0.445, 0.520) | 板面与切削边的线性 RGB。 |
+
+UE 5.8.3-58210709，D3D12 SM6。独立进程从磁盘重载，核对母材质的 21 个输入、五条着色输出、中央参数和关卡中的两个材质实例引用，退出 0，零错误、零警告。几何抽查在三种板宽、三个边方向上对 7,605 对跨缝采样逐一比对，验证了两侧压条的位置一致及三板交点留空。独立单车游戏进入 Playing，实拍画面包含车辆、球和新地板。原图位于本机 `Saved/ArenaDeckHex/QA/Driving-Hex.png`。四车交战时的可读性待团队实测。
+
+<a id="arena-deck-temp"></a>
+
+## 2026-11-18 临时图金属拼板首版留档
+
+在 Content Browser 打开 `/Game/Maps/MVPB_Match_Temp`。中央采用钢蓝色错缝拼板、切角、浅倒角、埋头紧固件及局部六角防滑嵌板。外圈采用三道同心弧形压条，两道布置成组三枚的琥珀短灯，中间一道布置通风槽。灯被嵌在暗色灯座里，用于标示场地外沿。现有场馆光照提供钢面的反光，短灯的亮度由材质的 Emissive 输出控制。[三个相同机位的施工前后对照](Images/ArenaDeck_Temp_Before_After_20261118.jpg)
+
+三个专用资产位于 `/Game/Assets/Materials/ArenaDeck/`。母材质 `M_ArenaDeck_Panels` 使用 Opaque / Default Lit，输出 Base Color、Metallic、Roughness、Normal 和 Emissive Color。纹样使用相对网格 Actor 原点的世界厘米坐标，拼缝、倒角、穿孔均为材质表现。材质图中包含完整的纹样计算，运行时直接使用这三个材质资产。
+
+| 临时图中的位置 | 放置的 Actor | Static Mesh Component → Materials → Element 0 |
+|---|---|---|
+| 中央圆盘 | `base_circle_inflatable_007_1374` | `MI_ArenaDeck_Center` |
+| 过渡外圈 | `base_circle_inflatable_005_1372` | `MI_ArenaDeck_Perimeter` |
+
+### 调整比赛镜头下的效果
+
+直接打开对应实例，勾选要修改的参数，即可在关卡里预览。两个实例的 `Perimeter Mode` 分别为 0（中央）和 1（外圈）。钢色与灯色的下表数值使用线性 RGB。
+
+| 想调整的效果 | 参数与本版设置 | 调整方式 |
+|---|---|---|
+| 中央板块的大小和方向 | `Plate Length Cm` 800，`Plate Angle Deg` 15° | 增大长度会减少视野中的拼缝。宽度按板长的 66% 生成。 |
+| 六角防滑嵌板的疏密 | `Grip Insert Coverage` 0.31 | 调低可让更多中央板块保持整面钢板。该值控制带嵌板的板块比例。 |
+| 钢板的颜色和反光 | `Steel Color` 中央 (0.056, 0.113, 0.184)，外圈 (0.059, 0.092, 0.129)。`Panel Roughness` 中央 0.445，外圈 0.43 | 提高粗糙度会让高光更宽、更柔。边条另由 `Trim Color` 和 `Trim Roughness` 控制。 |
+| 板缝和倒角的分量 | `Seam Width Cm` 中央 9、外圈 12。`Bevel Depth Cm` 中央 2.8、外圈 3.2 | 宽度控制暗缝，深度控制边缘法线与高光。 |
+| 外圈的径向宽度和分段 | `Ring Start Radius Cm` 4881，`Band Width Cm` 683，`Segments Per Ring` 28 | 起始半径与中央圆盘的实测半径对齐。调整分段数可改变灯组沿圆周的间距。 |
+| 琥珀灯的可见度 | `Lamp Color` (1, 0.31, 0.048)，`Lamp Intensity` 2.6，`Lamp Length Cm` 83 | 调高强度让灯更亮，增加长度让每枚灯在远景更易辨认。 |
+
+### 验证
+
+UE 5.8.3-58210709、D3D12 SM6。独立 Unreal 进程从磁盘重载最终母材质和两份实例，核对五条输出、两种布局和最终参数，退出 0，零错误、零警告。副本与正式图各有 122 个可枚举场景 Actor。逐一核对 Actor 类型和变换、Primitive 组件的可见性、移动性与碰撞配置、静态网格与用材时，差异为上表两个组件的材质覆盖。施工前后对正式地图、旧地板母材质和实例及三块导入网格分别校验了 SHA-256。
+
+另用临时图和现有 `BP_VehicleTestGameMode` 启动了独立单车游戏，`BP_RoundedVehiclePawn` 正常进入 Playing，车辆相机截到车身、球、机关和金属拼板，分辨率 1440 × 900。本机实机原图为 `Saved/ArenaDeckTemp/QA/Driving-Final.png`。四辆车近距离交战时技能与灯带的辨识度待团队实测。

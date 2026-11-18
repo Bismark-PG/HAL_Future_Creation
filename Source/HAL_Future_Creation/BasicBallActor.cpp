@@ -21,6 +21,8 @@
 
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/ActorChannel.h"
+#include "Engine/NetDriver.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerState.h"
@@ -37,6 +39,9 @@ static TAutoConsoleVariable<int32> CVarHALBallNetLog(
 
 namespace
 {
+	// The top-down camera can discount a ball at the side of the screen even while its holder is turning.
+	constexpr float HeldBallPriorityMultiplier = 4.0f;
+
 	const TCHAR* LexToString(const EBasicBallState State)
 	{
 		switch (State)
@@ -102,6 +107,20 @@ void ABasicBallActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME(ABasicBallActor, bPrimaryCameraTarget);
 
 	DOREPLIFETIME(ABasicBallActor, RepState);
+}
+
+float ABasicBallActor::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, AActor* Viewer,
+	AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth)
+{
+	const float BasePriority = Super::GetNetPriority(ViewPos, ViewDir, Viewer, ViewTarget, InChannel, Time, bLowBandwidth);
+	const bool bReleasePending = InChannel && LastControlEndNetSeconds >= 0.0
+		&& InChannel->LastUpdateTime <= LastControlEndNetSeconds;
+	if (RepState.State == EBasicBallState::Controlled || bReleasePending)
+	{
+		// Keep UE's per-connection time-since-last-update weighting, including for remote holders.
+		return FMath::Max(BasePriority, NetPriority * HeldBallPriorityMultiplier * Time);
+	}
+	return BasePriority;
 }
 
 bool ABasicBallActor::CanBeControlledBy(const AActor* CandidateVehicle) const
@@ -441,6 +460,13 @@ void ABasicBallActor::CommitRepState(const FBallRepState& NewState, const AActor
 	check(HasAuthority());
 	const EBasicBallState PreviousState = RepState.State;
 	FBallRepState Committed = NewState;
+	if (PreviousState == EBasicBallState::Controlled && NewState.State != EBasicBallState::Controlled)
+	{
+		if (const UNetDriver* Driver = GetNetDriver())
+		{
+			LastControlEndNetSeconds = Driver->GetElapsedTime();
+		}
+	}
 	if (NewState.State == EBasicBallState::Free && RepState.State != EBasicBallState::Free)
 	{ LastBecameFreeGameFrame = GFrameCounter; }
 	if (NewState.State != EBasicBallState::Launched) { LaunchAction.Close(); }

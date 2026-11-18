@@ -1,5 +1,17 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-18，已修复本机复现的客户端持球漂移跳位，待学校四机画面验收。** 服务器优先发送各观察者的持有球更新，客户端在短暂缺样时继续随当前车头转动，收到发射、脱球或球权切换后结束旧跟随。UE 5.8.3 Editor 与 Game 构建通过，原生回归 248 项全部通过，其中 2 项有测试车配置警告。沿用默认发送预算和 Host 出站 80 ms 延迟，原先失败的双端专项连续三轮通过。本机一主三客同时漂移与观察时，三个客户端均未在持续持球中误切物理显示，发射后两球均正常交接。球定义由用户调整。[修复、数据与四机验收方法](Networking/MVPB_ControlledBall_RelativePresentation_CN_v0.1.md#held-ball-drift-fix)
+
+**2026-11-18，录像定位记录。** 正式比赛图的球定义使半径 50 cm 的物理根在游戏中可见，灰球网格半径约 160 cm，持球时独立显示。修复前，本机默认发送预算下连续三轮出现球姿态样本过期、来回切换显示。临时 Host 解除发送限流的诊断对照两端通过。11 月 17 日原场次缺少配对日志。[录像对照与修复前专项结果](Networking/MVPB_ControlledBall_RelativePresentation_CN_v0.1.md#6-2026-11-18-客户端持球漂移录像复核)
+
+**2026-11-18，已核实内场实车支撑面比可见钢板高约 2 m。** 正式图和临时图在九个灯位及一个行车采样点的结果一致。护盾 Actor `Path` 的单块简单凸包在 Z +1.65 cm 横跨所测内场，隐藏的 `Floor` 在 −160.50 cm，可见钢板在 −196.52 至 −200.27 cm。临时图中，车辆落地及行驶的 174 条向上支撑接触均来自 `Path`。此前的 36～40 cm 是 `Floor` 与钢板的间距。此次完成测量和留档。[碰撞分层与测量方法](Presentation/ArenaFloor_SatinMetal_CN.md#arena-deck-ground-heights)
+
+**2026-11-18，临时比赛图已完成整边防滑条、定向拉丝和九盏带局部照明的嵌地灯。** 打开 `/Game/Maps/MVPB_Match_Temp`，在 `MI_ArenaDeck_Center` 调拉丝，在 Outliner 的 `Presentation/Deck Inset Lights` 调灯位和点光源。当前灯距最近约 21.2 m，每盏为 3000 lm、半径 3.9 m。UE 5.8.3 D3D12 从磁盘重载检查通过，零错误、零警告。单车以约 9.5 m/s 驶过灯位，已做同一车位开关局部光的实机对照。下一步由团队在四车混战中验收地面高光和技能可读性，并评估目标机器的帧耗。[参数、钢板同机位对比与地灯实测图](Presentation/ArenaFloor_SatinMetal_CN.md#arena-deck-inset-lights)
+
+**2026-11-18，临时比赛图中央地板已更新为六边形钢板，并完成单车实机预览。** 基线 `main/2852337`，UE 5.8.3-58210709。打开 `/Game/Maps/MVPB_Match_Temp` 可查看留白的板心、部分接缝中段的哑光防滑条，以及切削倒角上的冷色高光。本轮改动落在专用母材质 `M_ArenaDeck_Panels` 和中央实例 `MI_ArenaDeck_Center`。外圈继续使用 `MI_ArenaDeck_Perimeter` 的同心压条和琥珀短灯。[当前调参、两版同机位对照及验证记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-deck-hex)
+
+本轮独立 D3D12 进程从磁盘核对材质接线、实例参数与地图引用，零错误、零警告。临时图和正式图的文件校验值分别与开工时一致。现有单车测试模式已进入 Playing，并拍到 1440 × 900 的实际车辆相机画面。下一步由团队在四车交战时评估场地反光、球与技能范围的辨识度，再决定是否采用到正式图。首版长条拼板的接线和场景对照另有留档。[首版记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-deck-temp)
+
 **2026-11-18 钩锁俯视金属表现与命中火花已实装，待真人验收。** 基线为 `main/853f5a1`，UE 5.8.3-58210709。实装资产为原 Hook 专用母材质和 `DA_Ability_HookThrow`。链节间距 35 cm、链节缩放 1.9、钩头缩放 2.12；钢蓝暗面、中间色、冷银反光配合可见曲面与斜向打光。服务器成功抓取后按实际车身接触点与法线播放一簇暖金色卡通火花。复用 Car03 的 `NS_BattleTop_ToonContact`，在钩锁技能 DA 独立调节，首测为 14 粒、最长 0.24 s。原工程实配射程 2500 cm、命中半径 28 cm、冷却 15 s。见[技能 DA 和表现配置](Combat/Hook_Throw_Ability_CN_v0.1.md#参数与首测默认值)。
 
 Editor、Game Target 构建成功。真实 D3D12 的 R3 专项 6/6（5 项钩锁原生、1 项含火花出现与消散的渲染测试），零测试警告及失败。早期渲染轮的火花可见性断言失败，修订播放与测试准备后复验通过。最终联机代码 Host 出站注入 80 ms 的双进程测试各 1/1，两次有效抓取在两端均各有一次事件，坐标只差网络量化精度；双端用 NullRHI 验事件，可见像素由另一次 D3D12 专项验证。最终色值、火花引用和技能规则已在重新开启的本机 Editor 中经 MCP 读回。本机证据在 `Saved/HookArt/R3/Report`、`Saved/HookArt/NetFinal` 及 `Saved/HookArt/Hook-Overview.png`。下一步在 Fred_TestScene 用实际比赛相机检查不同地面对钢色的衬托、链孔可读性及火花是否盖住钩尖。

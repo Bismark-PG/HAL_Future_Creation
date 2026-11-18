@@ -83,6 +83,8 @@ public:
 #endif
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, AActor* Viewer,
+		AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth) override;
 	virtual void BeginPlay() override;
 
 	UFUNCTION(BlueprintPure, Category = "Ball|State")
@@ -219,6 +221,8 @@ private:
 	bool bResolvingDamageHit = false;
 	uint32 LastResolvedHitEventSequence = 0;
 	uint64 LastBecameFreeGameFrame = MAX_uint64;
+	// Net driver clock, shared with UActorChannel::LastUpdateTime. Each observer gets its own release update.
+	double LastControlEndNetSeconds = -1.0;
 	FBallDamageConfig RuntimeDamageConfig;
 	FHALAuthoredImpactConfig RuntimeImpactConfig;
 	FHALCombatAction LaunchAction;
