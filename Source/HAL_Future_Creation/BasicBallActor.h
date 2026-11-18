@@ -14,6 +14,7 @@ class UPrimitiveComponent;
 class UNetworkPhysicsSettingsComponent;
 class UHALBallPresentationComponent;
 class UHALMagnetBeamPresentationComponent;
+class UHALBallComicFXComponent;
 class AHALTornado;
 
 class UBallDefinition;
@@ -147,6 +148,10 @@ protected:
 	/** Ownership presentation: holder-coloured roof beam and shell pulse. Visual only. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Ball|Components")
 	TObjectPtr<UHALMagnetBeamPresentationComponent> MagnetBeam;
+
+	/** Doodle readability layers: launched ink trail and held aim arrow. Presentation only. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ball|Presentation")
+	TObjectPtr<UHALBallComicFXComponent> ComicFX;
 
 	/** Speed must stay below this value before Launched can return to Free. */
 	UPROPERTY(EditDefaultsOnly, Category = "Ball|State", meta = (ClampMin = "0.0", Units = "cm/s"))

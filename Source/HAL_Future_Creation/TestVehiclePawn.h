@@ -14,6 +14,7 @@
 
 class UArcadeVehicleMovementComponent;
 class UHALShockedPresentationComponent;
+class UHALVehicleDoodleStatusComponent;
 class UHALBattleTopComponent;
 class UHALBullChargeComponent;
 class UHALSideShiftComponent;
@@ -141,6 +142,9 @@ protected:
 	TObjectPtr<UHALDamageFeedbackComponent> DamageFeedback;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vehicle|Components")
 	TObjectPtr<UHALShockedPresentationComponent> ShockedPresentation;
+	/** Comic status marks over the car: stun stars and low health sweat. Presentation only. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vehicle|Components")
+	TObjectPtr<UHALVehicleDoodleStatusComponent> DoodleStatus;
 	UPROPERTY(VisibleAnywhere, Category="Vehicle|Abilities")
 	TObjectPtr<UHALBattleTopComponent> BattleTop;
 	UPROPERTY(VisibleAnywhere, Category="Vehicle|Abilities")

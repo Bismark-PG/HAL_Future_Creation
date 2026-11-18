@@ -47,9 +47,18 @@ public:
 	 */
 	void SyncToBallState(EBasicBallState State, AActor* Holder);
 
+	/** Hides the beam arc only: phases, identity colour and the shell pulse keep running. Set by the doodle hold
+	 *  rings, which draw ownership themselves; two ownership marks for one fact would be noise. */
+	void SetBeamRibbonSuppressed(bool bSuppressed);
+	bool IsBeamRibbonSuppressed() const { return bRibbonSuppressed; }
+
 	EHALMagnetBeamPhase GetPhase() const { return Phase; }
 	/** Colour this component resolved for the current holder; read by tests and diagnostics. */
 	FLinearColor GetResolvedColor() const { return ResolvedColor; }
+	/** The one identity colour for ball ownership layers (beam, ink trail, aim arrow): room seat colour, then the
+	 *  PlayerId palette, then the car's own mark colour for actors without a PlayerState, then the fallback.
+	 *  PlayerId is only consulted when the pawn is gone, e.g. a launcher that left while its shot is in flight. */
+	FLinearColor ResolveIdentityColor(const AActor* Actor, int32 PlayerId = INDEX_NONE) const;
 
 protected:
 	/** Ribbon renderer for the beam. The asset owns no look: it spawns one particle per point
@@ -114,6 +123,9 @@ protected:
 	float ShellPulseHz = 1.7f;
 	UPROPERTY(EditDefaultsOnly, Category="Magnet Beam|Shell", meta=(ClampMin="0", ClampMax="1"))
 	float ShellPulseFloor = 0.45f;
+	/** Brightness changes per second, so the pulse steps like the other doodle layers. Zero is a smooth sine. */
+	UPROPERTY(EditDefaultsOnly, Category="Magnet Beam|Shell", meta=(ClampMin="0", ClampMax="30"))
+	float ShellPulseStepsPerSecond = 8.f;
 
 private:
 	void EnsureBeam();
@@ -144,4 +156,5 @@ private:
 	/** Widths as built. BeamWidths is this with the retraction mask applied. */
 	TArray<float> BeamBaseWidths;
 	bool bSynced = false;
+	bool bRibbonSuppressed = false;
 };
