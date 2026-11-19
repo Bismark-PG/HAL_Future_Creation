@@ -1,6 +1,22 @@
 # MVPB_Match 波纹缎面金属地面
 
-临时比赛图 `MVPB_Match_Temp` 的六边形内场采用定向拉丝钢板、整边防滑条和九盏嵌地灯。中场另有一盏稍大的琥珀灯，嵌在与行车面齐平的圆盘中央。[中场盘与碰撞](#arena-center-inlay) · [六边形钢板与九盏地灯](#arena-deck-inset-lights)
+正式比赛图 `/Game/Maps/MVPB_Match` 已采用六边形拉丝钢板、整边防滑条、外圈灯带和九盏嵌地灯。中场的第十盏灯嵌在与行车面齐平的金属圆盘中央。临时图 `MVPB_Match_Temp` 可用于继续试做。两图引用同一组材质和网格，修改共享资产会同时影响两图。[中场盘与碰撞](#arena-center-inlay) · [六边形钢板与地灯调参](#arena-deck-inset-lights)
+
+<a id="arena-deck-formal-match"></a>
+
+## 2026-11-19 正式比赛图采用新版场地
+
+在 `MVPB_Match` 内更新了 19 个已有 Actor，包含可见地板、中场盘、承托车辆的 `Floor`、外围侧挡 `Path`、四个出生点、主球和机关。新增九组场内地灯和一组中央地灯，每组各有一个灯壳和一个子点光源。重载比对时，正式图原有 122 个 Actor 的对象名和 GUID 均与迁入前一致。迁入后两图的 142 个 Actor 在变换、挂接、网格、用材、碰撞及照明的核对项一致。
+
+`DA_Room_Development` 和 `DA_Room_Exhibition` 均指向正式图。正式图的 World Settings 继续引用 `BP_MVPB_ListenGameMode`，四个出生槽编号为 0～3，主球沿用地图原有定义。正式图的资产依赖包含 11 份场地材质、材质实例和网格，可以独立加载。后续调灯可直接打开正式图，在 Outliner 的 `Presentation/Deck Inset Lights` 和 `Presentation/Center Inlay` 下选中对应灯组。
+
+本轮验证使用 UE 5.8.3-58210709，从磁盘重新加载正式图。
+
+- 1,216 条向下射线命中 `Floor`，64 条侧向射线命中外围 `Path`。盘心至半径 20 m 的钢板采样位于世界 Z −200.274 cm。
+- D3D12 单车以约 9.6～15.1 m/s 穿过中心灯，自由球以 12.6～15.6 m/s 滚过并保持 `Free`。两者过盘时的垂直速度在 0.01 cm/s 的记录精度内为零。另向外围发球，命中 `Path` 后折返。
+- 弹簧拳将实车 HP 从 100 扣至 75。电墙、电球分别触发 1 s 眩晕，打滑区内外的抓地系数依次为 0.30 和 1.00，黑洞把距中心 280 cm 的车辆吸至 42 cm 内。
+- 本机 Exhibition 一主三客从房间进入正式图，四人完成第一局返房及第二局开赛。四个独立进程各通过一项测试，均为零测试警告、零失败，退出码均为 0。本机报告位于 `Saved/ArenaDeckPromotion/`。学校四台机器上的画面与帧耗留待真人复测。
+- 针对 `MVPB_Match` 执行 Windows Cook，退出码为 0。逐项检查产物，正式地图及全部 11 份场地依赖均已写出，临时地图未进入此次产物。Cook 日志另记录了既有冲击特效材质 `M_FX_ImpactBurst` 在 DX11／SM5 下使用 `pass` 时触发 FXC 编译重试。该特效在 DX11 打包版中的画面待复测，日志在 `Saved/ArenaDeckPromotion/cook.log`。
 
 <a id="arena-center-inlay"></a>
 
@@ -11,8 +27,8 @@
 | 要调整的内容 | 在哪里调 |
 |---|---|
 | 圆盘的钢色、外圈颜色和拉丝 | `/Game/Assets/Materials/ArenaDeck/MI_ArenaDeck_CenterInlay`。在 **Center Inlay** 下调 `Steel Color`、`Trim Color`、`Brush Strength`（默认 0.72）和 `Steel Roughness`（默认 0.36）。 |
-| 灯壳尺寸和灯光 | 临时图 Outliner → `Presentation/Center Inlay` → `podium_007_1375` → `CenterInlay_Lamp` → `CenterInlay_Light`。灯壳长宽为普通地灯的 1.45 倍，约 157 × 64 cm。子灯默认 3200 lm，衰减半径 410 cm。 |
-| 行车面与外围侧挡 | 临时图的隐藏 Actor `Floor` 使用 `SM_ArenaDeck_DriveSurface`，中场世界 Z 为 −200.274 cm。内场行车面跟随板面浅浮雕并平滑过渡，外圈跨过窄装饰槽。`Path` 使用保留护盾外观的 `SM_ArenaDeck_ShieldBoundary`，侧壁负责挡车和球。三份中场专用网格位于 `/Game/Assets/Meshes/ArenaDeck/`。 |
+| 灯壳尺寸和灯光 | 两图的 Outliner → `Presentation/Center Inlay` → `podium_007_1375` → `CenterInlay_Lamp` → `CenterInlay_Light`。灯壳长宽为普通地灯的 1.45 倍，约 157 × 64 cm。子灯默认 3200 lm，衰减半径 410 cm。 |
+| 行车面与外围侧挡 | 两图的隐藏 Actor `Floor` 使用 `SM_ArenaDeck_DriveSurface`，中场世界 Z 为 −200.274 cm。内场行车面跟随板面浅浮雕并平滑过渡，外圈跨过窄装饰槽。`Path` 使用保留护盾外观的 `SM_ArenaDeck_ShieldBoundary`，侧壁负责挡车和球。三份中场专用网格位于 `/Game/Assets/Meshes/ArenaDeck/`。 |
 
 四个 `HALPlayerStart` 和场上主球分别按旧承托面的出生净高重新定位，均下移 201.93 cm。四个弹簧拳以各自底座底面定位，电墙和电球以机关地面锚点定位。黑洞和扩张打滑区的原点对齐当地板面。机关沿用原来的平面位置、朝向和玩法配置。
 
@@ -89,7 +105,7 @@ UE 5.8.3、D3D12 SM6。独立 Unreal 进程从磁盘重载，核对钢板的 23 
 
 盘沿与钢板的接边接近等高，盘心比周围钢板低约 41 cm。盘心和盘内采样点单独检测钢板均未命中，替换件需要覆盖这个开口。包含全部 Actor 时，以上位置的简单射线均先命中 `Path` 顶面 +1.65 cm，复杂射线均先命中隐藏的 `Floor` −160.50 cm。中场盘整平和整个内场行车高度对齐应分别核对。局部测量数据位于 `Saved/CenterDiskReview/survey.json`。本次为磁盘地图只读测量。
 
-## 资产与接线
+## 2026-11-15 旧版波纹地面的资产与接线
 
 | 项目 | 路径或值 |
 |---|---|
