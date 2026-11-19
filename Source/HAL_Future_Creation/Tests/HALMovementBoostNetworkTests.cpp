@@ -143,20 +143,20 @@ namespace
 			{
 				bRemoteSecond |= bOtherOn;
 				const bool bImmune=ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_ImpactImmune);
-				const bool bCooldown=ASC->HasMatchingGameplayTag(HALGameplayTags::Cooldown_ImpactImmunity);
-				if (!bClearSent && bOn && bBoosted && bRemoteSecond && bImmune && bCooldown && Now-SecondAt>1)
+				const bool bRecharging=ASC->GetUltimateEnergyView().bRecharging;
+				if (!bClearSent && bOn && bBoosted && bRemoteSecond && bImmune && bRecharging && Now-SecondAt>1)
 				{
 					bClearSent=true; PC->HALClearMovementBoost();
 				}
 				if (bClearSent && !bOn && bNeutral && bRemoteSecond && !bOtherOn)
 				{
-					Test->TestTrue(TEXT("Selective clear preserves original immunity and cooldown"),bImmune && bCooldown);
+					Test->TestTrue(TEXT("Selective clear preserves active immunity and ongoing recharge"),bImmune && bRecharging);
 					Test->TestTrue(TEXT("Original primary still granted"),ASC->HasAbilityForInput(HALGameplayTags::Input_Ability_Primary));
 					if (!bHost) { Test->TestTrue(TEXT("Client exercised pre-Playing rejection"),bPreplaySent && bPreplayChecked); }
 					Test->TestTrue(TEXT("Clear completed before natural five-second expiry"),Now-SecondAt<4.5);
 					Test->TestEqual(TEXT("Start/end/start/clear produce four real changes"),Physics.Value.Revision,ActiveRevision+3);
 					Movement->ResetInputCommand(); Complete=FPlatformTime::Seconds();
-					UE_LOG(LogTemp,Display,TEXT("HAL Boost smoke: Role=%s Complete=1 SelectiveClear=1 Immune=%d Cooldown=%.3f Revision=%u GameTime=%.3f"),bHost?TEXT("Host"):TEXT("Client"),bImmune,ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity),Physics.Value.Revision,Now);
+					UE_LOG(LogTemp,Display,TEXT("HAL Boost smoke: Role=%s Complete=1 SelectiveClear=1 Immune=%d Energy=%.3f Revision=%u GameTime=%.3f"),bHost?TEXT("Host"):TEXT("Client"),bImmune,ASC->GetUltimateEnergyView().Energy,Physics.Value.Revision,Now);
 					PC->HALGASStatus();
 				}
 			}

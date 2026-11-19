@@ -39,6 +39,7 @@ void UHALAbilitySystemComponent::EndPlay(const EEndPlayReason::Type EndPlayReaso
 	RegisterGameplayTagEvent(HALGameplayTags::State_Stun, EGameplayTagEventType::NewOrRemoved).Remove(StunTagHandle);
 	if (GetOwner() && GetOwner()->HasAuthority())
 	{
+		ClearUltimateEnergy();
 		CancelAllAbilities();
 		RemoveActiveEffects(FGameplayEffectQuery());
 		ClearAllAbilities();
@@ -58,8 +59,7 @@ void UHALAbilitySystemComponent::RemoveAvatarEffects()
 		FGameplayTagContainer(HALGameplayTags::Effect_Scope_Avatar)));
 	if (HALAbilities::ShouldLog())
 	{
-		UE_LOG(LogHALAbility, Log, TEXT("Avatar effects cleared: Owner=%s Removed=%d Cooldown=%.2fs"),
-			*GetNameSafe(GetOwner()), Removed, GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity));
+		UE_LOG(LogHALAbility, Log, TEXT("Avatar effects cleared: Owner=%s Removed=%d"), *GetNameSafe(GetOwner()), Removed);
 	}
 }
 
@@ -68,6 +68,7 @@ void UHALAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AAct
 	const FObjectKey NextAvatar(InAvatarActor);
 	if (BoundAvatarKey != FObjectKey() && BoundAvatarKey != NextAvatar)
 	{
+		ClearUltimateEnergy();
 		RemoveAvatarEffects();
 		// Direct Avatar replacement must retire its grants even if UnPossess arrives later.
 		// The initial owner-as-Avatar is not a vehicle source; preserve owner-scoped grants.
@@ -275,6 +276,10 @@ void UHALAbilitySystemComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProp
 	DOREPLIFETIME(UHALAbilitySystemComponent, bCombatInitialized);
 	DOREPLIFETIME(UHALAbilitySystemComponent, bImpactInitialized);
 	DOREPLIFETIME(UHALAbilitySystemComponent, CombatConfigVersion);
+	DOREPLIFETIME_CONDITION(UHALAbilitySystemComponent, UltimateFullRechargeSeconds, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UHALAbilitySystemComponent, UltimateSampleServerTime, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UHALAbilitySystemComponent, bUltimateClockRunning, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UHALAbilitySystemComponent, bUltimateActionReady, COND_OwnerOnly);
 }
 
 bool UHALAbilitySystemComponent::InitializeCombat(const FVehicleCombatConfig& Config)

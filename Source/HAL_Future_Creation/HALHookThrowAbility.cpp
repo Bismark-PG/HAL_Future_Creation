@@ -9,7 +9,7 @@
 
 bool UHALHookThrowConfig::Validate(FString& Error) const
 {
-	if(FMath::IsFinite(CooldownSeconds)&&CooldownSeconds>=0&&CooldownSeconds<=120&&Rules.IsValid()&&FX.IsValid()) { Error.Reset(); return true; }
+	if(Rules.IsValid()&&FX.IsValid()) { Error.Reset(); return true; }
 	Error=TEXT("Hook needs finite gameplay/metal parameters within their documented ranges and a bounded total lifetime."); return false;
 }
 #if WITH_EDITOR
@@ -42,7 +42,7 @@ UHALHookCapturedEffect::UHALHookCapturedEffect()
 UHALHookThrowAbility::UHALHookThrowAbility()
 {
 	InstancingPolicy=EGameplayAbilityInstancingPolicy::InstancedPerActor; NetExecutionPolicy=EGameplayAbilityNetExecutionPolicy::ServerOnly;
-	CooldownGameplayEffectClass=UHALHookCooldownEffect::StaticClass(); SetAssetTags(FGameplayTagContainer(HALGameplayTags::Ability_HookThrow));
+	SetAssetTags(FGameplayTagContainer(HALGameplayTags::Ability_HookThrow));
 }
 bool UHALHookThrowAbility::Ready(const FGameplayAbilityActorInfo* Info) const
 {
@@ -51,24 +51,22 @@ bool UHALHookThrowAbility::Ready(const FGameplayAbilityActorInfo* Info) const
 }
 bool UHALHookThrowAbility::CanActivateAbility(FGameplayAbilitySpecHandle H,const FGameplayAbilityActorInfo* I,const FGameplayTagContainer* S,const FGameplayTagContainer* T,FGameplayTagContainer* R) const
 { return Super::CanActivateAbility(H,I,S,T,R)&&!ActiveHook.IsValid()&&Ready(I); }
-void UHALHookThrowAbility::ApplyCooldown(FGameplayAbilitySpecHandle H,const FGameplayAbilityActorInfo* I,FGameplayAbilityActivationInfo A) const
+EHALUltimateStart UHALHookThrowAbility::StartUltimate(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* Info,
+	FGameplayAbilityActivationInfo Activation, const FGameplayEventData*)
 {
-	const auto* C=GetClass()->GetDefaultObject<UHALHookThrowAbility>()->SkillConfig.Get(); if(!C||C->CooldownSeconds<=0) { return; }
-	const auto Spec=MakeOutgoingGameplayEffectSpec(H,I,A,UHALHookCooldownEffect::StaticClass(),GetAbilityLevel(H,I));
-	if(Spec.IsValid()) { Spec.Data->SetDuration(C->CooldownSeconds,true); CommittedCooldown=ApplyGameplayEffectSpecToOwner(H,I,A,Spec); }
-}
-void UHALHookThrowAbility::ActivateAbility(FGameplayAbilitySpecHandle H,const FGameplayAbilityActorInfo* I,FGameplayAbilityActivationInfo A,const FGameplayEventData*)
-{
-	CommittedCooldown.Invalidate();
-	if(!I||!I->IsNetAuthority()||!Ready(I)||!CommitAbility(H,I,A)) { EndAbility(H,I,A,true,true); return; }
-	const auto* C=GetClass()->GetDefaultObject<UHALHookThrowAbility>()->SkillConfig.Get(); AHALHookThrow* Hook=nullptr;
-	if(C->CooldownSeconds<=0||CommittedCooldown.IsValid()) { FActorSpawnParameters P; P.Owner=I->AvatarActor.Get(); Hook=P.Owner->GetWorld()->SpawnActor<AHALHookThrow>(P); }
-	if(!Hook||!Hook->Start(*C))
+	const auto* Config = GetClass()->GetDefaultObject<UHALHookThrowAbility>()->SkillConfig.Get();
+	if (ActiveHook.IsValid() || !Config || !Ready(Info)) { return EHALUltimateStart::Failed; }
+	FActorSpawnParameters Params;
+	Params.Owner = Info->AvatarActor.Get();
+	auto* Actor = Params.Owner->GetWorld()->SpawnActor<AHALHookThrow>(Params);
+	if (!Actor || !Actor->Start(*Config))
 	{
-		if(Hook) { Hook->Destroy(); } if(CommittedCooldown.IsValid()) { I->AbilitySystemComponent->RemoveActiveGameplayEffect(CommittedCooldown); }
-		EndAbility(H,I,A,true,true); return;
+		if (Actor) { Actor->Destroy(); }
+		return EHALUltimateStart::Failed;
 	}
-	ActiveHook=Hook; Hook->OnDestroyed.AddDynamic(this,&ThisClass::HookDestroyed);
+	ActiveHook = Actor;
+	Actor->OnDestroyed.AddDynamic(this, &ThisClass::HookDestroyed);
+	return EHALUltimateStart::Active;
 }
 void UHALHookThrowAbility::HookDestroyed(AActor* Actor)
 { if(ActiveHook.Get(true)!=Actor) { return; } ActiveHook.Reset(); EndAbility(CurrentSpecHandle,CurrentActorInfo,CurrentActivationInfo,true,false); }

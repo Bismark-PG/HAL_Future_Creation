@@ -171,7 +171,7 @@ namespace
 			{
 				Test.TestEqual(TEXT("Whole cast is one regional source"), TargetReceiver->GetAreaCount(), 1);
 				Test.TestEqual(TEXT("Caster is exempt from own footprint"), SourceReceiver->GetAreaCount(), 0);
-				Test.TestTrue(TEXT("Caster has the configured cooldown"), SourceASC->HasMatchingGameplayTag(HALGameplayTags::Cooldown_SlipperyTrail));
+				Test.TestTrue(TEXT("Caster paid the ultimate cost"), !SourceASC->GetUltimateEnergyView().bHasEnergy);
 				Test.TestTrue(TEXT("GAS keeps the cast active while the actor exists"), SourceASC->GetActivatableAbilities()[0].IsActive());
 				Stage = 4;
 			}

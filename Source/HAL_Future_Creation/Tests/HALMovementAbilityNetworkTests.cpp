@@ -20,7 +20,7 @@ namespace
 		FAutomationTestBase* Test;
 		double Deadline=FPlatformTime::Seconds()+100, Complete=-1, WaitingAt=-1, RequestAt=-1, RefreshAt=-1;
 		bool bConfigured=false,bPreplaySent=false,bPreplayChecked=false,bRequested=false,bActive=false;
-		bool bRefreshSent=false,bRefreshed=false,bPastOriginal=false,bExpired=false,bRemoteActive=false,bRemoteExpired=false;
+		bool bRefreshSent=false,bRefreshed=false,bExpired=false,bRemoteActive=false,bRemoteExpired=false;
 		uint32 ActiveRevision=0;
 	public:
 		explicit FMovementAbilityLiveTest(FAutomationTestBase* InTest):Test(InTest) {}
@@ -103,23 +103,17 @@ namespace
 			}
 			if (bActive && !bRefreshSent && Now-RequestAt>=2) { Vehicle->RequestPrimarySkill(); RefreshAt=Now; bRefreshSent=true; }
 			const float Remaining=ASC->GetEffectTimeRemaining(HALGameplayTags::State_Movement_Boost);
-			if (bRefreshSent && !bRefreshed && Remaining>4.5f)
+			if (bRefreshSent && !bRefreshed && Now-RefreshAt>.35 && bOn)
 			{
 				bRefreshed=true;
-				Test->TestEqual(TEXT("Skill refresh makes no false physics boundary"),Physics.Value.Revision,ActiveRevision);
-				Test->TestEqual(TEXT("Still one layer"),ASC->GetTagCount(HALGameplayTags::State_Movement_Boost),1);
-				UE_LOG(LogTemp,Display,TEXT("HAL Movement GA smoke: Role=%s Refreshed=1 Remaining=%.3f Revision=%u GameTime=%.3f"),bHost?TEXT("Host"):TEXT("Client"),Remaining,Physics.Value.Revision,Now);
+				Test->TestTrue(TEXT("Duplicate input preserves original duration"),Remaining<3.5f);
+				Test->TestEqual(TEXT("Duplicate input cannot add a layer"),ASC->GetTagCount(HALGameplayTags::State_Movement_Boost),1);
 			}
-			if (bRefreshed && !bPastOriginal && Now-RequestAt>=5.3)
-			{
-				bPastOriginal=true; Test->TestTrue(TEXT("Skill refresh survives original expiry"),bOn && bBoosted);
-			}
-			if (bPastOriginal && !bExpired && !bOn && bNeutral)
+			if (bRefreshed && !bExpired && !bOn && bNeutral)
 			{
 				bExpired=true;
-				Test->TestTrue(TEXT("Natural five-game-second expiry after last skill press"),Now-RefreshAt>=4.8 && Now-RefreshAt<5.7);
+				Test->TestTrue(TEXT("Natural expiry follows the first cast"),Now-RequestAt>=4.8 && Now-RequestAt<6);
 				Test->TestEqual(TEXT("Only expiry advances physics revision"),Physics.Value.Revision,ActiveRevision+1);
-				UE_LOG(LogTemp,Display,TEXT("HAL Movement GA smoke: Role=%s NaturalExpiry=1 AfterRefresh=%.3f Revision=%u GameTime=%.3f"),bHost?TEXT("Host"):TEXT("Client"),Now-RefreshAt,Physics.Value.Revision,Now);
 			}
 			if (bExpired && bRemoteExpired)
 			{

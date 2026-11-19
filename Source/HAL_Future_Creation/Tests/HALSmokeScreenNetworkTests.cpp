@@ -1,8 +1,8 @@
 #if WITH_DEV_AUTOMATION_TESTS && !UE_BUILD_SHIPPING
 #include "Misc/AutomationTest.h"
-#include "HALVehicleAbilityTestSupport.h"
+#include "../TestVehiclePawn.h"
 #include "../HALSmokeScreen.h"
-#include "../HALSmokeScreenAbility.h"
+#include "../HALGameplayTags.h"
 #include "../HALSmokeScreenView.h"
 #include "../HALMatchGameMode.h"
 #include "../HALMatchGameState.h"
@@ -30,22 +30,25 @@ namespace
 			FWorldDelegates::OnPreWorldInitialization.AddLambda([](UWorld* W,const UWorld::InitializationValues&)
 			{
 				if(!W->IsGameWorld()||!FParse::Param(FCommandLine::Get(),TEXT("HALSmokeScreenFixture"))) { return; }
-				GetMutableDefault<UHALSmokeScreenAbility>()->SkillConfig=LoadObject<UHALSmokeScreenConfig>(nullptr,TEXT("/Game/Data/Abilities/DA_Ability_Car08_SmokeScreen"));
 				W->AddOnActorPreSpawnInitialization(FOnActorSpawned::FDelegate::CreateLambda([](AActor* Actor)
 				{
 					if(auto* Mode=Cast<AHALMatchGameMode>(Actor)) { Mode->DefaultPawnClass=LoadClass<ATestVehiclePawn>(nullptr,TEXT("/Game/Blueprints/Vehicles/BP_VehiclePawn_Car_08.BP_VehiclePawn_Car_08_C")); }
-					if(auto* V=Cast<ATestVehiclePawn>(Actor);V&&V->GetVehicleDefinition()) { FHALVehicleAbilityTestAccess::Configure(V,UHALSmokeScreenAbility::StaticClass()); }
 				}));
 			});
 		}
 	} SmokeFixture;
 	class FSmokeLive : public IAutomationLatentCommand
 	{
-		FAutomationTestBase* Test; double Deadline=FPlatformTime::Seconds()+100,LastStart=-1,Attempt=-1,Done=-1;
+		FAutomationTestBase* Test; double Deadline=FPlatformTime::Seconds()+100,Attempt=-1,Done=-1;
+		FString CaptureDirectory;
 		bool Own=false,Remote=false,Immune=false,Obscured=false,Tag=false,Tail=false,FX=false,Screen=false,Swapped=false,Shot=false,ImmuneShot=false;
 		float InitialHP=-1;
 	public:
-		explicit FSmokeLive(FAutomationTestBase* T):Test(T) {}
+		explicit FSmokeLive(FAutomationTestBase* T):Test(T)
+		{
+			if (!FParse::Value(FCommandLine::Get(), TEXT("HALSmokeCaptureDir="), CaptureDirectory))
+			{ CaptureDirectory = FPaths::ProjectSavedDir() / TEXT("Car08Smoke/20261117"); }
+		}
 		bool Update() override
 		{
 			if(Done>=0) { return FPlatformTime::Seconds()-Done>3; }
@@ -65,15 +68,15 @@ namespace
 			{
 				if(It->GetStartTime()<0||It->IsActorBeingDestroyed()) { continue; } ++Count;
 				if(It->GetOwner()==V) { Local=*It; Own=true; } else { OtherSmoke=*It; Remote=true; }
-				LastStart=FMath::Max(LastStart,It->GetStartTime());
 				Tail|=Now-It->GetStartTime()>4.5&&!It->IsEmitting()&&!It->GetPuffs().IsEmpty();
 				Obscured|=It->GetOwner()!=V&&It->Influence(*V,true,Now)>.5f;
 			}
-			if(!Own&&(Attempt<0||Now-Attempt>1)) { PC->HALUseSkill(); Attempt=Now; }
+			// The client may finish loading after a whole puff lifetime. Its real cast starts the paired sample.
+			if(!Own&&(!Host||OtherSmoke)&&(Attempt<0||Now-Attempt>1)) { PC->HALUseSkill(); Attempt=Now; }
 			if(Local&&Now-Local->GetStartTime()>.4&&Now-Local->GetStartTime()<1.1)
 			{ Immune|=Local->Influence(*V,true,Now)==0&&!ASC->HasMatchingGameplayTag(HALGameplayTags::State_Vision_SmokeObscured); }
 			if(FApp::CanEverRender()&&Immune&&Local&&!ImmuneShot)
-			{ FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir()/FString::Printf(TEXT("Car08Smoke/20261117/Immune_%s.png"),Host?TEXT("Host"):TEXT("Client")),true,false); ImmuneShot=true; }
+			{ FScreenshotRequest::RequestScreenshot(CaptureDirectory/FString::Printf(TEXT("Immune_%s.png"),Host?TEXT("Host"):TEXT("Client")),true,false); ImmuneShot=true; }
 			// Test-only placement after both genuine requests; all smoke generation and region effects stay on production paths.
 			if(Host&&Local&&OtherSmoke&&!Swapped&&Now-FMath::Max(Local->GetStartTime(),OtherSmoke->GetStartTime())>1.2)
 			{
@@ -93,10 +96,9 @@ namespace
 					if(Instance) for(const auto& E:Instance->GetEmitters()) { FX|=E->GetNumParticles()>0; }
 				}
 				if(Screen&&Obscured&&ViewStrength>.65f&&!Shot)
-				{ FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir()/FString::Printf(TEXT("Car08Smoke/20261117/Live_%s.png"),Host?TEXT("Host"):TEXT("Client")),true,false); Shot=true; }
+				{ FScreenshotRequest::RequestScreenshot(CaptureDirectory/FString::Printf(TEXT("Live_%s.png"),Host?TEXT("Host"):TEXT("Client")),true,false); Shot=true; }
 			}
-			const auto* Config=GetDefault<UHALSmokeScreenAbility>()->SkillConfig.Get();
-			if(Own&&Remote&&Count==0&&Config&&Now>=LastStart+Config->CooldownSeconds+2&&!ASC->HasMatchingGameplayTag(HALGameplayTags::Cooldown_SmokeScreen))
+			if(Own&&Remote&&Count==0&&ASC->GetUltimateEnergyView().bHasEnergy)
 			{
 				Test->TestTrue(TEXT("Owner and observer see independently ageing replicated clouds"),Own&&Remote&&Tail);
 				Test->TestTrue(TEXT("Caster starts immune to own screen effect"),Immune);

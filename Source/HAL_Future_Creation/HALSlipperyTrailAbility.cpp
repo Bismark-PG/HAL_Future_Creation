@@ -17,7 +17,7 @@ UHALSlipperyTrailConfig::UHALSlipperyTrailConfig()
 bool UHALSlipperyTrailConfig::Validate(FString& Error) const
 {
 	const auto InRange = [](float Value, float Min, float Max) { return Value >= Min && Value <= Max; };
-	if (!InRange(CooldownSeconds, 0, 120) || !InRange(Emission.EmissionSeconds, .05f, 29.f)
+	if (!InRange(Emission.EmissionSeconds, .05f, 29.f)
 		|| !InRange(Shape.LifetimeSeconds, .1f, 30.f) || Shape.LifetimeSeconds <= Emission.EmissionSeconds)
 	{
 		Error = TEXT("Use finite timing values in the editor ranges. Lifetime must exceed Emission Seconds.");
@@ -82,7 +82,6 @@ UHALSlipperyTrailAbility::UHALSlipperyTrailAbility()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
-	CooldownGameplayEffectClass = UHALSlipperyTrailCooldownEffect::StaticClass();
 	SetAssetTags(FGameplayTagContainer(HALGameplayTags::Ability_SlipperyTrail));
 }
 
@@ -122,53 +121,26 @@ bool UHALSlipperyTrailAbility::CanActivateAbility(FGameplayAbilitySpecHandle Han
 	return bReady;
 }
 
-void UHALSlipperyTrailAbility::ApplyCooldown(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-	FGameplayAbilityActivationInfo ActivationInfo) const
-{
-	const auto* Config = GetSkillConfig();
-	if (!Config || Config->CooldownSeconds <= 0) { return; }
-	const auto Spec = MakeOutgoingGameplayEffectSpec(Handle, ActorInfo, ActivationInfo,
-		UHALSlipperyTrailCooldownEffect::StaticClass(), GetAbilityLevel(Handle, ActorInfo));
-	if (!Spec.IsValid()) { return; }
-	Spec.Data->SetDuration(Config->CooldownSeconds, true);
-	CommittedCooldown = ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, Spec);
-}
 
-void UHALSlipperyTrailAbility::ActivateAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-	FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData*)
+EHALUltimateStart UHALSlipperyTrailAbility::StartUltimate(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* Info,
+	FGameplayAbilityActivationInfo Activation, const FGameplayEventData*)
 {
-	const auto* Config = GetSkillConfig();
+	const auto* Config = GetClass()->GetDefaultObject<UHALSlipperyTrailAbility>()->SkillConfig.Get();
 	FVector Ground;
 	FVector GroundNormal;
-	CommittedCooldown.Invalidate();
-	if (!ActorInfo || !ActorInfo->IsNetAuthority() || ActiveTrail.IsValid() || !ResolveStart(ActorInfo, Config, Ground, &GroundNormal)
-		|| !CommitAbility(Handle, ActorInfo, ActivationInfo))
+	if (ActiveTrail.IsValid() || !Config || !ResolveStart(Info, Config, Ground, &GroundNormal)) { return EHALUltimateStart::Failed; }
+	FActorSpawnParameters Params;
+	Params.Owner = Info->AvatarActor.Get();
+	auto* Actor = Params.Owner->GetWorld()->SpawnActor<AHALSlipperyTrail>(Params);
+	if (!Actor || !Actor->Start(Config->Shape, Config->Emission, Config->Handling, Ground, GroundNormal, Config->Presentation))
 	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
+		if (Actor) { Actor->Destroy(); }
+		return EHALUltimateStart::Failed;
 	}
-	auto* Vehicle = CastChecked<ATestVehiclePawn>(ActorInfo->AvatarActor.Get());
-	auto* ASC = ActorInfo->AbilitySystemComponent.Get();
-	AHALSlipperyTrail* Trail = nullptr;
-	if (Config->CooldownSeconds <= 0 || CommittedCooldown.IsValid())
-	{
-		FActorSpawnParameters Params;
-		Params.Owner = Vehicle;
-		Trail = Vehicle->GetWorld()->SpawnActor<AHALSlipperyTrail>(Params);
-	}
-	if (!Trail || !Trail->Start(Config->Shape, Config->Emission, Config->Handling, Ground, GroundNormal, Config->Presentation))
-	{
-		if (Trail) { Trail->Destroy(); }
-		if (CommittedCooldown.IsValid()) { ASC->RemoveActiveGameplayEffect(CommittedCooldown); }
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
-	}
-	ActiveTrail = Trail;
-	Trail->OnDestroyed.AddDynamic(this, &ThisClass::TrailDestroyed);
-	Trail->OnGameplayEnded.AddUObject(this, &ThisClass::TrailGameplayEnded);
-	ASC->GetOwner()->ForceNetUpdate();
-	UE_CLOG(HALAbilities::ShouldLog(), LogHALAbility, Log, TEXT("SlipperyTrail started Avatar=%s Emission=%.2f Lifetime=%.2f"),
-		*GetNameSafe(Vehicle), Config->Emission.EmissionSeconds, Config->Shape.LifetimeSeconds);
+	ActiveTrail = Actor;
+	Actor->OnDestroyed.AddDynamic(this, &ThisClass::TrailDestroyed);
+	Actor->OnGameplayEnded.AddUObject(this, &ThisClass::TrailGameplayEnded);
+	return EHALUltimateStart::Active;
 }
 
 void UHALSlipperyTrailAbility::TrailDestroyed(AActor* Actor)

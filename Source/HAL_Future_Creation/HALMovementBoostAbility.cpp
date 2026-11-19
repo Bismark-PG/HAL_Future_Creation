@@ -16,7 +16,6 @@ UHALMovementBoostAbility::UHALMovementBoostAbility()
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
 	MovementEffectClass = UHALMovementBoostEffect::StaticClass();
-	// No cost/cooldown in this first movement skill. In particular, no immunity cooldown/tag dependency.
 	SetAssetTags(FGameplayTagContainer(HALGameplayTags::Ability_MovementBoost));
 }
 
@@ -30,7 +29,7 @@ bool UHALMovementBoostAbility::CanActivateAbility(const FGameplayAbilitySpecHand
 	const AActor* Owner = ActorInfo ? ActorInfo->OwnerActor.Get() : nullptr;
 	const auto* Health = Vehicle ? Vehicle->FindComponentByClass<UVehicleHealthComponent>() : nullptr;
 	const auto* Effect = MovementEffectClass ? MovementEffectClass->GetDefaultObject<UHALMovementBoostEffect>() : nullptr;
-	const bool bReady = ASC && Vehicle && Owner && ASC->GetOwnerActor() == Owner
+	const bool bReady = ASC && !ASC->GetActiveGameplayEffect(ActiveUltimateEffect) && Vehicle && Owner && ASC->GetOwnerActor() == Owner
 		&& Vehicle->GetPlayerState() == Owner && Vehicle->GetAbilitySystemComponent() == ASC
 		&& Vehicle->GetController() && Vehicle->IsConfigurationValid()
 		&& ASC->IsHealthInitialized() && ASC->GetSet<UHALMovementAttributeSet>() && Health && Health->IsHealthReady()
@@ -55,27 +54,11 @@ bool UHALMovementBoostAbility::CanActivateAbility(const FGameplayAbilitySpecHand
 	return bSpecValid;
 }
 
-void UHALMovementBoostAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
-	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
-	const FGameplayEventData* TriggerEventData)
+EHALUltimateStart UHALMovementBoostAbility::StartUltimate(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* Info,
+	FGameplayAbilityActivationInfo Activation, const FGameplayEventData*)
 {
-	if (!ActorInfo || !ActorInfo->IsNetAuthority()) { EndAbility(Handle, ActorInfo, ActivationInfo, true, true); return; }
-	const auto Spec = MakeOutgoingGameplayEffectSpec(Handle, ActorInfo, ActivationInfo, MovementEffectClass, GetAbilityLevel(Handle, ActorInfo));
-	if (!Spec.IsValid() || !FMath::IsFinite(Spec.Data->GetDuration()) || Spec.Data->GetDuration() <= 0 || Spec.Data->GetPeriod() != 0
-		|| !CommitAbility(Handle, ActorInfo, ActivationInfo))
-	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true); return;
-	}
-	const auto Applied = ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, Spec);
-	if (HALAbilities::ShouldLog())
-	{
-		const auto* ASC = CastChecked<UHALAbilitySystemComponent>(ActorInfo->AbilitySystemComponent.Get());
-		UE_LOG(LogHALAbility, Log, TEXT("Movement ability: Accepted=%d Owner=%s Avatar=%s Ability=%s Effect=%s Duration=%.3f Remaining=%.3f GameTime=%.3f"),
-			Applied.IsValid(), *GetNameSafe(ActorInfo->OwnerActor.Get()), *GetNameSafe(ActorInfo->AvatarActor.Get()),
-			*GetName(), *GetNameSafe(Spec.Data->Def), Spec.Data->GetDuration(),
-			ASC->GetEffectTimeRemaining(HALGameplayTags::State_Movement_Boost), GetWorld()->GetTimeSeconds());
-	}
-	if (Applied.IsValid()) { ActorInfo->OwnerActor->ForceNetUpdate(); }
-	// End the input action now, so another press can refresh the still-running GE.
-	EndAbility(Handle, ActorInfo, ActivationInfo, true, !Applied.IsValid());
+	const auto Spec = MakeOutgoingGameplayEffectSpec(Handle, Info, Activation, MovementEffectClass, GetAbilityLevel(Handle, Info));
+	if (!Spec.IsValid() || !FMath::IsFinite(Spec.Data->GetDuration()) || Spec.Data->GetDuration() <= 0) { return EHALUltimateStart::Failed; }
+	ActiveUltimateEffect = ApplyGameplayEffectSpecToOwner(Handle, Info, Activation, Spec);
+	return ActiveUltimateEffect.IsValid() ? EHALUltimateStart::Completed : EHALUltimateStart::Failed;
 }

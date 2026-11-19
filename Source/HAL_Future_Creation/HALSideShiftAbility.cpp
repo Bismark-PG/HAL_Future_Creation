@@ -8,9 +8,8 @@
 
 bool UHALSideShiftConfig::Validate(FString& Error) const
 {
-	if(MaximumCharges<1||MaximumCharges>8||!FMath::IsFinite(RechargeSeconds)||RechargeSeconds<.2f||RechargeSeconds>60
-		||!FMath::IsFinite(DirectionDeadZone)||DirectionDeadZone<.05f||DirectionDeadZone>1||!Motion.IsValidTuning())
-	{ Error=TEXT("Side Shift needs 1-8 charges, 0.2-60 second recharge, valid direction threshold and finite motion tuning."); return false; }
+	if(!FMath::IsFinite(DirectionDeadZone)||DirectionDeadZone<.05f||DirectionDeadZone>1||!Motion.IsValidTuning())
+	{ Error=TEXT("Side Shift needs a valid direction threshold and finite motion tuning."); return false; }
 	if(FX.bEnabled&&!FX.IsValid()) { Error=TEXT("Side Shift FX needs valid world-space Niagara recipes, tire marks and exhaust mounts."); return false; }
 	return true;
 }
@@ -66,10 +65,9 @@ void UHALSideShiftAbility::OnRemoveAbility(const FGameplayAbilityActorInfo* Info
 	{ if(auto* C=Info->AvatarActor->FindComponentByClass<UHALSideShiftComponent>()) { C->Shutdown(); } }
 	Super::OnRemoveAbility(Info,Spec);
 }
-void UHALSideShiftAbility::ActivateAbility(FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* Info,
-	FGameplayAbilityActivationInfo Activation,const FGameplayEventData*)
+EHALUltimateStart UHALSideShiftAbility::StartUltimate(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* Info,
+	FGameplayAbilityActivationInfo Activation, const FGameplayEventData*)
 {
-	auto* C=Info&&Info->AvatarActor.IsValid()?Info->AvatarActor->FindComponentByClass<UHALSideShiftComponent>():nullptr;
-	const bool Started=Info&&Info->IsNetAuthority()&&C&&C->CanStart()&&CommitAbility(Handle,Info,Activation)&&C->Start();
-	EndAbility(Handle,Info,Activation,true,!Started);
+	auto* Shift = Info->AvatarActor->FindComponentByClass<UHALSideShiftComponent>();
+	return Shift && Shift->Start() ? EHALUltimateStart::Completed : EHALUltimateStart::Failed;
 }

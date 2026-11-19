@@ -92,7 +92,7 @@ bool FHALMovementAbilityRefreshTest::RunTest(const FString& Parameters)
 	auto* Settings=GetMutableDefault<UHALDebugSettings>(); const auto PreviousClass=Settings->MovementBoostEffectClass;
 	Switch->Set(0,ECVF_SetByCode); Settings->MovementBoostEffectClass.Reset();
 	TestTrue(TEXT("Primary skill activates independently of debug command/settings"),F->Activate());
-	TestTrue(TEXT("Same-frame skill reapplication refreshes"),F->Activate());
+	TestFalse(TEXT("Same-frame duplicate cannot spend twice"),F->Activate());
 	Switch->Set(Previous,ECVF_SetByCode); Settings->MovementBoostEffectClass=PreviousClass;
 	TestTrue(TEXT("GA ends immediately while GE remains active"),F->ActionEnded() && F->Boosted());
 	TestEqual(TEXT("One target layer"),F->ASC->GetTagCount(HALGameplayTags::State_Movement_Boost),1);
@@ -101,14 +101,15 @@ bool FHALMovementAbilityRefreshTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Acceleration contribution"),F->ASC->GetSet<UHALMovementAttributeSet>()->GetAccelerationMultiplierDelta(),0.5f);
 	After(this,F,2,[this,F]
 	{
-		TestTrue(TEXT("Second press can refresh despite the earlier GE still running"),F->Activate());
-		TestTrue(TEXT("Refresh restarts five game seconds"),FMath::IsNearlyEqual(F->Remaining(),5.f,0.01f));
+		TestTrue(TEXT("Pickup fills the active owner early"), F->ASC->GrantUltimateEnergy(100.f) > 0);
+		TestFalse(TEXT("Active boost cannot be recast even at full energy"),F->Activate());
+		TestTrue(TEXT("Second press leaves original duration intact"),F->Remaining()>2.7f && F->Remaining()<3.2f);
 		TestTrue(TEXT("GA again ended immediately"),F->ActionEnded());
 	});
-	After(this,F,3.2f,[this,F]{ TestTrue(TEXT("Refresh survives original expiry"),F->Boosted()); });
+	After(this,F,3.2f,[this,F]{ TestFalse(TEXT("Original boost expires on schedule"),F->Boosted()); });
 	After(this,F,2,[this,F]
 	{
-		TestFalse(TEXT("GAS naturally expires five seconds after refresh"),F->Boosted());
+		TestFalse(TEXT("Boost remains expired until recast"),F->Boosted());
 		TestEqual(TEXT("Acceleration restored"),F->ASC->GetSet<UHALMovementAttributeSet>()->GetAccelerationMultiplierDelta(),0.f);
 		TestEqual(TEXT("Speed restored"),F->ASC->GetSet<UHALMovementAttributeSet>()->GetSpeedLimitMultiplierDelta(),0.f);
 		TestTrue(TEXT("Can use same Primary again after expiry"),F->Activate());

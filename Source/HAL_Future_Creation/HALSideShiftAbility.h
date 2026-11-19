@@ -1,6 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "Abilities/GameplayAbility.h"
+#include "HALVehicleUltimateAbility.h"
 #include "Engine/DataAsset.h"
 #include "GameplayEffect.h"
 #include "HALSideShiftMotion.h"
@@ -44,8 +44,8 @@ class HAL_FUTURE_CREATION_API UHALSideShiftConfig : public UDataAsset
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere, Category="Charges", meta=(ClampMin="1", ClampMax="8")) int32 MaximumCharges = 4;
-	UPROPERTY(EditAnywhere, Category="Charges", meta=(Units="s", ClampMin="0.2", ClampMax="60")) float RechargeSeconds = 5;
+	UPROPERTY() int32 MaximumCharges = 4;
+	UPROPERTY() float RechargeSeconds = 5;
 	UPROPERTY(EditAnywhere, Category="Input", meta=(ClampMin="0.05", ClampMax="1")) float DirectionDeadZone = .2f;
 	UPROPERTY(EditAnywhere, Category="Motion") FHALSideShiftMotion Motion;
 	UPROPERTY(EditAnywhere, Category="Presentation") FHALSideShiftFX FX;
@@ -60,16 +60,17 @@ UCLASS()
 class HAL_FUTURE_CREATION_API UHALSideShiftStateEffect : public UGameplayEffect { GENERATED_BODY() public: UHALSideShiftStateEffect(); };
 
 UCLASS()
-class HAL_FUTURE_CREATION_API UHALSideShiftAbility : public UGameplayAbility
+class HAL_FUTURE_CREATION_API UHALSideShiftAbility : public UHALVehicleUltimateAbility
 {
 	GENERATED_BODY()
 public:
 	UHALSideShiftAbility();
+	virtual float GetUltimateCost() const override { return HALUltimate::SideShiftCost; }
 	UPROPERTY(EditDefaultsOnly, Category="Side Shift") TObjectPtr<UHALSideShiftConfig> SkillConfig;
 	virtual void OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo,const FGameplayAbilitySpec& Spec) override;
 	virtual void OnRemoveAbility(const FGameplayAbilityActorInfo* ActorInfo,const FGameplayAbilitySpec& Spec) override;
 	virtual bool CanActivateAbility(FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayTagContainer* SourceTags,const FGameplayTagContainer* TargetTags,FGameplayTagContainer* OptionalRelevantTags) const override;
-	virtual void ActivateAbility(FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* ActorInfo,
+	virtual EHALUltimateStart StartUltimate(FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* ActorInfo,
 		FGameplayAbilityActivationInfo ActivationInfo,const FGameplayEventData* TriggerEventData) override;
 };

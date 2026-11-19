@@ -175,15 +175,15 @@ namespace
 				Test->TestTrue(TEXT("Stun preserved skill and subsequently resumed"), bSawStun && bResumed);
 				Test->TestTrue(TEXT("Normal entry point automatically accelerates the actual truck"), bSawAutoDrive);
 				Test->TestTrue(TEXT("Physics consumes the increased speed limit"), bSawRaisedLimit);
-				Test->TestTrue(TEXT("Gameplay ends before cooldown"), ASC->HasMatchingGameplayTag(HALGameplayTags::Cooldown_BullCharge));
+				Test->TestTrue(TEXT("Gameplay ends before full recharge"), !ASC->GetUltimateEnergyView().bHasEnergy);
 				Test->TestFalse(TEXT("Expiry removes charge immunity"), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_ImpactImmune));
 			}
-			if (!bExpired || ASC->HasMatchingGameplayTag(HALGameplayTags::Cooldown_BullCharge)) { return false; }
+			if (!bExpired || !ASC->GetUltimateEnergyView().bHasEnergy) { return false; }
 			if (CompleteAt < 0)
 			{
 				Test->TestTrue(TEXT("Recovery was replayable and observed"), bSawRecovery);
 				Test->TestTrue(TEXT("Owner motion is ready after expiry"), Status.bReady);
-				if (bHost) { Test->TestTrue(TEXT("Cooldown counts from activation"), World->GetTimeSeconds() - RequestedAt >= 19.5); }
+				if (bHost) { Test->TestTrue(TEXT("Recharge counts from activation"), World->GetTimeSeconds() - RequestedAt >= 19.5); }
 				UE_LOG(LogTemp, Display, TEXT("HAL BullCharge live Role=%s Active=1 Stun=1 Resume=1 Recovery=%d Ready=%d Replays=%d Rewinds=%d"),
 					bHost ? TEXT("Host") : TEXT("Client"), bSawRecovery, Status.bReady, Movement->GetResimulationRunCount(), Status.RewindRequests);
 				CompleteAt = FPlatformTime::Seconds();

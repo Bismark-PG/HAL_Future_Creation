@@ -1,12 +1,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Abilities/GameplayAbility.h"
+#include "HALVehicleUltimateAbility.h"
 #include "HALImpactImmunityAbility.generated.h"
 
 /** Authority activation; GE owns the timed state after this instantaneous action ends. */
 UCLASS()
-class HAL_FUTURE_CREATION_API UHALImpactImmunityAbility : public UGameplayAbility
+class HAL_FUTURE_CREATION_API UHALImpactImmunityAbility : public UHALVehicleUltimateAbility
 {
 	GENERATED_BODY()
 public:
@@ -18,11 +18,9 @@ public:
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Ability|Impact Immunity")
 	TSubclassOf<UGameplayEffect> ImmunityEffectClass;
-	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	virtual EHALUltimateStart StartUltimate(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
-	virtual void ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-		const FGameplayAbilityActivationInfo ActivationInfo) const override;
 
 private:
-	mutable FActiveGameplayEffectHandle CommittedCooldown;
+	FActiveGameplayEffectHandle ActiveUltimateEffect;
 };

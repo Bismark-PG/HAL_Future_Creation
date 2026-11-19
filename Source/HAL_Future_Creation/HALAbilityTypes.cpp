@@ -32,6 +32,8 @@ bool HALAbilities::ValidateGrants(const TArray<FHALAbilityGrant>& Grants,FString
 }
 bool FHALVehicleAbilityConfig::Validate(FString& Error) const
 {
+	if (!FMath::IsFinite(FullRechargeSeconds) || FullRechargeSeconds < .1f || FullRechargeSeconds > 600.f)
+	{ Error = TEXT("Ultimate full recharge must be between 0.1 and 600 game seconds."); return false; }
 	if (Version==EHALVehicleAbilityVersion::LegacyPlayerState)
 	{
 		if (!Grants.IsEmpty()) { Error=TEXT("Legacy Player State mode must not contain ignored vehicle Grants; select Vehicle Definition V1."); return false; }

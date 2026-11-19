@@ -133,10 +133,10 @@ void UHALDebugHUDWidget::RefreshStatus()
 				const auto View=Shift->GetChargeView();
 				Text+=FString::Printf(TEXT("Side shift: %d/%d  Next charge: %.1fs\n"),View.Charges,View.MaximumCharges,Shift->GetRechargeRemaining());
 			}
-			Text += FString::Printf(TEXT("Primary skill: Granted=%d Immune=%.1fs CD=%.1fs (-1=unknown)\n"),
-				ASC->HasAbilityForInput(HALGameplayTags::Input_Ability_Primary),
-				ASC->GetEffectTimeRemaining(HALGameplayTags::State_Combat_ImpactImmune),
-				ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity));
+			const auto Energy = ASC->GetUltimateEnergyView();
+			Text += FString::Printf(TEXT("Ultimate %.1f/100   Cost %.0f   Ready %d   0-100 %.1fs   Immune %.1fs\n"),
+				Energy.Energy, Energy.Cost, Energy.bCanActivate, Energy.FullRechargeSeconds,
+				ASC->GetEffectTimeRemaining(HALGameplayTags::State_Combat_ImpactImmune));
 			Text += FString::Printf(TEXT("Movement boost: %s %.1fs (-1=remote unknown)\n"),
 				ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Boost) ? TEXT("ACTIVE") : TEXT("off"),
 				ASC->GetEffectTimeRemaining(HALGameplayTags::State_Movement_Boost));

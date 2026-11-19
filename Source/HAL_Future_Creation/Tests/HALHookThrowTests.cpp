@@ -175,7 +175,7 @@ bool FHALHookAuthorityTest::RunTest(const FString&)
 	TestTrue(TEXT("Caster stays locked until reel-in"),H->LocksCaster());
 	ASC->ApplyStun(.5f,B); TestEqual(TEXT("External Stun directly interrupts return"),H->GetPhase(),EHALHookPhase::Interrupted);
 	TestFalse(TEXT("Own action lock is removed while external Stun remains"),UHALHookComponent::BlocksActionsOn(A));
-	TestTrue(TEXT("Interruption does not refund cooldown"),ASC->HasMatchingGameplayTag(HALGameplayTags::Cooldown_HookThrow));
+	TestTrue(TEXT("Interruption does not refund energy"),!ASC->GetUltimateEnergyView().bHasEnergy);
 	H->Destroy();
 	H=F.Hook(*C); if(!TestNotNull(TEXT("Independent Stun fixture"),H)) { return false; }
 	TargetASC->AddLooseGameplayTag(HALGameplayTags::State_Combat_ImpactImmune);

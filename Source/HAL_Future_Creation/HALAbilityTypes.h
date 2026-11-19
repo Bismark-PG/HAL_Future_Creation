@@ -30,6 +30,9 @@ struct HAL_FUTURE_CREATION_API FHALVehicleAbilityConfig
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Abilities")
 	EHALVehicleAbilityVersion Version = EHALVehicleAbilityVersion::LegacyPlayerState;
+	/** Game seconds to regenerate 0 to 100 points during play. Also applies to legacy player grants. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ultimate Energy", meta=(Units="s", ClampMin="0.1", ClampMax="600"))
+	float FullRechargeSeconds = 20.f;
 	/** Current input protocol supports exactly one Primary. Other slots require a routing extension. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Abilities", meta=(TitleProperty="InputTag", EditCondition="Version == EHALVehicleAbilityVersion::VehicleDefinitionV1"))
 	TArray<FHALAbilityGrant> Grants;

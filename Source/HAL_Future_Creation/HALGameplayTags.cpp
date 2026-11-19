@@ -42,6 +42,7 @@ namespace HALGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_ImpactImmunity, "Ability.Vehicle.ImpactImmunity", "Timed self impact immunity, with separate owner cooldown.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_MovementBoost, "Ability.Vehicle.MovementBoost", "Instant server action applies the configured timed movement boost; repeated presses refresh its GE.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Fail_VehicleState, "Ability.Fail.VehicleState", "Vehicle, match or effect configuration is not ready for this activation.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Fail_UltimateEnergy, "Ability.Fail.UltimateEnergy", "Insufficient vehicle ultimate energy.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_ImpactImmunity, "Cooldown.Ability.ImpactImmunity", "Owner-scoped cooldown, retained across Avatar replacement.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Scope_Avatar, "Effect.Scope.Avatar", "Remove this active effect when the current Avatar changes or is lost.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_ImpactImmunity, "Effect.Vehicle.ImpactImmunity", "Identifies the native timed immunity effect, separate from other immunity sources.");

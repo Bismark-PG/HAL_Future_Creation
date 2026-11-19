@@ -43,8 +43,8 @@ bool FHALSideShiftProfileTest::RunTest(const FString&)
 	FHALMovementSnapshot Past,Ended; TestTrue(TEXT("Past movement is queryable"),Read.Query(115,Past)&&Past.SideShift.IsSliding(115));
 	TestTrue(TEXT("Stopped movement retained in history"),Read.Query(140,Ended)&&!Ended.SideShift.IsDrifting(140));
 	auto* C=NewObject<UHALSideShiftConfig>(); FString Error; TestTrue(TEXT("Default skill configuration valid"),C->Validate(Error));
-	C->MaximumCharges=9; TestFalse(TEXT("Charge budget bounded"),C->Validate(Error)); C->MaximumCharges=4;
-	C->RechargeSeconds=0; TestFalse(TEXT("Zero recharge rejected"),C->Validate(Error)); return true;
+	TestEqual(TEXT("Four equal energy payments fill the pool"), GetDefault<UHALSideShiftAbility>()->GetUltimateCost()*4, HALUltimate::Capacity);
+	FHALVehicleAbilityConfig Vehicle; Vehicle.FullRechargeSeconds=0; TestFalse(TEXT("Zero recharge rejected on vehicle"),Vehicle.Validate(Error)); return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSideShiftQuarterTurnTest,"HAL.FutureCreation.SideShift.QuarterTurnLatchReleaseAndReplay",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
@@ -179,7 +179,7 @@ bool FHALSideShiftGASTest::RunTest(const FString&)
 	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FAdvanceSideShift>(Life,1.1f,[this,Life,P,C,ASC,Config,Due,Ball]()
 	{
 		FHALSideShiftTestAccess::Pose(P); C->Request(1,true); TestEqual(TEXT("Second activation costs one"),C->GetChargeView().Charges,2);
-		TestEqual(TEXT("Further spending does not restart recharge clock"),C->GetChargeView().NextRechargeServerTime,Due);
+		TestTrue(TEXT("Further spending preserves time to the next cell"), FMath::IsNearlyEqual(C->GetChargeView().NextRechargeServerTime,Due,.002));
 		C->Initialize(*ASC,*Config); TestEqual(TEXT("Idempotent binding does not refill"),C->GetChargeView().Charges,2);
 		P->SetActorRotation(FRotator(0,90,0)); FVector Recoil;
 		TestTrue(TEXT("Normal launch works during side shift"),P->FindComponentByClass<UBallControlComponent>()->LaunchHeldBall(Recoil));
@@ -213,6 +213,13 @@ bool FHALSideShiftGASTest::RunTest(const FString&)
 								FHALSideShiftTestAccess::Pose(P); const auto Previous=FHALSideShiftTestAccess::Visual(*C).Activation;
 								C->Request(1); TestEqual(TEXT("Exhausted charges cannot activate or become negative"),C->GetChargeView().Charges,0);
 								TestEqual(TEXT("Exhausted request cannot create another activation"),FHALSideShiftTestAccess::Visual(*C).Activation,Previous);
+								const float Partial = ASC->GetUltimateEnergyView().Energy;
+								TestTrue(TEXT("A partially charged cell retains its points"), Partial > 0 && Partial < HALUltimate::SideShiftCost);
+								const float Missing = HALUltimate::SideShiftCost - Partial;
+								TestTrue(TEXT("A pickup completes exactly the partial cell"), ASC->GrantUltimateEnergy(Missing) > 0);
+								TestEqual(TEXT("Cell display reflects the same GAS pool"), C->GetChargeView().Charges, 1);
+								C->Request(1);
+								TestEqual(TEXT("Completed cell is immediately spendable"), C->GetChargeView().Charges, 0);
 								ASC->SetNumericAttributeBase(UHALHealthAttributeSet::GetCurrentHPAttribute(),0);
 								TestFalse(TEXT("Defeat clears resource and configuration"),C->GetChargeView().bConfigured);
 								TestEqual(TEXT("Defeat retires recharge timer"),C->GetChargeView().NextRechargeServerTime,-1.);

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Abilities/GameplayAbility.h"
+#include "HALVehicleUltimateAbility.h"
 #include "Engine/DataAsset.h"
 #include "GameplayEffect.h"
 #include "HALImpactTypes.h"
@@ -17,7 +17,8 @@ class HAL_FUTURE_CREATION_API UHALBullChargeConfig : public UDataAsset
 public:
 	UPROPERTY(EditAnywhere, Category="Charge") FHALOverdriveMotion Motion;
 	UPROPERTY(EditAnywhere, Category="Presentation") FHALBullChargeFXConfig FX;
-	UPROPERTY(EditAnywhere, Category="Timing", meta=(Units="s", ClampMin="0", ClampMax="120")) float CooldownSeconds = 20.f;
+	/** Legacy serialized value; recharge is authored on the vehicle. */
+	UPROPERTY() float CooldownSeconds = 20.f;
 	UPROPERTY(EditAnywhere, Category="Contact", meta=(Units="s", ClampMin="0.05", ClampMax="10")) float TargetCooldownSeconds = .8f;
 	UPROPERTY(EditAnywhere, Category="Contact", meta=(Units="deg", ClampMin="1", ClampMax="89")) float FrontHalfAngle = 45.f;
 	UPROPERTY(EditAnywhere, Category="Contact", meta=(Units="cm/s", ClampMin="1", ClampMax="10000")) float MinimumForwardSpeed = 400.f;
@@ -57,7 +58,7 @@ public:
 	UHALBullChargeCooldownEffect();
 };
 UCLASS()
-class HAL_FUTURE_CREATION_API UHALBullChargeAbility : public UGameplayAbility
+class HAL_FUTURE_CREATION_API UHALBullChargeAbility : public UHALVehicleUltimateAbility
 {
 	GENERATED_BODY()
 public:
@@ -67,10 +68,7 @@ public:
 	virtual bool CanActivateAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayTagContainer* SourceTags = nullptr, const FGameplayTagContainer* TargetTags = nullptr,
 		FGameplayTagContainer* OptionalRelevantTags = nullptr) const override;
-	virtual void ApplyCooldown(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-		FGameplayAbilityActivationInfo ActivationInfo) const override;
-	virtual void ActivateAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	virtual EHALUltimateStart StartUltimate(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 private:
-	mutable FActiveGameplayEffectHandle CommittedCooldown;
 };

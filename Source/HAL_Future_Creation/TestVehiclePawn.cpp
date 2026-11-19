@@ -323,6 +323,7 @@ void ATestVehiclePawn::BindVehicleAbilitySystem(UHALAbilitySystemComponent* ASC,
 	{
 		ASC->InitializeCombat(RuntimeCombatConfig);
 		ASC->InitializeImpact(ImpactReceiver->GetConfiguration());
+		ASC->InitializeUltimateEnergy();
 	}
 }
 

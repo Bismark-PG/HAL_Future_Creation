@@ -10,7 +10,7 @@
 
 bool UHALTornadoConfig::Validate(FString& Error) const
 {
-	if (FMath::IsFinite(CooldownSeconds) && CooldownSeconds >= 0 && CooldownSeconds <= 120 && Rules.IsValid()) { Error.Reset(); return true; }
+	if (Rules.IsValid()) { Error.Reset(); return true; }
 	Error = TEXT("Tornado needs finite rules within the documented editor ranges."); return false;
 }
 #if WITH_EDITOR
@@ -33,7 +33,6 @@ UHALTornadoAbility::UHALTornadoAbility()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
-	CooldownGameplayEffectClass = UHALTornadoCooldownEffect::StaticClass();
 	SetAssetTags(FGameplayTagContainer(HALGameplayTags::Ability_Tornado));
 }
 bool UHALTornadoAbility::ResolveStart(const FGameplayAbilityActorInfo* Info, FVector& Ground) const
@@ -57,35 +56,24 @@ bool UHALTornadoAbility::CanActivateAbility(FGameplayAbilitySpecHandle Handle, c
 	FVector Ground; const bool Ready = !ActiveTornado.IsValid() && ResolveStart(Info, Ground);
 	if (!Ready && Failure) { Failure->AddTag(HALGameplayTags::Ability_Fail_VehicleState); } return Ready;
 }
-void UHALTornadoAbility::ApplyCooldown(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* Info, FGameplayAbilityActivationInfo Activation) const
-{
-	const auto* Config = GetClass()->GetDefaultObject<UHALTornadoAbility>()->SkillConfig.Get();
-	if (!Config || Config->CooldownSeconds <= 0) { return; }
-	const auto Spec = MakeOutgoingGameplayEffectSpec(Handle, Info, Activation, UHALTornadoCooldownEffect::StaticClass(), GetAbilityLevel(Handle, Info));
-	if (!Spec.IsValid()) { return; } Spec.Data->SetDuration(Config->CooldownSeconds, true);
-	CommittedCooldown = ApplyGameplayEffectSpecToOwner(Handle, Info, Activation, Spec);
-}
-void UHALTornadoAbility::ActivateAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* Info,
+EHALUltimateStart UHALTornadoAbility::StartUltimate(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* Info,
 	FGameplayAbilityActivationInfo Activation, const FGameplayEventData*)
 {
-	FVector Ground; CommittedCooldown.Invalidate();
-	if (!Info || !Info->IsNetAuthority() || ActiveTornado.IsValid() || !ResolveStart(Info, Ground) || !CommitAbility(Handle, Info, Activation))
-	{ EndAbility(Handle, Info, Activation, true, true); return; }
 	const auto* Config = GetClass()->GetDefaultObject<UHALTornadoAbility>()->SkillConfig.Get();
-	AHALTornado* Wind = nullptr;
-	if (Config->CooldownSeconds <= 0 || CommittedCooldown.IsValid())
+	FVector Ground;
+	if (ActiveTornado.IsValid() || !Config || !ResolveStart(Info, Ground)) { return EHALUltimateStart::Failed; }
+	FActorSpawnParameters Params;
+	Params.Owner = Info->AvatarActor.Get();
+	auto* Actor = Params.Owner->GetWorld()->SpawnActor<AHALTornado>(Params);
+	if (!Actor || !Actor->Start(*Config, Ground))
 	{
-		FActorSpawnParameters Params; Params.Owner = Info->AvatarActor.Get();
-		Wind = Params.Owner->GetWorld()->SpawnActor<AHALTornado>(Params);
+		if (Actor) { Actor->Destroy(); }
+		return EHALUltimateStart::Failed;
 	}
-	if (!Wind || !Wind->Start(*Config, Ground))
-	{
-		if (Wind) { Wind->Destroy(); }
-		if (CommittedCooldown.IsValid()) { Info->AbilitySystemComponent->RemoveActiveGameplayEffect(CommittedCooldown); }
-		EndAbility(Handle, Info, Activation, true, true); return;
-	}
-	ActiveTornado = Wind; Wind->OnDestroyed.AddDynamic(this, &ThisClass::TornadoDestroyed);
-	Wind->OnGameplayEnded.AddUObject(this, &ThisClass::GameplayEnded);
+	ActiveTornado = Actor;
+	Actor->OnDestroyed.AddDynamic(this, &ThisClass::TornadoDestroyed);
+	Actor->OnGameplayEnded.AddUObject(this, &ThisClass::GameplayEnded);
+	return EHALUltimateStart::Active;
 }
 void UHALTornadoAbility::TornadoDestroyed(AActor* Actor)
 {

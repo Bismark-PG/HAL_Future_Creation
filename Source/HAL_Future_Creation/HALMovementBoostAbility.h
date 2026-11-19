@@ -1,14 +1,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Abilities/GameplayAbility.h"
+#include "HALVehicleUltimateAbility.h"
 #include "HALMovementBoostAbility.generated.h"
 
 class UHALMovementBoostEffect;
 
 /** Instant server action. The GE owns duration/refresh; the movement bridge owns physics. */
 UCLASS()
-class HAL_FUTURE_CREATION_API UHALMovementBoostAbility : public UGameplayAbility
+class HAL_FUTURE_CREATION_API UHALMovementBoostAbility : public UHALVehicleUltimateAbility
 {
 	GENERATED_BODY()
 public:
@@ -21,6 +21,7 @@ protected:
 	/** Authoritative effect selection; independent of HAL Debug's development-only class setting. */
 	UPROPERTY(EditDefaultsOnly, Category = "Ability|Movement Boost")
 	TSubclassOf<UHALMovementBoostEffect> MovementEffectClass;
-	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	virtual EHALUltimateStart StartUltimate(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
+	FActiveGameplayEffectHandle ActiveUltimateEffect;
 };

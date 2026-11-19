@@ -2,6 +2,7 @@
 
 #include "HALAbilitySystemComponent.h"
 #include "HALHealthAttributeSet.h"
+#include "HALUltimateEnergy.h"
 #include "HALCombatAttributeSet.h"
 #include "HALImpactAttributeSet.h"
 #include "HALMovementAttributeSet.h"
@@ -17,6 +18,8 @@ AHALPlayerState::AHALPlayerState()
 	AbilitySystem->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 	HealthAttributes = CreateDefaultSubobject<UHALHealthAttributeSet>(TEXT("HealthAttributes"));
 	AbilitySystem->AddAttributeSetSubobject(HealthAttributes.Get());
+	UltimateEnergyAttributes = CreateDefaultSubobject<UHALUltimateEnergySet>(TEXT("UltimateEnergyAttributes"));
+	AbilitySystem->AddAttributeSetSubobject(UltimateEnergyAttributes.Get());
 	CombatAttributes = CreateDefaultSubobject<UHALCombatAttributeSet>(TEXT("CombatAttributes"));
 	AbilitySystem->AddAttributeSetSubobject(CombatAttributes.Get());
 	ImpactAttributes = CreateDefaultSubobject<UHALImpactAttributeSet>(TEXT("ImpactAttributes"));

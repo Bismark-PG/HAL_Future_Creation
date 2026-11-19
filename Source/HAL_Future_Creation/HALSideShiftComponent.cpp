@@ -34,7 +34,7 @@ void UHALSideShiftComponent::EndPlay(EEndPlayReason::Type Reason)
 void UHALSideShiftComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME_CONDITION(UHALSideShiftComponent,ChargeView,COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UHALSideShiftComponent,bConfigured,COND_OwnerOnly);
 	DOREPLIFETIME(UHALSideShiftComponent,Visual);
 }
 double UHALSideShiftComponent::ServerTime() const
@@ -43,7 +43,10 @@ double UHALSideShiftComponent::ServerTime() const
 	return S?S->GetServerWorldTimeSeconds():GetWorld()?GetWorld()->GetTimeSeconds():0;
 }
 float UHALSideShiftComponent::GetRechargeRemaining() const
-{ return ChargeView.NextRechargeServerTime<0?0:float(FMath::Max(0.,ChargeView.NextRechargeServerTime-ServerTime())); }
+{
+	const auto View = GetChargeView();
+	return View.NextRechargeServerTime < 0 ? 0 : float(FMath::Max(0., View.NextRechargeServerTime - ServerTime()));
+}
 bool UHALSideShiftComponent::UsesPrimary() const
 {
 	const auto* P=Cast<ATestVehiclePawn>(GetOwner());
@@ -54,15 +57,24 @@ bool UHALSideShiftComponent::UsesPrimary() const
 	{ ++Count; Match=S.Ability->IsA<UHALSideShiftAbility>(); }
 	return Count==1&&Match;
 }
-int32 UHALSideShiftComponent::ResourceCount() const
-{ const auto* ASC=BoundASC.Get(); return ASC&&ResourceEffect.IsValid()?ASC->GetCurrentStackCount(ResourceEffect):0; }
-bool UHALSideShiftComponent::AddCharge(int32 Count)
+FHALSideShiftView UHALSideShiftComponent::GetChargeView() const
 {
-	auto* ASC=BoundASC.Get(); if(!ASC||!Config||Count<=0) { return false; }
-	const int32 Add=FMath::Min(Count,Config->MaximumCharges-ResourceCount()); if(Add<=0) { return true; }
-	FGameplayEffectContextHandle Context=ASC->MakeEffectContext(); Context.AddSourceObject(GetOwner());
-	FGameplayEffectSpec Spec(GetDefault<UHALSideShiftChargeEffect>(),Context,1); Spec.SetStackCount(Add);
-	ResourceEffect=ASC->ApplyGameplayEffectSpecToSelf(Spec); return ResourceEffect.IsValid();
+	FHALSideShiftView View;
+	const auto* Pawn = Cast<ATestVehiclePawn>(GetOwner());
+	const auto* ASC = Pawn ? Cast<UHALAbilitySystemComponent>(Pawn->GetAbilitySystemComponent()) : nullptr;
+	if (!bConfigured || !ASC || ASC->GetAvatarActor() != Pawn) { return View; }
+	const auto Energy = ASC->GetUltimateEnergyView();
+	if (Energy.Cost != HALUltimate::SideShiftCost) { return View; }
+	View.bConfigured = true;
+	View.MaximumCharges = HALUltimate::SideShiftCells;
+	View.Charges = FMath::FloorToInt(Energy.Energy / Energy.Cost);
+	View.RechargeSeconds = Energy.FullRechargeSeconds / View.MaximumCharges;
+	if (Energy.bRecharging)
+	{
+		const float Missing = (View.Charges + 1) * Energy.Cost - Energy.Energy;
+		View.NextRechargeServerTime = Energy.SampleServerTime + Missing * Energy.FullRechargeSeconds / HALUltimate::Capacity;
+	}
+	return View;
 }
 void UHALSideShiftComponent::Initialize(UHALAbilitySystemComponent& ASC,UHALSideShiftConfig& Settings)
 {
@@ -73,26 +85,8 @@ void UHALSideShiftComponent::Initialize(UHALAbilitySystemComponent& ASC,UHALSide
 	StunHandle=ASC.RegisterGameplayTagEvent(HALGameplayTags::State_Stun,EGameplayTagEventType::NewOrRemoved).AddUObject(this,&ThisClass::TagChanged);
 	ActiveTagHandle=ASC.RegisterGameplayTagEvent(HALGameplayTags::State_SideShift,EGameplayTagEventType::NewOrRemoved).AddUObject(this,&ThisClass::TagChanged);
 	HealthHandle=ASC.GetGameplayAttributeValueChangeDelegate(UHALHealthAttributeSet::GetCurrentHPAttribute()).AddUObject(this,&ThisClass::HealthChanged);
-	if(!AddCharge(Config->MaximumCharges)) { Shutdown(); return; }
-	PublishCharges();
-}
-void UHALSideShiftComponent::PublishCharges()
-{
-	ChargeView.bConfigured=Config!=nullptr; ChargeView.Charges=ResourceCount();
-	ChargeView.MaximumCharges=Config?Config->MaximumCharges:0; ChargeView.RechargeSeconds=Config?Config->RechargeSeconds:0;
-	if(!Config||ChargeView.Charges>=ChargeView.MaximumCharges)
-	{ GetWorld()->GetTimerManager().ClearTimer(RechargeTimer); ChargeView.NextRechargeServerTime=-1; }
+	bConfigured = true;
 	GetOwner()->ForceNetUpdate();
-}
-void UHALSideShiftComponent::Recharge()
-{
-	if(!Config||!BoundASC.IsValid()||BoundASC->GetAvatarActor()!=GetOwner()) { Shutdown(); return; }
-	AddCharge(1); PublishCharges();
-	if(ResourceCount()<Config->MaximumCharges)
-	{
-		ChargeView.NextRechargeServerTime=ServerTime()+Config->RechargeSeconds;
-		GetWorld()->GetTimerManager().SetTimer(RechargeTimer,this,&ThisClass::Recharge,Config->RechargeSeconds,false);
-	}
 }
 bool UHALSideShiftComponent::HasUsablePose() const
 {
@@ -108,7 +102,11 @@ bool UHALSideShiftComponent::HasUsablePose() const
 }
 bool UHALSideShiftComponent::CanStart() const
 {
-	return Config&&BoundASC.IsValid()&&GetOwner()->HasAuthority()&&UsesPrimary()&&PendingSide!=0&&ResourceCount()>0
+	return PendingSide != 0 && CanStartWithDirection();
+}
+bool UHALSideShiftComponent::CanStartWithDirection() const
+{
+	return Config && BoundASC.IsValid() && GetOwner()->HasAuthority() && UsesPrimary() && BoundASC->CanPayUltimate(HALUltimate::SideShiftCost)
 		&&ServerTime()+.0001>=ReadyAt&&HasUsablePose()&&!UHALBattleTopComponent::IsActiveOn(GetOwner())&&!UHALBullChargeComponent::IsActiveOn(GetOwner());
 }
 bool UHALSideShiftComponent::Request(float Steering,bool bHandbrake)
@@ -176,23 +174,16 @@ bool UHALSideShiftComponent::Start()
 	const auto Effect=ASC->ApplyGameplayEffectSpecToSelf(Spec); if(!Effect.IsValid()) { return false; }
 	// Replace the old tail only after the new transaction is valid. Stop never refills charges.
 	Stop(); ActiveEffect=Effect;
-	ASC->RemoveActiveGameplayEffect(ResourceEffect,1);
 	Visual.Activation=Motion.Activation; Visual.FX=Config->FX; Visual.StartServerTime=ServerTime();
 	Visual.ShiftSeconds=Motion.DurationSeconds; Visual.DriftSeconds=Motion.DriftSeconds;
 	Visual.Direction=Motion.Direction; Visual.Side=PendingSide; Visual.bDriving=true;
 	ReadyAt=Visual.StartServerTime+Motion.DurationSeconds;
 	Bridge->SetSideShiftMotion(Motion);
-	if(!GetWorld()->GetTimerManager().IsTimerActive(RechargeTimer))
-	{
-		ChargeView.NextRechargeServerTime=ServerTime()+Config->RechargeSeconds;
-		GetWorld()->GetTimerManager().SetTimer(RechargeTimer,this,&ThisClass::Recharge,Config->RechargeSeconds,false);
-	}
-	PublishCharges();
 	WorldHandle=FWorldDelegates::OnWorldPostActorTick.AddUObject(this,&ThisClass::WatchActive);
 	GetWorld()->GetTimerManager().SetTimer(EndTimer,this,&ThisClass::Stop,FMath::Max(Motion.DurationSeconds,Motion.DriftSeconds)+.02f,false);
 	OnRep_Visual(); GetOwner()->ForceNetUpdate();
-	UE_CLOG(HALAbilities::ShouldLog(),LogHALAbility,Log,TEXT("SideShift started Pawn=%s Side=%d Charges=%d Distance=%.2f ArcSpan=%.2f Bend=%.2f Duration=%.3f Drift=%.3f RechargeAt=%.3f Origin=%s Direction=%s"),
-		*GetNameSafe(GetOwner()),int32(PendingSide),ResourceCount(),Motion.Distance,Motion.DriftLateralSpan,Motion.DriftArcBend,Motion.DurationSeconds,Motion.DriftSeconds,ChargeView.NextRechargeServerTime,*Pose.Position.ToString(),*Motion.Direction.ToString());
+	UE_CLOG(HALAbilities::ShouldLog(),LogHALAbility,Log,TEXT("SideShift started Pawn=%s Side=%d Distance=%.2f ArcSpan=%.2f Bend=%.2f Duration=%.3f Drift=%.3f Origin=%s Direction=%s"),
+		*GetNameSafe(GetOwner()),int32(PendingSide),Motion.Distance,Motion.DriftLateralSpan,Motion.DriftArcBend,Motion.DurationSeconds,Motion.DriftSeconds,*Pose.Position.ToString(),*Motion.Direction.ToString());
 	return true;
 }
 void UHALSideShiftComponent::WatchActive(UWorld* World,ELevelTick,float)
@@ -230,7 +221,7 @@ void UHALSideShiftComponent::Shutdown()
 {
 	if(GetOwner()&&GetOwner()->HasAuthority())
 	{
-		Stop(); if(auto* World=GetWorld()) { World->GetTimerManager().ClearTimer(RechargeTimer); }
+		Stop();
 		if(Visual.Activation.IsValid())
 		{ if(auto* Bridge=GetOwner()->FindComponentByClass<UHALMovementEffectBridge>()) { Bridge->SetSideShiftMotion({}); } }
 		if(auto* ASC=BoundASC.Get())
@@ -238,9 +229,8 @@ void UHALSideShiftComponent::Shutdown()
 			ASC->RegisterGameplayTagEvent(HALGameplayTags::State_Stun,EGameplayTagEventType::NewOrRemoved).Remove(StunHandle);
 			ASC->RegisterGameplayTagEvent(HALGameplayTags::State_SideShift,EGameplayTagEventType::NewOrRemoved).Remove(ActiveTagHandle);
 			ASC->GetGameplayAttributeValueChangeDelegate(UHALHealthAttributeSet::GetCurrentHPAttribute()).Remove(HealthHandle);
-			if(ResourceEffect.IsValid()) { ASC->RemoveActiveGameplayEffect(ResourceEffect); }
 		}
-		ResourceEffect.Invalidate(); BoundASC.Reset(); Config=nullptr; ChargeView={}; ReadyAt=-1;
+		BoundASC.Reset(); Config=nullptr; bConfigured=false; ReadyAt=-1;
 		GetOwner()->ForceNetUpdate();
 	}
 }

@@ -29,12 +29,12 @@ namespace
 				if(!W->IsGameWorld()||!FParse::Param(FCommandLine::Get(),TEXT("HALHookFixture"))) { return; }
 				const auto* Saved=LoadObject<UHALHookThrowConfig>(nullptr,TEXT("/Game/Data/Abilities/DA_Ability_HookThrow"));
 				if(!Saved) { return; }
-				auto* C=DuplicateObject<UHALHookThrowConfig>(Saved,GetTransientPackage()); C->CooldownSeconds=.8f;
+				auto* C=DuplicateObject<UHALHookThrowConfig>(Saved,GetTransientPackage());
 				GetMutableDefault<UHALHookThrowAbility>()->SkillConfig=C;
 				W->AddOnActorPreSpawnInitialization(FOnActorSpawned::FDelegate::CreateLambda([](AActor* A)
 				{
 					if(auto* M=Cast<AHALMatchGameMode>(A)) { M->DefaultPawnClass=LoadClass<ATestVehiclePawn>(nullptr,TEXT("/Game/Blueprints/Vehicles/BP_VehiclePawn_Car_05.BP_VehiclePawn_Car_05_C")); }
-					if(auto* V=Cast<ATestVehiclePawn>(A);V&&V->GetVehicleDefinition()) { FHALVehicleAbilityTestAccess::Configure(V,UHALHookThrowAbility::StaticClass()); }
+					if(auto* V=Cast<ATestVehiclePawn>(A);V&&V->GetVehicleDefinition()) { FHALVehicleAbilityTestAccess::Configure(V,UHALHookThrowAbility::StaticClass())->Abilities.FullRechargeSeconds=.8f; }
 				}));
 			});
 		}

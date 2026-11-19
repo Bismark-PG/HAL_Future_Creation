@@ -41,7 +41,7 @@ bool FHALSmokeClockTest::RunTest(const FString&)
 	auto* C=NewObject<UHALSmokeScreenConfig>(); FString Error; auto& R=C->Rules;
 	TestTrue(TEXT("Confirmed defaults are valid"),C->Validate(Error));
 	TestEqual(TEXT("Four seconds emission"),R.EmissionSeconds,4.f); TestEqual(TEXT("Six seconds per puff"),R.PuffSeconds,6.f);
-	TestEqual(TEXT("Cooldown starts with eighteen seconds"),C->CooldownSeconds,18.f);
+	TestEqual(TEXT("A smoke emission spends a full pool"),GetDefault<UHALSmokeScreenAbility>()->GetUltimateCost(),100.f);
 	TestEqual(TEXT("Initial radius"),R.Radius(0),100.f); TestEqual(TEXT("Grown radius"),R.Radius(2),350.f);
 	TestEqual(TEXT("Future sample never obscures"),R.Density(-.1f),0.f);
 	TestEqual(TEXT("Mature smoke is full strength"),R.Density(1),1.f);
@@ -100,7 +100,9 @@ bool FHALSmokeAuthorityTest::RunTest(const FString&)
 	AHALSmokeScreen* Smoke=nullptr; for(TActorIterator<AHALSmokeScreen> It(W);It;++It) { Smoke=*It; }
 	if(!TestNotNull(TEXT("Authority created smoke field"),Smoke)) { return false; }
 	TestFalse(TEXT("Duplicate cast rejected"),ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary));
-	TestTrue(TEXT("Cooldown Tag exists from activation"),ASC->HasMatchingGameplayTag(HALGameplayTags::Cooldown_SmokeScreen));
+	TestEqual(TEXT("Smoke spends exactly 100"), ASC->GetUltimateEnergyView().Energy, 0.f);
+	TestEqual(TEXT("Pickup refills during emission"), ASC->GrantUltimateEnergy(100), 100.f);
+	TestFalse(TEXT("A full pool cannot restart active emission"), ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary));
 	FHALSmokeTestAccess::Age(*Smoke,1); const FVector Ground=Smoke->GetPuffs()[0].Ground;
 	B->SetActorLocation(Ground+FVector(90,0,60)); const float HP=B->FindComponentByClass<UVehicleHealthComponent>()->GetCurrentHP();
 	AddInfo(FString::Printf(TEXT("Smoke fixture: now=%.2f start=%.2f ground=%s target=%s actor=%s influence=%.3f"),HALSmoke::ServerTime(W),Smoke->GetStartTime(),*Ground.ToString(),*HALSmoke::TargetPosition(*B).ToString(),*B->GetActorLocation().ToString(),Smoke->Influence(*B,true,HALSmoke::ServerTime(W))));
@@ -113,7 +115,17 @@ bool FHALSmokeAuthorityTest::RunTest(const FString&)
 	TestFalse(TEXT("Smoke is not Stun"),BSC->IsStunned());
 	auto* Second=W->SpawnActor<AHALSmokeScreen>(); Second->SetOwner(Other); TestTrue(TEXT("Independent second source"),Second->Start(*Config,Ground));
 	FHALSmokeTestAccess::Age(*Second,1); FHALSmokeTestAccess::Receivers(*Second);
-	Smoke->Destroy(); TestTrue(TEXT("Leaving one source preserves another source's Tag"),BSC->HasMatchingGameplayTag(HALGameplayTags::State_Vision_SmokeObscured));
+	FHALSmokeTestAccess::Age(*Smoke, Config->Rules.EmissionSeconds + .01f);
+	FHALSmokeTestAccess::Step(*Smoke);
+	TestFalse(TEXT("Old cloud remains after emission ends"), Smoke->IsActorBeingDestroyed());
+	TestTrue(TEXT("Refilled caster can emit again with old puffs alive"),ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary));
+	AHALSmokeScreen* Recast=nullptr;
+	for (TActorIterator<AHALSmokeScreen> It(W); It; ++It) { if (It->GetOwner()==A && *It!=Smoke) { Recast=*It; } }
+	if (!TestNotNull(TEXT("Recast owns a distinct cloud"), Recast)) { return false; }
+	FHALSmokeTestAccess::Age(*Recast, 1); FHALSmokeTestAccess::Receivers(*Recast);
+	Smoke->Destroy();
+	TestTrue(TEXT("Retiring original smoke preserves recast"), !Recast->IsActorBeingDestroyed());
+	Recast->Destroy(); TestTrue(TEXT("Leaving one source preserves another source's Tag"),BSC->HasMatchingGameplayTag(HALGameplayTags::State_Vision_SmokeObscured));
 	auto* Wall=Box(Ground+FVector(45,0,150),FVector(8,500,150)); FHALSmokeTestAccess::Clip(*Second); FHALSmokeTestAccess::Receivers(*Second);
 	TestFalse(TEXT("Wall blocks smoke GE"),BSC->HasMatchingGameplayTag(HALGameplayTags::State_Vision_SmokeObscured));
 	TestFalse(TEXT("Wall also blocks concealment, not only damage-side state"),HALSmoke::IsConcealed(B));

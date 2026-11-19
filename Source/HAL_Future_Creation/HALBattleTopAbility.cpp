@@ -13,7 +13,7 @@ bool UHALBattleTopConfig::Validate(FString& Error) const
 {
 	const auto InRange = [](float Value, float Min, float Max)
 	{ return FMath::IsFinite(Value) && Value >= Min && Value <= Max; };
-	if (InRange(DurationSeconds, .1f, 30.f) && InRange(CooldownSeconds, 0, 120)
+	if (InRange(DurationSeconds, .1f, 30.f)
 		&& InRange(TargetCooldownSeconds,.05f,10) && InRange(SpinEnterSeconds,0,2) && InRange(SpinExitSeconds,0,2) && FX.IsValid()
 		&& InRange(ContactDamage, 0, 100) && HALImpact::IsValidTier(ContactTier) && ContactTier != EHALImpactTier::None
 		&& HALImpact::IsValidPushPreset(ContactPush) && InRange(WallReboundScale, 0, 2)
@@ -74,7 +74,6 @@ UHALBattleTopAbility::UHALBattleTopAbility()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
-	CooldownGameplayEffectClass = UHALBattleTopCooldownEffect::StaticClass();
 	SetAssetTags(FGameplayTagContainer(HALGameplayTags::Ability_BattleTop));
 }
 
@@ -101,45 +100,22 @@ bool UHALBattleTopAbility::CanActivateAbility(FGameplayAbilitySpecHandle Handle,
 	return bReady;
 }
 
-void UHALBattleTopAbility::ApplyCooldown(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-	FGameplayAbilityActivationInfo ActivationInfo) const
-{
-	const auto* Config = GetSkillConfig();
-	if (!Config || Config->CooldownSeconds <= 0) { return; }
-	const auto Spec = MakeOutgoingGameplayEffectSpec(Handle, ActorInfo, ActivationInfo,
-		UHALBattleTopCooldownEffect::StaticClass(), GetAbilityLevel(Handle, ActorInfo));
-	if (!Spec.IsValid()) { return; }
-	Spec.Data->SetDuration(Config->CooldownSeconds, true);
-	CommittedCooldown = ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, Spec);
-}
 
-void UHALBattleTopAbility::ActivateAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-	FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData*)
+EHALUltimateStart UHALBattleTopAbility::StartUltimate(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* Info,
+	FGameplayAbilityActivationInfo Activation, const FGameplayEventData*)
 {
-	auto* Vehicle = ActorInfo ? Cast<ATestVehiclePawn>(ActorInfo->AvatarActor.Get()) : nullptr;
-	auto* ASC = ActorInfo ? Cast<UHALAbilitySystemComponent>(ActorInfo->AbilitySystemComponent.Get()) : nullptr;
-	auto* Top = Vehicle ? Vehicle->FindComponentByClass<UHALBattleTopComponent>() : nullptr;
+	auto* Vehicle = Cast<ATestVehiclePawn>(Info->AvatarActor.Get());
+	auto* ASC = CastChecked<UHALAbilitySystemComponent>(Info->AbilitySystemComponent.Get());
+	auto* Component = Vehicle ? Vehicle->FindComponentByClass<UHALBattleTopComponent>() : nullptr;
 	auto* Config = GetSkillConfig();
 	FString Error;
-	if (!ActorInfo || !ActorInfo->IsNetAuthority() || !ASC || !Top || !Top->CanStart() || !Config || !Config->Validate(Error))
-	{ EndAbility(Handle, ActorInfo, ActivationInfo, true, true); return; }
-
-	const auto Spec = MakeOutgoingGameplayEffectSpec(Handle, ActorInfo, ActivationInfo,
-		UHALBattleTopEffect::StaticClass(), GetAbilityLevel(Handle, ActorInfo));
-	if (!Spec.IsValid()) { EndAbility(Handle, ActorInfo, ActivationInfo, true, true); return; }
+	if (!Component || !Component->CanStart() || !Config || !Config->Validate(Error)) { return EHALUltimateStart::Failed; }
+	const auto Spec = MakeOutgoingGameplayEffectSpec(Handle, Info, Activation, UHALBattleTopEffect::StaticClass(), GetAbilityLevel(Handle, Info));
+	if (!Spec.IsValid()) { return EHALUltimateStart::Failed; }
 	Spec.Data->SetDuration(Config->DurationSeconds, true);
-	CommittedCooldown.Invalidate();
-	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
-	{ EndAbility(Handle, ActorInfo, ActivationInfo, true, true); return; }
-
-	const auto Effect = Config->CooldownSeconds <= 0 || CommittedCooldown.IsValid()
-		? ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, Spec) : FActiveGameplayEffectHandle();
-	const bool bStarted = Effect.IsValid() && Top->Start(*ASC, *Config, Effect);
-	if (!bStarted)
-	{
-		if (Effect.IsValid()) { ASC->RemoveActiveGameplayEffect(Effect); }
-		if (CommittedCooldown.IsValid()) { ASC->RemoveActiveGameplayEffect(CommittedCooldown); }
-	}
-	ASC->GetOwner()->ForceNetUpdate();
-	EndAbility(Handle, ActorInfo, ActivationInfo, true, !bStarted);
+	const auto Effect = ApplyGameplayEffectSpecToOwner(Handle, Info, Activation, Spec);
+	if (!Effect.IsValid()) { return EHALUltimateStart::Failed; }
+	if (Component->Start(*ASC, *Config, Effect)) { return EHALUltimateStart::Completed; }
+	ASC->RemoveActiveGameplayEffect(Effect);
+	return EHALUltimateStart::Failed;
 }

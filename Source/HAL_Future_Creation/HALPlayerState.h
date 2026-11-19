@@ -13,6 +13,7 @@
 
 class UHALAbilitySystemComponent;
 class UHALHealthAttributeSet;
+class UHALUltimateEnergySet;
 class UHALCombatAttributeSet;
 class UHALImpactAttributeSet;
 class UHALMovementAttributeSet;
@@ -67,6 +68,8 @@ private:
 	TObjectPtr<UHALAbilitySystemComponent> AbilitySystem;
 	UPROPERTY()
 	TObjectPtr<UHALHealthAttributeSet> HealthAttributes;
+	UPROPERTY()
+	TObjectPtr<UHALUltimateEnergySet> UltimateEnergyAttributes;
 	UPROPERTY()
 	TObjectPtr<UHALCombatAttributeSet> CombatAttributes;
 	UPROPERTY()

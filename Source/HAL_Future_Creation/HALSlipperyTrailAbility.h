@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Abilities/GameplayAbility.h"
+#include "HALVehicleUltimateAbility.h"
 #include "Engine/DataAsset.h"
 #include "GameplayEffect.h"
 #include "HALSlipperyTrail.h"
@@ -12,7 +12,8 @@ class HAL_FUTURE_CREATION_API UHALSlipperyTrailConfig : public UDataAsset
 	GENERATED_BODY()
 public:
 	UHALSlipperyTrailConfig();
-	UPROPERTY(EditAnywhere, Category="Slippery Trail", meta=(ClampMin="0", ClampMax="120", Units="s")) float CooldownSeconds = 18.f;
+	/** Legacy serialized value; recharge is authored on the vehicle. */
+	UPROPERTY() float CooldownSeconds = 18.f;
 	UPROPERTY(EditAnywhere, Category="Slippery Trail") FHALSlipperyTrailEmission Emission;
 	UPROPERTY(EditAnywhere, Category="Slippery Trail") FHALSlipperyTrailShape Shape;
 	UPROPERTY(EditAnywhere, Category="Slippery Trail") FHALSlipperyTrailHandling Handling;
@@ -32,7 +33,7 @@ public:
 };
 
 UCLASS()
-class HAL_FUTURE_CREATION_API UHALSlipperyTrailAbility : public UGameplayAbility
+class HAL_FUTURE_CREATION_API UHALSlipperyTrailAbility : public UHALVehicleUltimateAbility
 {
 	GENERATED_BODY()
 public:
@@ -40,14 +41,12 @@ public:
 	virtual bool CanActivateAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags,
 		FGameplayTagContainer* OptionalRelevantTags) const override;
-	virtual void ActivateAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	virtual EHALUltimateStart StartUltimate(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	virtual void EndAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 protected:
 	UPROPERTY(EditDefaultsOnly, Category="Slippery Trail") TObjectPtr<UHALSlipperyTrailConfig> SkillConfig;
-	virtual void ApplyCooldown(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-		FGameplayAbilityActivationInfo ActivationInfo) const override;
 private:
 	const UHALSlipperyTrailConfig* GetSkillConfig() const;
 	bool ResolveStart(const FGameplayAbilityActorInfo* ActorInfo, const UHALSlipperyTrailConfig* Config,
@@ -55,5 +54,4 @@ private:
 	UFUNCTION() void TrailDestroyed(AActor* Actor);
 	void TrailGameplayEnded(AHALSlipperyTrail* Trail);
 	TWeakObjectPtr<AHALSlipperyTrail> ActiveTrail;
-	mutable FActiveGameplayEffectHandle CommittedCooldown;
 };

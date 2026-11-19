@@ -29,14 +29,16 @@ namespace
 	{
 		UWorld* W; UHALRoomComponent* R; AHALPracticeRoomGameMode* Mode; UHALRoomConfig* Config;
 		TArray<AHALPlayerController*> PCs;
-		FMatchWorld(int32 Count=4)
+		FMatchWorld(int32 Count=4, float StartingEnergy=0.f)
 		{
 			const auto V=UWorld::InitializationValues().AllowAudioPlayback(false).RequiresHitProxies(false).CreatePhysicsScene(true)
 				.CreateNavigation(false).CreateAISystem(false).CreateFXSystem(false).ShouldSimulatePhysics(false).EnableTraceCollision(true).SetTransactional(false);
 			W=UWorld::CreateWorld(EWorldType::Game,false,NAME_None,nullptr,true,ERHIFeatureLevel::Num,&V);
 			GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(W);
 			auto* S=W->SpawnActor<AHALMatchGameState>(); W->SetGameState(S); R=S->GetRoom();
-			Config=FHALRoomTestAccess::Config(R,EHALRoomProfile::Development); R->Initialize(Config); R->EnablePracticeRoom();
+			Config=FHALRoomTestAccess::Config(R,EHALRoomProfile::Development);
+			Config->StartingUltimateEnergy=StartingEnergy;
+			R->Initialize(Config); R->EnablePracticeRoom();
 			FHALRoundTravel T; T.Config=Config; T.FlowId=R->GetData().FlowId; T.RoundId=1;
 			for (int32 I=0;I<Count;++I)
 			{
@@ -64,6 +66,22 @@ namespace
 		~FMatchWorld() { FHALMatchLoopTestAccess::Stop(Mode); W->DestroyWorld(false); GEngine->DestroyWorldContext(W); }
 	};
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALRoundEnergyTest,"HAL.FutureCreation.UltimateEnergy.ConfiguredRoundStartAndResults",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALRoundEnergyTest::RunTest(const FString&)
+{
+	FMatchWorld Fixture(2, 37.f);
+	auto* Owner = Fixture.Player(0)->GetHALAbilitySystemComponent();
+	TestEqual(TEXT("Round uses configured starting balance"), Owner->GetUltimateEnergyView().Energy, 37.f);
+	TestEqual(TEXT("Playing allows a partial grant"), Owner->GrantUltimateEnergy(25.f), 25.f);
+	Fixture.HP(1, 0);
+	FHALMatchLoopTestAccess::Evaluate(Fixture.Mode);
+	TestEqual(TEXT("Last survivor enters results"), Fixture.R->GetData().Phase, EHALRoomPhase::Results);
+	TestEqual(TEXT("Results reject pickup"), Owner->GrantUltimateEnergy(25.f), 0.f);
+	TestFalse(TEXT("Results stop the recovery clock"), Owner->GetUltimateEnergyView().bRecharging);
+	TestEqual(TEXT("Scoreboard entry preserves survivor balance"), Owner->GetUltimateEnergyView().Energy, 62.f);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALMatchRulesTest,"HAL.FutureCreation.GameFlow.GF7.RulesAndDeterministicDecisions",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FHALMatchRulesTest::RunTest(const FString&)
 {
