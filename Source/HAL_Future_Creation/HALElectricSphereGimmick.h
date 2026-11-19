@@ -34,6 +34,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 	/** Authority-only deferred spawn, before FinishSpawning. Contact rules use inherited Configure. */
 	bool ConfigureSphere(const FHALElectricSphereConfig& InConfig);
+	const FHALElectricSphereConfig& GetSphereConfig() const { return SphereConfig; }
 	UFUNCTION(BlueprintPure, Category="Electric Sphere") EHALElectricSphereStage GetStage() const { return Stage; }
 protected:
 	UPROPERTY(EditDefaultsOnly, ReplicatedUsing=OnRep_Lifecycle, BlueprintReadOnly, Category="Electric Sphere") FHALElectricSphereConfig SphereConfig;

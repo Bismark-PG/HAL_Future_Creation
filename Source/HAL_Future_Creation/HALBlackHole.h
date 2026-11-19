@@ -78,6 +78,7 @@ public:
 	AHALBlackHole();
 	/** Authority-only deferred spawn configuration, before FinishSpawning. */
 	bool ConfigureBlackHole(const FHALBlackHoleConfig& Config);
+	const FHALBlackHoleConfig& GetBlackHoleConfig() const { return Settings; }
 	UFUNCTION(BlueprintPure, Category="Black Hole") float GetCurrentRadius() const;
 	UFUNCTION(BlueprintPure, Category="Black Hole") EHALBlackHoleStage GetStage() const;
 	/** 0..1 from last pulse (or expansion end) to the next pulse. */
