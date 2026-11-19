@@ -40,6 +40,7 @@ private:
 	void StopCapture();
 	void PollCapture();
 	void UpdateClient(float DeltaTime);
+	void BlendRelativeSample(const FTransform& HolderPose, bool bContinuingPossession, float DeltaTime);
 	void RestoreVisual();
 	void SetMode(EHALBallVisualMode Next);
 	UFUNCTION() void OnRep_RelativePose();
@@ -57,8 +58,7 @@ private:
 	EHALBallVisualMode Mode=EHALBallVisualMode::Physics;
 	FTransform AuthoredVisual=FTransform::Identity, DisplayPose=FTransform::Identity, RelativePose=FTransform::Identity;
 	FTransform HandoffStart=FTransform::Identity;
-	FVector EntryOffset=FVector::ZeroVector;
-	FQuat EntryRotation=FQuat::Identity;
+	FTransform EntryStartRelative=FTransform::Identity;
 	float EntryAge=0;
 	bool bVisualOverride=false, bAuthoredAbsoluteLocation=false, bAuthoredAbsoluteRotation=false;
 };

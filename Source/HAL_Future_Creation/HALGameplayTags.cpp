@@ -2,6 +2,9 @@
 
 namespace HALGameplayTags
 {
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_HookThrow,"Ability.Vehicle.HookThrow","Stationary hook and directional throw.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_HookThrow,"Cooldown.Vehicle.HookThrow","Consumed on successful outbound launch, including misses and interrupts.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_HookCasting,"State.Vehicle.HookCasting","Own stationary action lock, independent of external Stun.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_SmokeScreen,"Ability.Vehicle.SmokeScreen","Car08 upward exhaust smoke primary.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_SmokeScreen,"Cooldown.Vehicle.SmokeScreen","Smoke cooldown measured from activation.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Vision_SmokeObscured,"State.Vision.SmokeObscured","Authority smoke source contribution; no driving, damage or impact mutation.");

@@ -52,6 +52,11 @@ static TAutoConsoleVariable<int32> CVarHALSideShiftArcLog(TEXT("hal.SideShiftArc
 	TEXT("Log captured arc basis, remaining span and initial/gameplay momentum. 0=off, 1=on."));
 #endif
 
+#if !UE_BUILD_SHIPPING
+static TAutoConsoleVariable<int32> CVarHALHookPhysicsLog(TEXT("hal.HookPhysicsLog"),0,
+	TEXT("Hook Internal-body hold/release frame, effective velocity and sleeping state. 0=off,1=on."));
+#endif
+
 UArcadeVehicleMovementComponent::UArcadeVehicleMovementComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -257,6 +262,50 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(), RecoilDeltaVelocity, true);
 	}
 	const FTransform BodyTransform(PhysicsHandle->R(), PhysicsHandle->X());
+	// The historical hook command owns only bounded planar forces and a one-frame release.
+	// Contacts, gravity and angular momentum remain Chaos-owned, including resimulation.
+	const auto& HookMotion=CurrentMovement.Hook;
+	if(HookMotion.IsSwinging(CurrentMovementServerFrame))
+	{
+		const FVector Offset=PhysicsHandle->R().RotateVector(PhysicsHandle->CenterOfMass());
+		const FVector Angular=PhysicsHandle->W()+PhysicsHandle->AngularImpulseVelocity();
+		// X is the particle/root origin; V is the COM velocity.
+		const FVector RootP=PhysicsHandle->X();
+		const FVector RootV=PhysicsHandle->V()+PhysicsHandle->LinearImpulseVelocity()-FVector::CrossProduct(Angular,Offset);
+		const FVector Delta=HookMotion.SwingDelta(RootP,RootV,CurrentMovementServerFrame,DeltaTime);
+		if(!Delta.IsNearlyZero())
+		{
+			if(PhysicsHandle->ObjectState()==Chaos::EObjectStateType::Sleeping) { PhysicsHandle->SetObjectState(Chaos::EObjectStateType::Dynamic,true); }
+			FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(),Delta,true);
+		}
+#if !UE_BUILD_SHIPPING
+		if(CVarHALHookPhysicsLog.GetValueOnAnyThread()&&(CurrentMovementServerFrame==HookMotion.StartFrame||CurrentMovementServerFrame==HookMotion.EndFrame-1))
+		{ UE_LOG(LogTemp,Log,TEXT("Hook physics swing Player=%d Frame=%d Start=%d End=%d Position=%s Velocity=%s Delta=%s"),MovementPlayerId.Load(),CurrentMovementServerFrame,HookMotion.StartFrame,HookMotion.EndFrame,*RootP.ToString(),*RootV.ToString(),*Delta.ToString()); }
+#endif
+		InputCommand.Reset();
+	}
+	const FVector HookRelease=HookMotion.ReleaseDelta(PhysicsHandle->V()+PhysicsHandle->LinearImpulseVelocity(),CurrentMovementServerFrame);
+	if(!HookRelease.IsNearlyZero())
+	{
+#if !UE_BUILD_SHIPPING
+		if(CVarHALHookPhysicsLog.GetValueOnAnyThread())
+		{ UE_LOG(LogTemp,Log,TEXT("Hook physics release Player=%d Activation=%s Frame=%d Start=%d Internal=%d Sleeping=%d Before=%s Delta=%s Target=%s"),
+			MovementPlayerId.Load(),*HookMotion.Activation.ToString(),CurrentMovementServerFrame,HookMotion.StartFrame,Chaos::IsInPhysicsThreadContext(),
+			PhysicsHandle->ObjectState()==Chaos::EObjectStateType::Sleeping,*(PhysicsHandle->V()+PhysicsHandle->LinearImpulseVelocity()).ToString(),*HookRelease.ToString(),*HookMotion.ThrowVelocity.ToString()); }
+#endif
+		if(PhysicsHandle->ObjectState()==Chaos::EObjectStateType::Sleeping) { PhysicsHandle->SetObjectState(Chaos::EObjectStateType::Dynamic,true); }
+		FPhysicsInterface::AddVelocity_AssumesLocked(Body->GetPhysicsActor(),HookRelease,true);
+	}
+	if(HookMotion.IsHolding(CurrentMovementServerFrame))
+	{
+		const FVector Offset=PhysicsHandle->R().RotateVector(PhysicsHandle->CenterOfMass());
+		const FVector RootV=PhysicsHandle->V()+PhysicsHandle->LinearImpulseVelocity()-FVector::CrossProduct(PhysicsHandle->W()+PhysicsHandle->AngularImpulseVelocity(),Offset);
+		const FVector A=HookMotion.Acceleration(PhysicsHandle->X(),RootV,CurrentMovementServerFrame);
+		// Explicitly select the Internal particle; the default External access asserts
+		// on the PT. Read its mass here rather than querying an External body.
+		FPhysicsInterface::AddForce_AssumesLocked(Body->GetPhysicsActor(),A*PhysicsHandle->M(),false,false,true);
+		InputCommand.Reset();
+	}
 	GroundProbeRotation = BodyTransform.GetRotation();
 	{
 		FScopeLock Lock(&PendingPhysicsDataLock);

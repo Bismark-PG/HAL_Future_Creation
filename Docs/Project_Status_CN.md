@@ -35,6 +35,47 @@
 
 **下一步入口**：(1) 團隊在 `SingleVehicleTest` 與 `MVPB_NetTest` 各看一次六項效果的連續動態，先定火花數量（Project Settings → Vehicle Impact Burst FX）與箭頭大小（Ball Comic FX）；(2) 雙端 Listen Server＋Client 驗 P1／P3／P4 的啟停與 N1 的正式條件；(3) 決定 P4 與電擊並存的規則；(4) 評估上面那個死結。編輯器目前開著（PIE 已停、dirty packages = 0）。
 
+**2026-11-19 MatchHUD／玩家行最新保存版本复核完成，剩余四个编号输入与客户端初始化重试。** 基线 main/e3e9abe、UE5.8.3-58210709；读取HUD 01:19:35、Row 01:21:05。四个SetPlayerData的HP／MaxHP／VehicleId／Catalog共16个输入已正确连接，Player {Number}与白色Barlow字体也已修复。四个InNumber仍悬空默认0，当前标题将显示Player 00；Construct初次GameState失败仍无重试。事件／目录／HP／车图主链有效；左下锚点与Designer行显隐仍待调整。详见[最新结论与引脚修正](Presentation/MatchHUD_DataFlow_Review_20261119_CN.md)。R3独立只读导出和参数读取均退出0、0引擎汇总错误／警告，8份读取资产最终SHA256一致；本次未Play或编译／保存Blueprint，未提交／Push。前两轮历史检查保留。
+**2026-11-18，临时比赛图中场钢盘、地灯和行车面已落地，待四人实测。** `MVPB_Match_Temp` 以可见钢板为高度基准，新拉丝盘和相邻地面在 Z −200.274 cm 齐平。`Floor` 连续承托车辆和球，`Path` 提供外围侧挡。四个出生点、主球和场内机关已分别校准。UE 5.8.3 重载后通过 1,216 条地面射线和 64 条护盾射线检查，单车和自由球实测穿过中心灯，电墙、弹簧拳、电球、打滑区和黑洞均在新高度生效。正式图保留原版。[同机位实拍、调参与物理验证](Presentation/ArenaFloor_SatinMetal_CN.md#arena-center-inlay)
+
+**2026-11-18，已修复本机复现的客户端持球漂移跳位，待学校四机画面验收。** 服务器优先发送各观察者的持有球更新，客户端在短暂缺样时继续随当前车头转动，收到发射、脱球或球权切换后结束旧跟随。UE 5.8.3 Editor 与 Game 构建通过，原生回归 248 项全部通过，其中 2 项有测试车配置警告。沿用默认发送预算和 Host 出站 80 ms 延迟，原先失败的双端专项连续三轮通过。本机一主三客同时漂移与观察时，三个客户端均未在持续持球中误切物理显示，发射后两球均正常交接。球定义由用户调整。[修复、数据与四机验收方法](Networking/MVPB_ControlledBall_RelativePresentation_CN_v0.1.md#held-ball-drift-fix)
+
+**2026-11-18，录像定位记录。** 正式比赛图的球定义使半径 50 cm 的物理根在游戏中可见，灰球网格半径约 160 cm，持球时独立显示。修复前，本机默认发送预算下连续三轮出现球姿态样本过期、来回切换显示。临时 Host 解除发送限流的诊断对照两端通过。11 月 17 日原场次缺少配对日志。[录像对照与修复前专项结果](Networking/MVPB_ControlledBall_RelativePresentation_CN_v0.1.md#6-2026-11-18-客户端持球漂移录像复核)
+
+**2026-11-18，中场改造前的支撑面测量。** 正式图和当时的临时图在九个灯位及一个行车采样点的结果一致。护盾 Actor `Path` 的单块简单凸包在 Z +1.65 cm 横跨所测内场，隐藏的 `Floor` 在 −160.50 cm，可见钢板在 −196.52 至 −200.27 cm。当时车辆落地及行驶的 174 条向上支撑接触均来自 `Path`，比钢板高约 2 m。此前的 36～40 cm 是原 `Floor` 与钢板的间距。[碰撞分层与测量方法](Presentation/ArenaFloor_SatinMetal_CN.md#arena-deck-ground-heights)
+
+**2026-11-18，临时比赛图已完成整边防滑条、定向拉丝和九盏带局部照明的嵌地灯。** 打开 `/Game/Maps/MVPB_Match_Temp`，在 `MI_ArenaDeck_Center` 调拉丝，在 Outliner 的 `Presentation/Deck Inset Lights` 调灯位和点光源。当前灯距最近约 21.2 m，每盏为 3000 lm、半径 3.9 m。UE 5.8.3 D3D12 从磁盘重载检查通过，零错误、零警告。单车以约 9.5 m/s 驶过灯位，已做同一车位开关局部光的实机对照。下一步由团队在四车混战中验收地面高光和技能可读性，并评估目标机器的帧耗。[参数、钢板同机位对比与地灯实测图](Presentation/ArenaFloor_SatinMetal_CN.md#arena-deck-inset-lights)
+
+**2026-11-18，临时比赛图中央地板已更新为六边形钢板，并完成单车实机预览。** 基线 `main/2852337`，UE 5.8.3-58210709。打开 `/Game/Maps/MVPB_Match_Temp` 可查看留白的板心、部分接缝中段的哑光防滑条，以及切削倒角上的冷色高光。本轮改动落在专用母材质 `M_ArenaDeck_Panels` 和中央实例 `MI_ArenaDeck_Center`。外圈继续使用 `MI_ArenaDeck_Perimeter` 的同心压条和琥珀短灯。[当前调参、两版同机位对照及验证记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-deck-hex)
+
+本轮独立 D3D12 进程从磁盘核对材质接线、实例参数与地图引用，零错误、零警告。临时图和正式图的文件校验值分别与开工时一致。现有单车测试模式已进入 Playing，并拍到 1440 × 900 的实际车辆相机画面。下一步由团队在四车交战时评估场地反光、球与技能范围的辨识度，再决定是否采用到正式图。首版长条拼板的接线和场景对照另有留档。[首版记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-deck-temp)
+
+**2026-11-18 钩锁俯视金属表现与命中火花已实装，待真人验收。** 基线为 `main/853f5a1`，UE 5.8.3-58210709。实装资产为原 Hook 专用母材质和 `DA_Ability_HookThrow`。链节间距 35 cm、链节缩放 1.9、钩头缩放 2.12；钢蓝暗面、中间色、冷银反光配合可见曲面与斜向打光。服务器成功抓取后按实际车身接触点与法线播放一簇暖金色卡通火花。复用 Car03 的 `NS_BattleTop_ToonContact`，在钩锁技能 DA 独立调节，首测为 14 粒、最长 0.24 s。原工程实配射程 2500 cm、命中半径 28 cm、冷却 15 s。见[技能 DA 和表现配置](Combat/Hook_Throw_Ability_CN_v0.1.md#参数与首测默认值)。
+
+Editor、Game Target 构建成功。真实 D3D12 的 R3 专项 6/6（5 项钩锁原生、1 项含火花出现与消散的渲染测试），零测试警告及失败。早期渲染轮的火花可见性断言失败，修订播放与测试准备后复验通过。最终联机代码 Host 出站注入 80 ms 的双进程测试各 1/1，两次有效抓取在两端均各有一次事件，坐标只差网络量化精度；双端用 NullRHI 验事件，可见像素由另一次 D3D12 专项验证。最终色值、火花引用和技能规则已在重新开启的本机 Editor 中经 MCP 读回。本机证据在 `Saved/HookArt/R3/Report`、`Saved/HookArt/NetFinal` 及 `Saved/HookArt/Hook-Overview.png`。下一步在 Fred_TestScene 用实际比赛相机检查不同地面对钢色的衬托、链孔可读性及火花是否盖住钩尖。
+
+**2026-11-17 钩子技能第二轮“带链甩动 → 脱钩飞出”已完成代码、编译及专项工程验证，待真人手感验收。** 接续 `main/40fed80` 当前未提交工程，UE5.8.3-58210709。选择左／右后，目标从命中位置沿圆弧逐渐加速，期间保留钩取归属与 Stun，钩头跟随实际连接点；物理线程消费完甩动末帧后才解除本钩子的 Stun、脱钩、收钩。脱钩保留实际横向速度，仅补最低上抛；中断时保留当时动量、不补一次额外投掷。命中立即掉球、不先拉近、墙体真实阻挡、普通水平推动不中断，以及独立 Stun／生命周期清理规则继续沿用。
+
+原技能 **`DA_Ability_HookThrow`** 新增 Swing Seconds **0.3s**、Swing Angle **30°**、Swing Arc Length **250cm**、Swing Acceleration Power **2**、Swing Maximum Acceleration **20000cm/s²**。Horizontal Speed 作为甩动末端速度上限，实际弧线同时受扫角、弧长和速度限制，不会在脱钩时强制补齐固定速度。已配置 GA／车型引用沿用，无需重建；没有覆盖团队调过的 DA。移动历史 **12→13**，双端须同时更新。甩动／脱钩／中断增加可靠离散阶段通知和序号保护，避免短阶段被延迟合并跳过或旧包倒退。详见[当前规则和调参](Combat/Hook_Throw_Ability_CN_v0.1.md#第二轮带链圆弧甩动与连续脱钩2026-11-17)。
+
+最终 **Editor_R7／Game_R2 构建成功**；**Native_R3：248/248**（246无警告、2项带既有换车负例警告，失败／未运行0）。真实 Chaos 对左右扫弧均得到约 `(708.718,±245.396)` cm 末点（圆心0、半径750cm），脱钩前后横向速度约 `(-502.497,±1540.394)` cm/s保持；中断保留动量，CCD墙阻挡在Y=-100cm通过。**Render_R1：真实D3D12 1/1**、0测试警告／失败，移动目标后实际钩头与链节保持连接，已检查渲染图。
+
+实际 Listen **Network_R2（普通）／Network_Lag80_R3（Host出站注入80ms）** 均双端各1/1、零测试警告／失败、退出0。覆盖客户端选向、连接中甩动、Stun时序、非零速度连续脱钩、甩动中外部Stun中断和双方清理；80ms不代表实测RTT。延迟首轮暴露的短阶段跳过已通过可靠通知修复。首轮宽回归另暴露旧测试隐式依赖Car01主技能，现只在临时实例上明确使用测试所需的Legacy授予，不改生产DA；PostSolve测试取样改读本帧求解位置、按实际物理末帧验收，未放宽轨迹断言。见[第二轮证据](Combat/Hook_Swing_Verification_20261117.json)。
+
+**1376/1376** 份开工时资产／Config／uproject／共享入口／gitignore哈希保持，包括团队当前Car01配置、Fred测试GameMode、新建GA和原技能DA；未新增或保存美术／蓝图／地图资产，未提交／Push。**下一步：完整编译后沿用现有接线，打开原技能DA的Rules → Swing调节并真人验收。** 扫角、弧长和速度上限会共同限幅；不以这些专项替代四机、实际Cook／发布包、所有地形／碰撞与真人观感验收。以下保留首轮历史，首轮直接水平投掷行为已由本条取代。
+
+**2026-11-17 铁链钩取／原地侧向投掷技能：逻辑、初版卡通金属表现及工程验证完成，待团队接线与真人验收。** 从 `main/40fed80` 接续，实际 UE **5.8.3-58210709**。施法车有限制动驻车，向前出钩；命中位置直接侧甩，不先拉近。用户最终更正已落实：**钩中施加通用 Stun，立即掉球，没有保球特例**。命中后先中立、再首次左／右输入决定投掷；左右基准在命中时锁定。超时不自动投掷；空钩／墙阻挡／正常甩出后均收钩，正常收钩结束才解锁驾驶。有效击飞、Stun、强制反弹、翻覆／自救等外部失控立即中断；普通水平推动不打断。投掷不扣血、不受冲击免疫阻止，只移除本钩子的 Stun；淘汰／换车／离场按来源清理。
+
+GAS 负责许可、冷却和状态；服务器 Hook Actor 负责扫掠、唯一抓取归属及阶段，既有 Chaos 移动步执行有限驻车／目标保持与一次投掷。移动历史格式 **11→12**，Host／Client 必须同时更新编译。全部玩法／特效参数在新 **`/Game/Data/Abilities/DA_Ability_HookThrow`**；新交错链节、收尖钩头和柔和三档金属材质位于 `/Game/Assets/FX/HookThrow`，没有改 Car06 铁链或指定任何车型。见[规则、GA／Definition 接线与完整调参](Combat/Hook_Throw_Ability_CN_v0.1.md)。
+
+最终 **Editor_R16／Game_R4 完整构建成功**；最终原生 **Native_R6：247/247**（245无警告、2项既有换车负例警告；失败／未运行0）；真实 **D3D12 Render_R2：1/1**、0测试警告／失败，检查实际链节、钩头、三阶像素和收回。实际 Listen **Network_R8** 以及 **Network_Lag80_R1** 均双端各1/1、0测试警告／失败、退出0；后者只向 Host 出站注入80ms，不冒充实测 RTT。实测投掷内部物理帧约1800 cm/s横向＋250 cm/s最低上抛；普通连接 Host／Client 最大向左位移约452.92／452.33 cm，80ms轮约452.93／461.76 cm；第二次捕获被外部 Stun 中断及双方状态清理通过。详见[本轮可同步验证摘要](Combat/Hook_Throw_Verification_20261117.json)。
+
+本轮真实双端暴露并修复了三个工程边界：空闲 Hook 历史原先全量传输造成带宽饱和，现只占一标记位、活动按模式发送且消费后清空；短生命周期钩子提高复制优先级；一次投掷预约下一权威物理帧，避免立即动作晚于同帧移动回调而漏执行。低频 PlayerState 上短 Stun 的起止也强制同步，独立 Stun 剩余时间比较继续按来源处理。首轮原生销毁清理／夹具帧推进错误、物理力内部线程 API 标志和诊断编译错误均已修正，早期失败轮未冒充通过。
+
+**下一步：团队按文档创建父类 `HALHookThrowAbility` 的 `GA_HookThrow`，Skill Config 引用新 DA，再替换所选车辆 Definition 的唯一 `Input.Ability.Primary`。** 车型尚未指定，不擅自改任何车辆技能配置。原有1370份资产／Config／uproject／共享入口哈希一致（`.gitignore` 仅新增本说明文档白名单）；开工时已有的 `MVPB_NetTest.umap` 与 `GA_Car08_SmokeScreen.uasset` 用户改动原样保留。未修改 Blueprint／地图／旧技能 DA；未提交／Push。左右真人输入、木桩与移动目标、各阶段受击／淘汰／换车、极端参数、四机表现与实际 Cook／发布包仍待团队，不能把上述专项冒充全部场景验收。
+
+**以下保留此前进度与验证历史。**
+
 **2026-11-17 拉新后Build＋MCP入口报错已修复，实际编译、专项回归和MCP启动验证通过。** 当前`main/deee273`、UE5.8.3-58210709；首个错误是黑烟与龙卷风的匿名`Range(float,float,float)`进入同一Unity CPP后重复定义（C2084），C4551／C2568为连带错误，脚本正确保留退出6并停止。四份运行时CPP的范围校验辅助函数改用各自唯一名称，逐文件逆向替换确认仅更名、数值与逻辑不变；共享BuildAndLaunch、uproject及本机MCP入口均未改。见[原因与后续命名约束](Configuration/Build_Editor_Tool_CN.md#2026-11-17合并-car08-后再次暴露的-unity-私有函数重名)及[本轮验证](Configuration/Build_Unity_Range_Fix_Verification_20261117.json)。
 
 真实Editor普通Unity构建（`-DisableAdaptiveUnity`）Succeeded／0，确认黑烟与龙卷风在同一合并CPP中；黑烟／龙卷风／通缉／铁链原生专项 **10/10通过**，0测试警告／失败／未运行。随后实际执行本机`Saved/LocalMCP/BuildAndLaunchWithMCP.cmd`，默认构建Succeeded／0并打开MCP Editor；仅监听127.0.0.1:8000，HTTP握手200、工具发现及当前关卡`/Game/Maps/MVPB_NetTest`只读查询成功，PIE未运行。当前聊天没有原生Unreal工具目录，本次为直接本地HTTP验证，不冒充聊天工具已重载。**1373/1373** 份Content／Config／uproject／启动器／忽略文件及原有本机UBT配置SHA256保持，Editor留给用户接续。保留既有编译警告；未重跑全量、真实渲染、多人、Game Target或Cook／打包；未提交／Push。

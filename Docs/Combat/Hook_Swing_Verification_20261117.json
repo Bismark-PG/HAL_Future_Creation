@@ -1,0 +1,459 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "task": "Connected accelerating circular hook swing, tangential momentum-preserving detach and following chain/head",
+  "branch": "main",
+  "baseCommit": "40fed80087b3e6bb8f988877763c0b521c38d1c8",
+  "engine": "5.8.3-58210709",
+  "status": "Code, both builds, full native suite, real render and listed live two-process checks passed; human feel/visual acceptance pending.",
+  "behavior": {
+    "phases": "Outbound -> Choosing -> Swinging -> Returning; Interrupted clears capture/own lock",
+    "sameSkillDA": "/Game/Data/Abilities/DA_Ability_HookThrow",
+    "swingSeconds": 0.3,
+    "maximumAngleDegrees": 30,
+    "maximumArcLengthCm": 250,
+    "accelerationPower": 2,
+    "maximumMotorAccelerationCmS2": 20000,
+    "horizontalSpeedRole": "Upper bound on authored exit speed; actual horizontal momentum retained, never replenished through a wall",
+    "curve": "L=min(R*angle,Lmax,Vmax*T/p), angle(u)=sign*(L/R)*u^p",
+    "capture": "Ordinary Stun and immediate ball drop; own Stun and exclusive claim retained through the connected swing",
+    "release": "Wait for PT endpoint; remove only hook-owned Stun, preserve actual XY velocity, next-frame minimum upward speed",
+    "interrupt": "Cancel bounded drive and claim; retain current momentum without synthetic extra launch",
+    "visual": "Head at real target attachment throughout swing; taut links until detach, then reel from actual last point",
+    "replication": "Reliable discrete swing/return/interruption snapshots plus monotonic revision guard; no per-tick reliable broadcast",
+    "formatBefore": 12,
+    "formatAfter": 13,
+    "matchingEndpointBuildsRequired": true,
+    "newGAOrBPWiringRequired": false,
+    "assetsSavedOrRecreated": false
+  },
+  "builds": [
+    {
+      "run": "Editor_R7",
+      "result": "Succeeded",
+      "exitCode": 0,
+      "seconds": 18.89,
+      "proof": {
+        "path": "Saved/HookSwing/20261117/Editor_R7.log",
+        "sha256": "6AFE2341037CF13CF0BE1A0ACD6E9463B63BB67BEFD93E074966E3487C68C1EF"
+      }
+    },
+    {
+      "run": "Game_R2",
+      "result": "Succeeded",
+      "exitCode": 0,
+      "seconds": 33.57,
+      "proof": {
+        "path": "Saved/HookSwing/20261117/Game_R2.log",
+        "sha256": "9BBB45300359C2503EB2A3F6701891D90DB94BC41D52BBBA059B59E294438F92"
+      }
+    }
+  ],
+  "native": {
+    "run": "Native_R3",
+    "succeeded": 246,
+    "succeededWithWarnings": 2,
+    "failed": 0,
+    "notRun": 0,
+    "inProcess": 0,
+    "proof": {
+      "path": "Saved/HookSwing/20261117/Native_R3/index.json",
+      "sha256": "0FBD4C93C94E10F4159B72DD5CA9BE627BBFFD11D94C68408870AFCF3547057F"
+    },
+    "exitCode": 0,
+    "warnings": [
+      {
+        "fullTestPath": "HAL.FutureCreation.VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar",
+        "state": "Success",
+        "warnings": 2,
+        "errors": 0
+      },
+      {
+        "fullTestPath": "HAL.FutureCreation.VehicleTest.OpponentSpawnsReplacesAndSurvivesPlayerSwap",
+        "state": "Success",
+        "warnings": 1,
+        "errors": 0
+      }
+    ],
+    "solver": [
+      "[2026.11.17-14.45.00:352][742]LogAutomationController: Hook solver side=-1 endpoint=X=708.718 Y=-245.396 Z=50.000 exit=X=-502.497 Y=-1540.394 Z=0.000 afterDetach=X=-502.497 Y=-1540.394 Z=217.333",
+      "[2026.11.17-14.45.00:352][742]LogAutomationController: Hook solver side=1 endpoint=X=708.718 Y=245.396 Z=50.000 exit=X=-502.497 Y=1540.394 Z=0.000 afterDetach=X=-502.497 Y=1540.394 Z=217.333",
+      "[2026.11.17-14.45.00:352][742]LogAutomationController: Hook wall endpoint=X=708.748 Y=-100.000 Z=50.000 velocity=X=-261.899 Y=0.000 Z=0.000"
+    ]
+  },
+  "render": {
+    "run": "Render_R1",
+    "succeeded": 1,
+    "succeededWithWarnings": 0,
+    "failed": 0,
+    "notRun": 0,
+    "inProcess": 0,
+    "proof": {
+      "path": "Saved/HookSwing/20261117/Render_R1/index.json",
+      "sha256": "2C0B7165779C6139D747FB4F52664D8B18F05F4C10BA742228AB451C54BBAC9E"
+    },
+    "exitCode": 0,
+    "RHI": "D3D12 SM6 offscreen",
+    "images": [
+      {
+        "path": "Saved/HookSwing/20261117/Render/Hook_Outbound.bmp",
+        "sha256": "584271DD247897FC4C7E2D4FA6CBECFE8D8D8826607BA572F50BB258CBE9A0C3"
+      },
+      {
+        "path": "Saved/HookSwing/20261117/Render/Hook_Swing_A.bmp",
+        "sha256": "49B33AB552132F0B887320043CFACECE05D5606657D146DB0E5A04D0D47E64F8"
+      },
+      {
+        "path": "Saved/HookSwing/20261117/Render/Hook_Swing_B.bmp",
+        "sha256": "D637F6EE8A1CEAEDF839F5CAA17D97860B550F7FA6A11B69146B09EABCF9F27A"
+      },
+      {
+        "path": "Saved/HookSwing/20261117/Render/Hook_Returning.bmp",
+        "sha256": "8643709502D7B38DC560A498402116A4B260B846C8070CAC1101226F50970C47"
+      }
+    ],
+    "coverage": "Actual link/head rendering and three metal tones; move/rotate a hidden target, assert hook component at the actual attachment and final chain instance near the moving head; visually inspected Swing_B image. No rendering code changed after this run; later changes only phase transport/order and test fixtures."
+  },
+  "network": [
+    {
+      "run": "Network_R2",
+      "roles": [
+        {
+          "Role": "Host",
+          "Pid": 9152,
+          "ExitCode": 0,
+          "Passed": 1,
+          "Warnings": 0,
+          "Failed": 0,
+          "Clean": true,
+          "HostInjectedOutgoingLagMs": 0
+        },
+        {
+          "Role": "Client",
+          "Pid": 28456,
+          "ExitCode": 0,
+          "Passed": 1,
+          "Warnings": 0,
+          "Failed": 0,
+          "Clean": true,
+          "HostInjectedOutgoingLagMs": 0
+        }
+      ],
+      "host": {
+        "run": "Network_R2/Host",
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0,
+        "proof": {
+          "path": "Saved/HookSwing/20261117/Network_R2/Host/index.json",
+          "sha256": "B333648B48E2E313505E8D9FD38E035ACBD415EFDA3E0029CD8D39B49ACB532A"
+        }
+      },
+      "client": {
+        "run": "Network_R2/Client",
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0,
+        "proof": {
+          "path": "Saved/HookSwing/20261117/Network_R2/Client/index.json",
+          "sha256": "2477977040B9D6D24F4FB066A680A002A4415DB388DBEE591695A041C4DCD68F"
+        }
+      },
+      "hostMinimumLateralCm": -602.87,
+      "clientMinimumLateralCm": -605.43,
+      "continuity": [
+        "[2026.11.17-14.46.30:513][116]LogAutomationController: Hook exit continuity before=X=-382.532 Y=-1425.562 Z=0.001 after=X=-457.589 Y=-1500.317 Z=-0.001\r"
+      ],
+      "physics": [
+        "[2026.11.17-14.46.24:329][745]LogTemp: Hook physics swing Player=256 Frame=746 Start=746 End=764 Position=X=20750.000 Y=0.004 Z=135.479 Velocity=X=-0.000 Y=-0.000 Z=0.000 Delta=X=-0.024 Y=-46.298 Z=0.000\r",
+        "[2026.11.17-14.46.24:613][762]LogTemp: Hook physics swing Player=256 Frame=763 Start=746 End=764 Position=X=20717.185 Y=-219.483 Z=135.479 Velocity=X=-422.039 Y=-1468.067 Z=0.000 Delta=X=-85.972 Y=-86.530 Z=0.000\r",
+        "[2026.11.17-14.46.24:663][765]LogTemp: Hook physics release Player=256 Activation=8402A9B54D42F3E16B4B9D9D4CEE9D8A Frame=766 Start=766 Internal=1 Sleeping=0 Before=X=-490.086 Y=-1512.021 Z=-0.031 Delta=X=0.000 Y=0.000 Z=250.031 Target=X=0.000 Y=0.000 Z=250.000\r",
+        "[2026.11.17-14.46.26:347][866]LogTemp: Hook physics swing Player=256 Frame=867 Start=867 End=885 Position=X=20750.000 Y=0.000 Z=135.479 Velocity=X=0.000 Y=-0.000 Z=0.000 Delta=X=-0.024 Y=46.295 Z=0.000\r"
+      ],
+      "logs": [
+        {
+          "path": "Saved/HookSwing/20261117/Network_R2/Host.log",
+          "sha256": "27F052E5E93B67B7F548B0CEB0D95757E21566D4C10A79EFD616A06766C3D3D3"
+        },
+        {
+          "path": "Saved/HookSwing/20261117/Network_R2/Client.log",
+          "sha256": "9283FD8657AF7567D7569F9A46F135E999D3A7E79FFE6FE0B125A1AA825588D7"
+        }
+      ],
+      "latencyMeaning": "Host outgoing injected lag, not measured RTT."
+    },
+    {
+      "run": "Network_Lag80_R3",
+      "roles": [
+        {
+          "Role": "Host",
+          "Pid": 15948,
+          "ExitCode": 0,
+          "Passed": 1,
+          "Warnings": 0,
+          "Failed": 0,
+          "Clean": true,
+          "HostInjectedOutgoingLagMs": 80
+        },
+        {
+          "Role": "Client",
+          "Pid": 53900,
+          "ExitCode": 0,
+          "Passed": 1,
+          "Warnings": 0,
+          "Failed": 0,
+          "Clean": true,
+          "HostInjectedOutgoingLagMs": 80
+        }
+      ],
+      "host": {
+        "run": "Network_Lag80_R3/Host",
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0,
+        "proof": {
+          "path": "Saved/HookSwing/20261117/Network_Lag80_R3/Host/index.json",
+          "sha256": "1A360970EE8C93F97F6579A363A1EC91E70BE9DBC769BAD68CF69D7785821DE6"
+        }
+      },
+      "client": {
+        "run": "Network_Lag80_R3/Client",
+        "succeeded": 1,
+        "succeededWithWarnings": 0,
+        "failed": 0,
+        "notRun": 0,
+        "inProcess": 0,
+        "proof": {
+          "path": "Saved/HookSwing/20261117/Network_Lag80_R3/Client/index.json",
+          "sha256": "D9C87236E20843894D128747CCF7F65063A7166549D4BCFE8FC3CBD6EA32C7F0"
+        }
+      },
+      "hostMinimumLateralCm": -602.87,
+      "clientMinimumLateralCm": -602.93,
+      "continuity": [
+        "[2026.11.17-14.45.02:367][ 84]LogAutomationController: Hook exit continuity before=X=-401.602 Y=-1446.090 Z=0.000 after=X=-478.956 Y=-1519.687 Z=-0.001\r"
+      ],
+      "physics": [
+        "[2026.11.17-14.44.55:900][696]LogTemp: Hook physics swing Player=256 Frame=695 Start=695 End=713 Position=X=20750.000 Y=0.003 Z=135.479 Velocity=X=-0.000 Y=-0.000 Z=-0.000 Delta=X=-0.024 Y=-46.297 Z=0.000\r",
+        "[2026.11.17-14.44.56:183][713]LogTemp: Hook physics swing Player=256 Frame=712 Start=695 End=713 Position=X=20717.185 Y=-219.483 Z=135.479 Velocity=X=-422.039 Y=-1468.067 Z=0.000 Delta=X=-85.972 Y=-86.530 Z=0.000\r",
+        "[2026.11.17-14.44.56:233][716]LogTemp: Hook physics release Player=256 Activation=01A0B9C8464A2C0BE784C4A2F07E79E7 Frame=715 Start=715 Internal=1 Sleeping=0 Before=X=-490.086 Y=-1512.021 Z=-0.031 Delta=X=0.000 Y=0.000 Z=250.031 Target=X=0.000 Y=0.000 Z=250.000\r",
+        "[2026.11.17-14.44.58:101][828]LogTemp: Hook physics swing Player=256 Frame=827 Start=827 End=845 Position=X=20750.000 Y=0.004 Z=135.479 Velocity=X=-0.000 Y=0.000 Z=0.000 Delta=X=-0.025 Y=46.295 Z=0.000\r"
+      ],
+      "logs": [
+        {
+          "path": "Saved/HookSwing/20261117/Network_Lag80_R3/Host.log",
+          "sha256": "E78F10169CACCB1699B002FB0AEAA28AEE121DD8933D9AD95B966CEFB33BB098"
+        },
+        {
+          "path": "Saved/HookSwing/20261117/Network_Lag80_R3/Client.log",
+          "sha256": "F737012AC0E0C6DD9E1A1BE587355619B807FD830E549E999D3B7C05B3D2150F"
+        }
+      ],
+      "latencyMeaning": "Host outgoing injected lag, not measured RTT."
+    }
+  ],
+  "coverage": [
+    "Pure geometry, progressive nonzero exit speed, bounded motor and sparse history serialization; snapshot mode/absolute-frame replay contract.",
+    "GAS capture/drop, held claim/Stun through swing, separate Stun retention, immunity target, timeout/wall/Avatar cleanup.",
+    "Real Chaos left/right circular paths, nonzero tangent velocity, no planar speed replacement at detach, interruption momentum and CCD wall blocking.",
+    "Late property cannot rewind reliable Swinging; late Swinging cannot reconnect already Returning.",
+    "Live client input and observer hook connection, swing then detach, actual displacement and velocity continuity, external Stun during second swing and cleanup."
+  ],
+  "earlierRuns": [
+    "Focused_R1 and Native_R1: PostSolve observation used pre-commit X; fixed fixture to solved GetP at the actual consumed endpoint, without relaxing arc assertions.",
+    "Native_R1 additionally found legacy immunity/boost/Stun/recovery/GF2 tests implicitly using the now-reconfigured Car01 primary. Runtime-only Legacy fixture copies now declare their intended grants; production DA/BP unchanged.",
+    "Editor_R3/R4 test-only GetP accessor experiments failed to compile; corrected through the test body proxy and verified Editor_R5/R7.",
+    "Network_Lag80_R1 failed observer detach; R2 observer acknowledgement sequencing alone still timed out because short Swinging state was collapsed by property replication. Added reliable discrete phase edges and revision guard; final R3 passes both endpoints. No failed or timed-out run is counted as acceptance."
+  ],
+  "preservation": {
+    "existingFilesChecked": 1376,
+    "unexpectedChanges": 0,
+    "baseline": {
+      "path": "Saved/HookSwing/20261117/Protected_Before.json",
+      "sha256": "A132A85B2EF079DC50CF99E8B8E04D8C396063CCCCB1F827696CC3EEE8CD762E"
+    },
+    "newAssets": 0,
+    "sharedProjectLauncherAndIgnoreUnchanged": true,
+    "userAssets": [
+      {
+        "path": "Content/Data/MVP_B/DA_Vehicle_Car_01.uasset",
+        "sha256": "3BECEBC6E554D2318869ADCCFD22A6BBE1CEC0F5035C0CAE402BBEBD415ED2A2"
+      },
+      {
+        "path": "Content/Blueprints/Gamemode/BP_FredSkillTestGameMode.uasset",
+        "sha256": "DF0FB3025CF3760D86F86DF398D89A5F8B0928ECA133966B98F7B02BD63D81EB"
+      },
+      {
+        "path": "Content/Blueprints/GA/GA_HookThrow.uasset",
+        "sha256": "1622ECA85827FCC84669959220AF8339735D0A7CFADF1E25203BABDB632D405D"
+      },
+      {
+        "path": "Content/Data/Abilities/DA_Ability_HookThrow.uasset",
+        "sha256": "2FD812581EB121070D4DF1B88B125D61E7D9957075D60B4CA8C856C5BC6DD275"
+      }
+    ],
+    "commitOrPushPerformed": false
+  },
+  "combinedUncommittedCodeSnapshot": [
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.cpp",
+      "sha256": "5CD5268AC09162C4D606A9AE704EB97DA193E7BFBFE556B8471EFE8B82B89A98"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/ArcadeVehicleMovementComponent.h",
+      "sha256": "73DD50B122F5F9BD02CE39D29A63EE523467A7E38CA3A4428972C66D07B107EC"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BallControlComponent.cpp",
+      "sha256": "2F1846AD7DB009A241319FD6A9F21EA45D137D4BB73684AA257F652F1BE7DCCF"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/BallControlComponent.h",
+      "sha256": "0FAFAC7B99C4BE2ACEF7AA6CFBC31596AA0369AB1B640C4745838BF8CB21CF5A"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALAbilitySystemComponent.cpp",
+      "sha256": "C03FC1ECB61E982E739DF7DCBD1A364AE83F5636AC0FAB08D1FF2087EFB527D9"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameplayTags.cpp",
+      "sha256": "DEE29459358823C6988228B22949594804164A9C64A2BC953EBA3D36AEC5B526"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameplayTags.h",
+      "sha256": "958BE4D2DB2CB79CF02211E7D8777B0E89955942757FAA1CCD85C124470DB916"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookComponent.cpp",
+      "sha256": "E591DDC6ED918776477693D1BC95E279EDF889EA1CFD3B50FE7E8BBDB5A615F9"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookComponent.h",
+      "sha256": "81431D8A2FC4BC265C7C48DE9E48725AF6E5AFF7AE7965017AB4C5770AB19801"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookMotion.cpp",
+      "sha256": "C9EA7851B8E4EA750F72637E90D2C86F376EB2C787B2466028D9ADA23DC12CAA"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookMotion.h",
+      "sha256": "1B7AB076D4084B191EF007310307BC12B4F62B5DE3A0055A5445495AAFD4331A"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookThrow.cpp",
+      "sha256": "B21EBD6413DFF32495775152114273F4772DF6FAC1635AF274378571BCC9FD7B"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookThrow.h",
+      "sha256": "6B54EE0A1079D144694B8BADE72AB5D4D0837E664685D13758CABBB173B8AEBE"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookThrowAbility.cpp",
+      "sha256": "D1C717D0EB3D27AA3DF134F604AD1491F5E94A2C60A50AA4D08A8B73E6277865"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookThrowAbility.h",
+      "sha256": "E948AA021C2A119445BD9A6BF26CF2E5817EF1CA185A2078B457A68A491396AE"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookThrowTypes.cpp",
+      "sha256": "EB80E763F84E986EC8BF7EACE8A84F549F3CCA607B06FC711E0DC1120EE349C4"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALHookThrowTypes.h",
+      "sha256": "7BBB0948D5ED273C4FDE83D6B7EF71668E7F15AF445AE4A46389529426D07AD4"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALImpactReceiverComponent.cpp",
+      "sha256": "B9BA66D7549029920ACF6D5E6272A4EC68B93A420EB57FF9451E252791774A72"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementEffectBridge.cpp",
+      "sha256": "6D0DC8C79FB462F83B5C5BCF63CD19D9BABECDC55D8D02F76F44B7777B739173"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementEffectBridge.h",
+      "sha256": "ED037507C3810A96168902D9C6D62863808E3E949B7FE32A56F2A5ED7087090A"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementTypes.cpp",
+      "sha256": "70714813C2B6DE9E54AFBED939E4BD6F809C09D2ADA812ACE394504467644235"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMovementTypes.h",
+      "sha256": "FE5D34FE1D7618C4FF9DF8FB7D8D81B3B236DF81EE727082D589EF3749D271C7"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALAbilityTests.cpp",
+      "sha256": "555E5F0099B97D17CB27DF35B3CD49C3D39FA4D9733CFC928912C69F886E89F2"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALHookSwingSolverTests.cpp",
+      "sha256": "FEC07B67615B9F400D0CF527252D864815CCAD2D3BF235588A7389DD18DD0169"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALHookThrowNetworkTests.cpp",
+      "sha256": "2148895B182022E1ECF316026554D841E1994009D32C1839DB36E282FA2BEA76"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALHookThrowRenderTests.cpp",
+      "sha256": "CB89389345C592471C4546037CB3DD7ECFDE61D409545870711B0B762F55F404"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALHookThrowTests.cpp",
+      "sha256": "926F363F727F34B3441D6F107FD03BC380AC22CA20E165374EAAB3B83A773706"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementAbilityTests.cpp",
+      "sha256": "8EA218125EEF07CE504569EFF5FEA972A7946A1F9B7280C94E394C29AD30281B"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementAbilityTestSupport.h",
+      "sha256": "E94560193E9FA88B125BBE81AE5195484C3B0F67321C3B63661E2EB9432B1A71"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALMovementBoostTests.cpp",
+      "sha256": "DDFF49E5E1400A760F04928B311AC0632AF882D6E187E149C57566D1C27EA1A2"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleAbilityTestSupport.h",
+      "sha256": "E469C6F9E20B91450A54CCFA1C0D1C0A57EA3ADA7CB00EFC1AC736894E02B1D0"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleLifecycleTests.cpp",
+      "sha256": "9C0A3D2D0362F587C627BA2A43CA977228A54202B50353017676134478DA655C"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.cpp",
+      "sha256": "BBB0DAD1089EEA2F95B8EC756A267796E0810F2D8946A8ECAFB6FB9AF5282465"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/TestVehiclePawn.h",
+      "sha256": "A4247F058A32DE0177DAD17B8ECC1EB36264DE616A65157551B567894152C440"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/VehicleRecoveryComponent.cpp",
+      "sha256": "E783B266269B1097D331B219047F782FB65B3BFAACF272AE07FD16998C9BF34E"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALBuildHookThrowFXCommandlet.cpp",
+      "sha256": "F30CDCE4444A7C50FE6BA1B7CCC517A0E5C35593C8077334F8F42CA502BDF7BC"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Public/HALBuildHookThrowFXCommandlet.h",
+      "sha256": "FC71AF221F5C396F43C168365EE84E7A0455FCDF2DDC4431C8824D7075A8A624"
+    }
+  ],
+  "limitations": [
+    "Human feel, arc extent and visual review in the actual arena remain pending.",
+    "No four-player stress, actual packaged LAN or Cook test in this round.",
+    "Authoring limits, fixed-frame quantization, friction, contacts and external forces affect the actual arc and travel distance.",
+    "Current test fixtures use a known flat setup; no claim that all slopes/corners/extreme parameters have been accepted."
+  ]
+}

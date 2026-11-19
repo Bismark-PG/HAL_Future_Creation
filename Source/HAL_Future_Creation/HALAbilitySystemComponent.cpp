@@ -1,5 +1,6 @@
 #include "HALAbilitySystemComponent.h"
 #include "HALStunEffect.h"
+#include "HALHookComponent.h"
 #include "HALShockedEffect.h"
 #include "AbilitySystemGlobals.h"
 #include "BallControlComponent.h"
@@ -140,7 +141,7 @@ bool UHALAbilitySystemComponent::HasAbilityForInput(FGameplayTag InputTag) const
 
 bool UHALAbilitySystemComponent::TryActivateAbilityInput(FGameplayTag InputTag)
 {
-	if (!InputTag.IsValid() || !GetAvatarActor() || IsStunned()) { return false; }
+	if (!InputTag.IsValid() || !GetAvatarActor() || IsStunned() || UHALHookComponent::BlocksActionsOn(GetAvatarActor())) { return false; }
 	if (const auto* Recovery = GetAvatarActor()->FindComponentByClass<UVehicleRecoveryComponent>(); Recovery && Recovery->IsExecuting()) { return false; }
 	TArray<FGameplayAbilitySpecHandle> Handles;
 	{
@@ -163,7 +164,7 @@ bool UHALAbilitySystemComponent::TryActivateAbilityInput(FGameplayTag InputTag)
 bool UHALAbilitySystemComponent::AreAbilityTagsBlocked(const FGameplayTagContainer& Tags) const
 {
 	const auto* Recovery = GetAvatarActor() ? GetAvatarActor()->FindComponentByClass<UVehicleRecoveryComponent>() : nullptr;
-	return IsStunned() || (Recovery && Recovery->IsExecuting()) || Super::AreAbilityTagsBlocked(Tags);
+	return IsStunned() || UHALHookComponent::BlocksActionsOn(GetAvatarActor()) || (Recovery && Recovery->IsExecuting()) || Super::AreAbilityTagsBlocked(Tags);
 }
 
 bool UHALAbilitySystemComponent::IsStunned() const
@@ -183,10 +184,11 @@ bool UHALAbilitySystemComponent::ApplyStun(float DurationSeconds, AActor* Source
 		|| !FMath::IsFinite(DurationSeconds) || DurationSeconds <= 0.f) { return false; }
 	const auto Previous = GetActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(
 		FGameplayTagContainer(HALGameplayTags::Effect_Stun)));
-	if (IsStunned())
+	if (!Previous.IsEmpty())
 	{
-		const float Remaining = GetEffectTimeRemaining(HALGameplayTags::State_Stun);
-		if (Remaining < 0.f || Remaining >= DurationSeconds) { return true; }
+		// A hook-owned Stun must not swallow a shorter independent electric-wall/pursuit Stun.
+		const auto Remaining=GetActiveEffectsTimeRemaining(FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(FGameplayTagContainer(HALGameplayTags::Effect_Stun)));
+		for(float Time:Remaining) { if(Time<0.f||Time>=DurationSeconds) { return true; } }
 	}
 	auto Context = MakeEffectContext();
 	Context.AddInstigator(IsValid(SourceActor) ? SourceActor : GetAvatarActor(), SourceActor);
@@ -208,6 +210,9 @@ bool UHALAbilitySystemComponent::ApplyStun(float DurationSeconds, AActor* Source
 void UHALAbilitySystemComponent::StunTagChanged(FGameplayTag Tag, int32 Count)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority()) { return; }
+	// The ASC lives on a low-frequency PlayerState. Short captures must publish both
+	// Stun boundaries immediately instead of disappearing between ordinary updates.
+	ForceReplication();
 	if (Count <= 0)
 	{
 		RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(FGameplayTagContainer(HALGameplayTags::Effect_Visual_Shocked)));

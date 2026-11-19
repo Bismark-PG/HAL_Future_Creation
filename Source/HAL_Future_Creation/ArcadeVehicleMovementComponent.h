@@ -109,6 +109,8 @@ private:
 	friend struct FHALSideShiftTestAccess;
 	friend struct FHALTornadoTestAccess;
 	friend struct FHALSmokeTestAccess;
+	friend struct FHALHookTestAccess;
+	friend struct FHALHookSolverTestAccess;
 	friend struct FHALSkillTestDummyTestAccess;
 	friend struct FHALRecoveryTestAccess;
 	friend struct FHALPresentationTestAccess;

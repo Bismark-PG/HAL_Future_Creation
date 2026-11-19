@@ -1,5 +1,6 @@
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR && !UE_BUILD_SHIPPING
 #include "Misc/AutomationTest.h"
+#include "HALVehicleAbilityTestSupport.h"
 #include "../HALMovementBoostEffect.h"
 #include "../HALMovementAttributeSet.h"
 #include "../HALAbilitySystemComponent.h"
@@ -50,6 +51,7 @@ namespace
 			if (!Class) { return nullptr; }
 			FActorSpawnParameters Params; Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			auto* Pawn = World->SpawnActor<ATestVehiclePawn>(Class, FVector(0,0,1000), FRotator::ZeroRotator, Params);
+			FHALVehicleAbilityTestAccess::UseLegacyAbilities(Pawn);
 			Pawn->PreInitializeComponents(); Pawn->InitializeComponents(); Pawn->PostInitializeComponents(); return Pawn;
 		}
 		~FBoostWorld()

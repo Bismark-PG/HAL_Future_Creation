@@ -16,7 +16,6 @@ struct FHALBallPresentationTestAccess
 	static void Receive(UHALBallPresentationComponent* C,const FHALBallRelativePose& Pose)
 	{ C->ReplicatedPose=Pose; C->OnRep_RelativePose(); }
 	static void Tick(UHALBallPresentationComponent* C,float Delta) { C->UpdateClient(Delta); }
-	static void Expire(UHALBallPresentationComponent* C) { C->LastReceiveSeconds=-1; }
 };
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALBallRelativeMathTest,"HAL.FutureCreation.Ball.RelativePoseContract",
@@ -62,7 +61,12 @@ bool FHALBallRelativeLifecycleTest::RunTest(const FString&)
 	if (!TestNotNull(TEXT("Native component available on ball"),C)) { W->DestroyWorld(false); GEngine->DestroyWorldContext(W); return false; }
 	FHALBallPresentationConfig Config; Config.RelativeBlendSeconds=0; C->Configure(Config);
 	const auto CollisionMode=B->GetPhysicsRoot()->GetCollisionEnabled(); const auto Responses=B->GetPhysicsRoot()->GetCollisionResponseToChannels();
+	const auto PriorityFromSide = [&]() {
+		return B->GetNetPriority(FVector(3000,0,0), FVector::ForwardVector, nullptr, Holder, nullptr, .1f, false);
+	};
+	const float FreePriority = PriorityFromSide();
 	FHALBallPresentationTestAccess::State(B,EBasicBallState::Controlled,1,Holder);
+	TestTrue(TEXT("A held ball gets scheduling priority even away from the viewer"),PriorityFromSide() > FreePriority);
 	FHALBallRelativePose Pose; Pose.Holder=Holder; Pose.StateSequence=1; Pose.PhysicsFrame=50; Pose.Position=FVector(200,0,0);
 	FHALBallPresentationTestAccess::Receive(C,Pose);
 	for (int I=0;I<12;++I) { FHALBallPresentationTestAccess::Tick(C,.02f); }
@@ -82,6 +86,7 @@ bool FHALBallRelativeLifecycleTest::RunTest(const FString&)
 	TestTrue(TEXT("Old sample cannot drag the ball away"),B->GetVisualMesh()->GetComponentLocation().Equals(FVector(1000,205,0),.01));
 	const auto BeforeRelease=B->GetVisualMesh()->GetComponentLocation();
 	FHALBallPresentationTestAccess::State(B,EBasicBallState::Launched,2,nullptr);
+	TestEqual(TEXT("Ordinary priority after launch on a new channel"),PriorityFromSide(),FreePriority);
 	FHALBallPresentationTestAccess::Tick(C,.02f);
 	TestTrue(TEXT("State handoff starts at last visible world pose"),B->GetVisualMesh()->GetComponentLocation().Equals(BeforeRelease,.01));
 	for (int I=0;I<15;++I) { FHALBallPresentationTestAccess::Tick(C,.02f); }
@@ -93,12 +98,75 @@ bool FHALBallRelativeLifecycleTest::RunTest(const FString&)
 	FHALBallPresentationTestAccess::State(B,EBasicBallState::Controlled,3,Holder);
 	Pose.StateSequence=3; Pose.PhysicsFrame=80; FHALBallPresentationTestAccess::Receive(C,Pose);
 	for (int I=0;I<12;++I) { FHALBallPresentationTestAccess::Tick(C,.02f); }
-	FHALBallPresentationTestAccess::Expire(C);
-	for (int I=0;I<15;++I) { FHALBallPresentationTestAccess::Tick(C,.02f); }
-	TestEqual(TEXT("Packet stall has bounded fallback"),C->GetVisualMode(),EHALBallVisualMode::Physics);
-	Pose.PhysicsFrame=81; FHALBallPresentationTestAccess::Receive(C,Pose); FHALBallPresentationTestAccess::Tick(C,.02f);
+
+	auto Tick = [&]() { FHALBallPresentationTestAccess::Tick(C,.02f); };
+	auto ReceiveFresh = [&]() {
+		++Pose.PhysicsFrame;
+		Pose.ServerPublishSeconds = W->GetTimeSeconds();
+		FHALBallPresentationTestAccess::Receive(C,Pose);
+	};
+	W->TimeSeconds += Config.StaleSeconds + .05f;
+	FHALBallPresentationTestAccess::Receive(C,Pose); // Duplicate packets cannot renew the sample.
+	Holder->SetActorLocationAndRotation(FVector(-150,400,0),FRotator(0,180,0));
+	Tick();
+	TestEqual(TEXT("Short sample gap holds the existing possession"),C->GetVisualMode(),EHALBallVisualMode::RelativeHold);
+	const FTransform HeldPose = C->GetDisplayedRootPose();
+	TestTrue(TEXT("During the gap the offset follows the turning car"),HeldPose.GetLocation().Equals(FVector(-350,400,0),.01));
+
+	Pose.Position.X += 60;
+	ReceiveFresh();
+	Tick();
 	TestEqual(TEXT("Fresh sample resumes relative presentation"),C->GetVisualMode(),EHALBallVisualMode::Relative);
-	Holder->Destroy();
+	TestTrue(TEXT("Recovery starts where the ball was visible, even with normal smoothing off"),C->GetDisplayedRootPose().Equals(HeldPose,.01));
+	Holder->SetActorRotation(FRotator(0,90,0));
+	for (int I=0; I<3; ++I) { Tick(); }
+	const FVector MidRecovery = Holder->GetActorTransform().InverseTransformPositionNoScale(C->GetDisplayedRootPose().GetLocation());
+	TestTrue(TEXT("Recovery interpolates in the turning holder's frame"),MidRecovery.X > 200 && MidRecovery.X < 260 && FMath::IsNearlyZero(MidRecovery.Y,.01));
+	for (int I=0; I<12; ++I) { Tick(); }
+	TestTrue(TEXT("Recovery reaches the new authoritative offset"),C->GetDisplayedRootPose().GetLocation().Equals(FVector(-150,660,0),.01));
+
+	W->TimeSeconds += Config.StaleSeconds + .05f;
+	Tick();
+	FHALBallPresentationTestAccess::State(B,EBasicBallState::Free,4,nullptr);
+	Tick();
+	TestEqual(TEXT("Confirmed drop exits a held offset on the first update"),C->GetVisualMode(),EHALBallVisualMode::Handoff);
+	for (int I=0; I<10; ++I) { Tick(); }
+	TestEqual(TEXT("Dropped ball returns to physics"),C->GetVisualMode(),EHALBallVisualMode::Physics);
+	FHALBallPresentationTestAccess::State(B,EBasicBallState::Controlled,5,Holder);
+	Tick();
+	TestEqual(TEXT("Recapture cannot reuse the preceding possession"),C->GetVisualMode(),EHALBallVisualMode::Physics);
+	Pose.StateSequence = 5;
+	++Pose.PhysicsFrame; // Correct new epoch but already old when delivered.
+	FHALBallPresentationTestAccess::Receive(C,Pose);
+	Tick();
+	TestEqual(TEXT("An old first sample cannot establish a hold"),C->GetVisualMode(),EHALBallVisualMode::Physics);
+	ReceiveFresh();
+	for (int I=0; I<10; ++I) { Tick(); }
+	W->TimeSeconds += 2.f * Config.StaleSeconds + .05f;
+	for (int I=0; I<10; ++I) { Tick(); }
+	TestEqual(TEXT("Long silence returns to physics after the bounded hold"),C->GetVisualMode(),EHALBallVisualMode::Physics);
+	ReceiveFresh();
+	for (int I=0; I<10; ++I) { Tick(); }
+	TestEqual(TEXT("Fresh data rebinds after the long outage"),C->GetVisualMode(),EHALBallVisualMode::Relative);
+	W->TimeSeconds += Config.StaleSeconds + .05f;
+	Tick();
+	auto* NextHolder=W->SpawnActor<AActor>();
+	auto* NextAnchor=NewObject<USceneComponent>(NextHolder);
+	NextHolder->AddInstanceComponent(NextAnchor); NextHolder->SetRootComponent(NextAnchor); NextAnchor->RegisterComponent();
+	NextHolder->SetActorLocation(FVector(600,800,0));
+	FHALBallPresentationTestAccess::State(B,EBasicBallState::Controlled,6,NextHolder);
+	Tick();
+	TestEqual(TEXT("A holder switch ends the previous hold before the new pose arrives"),C->GetVisualMode(),EHALBallVisualMode::Handoff);
+	ReceiveFresh(); // A delayed packet from the first holder.
+	Tick();
+	TestEqual(TEXT("Late data from the previous holder cannot resume the hold"),C->GetVisualMode(),EHALBallVisualMode::Handoff);
+	Pose.StateSequence=6; Pose.Holder=NextHolder;
+	ReceiveFresh();
+	for (int I=0; I<10; ++I) { Tick(); }
+	TestTrue(TEXT("The next holder uses its own offset"),C->GetDisplayedRootPose().GetLocation().Equals(FVector(860,800,0),.01));
+	W->TimeSeconds += Config.StaleSeconds + .05f;
+	Tick();
+	NextHolder->Destroy();
 	for (int I=0;I<15;++I) { FHALBallPresentationTestAccess::Tick(C,.02f); }
 	TestEqual(TEXT("Holder destruction cannot leave absolute visual stuck"),C->GetVisualMode(),EHALBallVisualMode::Physics);
 	W->DestroyWorld(false); GEngine->DestroyWorldContext(W);

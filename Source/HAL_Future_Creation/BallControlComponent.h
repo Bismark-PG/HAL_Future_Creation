@@ -124,6 +124,7 @@ private:
 #endif
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALStunTestAccess;
+	friend struct FHALHookTestAccess;
 	friend class FHALImpactBallPipelineTest;
 	friend class FConfigurationPlayerBallTest;
 	friend struct FHALRecoveryTestAccess;
