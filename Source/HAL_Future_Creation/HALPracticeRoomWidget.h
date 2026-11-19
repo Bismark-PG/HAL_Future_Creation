@@ -18,6 +18,11 @@ public:
 	/** GameInstance calls this on replicated room changes; the timer still handles late assets/input binding. */
 	void RefreshFromRoomState();
 	UFUNCTION(BlueprintPure, Category="UI|Room") FHALRoomView GetRoomView() const;
+	UFUNCTION(BlueprintPure, Category="UI|Room") static FHALRoomPresentation ResolvePresentation(const FHALRoomView& View);
+	/** Register existing Designer children once in Construct. Re-registering the same child is idempotent. */
+	UFUNCTION(BlueprintCallable, Category="UI|Room") bool RegisterRoomScreen(EHALRoomScreen Screen, UUserWidget* Child);
+	UFUNCTION(BlueprintCallable, Category="UI|Room") bool RegisterLocalMenu(UUserWidget* Child);
+	bool ManagesMatchHUD() const;
 	UFUNCTION(BlueprintCallable, Category="UI|Room") void SelectVehicleById(FName VehicleId);
 	UFUNCTION(BlueprintCallable, Category="UI|Room") void CycleVehicle(int32 Direction);
 	UFUNCTION(BlueprintCallable, Category="UI|Room") void ConfirmSelection();
@@ -32,6 +37,16 @@ public:
 	virtual int32 NativePaint(const FPaintArgs& Args, const FGeometry& Geometry, const FSlateRect& Culling,
 		FSlateWindowElementList& Elements, int32 Layer, const FWidgetStyle& Style, bool bParentEnabled) const override;
 private:
+	friend struct FHALRoomScreenTestAccess;
+	bool IsRoomChild(const UUserWidget* Child) const;
+	void ApplyRoomPresentation(const FHALRoomView& View);
+	void ClearRoomScreens();
+	void RegisterDesignerScreens();
+	UPROPERTY(Transient) TMap<EHALRoomScreen, TObjectPtr<UUserWidget>> RoomScreens;
+	UPROPERTY(Transient) TObjectPtr<UUserWidget> LocalMenuScreen;
+	UPROPERTY(Transient) TObjectPtr<UUserWidget> ActiveRoomScreen;
+	FHALRoomPresentation Presentation;
+	bool bPresentationApplied=false;
 	void PublishRoomView();
 	bool CanCancel() const;
 	bool CanResume() const;

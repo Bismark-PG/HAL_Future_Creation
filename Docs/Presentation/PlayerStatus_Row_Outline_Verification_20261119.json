@@ -1,0 +1,90 @@
+{
+  "baseline": "main/8e0a593",
+  "engine": "5.8.3-58210709",
+  "editorBuild": {
+    "log": "Saved/HUDRowArt/Build_R9.log",
+    "exit": 0
+  },
+  "assetBake": {
+    "log": "Saved/HUDRowArt/Bake_R6.log",
+    "exit": 0,
+    "colors": [
+      "[2026.11.18-18.21.46:193][  0]LogTemp: Display: HUD palette Car_01: mesh=/Game/Assets/Cars/Car_01/SKM_Car_01.SKM_Car_01 samples=160672 dominant=#04A09BFF outline=(R=0.002907,G=0.850000,B=0.792123,A=1.000000)",
+      "[2026.11.18-18.21.46:646][  0]LogTemp: Display: HUD palette Car_02: mesh=/Game/Assets/Cars/Car_02/SKM_Car_02.SKM_Car_02 samples=235008 dominant=#CB4410FF outline=(R=0.850000,G=0.082275,B=0.007375,A=1.000000)"
+    ]
+  },
+  "tests": {
+    "report": "Saved/HUDRowArt/Tests_R3/index.json",
+    "exit": 0,
+    "succeeded": 3,
+    "failed": 0,
+    "notRun": 0,
+    "succeededWithWarnings": 0,
+    "results": [
+      {
+        "name": "HAL.FutureCreation.GameFlow.CatalogAndExplicitRules",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.FutureCreation.UI.VehicleOutline.AreaColorAndSelection",
+        "state": "Success"
+      },
+      {
+        "name": "HAL.RenderSmoke.UI.VehicleOutline.GeometryColorAndOpacity",
+        "state": "Success"
+      }
+    ]
+  },
+  "png": {
+    "path": "SourceArt/UI/HUD/T_PlayerStatus_Row_BG.png",
+    "width": 1280,
+    "height": 256,
+    "centerRGBA": [
+      51,
+      51,
+      51,
+      204
+    ],
+    "alphaRange": [
+      0,
+      204
+    ],
+    "slantDegreesFromVertical": 45
+  },
+  "renderComparison": {
+    "textureRGBA": [
+      112,
+      112,
+      112,
+      204
+    ],
+    "materialRGBA": [
+      112,
+      112,
+      112,
+      204
+    ],
+    "note": "Equal readback values in the same gamma-configured Slate render target; source PNG is sRGB #333333."
+  },
+  "blueprints": [
+    {
+      "path": "D:\\UE Project\\HAL_Future_Creation\\Content\\UI\\Network\\WBP_MatchHUD.uasset",
+      "sha256": "3A778CC06DD506394A1371DCB790EE34E9F3B67CF452E5F5EF6462322E28D08F",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\UE Project\\HAL_Future_Creation\\Content\\UI\\Network\\WBP_PlayerStatusRow.uasset",
+      "sha256": "855B746E3E8B6437D57FC7AF597F8C22692F1D123B4859DF2FE3B550533F34D4",
+      "unchanged": true
+    }
+  ],
+  "unverified": [
+    "WBP_PlayerStatusRow manual hookup",
+    "PIE complete HUD",
+    "multiplayer HUD",
+    "Cook/package",
+    "full automation suite",
+    "Game Target"
+  ],
+  "git": "uncommitted; existing MatchHUD edit preserved"
+}

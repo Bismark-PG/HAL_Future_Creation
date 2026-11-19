@@ -15,6 +15,8 @@
 #include "HALPlayerState.h"
 #include "HALMatchGameState.h"
 #include "HALRoomComponent.h"
+#include "HALPracticeRoomGameMode.h"
+#include "GameFramework/WorldSettings.h"
 #include "TimerManager.h"
 #include "Containers/Ticker.h"
 #include "Interfaces/IPv4/IPv4Address.h"
@@ -105,6 +107,13 @@ bool UHALNetworkGameInstance::JoinMatch(const FString& HostIPv4)
 
 void UHALNetworkGameInstance::ShowMatchLobby(APlayerController* LocalController)
 {
+	// Map-authored GameMode metadata is available before the first room replication on a joining client.
+	// Keep the old lobby and its configured references for legacy test maps only.
+	const auto* World=LocalController?LocalController->GetWorld():nullptr;
+	const auto* Settings=World?World->GetWorldSettings():nullptr;
+	const auto* State=World?World->GetGameState<AHALMatchGameState>():nullptr;
+	if (bPracticeRoomActive || (Settings && Settings->DefaultGameMode && Settings->DefaultGameMode->IsChildOf(AHALPracticeRoomGameMode::StaticClass()))
+		|| (State && State->GetRoom()->GetData().bPracticeRoom)) { return; }
 	if (!LocalController || !LocalController->IsLocalController() || !LocalController->GetLocalPlayer() || !MatchLobbyWidgetClass)
 	{
 		return;
@@ -162,6 +171,11 @@ void UHALNetworkGameInstance::ShowPracticeRoom(APlayerController* PC)
 	if (!VisibleWidget || VisibleWidget->GetClass()!=Desired || VisibleWidget->GetWorld()!=PC->GetWorld() || VisibleWidget->GetOwningPlayer()!=PC)
 	{ ReplaceVisibleWidget(CreateWidget<UHALPracticeRoomWidget>(PC,Desired)); }
 	if (auto* Screen=Cast<UHALPracticeRoomWidget>(VisibleWidget)) { Screen->RefreshFromRoomState(); }
+}
+bool UHALNetworkGameInstance::RoomOwnsMatchHUD(const APlayerController* PC) const
+{
+	const auto* Screen=Cast<UHALPracticeRoomWidget>(VisibleWidget);
+	return PC && Screen && Screen->GetWorld()==PC->GetWorld() && Screen->GetOwningPlayer()==PC && Screen->ManagesMatchHUD();
 }
 void UHALNetworkGameInstance::ReturnToEntry(const FText& Reason)
 {

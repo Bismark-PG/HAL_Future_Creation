@@ -2,18 +2,24 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "HALFrontEndViewTypes.h"
 #include "HALUltimateEnergy.h"
 #include "HALMatchHUDWidget.generated.h"
 
 /** Passive local match HUD. Reads the room's server deadline; never controls match/input state. */
 UCLASS(Blueprintable)
-class HAL_FUTURE_CREATION_API UHALMatchHUDWidget : public UUserWidget
+class HAL_FUTURE_CREATION_API UHALMatchHUDWidget : public UUserWidget, public IHALRoomScreenInterface
 {
 	GENERATED_BODY()
 public:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 	UFUNCTION(BlueprintPure, Category="Match|HUD") FText GetCountdownText() const;
+	virtual void ApplyView_Implementation(const FHALRoomView& View) override;
+	virtual void SetScreenActive_Implementation(bool bActive) override;
+	/** The room root supplies this snapshot; standalone compatibility HUDs continue reading the server deadline. */
+	UFUNCTION(BlueprintPure, Category="Match|HUD") FHALRoomView GetMatchView() const { return RoomView; }
+	UFUNCTION(BlueprintImplementableEvent, Category="Match|HUD") void ReceiveMatchView(const FHALRoomView& View);
 	UFUNCTION(BlueprintPure, Category="Match|HUD") FHALUltimateEnergyView GetLocalUltimateEnergy() const;
 protected:
 	/** Disable if the Designer layout renders its own meter from GetLocalUltimateEnergy. */
@@ -21,6 +27,8 @@ protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 private:
+	UPROPERTY(Transient) FHALRoomView RoomView;
+	bool bUsesRoomView=false, bRoomScreenActive=false;
 	TSharedRef<SWidget> MakeNativeClock();
 	void RefreshCountdown();
 	FTimerHandle RefreshTimer;

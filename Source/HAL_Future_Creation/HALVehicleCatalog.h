@@ -5,6 +5,7 @@
 
 class ATestVehiclePawn;
 class UTexture2D;
+class USkeletalMesh;
 
 USTRUCT(BlueprintType)
 struct HAL_FUTURE_CREATION_API FHALVehicleCatalogEntry
@@ -18,6 +19,11 @@ struct HAL_FUTURE_CREATION_API FHALVehicleCatalogEntry
 	/** Optional static selection artwork, loaded locally. Never spawns a preview Pawn. Icon is the fallback. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Display") TSoftObjectPtr<UTexture2D> PreviewImage;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Display", meta=(MultiLine=true)) FText Description;
+	/** Editor-baked, surface-area-weighted LOD0 Base Color. Rebuild after changing the mesh/materials. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Display|HUD") FLinearColor HUDDominantColor = FLinearColor::White;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Display|HUD") bool bHasHUDDominantColor = false;
+	/** Provenance only; runtime HUD does not load the mesh to choose an outline colour. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Display|HUD") TSoftObjectPtr<USkeletalMesh> HUDColorSource;
 };
 
 /** Server allowlist. Entries refer to existing BP->Definition; no copied vehicle tuning. */

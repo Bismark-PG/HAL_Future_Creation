@@ -1,0 +1,193 @@
+{
+  "date": "2026-11-19",
+  "branch": "main",
+  "start_commit": "dae9af3",
+  "engine": "5.8.3-58210709",
+  "scope": "Cleanup only; preserve the current GameFlow integration and user asset changes",
+  "cleanup": {
+    "removed_files": [
+      "Content/Python/init_unreal.py",
+      "Content/Python/hal_probe.py"
+    ],
+    "removed_code": "Temporary full Blueprint graph/pin export and automatic Audit entry",
+    "removed_editor_dependencies": [
+      "BlueprintGraph",
+      "KismetCompiler",
+      "Kismet",
+      "JsonUtilities"
+    ],
+    "retained_editor_tool_commands": [
+      "HAL.UIFlow CreateScreens",
+      "HAL.UIFlow VerifyScreens"
+    ],
+    "asset_generation_executed": false
+  },
+  "build": {
+    "target": "HAL_Future_CreationEditor",
+    "platform": "Win64",
+    "configuration": "Development",
+    "status": "Failed at formal DLL output only: LNK1104 sharing violation",
+    "final_log": "Saved/UIIntegration/CleanupBuild_R1_Console.log",
+    "full_editor_target_verified": false,
+    "game_target_verified": false,
+    "previous_full_editor_build": {
+      "status": "Succeeded",
+      "exit_code": 0,
+      "final_log": "Saved/UIIntegration/AuthoringBuild_R3_Console.log"
+    },
+    "exit_code": 6,
+    "source_compilation_verified": true,
+    "duration_seconds": 694.8,
+    "output_sharing_error_code": 32,
+    "formal_dlls_replaced": false,
+    "independent_link_verification": {
+      "status": "Succeeded",
+      "loaded_into_editor": false,
+      "method": "Same UBT response files and objects; only OUT and PDB paths redirected to Saved",
+      "results": [
+        {
+          "module": "HAL_Future_Creation",
+          "exit_code": 0,
+          "dll": "D:/UE Project/HAL_Future_Creation/Saved/UIIntegration/Cleanup/LinkVerification/UnrealEditor-HAL_Future_Creation.dll",
+          "log": "D:\\UE Project\\HAL_Future_Creation\\Saved\\UIIntegration\\Cleanup\\LinkVerification\\UnrealEditor-HAL_Future_Creation.log",
+          "dll_exists": true
+        },
+        {
+          "module": "HAL_Future_CreationEditor",
+          "exit_code": 0,
+          "dll": "D:/UE Project/HAL_Future_Creation/Saved/UIIntegration/Cleanup/LinkVerification/UnrealEditor-HAL_Future_CreationEditor.dll",
+          "log": "D:\\UE Project\\HAL_Future_Creation\\Saved\\UIIntegration\\Cleanup\\LinkVerification\\UnrealEditor-HAL_Future_CreationEditor.log",
+          "dll_exists": true
+        }
+      ]
+    }
+  },
+  "automation": {
+    "status": "not_executed",
+    "verified_passed_tests": 0,
+    "tests": [
+      "HAL.FutureCreation.GameFlow.UIIntegration.PresentationPriority",
+      "HAL.FutureCreation.GameFlow.UIIntegration.ChildLifecycle",
+      "HAL.FutureCreation.GameFlow.UIIntegration.MatchHUDView"
+    ],
+    "reason": "This cleanup does not provide a new automation execution report.",
+    "new_tests_compiled": 3
+  },
+  "assets": {
+    "baseline": "Saved/UIIntegration/Cleanup/Before.json",
+    "asset_paths_checked": 17,
+    "present_asset_paths": 14,
+    "absent_paths_preserved": [
+      "Content/UI/Network/BP_HALMatchPlayerController.uasset",
+      "Content/UI/Network/WBP_MatchHUD.uasset",
+      "Content/UI/Network/WBP_PlayerStatusRow.uasset"
+    ],
+    "changed_asset_paths": [],
+    "legacy_network_wbps_unchanged_from_head": true,
+    "retained_saved_names": [
+      "/Game/UI/GameFlow/Screens/WBP_GF_MatchHUD",
+      "/Game/UI/GameFlow/Components/WBP_GF_PlayerStatusRow"
+    ],
+    "designer_wiring_performed_in_cleanup": false,
+    "maps_modified_in_cleanup": false
+  },
+  "runtime_sources": {
+    "paths_checked": 17,
+    "changed_paths": []
+  },
+  "static_checks": {
+    "git_diff_check": "passed",
+    "remaining_temporary_audit_invocations": 0
+  },
+  "remaining": [
+    "Complete Blueprint child/root connections and MatchHUD player list integration.",
+    "Create and attach the six missing lifecycle screens.",
+    "Verify the saved Match GameMode and run the automation and host/client flow."
+  ],
+  "sources": [
+    {
+      "path": "Source/HAL_Future_Creation/HALFrontEndViewTypes.h",
+      "sha256": "81B387677FAF584D3EB2849FDE1D1B9960B6C7A707E9F5D492353E239A89EDEF"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameFlowWidgets.cpp",
+      "sha256": "20547625F673ABC57D2C1F37ED39A3B10C665ECD0B1320448C01712D6CB3433F"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALGameFlowWidgets.h",
+      "sha256": "5B8FAE58800FF7A833470708D7A606B726E506CD83FCB46CE5D3614D10203EA3"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMatchHUDWidget.cpp",
+      "sha256": "1AED27D5B12358722F2340B403AF5CA43E4DF76A88ABB34772C58F8F6406CC03"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALMatchHUDWidget.h",
+      "sha256": "F1D58FEDDC10F9FBD4110E8FBAC7F3C9A48F23562124B62041904F87D77A6ADA"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALNetworkGameInstance.cpp",
+      "sha256": "BAA0E6BFD85A13CCC5BE2C8E2E85CA7E4F2C7E548A2162A10E7E3C29C8079AFC"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALNetworkGameInstance.h",
+      "sha256": "7A5CB8E5FF85E58C4374EB63754157F81CA2CADB1826A4A11A7E8B9E9A08F82E"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPlayerController.cpp",
+      "sha256": "37E65A5E09428BFDAE8C100575C8911787A4A5DF171946C0602917321B2425F6"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPracticeRoomPresentation.cpp",
+      "sha256": "ABA328989A5B381C37971C26536A1BE231EE592E604070383AA915D9CD9DBF05"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALPracticeRoomWidget.h",
+      "sha256": "90B15AC7C818556A9AC9CDDE9343204A6005A33541EC743E7E0A2710E3EF0AA7"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALRoomWidgetInterface.cpp",
+      "sha256": "1E4B50589511C97FB58E1C17A7FE22B7655977C24CF0F0A8F53F0C9E2C91F484"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleCatalog.h",
+      "sha256": "AF0AD9C8F7DA767C9EB95A8CA81B7031CE6BBBE372F62E7079639CEB337A9CD1"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleHUDStyleLibrary.cpp",
+      "sha256": "59594C8FA1E8C727A7CDCF59AE9024109B3494C2456837AF945CA964F5C213EA"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/HALVehicleHUDStyleLibrary.h",
+      "sha256": "093ABE5F07B46428556B9D0C1DE1506DAC8398DA9459BA5FB8130D47DDE5542A"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALVehicleHUDStyleTests.cpp",
+      "sha256": "434E3383C9ECF1D71C33EAAF5A0141F317FD1470F6E6ED84254BA818D46C0BC4"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALWidgetExtensionTests.cpp",
+      "sha256": "03B1DD2BDF931C56B83781858C4E108EE0B3536915E292421DC9C45916B1682D"
+    },
+    {
+      "path": "Source/HAL_Future_Creation/Tests/HALWidgetExtensionTestWidgets.h",
+      "sha256": "F56F2EDFFEDB28C27722EF422D6F101D637E942DA48DFA783B9185D3576CFBAC"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/HAL_Future_CreationEditor.Build.cs",
+      "sha256": "455A2C53EBFCEF02B891AF25283CAEA4366E84A5D63AF80F0C9A3BDDE502C2E4"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALBuildVehicleHUDStyleCommandlet.cpp",
+      "sha256": "BF876B7660BA720463D6B324A286E774FF4C325E60AC7C6CE022C239E23D6F5F"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Private/HALGameFlowUIMigration.cpp",
+      "sha256": "5840D2A2EBD1BE2E6B546B1BE7CF40310EDD9B0D6AB44C4DF95B7AE91F8E02F4"
+    },
+    {
+      "path": "Source/HAL_Future_CreationEditor/Public/HALBuildVehicleHUDStyleCommandlet.h",
+      "sha256": "B0BF1756ABB033A6E17E8BC574DCB34EECF505FA95FE309556E4BBB2DF943FE9"
+    }
+  ]
+}

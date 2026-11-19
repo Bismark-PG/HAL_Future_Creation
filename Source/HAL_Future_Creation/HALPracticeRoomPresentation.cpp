@@ -77,7 +77,7 @@ void UHALPracticeRoomWidget::BackMenu()
 }
 void UHALPracticeRoomWidget::NativeConstruct()
 {
-	Super::NativeConstruct(); RefreshPresentation(); RefreshInput();
+	Super::NativeConstruct(); RegisterDesignerScreens(); RefreshPresentation(); RefreshInput();
 	GetWorld()->GetTimerManager().SetTimer(InputRefreshTimer,this,&ThisClass::RefreshInput,.1f,true);
 	if (FSlateApplication::IsInitialized())
 	{
@@ -94,6 +94,7 @@ void UHALPracticeRoomWidget::NativeConstruct()
 }
 void UHALPracticeRoomWidget::NativeDestruct()
 {
+	ClearRoomScreens();
 	if (GetWorld()) { GetWorld()->GetTimerManager().ClearTimer(InputRefreshTimer); }
 	if (FSlateApplication::IsInitialized()) { FSlateApplication::Get().OnApplicationActivationStateChanged().RemoveAll(this); }
 	if (CatalogLoad) { CatalogLoad->CancelHandle(); } if (ImageLoad) { ImageLoad->CancelHandle(); }
@@ -127,7 +128,7 @@ void UHALPracticeRoomWidget::RefreshInput()
 	{ UE_LOG(LogTemp,Log,TEXT("CameraUIInput %s Frame=%llu Menu=%d PhysicsReady=%d Recovery=%d Replay=%d"),*GetNameSafe(Vehicle),GFrameCounter,Menu,Physics.bReady,Physics.bRecovery,Physics.bReplay); }
 	LastInputDiagnostic=Diagnostic;
 	if (bInputModeKnown && bUsingMenu==Menu && InputAvatar.Get()==Vehicle)
-	{ PublishRoomView(); if (Menu && !IsMenuControlFocused()) { FocusMenu(); } return; }
+	{ PublishRoomView(); if (Menu && !IsMenuControlFocused() && !(Presentation.Screen==EHALRoomScreen::Selection && GetRoomView().bRequestPending)) { FocusMenu(); } return; }
 	bInputModeKnown=true; bUsingMenu=Menu; InputAvatar=Vehicle; PC->bShowMouseCursor=Menu;
 	if (Vehicle) { Vehicle->SetMenuInputActive(Menu); }
 	PublishRoomView();

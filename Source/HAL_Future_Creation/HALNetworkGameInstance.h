@@ -45,6 +45,8 @@ public:
 	/** Called by the local match PlayerController once its map has begun play. */
 	void ShowMatchLobby(APlayerController* LocalController);
 	void ShowPracticeRoom(APlayerController* LocalController);
+	/** True only after the visible Room/Pause has registered its own match screen. */
+	bool RoomOwnsMatchHUD(const APlayerController* LocalController) const;
 	void ReturnToEntry(const FText& Reason);
 	void HideTravelWidgets();
 	/** Server GameMode's one-shot map handoff; not a replicated rule store. */
