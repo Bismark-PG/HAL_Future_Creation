@@ -56,3 +56,17 @@ UCLASS(NotBlueprintable,Transient,HideDropdown)
 class UHALContractSelectionWidget : public UHALContractRoomWidget { GENERATED_BODY() };
 UCLASS(NotBlueprintable,Transient,HideDropdown)
 class UHALContractPauseWidget : public UHALContractRoomWidget { GENERATED_BODY() };
+
+UCLASS(NotBlueprintable,Transient,HideDropdown)
+class UHALContractChildScreen : public UUserWidget, public IHALRoomScreenInterface
+{
+	GENERATED_BODY()
+public:
+	virtual void ApplyView_Implementation(const FHALRoomView& View) override { LastView=View; ++Updates; }
+	virtual void SetScreenActive_Implementation(bool bActive) override { bActiveNow=bActive; if (bActive) { ++Activations; } else { ++Deactivations; } }
+	virtual UWidget* GetDefaultFocusTarget_Implementation() const override { ++FocusQueries; return nullptr; }
+	FHALRoomView LastView;
+	int32 Updates=0, Activations=0, Deactivations=0;
+	mutable int32 FocusQueries=0;
+	bool bActiveNow=false;
+};

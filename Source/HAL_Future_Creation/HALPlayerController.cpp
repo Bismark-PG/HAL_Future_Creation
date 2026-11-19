@@ -198,11 +198,13 @@ void AHALPlayerController::RefreshRoomUI()
 {
 	const auto* S = GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr;
 	if (IsLocalController() && !IsActorBeingDestroyed() && !GetWorld()->bIsTearingDown && S && S->GetRoom()->GetData().bPracticeRoom)
-	{ if (auto* GI = GetGameInstance<UHALNetworkGameInstance>()) { GI->ShowPracticeRoom(this); } }
+	{ if (auto* GI = GetGameInstance<UHALNetworkGameInstance>()) { GI->ShowPracticeRoom(this); EnsureMatchHUD(); } }
 }
 
 void AHALPlayerController::EnsureMatchHUD()
 {
+	if (const auto* GI=GetGameInstance<UHALNetworkGameInstance>(); GI && GI->RoomOwnsMatchHUD(this))
+	{ RemoveMatchHUD(); return; }
 	if (MatchHUD || !IsLocalController() || !GetLocalPlayer() || !GetWorld() || GetWorld()->bIsTearingDown) { return; }
 	UClass* WidgetClass=MatchHUDClass.Get();
 	if (!WidgetClass || WidgetClass->HasAnyClassFlags(CLASS_Abstract|CLASS_Deprecated|CLASS_NewerVersionExists)) { WidgetClass=UHALMatchHUDWidget::StaticClass(); }

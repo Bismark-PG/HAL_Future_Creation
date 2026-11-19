@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-19，四文件冲突已合并，远端配套代码已同步。** 本地 `main/dae9af3` 已快进到本次 Fetch 确认的 `origin/main/2662be6`。`HALMatchHUDWidget.h/.cpp` 同时保留 GameFlow Room View、页面激活、独立倒计时回退，以及服务器能量读取、原生能量条和 Designer 开关；失活页面不会被倒计时或能量刷新重新显示。`HALPlayerController.cpp` 同时保留房间接管 HUD 的判断、能量诊断与补能命令。本文完整保留远端新增的能量系统、场地修复及同步记录。提交范围限定为这四个文件、必要的 GameFlow／HUD 运行时 C++ 依赖、相关页面回归用例及本次验证记录；UI 资产、编辑器制作工具、本机 `.codex` 配置和其余原有改动保持未提交、内容不变。UE **5.8.3（CL 58210709）Editor Win64 Development 本次完整编译与链接通过**，日志保留未改动代码的数值转换及弃用警告。**自动化启动请求被用户拒绝，本轮没有自动化、PIE 或联机复测**；旧测试结果不能当作本轮证据。下一步先运行 `HAL.FutureCreation.GameFlow.UIIntegration`，再验证独立测试场能量条、房间接管／页面失活、返房及第二局开赛；蓝图接线与视觉验收仍由团队手动完成。[本次合并范围、验证证据与执行步骤](Presentation/UI_Conflict_Merge_Verification_20261119.json)
+
 **2026-11-19，车辆主技能已接入服务器权威的大招能量。** 练习场以 100 点开始，正式局由房间 DA 决定初始点数，默认 0。各车型的自然回满时间在车辆 DA 的 `Abilities → Full Recharge Seconds` 调整。普通主技能成功发动消耗 100 点，Car07 每次换线消耗 25 点。Car08 在喷射窗口结束后可使用补满的能量再次发动，已有烟团独立消散。后续补能道具和区域可调用 `GrantUltimateEnergy`，返回实际增加量。[车型数值、施放规则与联调方法](Combat/Vehicle_Ultimate_Energy_CN.md)
 
 能量系统已在本机 UE 5.8.2 编译通过 Editor 和 Windows Development 游戏目标。全量 257/257 通过（2 项含既有预期警告）。主客两局回能与扣能、Car07 与 Car08 实际车型的双端专项、Exhibition 一主三客两局均通过。四台实机上的操作与 HUD 可读性待团队验收。下一步可由服务器道具调用补能接口，以实际入账点数决定是否消耗拾取物。[本次验证记录](Combat/Vehicle_Ultimate_Energy_CN.md#ultimate-energy-tests)

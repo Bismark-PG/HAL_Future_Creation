@@ -69,6 +69,13 @@ FHALUltimateEnergyView UHALMatchHUDWidget::GetLocalUltimateEnergy() const
 }
 FText UHALMatchHUDWidget::GetCountdownText() const
 {
+	if (bUsesRoomView)
+	{
+		if (!RoomView.bRoomAvailable || RoomView.bShowResults || RoomView.Phase!=EHALRoomPhase::Playing
+			|| !RoomView.Match.bActive || RoomView.Match.bComplete || !FMath::IsFinite(RoomView.MatchRemaining)) { return FText::GetEmpty(); }
+		const int32 Seconds=FMath::CeilToInt(FMath::Clamp(RoomView.MatchRemaining,0.f,3600.f));
+		return FText::FromString(FString::Printf(TEXT("%02d:%02d"),Seconds/60,Seconds%60));
+	}
 	const auto* State=GetWorld()?GetWorld()->GetGameState<AHALMatchGameState>():nullptr;
 	if (!State) { return FText::GetEmpty(); }
 	const auto& Data=State->GetRoom()->GetData();
@@ -83,21 +90,35 @@ void UHALMatchHUDWidget::NativeConstruct()
 	Super::NativeConstruct();
 	SetIsFocusable(false);
 	RefreshCountdown();
-	if (auto* World=GetWorld()) { World->GetTimerManager().SetTimer(RefreshTimer,this,&ThisClass::RefreshCountdown,.1f,true); }
+	if (auto* World=GetWorld(); World && !bUsesRoomView) { World->GetTimerManager().SetTimer(RefreshTimer,this,&ThisClass::RefreshCountdown,.1f,true); }
 }
 void UHALMatchHUDWidget::NativeDestruct()
 {
 	if (auto* World=GetWorld()) { World->GetTimerManager().ClearTimer(RefreshTimer); }
+	bUsesRoomView=false; bRoomScreenActive=false; RoomView={};
 	Super::NativeDestruct();
+}
+void UHALMatchHUDWidget::ApplyView_Implementation(const FHALRoomView& View)
+{
+	bUsesRoomView=true; RoomView=View;
+	if (auto* World=GetWorld()) { World->GetTimerManager().ClearTimer(RefreshTimer); }
+	ReceiveMatchView(View); RefreshCountdown();
+}
+void UHALMatchHUDWidget::SetScreenActive_Implementation(bool bActive)
+{
+	bUsesRoomView=true; bRoomScreenActive=bActive;
+	if (auto* World=GetWorld()) { World->GetTimerManager().ClearTimer(RefreshTimer); }
+	RefreshCountdown();
 }
 void UHALMatchHUDWidget::RefreshCountdown()
 {
 	const FText Text=GetCountdownText();
 	const auto Energy = GetLocalUltimateEnergy();
-	const bool Driving = Energy.Cost > 0 && HALGameFlow::Permissions(GetWorld(), GetOwningPlayerPawn()).bAbilities;
+	const bool ScreenActive = !bUsesRoomView || bRoomScreenActive;
+	const bool Driving = ScreenActive && Energy.Cost > 0 && HALGameFlow::Permissions(GetWorld(), GetOwningPlayerPawn()).bAbilities;
 	const bool ShowEnergy = Driving && bShowNativeUltimateMeter;
-	SetVisibility(!Text.IsEmpty() || Driving ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
-	if (ClockPanel) { ClockPanel->SetVisibility(!Text.IsEmpty() || (Driving && !bShowNativeUltimateMeter) ? EVisibility::HitTestInvisible : EVisibility::Collapsed); }
+	SetVisibility(ScreenActive && (!Text.IsEmpty() || Driving) ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	if (ClockPanel) { ClockPanel->SetVisibility(ScreenActive && (!Text.IsEmpty() || (Driving && !bShowNativeUltimateMeter)) ? EVisibility::HitTestInvisible : EVisibility::Collapsed); }
 	if (EnergyPanel) { EnergyPanel->SetVisibility(ShowEnergy ? EVisibility::HitTestInvisible : EVisibility::Collapsed); }
 	if (ShowEnergy && EnergyText && EnergyBar)
 	{

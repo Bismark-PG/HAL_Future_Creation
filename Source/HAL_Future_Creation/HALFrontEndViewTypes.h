@@ -1,9 +1,11 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "HALRoomTypes.h"
+#include "UObject/Interface.h"
 #include "HALFrontEndViewTypes.generated.h"
 
 class UTexture2D;
+class UWidget;
 
 /** Local display values, never a request payload or an authoritative rule store. */
 USTRUCT(BlueprintType)
@@ -84,4 +86,31 @@ struct HAL_FUTURE_CREATION_API FHALRoomView
 	UPROPERTY(BlueprintReadOnly, Category="Match") FText ResultSummary;
 	UPROPERTY(BlueprintReadOnly, Category="UI") TArray<FHALRoomSeatView> Seats;
 	UPROPERTY(BlueprintReadOnly, Category="UI") TArray<FHALVehicleDisplayView> Vehicles;
+};
+
+/** Local presentation only. Pending requests never freeze phase transitions. */
+UENUM(BlueprintType)
+enum class EHALRoomScreen : uint8 { Selection, Practice, Loading, Countdown, Match, Spectator, Results, Transition };
+
+USTRUCT(BlueprintType)
+struct HAL_FUTURE_CREATION_API FHALRoomPresentation
+{
+	GENERATED_BODY()
+	UPROPERTY(BlueprintReadOnly, Category="UI") EHALRoomScreen Screen=EHALRoomScreen::Transition;
+	UPROPERTY(BlueprintReadOnly, Category="UI") bool bShowLocalMenu=false;
+};
+
+/** Contract shared by Designer children of the room root. Does not own gameplay state. */
+UINTERFACE(BlueprintType)
+class HAL_FUTURE_CREATION_API UHALRoomScreenInterface : public UInterface
+{
+	GENERATED_BODY()
+};
+class HAL_FUTURE_CREATION_API IHALRoomScreenInterface
+{
+	GENERATED_BODY()
+public:
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="UI|Room Screen") void ApplyView(const FHALRoomView& View);
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="UI|Room Screen") void SetScreenActive(bool bActive);
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="UI|Room Screen") UWidget* GetDefaultFocusTarget() const;
 };
