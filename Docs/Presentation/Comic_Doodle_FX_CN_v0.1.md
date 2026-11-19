@@ -8,7 +8,7 @@
 | 代號 | 效果 | 觸發（全部讀已複製狀態） | 落點 |
 |---|---|---|---|
 | S0 | 車對車漫畫火花 | 既有 Impact Burst 事件的 `Sparks` | `NS_VehicleImpactSparks`＋`M_FX_ComicSpark` |
-| P1 | 危險球火焰尾跡 | 球 `Launched` | `UHALBallComicFXComponent`＋`NS_BallInkTrail` |
+| P1 | 危險球脈衝環尾跡（2026-11-18 由火焰改版，見 §3） | 球 `Launched` | `UHALBallComicFXComponent`＋`NS_BallInkTrail` |
 | P3 | 持球瞄準塗鴉箭頭 | 球 `Controlled`＋`Holder` | `UHALBallComicFXComponent`＋`MI_FX_BallAimArrow` |
 | H1 | 持球環（球上軌道環＋車頂雙環星芒，取代磁力束弧線；見 §4.1） | 球 `Controlled`＋`Holder` | `UHALBallComicFXComponent`＋`MI_FX_BallHoldRing_Ball／_Roof` |
 | P4 | 眩暈漫畫星星 | 車輛 ASC 的 `State.Stun` 標籤 | `UHALVehicleDoodleStatusComponent`＋`MI_FX_DoodleStatus_Stun` |
@@ -96,52 +96,148 @@ P2 出局理由：`ColorMode==Source` 只代表「有身份色的發起者、非
 
 ---
 
-## 3. P1 危險球火焰尾跡（2026-11-18 由墨帶改版）
+## 3. P1 危險球脈衝環尾跡（2026-11-18 由漫畫火焰改版）
 
-> **改版原因（用戶驗收回饋）**：原本的 Ribbon 墨帶「形狀像火，但拖曳的動態不像火焰」——整條是一體的帶子、只會整體變細。用戶確認示意後改為由獨立火團組成的漫畫火焰。資產路徑與 C++ 契約不變，**沒有改 C++**。原 Ribbon 版（`NS_BallInkTrail`／`M_FX_BallInkTrail`／`MI_FX_BallInkTrail`／`BallInkTrail.hlsl`）備份在 `Saved/ComicDoodle/Flame/Backup_InkTrail/`（不入版控）。
-
-- 球進入 `Launched` 時啟動 `NS_BallInkTrail`（名稱沿用，內容已是火焰）：發射者身份色、黑墨框、Unlit／Translucent（不加法、不發光）。四個動態重點：
-  1. **火團各自獨立**：主體由一顆顆拉長的火滴精靈重疊而成，出生時帶隨機側向偏移與大小差，離球後各自搖擺，整體頭粗尾細、邊緣不規則。
-  2. **火舌甩開脫離**：另一個發射器從主體兩側邊緣甩出較小的火舌，強阻力、很快燒盡。
-  3. **內亮外深**：年輕火團有往白提亮的焰心，重疊後在靠近球的一段連成亮色內焰。
-  4. **漫畫感**：12 fps 階梯（位置、尺寸、尾彎都只在換格時跳）、以縮小收尾（最後一格尺寸 0）、不淡出。
-- 寬度基準 W＝`User.TrailWidth`＝**球的外觀直徑** × `TrailWidthDiameterFraction`(0.75)（測試圖約 240 cm）；系統內所有尺寸都是 W 的倍率。
-- 球離開 `Launched` 的**同一次狀態處理**就 `DeactivateImmediate`（`bCutTrailImmediately=true`）：尾跡若比危險狀態活得久，會把無害的球繼續標成危險。
-- 狀態比對用 **`StateSequence`＋發射者 PlayerId**，不是狀態邊緣；由權威端 `CommitRepState` 與客戶端 `OnRep_BallRepState` 兩處呼叫（Listen Server 主機不走 OnRep），做法比照磁力束。
-
-### 3.1 材質 `M_FX_BallFlame`
-
-`Tools/ComicDoodle/BallFlame.hlsl`＋`CreateComicDoodleAssets.py` 的 FLAME 段（可單獨重建：`CreateComicDoodleAssets.py FLAME`）。單一 Custom 節點、無貼圖；顏色、尺寸、繪製格數、年齡、焰心開關由 Niagara 透過 Particle Color／Particle Size／Dynamic Parameter 0 傳入，沒有 runtime driven 參數。三個實例以 `FX_Layer` 分層：`MI_FX_BallFlame_Ink`(0，黑色剪影)、`_Fill`(1，填色)、`_Heart`(2，焰心)。
-
-預設值：HeadRadius 0.55、Margin 0.34、TailPower 1.7、TailBend 0.38（每格左右翻）、TipBias 0.08、Boil 0.03、InkWidth 0.28、CoreScale 0.82、CoreLife 0.55、CoreLift 0.55、CoreGain 1.8、ColorLift 0、FillGain 1、Opacity 1、InkColor 黑、FX_Reverse 0。
-
-> **墨框融合**：每顆精靈各畫自己的墨框，重疊處會滿是內部黑線（魚鱗）。做法是同一發射器多個 Sprite Renderer，用 SortOrderHint 分層：黑色剪影 → 填色 → 焰心。焰心獨立一層，是因為放在填色層時年輕火團的填色會蓋掉年老火團的焰心，只剩白色月牙。副作用：兩團之間比兩倍墨寬還窄的縫會被塗成一小段黑色摺痕。
+> **改版原因**：用戶看過示意後指定「脈衝環（能量場）」方向，取代漫畫火焰。資產路徑 `NS_BallInkTrail` 與 C++ 契約（`User.TrailColor` LinearColor、`User.TrailWidth` float）不變，**沒有改 C++ 與 Config**。
 >
-> **坑：焰心提亮到接近純白會被 tonemapping 壓成灰。** 第一版 CoreLift 0.75，紅藍兩色的焰心都呈同一種灰；改為 0.55 並以 CoreGain 1.8 推亮。
+> **歷史**：P1 先後做過 Ribbon 墨帶（`M_FX_BallInkTrail`）與漫畫火焰（`FlameBody`＋`Tongues` 兩個發射器、`M_FX_BallFlame`＋`MI_FX_BallFlame_Ink／_Fill／_Heart` 三層疊合、自訂模組 `NM_BallFlameSpawn／NM_BallFlameUpdate`）。火焰版的資產、HLSL 紀錄（`Tools/ComicDoodle/BallFlame.hlsl`、`NiagaraBallFlame*.hlsl`）與本節原有的數值表、PIE 發現都在提交 `3f8041d` 中，需要時以 `git show 3f8041d:<路徑>` 或 `git checkout 3f8041d -- <路徑>` 取回。火焰版學到、仍適用於本版的教訓：絕對尺寸一律用 W 的倍率；系統掛在球心而球外觀半徑約 0.67 W；球 `Launched` 時球速會從約 2200 掉到約 450 cm/s，慢球時效果不能消失。
 
-### 3.2 `NS_BallInkTrail` 實際設定
+- 球進入 `Launched` 時啟動 `NS_BallInkTrail`：球沿路徑留下一圈圈**平貼地面的環**，環留在原地（世界空間、不跟球走）、擴大、線條變細後消失，像球穿過一層層力場。離開 `Launched` 的同一次狀態處理 `DeactivateImmediate`，所有環同時消失（C++ 未改，行為同前）。
+- 寬度基準 W＝`User.TrailWidth`＝球外觀直徑 × 0.75（測試圖約 240 cm）；下文 D＝W／0.75＝球外觀直徑（約 320 cm）。系統內所有長度都是 W 的倍率。
+- 語彙：發射者身份色的色帶＋內外兩側黑墨框，Unlit／Translucent／不發光／深度測試開；12 fps 逐格（尺寸、線寬、抖動形狀只在換格時變）；**以線條變細收尾，不淡出**。
+- 顏色完全取 Particle Color（＝`User.TrailColor`），不改色相；只有年輕環中央的細亮線往白提亮。
 
-經 Monolith 編輯器連線製作，**沒有腳本**。自訂模組 `/Game/Assets/FX/Modules/NM_BallFlameSpawn`、`NM_BallFlameUpdate` 的 HLSL 只存在於模組資產內，`Tools/ComicDoodle/NiagaraBallFlameSpawn.hlsl`／`NiagaraBallFlameUpdate.hlsl` 是原文紀錄，改模組要手動同步。**三個資產必須一起提交。** User 參數 `TrailColor`、`TrailWidth`（預設 240，只影響編輯器預覽）名稱必須與 `UHALBallComicFXSettings` 一致。
+### 3.1 材質 `M_FX_BallPulseRing`
 
-| 項目 | FlameBody | Tongues |
+`Tools/ComicDoodle/BallPulseRing.hlsl`＋`CreateComicDoodleAssets.py` 的 PULSE 段（可單獨重建：`CreateComicDoodleAssets.py PULSE`；在開著的編輯器裡跑時以 `sys.argv = ['CreateComicDoodleAssets.py', 'PULSE']` 後 `exec`）。單一 Custom 節點、無貼圖，一次畫完墨框＋色帶。實例 `MI_FX_BallPulseRing`（0 個覆寫）是 `PulseRings` 唯一的 Sprite Renderer 材質。
+
+**幾何全部由 Niagara 以公分傳入**（材質不知道 W）：Particle Size＝精靈大小（含線寬與抖動的留白）；Dynamic Parameter 0＝(x 量化後正規化年齡、y 每格抖動種子、z 色帶半寬 cm、w 單側墨框寬 cm)；Dynamic Parameter 1＝(x 垂直行進方向的半軸 cm、y 沿行進方向的半軸 cm、z 抖動幅度 cm、w 起始脈衝旗標)。材質以「到橢圓的一階距離」畫線，所以整圈線寬一致、與精靈長寬比無關。腳本的 `build()` 因此新增 `Dynamic1` 來源（Dynamic Parameter 節點 `parameter_index=1`）。沒有 runtime driven 參數（C++ 不寫材質）。
+
+| 參數 | 預設 | 作用 |
 |---|---|---|
-| 模擬／EmitterState | CPU、Local Space 關；Self、Loop Infinite、Duration 5 | 同左 |
-| SpawnPerUnit | 間距 W×0.32、Movement Tolerance 0.5 | 間距 W×0.2、Spawn Probability 0.7 |
-| SpawnRate（低速下限） | 16/s | 8/s |
-| SpawnBurst_Instantaneous（啟動補量，只觸發一次） | 0.034 s 時 6 顆 | 0.034 s 時 3 顆 |
-| NM_BallFlameSpawn（取代 InitializeParticle） | 寬 W×0.7～1.2、長寬比 2.2、壽命 0.35～0.5 s、Inherit 0.15、MinBackSpeed 4.0 W/s、MinValidSpeed 0.2 W/s、BackOffset 0.62 W、DropHeight 0、SideJitter ±0.17 W、TailLean 0.25（±0.15）、StartWindow 0.2 s／StartBoost 1.0／StartSizeScale 0.35、Core 1 | 寬 W×0.35～0.5、長寬比 2.4、壽命 0.3～0.45 s、Inherit 0.15、MinBackSpeed 4.0、MinValidSpeed 0.2、BackOffset 0.4 W、側向初速 W×1.2～2.0/s、SideOffset 0.5 W（左右隨機）、SideJitter ±0.05 W、TailLean 0.6（±0.15）、StartWindow 0.2／StartBoost 1.0／StartSizeScale 0.35、Core 0 |
-| NM_BallFlameUpdate（取代 SolveForcesAndVelocity） | 12 fps 階梯；尺寸 0.85 →（0.2）1.1 → 自 0.15 線性縮小，最後一格 0；MinScale 0.12；搖擺 W×0.2、2.5 Hz；Drag 0 | 12 fps；0.7 →（0.2）1.0 → 自 0.25 線性縮小；MinScale 0.35；不搖擺；Drag 6/s |
-| Renderers（Sprite、CustomAlignment、FaceCamera、依 Age 降序＝年輕在上、Pivot (0.5, 0.2)＝頭端） | Ink SortOrder 1／Fill 3／Heart 4 | Ink 0／Fill 2 |
+| `FX_BoilWaves` | 3 | 輪廓抖動的波數（取整，第二道諧波為 +2） |
+| `FX_Pressure` | 0.2 | 色帶沿圈的粗細起伏（手繪壓力感），色帶半寬的比例 |
+| `FX_CoreWidth` | 0.3 | 中央亮線半寬，色帶半寬的比例 |
+| `FX_CoreLife` | 0.45 | 亮線消失的正規化年齡（逐格縮細） |
+| `FX_StartCoreLife` | 1.5 | 起始脈衝的 `CoreLife` 倍率 |
+| `FX_CoreLift` / `FX_CoreGain` | 0.3 / 1.3（R9 前為 0.55 / 1.6） | 亮線往白提亮與推亮；R9 實機上淡色身份色被洗到近白，故下修 |
+| `FX_ColorLift` / `FX_FillGain` / `FX_Opacity` | 0 / 1 / 1 | 色帶顏色（預設＝原色） |
+| `FX_InkColor` | 黑 | 墨框顏色 |
 
-**為什麼有 BackOffset／MinBackSpeed／啟動補量（第一次 PIE 實機的發現）**：系統掛在球心，而球是外觀半徑約 0.67 W 的不透明球體、Launched 會持續 4 秒以上且球速從約 2200 掉到約 450 cm/s。第一版以精靈中心為樞紐、從球心出生、只按距離生成：粗頭與內焰被球蓋住甚至從球的**前緣**冒出，球後只露出約 1/3 球徑；尾長正比於球速，約 500 cm/s 時完全看不到（但球仍危險）；發射後約 0.25 s 才成形。修正：樞紐移到頭端並沿行進反方向後移 `BackOffset`；粒子相對球的後退速度＝max(球速×(1−Inherit), `MinBackSpeed`×W)，慢球時火焰主動往後吹；加時間型 SpawnRate 與一次性 Burst。球速低於 `MinValidSpeed` 時方向不可信，該批粒子直接丟棄（模組讀不到上一幀方向）。材質墨框同時由 0.14 加粗到 0.28（Margin 0.2 → 0.34），因為實機鏡頭距離下原墨框只有數像素。
+編譯：0 訊息、`validate_material` 0 issue、像素 190／頂點 344 條指令、19 個節點、實例暴露 11／11 個參數。
 
-離屏量測（W=240；`fx.DumpParticleData` 讀回；`Saved/ComicDoodle/Flame/measure_round3_speeds.json`）：粒子留在世界空間（z 偏移 0）；火焰最前緣在球心後方 0.27～0.37 W；主體長度（自球後緣）450 cm/s 時 2.1 W、1000 cm/s 時 2.1 W、2500 cm/s 時 3.55 W；啟動 0.1 s 時已有 9 顆主體、5 顆火舌；尺寸縮到 0。只測了等速直線。
+### 3.2 `NS_BallInkTrail` 實際設定（2026-11-19 版，以此為準）
 
-**啟動段（第二次 PIE 的發現）**：為了讓發射後立刻成形而加的 `StartBoost`（後退速度 ×3）會把火焰噴到三個球直徑長、整個蓋住發射車，已改回 1.0。單顆主體精靈本身長約 2.2 W，剛發射時仍會伸到發射點後方約 4 m，因此兩個模組都加了 `StartSizeScale`：出生於前 `StartWindow` 秒的粒子整個壽命都以 lerp(0.35, 1, 出生時刻／StartWindow) 縮小（update 模組每幀重算尺寸，所以兩邊都要套）。離屏量測（2500 cm/s）：畫出的尾端在發射點後方 193／263／203／85 cm（t=0.05／0.10／0.15／0.30 s），0.3 s 時主體 2.81 W 接近穩態；所有粒子世界速度不朝行進反方向。**這一項改完後沒有再跑 PIE。**
+經 Monolith 編輯器連線製作（**沒有腳本**）。2026-11-19 發射器 `PulseRings` 由引擎範本 `/Niagara/DefaultAssets/Templates/Emitters/Minimal` **整個重建**（原發射器內殘留火焰版的覆寫節點，見 §3.4 坑 10）。自訂模組 `/Game/Assets/FX/Modules/NM_BallPulseRate`、`NM_BallPulseSpawn`、`NM_BallPulseUpdate` 的 HLSL 只存在於模組資產內，`Tools/ComicDoodle/NiagaraBallPulseRate.hlsl`／`NiagaraBallPulseSpawn.hlsl`／`NiagaraBallPulseUpdate.hlsl` 是原文紀錄（含輸入清單），改模組要照 §3.4 坑 11 的順序。**系統與三個模組必須一起提交。** User 參數 `TrailColor`、`TrailWidth`（預設 240，只影響編輯器預覽）名稱必須與 `UHALBallComicFXSettings` 一致。模組節點名稱皆無數字尾碼。
 
-**兩次單機 PIE（`Saved/ComicDoodle/PIE/R7`、`R8`，不入版控）看到的**：球前緣無火、粗頭與白色內焰緊貼球後完整露出（露出寬約 0.6～0.9 個球直徑）；約 2000 cm/s 時連續、頭粗尾尖、長約 1.5～2 個球直徑；250～500 cm/s 時仍有約一個球直徑的完整火焰、方向穩定；離開 `Launched` 同幀消失；無 Niagara／材質警告。**已知觀感，待團隊判斷**：(1) 撞牆反彈後約 0.1～0.2 s 舊方向的火團留在原地燒完，球貼牆時火焰被牆面截掉；(2) 慢球仍拖著固定長度的噴焰（`MinBackSpeed` 的刻意下限，嫌不自然就調低）；(3) 墨框是完整一圈但一側細一側粗、像帶投影的描邊，原因未查明；(4) `Launched` 實際由低速檢查或命中結束（實測 2.3～4.9 s），撞牆不會結束。
+| 階段 | 模組 | 設定 |
+|---|---|---|
+| 模擬 | — | CPU、Local Space 關；EmitterState Life Cycle Self、Loop Infinite、Duration 5 |
+| Emitter Update | `NM_BallPulseRate`（在 SpawnRate 之前） | 寫 `Emitter.PulseRate`＝clamp(球水平速度 ÷ (Spacing×W), MinRate, MaxRate)；Spacing **0.9**（未乘 0.75）、MinRate **4.5/s**、MaxRate **9/s** |
+| | SpawnBurst_Instantaneous | 0.03 s 時 1 顆（UseLoopCountLimit、Loop Count Limit 1）＝起始脈衝 |
+| | SpawnRate | `SpawnRate` 綁 `Emitter.PulseRate` |
+| Particle Spawn | `NM_BallPulseSpawn`（無 InitializeParticle） | 壽命 **0.55～0.6 s**；Squash **0.28**（任何速度）；HeadingMinSpeed **0.02 W/s**（約 5 cm/s，低於此不生環）；環心後移：BackOffset **0.3 W**（快）↔ BackOffsetSlow **0.95 W**（慢），以 SlowSpeed **0.8 W/s**～FastSpeed **3.0 W/s** 的手寫 smoothstep 混合；DropHeight 0；StartWindow **0.06 s**、StartScale **1.3** |
+| Particle Update | ParticleState → `NM_BallPulseUpdate` | Fps **12**；垂直方向直徑 SizeStart **0.9 W** → SizeEnd **1.8 W**（GrowPower 2）；Band **0.11 W**、單側 Ink **0.08 W**（ThinPower 1）；MinInk **0.01125 W**；Boil **0.015 W**；HoleMin **0.075 W** |
+| Renderer | Sprite | `MI_FX_BallPulseRing`；FacingMode CustomFacingVector；Alignment CustomAlignment；Pivot (0.5, 0.5)；SortMode CustomDecending |
 
-> **坑：Niagara 模組改值後 `request_compile` 回成功，模擬卻仍用舊值。** 要臨時加一個發射器再刪掉，強迫系統整個重編後再存檔；對已編譯系統用 `set_module_input_value` 改既有模組輸入時連這招也無效，可靠做法是**先加一個新模組並設好所有值，再刪舊的**（階段只剩一個模組時不可先刪後加，stack 會斷鏈）。自訂 HLSL 裡的 `bool` 區域變數與 `sign()` 可能讓 spawn 腳本編譯失敗且錯誤訊息不明確。另：`create_module_from_hlsl` 對既有路徑會直接原地覆寫、不報錯；`NiagaraSimCacheFunctionLibrary.capture_niagara_sim_cache_immediate` 對這個系統的發射器會觸發引擎 assert 讓編輯器崩潰（本輪發生一次），量測請改用 `fx.DumpParticleData`。
+**為什麼這樣生成**：「依距離＋每秒上限＋最低頻率」三條規則合成一個速率交給內建 SpawnRate（它自帶小數餘數，速率每幀變也能均勻間隔）。球速在約 972～1944 cm/s 之間時，速率＝球速 ÷ 間距（每 0.9 W 一個）；更快由上限 9/s 控制，更慢由下限 4.5/s 控制。
+
+**方向與位置（2026-11-19）**：任何速度都是同一個橢圓（長短比 0.28），對齊**當下**球速方向，環心沿行進反方向後移；後移量隨球速由 0.3 W（快）平滑加大到 0.95 W（慢），讓慢球的環落在球後緣之外（球繪製半徑約 0.67 W）。球速低於 HeadingMinSpeed（約 5 cm/s，幾乎靜止）時方向不可信，**該環直接丟棄**（壽命 0，update 也不畫），而不是放到任意一側。
+
+**起始脈衝**：系統啟動後約 0.05 s 單發一個 1.3 倍大的環，旗標寫入 Dynamic Parameter 1.w，材質讓它的亮線多留 50%。
+
+**逐格與收尾**：年齡以 12 fps 量化，取「這一格開始時」的正規化年齡 t：直徑＝lerp(SizeStart, SizeEnd, 1−(1−t)²)，色帶與墨框 ×(1−t)。墨框細到 MinInk 以下的那一格整圈不畫，所以收尾是「線變細 → 消失」，從不調透明度。
+
+**HoleMin**：年輕環沿行進方向的半軸至少為「線條半寬＋HoleMin×W」，避免出生那幾格中孔被粗墨框填滿成黑色菱形（只在線條還粗時把長短比放寬到約 0.47）。
+
+### 3.2.0 用戶實測回饋與調整（2026-11-19）
+
+用戶看過 R9 版實機（截圖：球快停下、貼牆時，大的同心圓環包住球，看起來像生成在球正下方）後要求：(A)「球快停下時，環會像生成在球的下方，讓它保持在球行徑的反方向」；(B)「特效太大，縮小為原本的 75%」。
+
+調整：
+1. **取消 R9 的低速同心圓形態**（SlowSpeed／FastSpeed 不再混合形狀，刪除 SizeStartSlow／SizeEndSlow）；任何速度都是對齊行進方向的橢圓。
+2. **慢球環心後移**：BackOffset 0.3 W（快）→ BackOffsetSlow 0.95 W（慢），混合區間沿用 0.8～3 W/s。協調者建議約 0.75 W；離屏預覽中 0.75 W 時 100～300 cm/s 最年輕的環仍有一段被球邊緣蓋住，0.95 W 時完整露在球後，故採 0.95。
+3. **尺寸 ×0.75**：SizeStart 1.2→0.9 W、SizeEnd 2.4→1.8 W、Band 0.147→0.11 W、Ink 0.107→0.08 W、MinInk 0.015→0.01125 W、Boil 0.02→0.015 W、HoleMin 0.1→0.075 W；StartScale 1.3、BackOffset、Spacing、Min／MaxRate 不變。縮小後 2000 cm/s 的環距（222 cm）看圖不疏，Spacing 未改。
+4. **「最後一次可信方向」沒有做到**：原計畫在 `NM_BallPulseRate` 內把方向存進發射器屬性 `Emitter.PulseHeading` 給 spawn 讀。實作時自訂 HLSL 寫新發射器屬性報「hasn't been encountered yet」，改用綁定輸入宣告後，emitter spawn 與 particle spawn 又報「read before being set（Fail If Previously Not Set）」；以 Monolith／Python 改不到該變數的 Default Mode，放棄。替代做法：方向一律取當下球速，門檻降到約 5 cm/s（減速中的球仍有可靠方向）；完全靜止時不生新環。實際影響：`Launched` 的球低於 250 cm/s 持續 0.5 s 即回 Free，完全靜止的窗口很短；那段時間只剩之前的環在球後燒完，不會再出現「環在球下」。
+
+離屏量測（重啟後，`Saved/ComicDoodle/Pulse/measure_r7.json`；截圖 `r7_*.png`，藍與淡紫，含 320 cm 參考球，俯角 -60°）：
+
+| 情況 | 存活／畫出 | 環心距球心（出生時） | 間距 | 畫出的直徑（D） |
+|---|---|---|---|---|
+| 600 cm/s 減速到 0 後 0.5 s | 1／0（靜止後只剩被丟棄的粒子） | — | — | — |
+| 100 cm/s | 3／2 | 約 0.95 W | 22 cm | 0.68、1.15 |
+| 300 cm/s | 3／2 | 約 0.9 W | 67 cm | 0.68、1.13 |
+| 700 cm/s | 3／2 | 約 0.3 W | 156 cm | 0.68、1.13 |
+| 2000 cm/s | 5／4 | 0.3 W | 222 cm | 0.68～1.22 |
+| 300 cm/s 朝鏡頭／背鏡頭 | 3／2 | 約 0.9 W | 67 cm | 0.68、1.14 |
+
+看圖：100～300 cm/s 時環完整出現在球後方（橫向移動）；朝鏡頭移動時環在畫面上方（世界中的球後方），最年輕一圈貼著球頂；700 cm/s 時最年輕一圈約一半被球蓋住（高速形態的既有取捨）。
+
+> 以下 §3.2.1 的低速同心圓形態為**歷史**，已於 2026-11-19 取消。
+
+### 3.2.1 R9 實機發現與調整（2026-11-18，歷史：低速同心圓形態已於 2026-11-19 取消）
+
+PIE 截圖 `Saved/ComicDoodle/PIE/R9`（例：`L2_19_slow_v300.png`、`L4_16_t250.png`、`L4_05_t060.png`）：高速段很好；但球的繪製直徑約 1.33 W，第一版的環出生直徑 1.2 W 比球小、環心又在球心高度，所以**球速低於約 700 cm/s 時只看得到一條細弧加一個貼著球的月牙**。實測 `Launched` 有 40～80% 的時間處在這個速度：發射後前 1 秒約 2560 → 1400 cm/s，撞牆後只剩 330～540 cm/s，低於 250 cm/s 持續 0.5 s 就回到 Free。另外中央亮線讓淡色身份色的環看起來近白。
+
+調整：(1) 加入上述低速形態並以 smoothstep 連續混合（`NM_BallPulseSpawn` 的 DirSpeed 換成 SlowSpeed／FastSpeed，`NM_BallPulseUpdate` 新增 SizeStartSlow／SizeEndSlow；兩個模組都重建，並照 §3.4 的坑以「末端加新節點 → 刪舊節點 → 重綁 User 參數」換上）；(2) MinRate 3 → 4.5/s，讓低速時同時可見 2～3 個同心環；(3) `FX_CoreLift` 0.55 → 0.3、`FX_CoreGain` 1.6 → 1.3；(4) 起始脈衝 1.3 倍不變。壽命與線寬沒有改：預覽中 3 個同心環各自分得開。
+
+離屏量測（R9 調整後，`Saved/ComicDoodle/Pulse/measure_r4.json`；截圖 `r4_*.png`，藍 (0.1, 0.35, 1.0) 與淡紫 (0.58, 0.45, 0.95)）：
+
+| 球速 cm/s | 混合比例 f | 存活／正在畫 | 長短比 | 畫出的直徑（D） |
+|---|---|---|---|---|
+| 0 | 0 | 3／2～3 | 1.0 | 1.12、1.67、1.93（同心） |
+| 150 | 0 | 3／2 | 1.0 | 1.12、1.69 |
+| 300 | 0.11 | 3／2～3 | 0.92 | 1.10、1.67、1.91（間距 67 cm） |
+| 500 | 0.62 | 3／2 | 0.55 | 0.98、1.59（間距 111 cm） |
+| 700 | 1.0 | 3／3 | 0.28 | 0.90、1.50、1.78（間距 156 cm） |
+| 1000 | 1.0 | 3／3 | 0.28 | 1.14、1.50、1.78（間距 216 cm） |
+| 2000 | 1.0 | 5／4～5 | 0.28 | 0.90～1.78（間距 222 cm） |
+
+（年輕環在高速時長短比為 0.34～0.47，是 HoleMin 保留中孔所致。）看圖：0～300 cm/s 時最外圈與中圈都完整露在球外，最年輕的一圈遠側仍被球擋住（其直徑 1.12 D 只比球大 12%，在 -60° 俯角下遠側約落在球的輪廓內）；淡紫的主色保留、亮線只比主色淺一階，不再近白；2000 cm/s 的藍／紫仍看得到亮線層次。
+
+### 3.3 離屏量測（第一版，W=240，`fx.DumpParticleData`；`Saved/ComicDoodle/Pulse/measure_r3.json`、`measure_loop.json`，不入版控；R9 調整前的數值，低速列已被 §3.2.1 取代）
+
+做法：在開著的編輯器開一張暫存空白地圖，放一個 `NS_BallInkTrail` 與一顆直徑 320 cm 的參考球，以腳本逐幀移動兩者並 `advance_simulation(1, 1/60)` 同步推進，最後一幀開 `fx.DumpParticleData` 讀回，再以 SceneCapture2D（俯仰 -60°、FOV 60）截圖。量測與截圖腳本存在 `Saved/ComicDoodle/Pulse/pulse_probe.py`、`parse_dump.py`。
+
+| 情況 | 同時存活／正在畫的環 | 環間距 | 畫出的垂直方向直徑 |
+|---|---|---|---|
+| 靜止（0 cm/s） | 1～2／1 | 同心（每 1/3 s 一個） | 1.33～1.51 D（在 t=1.0／1.2 s 的快照） |
+| 250 cm/s | 2／1 | 約 83 cm（下限 3/s 控制） | 1.34 D |
+| 600 cm/s | 1／1 | 約 200 cm（下限 3/s） | 1.5 D |
+| 1000 cm/s | 3／2～3 | **216 cm（＝0.9 W）** | 1.13、1.53、1.78 D |
+| 2000 cm/s | 5／4 | **222 cm**（上限 9/s） | 0.9、1.36、1.52、1.65 D |
+| 3000 cm/s | 5／4 | 333 cm（上限 9/s） | 0.9～1.65 D |
+| 反彈 1000／2000 cm/s（約 150° 轉向） | 3／2～3、6／5 | 轉角處 142～275 cm | 新環沿新方向對齊、舊環原地燒完 |
+
+其他：出生那一格色帶 0.11 D、單側墨框 0.08 D（墨框總寬 0.16 D ＞ 色帶）；最後一個畫出的格色帶約 0.018 D、墨框約 0.013 D；環中心在 1000 cm/s 時位於出生當下球心後方 72 cm（0.3 W）；起始脈衝出生 1.17 D（0.9 D × 1.3）、旗標 1，5.3 s 時新環旗標為 0。只測了等速直線與瞬間反彈，沒有測漸變速度與連續曲線。
+
+### 3.4 離屏預覽（第一版 `Saved/ComicDoodle/Pulse/r3_*.png`；R9 調整後見 §3.2.1 的 `r4_*.png`；不入版控）
+
+每張都有直徑 320 cm 的白色參考球，藍 (0.1, 0.35, 1.0) 與黃 (1.0, 0.75, 0.05) 兩種身份色，`far`＝2500 cm、`near`＝1300～1600 cm。看圖確認：環完整、內外墨框都在；越老的環越大越細；2000 cm/s 時 4 個環等距排開；靜止時是同心圓；反彈後新環轉向、舊環留在原處；起始脈衝較大較粗。
+
+**看圖發現、未解的觀感問題（待團隊判斷）**
+1. ~~年輕的環被球擋住~~（R9 已以低速形態處理，見 §3.2.1；高速時最年輕一圈的前一兩格仍貼在球後）。
+2. **在測試光照下黃色偏暗成芥末色**：離屏截圖用固定曝光，實機曝光不同；本版沒有改色（規格要求不改色相），是否要 `FX_FillGain` > 1 待 PIE 看。
+3. **反彈處新舊環交疊**：年輕環的粗墨框會壓在舊環的細線上，讀得出是兩個環，但轉角處比直線段亂一點；沒有改成墨／色兩層 renderer。
+4. 最後一格的細線（約 4～6 cm 寬）在 2500 cm 鏡頭下只剩 1～2 px，之後整圈消失；看起來像「斷掉」而不是「縮成一點」，是刻意的收尾方式。
+5. 球的投影（測試光照）在截圖中是一塊黑色，與墨框同色，觀感上偶爾會跟環的墨框連在一起；這是預覽場景的燈光，不是特效本身。
+
+> **坑（本輪新遇到）**
+> 1. **`remove_module` 刪掉階段裡最後一個模組會斷鏈**（`stack_valid: false`，之後該階段不能再 `add_module`）。可靠順序：新模組加在**末端**、設好全部值，再刪中間的舊模組。斷了就以 `EditorLoadingAndSavingUtils.reload_packages` 從磁碟重載該系統（尚未存檔的改動全丟）再重來。
+> 2. **刪模組後，新模組上綁 User 參數的輸入可能失去來源**：編譯報「Parameter Maps must be created via an Input Node … Map Set Pin: NM_BallPulseUpdate001.Width」。對該輸入重新 `set_module_input_binding` 一次即恢復。
+> 3. `create_module_from_hlsl` 對既有路徑原地覆寫；只改 HLSL 內容（不改輸入清單）時可改用 `set_custom_hlsl_text`，`request_compile` 後 op_count 變化即代表新內容已生效（本輪實測：141 → 137）。改輸入清單則必須重建模組，再照第 1 點「加新節點 → 刪舊節點」。
+> 4. 自訂模組可以放在 Emitter Update（Monolith 不檢查 ModuleUsageBitmask），HLSL 內直接寫 `Emitter.PulseRate = …` 就會成為發射器屬性，可供 SpawnRate 綁定。
+> 5. 新增的 Particle Update 會在插值生成（Particle Spawn Script Interpolated）時同幀執行，所以出生那一幀就有正確大小，spawn 模組不必重寫尺寸公式。
+> 6. **CPU Vector VM 沒有 `smoothstep`**：spawn 腳本報「VM does not have a valid operation for float smoothstep」，改手寫 x²(3−2x)。
+> 7. **同一個編輯器裡的編譯結果不能當證據，必須存檔、重啟編輯器後再驗。** 2026-11-18 的 R9 調整在同一個編輯器內 `get_system_diagnostics` 為 0 錯誤、離屏量測也有粒子；隔天重開編輯器後 `PulseRings` 的 Particle Spawn（Interpolated）腳本編譯失敗，只有一句「Error compiling Pin - Node: Output Particle Spawn Pin: Out -」（沒有內文），op_count 0，PIE 完全沒有尾跡。查證：模組資產 `NM_BallPulseSpawn` 本身沒問題（圖完整、HLSL 正確；原樣重寫 HLSL 後重編仍失敗），**在同一階段新加一個引用同一模組的節點、設好全部值、刪掉舊節點、重綁 User 參數**後立即 0 錯誤，且存檔→重啟後仍 0 錯誤。所以壞的是系統裡那個函式呼叫節點（含它的覆寫節點），不是模組資產。該節點的特徵：它是在舊節點仍在時加入的（名稱被自動加尾碼成 `NM_BallPulseSpawn001`，覆寫常數也以此名存檔），之後模組又被 `set_custom_hlsl_text` 改過；同樣流程但沒有後續改 HLSL、名稱沒有尾碼的 update 節點重啟後正常。哪一個因素是真正觸發點**沒有證實**（壞掉的系統與模組備份在 `Saved/ComicDoodle/Pulse/Broken_20261119/`，不入版控）。規則：換模組節點後一律「存檔 → 關閉編輯器 → 重開 → diagnostics 與 op_count > 0 → 強制重編仍 0 錯誤 → 實際生成粒子」才算完成。
+> 8. 重開編輯器後第一次截圖可能看不到粒子（材質著色器還在載入），隔一幀再截才正常；不能拿第一張空白圖判斷「沒有生成」，要以 `fx.DumpParticleData` 為準。
+> 9. 量測仍**不要用** `NiagaraSimCacheFunctionLibrary`；`set_paused(True)` 之後 `advance_simulation` 實測沒有推進（dump 無資料），要先推進再暫停（暫停是為了讓截圖前的編輯器幀不再以「靜止」推進它）。
+> 10. **`remove_module` 會留下覆寫節點，之後可能被接回堆疊鏈。** 2026-11-19 在原發射器裡換 `NM_BallPulseRate` 節點後，System Update 腳本出現「Map Set Pin: Multiply_Float.A … Parameter Maps must be created via an Input Node」——火焰版 SpawnPerUnit（間距 W×0.32 用 Multiply_Float）早已刪除，它的覆寫 Map Set 卻還在圖裡，換節點時被接回鏈中。Monolith 沒有刪孤兒節點的工具，因此改為從引擎 `Minimal` 範本**整個重建發射器**（刪舊發射器 → `add_emitter` → 依 §3.2 重設）。另：同一批次刪模組時一度回報 `stack_valid: false`，以編輯器 `TRANSACTION UNDO` 復原。
+> 11. **模組資產的輸入清單一改，系統裡既有的該模組節點在重新載入後就會失效**（重啟後出現「Particles.Age hasn't been encountered yet」「Input nodes on called graph not found」等）。2026-11-18 那次重啟後 spawn 腳本編譯失敗，最可能就是這一類（當時節點加入後模組又被改過）。安全順序：先把引用該模組的節點拿掉（階段只剩它時先在階段末端放一個暫時的 ParticleState 佔位）→ 用 `create_module_from_hlsl` 改好模組（HLSL 與輸入清單一次定案）→ 再加回節點（此時不會有數字尾碼）→ 刪佔位 → 重綁 User 參數 → 存檔 → **重啟驗證**。
+> 12. **自訂 HLSL 不能新增發射器屬性給粒子腳本讀**：在 Emitter 腳本寫 `Emitter.X` 需要同一腳本中有綁定輸入讀過它（`Emitter.PulseRate` 能用，是因為 SpawnRate 綁定讀它），但綁定讀取在 emitter spawn 與 particle spawn 會觸發「read before being set（Fail If Previously Not Set）」，Default Mode 以現有工具改不到。所以「記住最後方向」沒有實作（§3.2.0 第 4 點）。
+> 13. `get_system_diagnostics`／`request_compile` 會把系統標成 dirty。驗證完不要為此再存檔，改用 `EditorLoadingAndSavingUtils.reload_packages` 從磁碟重載該 package 清掉 dirty（不要在重載後馬上再跑 diagnostics，否則又變 dirty）。
+
+**未驗證**：PIE 實機（遊戲攝影機、真實曝光、實際球的外觀網格與高度、`Launched` 的真實速度曲線）、連續動態的逐格觀感（只看靜態幀）、雙端／多人、與其他特效疊加、效能（四顆危險球 × 最多約 6 個半透明精靈）、Cook。
 
 ## 4. P3 持球瞄準塗鴉箭頭
 

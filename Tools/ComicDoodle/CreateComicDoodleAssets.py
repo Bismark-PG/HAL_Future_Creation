@@ -1,24 +1,24 @@
-"""Author the comic doodle materials (held aim arrow, launched-ball flame trail, vehicle status marks) through official Unreal Editor APIs.
+"""Author the comic doodle materials (held aim arrow, launched-ball pulse ring trail, vehicle status marks) through official Unreal Editor APIs.
 
 Creates or rebuilds, in this order (every asset below is fully owned by this script):
   1. /Game/Assets/FX/Materials/M_FX_BallAimArrow    parent
   2. /Game/Assets/FX/Materials/MI_FX_BallAimArrow   instance referenced by UHALBallComicFXSettings (0 overrides)
-  3. /Game/Assets/FX/Materials/M_FX_BallFlame       parent of the flame trail puffs
-  4. /Game/Assets/FX/Materials/MI_FX_BallFlame_Fill  NS_BallInkTrail fill sprite renderers (0 overrides, FX_Layer 1)
-  5. /Game/Assets/FX/Materials/MI_FX_BallFlame_Ink   NS_BallInkTrail ink sprite renderers (only override: FX_Layer = 0)
-     /Game/Assets/FX/Materials/MI_FX_BallFlame_Heart NS_BallInkTrail FlameBody heart renderer (only override: FX_Layer = 2)
-  6. /Game/Assets/FX/Materials/M_FX_DoodleStatus    parent
-  7. /Game/Assets/FX/Materials/MI_FX_DoodleStatus_Stun       circling stars, referenced by UHALVehicleDoodleStatusSettings
-  8. /Game/Assets/FX/Materials/MI_FX_DoodleStatus_LowHealth  sweat drops (only override: FX_Kind = 1)
-  9. /Game/Assets/FX/Materials/M_FX_BallHoldRing    parent of the held-ball ownership marks
- 10. /Game/Assets/FX/Materials/MI_FX_BallHoldRing_Ball  orbit rings on the held ball (0 overrides)
- 11. /Game/Assets/FX/Materials/MI_FX_BallHoldRing_Roof  holder roof crest (only override: FX_Kind = 1)
+  3. /Game/Assets/FX/Materials/M_FX_BallPulseRing   parent of the launched-ball pulse rings
+  4. /Game/Assets/FX/Materials/MI_FX_BallPulseRing  the only sprite renderer of NS_BallInkTrail (0 overrides)
+  5. /Game/Assets/FX/Materials/M_FX_DoodleStatus    parent
+  6. /Game/Assets/FX/Materials/MI_FX_DoodleStatus_Stun       circling stars, referenced by UHALVehicleDoodleStatusSettings
+  7. /Game/Assets/FX/Materials/MI_FX_DoodleStatus_LowHealth  sweat drops (only override: FX_Kind = 1)
+  8. /Game/Assets/FX/Materials/M_FX_BallHoldRing    parent of the held-ball ownership marks
+  9. /Game/Assets/FX/Materials/MI_FX_BallHoldRing_Ball  orbit rings on the held ball (0 overrides)
+ 10. /Game/Assets/FX/Materials/MI_FX_BallHoldRing_Roof  holder roof crest (only override: FX_Kind = 1)
 
 Idempotent: parent graphs are rebuilt on every run, instances keep their identity so the settings and the
-Niagara renderers never lose their reference. The Niagara system NS_BallInkTrail and its modules
-(/Game/Assets/FX/Modules/NM_BallFlameSpawn, NM_BallFlameUpdate) are authored through the editor connection
-and recorded in Docs/Presentation/Comic_Doodle_FX_CN_v0.1.md; this script does not touch them.
-The former ribbon material M_FX_BallInkTrail / MI_FX_BallInkTrail is retired and no longer authored here.
+Niagara renderer never lose their reference. The Niagara system NS_BallInkTrail and its modules
+(/Game/Assets/FX/Modules/NM_BallPulseRate, NM_BallPulseSpawn, NM_BallPulseUpdate) are authored through the editor
+connection and recorded in Docs/Presentation/Comic_Doodle_FX_CN_v0.1.md (HLSL text of record in
+Tools/ComicDoodle/NiagaraBallPulse*.hlsl); this script does not touch them.
+Retired and no longer authored here: the ribbon material M_FX_BallInkTrail and the flame materials M_FX_BallFlame /
+MI_FX_BallFlame_Ink / _Fill / _Heart (recoverable from commit 3f8041d).
 Writes Saved/ComicDoodle/ComicDoodle_Authoring.json and fails loudly instead of half-applying.
 
 Run headless with the editor closed:
@@ -72,42 +72,34 @@ ARROW = {
     ),
     'driven': ('FX_Color',),
 }
-# Flame puffs of the launched-ball trail. NS_BallInkTrail draws every puff with layered sprite renderers: the ink
-# instance (FX_Layer 0, lowest sort order) paints a black silhouette, the fill instance (FX_Layer 1) the flat colour,
-# and on body puffs the heart instance (FX_Layer 2, highest sort order) the pale heart, so overlapping puffs share
-# one outer contour and one heart. Colour, size, drawing counter, age and the heart switch come from Niagara per
-# particle (Particle Color, Particle Size, Dynamic Parameter 0); the scalars here only shape the drawing, so there
-# is nothing driven by C++ at the material level.
-FLAME = {
-    'marker': 'HAL Ball Flame v1 (comic flame puff, layered ink / fill / heart)',
-    'material': '/Game/Assets/FX/Materials/M_FX_BallFlame',
-    'instance': '/Game/Assets/FX/Materials/MI_FX_BallFlame_Fill',
-    'variants': (('/Game/Assets/FX/Materials/MI_FX_BallFlame_Ink', {'FX_Layer': 0.0}),
-                 ('/Game/Assets/FX/Materials/MI_FX_BallFlame_Heart', {'FX_Layer': 2.0})),
-    'hlsl': 'Tools/ComicDoodle/BallFlame.hlsl',
+# Pulse rings of the launched-ball trail ("force field" layers the ball leaves behind). NS_BallInkTrail draws each
+# ring as one flat sprite (custom facing +Z, aligned to the ball's travel when the ring is born) with this single
+# instance: colour band plus black ink on both sides in one pass. Niagara decides every length in centimetres from
+# User.TrailWidth and hands it over per particle (Particle Color, Particle Size, Dynamic Parameters 0 and 1, see
+# BallPulseRing.hlsl), so nothing is driven by C++ at the material level and the scalars only shape the drawing.
+PULSE = {
+    'marker': 'HAL Ball Pulse Ring v1 (comic force-field ring, ink both sides)',
+    'material': '/Game/Assets/FX/Materials/M_FX_BallPulseRing',
+    'instance': '/Game/Assets/FX/Materials/MI_FX_BallPulseRing',
+    'hlsl': 'Tools/ComicDoodle/BallPulseRing.hlsl',
     'usage': 'used_with_niagara_sprites',
     'disable_depth_test': False,
-    'sources': ('UV', 'Color', 'Alpha', 'Size', 'Dynamic'),
+    'sources': ('UV', 'Color', 'Alpha', 'Size', 'Dynamic', 'Dynamic1'),
     'scalars': (
-        ('FX_Layer', 'Layer', 1.0, 0.0, 2.0, '01 Layer'),                  # 0 black silhouette, 1 colour fill, 2 heart
-        ('FX_Reverse', 'Reverse', 0.0, 0.0, 1.0, '01 Layer'),              # 1 when the sprite V runs tail to head
-        ('FX_HeadRadius', 'HeadRadius', 0.55, 0.1, 0.9, '02 Shape'),       # sprite half widths
-        ('FX_Margin', 'Margin', 0.34, 0.0, 0.6, '02 Shape'),               # room left for ink and boil at both ends; keep >= InkWidth + Boil
-        ('FX_TailPower', 'TailPower', 1.7, 1.0, 6.0, '02 Shape'),          # > 1 keeps the tail a sharp point; high values grow a thin stem
-        ('FX_TailBend', 'TailBend', 0.38, 0.0, 0.6, '02 Shape'),           # sideways bend at the point, flips per drawing
-        ('FX_TipBias', 'TipBias', 0.08, 0.0, 0.3, '02 Shape'),            # cuts the sub-pixel sliver off the point
-        ('FX_Boil', 'Boil', 0.03, 0.0, 0.1, '02 Shape'),                   # outline wobble, new each drawing
-        ('FX_InkWidth', 'InkWidth', 0.28, 0.0, 0.5, '03 Ink'),             # silhouette growth, sprite half widths; thick enough for the game camera (2000-3000 cm)
-        ('FX_CoreScale', 'CoreScale', 0.82, 0.0, 1.0, '04 Heart'),         # inner flame size at birth, share of the puff
-        ('FX_CoreLife', 'CoreLife', 0.55, 0.05, 1.0, '04 Heart'),         # normalised age at which the inner flame is gone
-        ('FX_CoreLift', 'CoreLift', 0.55, 0.0, 1.0, '04 Heart'),           # inner flame colour toward white
-        ('FX_CoreGain', 'CoreGain', 1.8, 0.0, 8.0, '04 Heart'),            # inner flame brightness, so it stays bright, not grey, after tonemapping
-        ('FX_ColorLift', 'ColorLift', 0.0, 0.0, 1.0, '05 Color'),
-        ('FX_FillGain', 'FillGain', 1.0, 0.0, 8.0, '05 Color'),
-        ('FX_Opacity', 'Opacity', 1.0, 0.0, 1.0, '05 Color'),
+        ('FX_BoilWaves', 'BoilWaves', 3.0, 1.0, 8.0, '01 Line'),          # lobes of the outline wobble (whole numbers)
+        ('FX_Pressure', 'Pressure', 0.2, 0.0, 0.6, '01 Line'),            # band swell around the ring, share of its width
+        ('FX_CoreWidth', 'CoreWidth', 0.3, 0.0, 1.0, '02 Core'),          # pale centre line, share of the band half width
+        ('FX_CoreLife', 'CoreLife', 0.45, 0.05, 1.0, '02 Core'),          # normalised age at which the centre line is gone
+        ('FX_StartCoreLife', 'StartCoreLife', 1.5, 0.5, 3.0, '02 Core'),  # CoreLife multiplier on the start pulse
+        # R9 PIE: 0.55 / 1.6 washed pale identity colours (e.g. lavender) almost white; 0.3 / 1.3 keeps the hue.
+        ('FX_CoreLift', 'CoreLift', 0.3, 0.0, 1.0, '02 Core'),            # centre line toward white
+        ('FX_CoreGain', 'CoreGain', 1.3, 0.0, 8.0, '02 Core'),            # centre line brightness, so it stays bright, not grey
+        ('FX_ColorLift', 'ColorLift', 0.0, 0.0, 1.0, '03 Color'),
+        ('FX_FillGain', 'FillGain', 1.0, 0.0, 8.0, '03 Color'),
+        ('FX_Opacity', 'Opacity', 1.0, 0.0, 1.0, '03 Color'),
     ),
     'vectors': (
-        ('FX_InkColor', 'InkColor', BLACK, '03 Ink'),
+        ('FX_InkColor', 'InkColor', BLACK, '03 Color'),
     ),
     'driven': (),
 }
@@ -274,6 +266,10 @@ def build(spec):
         # Dynamic Parameter 0 (Niagara: Particles.DynamicMaterialParameter). Its four scalar outputs have no
         # connectable names from Python, so the whole RGBA output feeds one float4 pin and the HLSL splits it.
         wire(node(material, unreal.MaterialExpressionDynamicParameter, -700, -60), custom, 'Dynamic', 'RGBA')
+    if 'Dynamic1' in spec['sources']:
+        # Dynamic Parameter 1 (Niagara: Particles.DynamicMaterialParameter1), split in the HLSL the same way.
+        wire(node(material, unreal.MaterialExpressionDynamicParameter, -700, 0, parameter_index=1), custom, 'Dynamic1',
+             'RGBA')
     for index, (name, pin, default, low, high, group) in enumerate(spec['scalars']):
         scalar = node(material, unreal.MaterialExpressionScalarParameter, -700, 20 + index * 90,
                       parameter_name=name, default_value=default, slider_min=low, slider_max=high, group=group)
@@ -332,10 +328,10 @@ def build(spec):
     return built
 
 
-# Optional section filter: pass section names (ARROW FLAME STATUS HOLD) after the script path to rebuild only
-# those, e.g. "CreateComicDoodleAssets.py FLAME". No arguments rebuilds everything. A filtered run writes its
+# Optional section filter: pass section names (ARROW PULSE STATUS HOLD) after the script path to rebuild only
+# those, e.g. "CreateComicDoodleAssets.py PULSE". No arguments rebuilds everything. A filtered run writes its
 # report to ComicDoodle_Authoring_<SECTIONS>.json so it never overwrites the full run's report.
-SECTIONS = {'ARROW': ARROW, 'FLAME': FLAME, 'STATUS': STATUS, 'HOLD': HOLD}
+SECTIONS = {'ARROW': ARROW, 'PULSE': PULSE, 'STATUS': STATUS, 'HOLD': HOLD}
 SELECTED = [name.upper() for name in sys.argv[1:]]
 UNKNOWN = [name for name in SELECTED if name not in SECTIONS]
 if UNKNOWN:
