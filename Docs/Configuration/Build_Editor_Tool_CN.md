@@ -1,5 +1,16 @@
 # 编译、重新构建并启动 Editor 工具
 
+<a id="local-editor-mcp"></a>
+
+## 本机编译并接入 MCP
+
+在已配置的开发机上，双击工程里的 `Saved/LocalMCP/BuildAndLaunchWithMCP.cmd`。首次启动会调用根目录的 `BuildAndLaunch.cmd` 编译 Editor Target，成功后打开可交互的 Unreal Editor。当控制台显示 `MCP ready`，启动器已经通过 `http://127.0.0.1:8000/mcp` 成功读到当前关卡。Niagara、GAS、UMG、材质和场景工具都可从这条本机连接访问。
+
+- **日常使用**　再次双击会复用已经接通 MCP 的项目 Editor。改过 C++ 需要重新编译时，先保存并关闭当前 Editor 和游戏窗口，再双击启动器。
+- **只检查连接**　在工程根目录的 PowerShell 运行 `.\Saved\LocalMCP\BuildAndLaunchWithMCP.cmd -ProbeOnly`，可查看编辑器进程、工具集数量和当前关卡。
+- **Codex 端**　本机已登记 `unreal_hal`。换设备时可用 `codex mcp add unreal_hal --url http://127.0.0.1:8000/mcp` 登记该机的服务，`codex mcp get unreal_hal` 可查看配置。两份启动器文件随本机保存在 `Saved/LocalMCP/`，Git 会忽略该目录。[Codex MCP 设置](https://developers.openai.com/codex/mcp/)
+- **验证记录**　2026-11-19，UE 5.8.2（CL 56702186）编译成功。冷启动读到 `/Game/Maps/MVPB_NetTest` 和 28 个工具集，再次双击复用同一进程。新的 Codex 客户端发现 `list_toolsets`、`describe_toolset` 和 `call_tool`。本次日志在 `Saved/BuildTool/BuildAndLaunch_20261119_145708_386_45c41d/`，其中 `Result.json` 记录编译结果，`MCP.json` 记录关卡、进程与工具集，`EditorWithMCP.log` 记录实际调用。
+
 ## 2026-11-17：合并 Car08 后再次暴露的 Unity 私有函数重名
 
 用户拉新到`main/deee273`，经本机`Saved/LocalMCP/BuildAndLaunchWithMCP.cmd`触发真实构建。日志`Saved/BuildTool/BuildAndLaunch_20261117_202045_072_501ca0/UnrealBuildTool.log`的首个错误为C2084：新增`HALSmokeScreenTypes.cpp`和既有`HALTornado.cpp`都在匿名命名空间中定义了`Range(float,float,float)`，并被包含到同一个`Module.HAL_Future_Creation.4.cpp`，后续C4551／C2568为连带错误。编译工具正确返回6，本机包装器因此没有启动Editor。

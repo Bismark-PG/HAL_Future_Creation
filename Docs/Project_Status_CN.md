@@ -1,5 +1,15 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-19，已修复 `MVPB_Match` 经过装饰环时的地面顿挫。** 正式图的 `Floor` 改用半径 82.50 m 的单块平整圆盘，保留原有环纹、十个灯壳和外围侧挡。UE 5.8.2 重载后，Car01 在相同六条路线行驶约 480 m，单步水平掉速 ≥0.10 m/s 的采样由 46 帧降到 0。自由球滚过环纹并能撞墙折返，实车持续顶墙受到阻挡。Windows 地图 Cook 与本机 Exhibition 一主三客两局流程测试通过，四台实机的驾驶手感待团队复测。[地面资产、接边测量与复测记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-flat-drive-surface)
+
+正式图可见网格另经 72 向径向测量。金属中环和橙色外圈的大面与中场基准齐平，环间窄槽和沿圆弧分布的高光会造成盘沿观感。[可见环面高度与同机位光照对照](Presentation/ArenaFloor_SatinMetal_CN.md#arena-visible-ring-profile)
+
+**2026-11-19，本机 `main` 从 `1ea8a0d` 快进到 `fb3c635`，与远端对齐。** 本次同步 15 个提交。`dae9af3` 合入了房间选车界面、随选择切换的旋转 3D 预览、参与者列表和练习 HUD。`fb3c635` 加入服务器控制的机关生成柱，每轮从扩张打滑区、黑洞和电场中抽取一种，揭晓并预告范围后生成。正式比赛图调光和已验收的 75% 危险球脉冲环也已在主线。四台实机同场释放技能时的可读性与帧耗仍待团队验收。[机关生成柱规则与验证](Combat/Arena_Effect_Generator_CN_v0.1.md)
+
+**Car08 烟幕还差车型主技能授权。** 本次通过编辑器只读核对，`BP_VehiclePawn_Car_08` 已引用 `DA_Vehicle_Car_08`，`GA_Car08_SmokeScreen` 已引用烟幕技能 DA。车型 DA 的 `Abilities` 仍为 `LegacyPlayerState`，`Grants` 为空。当前 `BP_HALPlayerState` 的默认主技能是 `GA_MovementBoost`。团队下一步可在车型 DA 选 `Vehicle Definition V1`，给 `Input.Ability.Primary` 配置一级 `GA_Car08_SmokeScreen`，再进场核对喷口和烟幕。[Car08 车型配置与实测步骤](Combat/Car08_Smoke_Screen_CN_v0.1.md)
+
+**本机 UE 5.8.2（CL 56702186）的 MCP 启动已验证。** `HAL_Future_CreationEditor Win64 Development` 编译通过。用本机 `Saved/LocalMCP/BuildAndLaunchWithMCP.cmd` 冷启动后，MCP 返回 28 个工具集并读到 `/Game/Maps/MVPB_NetTest`。再次双击复用同一个 Editor。新的 Codex 客户端已从 `unreal_hal` 发现三个工具入口。本次验证覆盖编译、启动、编辑器读取及复用，玩法实测沿用各功能独立记录。[本机启动方法和验证日志](Configuration/Build_Editor_Tool_CN.md#local-editor-mcp)
+
 **2026-11-19，正式比赛图 `MVPB_Match` 已完成场馆调光。** 降低主光、天空光及曝光补偿，十盏琥珀色嵌地灯扩大照明范围，八盏看台聚光灯分青蓝、琥珀、淡紫三色，分别斜照座席与赛道外沿。UE 5.8.3 重载验证通过。D3D12 同一中场驾驶镜头的亮度中位数下降约 27%，球面中央采样从 204 降至 199。开关对照确认地灯能照亮钢板，看台灯能照亮座席和外沿球面。本机 Exhibition 一主三客完成首局返房及第二局开赛，四端均零测试警告、零失败，Windows 地图 Cook 通过。四台实机同时释放技能时的可读性与帧耗待团队验证。[正式图灯位、调参和实拍对比](Presentation/ArenaFloor_SatinMetal_CN.md#arena-match-lighting)
 
 **2026-11-19，正式比赛图 `MVPB_Match` 已采用验收过的场地。** Development 和 Exhibition 房间配置均指向这张图。六边形钢板、外圈灯带、九盏场内地灯、带灯中场盘、行车面、外围侧挡、四个出生点、主球及机关高度已同步。UE 5.8.3 重载正式图，1,216 条地面和 64 条侧挡射线通过。实车与自由球平稳过盘，外围挡球反弹，五类机关在新高度生效。本机 Exhibition 一主三客通过首局返房及第二局开赛，四端均零测试警告、零失败。Windows 地图 Cook 成功，11 份场地依赖均已产出。学校四机的画面与帧耗待实测，另有一项既有冲击特效的 DX11 编译重试记录。[正式图验证、调参与 Cook 记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-deck-formal-match)
