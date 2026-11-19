@@ -4,8 +4,10 @@
 
 ## 已确认规则与默认值
 
+2026-11-19 更新：Car08 车型 DA 已授予烟幕为主技能。车辆调参和补能接口见[车辆大招能量](Vehicle_Ultimate_Energy_CN.md)。
+
 - Car08 车头**朝上的排气管**喷烟。喷口跟车，烟团脱离后留在世界中；上升、翻卷和行驶共同形成向后的烟带，不将整片烟云附着车体拖动。
-- 喷射 4 s；每段从自身喷出时起存留 6 s，含末尾 1 s 消散；冷却 18 s，从发动时起算。原地／倒车均可喷。
+- 喷射 4 s，每段从喷出时起存留 6 s，含末尾 1 s 消散。成功发动消耗 100 点，车型自然回满用 18 s。额外补满后，喷射窗口结束即可再次施放，两次留下的烟团独立消散。原地和倒车均可喷。
 - 半径由 100 cm 在 1.2 s 内扩至 350 cm。有效高度首测 300 cm，烟团边缘与消散同时降低视觉浓度和区域强度。
 - 只干扰视野，不直接伤害、减速、改变抓地／质量／碰撞或球的状态，其他技能原有规则不因烟自动失效。
 - 施放者免疫**自己这片烟的屏幕干扰**，仍看见世界烟云，车身也可被自己的烟遮住；进入别人的烟正常受影响。冲击免疫不等于烟雾免疫。
@@ -13,13 +15,13 @@
 - 普通阻挡墙体阻断烟雾影响，烟不做流体绕墙模拟。以同一高度内的车辆位置判断，不以俯视相机进入烟为条件。
 - 烟中的目标血条、编号与描边隐藏，正常 HP／技能／计时／菜单 HUD 保留；追捕头顶提示也遵守同一隐藏规则。
 - 眩晕、腾空时暂停新增烟段；翻覆／自救同样暂停，原发射窗口继续计时。恢复后仅在剩余窗口内继续喷；已有烟团继续计时消散。
-- 淘汰、换车、离场、比赛结束清理所属烟及其影响，保留按原规则计时的冷却，不留下旧 Avatar 的视野效果。
+- 淘汰、换车、离场、比赛结束时清理所属烟及其影响，能量按车辆和比赛生命周期结算。
 
 初版发动许可沿用铺设型技能：正立接地、非眩晕／自救、Avatar／HP／房间阶段有效时才提交；发动后的暂停不延长原喷射窗口。烟段有生长初期的短渐入，不把刚出生的零浓度当成满浓度烟。
 
 ## 技术职责
 
-`UHALSmokeScreenAbility`／冷却 GE 负责许可、提交及动作生命周期。服务器 `AHALSmokeScreen` 保存有限烟段、出生时间、墙体裁剪和各目标独立 GE 句柄；球／烟 Actor 不增设 ASC。`UHALSmokeObscuredEffect` 只授予 Avatar 作用域的 `State.Vision.SmokeObscured`，离开一片烟只移除该来源贡献，不清除其他烟的效果。
+`UHALSmokeScreenAbility` 和大招基类负责许可、扣能和喷射窗口。服务器 `AHALSmokeScreen` 保存烟段、出生时间、墙体裁剪和各目标独立 GE 句柄。`UHALSmokeObscuredEffect` 授予 Avatar 作用域的 `State.Vision.SmokeObscured`，离开一片烟只移除该来源的贡献。
 
 同一 `FHALSmokePuff` 几何／时钟函数用于权威影响和客户端表现重建。服务器判定包含采样间的高速穿越；客户端局部屏幕可使用已复制烟区和自身预测车位做表现反馈，不能提交命中／修改权威状态。烟段按服务器时间扩张／到期，晚加入不重置寿命。不修改车辆网络物理历史协议。
 
@@ -37,7 +39,7 @@ Niagara 实现有体积层次的向上喷流和翻卷烟团。为兑现“盖住
 - `/Game/Assets/FX/SmokeScreen/NS_SmokeScreen_UpwardJet`
 - 同目录 `M_SmokeScreen_ToonPuff`、`M_SmokeScreen_CloudCoverage`、`M_SmokeScreen_LocalVeil`
 
-团队手动接线：
+本工程现有 GA、技能 DA 与车型主技能槽已经接通。下面保留手动接线步骤，供团队复查或重建资产时使用。
 
 1. 完整编译并重开 Editor。Content Browser → `/Game/Blueprints/GA` → Blueprint Class → All Classes，选 **HALSmokeScreenAbility**，命名 `GA_Car08_SmokeScreen`。
 2. 打开该 GA → **Class Defaults → Smoke Screen → Skill Config**，选 `DA_Ability_Car08_SmokeScreen`，Compile、Save；不用写 Event Graph。
@@ -50,7 +52,7 @@ Niagara 实现有体积层次的向上喷流和翻卷烟团。为兑现“盖住
 
 管口量取不方便时，可由团队在 Car08 BP 视口临时添加一个直接挂在 CollisionRoot 下的 Scene Component，移到排气管顶端，读取它的 Relative Location 后填入 Outlet Offset；这个参考点不承载玩法逻辑。颜色／流速等同名材质参数由技能 DA 在运行时写入，调试时优先改技能 DA，不要只改母材质的默认值。
 
-烟幕组件使用 PlayerScreen Z=-1000，现有普通 HUD 保持非负 Z Order；自定义 HUD 不要放到烟幕下面。`hal.DebugHUD` 中既有的 Immune／CD 字样用于旧冲击免疫调试，不代表 Car08 的烟免疫或 18 s 冷却。
+烟幕组件使用 PlayerScreen Z=-1000，自定义驾驶 HUD 使用非负 Z Order。Car08 的主技能资源可在驾驶 HUD 或 `hal.DebugHUD 1` 的大招能量读数查看。
 
 ## 团队快速测试
 

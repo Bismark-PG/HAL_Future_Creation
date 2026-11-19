@@ -1,0 +1,92 @@
+# 場地效果柱子生成器
+
+## 規則與責任
+
+`AHALArenaEffectGenerator` 是可直接建立 BP 子類的伺服器權威 Actor。第一版原生外觀是灰色 Box 柱子、朝上的階段文字，以及地面預告圓環；無需新增資產或 Event Graph 才能執行。三種候選為 `AHALExpandingSlipperyArea`、`AHALBlackHole`、`AHALElectricSphereGimmick`（Electric Field 使用既有球形電擊區域）。
+
+每根柱子的循環：**Rolling 抽選演出 → Revealing 揭曉演出 → Hint 顯示提示 → Delay 反應延遲 → Active 生成效果並等待 → Finished 效果結束 → 下一輪 Rolling**。
+
+- 伺服器在抽選演出結束時等機率選一種，允許連續重複。演出輪播不是逐幀重新抽選。
+- 揭曉時依選中種類計算「柱子位置＋共用偏移＋該效果偏移」，固定本輪生成中心與最大預告半徑；之後移動／縮放柱子，不會改變本輪已公告的中心／半徑。下一輪才採用新位置。
+- Hint 與 Delay 期間顯示最大範圍圓環，尚未生成任何玩法效果。圓環無碰撞，不施加效果；地面高度只影響提示外觀。
+- Delay 結束才生成選中的 Actor，保留該原生／BP 類別的預設設定，不用生成器數值覆寫其擴張、持續時間、Drag、抓地或電擊規則。效果 Actor 保持單位縮放。
+- Active 期間每根柱子只持有一個效果。由效果自己的 `EndPlay` 驅動 Finished；不猜測持續時間，不提前生成下一個。電擊區域會等 Begin＋Loop＋Over 全部完成。提早移除效果也會正常進入 Finished。
+- 柱子移除、比賽結束或不再允許場地互動時，清除自己擁有的效果，不清除其他柱子／技能來源。
+- 預設有 HAL 比賽狀態時等待 Playing；房間 Loading／Countdown／Results 不消耗循環。無 HAL 比賽狀態的簡單測試世界立即開始。`Wait For Match Start` 可關閉比賽開始等待，但仍遵守既有 World Interactions 許可。
+- 無效設定、漏填類別或生成失敗時明確停在 Disabled，顯示狀態並寫日誌，不偷偷換另一種或高速重試。
+
+玩法只在伺服器定時器執行，每0.05遊戲秒最多一次；每次更新最多推進一個階段，卡頓後不連續跳過所有預告。設為0秒的階段仍至少佔一次更新。沒有新增 Actor Tick、玩家輸入／移動修改、GAS 逐幀 Ability、生成 RPC 或大型生成框架。
+
+## 參數
+
+| Settings 參數 | 預設 | 意義 |
+|---|---:|---|
+| Roll Seconds | 1.5秒 | 三種文字輪播的抽選演出 |
+| Reveal Seconds | 0.6秒 | 顯示已決定結果 |
+| Hint Seconds | 0.5秒 | 首次展示預告範圍 |
+| Spawn Delay Seconds | 2秒 | 繼續顯示預告並讓玩家反應，結束才生成 |
+| Finish Seconds | 0.5秒 | 效果 Actor 結束後的收尾，再開始重抽 |
+| Slippery Area Class | 原生打滑圓形區域 | 可換成團隊已配置的 BP |
+| Black Hole Class | 原生黑洞 | 可換成團隊黑洞 BP |
+| Electric Field Class | 原生球形電擊區域 | 可換成已有電擊球 BP |
+| Base Effect Offset | 世界座標(0,0,0)cm | 三種效果共用，保留原序列化欄位EffectOffset，不乘Actor Scale |
+| Slippery Area Offset | (0,0,110)cm | 對齊MVPB_Match打滑區Z=-80（柱底Z=-190） |
+| Black Hole Offset | (0,0,190)cm | 對齊MVPB_Match黑洞Z=0（柱底Z=-190） |
+| Electric Field Offset | (0,0,190)cm | 對齊MVPB_Match電擊球Z=0（柱底Z=-190） |
+| Pillar Half Extent | (40,40,100)cm | 柱子總大小為80×80×200cm，Actor原點為底部中心 |
+| Solid Pillar | false | Box預設只展示；開啟後才阻擋車輛／球 |
+| Wait For Match Start | true | 比賽地圖等待 Playing |
+| Random Seed | 0 | 0每次新建隨機序列；非0用來重現抽選序列 |
+
+各段時長0～60秒。效果的總存在時間由效果 BP 決定，生成器不另加一份持續時間。原生預設三種總壽命分別為打滑7秒、黑洞10秒、電擊7秒；保存 BP 的實際數值可能不同。
+
+## Editor 使用
+
+1. 完整編譯後開 Editor，新建以 **HALArenaEffectGenerator** 為父類的 BP，例如 `BP_ArenaEffectGenerator`。
+2. 在 **Class Defaults → Arena Generator → Settings → Effects** 選三個已有 BP：`BP_ExpandingSlipperyArea`、`BP_HALBlackHole`、`BP_ElectricSphereGimmick`。原生類別可以測玩法，但不自帶這些 BP 已接好的粒子特效。
+3. 在 Timing 調每段時間，在 **Placement** 調 **Base Effect Offset** 與三個獨立Offset。目前初始Base=0，三種Z偏移110／190／190，以MVPB_Match柱底Z=-190為校準基準。仍可疊加共用偏移：例如Base=(0,0,80)、Electric Field Offset=(200,0,40)，電擊球就在柱底往世界X+200、Z+120cm。既有BP／實例若手動覆寫參數，優先使用其保存值；初始值不會自動適配不同的柱底高度。
+4. Compile／Save，把生成器 BP 放入 Match 地圖並將 Actor 原點放到地面。Scale先保持1。開始比賽後才會循環；不要另在地圖放同位置的獨立效果來代替生成器的生成結果。
+5. 第一版頂部文字會顯示 ROLL／CHOSEN／WARNING／INCOMING／ACTIVE／FINISHED，並顯示選中效果與預告剩餘秒數。打滑文字青色、黑洞紫色、電擊黃色。預告是原生灰色圓環，沒有最終演出／音效。
+6. 後續由團隊手動接 `On Generator Stage Changed` 替換展示。事件提供階段、選中效果和循環編號；只能控制外觀，不能在事件內再次生成玩法 Actor。可讀 `Get Generator State`、`Get Displayed Effect`、`Get Stage Remaining Seconds`。Waiting／Active／Disabled的剩餘時間回傳-1。
+
+代理不建立／編輯BP、地圖或 Event Graph；Box與提示網格由原生元件建立。要調各效果數值，請改各效果BP，而不是生成器。
+
+## 聯機與限制
+
+選中結果、階段、起始伺服器時間、預告中心／半徑、循環編號、有效效果引用為同一份複製狀態；客戶端只顯示與計時，不抽玩法結果、不生成本地副本。晚相關可直接顯示當前階段，不重播漏過的演出；網路延遲可能略過非常短的演出階段。
+
+Box是占位造型；正式材質、粒子與音效未製作。提示圓環只投影中心地面並保持水平，尚未逐點貼合崎嶇地形；預告最大圓形投影不等於球形電場在所有高度的實際切面。單柱不重疊自身效果，不阻止不同柱子的效果重疊。多人公平性、生成器數量上限與演出性能需團隊實測。
+
+本輪只在黑洞與電擊球頭文件新增唯讀設定 getter，供生成器讀取類別預設範圍；沒有更改三種效果或車輛操作規則。
+
+## 驗證與下一步
+
+### 依MVPB_Match校準初始高度（2026-11-17）
+
+唯讀載入已保存的`/Game/Maps/MVPB_Match`取得：生成器`BP_HALArenaEffectGenerator`位置(890,-1210,-190)，其Base與三種Offset皆0；柱子Scale約3.6094，但世界偏移不乘Scale。黑洞／電擊球Actor的Z均0。場景有兩個打滑區，使用者明確選擇`BP_ExpandingSlipperyArea`（Z=-80）作參考，不採`BP_ExpandingSlipperyArea2`（Z=-200）。
+
+依使用者新指示，將原生初始Base改0、Slippery Area Offset改(0,0,110)、Black Hole／Electric Field Offset改(0,0,190)，僅校準Z，保留各效果在柱子X／Y生成。計算為`-190+0+110=-80`與`-190+0+190=0`。沒有建立運行時查場景Actor／名稱相依，也不隨每輪動態追蹤參考物件；這是本地場景標準高度的初始配方。下方舊零預設及舊測試是前一階段紀錄。
+
+本輪 **UE5.8.2-56702186 Editor R1／Game R1編譯連結成功**，Native R1生成器專項 **4/4、0警告／失敗／未執行／進行中**。初版唯讀檢查曾使用Python沒有提供的`is_a`而失敗，改用MathLibrary類別繼承查詢後R2完成取樣，沒有保存／編譯資產。修改後另以獨立唯讀程序重新載入保存的Match，確認**原生預設、既有生成器BP的CDO、已放置實例三者皆為Base0＋110／190／190**，不需要修改BP或地圖來清除覆寫。`HeightComparison.json`三項均匹配所選參考Actor的Z；7份保存BP／地圖／Config檔案前後SHA256一致。報告`Saved/ArenaGenerator/20261117/HeightDefaults`（Scene.json／SceneAfter.json、HeightComparison.json、Native_R1與構建日誌）。先前用量限制曾讓自動核准審查無法完成，未執行的後驗證／遊戲構建在使用者要求繼續後，經正常核准重試完成。未新跑雙端或真人畫面，不將舊測試冒充本次；未提交／Push。
+
+### 三種效果獨立Offset（2026-11-17）
+
+使用者要求三個Effect能分別調整位置。新增`SlipperyAreaOffset`、`BlackHoleOffset`、`ElectricFieldOffset`，皆為世界座標cm，預設0。原`EffectOffset`保留原序列化名稱與保存值，UI改顯示 **Base Effect Offset**。揭曉時由選中種類取得共用＋專屬偏移並固定`State.EffectCenter`，提示及實際生成共同使用這份已複製中心，不在Delay結束時重新取位置。想讓三欄直接代表相對柱底的位置，可將Base設0。個別與合成偏移都檢查有限值及各軸不超過10000cm。
+
+本輪保留既有生成器未提交程式，以及使用者新增的`BP_HALArenaEffectGenerator`、Match地圖和警笛資產改動，不代理編輯資產。使用者儲存關閉Editor時另保存生成器BP、黑洞BP與Match地圖，以關閉後版本作為後續驗證基線；三份變動均不覆寫。
+
+本輪UE **5.8.2-56702186** Editor R1／Game R1編譯連結成功。Native R1生成器專項 **4/4**，Network R1 Host／Client各 **1/1**，報告均0測試警告／失敗／未執行／進行中。原生以三組不同非零XYZ偏移驗證各自揭曉中心、移動／縮放後仍固定公告中心、實際三種生成位置與類別預設保留；兼測舊預設位置相容、非法個別／合成偏移、原有階段／清理／Timer。雙端80ms注入同樣核對三種非零XYZ中心與實際效果Actor位置、三種完整循環；未修改結果／延遲等其他流程。**使用者關閉後10/10份保護檔案於驗證期間哈希保持**。報告`Saved/ArenaGenerator/20261117/PerEffectOffsets`。沒有重跑下方舊全量243項，不將其當成本輪復測；未看實際畫面、未編輯資產／配置，未提交／Push。
+
+### 初版生成器驗證（2026-11-17）
+
+從`main/793f619`接續，開工只有團隊既有`SW_Pursuit_Siren.uasset`未提交修改，完整保留。實際引擎 **UE5.8.2-56702186**。Editor第一輪C++編譯完成但連結受Editor占用阻止，使用者儲存關閉後完成更新；最終 **Editor R4／Game R3 Win64 Development編譯與連結成功**。R3確立Box預設純展示；R4補上關閉啟動等待時，舊比賽地圖在Finished仍會清理的設定邊界，未變更既有車輛或效果規則。
+
+最終 Native R2 **243/243 Success、0失敗／未執行／進行中**，計數為242一般通過＋1帶既有警告的通過，不能只看`succeeded`欄位。唯一警告項為既有`VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar`的基線車提示及PlayerStart阻擋訊息；新生成器四項均0測試警告／錯誤。第一輪Native R1亦為243/243，保留原報告。
+
+新測試包括設定／範圍讀取與可重現的三種抽選、全部階段的伺服器流程與延遲前不生成、真正生成三種原生Actor且保留類別預設、公告位置不受柱子後續移動／縮放影響、單柱不重疊、提早結束／移除柱子清理、等待Playing及回合結束清理（含關閉啟動等待）、生成失敗Disabled與真實Timer循環。幾何測試核對Box12個三角形及預告環128個三角形，**不等於已看過實際畫面**。
+
+雙端 Network R2 Host／Client各 **1/1、0測試警告／失敗／未執行／進行中**。同場三根原生柱子分別以可重現種子選到三種效果，Host出站注入80ms；兩端三根皆觀察到Waiting、Rolling、Revealing、Hint、Delay、Active、Finished（階段位元`7f/7f/7f`）、可見提示網格、同一結果與實際效果Actor，等待原生效果自然結束後進入第二輪。第一輪Network R1也各1/1，最終以R2為準。並未測真人／四人、晚加入／重連、真實渲染、Cook或大型生成器數量性能。
+
+報告／日誌：`Saved/ArenaGenerator/20261117`；Native_R2、Network_R2、Build_Editor_R4.log、Build_Game_R3.log。**1349份保存資產／Config／uproject／Build.cs保護檔案前後SHA256一致**，既有警笛資產修改保留；沒有代理編輯任何保存資產／配置。新增文件已加入既有`.gitignore`的精確白名單，供正常Git交接。未提交／Push。
+
+團隊驗收：先確認Box／文字可見，再看完整六階段；預告前後是否完全無效果、圈與實際位置是否相符；分別看三種效果自然結束後才重抽、連續重複、兩根柱子、提早移除效果／柱子、比賽開始與結束、兩端預告和結果一致。真人畫面／手感及Cook另記，不以NullRHI測試代替。

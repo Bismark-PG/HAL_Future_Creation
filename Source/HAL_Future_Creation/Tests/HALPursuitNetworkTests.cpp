@@ -87,7 +87,7 @@ namespace
 			for(const auto& View:UHALPursuitHUDWidget::GatherViews(W)) { Wanted|=View.Fraction>0&&View.StarFill(0)>=View.StarFill(1); }
 			const auto* Receiver=V->FindComponentByClass<UHALPursuitTargetComponent>();
 			Arrested|=Receiver->GetState().bArrested&&ASC->IsStunned(); ProtectedTail|=!Receiver->GetState().bArrested&&Receiver->GetState().bProtected;
-			if(Own&&OtherSource&&Count==0&&!ASC->HasMatchingGameplayTag(HALGameplayTags::Cooldown_Pursuit))
+			if(Own&&OtherSource&&Count==0&&ASC->GetUltimateEnergyView().bHasEnergy)
 			{
 				Test->TestTrue(TEXT("Replicated independent wanted and left-to-right progress"),Wanted);
 				Test->TestTrue(TEXT("Both ends see arrest, shared Stun and post-Stun protection"),Arrested&&ProtectedTail);

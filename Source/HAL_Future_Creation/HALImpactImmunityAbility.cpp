@@ -16,7 +16,6 @@ UHALImpactImmunityAbility::UHALImpactImmunityAbility()
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
 	ImmunityEffectClass = UHALImpactImmunityEffect::StaticClass();
-	CooldownGameplayEffectClass = UHALImpactImmunityCooldownEffect::StaticClass();
 	SetAssetTags(FGameplayTagContainer(HALGameplayTags::Ability_ImpactImmunity));
 }
 
@@ -35,7 +34,6 @@ bool UHALImpactImmunityAbility::CanActivateAbility(const FGameplayAbilitySpecHan
 		&& GetDefault<UVehicleKnockbackSettings>()->GetCollisionImpactRules(Rules)
 		&& Rules.Version == EHALImpactVersion::TieredV1;
 	const UGameplayEffect* Immunity = ImmunityEffectClass ? ImmunityEffectClass->GetDefaultObject<UGameplayEffect>() : nullptr;
-	const UGameplayEffect* Cooldown = GetCooldownGameplayEffect();
 	const bool bReady = ASC && ASC->IsHealthInitialized() && ASC->IsImpactInitialized() && Vehicle && Owner
 		&& ASC->GetOwnerActor() == Owner && Vehicle->GetAbilitySystemComponent() == ASC
 		&& Vehicle->GetController() && Vehicle->IsConfigurationValid()
@@ -43,49 +41,17 @@ bool UHALImpactImmunityAbility::CanActivateAbility(const FGameplayAbilitySpecHan
 		&& Immunity && Immunity->DurationPolicy == EGameplayEffectDurationType::HasDuration
 		&& Immunity->GetGrantedTags().HasTagExact(HALGameplayTags::State_Combat_ImpactImmune)
 		&& Immunity->GetAssetTags().HasTagExact(HALGameplayTags::Effect_Scope_Avatar)
-		&& Cooldown && Cooldown->DurationPolicy == EGameplayEffectDurationType::HasDuration
-		&& Cooldown->GetGrantedTags().HasTagExact(HALGameplayTags::Cooldown_ImpactImmunity);
+		&& !ASC->GetActiveGameplayEffect(ActiveUltimateEffect);
 	if (!bReady && OptionalRelevantTags) { OptionalRelevantTags->AddTag(HALGameplayTags::Ability_Fail_VehicleState); }
 	return bReady;
 }
 
-void UHALImpactImmunityAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle,
-	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const
-{
-	CommittedCooldown = ApplyGameplayEffectToOwner(Handle, ActorInfo, ActivationInfo,
-		GetCooldownGameplayEffect(), GetAbilityLevel(Handle, ActorInfo));
-}
 
-void UHALImpactImmunityAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
-	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
-	const FGameplayEventData* TriggerEventData)
+EHALUltimateStart UHALImpactImmunityAbility::StartUltimate(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* Info,
+	FGameplayAbilityActivationInfo Activation, const FGameplayEventData*)
 {
-	if (!ActorInfo || !ActorInfo->IsNetAuthority()) { EndAbility(Handle, ActorInfo, ActivationInfo, true, true); return; }
-	CommittedCooldown.Invalidate();
-	const FGameplayEffectSpecHandle Immunity = MakeOutgoingGameplayEffectSpec(Handle, ActorInfo, ActivationInfo,
-		ImmunityEffectClass, GetAbilityLevel(Handle, ActorInfo));
-	if (!Immunity.IsValid() || !FMath::IsFinite(Immunity.Data->GetDuration()) || Immunity.Data->GetDuration() <= 0
-		|| !CommitAbility(Handle, ActorInfo, ActivationInfo))
-	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
-	}
-	UAbilitySystemComponent* ASC = ActorInfo->AbilitySystemComponent.Get();
-	const FActiveGameplayEffectHandle Effect = CommittedCooldown.IsValid()
-		? ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, Immunity) : FActiveGameplayEffectHandle();
-	if (!Effect.IsValid())
-	{
-		// A rejected GE application must not consume this action's cooldown or another source's effect.
-		if (CommittedCooldown.IsValid()) { ASC->RemoveActiveGameplayEffect(CommittedCooldown); }
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
-	}
-	if (HALAbilities::ShouldLog())
-	{
-		UE_LOG(LogHALAbility, Log, TEXT("Ability accepted: Owner=%s Avatar=%s Ability=%s Immunity=%.2fs Cooldown=%.2fs"),
-			*GetNameSafe(ActorInfo->OwnerActor.Get()), *GetNameSafe(ActorInfo->AvatarActor.Get()), *GetName(),
-			Immunity.Data->GetDuration(), CastChecked<UHALAbilitySystemComponent>(ASC)->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity));
-	}
-	ActorInfo->OwnerActor->ForceNetUpdate();
-	EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+	const auto Spec = MakeOutgoingGameplayEffectSpec(Handle, Info, Activation, ImmunityEffectClass, GetAbilityLevel(Handle, Info));
+	if (!Spec.IsValid() || !FMath::IsFinite(Spec.Data->GetDuration()) || Spec.Data->GetDuration() <= 0) { return EHALUltimateStart::Failed; }
+	ActiveUltimateEffect = ApplyGameplayEffectSpecToOwner(Handle, Info, Activation, Spec);
+	return ActiveUltimateEffect.IsValid() ? EHALUltimateStart::Completed : EHALUltimateStart::Failed;
 }

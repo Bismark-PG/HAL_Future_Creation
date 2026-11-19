@@ -4,6 +4,7 @@
 #include "AbilitySystemComponent.h"
 #include "HALCombatTypes.h"
 #include "HALAbilityTypes.h"
+#include "HALUltimateEnergy.h"
 #include "UObject/ObjectKey.h"
 #include "HALAbilitySystemComponent.generated.h"
 
@@ -37,6 +38,12 @@ public:
 	bool HasAbilityForInput(FGameplayTag InputTag) const;
 	/** Uses GAS's own activation RPC; true on a client means a request, not authority acceptance. */
 	bool TryActivateAbilityInput(FGameplayTag InputTag);
+	/** Returns the actual accepted points. A pickup is consumed only if the return value is positive. */
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Ultimate Energy")
+	float GrantUltimateEnergy(float Points);
+	UFUNCTION(BlueprintPure, Category="Ultimate Energy") FHALUltimateEnergyView GetUltimateEnergyView() const;
+	bool CanPayUltimate(float Cost) const;
+	void InitializeUltimateEnergy();
 	virtual bool AreAbilityTagsBlocked(const FGameplayTagContainer& Tags) const override;
 	/** Read-only GAS query. -1 means an infinite/unknown source, not zero remaining time. */
 	float GetEffectTimeRemaining(FGameplayTag GrantedTag) const;
@@ -57,6 +64,22 @@ public:
 
 private:
 	friend class AHALPlayerState;
+	friend class UHALVehicleUltimateAbility;
+	uint32 ReserveUltimate(float Cost);
+	void FinishUltimate(uint32 Reservation, float Cost, bool bStarted);
+	void ClearUltimateEnergy();
+	UFUNCTION() void RefreshUltimateEnergy();
+	void UpdateUltimateBalance();
+	void RefreshUltimateReadiness();
+	UPROPERTY(Replicated) float UltimateFullRechargeSeconds = 0;
+	UPROPERTY(Replicated) double UltimateSampleServerTime = 0;
+	UPROPERTY(Replicated) bool bUltimateClockRunning = false;
+	UPROPERTY(Replicated) bool bUltimateActionReady = false;
+	FTimerHandle UltimateTimer;
+	TWeakObjectPtr<class UHALRoomComponent> EnergyRoom;
+	double LastEnergySample = 0;
+	uint32 EnergyRound = 0, NextEnergyReservation = 0, EnergyReservation = 0;
+	bool bFormalEnergy = false;
 	bool ResetVehicleAttributes(const struct FHALVehicleLifecycleSeed& Seed, bool bNewRound);
 public:
 	/** Remove only grants owned by this exact source; player-owned shared grants survive. */

@@ -321,10 +321,16 @@ void AHALPlayerController::HALGASStatus()
 			ASC && ASC->IsImpactInitialized(), Receiver ? int32(Receiver->GetConfiguration().Version) : -1,
 			Impact ? Impact->GetTierReduction() : 0, ASC && ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_ImpactImmune),
 			int32(Last.SourceTier), int32(Last.EffectiveTier), Last.bBallDropped, Last.ServerPhysicsFrame);
-		Status += FString::Printf(TEXT(" PrimarySkillGranted=%d ImmunityRemaining=%.2f CooldownRemaining=%.2f BoostRemaining=%.2f Stunned=%d StunRemaining=%.2f"),
+		const auto Energy = ASC ? ASC->GetUltimateEnergyView() : FHALUltimateEnergyView();
+		if (Energy.Cost > 0)
+		{
+			Status += FString::Printf(TEXT(" UltimateEnergy=%.2f UltimateCost=%.0f UltimateReady=%d FullRechargeSeconds=%.2f"),
+				Energy.Energy, Energy.Cost, Energy.bCanActivate, Energy.FullRechargeSeconds);
+		}
+		else { Status += TEXT(" UltimateOwnerData=unavailable"); }
+		Status += FString::Printf(TEXT(" PrimarySkillGranted=%d ImmunityRemaining=%.2f BoostRemaining=%.2f Stunned=%d StunRemaining=%.2f"),
 			ASC && ASC->HasAbilityForInput(HALGameplayTags::Input_Ability_Primary),
 			ASC ? ASC->GetEffectTimeRemaining(HALGameplayTags::State_Combat_ImpactImmune) : 0,
-			ASC ? ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity) : 0,
 			ASC ? ASC->GetEffectTimeRemaining(HALGameplayTags::State_Movement_Boost) : 0,
 			ASC && ASC->IsStunned(), ASC ? ASC->GetEffectTimeRemaining(HALGameplayTags::State_Stun) : 0);
 		if (const auto* Movement = It->FindComponentByClass<UArcadeVehicleMovementComponent>())
@@ -337,6 +343,23 @@ void AHALPlayerController::HALGASStatus()
 		UE_LOG(LogTemp, Display, TEXT("%s"), *Status);
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 8.0f, FColor::Green, Status); }
 	}
+}
+
+void AHALPlayerController::HALGrantUltimateEnergy(int32 PlayerId, float Points)
+{
+#if !UE_BUILD_SHIPPING
+	if (!HasAuthority() || !IsLocalController()) { return; }
+	for (TActorIterator<AHALPlayerState> It(GetWorld()); It; ++It)
+	{
+		if (It->GetPlayerId() != PlayerId) { continue; }
+		auto* ASC = It->GetHALAbilitySystemComponent();
+		const float Added = ASC->GrantUltimateEnergy(Points);
+		UE_LOG(LogTemp, Display, TEXT("HALGrantUltimateEnergy PlayerId=%d Accepted=%.2f Energy=%.2f"),
+			PlayerId, Added, ASC->GetUltimateEnergyView().Energy);
+		return;
+	}
+	UE_LOG(LogTemp, Warning, TEXT("HALGrantUltimateEnergy could not find PlayerId=%d"), PlayerId);
+#endif
 }
 
 void AHALPlayerController::HALImpactDebug(int32 PlayerId, int32 Reduction, bool bImmune)

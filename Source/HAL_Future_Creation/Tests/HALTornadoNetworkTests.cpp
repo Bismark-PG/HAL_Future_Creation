@@ -143,7 +143,7 @@ namespace
 			{
 				const auto B=It->GetBallRepState(); Disarmed|=B.State==EBasicBallState::Free && B.StateSequence>=3 && B.LastLauncherPlayerId==INDEX_NONE && !B.AttackSnapshot.AttackId.IsValid();
 			}
-			if(SawOwn&&SawOther&&Count==0 && !ASC->HasMatchingGameplayTag(HALGameplayTags::Cooldown_Tornado))
+			if(SawOwn&&SawOther&&Count==0 && ASC->GetUltimateEnergyView().bHasEnergy)
 			{
 				Test->TestTrue(TEXT("Owner and observer see complete three-stage lifecycle"),SawGather&&SawActive&&SawOver);
 				Test->TestTrue(TEXT("Wall stop replicates while gameplay remains active"),SawStop);

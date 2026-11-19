@@ -11,7 +11,7 @@
 
 bool UHALSmokeScreenConfig::Validate(FString& Error) const
 {
-	if(FMath::IsFinite(CooldownSeconds)&&CooldownSeconds>=0&&CooldownSeconds<=120&&Rules.IsValid()&&FX.IsValid())
+	if(Rules.IsValid()&&FX.IsValid())
 	{ Error.Reset(); return true; }
 	Error=TEXT("Smoke needs finite timing/shape/FX in the documented ranges, sufficient puff capacity, and UI-domain overlay materials."); return false;
 }
@@ -45,7 +45,6 @@ UHALSmokeScreenAbility::UHALSmokeScreenAbility()
 {
 	InstancingPolicy=EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy=EGameplayAbilityNetExecutionPolicy::ServerOnly;
-	CooldownGameplayEffectClass=UHALSmokeScreenCooldownEffect::StaticClass();
 	SetAssetTags(FGameplayTagContainer(HALGameplayTags::Ability_SmokeScreen));
 }
 bool UHALSmokeScreenAbility::ResolveStart(const FGameplayAbilityActorInfo* Info,FVector& Ground) const
@@ -66,33 +65,37 @@ bool UHALSmokeScreenAbility::CanActivateAbility(FGameplayAbilitySpecHandle Handl
 	FVector Ground; const bool Ready=!ActiveSmoke.IsValid()&&ResolveStart(Info,Ground);
 	if(!Ready&&Reasons) { Reasons->AddTag(HALGameplayTags::Ability_Fail_VehicleState); } return Ready;
 }
-void UHALSmokeScreenAbility::ApplyCooldown(FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* Info,FGameplayAbilityActivationInfo Activation) const
+EHALUltimateStart UHALSmokeScreenAbility::StartUltimate(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* Info,
+	FGameplayAbilityActivationInfo Activation, const FGameplayEventData*)
 {
-	const auto* C=GetClass()->GetDefaultObject<UHALSmokeScreenAbility>()->SkillConfig.Get(); if(!C||C->CooldownSeconds<=0) { return; }
-	const auto Spec=MakeOutgoingGameplayEffectSpec(Handle,Info,Activation,UHALSmokeScreenCooldownEffect::StaticClass(),GetAbilityLevel(Handle,Info));
-	if(!Spec.IsValid()) { return; } Spec.Data->SetDuration(C->CooldownSeconds,true);
-	CommittedCooldown=ApplyGameplayEffectSpecToOwner(Handle,Info,Activation,Spec);
-}
-void UHALSmokeScreenAbility::ActivateAbility(FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* Info,FGameplayAbilityActivationInfo Activation,const FGameplayEventData*)
-{
-	FVector Ground; CommittedCooldown.Invalidate();
-	if(!Info||!Info->IsNetAuthority()||ActiveSmoke.IsValid()||!ResolveStart(Info,Ground)||!CommitAbility(Handle,Info,Activation))
-	{ EndAbility(Handle,Info,Activation,true,true); return; }
-	const auto* C=GetClass()->GetDefaultObject<UHALSmokeScreenAbility>()->SkillConfig.Get(); AHALSmokeScreen* Smoke=nullptr;
-	if(C->CooldownSeconds<=0||CommittedCooldown.IsValid())
-	{ FActorSpawnParameters P; P.Owner=Info->AvatarActor.Get(); Smoke=P.Owner->GetWorld()->SpawnActor<AHALSmokeScreen>(P); }
-	if(!Smoke||!Smoke->Start(*C,Ground))
+	const auto* Config = GetClass()->GetDefaultObject<UHALSmokeScreenAbility>()->SkillConfig.Get();
+	FVector Ground;
+	if (ActiveSmoke.IsValid() || !Config || !ResolveStart(Info, Ground)) { return EHALUltimateStart::Failed; }
+	FActorSpawnParameters Params;
+	Params.Owner = Info->AvatarActor.Get();
+	auto* Actor = Params.Owner->GetWorld()->SpawnActor<AHALSmokeScreen>(Params);
+	if (!Actor || !Actor->Start(*Config, Ground))
 	{
-		if(Smoke) { Smoke->Destroy(); }
-		if(CommittedCooldown.IsValid()) { Info->AbilitySystemComponent->RemoveActiveGameplayEffect(CommittedCooldown); }
-		EndAbility(Handle,Info,Activation,true,true); return;
+		if (Actor) { Actor->Destroy(); }
+		return EHALUltimateStart::Failed;
 	}
-	ActiveSmoke=Smoke; Smoke->OnDestroyed.AddDynamic(this,&ThisClass::SmokeDestroyed);
+	ActiveSmoke = Actor;
+	Actor->OnDestroyed.AddDynamic(this, &ThisClass::SmokeDestroyed);
+	Actor->OnEmissionEnded.AddUObject(this, &ThisClass::SmokeEmissionEnded);
+	return EHALUltimateStart::Active;
 }
 void UHALSmokeScreenAbility::SmokeDestroyed(AActor* Actor)
 { if(ActiveSmoke.Get(true)!=Actor) { return; } ActiveSmoke.Reset(); EndAbility(CurrentSpecHandle,CurrentActorInfo,CurrentActivationInfo,true,false); }
+void UHALSmokeScreenAbility::SmokeEmissionEnded(AHALSmokeScreen* Smoke)
+{
+	if (ActiveSmoke.Get() != Smoke) { return; }
+	ActiveSmoke.Reset();
+	Smoke->OnDestroyed.RemoveDynamic(this, &ThisClass::SmokeDestroyed);
+	Smoke->OnEmissionEnded.RemoveAll(this);
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+}
 void UHALSmokeScreenAbility::EndAbility(FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* Info,FGameplayAbilityActivationInfo Activation,bool bReplicate,bool bCancelled)
 {
-	if(auto* Smoke=ActiveSmoke.Get()) { ActiveSmoke.Reset(); Smoke->OnDestroyed.RemoveDynamic(this,&ThisClass::SmokeDestroyed); Smoke->Destroy(); }
+	if(auto* Smoke=ActiveSmoke.Get()) { ActiveSmoke.Reset(); Smoke->OnDestroyed.RemoveDynamic(this,&ThisClass::SmokeDestroyed); Smoke->OnEmissionEnded.RemoveAll(this); Smoke->Destroy(); }
 	Super::EndAbility(Handle,Info,Activation,bReplicate,bCancelled);
 }

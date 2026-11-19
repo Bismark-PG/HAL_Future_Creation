@@ -133,12 +133,12 @@ bool FHALVehicleModelSkillTest::RunTest(const FString&)
 	FHALVehicleAbilityTestAccess::RuntimeConfig(B,Config);
 	TestTrue(TEXT("Car02 binds"),PS->ChangeVehicleAvatar(B,2)); B->DispatchBeginPlay();
 	TestFalse(TEXT("Old boost removed by GF2 lifecycle"),ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Boost));
-	TestEqual(TEXT("Old cooldown reset by explicit change"),ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity),0.f);
+	TestEqual(TEXT("Practice vehicle change refills energy"),ASC->GetUltimateEnergyView().Energy,100.f);
 	TestTrue(TEXT("Car02 Primary activates immunity"),ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary));
 	TestTrue(TEXT("Immunity active"),ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_ImpactImmune));
-	const float Remaining=ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity);
+	const float Remaining=ASC->GetUltimateEnergyView().Energy;
 	B->RefreshAbilitySystemBinding(); TestTrue(TEXT("Repeated grant succeeds idempotently"),PS->GrantVehicleAbilities());
-	TestEqual(TEXT("Ordinary binding preserves cooldown"),ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity),Remaining);
+	TestEqual(TEXT("Ordinary binding preserves energy"),ASC->GetUltimateEnergyView().Energy,Remaining);
 	TestEqual(TEXT("Exactly one current vehicle spec"),ASC->GetActivatableAbilities().Num(),1);
 	auto* A2=F.Car(true); TestTrue(TEXT("Car01 again with fresh source"),PS->ChangeVehicleAvatar(A2,3)); A2->DispatchBeginPlay();
 	TestFalse(TEXT("Car02 immunity does not cross model change"),ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_ImpactImmune));
@@ -150,7 +150,7 @@ bool FHALVehicleModelSkillTest::RunTest(const FString&)
 	auto* PS3=F.Player(); auto* ImmunePeer=F.Car(false,const_cast<UVehicleDefinition*>(B->GetVehicleDefinition()));
 	TestTrue(TEXT("Same immunity model has its own source"),PS3->ChangeVehicleAvatar(ImmunePeer,1)); ImmunePeer->DispatchBeginPlay();
 	TestTrue(TEXT("Peer immunity activates independently"),PS3->GetHALAbilitySystemComponent()->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary));
-	TestEqual(TEXT("Peer cooldown does not affect another owner"),ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity),0.f);
+	TestEqual(TEXT("Peer cast does not refill another owner"),ASC->GetUltimateEnergyView().Energy,0.f);
 	for (const auto& S:ASC->GetActivatableAbilities()) { TestEqual(TEXT("Spec owns live Pawn, not shared DA/PlayerState"),S.SourceObject.Get(),static_cast<UObject*>(A2)); }
 	A2->Destroy(); TestEqual(TEXT("Destroyed Pawn source grants removed even during weak invalidation"),ASC->GetActivatableAbilities().Num(),0);
 	return true;
@@ -185,7 +185,7 @@ bool FHALBattleTopLifecycleTest::RunTest(const FString&)
 	auto* Property = FindFProperty<FObjectProperty>(Native->GetClass(), TEXT("SkillConfig"));
 	auto* Previous = Property->GetObjectPropertyValue_InContainer(Native);
 	auto* Config = NewObject<UHALBattleTopConfig>();
-	Config->DurationSeconds = 7.f; Config->CooldownSeconds = 13.f;
+	Config->DurationSeconds = 7.f;
 	Config->SpinRate = 720.f;
 	Property->SetObjectPropertyValue_InContainer(Native, Config);
 	ON_SCOPE_EXIT { Property->SetObjectPropertyValue_InContainer(Native, Previous); };
@@ -194,6 +194,7 @@ bool FHALBattleTopLifecycleTest::RunTest(const FString&)
 	{
 		auto* Pawn = F.Car(false);
 		auto* Definition = FHALVehicleAbilityTestAccess::Configure(Pawn, UHALBattleTopAbility::StaticClass());
+		Definition->Abilities.FullRechargeSeconds = 13.f;
 		FHALVehicleAbilityTestAccess::RuntimeConfig(Pawn, Definition->Abilities);
 		auto* Player = F.Player();
 		Player->SetPlayerId(++PlayerId);
@@ -242,8 +243,8 @@ bool FHALBattleTopLifecycleTest::RunTest(const FString&)
 		&& FMath::IsNearlyEqual(Held->GetPhysicsRoot()->GetPhysicsLinearVelocity().Size(), double(Config->HeldBallSpeed), 1.0));
 	TestTrue(TEXT("Skill launches without vehicle recoil"), BodyA->GetPhysicsLinearVelocity().Equals(BeforeShot, .1));
 	const float Remaining = AA->GetEffectTimeRemaining(HALGameplayTags::State_BattleTop);
-	TestTrue(TEXT("GE duration and cooldown both use the skill DA"), Remaining > 6.9f && Remaining <= 7.01f
-		&& AA->GetEffectTimeRemaining(HALGameplayTags::Cooldown_BattleTop) > 12.9f);
+	TestTrue(TEXT("Skill duration and vehicle recharge tuning are independent"), Remaining > 6.9f && Remaining <= 7.01f
+		&& AA->GetUltimateEnergyView().FullRechargeSeconds == 13.f && AA->GetUltimateEnergyView().Energy == 0.f);
 	TestFalse(TEXT("Duplicate Primary does not refresh"), AA->TryActivateAbilityInput(Input));
 	auto* Bridge = A->FindComponentByClass<UHALMovementEffectBridge>();
 	const auto Restriction = FHALRoomTestAccess::Flush(Bridge);
@@ -359,7 +360,7 @@ namespace
 		FTopPolishWorld()
 		{
 			auto* Default=GetMutableDefault<UHALBattleTopAbility>();auto* P=FindFProperty<FObjectProperty>(Default->GetClass(),TEXT("SkillConfig"));
-			Previous=P->GetObjectPropertyValue_InContainer(Default);auto* C=NewObject<UHALBattleTopConfig>(Default);C->CooldownSeconds=0;
+			Previous=P->GetObjectPropertyValue_InContainer(Default);auto* C=NewObject<UHALBattleTopConfig>(Default);
 			P->SetObjectPropertyValue_InContainer(Default,C);
 		}
 		~FTopPolishWorld()
@@ -422,6 +423,7 @@ bool FHALBattleTopSustainedTest::RunTest(const FString&)
 					TestEqual(TEXT("Separated second target remains safe"),CA->GetNumericAttribute(HP),InitialC-10);
 					A->FindComponentByClass<UHALBattleTopComponent>()->Stop();TestEqual(TEXT("Stop clears per-avatar target clocks"),FHALBattleTopTestAccess::Targets(A),0);
 					FHALBattleTopTestAccess::SetPose(A,true);
+					TestTrue(TEXT("Pickup after stopping the old spin restores the next use"), AA->GrantUltimateEnergy(100) > 0);
 					TestTrue(TEXT("A new activation is independent"),AA->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary));
 					TestTrue(TEXT("Activation identity changes for late spark rejection"),FHALBattleTopTestAccess::Activation(A)!=Activation);
 				}));

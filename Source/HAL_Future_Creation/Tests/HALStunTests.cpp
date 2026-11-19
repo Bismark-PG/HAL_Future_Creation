@@ -110,6 +110,9 @@ bool FHALStunGameplayTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Longer source extends"), F.ASC->ApplyStun(5, Fresh));
 	TestEqual(TEXT("One active canonical stun"), F.ASC->GetTagCount(HALGameplayTags::State_Stun), 1);
 	TestEqual(TEXT("Repeat does not repeat drop"), Ball->GetBallStateSequence(), Sequence);
+	TestEqual(TEXT("Stunned vehicle can accept energy"), F.ASC->GrantUltimateEnergy(100.f), 100.f);
+	F.ASC->RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(FGameplayTagContainer(HALGameplayTags::Effect_Movement_Boost)));
+	TestFalse(TEXT("Stun denies a fully funded primary after its previous effect ends"), F.Pawn->RequestPrimarySkill());
 	F.ASC->RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(FGameplayTagContainer(HALGameplayTags::Effect_Stun)));
 	TestFalse(TEXT("Dispel removes state"), F.ASC->IsStunned());
 	TestTrue(TEXT("Fresh pickup recovers"), Fresh->CanBeControlledBy(F.Pawn));
@@ -181,6 +184,7 @@ bool FHALStunExpiryTest::RunTest(const FString& Parameters)
 {
 	auto F = MakeShared<HALStunTests::FFixture>();
 	if (!TestNotNull(TEXT("Configured player"), F->Pawn)) { return false; }
+	F->ASC->SetNumericAttributeBase(UHALUltimateEnergySet::GetEnergyAttribute(), 50.f);
 	TestTrue(TEXT("Timed stun applied"), F->ASC->ApplyStun(.3f, F->Pawn));
 	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<HALStunTests::FWait>(F, this, .15f, [this,F]()
 	{
@@ -189,9 +193,11 @@ bool FHALStunExpiryTest::RunTest(const FString& Parameters)
 		FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<HALStunTests::FWait>(F, this, .25f, [this,F]()
 		{
 			TestTrue(TEXT("Still active beyond original expiry"), F->ASC->IsStunned());
+			TestTrue(TEXT("Natural energy recovery continues while stunned"), F->ASC->GetUltimateEnergyView().Energy > 50.f);
 			FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<HALStunTests::FWait>(F, this, .3f, [this,F]()
 			{
 				TestFalse(TEXT("Naturally expires after extension"), F->ASC->IsStunned());
+				TestTrue(TEXT("Pickup completes the partial meter"), F->ASC->GrantUltimateEnergy(100.f) > 0.f);
 				TestTrue(TEXT("Action recovers on expiry"), F->Pawn->RequestPrimarySkill());
 			}));
 		}));

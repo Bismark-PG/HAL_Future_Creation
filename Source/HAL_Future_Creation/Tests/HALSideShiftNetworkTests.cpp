@@ -2,7 +2,9 @@
 #include "Misc/AutomationTest.h"
 #include "HALSideShiftTestSupport.h"
 #include "HALVehiclePresentationTestSupport.h"
-#include "HALVehicleAbilityTestSupport.h"
+#include "../TestVehiclePawn.h"
+#include "../HALSideShiftAbility.h"
+#include "../HALGameplayTags.h"
 #include "../HALMatchGameMode.h"
 #include "../HALMatchGameState.h"
 #include "../HALPlayerController.h"
@@ -27,11 +29,9 @@ namespace
 			FWorldDelegates::OnPreWorldInitialization.AddLambda([](UWorld* W,const UWorld::InitializationValues&)
 			{
 				if(!W->IsGameWorld()||!FParse::Param(FCommandLine::Get(),TEXT("HALSideShiftFixture"))) { return; }
-				GetMutableDefault<UHALSideShiftAbility>()->SkillConfig=LoadObject<UHALSideShiftConfig>(nullptr,TEXT("/Game/Data/Abilities/DA_Ability_Car07_SideShift"));
 				W->AddOnActorPreSpawnInitialization(FOnActorSpawned::FDelegate::CreateLambda([](AActor* A)
 				{
 					if(auto* Mode=Cast<AHALMatchGameMode>(A)) { Mode->DefaultPawnClass=LoadClass<ATestVehiclePawn>(nullptr,TEXT("/Game/Blueprints/Vehicles/BP_VehiclePawn_Car_07.BP_VehiclePawn_Car_07_C")); }
-					if(auto* P=Cast<ATestVehiclePawn>(A);P&&P->GetVehicleDefinition()) { FHALVehicleAbilityTestAccess::Configure(P,UHALSideShiftAbility::StaticClass()); }
 				}));
 			});
 		}
@@ -49,6 +49,8 @@ namespace
 		FVector Base=FVector::ZeroVector, Direction=FVector::ZeroVector; float Peak=0, SecondYaw=0; double RechargeAt=-1;
 		FVector SecondBase=FVector::ZeroVector, SecondForward=FVector::ZeroVector, SecondSide=FVector::ZeroVector;
 		FGuid FirstActivation;
+		double FirstServerStart = -1;
+		bool SawTwoCharges = false;
 	public:
 		explicit FSideShiftLive(FAutomationTestBase* T):Test(T){}
 		bool Update() override
@@ -64,6 +66,11 @@ namespace
 			if(!P||!Other||!Match||Match->PlayerArray.Num()!=2) { return false; }
 			auto* C=P->FindComponentByClass<UHALSideShiftComponent>(); auto* Remote=Other->FindComponentByClass<UHALSideShiftComponent>();
 			if(!C||!Remote||!C->GetChargeView().bConfigured) { return false; }
+			const auto* Grant = P->GetVehicleAbilityConfig().Grants.FindByPredicate([](const FHALAbilityGrant& G)
+			{ return G.InputTag == HALGameplayTags::Input_Ability_Primary; });
+			const auto* Ability = Grant ? Cast<UHALSideShiftAbility>(Grant->Ability.GetDefaultObject()) : nullptr;
+			if (!Ability || !Ability->SkillConfig) { Test->AddError(TEXT("Car07 must grant its saved side-shift ability")); return true; }
+			const auto& Tuning = Ability->SkillConfig->Motion;
 			if(Done>=0)
 			{
 				if(!ReleaseChecked&&FPlatformTime::Seconds()-Done>1)
@@ -116,7 +123,8 @@ namespace
 			if(First)
 			{
 				SawOwn|=V.Activation.IsValid()&&V.bDriving; SawOther|=R.Activation.IsValid()&&R.bDriving;
-				if(V.Activation.IsValid()&&!FirstActivation.IsValid()) { FirstActivation=V.Activation; RechargeAt=C->GetChargeView().NextRechargeServerTime; }
+				if(V.Activation.IsValid()&&!FirstActivation.IsValid()) { FirstActivation=V.Activation; FirstServerStart=V.StartServerTime; }
+				if(FirstActivation.IsValid()&&RechargeAt<0) { RechargeAt=C->GetChargeView().NextRechargeServerTime; }
 				if(!Second) { Peak=FMath::Max(Peak,float(FVector::DotProduct(P->GetActorLocation()-Base,Direction))); }
 				if(FHALSideShiftTestAccess::Jets(*C).Num()==2)
 				{
@@ -140,12 +148,17 @@ namespace
 				Second=true; SecondAt=Now;
 			}
 			if(Second&&!CoreChecked&&Now-SecondAt>.85) { FHALSideShiftTestAccess::SetInput(*P,0,true); }
-			if(Second&&Now-FirstAt>5.4&&!CoreChecked)
+			const auto Charges = C->GetChargeView();
+			if (Second && Charges.Charges == 2) { SawTwoCharges = true; }
+			// Measure against the authority's cast and recharge samples. Input and replication travel independently.
+			if(Second&&!CoreChecked&&RechargeAt>=0&&Now>=RechargeAt&&(Charges.Charges==3||Now>RechargeAt+1.5))
 			{
-				Test->TestEqual(TEXT("One charge refills after original five-second clock"),C->GetChargeView().Charges,3);
-				Test->TestTrue(TEXT("Further spending retained original recharge cadence"),C->GetChargeView().NextRechargeServerTime>=RechargeAt+4.9);
+				Test->TestTrue(TEXT("Owner observed both payments before the first cell refilled"), SawTwoCharges);
+				Test->TestEqual(TEXT("One new cell is replicated after its deadline"),Charges.Charges,3);
+				Test->TestTrue(TEXT("First cell deadline starts at the accepted cast"), FMath::IsNearlyEqual(RechargeAt, FirstServerStart+Charges.RechargeSeconds, .12));
+				Test->TestTrue(TEXT("Further spending retained original recharge cadence"), FMath::IsNearlyEqual(Charges.NextRechargeServerTime, RechargeAt+Charges.RechargeSeconds, .12));
 				Test->TestTrue(TEXT("Other endpoint sees accepted effect phase"),SawOther);
-				Test->TestTrue(TEXT("Actual first shift on unobstructed ground is near configured 300cm"),Peak>=260&&Peak<=330);
+				Test->TestTrue(TEXT("First shift reaches the saved straight-line distance"), FMath::IsNearlyEqual(Peak, Tuning.Distance, 40.f));
 				Test->TestTrue(TEXT("Mounted spark and smoke layers actually created"),SawJets);
 				Test->TestTrue(TEXT("Shared tire marks emitted from real wheel support"),SawMarks);
 				Test->TestTrue(TEXT("Skill tire particles actually use accelerated per-component playback"),SawFastTires);
@@ -153,9 +166,9 @@ namespace
 				const float Quarter=FMath::FindDeltaAngleDegrees(SecondYaw,P->GetActorRotation().Yaw)*(Host?1.f:-1.f);
 				const FVector ArcTravel=P->GetActorLocation()-SecondBase;
 				const float Lateral=FVector::DotProduct(ArcTravel,SecondSide), Forward=FVector::DotProduct(ArcTravel,SecondForward);
-				Test->TestTrue(TEXT("Held drift turns with the input on each endpoint"),FMath::Abs(Quarter-90)<4);
-				Test->TestTrue(TEXT("Actual enhanced drift crosses a wider lateral span"),Lateral>=410&&Lateral<=490);
-				Test->TestTrue(TEXT("Actual enhanced drift wraps forward"),Forward>=410&&Forward<=490);
+				Test->TestTrue(TEXT("Held drift turns with the input on each endpoint"),FMath::IsNearlyEqual(Quarter, Tuning.DriftTurnDegrees, 4.f));
+				Test->TestTrue(TEXT("Enhanced drift reaches the saved lateral span"),FMath::IsNearlyEqual(Lateral, Tuning.DriftLateralSpan, 40.f));
+				Test->TestTrue(TEXT("Enhanced drift reaches the saved forward depth"),FMath::IsNearlyEqual(Forward, Tuning.DriftLateralSpan*Tuning.DriftArcBend, 40.f));
 				Test->TestTrue(TEXT("Held turn has no residual spinning"),CastChecked<UPrimitiveComponent>(P->GetRootComponent())->GetPhysicsAngularVelocityInRadians().Size()<.1);
 				Test->AddInfo(FString::Printf(TEXT("DriftArc role=%s inputAlignedAngle=%.3f lateral=%.3f forward=%.3f"),Host?TEXT("Host"):TEXT("Client"),Quarter,Lateral,Forward));
 				FHALSideShiftTestAccess::SetInput(*P,0,false);
@@ -182,7 +195,7 @@ namespace
 				const FVector Velocity=CastChecked<UPrimitiveComponent>(P->GetRootComponent())->GetPhysicsLinearVelocity();
 				const float Turn=FMath::FindDeltaAngleDegrees(MovingYaw,P->GetActorRotation().Yaw)*(Host?1.f:-1.f);
 				const float Alignment=FVector::DotProduct(Velocity.GetSafeNormal2D(),P->GetActorForwardVector().GetSafeNormal2D());
-				Test->TestTrue(TEXT("Moving cast turns in the chosen direction despite cast/input latency"),Turn>65&&Turn<125);
+				Test->TestTrue(TEXT("Moving cast turns in the chosen direction despite cast/input latency"),Turn>Tuning.DriftTurnDegrees-25 && Turn<Tuning.DriftTurnDegrees+35);
 				Test->TestTrue(TEXT("Moving cast returns to driving along its new heading"),Velocity.Size2D()>300&&Alignment>.85);
 				Test->TestTrue(TEXT("Exit velocity is not restored to the old forward direction"),FVector::DotProduct(Velocity,MovingSide)>.5*Velocity.Size2D());
 				Test->AddInfo(FString::Printf(TEXT("MovingArc exit role=%s turn=%.3f speed=%.3f headingDot=%.5f initialForwardSpeed=%.3f sideSpeed=%.3f"),Host?TEXT("Host"):TEXT("Client"),Turn,Velocity.Size2D(),Alignment,FVector::DotProduct(Velocity,MovingForward),FVector::DotProduct(Velocity,MovingSide)));

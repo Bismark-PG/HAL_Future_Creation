@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
 
 #include "Misc/AutomationTest.h"
+#include <limits>
 #include "HALVehicleAbilityTestSupport.h"
 #include "../HALAbilitySystemComponent.h"
 #include "../HALImpactImmunityEffects.h"
@@ -76,7 +77,7 @@ namespace
 		}
 		bool Activate() { return ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary); }
 		bool Immune() const { return ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_ImpactImmune); }
-		float Cooldown() const { return ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity); }
+		float Energy() const { return ASC->GetUltimateEnergyView().Energy; }
 	};
 
 	/** Tick real World/GAS timers on successive engine frames; never fake GFrameCounter or remove on a test timer. */
@@ -116,7 +117,7 @@ bool FHALAbilityActivationTest::RunTest(const FString& Parameters)
 	if (!TestNotNull(TEXT("Saved vehicle loads"), F->Vehicle)) { return false; }
 	TestTrue(TEXT("Primary grant exists"), F->ASC->HasAbilityForInput(HALGameplayTags::Input_Ability_Primary));
 	TestFalse(TEXT("Waiting rejects activation"), F->Activate());
-	TestEqual(TEXT("Rejection consumes no cooldown"), F->Cooldown(), 0.0f);
+	TestEqual(TEXT("Rejection preserves full practice energy"), F->Energy(), 100.f);
 	F->Match->SetMatchPhase(EHALMatchPhase::Playing);
 	UVehicleKnockbackSettings* Rules = GetMutableDefault<UVehicleKnockbackSettings>();
 	const auto PreviousSource = Rules->ConfigurationSource;
@@ -127,9 +128,9 @@ bool FHALAbilityActivationTest::RunTest(const FString& Parameters)
 	Rules->InitializeRules();
 	TestTrue(TEXT("Playing activates"), F->Activate());
 	TestTrue(TEXT("Immune immediately on authority"), F->Immune());
-	TestTrue(TEXT("Cooldown starts at activation"), FMath::IsNearlyEqual(F->Cooldown(), 20.0f, 0.1f));
+	TestEqual(TEXT("One activation spends the full pool"), F->Energy(), 0.f);
 	for (int32 Press = 0; Press < 5; ++Press) { TestFalse(TEXT("Repeated request rejected"), F->Activate()); }
-	TestEqual(TEXT("One immunity and one cooldown effect"), F->ASC->GetActiveEffects(FGameplayEffectQuery()).Num(), 2);
+	TestEqual(TEXT("Only the immunity GE is active"), F->ASC->GetActiveEffects(FGameplayEffectQuery()).Num(), 1);
 	TestFalse(TEXT("GA ends; GE owns duration"), F->ASC->GetActivatableAbilities()[0].IsActive());
 	FHALAttackSourceSnapshot Source;
 	Source.SourceActor = F->World->SpawnActor<AActor>();
@@ -152,14 +153,38 @@ bool FHALAbilityActivationTest::RunTest(const FString& Parameters)
 	After(this, F, 8.2f, [this, F]
 	{
 		TestFalse(TEXT("Eight-second effect expired through GAS timers"), F->Immune());
-		TestTrue(TEXT("Cooldown still has about 12s"), F->Cooldown() > 11.5f && F->Cooldown() < 12.2f);
-		TestFalse(TEXT("End of immunity does not refund cooldown"), F->Activate());
+		TestTrue(TEXT("About 41 energy recovered in eight seconds"), F->Energy() > 39 && F->Energy() < 43);
+		TestFalse(TEXT("End of immunity does not refund energy"), F->Activate());
 	});
 	After(this, F, 12.0f, [this, F]
 	{
-		TestEqual(TEXT("Twenty-second cooldown expired"), F->Cooldown(), 0.0f);
+		TestEqual(TEXT("Full recharge reached at twenty seconds"), F->Energy(), 100.f);
 		TestTrue(TEXT("Can activate again at t20, not t28"), F->Activate());
 	});
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALUltimateEnergyGrantTest, "HAL.FutureCreation.UltimateEnergy.GrantsActiveLockAndElimination",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALUltimateEnergyGrantTest::RunTest(const FString&)
+{
+	auto F = MakeShared<FAbilityWorld>();
+	if (!TestNotNull(TEXT("Test vehicle loaded"), F->Vehicle)) { return false; }
+	F->Match->SetMatchPhase(EHALMatchPhase::Playing);
+	TestEqual(TEXT("Full vehicle leaves pickup available"), F->ASC->GrantUltimateEnergy(25), 0.f);
+	TestTrue(TEXT("Cast succeeds from full"), F->Activate());
+	TestEqual(TEXT("One pickup contributes its points"), F->ASC->GrantUltimateEnergy(25), 25.f);
+	TestEqual(TEXT("Negative grant rejected"), F->ASC->GrantUltimateEnergy(-1), 0.f);
+	TestEqual(TEXT("NaN grant rejected"), F->ASC->GrantUltimateEnergy(std::numeric_limits<float>::quiet_NaN()), 0.f);
+	TestEqual(TEXT("Overflow accepts only missing points"), F->ASC->GrantUltimateEnergy(90), 75.f);
+	TestTrue(TEXT("HUD reports affordability"), F->ASC->GetUltimateEnergyView().bHasEnergy);
+	TestFalse(TEXT("HUD distinguishes the active skill"), F->ASC->GetUltimateEnergyView().bCanActivate);
+	TestFalse(TEXT("Full pool cannot re-enter an active immunity"), F->Activate());
+	TestEqual(TEXT("Rejected activation costs nothing"), F->Energy(), 100.f);
+	F->ASC->SetNumericAttributeBase(UHALHealthAttributeSet::GetCurrentHPAttribute(), 0.f);
+	F->ASC->SetNumericAttributeBase(UHALUltimateEnergySet::GetEnergyAttribute(), 20.f);
+	TestEqual(TEXT("Defeated player cannot consume pickup"), F->ASC->GrantUltimateEnergy(25), 0.f);
+	After(this, F, 1.f, [this, F] { TestEqual(TEXT("Defeat stops natural recharge"), F->Energy(), 20.f); });
 	return true;
 }
 
@@ -173,11 +198,11 @@ bool FHALAbilityRefreshTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Activate native ability"), F->Activate());
 	After(this, F, 4.0f, [this, F]
 	{
-		const float BeforeCooldown = F->Cooldown();
+		const float BeforeEnergy = F->Energy();
 		F->ASC->ApplyGameplayEffectToSelf(GetDefault<UHALImpactImmunityEffect>(), 1, F->ASC->MakeEffectContext());
 		TestTrue(TEXT("Reapply refreshes to eight, not twelve"), FMath::IsNearlyEqual(
 			F->ASC->GetEffectTimeRemaining(HALGameplayTags::State_Combat_ImpactImmune), 8.0f, 0.1f));
-		TestTrue(TEXT("Refresh does not restart cooldown"), FMath::IsNearlyEqual(F->Cooldown(), BeforeCooldown, 0.05f));
+		TestTrue(TEXT("Independent GE refresh preserves energy"), FMath::IsNearlyEqual(F->Energy(), BeforeEnergy, 0.05f));
 		TestEqual(TEXT("Refresh has one immunity stack"), F->ASC->GetTagCount(HALGameplayTags::State_Combat_ImpactImmune), 1);
 	});
 	After(this, F, 4.2f, [this, F] { TestTrue(TEXT("Refreshed effect survives original t8"), F->Immune()); });
@@ -198,7 +223,7 @@ bool FHALAbilityRefreshTest::RunTest(const FString& Parameters)
 		TestTrue(TEXT("Other GE removal preserves independent debug source"), F->Immune());
 		F->Controller->HALImpactDebug(F->State->GetPlayerId(), 0, false);
 		TestFalse(TEXT("No stuck immunity after all sources removed"), F->Immune());
-		TestTrue(TEXT("Dispel does not refund cooldown"), F->Cooldown() > 0);
+		TestTrue(TEXT("Dispel does not refund energy"), F->Energy() < 100);
 		UGameplayEffect* Stackable = NewObject<UGameplayEffect>();
 		Stackable->DurationPolicy = EGameplayEffectDurationType::Infinite;
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
@@ -241,7 +266,7 @@ bool FHALAbilityAvatarTest::RunTest(const FString& Parameters)
 		F->Controller->Possess(F->Vehicle);
 		F->Vehicle->DispatchBeginPlay();
 		TestFalse(TEXT("New Avatar does not inherit old immunity"), F->Immune());
-		TestTrue(TEXT("Cooldown remains on PlayerState"), F->Cooldown() > 17.5f && F->Cooldown() < 18.2f);
+		TestEqual(TEXT("A new practice vehicle gets full energy"), F->Energy(), 100.f);
 		TestEqual(TEXT("New Avatar still has one grant"), F->ASC->GetActivatableAbilities().Num(), 1);
 		F->ASC->ApplyGameplayEffectToSelf(GetDefault<UHALImpactImmunityEffect>(), 1, F->ASC->MakeEffectContext());
 		F->ASC->ClearAvatarIfCurrent(Old);
@@ -251,7 +276,7 @@ bool FHALAbilityAvatarTest::RunTest(const FString& Parameters)
 		TestFalse(TEXT("Pawn destruction removes Avatar effects even during weak-pointer invalidation"), F->Immune());
 		TestNull(TEXT("Pawn destruction clears Avatar"), F->ASC->GetAvatarActor());
 		TestTrue(TEXT("No Avatar cannot activate"), !F->Activate());
-		TestTrue(TEXT("Pawn loss does not reset cooldown"), F->Cooldown() > 0);
+		TestEqual(TEXT("Pawn loss retires energy"), F->Energy(), 0.f);
 		F->State->Destroy();
 		TestEqual(TEXT("Owner exit removes all active effects"), F->ASC->GetActiveEffects(FGameplayEffectQuery()).Num(), 0);
 		TestEqual(TEXT("Owner exit removes grants"), F->ASC->GetActivatableAbilities().Num(), 0);

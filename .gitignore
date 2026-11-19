@@ -276,6 +276,7 @@ Plugins/Monolith/
 !Source/HAL_Future_Creation/HALPlayerControllerSlipperyDebug.cpp
 !Docs/Combat/Expanding_Slippery_Area_CN_v0.1.md
 !Docs/Combat/Black_Hole_CN_v0.1.md
+!Docs/Combat/Arena_Effect_Generator_CN_v0.1.md
 
 !Source/HAL_Future_Creation/Tests/HALBattleTopRenderTests.cpp
 !Docs/Presentation/Car03_BattleTop_Polish_FX_CN_v0.1.md
@@ -373,6 +374,7 @@ Plugins/Monolith/
 !Docs/Presentation/Match_Countdown_HUD_CN.md
 !Docs/Combat/Vehicle_Smoke_Screen_Ability_Discussion_CN_v0.1.md
 !Docs/Combat/Car08_Smoke_Screen_CN_v0.1.md
+!Docs/Combat/Vehicle_Ultimate_Energy_CN.md
 !Docs/Combat/Car08_Smoke_Screen_Verification_20261117.json
 !Source/HAL_Future_Creation/HALSmokeScreenTypes.h
 !Source/HAL_Future_Creation/HALSmokeScreenTypes.cpp

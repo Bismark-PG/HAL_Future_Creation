@@ -2,6 +2,7 @@
 #include "Misc/AutomationTest.h"
 #include "../HALPracticeRoomGameMode.h"
 #include "../HALRoomComponent.h"
+#include "../HALRoomConfig.h"
 #include "../HALMatchGameState.h"
 #include "../HALPlayerState.h"
 #include "../HALPlayerController.h"
@@ -119,6 +120,10 @@ namespace
 				Test->TestTrue(TEXT("Full configured HP in the new round"),H && FMath::IsNearlyEqual(H->GetCurrentHP(),Pawn->GetVehicleDefinition()->Health.Health.MaxHP));
 				Test->TestTrue(TEXT("Practice effects and cooldown do not cross maps"),!ASC->IsStunned() && !ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Boost)
 					&& ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity)==0 && ASC->GetSet<UHALMovementAttributeSet>()->GetAccelerationMultiplierDelta()==0);
+				const auto Energy = ASC->GetUltimateEnergyView();
+				if (const auto* Config = R->GetServerConfig())
+				{ Test->TestEqual(TEXT("Formal round keeps configured starting energy until play"), Energy.Energy, Config->StartingUltimateEnergy); }
+				Test->TestFalse(TEXT("Loading and countdown do not recharge"), Energy.bRecharging);
 				if (D.Phase==EHALRoomPhase::Loading)
 				{
 					SawLoading=true; LoadedRound=D.RoundId;
@@ -148,12 +153,13 @@ namespace
 				Test->TestEqual(TEXT("Explicit new round identity"),PS->GetVehicleLifecycle().RoundId,D.RoundId);
 				if (SkillFixture && SkillVerifiedRound!=D.RoundId)
 				{
+					if (SkillRequestedRound!=D.RoundId && !ASC->GetUltimateEnergyView().bHasEnergy) { return false; }
 					if (SkillRequestedRound!=D.RoundId) { SkillRequestedRound=D.RoundId; SkillRequestedAt=Now; Pawn->RequestPrimarySkill(); return false; }
 					const FGameplayTag Expected=Host?HALGameplayTags::State_Movement_Boost:HALGameplayTags::State_Combat_ImpactImmune;
 					if (!ASC->HasMatchingGameplayTag(Expected))
 					{ if (Now-SkillRequestedAt>8) { Test->AddError(TEXT("Selected model skill did not activate through primary input RPC")); return true; } return false; }
 					Test->TestFalse(TEXT("Other model effect never installed on this owner"),ASC->HasMatchingGameplayTag(Host?HALGameplayTags::State_Combat_ImpactImmune:HALGameplayTags::State_Movement_Boost));
-					if (!Host) { Test->TestTrue(TEXT("Immunity cooldown replicated to its own player"),ASC->GetEffectTimeRemaining(HALGameplayTags::Cooldown_ImpactImmunity)>0); }
+					Test->TestTrue(TEXT("Owner receives spent energy"), ASC->GetUltimateEnergyView().Energy < 25);
 					SkillVerifiedRound=D.RoundId;
 					UE_LOG(LogTemp,Display,TEXT("HAL vehicle skill verified Host=%d Round=%u Source=%s Class=%s"),Host,D.RoundId,*Pawn->GetName(),*Pawn->GetVehicleAbilityConfig().Grants[0].Ability->GetName());
 				}

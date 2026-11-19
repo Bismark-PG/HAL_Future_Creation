@@ -230,7 +230,7 @@ bool FHALBullChargeGASTest::RunTest(const FString&)
 	FHALBullChargeTestAccess::SetHeldReference(A, Stale);
 	ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary);
 	TestFalse(TEXT("Failed held-ball transaction rolls back active effect"), UHALBullChargeComponent::IsActiveOn(A));
-	TestFalse(TEXT("Failed held-ball transaction rolls back cooldown"), ASC->HasMatchingGameplayTag(HALGameplayTags::Cooldown_BullCharge));
+	TestEqual(TEXT("Failed held-ball transaction preserves energy"), ASC->GetUltimateEnergyView().Energy, 100.f);
 	const auto Rollback = FHALRoomTestAccess::Flush(A->FindComponentByClass<UHALMovementEffectBridge>());
 	TestFalse(TEXT("Failed held-ball transaction publishes no charge or recovery"), Rollback.Overdrive.Activation.IsValid());
 	FHALBullChargeTestAccess::SetHeldReference(A, Held);
@@ -295,7 +295,7 @@ bool FHALBullChargeGASTest::RunTest(const FString&)
 				TestTrue(TEXT("Charge survives stun expiry"), !ASC->IsStunned() && UHALBullChargeComponent::IsActiveOn(A));
 				A->FindComponentByClass<UHALBullChargeComponent>()->Stop();
 				TestFalse(TEXT("Cleanup removes only charge immunity"), ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_ImpactImmune));
-				TestTrue(TEXT("Avatar cleanup retains cooldown"), ASC->HasMatchingGameplayTag(HALGameplayTags::Cooldown_BullCharge));
+				TestTrue(TEXT("Stopping propulsion does not refund energy"), !ASC->GetUltimateEnergyView().bHasEnergy);
 			}));
 		}));
 	return true;

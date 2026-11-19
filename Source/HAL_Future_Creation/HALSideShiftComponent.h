@@ -34,7 +34,7 @@ struct FHALSideShiftVisualState
 	UPROPERTY() bool bDriving = false;
 };
 
-/** Skill-specific charge resource, input transaction and cosmetic lifetime. No GA Tick. */
+/** Side-shift input, motion and cosmetics. Charge cells are a view of the owner's ultimate energy. */
 UCLASS()
 class HAL_FUTURE_CREATION_API UHALSideShiftComponent : public UActorComponent
 {
@@ -49,9 +49,10 @@ public:
 	/** Preserve the release edge across the separate continuous-input transport. GT-only. */
 	void ObserveHandbrake(bool bHeld);
 	bool CanStart() const;
+	bool CanStartWithDirection() const;
 	bool Start();
 	void Stop();
-	UFUNCTION(BlueprintPure, Category="Side Shift") FHALSideShiftView GetChargeView() const { return ChargeView; }
+	UFUNCTION(BlueprintPure, Category="Side Shift") FHALSideShiftView GetChargeView() const;
 	UFUNCTION(BlueprintPure, Category="Side Shift") float GetRechargeRemaining() const;
 	const FHALTireSkidConfig* GetActiveTireMarks() const;
 	float GetTireFXPlayRate() const { return IsSkidActive()?Visual.FX.TireFXPlayRate:1.f; }
@@ -68,29 +69,25 @@ private:
 	UFUNCTION(Server,Reliable) void ServerReleaseDrift(uint32 Sequence);
 	void ProcessRequest(int8 Side,uint32 Sequence,bool bHandbrake=false);
 	void ProcessDriftRelease(uint32 Sequence);
-	void Recharge();
-	void PublishCharges();
 	void WatchActive(UWorld* World,ELevelTick TickType,float DeltaTime);
 	void TagChanged(FGameplayTag Tag,int32 Count);
 	void HealthChanged(const FOnAttributeChangeData& Change);
 	bool HasUsablePose() const;
-	int32 ResourceCount() const;
-	bool AddCharge(int32 Count);
 	UFUNCTION() void OnRep_Visual();
 	double ServerTime() const;
 	void UpdateParticles();
 	void ClearParticles(bool bImmediate);
 	UPROPERTY(Transient) TObjectPtr<UHALSideShiftConfig> Config;
 	TWeakObjectPtr<UHALAbilitySystemComponent> BoundASC;
-	FActiveGameplayEffectHandle ResourceEffect, ActiveEffect;
+	FActiveGameplayEffectHandle ActiveEffect;
 	FDelegateHandle StunHandle, ActiveTagHandle, HealthHandle, WorldHandle;
-	FTimerHandle RechargeTimer, EndTimer;
+	FTimerHandle EndTimer;
 	uint32 NextRequest=0, LastRequest=0;
 	int8 PendingSide=0;
 	bool bPendingDrift=false, bAwaitingDriftRelease=false;
 	double ReadyAt=-1;
 	bool bStopping=false;
-	UPROPERTY(Replicated) FHALSideShiftView ChargeView;
+	UPROPERTY(Replicated) bool bConfigured = false;
 	UPROPERTY(ReplicatedUsing=OnRep_Visual) FHALSideShiftVisualState Visual;
 	FGuid DrawActivation;
 	UPROPERTY(Transient) TArray<TObjectPtr<UNiagaraComponent>> Jets;

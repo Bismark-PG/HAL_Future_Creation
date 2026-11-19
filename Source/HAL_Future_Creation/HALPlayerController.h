@@ -68,6 +68,8 @@ public:
 	/** Print every vehicle's GAS Owner/Avatar and sole authoritative HP source. */
 	UFUNCTION(Exec)
 	void HALGASStatus();
+	/** Development host console only. Uses the same authority grant as a pickup. */
+	UFUNCTION(Exec) void HALGrantUltimateEnergy(int32 PlayerId, float Points);
 	/** Development host console only. Changes test resistance without creating content assets. */
 	UFUNCTION(Exec)
 	void HALImpactDebug(int32 PlayerId, int32 Reduction, bool bImmune);

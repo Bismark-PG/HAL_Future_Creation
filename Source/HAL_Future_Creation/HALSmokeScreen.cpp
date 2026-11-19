@@ -179,6 +179,11 @@ void AHALSmokeScreen::Update()
 			||Age-Puffs.Last().BirthAge>=Rules.StationaryInterval)) { AddPuff(Ground,Age); }
 		const int32 Removed=Puffs.RemoveAll([&](const auto& P){return Age-P.BirthAge>=Rules.PuffSeconds;});
 		if(Removed) { ForceNetUpdate(); }
+		if (!bEmissionWindowEnded && Age >= Rules.EmissionSeconds)
+		{
+			bEmissionWindowEnded = true;
+			OnEmissionEnded.Broadcast(this);
+		}
 		if(Age>=Rules.EmissionSeconds&&Puffs.IsEmpty()) { Destroy(); return; }
 		if(Now-LastWallRefresh>=Rules.WallRefreshSeconds)
 		{

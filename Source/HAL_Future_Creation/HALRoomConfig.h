@@ -14,6 +14,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Room") FHALRoomRules Rules;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Room") TObjectPtr<UHALVehicleCatalog> Catalog;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Match Rules", meta=(ShowOnlyInnerProperties)) FHALMatchRules MatchRules;
+	/** Starting points for each formal round. Practice always starts full. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Match Rules", meta=(ClampMin="0", ClampMax="100"))
+	float StartingUltimateEnergy = 0.f;
 	/** Opt in after creating a distinct match map; legacy GF-3 remains lock-only until configured. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Round Travel") bool bEnableRoundTravel=false;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Round Travel", meta=(EditCondition="bEnableRoundTravel")) TSoftObjectPtr<UWorld> MatchMap;

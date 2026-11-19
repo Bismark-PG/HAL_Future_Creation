@@ -26,6 +26,8 @@ public:
 	const FHALSmokeScreenFX& GetFX() const { return FX; }
 	double GetStartTime() const { return StartTime; }
 	bool IsEmitting() const { return bEmitting; }
+	DECLARE_MULTICAST_DELEGATE_OneParam(FEmissionEnded, AHALSmokeScreen*);
+	FEmissionEnded OnEmissionEnded;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void Destroyed() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
@@ -51,4 +53,5 @@ private:
 	TMap<TWeakObjectPtr<ATestVehiclePawn>,FVector> LastPositions;
 	FTimerHandle UpdateTimer;
 	double LastWallRefresh=-1;
+	bool bEmissionWindowEnded=false;
 };

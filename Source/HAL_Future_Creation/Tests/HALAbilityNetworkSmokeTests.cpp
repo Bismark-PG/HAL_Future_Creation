@@ -163,13 +163,13 @@ namespace
 						FHALVehicleAbilityTestAccess::BattleTopNetworkSpinRate);
 				}
 				bBothActive = true;
-				Test->TestEqual(TEXT("Owner sees one active GE and one cooldown GE"), Local->GetActiveEffects(FGameplayEffectQuery()).Num(), 2);
+				Test->TestEqual(TEXT("Owner sees a single duration GE"), Local->GetActiveEffects(FGameplayEffectQuery()).Num(), 1);
 				const auto Durations = Local->GetActiveEffectsTimeRemainingAndDuration(FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(
 					FGameplayTagContainer(CooldownTag)));
-				Test->TestTrue(TEXT("Owner receives twenty-game-second cooldown"), Durations.Num() == 1 && FMath::IsNearlyEqual(Durations[0].Value, 20.0f, 0.1f));
-				Controller->HALUseSkill(); // A repeated input must be denied locally/server-side by the same GAS cooldown.
-				UE_LOG(LogTemp, Display, TEXT("HAL Ability smoke: Role=%s BothActive=1 BattleTop=%d HandbrakeBlocked=%d Cooldown=%.2f"),
-					bHost ? TEXT("Host") : TEXT("Client"), bBattleTop, bRestriction, Local->GetEffectTimeRemaining(CooldownTag));
+				Test->TestTrue(TEXT("Owner receives spent energy without a parallel cooldown"), Durations.IsEmpty() && Local->GetUltimateEnergyView().Energy < 20);
+				Controller->HALUseSkill(); // A repeated input must be denied locally/server-side by the same energy cost.
+				UE_LOG(LogTemp, Display, TEXT("HAL Ability smoke: Role=%s BothActive=1 BattleTop=%d HandbrakeBlocked=%d Energy=%.2f"),
+					bHost ? TEXT("Host") : TEXT("Client"), bBattleTop, bRestriction, Local->GetUltimateEnergyView().Energy);
 				Controller->HALGASStatus();
 			}
 			const bool bCartoonFixture=FParse::Param(FCommandLine::Get(),TEXT("HALBattleTopCartoonFixture"));
@@ -231,18 +231,18 @@ namespace
 				}
 				bBothExpired = true;
 				if(bSprayFixture){Test->TestTrue(TEXT("Owner and observer received real cosmetic multicast bursts"),bSawLocalSpray&&bSawRemoteSpray);}
-				Test->TestTrue(TEXT("Active effect expires before cooldown"), Local->HasMatchingGameplayTag(CooldownTag));
-				UE_LOG(LogTemp, Display, TEXT("HAL Ability smoke: Role=%s BothExpired=1 Cooldown=%.2f GameElapsed=%.2f TimeDilation=%.2f"),
-					bHost ? TEXT("Host") : TEXT("Client"), Local->GetEffectTimeRemaining(CooldownTag),
+				Test->TestTrue(TEXT("Active effect expires before full recharge"), !Local->GetUltimateEnergyView().bHasEnergy);
+				UE_LOG(LogTemp, Display, TEXT("HAL Ability smoke: Role=%s BothExpired=1 Energy=%.2f GameElapsed=%.2f TimeDilation=%.2f"),
+					bHost ? TEXT("Host") : TEXT("Client"), Local->GetUltimateEnergyView().Energy,
 					World->GetTimeSeconds() - RequestedWorldTime, World->GetWorldSettings()->GetEffectiveTimeDilation());
 			}
-			if (Local->HasMatchingGameplayTag(CooldownTag)) { return false; }
+			if (!Local->GetUltimateEnergyView().bHasEnergy) { return false; }
 			if (CompleteAt == 0)
 			{
 				CompleteAt = FPlatformTime::Seconds();
 				// GAS uses World game time, not FPlatformTime; only authority owns the expiry clock.
-				if (bHost) { Test->TestTrue(TEXT("Authority cooldown lasts twenty game seconds"), World->GetTimeSeconds() - RequestedWorldTime >= 19.5); }
-				UE_LOG(LogTemp, Display, TEXT("HAL Ability smoke: Role=%s CooldownExpired=1 GameElapsed=%.2f WallElapsed=%.2f TimeDilation=%.2f"),
+				if (bHost) { Test->TestTrue(TEXT("Authority recharge lasts twenty game seconds"), World->GetTimeSeconds() - RequestedWorldTime >= 19.5); }
+				UE_LOG(LogTemp, Display, TEXT("HAL Ability smoke: Role=%s EnergyFull=1 GameElapsed=%.2f WallElapsed=%.2f TimeDilation=%.2f"),
 					bHost ? TEXT("Host") : TEXT("Client"), World->GetTimeSeconds() - RequestedWorldTime,
 					CompleteAt - RequestedAt, World->GetWorldSettings()->GetEffectiveTimeDilation());
 				Controller->HALGASStatus();

@@ -172,7 +172,8 @@ bool FHALBoostLifecycleTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Avatar scope clears boost"),F->Active());
 	TestEqual(TEXT("New Avatar neutral movement"),F->Values()->GetAccelerationMultiplierDelta(),0.f);
 	TestEqual(TEXT("HP retained"),F->ASC->GetSet<UHALHealthAttributeSet>()->GetCurrentHP(),75.f);
-	TestTrue(TEXT("Other cooldown retained"),F->ASC->HasMatchingGameplayTag(HALGameplayTags::Cooldown_ImpactImmunity));
+	TestEqual(TEXT("Replacement starts with full practice energy"), F->ASC->GetUltimateEnergyView().Energy, 100.f);
+	TestFalse(TEXT("Primary creates no legacy cooldown"), F->ASC->HasMatchingGameplayTag(HALGameplayTags::Cooldown_ImpactImmunity));
 	F->Controller->HALMovementBoost(); F->ASC->ClearAvatarIfCurrent(Old); Old->Destroy();
 	TestTrue(TEXT("Delayed old cleanup cannot erase new Avatar boost"),F->Active());
 	Replacement->Destroy(); TestFalse(TEXT("Pawn destruction clears boost"),F->Active());
