@@ -15,6 +15,7 @@
 #include "HALNetworkGameInstance.h"
 #include "HALDebugHUDWidget.h"
 #include "HALMatchHUDWidget.h"
+#include "HALIncomingBallWidget.h"
 #include "HALCameraDebugWidget.h"
 #include "HALRoomComponent.h"
 #include "HALPlayerState.h"
@@ -73,6 +74,8 @@ void AHALPlayerController::BeginPlay()
 		RefreshRoomUI();
 		CreateLocalDebugWidgets();
 		EnsureMatchHUD();
+		// Local-only doodle overlay; the ball's presentation ensures it too, whichever of the two arrives first.
+		UHALIncomingBallHUDSubsystem::EnsureForWorld(GetWorld());
 	}
 }
 void AHALPlayerController::CreateLocalDebugWidgets()

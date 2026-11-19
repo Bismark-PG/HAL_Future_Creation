@@ -10,6 +10,7 @@
 #include "Chaos/SimCallbackObject.h"
 #include "Physics/Experimental/PhysScene_Chaos.h"
 #include "PhysicsEngine/BodyInstance.h"
+#include "PhysicsProxy/SingleParticlePhysicsProxy.h"
 
 struct FHALHookSolverTestAccess
 {

@@ -10,6 +10,7 @@
 #include "VehicleKnockbackSettings.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALShockedPresentationComponent.h"
+#include "HALVehicleDoodleStatusComponent.h"
 #include "HALBattleTopComponent.h"
 #include "HALBullChargeComponent.h"
 #include "HALSideShiftComponent.h"
@@ -117,6 +118,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	NetworkPhysicsHistory->SetAutoActivate(false);
 	MovementEffectBridge = CreateDefaultSubobject<UHALMovementEffectBridge>(TEXT("MovementEffectBridge"));
 	ShockedPresentation = CreateDefaultSubobject<UHALShockedPresentationComponent>(TEXT("ShockedPresentation"));
+	DoodleStatus = CreateDefaultSubobject<UHALVehicleDoodleStatusComponent>(TEXT("DoodleStatus"));
 	BattleTop = CreateDefaultSubobject<UHALBattleTopComponent>(TEXT("BattleTop"));
 	BullCharge = CreateDefaultSubobject<UHALBullChargeComponent>(TEXT("BullCharge"));
 	SideShift = CreateDefaultSubobject<UHALSideShiftComponent>(TEXT("SideShift"));
@@ -314,6 +316,7 @@ void ATestVehiclePawn::BindVehicleAbilitySystem(UHALAbilitySystemComponent* ASC,
 	Health->BindToAbilitySystem(ASC);
 	RefreshStatusFXBinding();
 	ShockedPresentation->Bind(ASC);
+	DoodleStatus->Bind(ASC, Health);
 	MovementEffectBridge->Bind(ASC, MovementOwnerId);
 	MovementAreaReceiver->Bind(ASC);
 	if (HasAuthority() && bConfigurationValid)
@@ -340,6 +343,7 @@ void ATestVehiclePawn::UninitializeAbilitySystem()
 	if (HasAuthority()) { SideShift->Shutdown(); }
 	PursuitTarget->Clear();
 	ShockedPresentation->Unbind();
+	DoodleStatus->Unbind();
 	StatusFXPresentation->Unbind();
 	MovementAreaReceiver->Unbind();
 	MovementEffectBridge->Unbind();

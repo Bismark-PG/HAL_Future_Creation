@@ -1,6 +1,8 @@
 #include "HALMagnetBeamPresentationComponent.h"
 #include "HALBallPresentationComponent.h"
 #include "HALPlayerState.h"
+#include "HALVehiclePresentationComponent.h"
+#include "GameFramework/GameStateBase.h"
 
 #include "Components/MeshComponent.h"
 #include "Components/SphereComponent.h"
@@ -160,7 +162,7 @@ void UHALMagnetBeamPresentationComponent::EnsureBeam()
 		}
 	}
 
-	if (!BeamSystem) { return; }
+	if (!BeamSystem || bRibbonSuppressed) { return; }
 	if (!IsValid(BeamComponent))
 	{
 		BeamComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(BeamSystem, Attach, NAME_None,
@@ -195,15 +197,42 @@ void UHALMagnetBeamPresentationComponent::StopBeam()
 	BeamHolder.Reset();
 }
 
-FLinearColor UHALMagnetBeamPresentationComponent::ResolveHolderColor(const AActor* Holder) const
+void UHALMagnetBeamPresentationComponent::SetBeamRibbonSuppressed(bool bSuppressed)
 {
-	const APawn* Pawn = Cast<APawn>(Holder);
-	if (const auto* RoomPlayer = Pawn ? Pawn->GetPlayerState<AHALPlayerState>() : nullptr; RoomPlayer && RoomPlayer->GetRoomData().Seat != INDEX_NONE)
-	{ return RoomPlayer->GetRoomData().Color; }
-	if (HolderPalette.IsEmpty()) { return FallbackColor; }
+	if (bRibbonSuppressed == bSuppressed) { return; }
+	bRibbonSuppressed = bSuppressed;
+	if (bSuppressed)
+	{
+		if (IsValid(BeamComponent))
+		{
+			BeamComponent->SetVariableFloat(HALMagnetBeam::AlphaParam, 0.f);
+			BeamComponent->DeactivateImmediate();
+		}
+	}
+	else if (Phase == EHALMagnetBeamPhase::Attach || Phase == EHALMagnetBeamPhase::Hold) { EnsureBeam(); }
+}
+
+FLinearColor UHALMagnetBeamPresentationComponent::ResolveHolderColor(const AActor* Holder) const
+{ return ResolveIdentityColor(Holder); }
+
+FLinearColor UHALMagnetBeamPresentationComponent::ResolveIdentityColor(const AActor* Actor, int32 PlayerId) const
+{
+	const APawn* Pawn = Cast<APawn>(Actor);
 	const APlayerState* State = Pawn ? Pawn->GetPlayerState() : nullptr;
-	if (!State || State->GetPlayerId() < 0) { return FallbackColor; }
-	return HolderPalette[State->GetPlayerId() % HolderPalette.Num()];
+	const AGameStateBase* GameState = GetWorld() ? GetWorld()->GetGameState() : nullptr;
+	if (!State && PlayerId != INDEX_NONE && GameState)
+	{
+		for (const APlayerState* Candidate : GameState->PlayerArray)
+		{ if (Candidate && Candidate->GetPlayerId() == PlayerId) { State = Candidate; break; } }
+	}
+	if (const auto* RoomPlayer = Cast<AHALPlayerState>(State); RoomPlayer && RoomPlayer->GetRoomData().Seat != INDEX_NONE)
+	{ return RoomPlayer->GetRoomData().Color; }
+	if (State && State->GetPlayerId() >= 0 && !HolderPalette.IsEmpty()) { return HolderPalette[State->GetPlayerId() % HolderPalette.Num()]; }
+	// No player behind it (a test dummy): fall back to the colour its own tire marks already use.
+	FLinearColor Mark;
+	if (const auto* Presentation = Actor ? Actor->FindComponentByClass<UHALVehiclePresentationComponent>() : nullptr;
+		Presentation && Presentation->GetIdentityColor(Mark)) { return Mark; }
+	return FallbackColor;
 }
 
 bool UHALMagnetBeamPresentationComponent::ResolveAnchors(FVector& OutRoof, FVector& OutBall,
@@ -241,7 +270,7 @@ bool UHALMagnetBeamPresentationComponent::ResolveAnchors(FVector& OutRoof, FVect
 
 void UHALMagnetBeamPresentationComponent::PushBeam(float Visible, bool bRetractFromBall)
 {
-	if (!IsValid(BeamComponent)) { return; }
+	if (!IsValid(BeamComponent) || bRibbonSuppressed) { return; }
 	FVector Roof = FVector::ZeroVector;
 	FVector BallEnd = FVector::ZeroVector;
 	float RestLength = 0.f;
@@ -304,7 +333,10 @@ void UHALMagnetBeamPresentationComponent::PushShell(float Visible)
 	if (!bPulseBallShell || ShellInstances.IsEmpty()) { return; }
 	// Same colour and same clock as the beam: synchronised blinking is what ties the ball to
 	// one specific vehicle once the cars are too far away to trace a beam by eye.
-	const float Wave = 0.5f + 0.5f * FMath::Sin(HeldSeconds * UE_TWO_PI * ShellPulseHz);
+	// Sampled on a stepped clock so the shell changes brightness in drawings, like the rest of the doodle layers.
+	const float Clock = ShellPulseStepsPerSecond > 0.f
+		? FMath::FloorToFloat(HeldSeconds * ShellPulseStepsPerSecond) / ShellPulseStepsPerSecond : HeldSeconds;
+	const float Wave = 0.5f + 0.5f * FMath::Sin(Clock * UE_TWO_PI * ShellPulseHz);
 	const float Pulse = FMath::Clamp(Visible, 0.f, 1.f)
 		* FMath::Lerp(FMath::Clamp(ShellPulseFloor, 0.f, 1.f), 1.f, Wave);
 	for (const TObjectPtr<UMaterialInstanceDynamic>& Instance : ShellInstances)
