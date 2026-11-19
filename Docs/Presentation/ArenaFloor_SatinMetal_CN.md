@@ -1,12 +1,32 @@
 # MVPB_Match 波纹缎面金属地面
 
-正式比赛图 `/Game/Maps/MVPB_Match` 已采用六边形拉丝钢板、整边防滑条、外圈灯带和九盏嵌地灯。中场的第十盏灯嵌在与行车面齐平的金属圆盘中央。临时图 `MVPB_Match_Temp` 可用于继续试做。两图引用同一组材质和网格，修改共享资产会同时影响两图。[中场盘与碰撞](#arena-center-inlay) · [六边形钢板与地灯调参](#arena-deck-inset-lights)
+正式比赛图 `/Game/Maps/MVPB_Match` 已采用六边形拉丝钢板、整边防滑条、外圈灯带和九盏嵌地灯。中场的第十盏灯嵌在与行车面齐平的金属圆盘中央。临时图 `MVPB_Match_Temp` 可用于继续试做。两图共用材质和网格，场馆的光源则在各自关卡内调节。[正式比赛图灯光](#arena-match-lighting) · [中场盘与碰撞](#arena-center-inlay) · [六边形钢板与地灯调参](#arena-deck-inset-lights)
+
+<a id="arena-match-lighting"></a>
+
+## 2026-11-19 正式比赛图灯光
+
+中场以偏冷的环境光保留钢板拉丝和球的明暗面，琥珀色地灯照亮经过的车身。沿看台选择了八个已有灯具，按灯面原色配三盏青蓝、三盏琥珀和两盏淡紫聚光灯。四盏照座席，另外四盏斜照赛道外沿。各束光略微错开，中场留给地灯和机关特效。[调整前后同机位实拍](Images/MVPB_Match_Lighting_20261119.jpg)
+
+在正式图的 World Outliner 搜索下列名称即可调节。
+
+| 想调整的效果 | 选择哪个 Actor | 正式图当前值 |
+|---|---|---|
+| 整个画面再亮或再暗一点 | `Match_Exposure` → **Exposure Compensation** | +0.34 EV，原为 +1.0 EV。数值越低画面越暗，自动曝光仍随视野适应。 |
+| 主光角度与钢板反光 | `DirectionalLight` | 3.65 lux，6150 K，Pitch −42°，Yaw −32°，光源角直径 1.55°，`Specular Scale` 0.72。 |
+| 阴影面亮度与颜色 | `SkyLight` | 强度 0.68，浅冷蓝 sRGB (214, 231, 255)。 |
+| 场内灯的光晕及车身暖光 | `DeckLamp_01_Light`～`DeckLamp_09_Light`、`CenterInlay_Light` | 普通灯 1950 lm，衰减半径 485 cm。中场灯 2200 lm，半径 525 cm。统一为暖琥珀 sRGB (255, 190, 122)。 |
+| 观众席的色相、落点及覆盖范围 | 搜 `StandWash_`，选择对应方位的聚光灯 | 照座席的四盏为 17,500 lm、半径 59 m、外锥角 41°。照赛道外沿的四盏为 33,000 lm、半径 84 m、外锥角 36°。旋转子灯可移动光斑。八盏均关闭投影与体积雾散射。 |
+
+UE 5.8.3 从磁盘重载，核对了八盏聚光灯的挂接、瞄准和颜色，以及十盏地灯和场景曝光。正式图原有 142 个 Actor 的身份均与调整前一致，新版共 151 个 Actor。D3D12 实车同机位出图，中场驾驶画面亮度中位数从 146 降到 107，约降 27%。同一画面里，球面中央采样从 204 变为 199（均为 0～255 的成像读数）。固定机位单独开关灯组，开灯时灯边钢板采样增亮约 81，青蓝灯下的座席增亮约 33，外沿琥珀灯下的球面红蓝通道差增加约 10。原图和采样在本机 `Saved/MatchArenaLighting/`。
+
+本机 Exhibition 一主三客在正式图完成首局返房并进入第二局，四个进程均零测试警告、零失败。Windows 地图 Cook 产出正式图，退出码为 0。四台实机同场释放技能时的可读性和 GPU 帧耗待团队实测。
 
 <a id="arena-deck-formal-match"></a>
 
 ## 2026-11-19 正式比赛图采用新版场地
 
-在 `MVPB_Match` 内更新了 19 个已有 Actor，包含可见地板、中场盘、承托车辆的 `Floor`、外围侧挡 `Path`、四个出生点、主球和机关。新增九组场内地灯和一组中央地灯，每组各有一个灯壳和一个子点光源。重载比对时，正式图原有 122 个 Actor 的对象名和 GUID 均与迁入前一致。迁入后两图的 142 个 Actor 在变换、挂接、网格、用材、碰撞及照明的核对项一致。
+在 `MVPB_Match` 内更新了 19 个已有 Actor，包含可见地板、中场盘、承托车辆的 `Floor`、外围侧挡 `Path`、四个出生点、主球和机关。新增九组场内地灯和一组中央地灯，每组各有一个灯壳和一个子点光源。重载比对时，正式图原有 122 个 Actor 的对象名和 GUID 均与迁入前一致。迁入当时两图的 142 个 Actor 在变换、挂接、网格、用材、碰撞及照明的核对项一致。
 
 `DA_Room_Development` 和 `DA_Room_Exhibition` 均指向正式图。正式图的 World Settings 继续引用 `BP_MVPB_ListenGameMode`，四个出生槽编号为 0～3，主球沿用地图原有定义。正式图的资产依赖包含 11 份场地材质、材质实例和网格，可以独立加载。后续调灯可直接打开正式图，在 Outliner 的 `Presentation/Deck Inset Lights` 和 `Presentation/Center Inlay` 下选中对应灯组。
 
@@ -27,7 +47,7 @@
 | 要调整的内容 | 在哪里调 |
 |---|---|
 | 圆盘的钢色、外圈颜色和拉丝 | `/Game/Assets/Materials/ArenaDeck/MI_ArenaDeck_CenterInlay`。在 **Center Inlay** 下调 `Steel Color`、`Trim Color`、`Brush Strength`（默认 0.72）和 `Steel Roughness`（默认 0.36）。 |
-| 灯壳尺寸和灯光 | 两图的 Outliner → `Presentation/Center Inlay` → `podium_007_1375` → `CenterInlay_Lamp` → `CenterInlay_Light`。灯壳长宽为普通地灯的 1.45 倍，约 157 × 64 cm。子灯默认 3200 lm，衰减半径 410 cm。 |
+| 灯壳尺寸和灯光 | 两图的 Outliner → `Presentation/Center Inlay` → `podium_007_1375` → `CenterInlay_Lamp` → `CenterInlay_Light`。灯壳长宽为普通地灯的 1.45 倍，约 157 × 64 cm。临时图的子灯为 3200 lm，衰减半径 410 cm。正式图的当前数值见[正式比赛图灯光](#arena-match-lighting)。 |
 | 行车面与外围侧挡 | 两图的隐藏 Actor `Floor` 使用 `SM_ArenaDeck_DriveSurface`，中场世界 Z 为 −200.274 cm。内场行车面跟随板面浅浮雕并平滑过渡，外圈跨过窄装饰槽。`Path` 使用保留护盾外观的 `SM_ArenaDeck_ShieldBoundary`，侧壁负责挡车和球。三份中场专用网格位于 `/Game/Assets/Meshes/ArenaDeck/`。 |
 
 四个 `HALPlayerStart` 和场上主球分别按旧承托面的出生净高重新定位，均下移 201.93 cm。四个弹簧拳以各自底座底面定位，电墙和电球以机关地面锚点定位。黑洞和扩张打滑区的原点对齐当地板面。机关沿用原来的平面位置、朝向和玩法配置。
@@ -57,7 +77,7 @@
 | 有多少条边铺防滑条 | `Grip Insert Coverage` | 0.31，控制被选中的接缝比例。长度随六边形边长变化。 |
 | 防滑条横向宽度 | `Grip Strip Width Cm` | 40 cm。设为 0 可隐藏防滑条。 |
 
-### 调一盏地灯
+### 调一盏地灯（临时图首版数值）
 
 九盏灯分别嵌在内场九块钢板上，最近两盏间距约 21.2 m。单盏灯壳尺寸为 108 × 44 cm，带金属倒角和分段琥珀灯片。它们按可见板面定位，灯壳关闭碰撞与重叠事件。每盏灯的真实照明由一个原生 Point Light 提供。[全场灯位](Images/ArenaDeck_InsetLights_Layout_20261118.jpg) · [灯壳近景和同一车位的局部光开关对比](Images/ArenaDeck_InsetLights_20261118.jpg)
 
