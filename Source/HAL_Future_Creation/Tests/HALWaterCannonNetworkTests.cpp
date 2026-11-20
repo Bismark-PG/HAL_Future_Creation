@@ -12,6 +12,7 @@
 #include "../HALWaterCannon.h"
 #include "../HALWaterCannonAbility.h"
 #include "../TestVehiclePawn.h"
+#include "Components/BoxComponent.h"
 #include "Components/DynamicMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -19,6 +20,17 @@
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
 #include "Materials/Material.h"
+
+struct FHALWaterCannonNetworkTestAccess
+{
+	static bool HasWallFoam(const AHALWaterCannon& Jet)
+	{
+		return Jet.View.Contacts.ContainsByPredicate([](const FHALWaterJetContact& Hit)
+		{
+			return Hit.Point.X>300 && Hit.Point.X<795 && Hit.Normal.X<-.85 && Hit.LastLane>Hit.FirstLane;
+		});
+	}
+};
 
 namespace
 {
@@ -45,6 +57,8 @@ namespace
 		FAutomationTestBase& Test;
 		double Deadline = FPlatformTime::Seconds()+90, NextRequest = 0, FinishedAt = 0;
 		bool bSawJet = false, bSawBall = false, bSpawnedBall = false, bAppliedStun = false, bSawRecoilInStun = false, bSawView = false;
+		TWeakObjectPtr<AActor> TestWall;
+		bool bSawWallFoam = false;
 		float MinimumForwardSpeed = 0;
 		int32 StunnedPumpFrames = 0;
 	public:
@@ -89,6 +103,22 @@ namespace
 				bSawJet = true;
 				auto* Mesh = Jet->FindComponentByClass<UDynamicMeshComponent>();
 				bSawView |= Mesh && Mesh->IsVisible() && Mesh->GetMaterial(0) && Mesh->GetNumMaterials() > 0 && Mesh->Bounds.BoxExtent.Size() > 80;
+				if (bHost && !TestWall.IsValid() && Mesh && Mesh->IsVisible())
+				{
+					// Only the server can query this wall. The client must receive its splash position and normal.
+					AActor* Wall=W->SpawnActor<AActor>();
+					auto* Box=NewObject<UBoxComponent>(Wall);
+					Wall->SetRootComponent(Box);
+					Box->SetBoxExtent(FVector(8,185,170));
+					Box->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+					Box->SetCollisionResponseToAllChannels(ECR_Ignore);
+					Box->SetCollisionResponseToChannel(ECC_Pawn,ECR_Block);
+					Box->SetWorldTransform(Jet->GetActorTransform());
+					Box->SetWorldLocation(Jet->GetActorTransform().TransformPosition(FVector(490,0,0)));
+					Box->RegisterComponent();
+					TestWall=Wall;
+				}
+				bSawWallFoam |= FHALWaterCannonNetworkTestAccess::HasWallFoam(*Jet);
 				if (bHost && !bAppliedStun) { bAppliedStun = ASC->ApplyStun(1.8f,LocalCar); }
 				if (bHost && ASC->IsStunned())
 				{
@@ -128,6 +158,8 @@ namespace
 				if (!After.bReady || After.Definition.WaterJet.Activation.IsValid()) { return false; }
 				Test.TestTrue(TEXT("Server-confirmed launched ball attributed to client on both roles"),bSawBall);
 				Test.TestTrue(TEXT("Owner and observer construct clipped water geometry"),bSawView);
+				Test.TestTrue(TEXT("Both roles received the server-only wall's foam point and outward surface normal"),bSawWallFoam);
+				if (TestWall.IsValid()) { TestWall->Destroy(); }
 				if (bHost)
 				{
 					Test.AddInfo(FString::Printf(TEXT("Stunned pump samples=%d minimum signed forward speed=%.1f cm/s ball spawned=%d"),StunnedPumpFrames,MinimumForwardSpeed,bSpawnedBall));

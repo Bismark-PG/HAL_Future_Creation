@@ -38,6 +38,7 @@ AHALWaterCannon::AHALWaterCannon()
 	Mesh->SetupAttachment(GetRootComponent());
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Mesh->SetGenerateOverlapEvents(false);
+	Mesh->SetVisibility(false);
 	Mesh->SetCanEverAffectNavigation(false);
 	Mesh->SetCastShadow(false);
 	Alarm = CreateDefaultSubobject<UAudioComponent>(TEXT("FireSiren"));
@@ -131,13 +132,24 @@ void AHALWaterCannon::SampleJet(double Now)
 	Rear.Z = Aim.GetLocation().Z;
 	TArray<FHitResult> Hits;
 	bool bMuzzleBlocked = false;
+	struct FLaneSurface { const UPrimitiveComponent* Body=nullptr; FVector Point=FVector::ZeroVector, Normal=FVector::ZeroVector; };
+	FLaneSurface Surfaces[LaneCount];
+	const auto AddContact=[&](const FVector& Point,const FVector& Normal,int32 First,int32 Last)
+	{
+		auto& C=Sample.Contacts.AddDefaulted_GetRef();
+		C.Point=Aim.InverseTransformPosition(Point);
+		C.Normal=Aim.InverseTransformVectorNoScale(Normal).GetSafeNormal(UE_SMALL_NUMBER,FVector::BackwardVector);
+		C.FirstLane=uint8(First); C.LastLane=uint8(Last);
+	};
 	if (Sample.bFlowing)
 	{
 		GetWorld()->LineTraceMultiByObjectType(Hits, Rear, Aim.GetLocation(), Objects, Query);
-		bMuzzleBlocked = Hits.ContainsByPredicate([](const FHitResult& Hit)
+		const FHitResult* MuzzleHit = Hits.FindByPredicate([](const FHitResult& Hit)
 		{
 			return BlocksWater(Hit) && !Cast<ATestVehiclePawn>(Hit.GetActor()) && !Cast<ABasicBallActor>(Hit.GetActor());
 		});
+		bMuzzleBlocked=MuzzleHit!=nullptr;
+		if(MuzzleHit) { AddContact(MuzzleHit->ImpactPoint,MuzzleHit->ImpactNormal,LaneCount/2,LaneCount/2); }
 	}
 	if (Sample.bFlowing) { Sample.Reach.Init(bMuzzleBlocked ? 0 : 255,LaneCount); }
 	const float LaneHalfWidth = LanePoint(1,1).Y / (LaneCount - 1);
@@ -162,6 +174,7 @@ void AHALWaterCannon::SampleJet(double Now)
 			{
 				Sample.Reach[Lane] = uint8(FMath::RoundToInt(255.f * Stop->Time));
 				Sample.ContactMask |= 1u << Lane;
+				Surfaces[Lane]={Stop->GetComponent(),Stop->ImpactPoint,Stop->ImpactNormal};
 				auto* Target = Cast<ATestVehiclePawn>(Stop->GetActor());
 				if (Target && Target->CanReceiveSkillEffects())
 				{
@@ -175,6 +188,17 @@ void AHALWaterCannon::SampleJet(double Now)
 				if (Ball && Hit.GetComponent() == Ball->GetRootComponent() && (!Stop || Hit.Time < Stop->Time)
 					&& (Ball->GetBallState() != EBasicBallState::Controlled || Ball->GetControlledBy() == GetOwner())) { TouchedBalls.Add(Ball); }
 			}
+		}
+		for(int32 First=0;First<LaneCount;)
+		{
+			if(!Surfaces[First].Body) { ++First; continue; }
+			int32 Last=First;
+			while(Last+1<LaneCount && Surfaces[Last+1].Body==Surfaces[First].Body
+				&& FMath::Abs(int32(Sample.Reach[Last+1])-Sample.Reach[Last])<=14
+				&& FVector::DotProduct(Surfaces[Last+1].Normal,Surfaces[First].Normal)>.75) { ++Last; }
+			const auto& Middle=Surfaces[(First+Last)/2];
+			AddContact(Middle.Point,Middle.Normal,First,Last);
+			First=Last+1;
 		}
 	}
 	if (Sample.bFlowing && !bMuzzleBlocked) { SampleCrossingBalls(Aim,Sample,TouchedBalls); }
@@ -286,6 +310,7 @@ void AHALWaterCannon::HitVehicle(ATestVehiclePawn& Target, const FVector& Point,
 }
 void AHALWaterCannon::EndPlay(EEndPlayReason::Type Reason)
 {
+	if(Reason==EEndPlayReason::Destroyed && GetWorld() && !GetWorld()->bIsTearingDown) { ReleaseVisual(); }
 	if (HasAuthority() && IsValid(GetOwner()))
 	{
 		if (auto* Bridge = GetOwner()->FindComponentByClass<UHALMovementEffectBridge>()) { Bridge->EndWaterJet(Activation); }

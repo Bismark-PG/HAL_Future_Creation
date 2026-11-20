@@ -22,8 +22,11 @@ namespace
 	class SSmokeCoverageProof : public SLeafWidget
 	{
 	public:
-		SLATE_BEGIN_ARGS(SSmokeCoverageProof) : _Material(nullptr),_Veil(false),_Backdrop(.9f,.25f,.12f) {} SLATE_ARGUMENT(UMaterialInstanceDynamic*,Material) SLATE_ARGUMENT(bool,Veil) SLATE_ARGUMENT(FLinearColor,Backdrop) SLATE_END_ARGS()
-		void Construct(const FArguments& A) { Material=A._Material; Veil=A._Veil; Backdrop=A._Backdrop; }
+		SLATE_BEGIN_ARGS(SSmokeCoverageProof) : _Material(nullptr),_Veil(false),_Backdrop(.9f,.25f,.12f),_Phase(0),_Remaining(1) {}
+			SLATE_ARGUMENT(UMaterialInstanceDynamic*,Material) SLATE_ARGUMENT(bool,Veil) SLATE_ARGUMENT(FLinearColor,Backdrop)
+			SLATE_ARGUMENT(float,Phase) SLATE_ARGUMENT(float,Remaining)
+		SLATE_END_ARGS()
+		void Construct(const FArguments& A) { Material=A._Material; Veil=A._Veil; Backdrop=A._Backdrop; Phase=A._Phase; Remaining=A._Remaining; }
 		virtual FVector2D ComputeDesiredSize(float) const override { return FVector2D(256); }
 		virtual int32 OnPaint(const FPaintArgs&,const FGeometry& G,const FSlateRect&,FSlateWindowElementList& E,int32 L,const FWidgetStyle&,bool) const override
 		{
@@ -34,7 +37,8 @@ namespace
 			else
 			{
 				const auto Resource=FSlateApplication::Get().GetRenderer()->GetResourceHandle(Brush); TArray<FSlateVertex> V; TArray<SlateIndex> I;
-				const auto Add=[&](FVector2f P,FVector2f UV) { V.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(G.GetAccumulatedRenderTransform(),P,FVector4f(UV.X,UV.Y,1,1),UV,FColor::White)); };
+				const FColor Tint(255,255,255,FMath::RoundToInt(255*Remaining));
+				const auto Add=[&](FVector2f P,FVector2f UV) { V.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(G.GetAccumulatedRenderTransform(),P,FVector4f(UV.X,UV.Y,Phase,Remaining),UV,Tint)); };
 				Add(FVector2f(128),FVector2f(.5f));
 				for(int32 J=0;J<=32;++J)
 				{
@@ -48,7 +52,7 @@ namespace
 			FSlateDrawElement::MakeBox(E,L+2,G.ToPaintGeometry(FVector2D(256,24),FSlateLayoutTransform(FVector2D::ZeroVector)),White,ESlateDrawEffect::None,FLinearColor(.1f,.8f,.2f));
 			return L+2;
 		}
-	private: UMaterialInstanceDynamic* Material=nullptr; bool Veil=false; FLinearColor Backdrop;
+	private: UMaterialInstanceDynamic* Material=nullptr; bool Veil=false; FLinearColor Backdrop; float Phase=0,Remaining=1;
 	};
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSmokeRenderingTest,"HAL.RenderSmoke.SmokeScreen.ClippedCoverageAnimatedVeilAndHUD",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
@@ -63,10 +67,10 @@ bool FHALSmokeRenderingTest::RunTest(const FString&)
 	auto* Cloud=UMaterialInstanceDynamic::Create(C->FX.CloudMaterial,GetTransientPackage());
 	auto* Veil=UMaterialInstanceDynamic::Create(C->FX.ScreenMaterial,GetTransientPackage());
 	FWidgetRenderer Renderer(true,false);
-	const auto Render=[&](UMaterialInstanceDynamic* M,bool Screen,float Clock,float Strength,FLinearColor Backdrop=FLinearColor(.9f,.25f,.12f))
+	const auto Render=[&](UMaterialInstanceDynamic* M,bool Screen,float Clock,float Strength,FLinearColor Backdrop=FLinearColor(.9f,.25f,.12f),float Phase=0,float Remaining=1)
 	{
 		M->SetScalarParameterValue(TEXT("Clock"),Clock); M->SetScalarParameterValue(TEXT("Strength"),Strength);
-		auto* Target=Renderer.DrawWidget(SNew(SSmokeCoverageProof).Material(M).Veil(Screen).Backdrop(Backdrop),FVector2D(256));
+		auto* Target=Renderer.DrawWidget(SNew(SSmokeCoverageProof).Material(M).Veil(Screen).Backdrop(Backdrop).Phase(Phase).Remaining(Remaining),FVector2D(256));
 		TArray<FColor> Pixels; FlushRenderingCommands(); FReadSurfaceDataFlags Flags; Flags.SetLinearToGamma(false);
 		Target->GameThread_GetRenderTargetResource()->ReadPixels(Pixels,Flags); return Pixels;
 	};
@@ -90,8 +94,22 @@ bool FHALSmokeRenderingTest::RunTest(const FString&)
 	}
 	TestTrue(TEXT("Smoke texture changes with time"),Animated>1000); TestTrue(TEXT("Local veil removes at least 65 percent of background contrast"),Darkened>40000);
 	TestEqual(TEXT("Normal HUD is unaffected by cloud and veil"),HUDChanged,0);
-	const FString Folder=FPaths::ProjectSavedDir()/TEXT("Car08Smoke/20261117"); IFileManager::Get().MakeDirectory(*Folder,true);
+	const FLinearColor Ground(.9f,.25f,.12f);
+	const auto Fading=Render(Cloud,false,0,1,Ground,0,.48f), Gone=Render(Cloud,false,0,1,Ground,0,0), Variant=Render(Cloud,false,0,1,Ground,.37f);
+	if(Fading.Num()!=A.Num()||Gone.Num()!=A.Num()||Variant.Num()!=A.Num()) { AddError(TEXT("Smoke dissolve readback failed")); return false; }
+	int32 FullArea=0,FadeArea=0,GoneArea=0,ShapeChanges=0;
+	for(int32 I=0;I<A.Num();++I)
+	{
+		const bool Solid=Difference(A[I],Clear[I])>50, Other=Difference(Variant[I],Clear[I])>50;
+		FullArea+=Solid; FadeArea+=Difference(Fading[I],Clear[I])>50; GoneArea+=Difference(Gone[I],Clear[I])>50;
+		ShapeChanges+=Solid!=Other;
+	}
+	AddInfo(FString::Printf(TEXT("Smoke coverage: full=%d fading=%d gone=%d variation=%d"),FullArea,FadeArea,GoneArea,ShapeChanges));
+	TestTrue(TEXT("Billows change outline with puff phase"),ShapeChanges>300);
+	TestTrue(TEXT("Dissolving edges reveal the ground before expiry"),FadeArea>150&&FadeArea<FullArea*.86f&&GoneArea==0);
+	const FString Folder=FPaths::ProjectSavedDir()/TEXT("Car08Smoke/Render"); IFileManager::Get().MakeDirectory(*Folder,true);
 	FFileHelper::CreateBitmap(*(Folder/TEXT("Coverage.bmp")),256,256,A.GetData()); FFileHelper::CreateBitmap(*(Folder/TEXT("Veil.bmp")),256,256,Fog.GetData());
+	FFileHelper::CreateBitmap(*(Folder/TEXT("Dissolve.bmp")),256,256,Fading.GetData()); FFileHelper::CreateBitmap(*(Folder/TEXT("Variant.bmp")),256,256,Variant.GetData());
 	AddInfo(FString::Printf(TEXT("Smoke pixels: Animated=%d Obscured=%d HUDChanged=%d"),Animated,Darkened,HUDChanged)); return true;
 }
 #endif

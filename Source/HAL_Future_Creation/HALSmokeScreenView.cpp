@@ -27,6 +27,8 @@ void UHALSmokeScreenView::NativeTick(const FGeometry& G,float Delta)
 	if(LastPawn.Get()!=Pawn) { Obscuration=0; bHasPosition=false; LastPawn=Pawn; }
 	TSet<AHALSmokeScreen*> Active; float Desired=0; const FHALSmokeScreenFX* Chosen=nullptr;
 	const double Now=HALSmoke::ServerTime(GetWorld());
+	FadingFields.RemoveAll([Now](const FHALFadingSmokeField& Field){ return Now-Field.ReleaseTime>=Field.ReleaseSeconds; });
+	for(const auto& Field:FadingFields) { Field.Material->SetScalarParameterValue(TEXT("Clock"),float(Now)); }
 	for(TActorIterator<AHALSmokeScreen> It(GetWorld());It;++It)
 	{
 		auto* Source=*It; if(Source->IsActorBeingDestroyed()||Source->GetStartTime()<0) { continue; }
@@ -59,7 +61,7 @@ void UHALSmokeScreenView::NativeTick(const FGeometry& G,float Delta)
 	Obscuration=HALSmoke::AdvanceObscuration(Obscuration,Desired,Delta,FadeIn,FadeOut,FullStrength);
 	if(ScreenMaterial)
 	{ ScreenMaterial->SetScalarParameterValue(TEXT("Strength"),Obscuration); ScreenMaterial->SetScalarParameterValue(TEXT("Clock"),float(Now)); }
-	if(Active.IsEmpty()&&Obscuration<=.001f)
+	if(Active.IsEmpty()&&FadingFields.IsEmpty()&&Obscuration<=.001f)
 	{ SetVisibility(ESlateVisibility::Collapsed); CloudMaterials.Reset(); ScreenMaterial=nullptr; bHasPosition=false; LastPawn.Reset(); }
 }
 int32 UHALSmokeScreenView::NativePaint(const FPaintArgs& A,const FGeometry& G,const FSlateRect& C,FSlateWindowElementList& E,int32 L,const FWidgetStyle& S,bool B) const
@@ -69,24 +71,28 @@ int32 UHALSmokeScreenView::NativePaint(const FPaintArgs& A,const FGeometry& G,co
 	static const auto* Debug=IConsoleManager::Get().FindConsoleVariable(TEXT("hal.SmokeDebug"));
 	if(Debug&&Debug->GetInt()>=2) { return Base; } // Explicit local calibration mode; no gameplay bypass.
 	const double Now=HALSmoke::ServerTime(GetWorld());
-	for(const auto& Pair:CloudMaterials)
+	const auto PaintField=[&](UMaterialInstanceDynamic* Material,const FHALSmokeScreenRules& R,const TArray<FHALSmokePuff>& Puffs,
+		double StartTime,float CloudOpacity,float Release)
 	{
-		const auto* Source=Pair.Key.Get(); auto* Material=Pair.Value.Get();
-		if(!IsValid(Source)||Source->IsActorBeingDestroyed()||!Material) { continue; }
-		const auto& R=Source->GetRules(); FSlateBrush Brush; Brush.SetResourceObject(Material);
+		FSlateBrush Brush; Brush.SetResourceObject(Material);
 		const auto Resource=FSlateApplication::Get().GetRenderer()->GetResourceHandle(Brush);
-		for(const auto& P:Source->GetPuffs())
+		const uint32 FieldSeed=GetTypeHash(FMath::RoundToInt64(StartTime*1000.0));
+		for(const auto& P:Puffs)
 		{
-			const float Age=float(Now-Source->GetStartTime())-P.BirthAge;
-			const float Alpha=R.Density(Age)*Source->GetFX().CloudOpacity; if(Alpha<=.001f) { continue; }
+			const float Age=float(Now-StartTime)-P.BirthAge;
+			const float Alpha=R.Density(Age)*CloudOpacity*Release; if(Alpha<=.001f) { continue; }
 			const float Radius=R.Radius(Age); const FVector Center=FVector(P.Ground)+FVector(0,0,R.Height*.5f);
+			// Phase is stable across replication, removal of older puffs and repainting.
+			const uint32 Seed=HashCombineFast(FieldSeed,GetTypeHash(FMath::RoundToInt(P.BirthAge*1000)));
+			const float Phase=float(Seed%251)/251.f;
+			const float Remaining=Release*(1.f-FMath::SmoothStep(R.PuffSeconds-R.DissolveSeconds,R.PuffSeconds,Age));
 			TArray<FSlateVertex> Vertices; TArray<SlateIndex> Indices; bool Valid=true;
 			const FColor Color=FLinearColor(1,1,1,Alpha).ToFColor(false);
 			const auto Add=[&](FVector World,FVector2f UV)
 			{
 				FVector2D Screen;
 				if(!UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(GetOwningPlayer(),World,Screen,true)) { Valid=false; return; }
-				Vertices.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(G.GetAccumulatedRenderTransform(),FVector2f(Screen),FVector4f(UV.X,UV.Y,1,1),UV,Color));
+				Vertices.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(G.GetAccumulatedRenderTransform(),FVector2f(Screen),FVector4f(UV.X,UV.Y,Phase,Remaining),UV,Color));
 			};
 			Add(Center,FVector2f(.5f));
 			for(int32 I=0;I<=R.WallRays;++I)
@@ -98,6 +104,17 @@ int32 UHALSmokeScreenView::NativePaint(const FPaintArgs& A,const FGeometry& G,co
 			}
 			if(Valid) { FSlateDrawElement::MakeCustomVerts(E,Base+1,Resource,Vertices,Indices,nullptr,0,0); }
 		}
+	};
+	for(const auto& Field:FadingFields)
+	{
+		const float Release=1.f-FMath::SmoothStep(0.f,Field.ReleaseSeconds,float(Now-Field.ReleaseTime));
+		PaintField(Field.Material,Field.Rules,Field.Puffs,Field.StartTime,Field.CloudOpacity,Release);
+	}
+	for(const auto& Pair:CloudMaterials)
+	{
+		const auto* Source=Pair.Key.Get();
+		if(IsValid(Source)&&!Source->IsActorBeingDestroyed()&&Pair.Value)
+		{ PaintField(Pair.Value,Source->GetRules(),Source->GetPuffs(),Source->GetStartTime(),Source->GetFX().CloudOpacity,1); }
 	}
 	if(ScreenMaterial&&Obscuration>.001f)
 	{
@@ -105,6 +122,26 @@ int32 UHALSmokeScreenView::NativePaint(const FPaintArgs& A,const FGeometry& G,co
 		FSlateDrawElement::MakeBox(E,Base+2,G.ToPaintGeometry(),&Brush,ESlateDrawEffect::None,FLinearColor::White);
 	}
 	return Base+2;
+}
+void UHALSmokeScreenView::FadeField(AHALSmokeScreen& Source)
+{
+	TObjectPtr<UMaterialInstanceDynamic> Material;
+	if(!CloudMaterials.RemoveAndCopyValue(&Source,Material)||!Material||Source.GetPuffs().IsEmpty()) { return; }
+	auto& Field=FadingFields.AddDefaulted_GetRef();
+	Field.Material=Material; Field.Rules=Source.GetRules(); Field.Puffs=Source.GetPuffs(); Field.StartTime=Source.GetStartTime();
+	Field.ReleaseTime=HALSmoke::ServerTime(GetWorld()); Field.ReleaseSeconds=FMath::Min(Source.GetFX().FadeOutSeconds,Field.Rules.DissolveSeconds);
+	Field.CloudOpacity=Source.GetFX().CloudOpacity;
+}
+void UHALSmokeViewSubsystem::FadeForLocalPlayers(AHALSmokeScreen& Source)
+{
+	auto* World=Source.GetWorld();
+	if(!World||World->bIsTearingDown||!FApp::CanEverRender()) { return; }
+	for(auto It=World->GetPlayerControllerIterator();It;++It)
+	{
+		auto* PC=It->Get(); auto* LP=PC?PC->GetLocalPlayer():nullptr;
+		auto* Sub=LP?LP->GetSubsystem<UHALSmokeViewSubsystem>():nullptr;
+		if(Sub&&Sub->View&&Sub->View->GetWorld()==World) { Sub->View->FadeField(Source); }
+	}
 }
 void UHALSmokeViewSubsystem::EnsureForWorld(UWorld* W)
 {

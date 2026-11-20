@@ -1,12 +1,19 @@
-// U measures metres from the nozzle; V spans the cross section. Positive travel runs downstream.
+// U is distance from the nozzle in metres. Upper skin, lower skin and foam each
+// have their own V band, so small airborne droplets stay bright at playing distance.
+if (UV.y > 2.01)
+{
+    return lerp(Middle,Crest,.53+.47*smoothstep(.24,.75,UV.y-2.0));
+}
 float u = UV.x - Travel;
-float v = saturate(UV.y);
-float drift = sin(u * 4.7 + v * 11.0) * .018 + sin(u * 2.2 - v * 8.0) * .025;
-float face = 1.0 - abs(2.0 * (v + drift) - .78);
-face -= step(1.0, UV.y) * .4;
-float3 body = lerp(Shadow, Middle, smoothstep(.31 - Soft, .31 + Soft, face));
-float ridge = smoothstep(.87 - Soft, .87 + Soft, face);
-float lane = .5 + .5 * cos((v + drift) * 39.0 + sin(2.2 * u) * .6);
-float dash = .5 + .5 * sin(4.9 * u + 3.0 * sin(1.7 * u + v * 8.0) + v * 7.0);
-float foam = smoothstep(.76 - Soft, .76 + Soft, lane * dash);
-return lerp(body, Crest, saturate(ridge * .72 + foam * .91));
+float v = UV.y > 1.0 ? UV.y-1.0 : UV.y;
+float roll = .055*sin(1.75*u+5.2*v)+.028*sin(3.4*u-7.0*v);
+float side = v+roll;
+float face = 1.0-abs(2.0*side-.86)-.25*step(1.001,UV.y);
+float3 core = lerp(Shadow,Middle,smoothstep(.22-Soft,.22+Soft,face));
+float3 litWater = lerp(Middle,Crest,.38);
+core = lerp(core,litWater,smoothstep(.73-Soft,.73+Soft,face));
+float filament = abs(sin(14.0*side+.8*sin(1.55*u+5.0*v)+.28*sin(3.2*u)));
+float broken = .5+.5*sin(2.9*u+1.1*sin(1.3*u-10.0*v)+11.0*v);
+float foam = (1.0-smoothstep(.045,.19+Soft,filament))*smoothstep(.19,.68,broken);
+float lip = (1.0-smoothstep(.012,.052,min(v,1.0-v)))*smoothstep(.34,.85,broken);
+return lerp(core,Crest,saturate(foam+.73*lip));

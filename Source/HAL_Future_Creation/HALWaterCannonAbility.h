@@ -43,6 +43,10 @@ public:
 	UPROPERTY(EditAnywhere, Category="Water", meta=(ClampMin=".01", ClampMax=".4")) float ToneSoftness = .11f;
 	/** Speed of the flowing highlights, independent of hit cadence. */
 	UPROPERTY(EditAnywhere, Category="Water", meta=(Units="cm/s", ClampMin="10", ClampMax="6000")) float FlowSpeed = 1700;
+	/** Visual travel time from the nozzle to maximum range. */
+	UPROPERTY(EditAnywhere, Category="Water", meta=(Units="s", ClampMin=".03", ClampMax="1")) float SprayInSeconds = .19f;
+	/** Time for the last water and foam to drain after emission stops. */
+	UPROPERTY(EditAnywhere, Category="Water", meta=(Units="s", ClampMin=".03", ClampMax="1")) float SprayOutSeconds = .26f;
 	UPROPERTY(EditAnywhere, Category="Water", meta=(Units="cm", ClampMin="0", ClampMax="120")) float SplashSize = 34;
 	/** A mono looping Sound Wave or looping cue. */
 	UPROPERTY(EditAnywhere, Category="Fire Siren") TObjectPtr<USoundBase> Siren;

@@ -225,7 +225,13 @@ void AHALSmokeScreen::UpdateJet()
 void AHALSmokeScreen::Cleanup()
 {
 	GetWorldTimerManager().ClearTimer(UpdateTimer); if(HasAuthority()) { ClearReceivers(); }
-	if(Jet) { Jet->DestroyComponent(); Jet=nullptr; }
+	UHALSmokeViewSubsystem::FadeForLocalPlayers(*this);
+	if(Jet)
+	{
+		if(GetWorld()->bIsTearingDown) { Jet->DestroyComponent(); }
+		else { Jet->SetVariableFloat(TEXT("User.SpawnRate"),0); Jet->SetAutoDestroy(true); Jet->Deactivate(); }
+		Jet=nullptr;
+	}
 
 }
 void AHALSmokeScreen::Destroyed()

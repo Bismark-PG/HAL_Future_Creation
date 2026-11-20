@@ -175,6 +175,7 @@ bool FHALWaterGameplayTest::RunTest(const FString&)
 	TestEqual(TEXT("Configured impact/drop threshold governs held ball"),Held->GetBallState(),
 		Config->ImpactTier >= D->Impact.MinimumDropTier && D->Impact.bDropOnImpact ? EBasicBallState::Free : EBasicBallState::Controlled);
 	TestTrue(TEXT("Visible clipped jet and contact splash geometry"),Access::View(*Jet).ContactMask != 0 && Access::Draw(*Jet) > (AHALWaterCannon::LaneCount-1)*16);
+	TestTrue(TEXT("An exposed vehicle supplies a surface contact for the spray"),!Access::View(*Jet).Contacts.IsEmpty());
 	Place(*B,At + FVector(0,500,0)); Access::Sample(*Jet,.26);
 	TestTrue(TEXT("Separately exposed target is immediately eligible"),RearHP->GetCurrentHP() < RearBefore);
 	Place(*B,At); Access::Sample(*Jet,.30);
@@ -191,6 +192,8 @@ bool FHALWaterGameplayTest::RunTest(const FString&)
 	Access::Sample(*Jet,1.5);
 	TestEqual(TEXT("Wall clips all lanes and prevents damage behind it"),HP->GetCurrentHP(),BeforeWall);
 	TestTrue(TEXT("Visible range agrees with occlusion"),Access::View(*Jet).Reach[8] < 100);
+	TestTrue(TEXT("Foam sits on the near face of the actual blocking wall"),Access::View(*Jet).Contacts.ContainsByPredicate(
+		[](const FHALWaterJetContact& Hit){ return Hit.Point.X>126 && Hit.Point.X<153 && Hit.Normal.X<-.8; }));
 	A->SetActorRotation(FRotator(0,0,180),ETeleportType::TeleportPhysics);
 	Access::Sample(*Jet,2);
 	TestFalse(TEXT("Upside-down car pauses jet"),Access::View(*Jet).bFlowing);

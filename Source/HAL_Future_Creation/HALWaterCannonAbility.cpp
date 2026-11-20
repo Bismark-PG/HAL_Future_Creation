@@ -49,6 +49,7 @@ EDataValidationResult UHALWaterCannonConfig::IsDataValid(FDataValidationContext&
 	}
 	if (HasValidRules() && WaterMaterial && Siren && Siren->IsLooping() && bColorsValid && FMath::IsWithinInclusive(ToneSoftness,.01f,.4f)
 		&& FMath::IsWithinInclusive(FlowSpeed,10.f,6000.f) && FMath::IsWithinInclusive(SplashSize,0.f,120.f)
+		&& FMath::IsWithinInclusive(SprayInSeconds,.03f,1.f) && FMath::IsWithinInclusive(SprayOutSeconds,.03f,1.f)
 		&& FMath::IsWithinInclusive(SirenVolume,0.f,4.f) && FMath::IsWithinInclusive(SirenInnerRadius,1.f,5000.f)
 		&& FMath::IsWithinInclusive(SirenFalloff,1.f,20000.f)) { return EDataValidationResult::Valid; }
 	Context.AddError(FText::FromString(TEXT("Water Cannon needs valid rules, presentation ranges, a water material and a looping siren.")));
