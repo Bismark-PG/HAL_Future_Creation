@@ -65,3 +65,36 @@ Room 接管后的原生 MatchHUD 从 View 读取能量、显示许可和服务�
 本次 `HAL_Future_CreationEditor / Win64 / Development` 完整构建 **Succeeded，退出 0，50/50 构建步骤完成，394.48 秒**；运行时与 Editor 模块均已链接，生成的反射代码确认四个新字段存在。日志为 `Saved/UIIntegration/RoomViewBuild_20261120.log`。未改动代码仍有既有数值转换和弃用警告，本次修改文件未报告编译错误／警告。首次沙箱调用停在脚本临时锁阶段，已停止；上述成功结果来自获准的沙箱外构建。Game Target 未单独构建。
 
 本次 `git diff --check` 通过，Content／Config 和 PreMatchFlow 相关页面逻辑无修改。检查前后 Content/UI 下 21 份 uasset 的 SHA-256 全部一致，含 Room、MatchFlow、MatchHUD 和 PreMatchFlow 两个 WBP；没有新增工程文件。按用户要求没有启动 Editor，自动化／PIE／联机实测未执行，回归用例只能记为“已编译、未运行”。本轮未提交或推送。
+
+## 2026-11-20：MatchHUD 公共职责上移到 GameFlowScreenWidget
+
+本轮根据用户新指令整合两个现有类，起点为 `main/1983179`。开始时 `WBP_GF_MatchHUD.uasset` 已有用户刚完成的未提交接线，本轮以该磁盘版本为保护基线，不修改任何 UI 资产，不修改 PreMatchFlow、Room 的阶段规则或 Results 自动返房规则，不新增文件。
+
+继承链调整为 `UserWidget → HALGameFlowScreenWidget → HALMatchHUDWidget → WBP_GF_MatchHUD`。Blueprint 的直接父类依然是 HALMatchHUDWidget，团队不需要重新指定 WBP 父类。原有 ReceiveMatchView、GetMatchView、GetCountdownText、GetLocalUltimateEnergy 的名称、归属和参数保留。
+
+- 通用父类统一保存 LatestView、Room 接管状态与页面激活状态，并在销毁时清理。新增只读 GetScreenView；GetMatchView 直接返回同一份父类缓存，不再有 HUD 自己的 RoomView 副本。
+- ApplyView、SetScreenActive 的公共实现由父类提供。MatchHUD 仅通过 OnRoomViewApplied／OnScreenActiveChanged 两个 C++ 回调更新倒计时、能量及既有 ReceiveMatchView 事件。首次以 inactive 接管也会触发一次通知，以停止独立定时器；相同激活状态不重复通知。
+- MatchHUD 仍保留 MM:SS 格式、默认原生时钟、能量条、专用 Slate／定时器清理和未接入 Room 的独立测试回退。
+- MatchHUD 关闭通用 Panel 表现，防止新的继承关系使 Room 在 PrepareView／FinishView 时覆盖 HUD 自己的 TitleText／StatusText、生成选车预览或给被动 HUD 设置按钮焦点。普通页面的既有按钮、预览和显示适配仍保留。
+- Room 的 RegisterRoomScreen、阶段解析和 MatchFlow 容器职责不改；本轮不另外建设页面管理器。
+
+现有 MatchHUDView 回归增加父类／旧接口快照一致性检查；新增 MatchHUDRootLifecycle 覆盖 Room 注册、显示／隐藏、跨局再激活、原有标题不被覆盖，以及 HUD 不提供菜单焦点。既有 MatchHUDServerDeadline 专项用于验证独立测试场回退。
+
+早期验证：实际本机 UE 5.8.3-58210709。首轮编译发现继承后的局部变量 bUsesRoomView 与父类成员重名（C4458），已改名为 bRoomManaged，并停止首轮构建后重编。R2 中四个修改文件、回归用例和相关模块源码编译完成，反射代码确认 HALMatchHUDWidget 的父类为 HALGameFlowScreenWidget。但运行时与 Editor 两个正式 DLL 都因 Windows 文件占用错误 32 发生 LNK1104，Target 构建失败，耗时 428.58 秒。以下 R3 已完成正式链接，保留本段作为失败轮次记录。
+
+早期日志为 `Saved/UIIntegration/SharedScreenBuild_20261120.log`、`SharedScreenBuild_R2_20261120.log`。R2 阶段未执行自动化、PIE、联机或 Game Target，未强制关闭用户的 Editor。用户随后已保存文件并关闭 Editor，首次局部命名错误和 DLL 占用均已解除。
+
+本轮 `git diff --check` 通过。以开始时含用户接线的磁盘版本为基线，Content/UI 中 21 份 uasset 的 SHA-256 均未变化；用户已有 MatchHUD 资产改动保留，Room、MatchFlow、PlayerStatusRow、PreMatchFlow 和所有其他 UI 资产均未编辑。没有新增工程文件，未提交或推送。
+
+团队接续时保存已有资产并用本轮完整构建重启 Editor，检查上述继承链和原有事件／取值节点后验收同一局 HUD；不要通过 Live Coding 替代原生反射父类变更的完整构建。Blueprint 的可视接线与多人视觉效果不属于本轮自动通过范围。
+
+### R3 正式链接与无界面专项结果
+
+用户关闭 Editor 后，`HAL_Future_CreationEditor / Win64 / Development` R3 构建 **Succeeded，退出 0，4.59 秒**。运行时与 Editor 两个正式 DLL 均已链接，Target 元数据已写入；不是重定向输出的独立链接校验。日志：`Saved/UIIntegration/SharedScreenBuild_R3_20261120.log`。
+
+随后在两个独立的 UnrealEditor-Cmd 无界面进程中，使用本轮正式 DLL、`/Engine/Maps/Entry` 和 `-nullrhi` 验证：
+
+- `HAL.FutureCreation.GameFlow.UIIntegration` **4/4 成功，0 警告、0 错误、0 失败、0 未运行**：ChildLifecycle、PresentationPriority、MatchHUDView、MatchHUDRootLifecycle，含本轮共享缓存、Room 注册和激活、标题不覆盖、被动 HUD 焦点及跨局再激活检查。进程退出 0。报告 `Saved/UIIntegration/SharedScreenTests_20261120/index.json`，日志同目录的 `SharedScreenTests_20261120.log`。
+- `HAL.FutureCreation.GameFlow.GF7.MatchHUDServerDeadline` **1/1 成功，0 警告、0 错误、0 失败、0 未运行**，独立 HUD 的无 World、服务器截止时间、取整边界和比赛结束隐藏回退维持。进程退出 0。报告 `Saved/UIIntegration/SharedScreenStandalone_20261120/index.json`，日志同目录的 `SharedScreenStandalone_20261120.log`。
+
+合计 **5/5 专项通过**；上述零警告指自动化测试事件，不将引擎启动日志或 R2 中既有编译警告描述为零。没有打开 Editor GUI、没有运行 PIE 或多人实测、没有单独构建 Game Target，也没有编辑／编译保存任何 Blueprint 资产。验证前后再次对保存后的 21 份 UI 资产做 SHA-256 比较，确认测试未改动用户接线；PreMatchFlow 与 Room／MatchFlow 资产不变。`git diff --check` 通过，未新增工程文件，未提交或推送。

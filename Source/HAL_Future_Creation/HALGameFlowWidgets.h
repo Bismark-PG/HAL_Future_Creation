@@ -29,16 +29,24 @@ public:
 	virtual void ApplyView_Implementation(const FHALRoomView& View) override;
 	virtual void SetScreenActive_Implementation(bool bActive) override;
 	virtual UWidget* GetDefaultFocusTarget_Implementation() const override;
+	UFUNCTION(BlueprintPure, Category="Game Flow") FHALRoomView GetScreenView() const { return LatestView; }
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	const FHALRoomView& GetCachedRoomView() const { return LatestView; }
+	bool UsesRoomView() const { return bUsesRoomView; }
+	bool IsRoomScreenActive() const { return bScreenActive; }
+	/** Specialized HUDs share the view/lifecycle contract without the generic panel presentation. */
+	virtual bool UsesPanelPresentation() const { return true; }
+	virtual void OnRoomViewApplied(const FHALRoomView& View) {}
+	virtual void OnScreenActiveChanged(bool bActive) {}
 private:
 	void BindActions();
 	void Request(EHALGameFlowUIAction Action);
 	UPROPERTY(Transient) TObjectPtr<UHALPracticeRoomWidget> RoomRoot;
 	UPROPERTY(Transient) FHALRoomView LatestView;
 	UPROPERTY(Transient) TObjectPtr<AActor> OwnedPreview;
-	bool bScreenActive=false;
+	bool bUsesRoomView=false, bScreenActive=false;
 	UFUNCTION() void Previous() { Request(EHALGameFlowUIAction::Previous); }
 	UFUNCTION() void Next() { Request(EHALGameFlowUIAction::Next); }
 	UFUNCTION() void Confirm() { Request(EHALGameFlowUIAction::Confirm); }

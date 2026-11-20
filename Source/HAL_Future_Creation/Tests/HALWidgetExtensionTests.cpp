@@ -4,6 +4,10 @@
 #include "UObject/UnrealType.h"
 #include "../HALMatchHUDWidget.h"
 #include "../HALVehicleCatalog.h"
+#include "Blueprint/WidgetTree.h"
+#include "Components/Button.h"
+#include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
 
 struct FHALRoomScreenTestAccess
 {
@@ -108,6 +112,7 @@ bool FHALRoomMatchHUDViewTest::RunTest(const FString&)
 	V.LoadedCatalog=NewObject<UHALVehicleCatalog>();
 	V.LocalUltimateEnergy.Energy=42; V.LocalUltimateEnergy.Cost=25; V.bShowUltimateEnergy=true;
 	IHALRoomScreenInterface::Execute_ApplyView(HUD,V);
+	TestEqual(TEXT("Shared screen and legacy HUD getters expose the same snapshot"),HUD->GetScreenView().MatchRemaining,HUD->GetMatchView().MatchRemaining);
 	TestEqual(TEXT("Embedded HUD uses supplied energy without a pawn"),HUD->GetLocalUltimateEnergy().Energy,42.f);
 	TestEqual(TEXT("Embedded HUD keeps the root's loaded catalog"),HUD->GetMatchView().LoadedCatalog.Get(),V.LoadedCatalog.Get());
 	TestEqual(TEXT("Applying hidden screen does not reveal it"),HUD->GetVisibility(),ESlateVisibility::Collapsed);
@@ -127,6 +132,40 @@ bool FHALRoomMatchHUDViewTest::RunTest(const FString&)
 	TestEqual(TEXT("Root can hide an energy-only HUD"),HUD->GetVisibility(),ESlateVisibility::Collapsed);
 	V.bShowResults=true; IHALRoomScreenInterface::Execute_ApplyView(HUD,V);
 	TestTrue(TEXT("Results remove match countdown"),HUD->GetCountdownText().IsEmpty());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALRoomMatchHUDLifecycleTest,"HAL.FutureCreation.GameFlow.UIIntegration.MatchHUDRootLifecycle",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALRoomMatchHUDLifecycleTest::RunTest(const FString&)
+{
+	auto* Root=NewObject<UHALPracticeRoomWidget>(); auto* HUD=NewObject<UHALMatchHUDWidget>(Root);
+	HUD->WidgetTree=NewObject<UWidgetTree>(HUD);
+	auto* Panel=HUD->WidgetTree->ConstructWidget<UVerticalBox>(); HUD->WidgetTree->RootWidget=Panel;
+	auto* Title=HUD->WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(),TEXT("TitleText"));
+	Title->SetText(FText::FromString(TEXT("HUD TITLE"))); Panel->AddChild(Title);
+	auto* Status=HUD->WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(),TEXT("StatusText"));
+	Status->SetText(FText::FromString(TEXT("HUD STATUS"))); Panel->AddChild(Status);
+	Panel->AddChild(HUD->WidgetTree->ConstructWidget<UButton>());
+	TestTrue(TEXT("Register HUD through its shared screen parent"),Root->RegisterRoomScreen(EHALRoomScreen::Match,HUD));
+	TestTrue(TEXT("Root still suppresses the standalone HUD"),Root->ManagesMatchHUD());
+	TestEqual(TEXT("Registration deactivates the HUD"),HUD->GetVisibility(),ESlateVisibility::Collapsed);
+	FHALRoomView V; V.bRoomAvailable=true; V.Phase=EHALRoomPhase::Playing; V.Match.bActive=true;
+	V.MatchRemaining=61; V.RoundId=7; V.Status=FText::FromString(TEXT("ROOM STATUS"));
+	FHALRoomScreenTestAccess::Apply(Root,V);
+	TestEqual(TEXT("Root activates the inherited HUD lifecycle"),HUD->GetVisibility(),ESlateVisibility::HitTestInvisible);
+	TestEqual(TEXT("Legacy getter reads the shared parent cache"),HUD->GetMatchView().RoundId,int64(7));
+	TestEqual(TEXT("Shared getter receives the root view"),HUD->GetScreenView().RoundId,int64(7));
+	TestEqual(TEXT("Generic panel title does not overwrite HUD layout"),Title->GetText().ToString(),FString(TEXT("HUD TITLE")));
+	TestEqual(TEXT("Generic panel status does not overwrite HUD layout"),Status->GetText().ToString(),FString(TEXT("HUD STATUS")));
+	TestNull(TEXT("Passive HUD never supplies a menu focus target"),IHALRoomScreenInterface::Execute_GetDefaultFocusTarget(HUD));
+	V.Phase=EHALRoomPhase::Results; FHALRoomScreenTestAccess::Apply(Root,V);
+	TestEqual(TEXT("Results deactivate the inherited HUD"),HUD->GetVisibility(),ESlateVisibility::Collapsed);
+	V.Phase=EHALRoomPhase::Playing; V.RoundId=8; V.MatchRemaining=30; V.bRequestPending=true;
+	FHALRoomScreenTestAccess::Apply(Root,V);
+	TestEqual(TEXT("Reactivation displays the new round snapshot"),HUD->GetCountdownText().ToString(),FString(TEXT("00:30")));
+	TestEqual(TEXT("Legacy cache cannot retain the previous round"),HUD->GetMatchView().RoundId,int64(8));
+	FHALRoomScreenTestAccess::Clear(Root);
+	TestEqual(TEXT("Root cleanup deactivates the shared HUD"),HUD->GetVisibility(),ESlateVisibility::Collapsed);
 	return true;
 }
 #endif

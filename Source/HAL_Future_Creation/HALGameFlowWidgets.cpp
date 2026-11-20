@@ -60,7 +60,8 @@ void UHALGameFlowScreenWidget::BindActions()
 }
 void UHALGameFlowScreenWidget::PrepareView(const FHALRoomView& View)
 {
-	LatestView=View;
+	bUsesRoomView=true; LatestView=View;
+	if (!UsesPanelPresentation()) { return; }
 	if (Panel==EHALGameFlowPanel::Selection && !OwnedPreview && PreviewClass && GetWorld() && !GetWorld()->bIsTearingDown)
 	{
 		FActorSpawnParameters Spawn; Spawn.ObjectFlags|=RF_Transient; Spawn.Owner=GetOwningPlayer();
@@ -75,18 +76,29 @@ void UHALGameFlowScreenWidget::PrepareView(const FHALRoomView& View)
 	}
 	if (OwnedPreview) { HALFlowDisplay::PreviewValue(OwnedPreview,TEXT("SetPreviewVehicle"),false,View.SelectedVehicleId); }
 }
-void UHALGameFlowScreenWidget::ApplyView_Implementation(const FHALRoomView& View) { LatestView=View; }
+void UHALGameFlowScreenWidget::ApplyView_Implementation(const FHALRoomView& View)
+{
+	bUsesRoomView=true; LatestView=View;
+	OnRoomViewApplied(LatestView);
+}
 void UHALGameFlowScreenWidget::SetScreenActive_Implementation(bool bActive)
 { UpdateActive(bActive); }
 void UHALGameFlowScreenWidget::UpdateActive(bool bActive)
 {
-	if (bScreenActive==bActive) { return; }
+	const bool bFirstRoomControl=!bUsesRoomView;
+	bUsesRoomView=true;
+	if (bScreenActive==bActive && !bFirstRoomControl) { return; }
 	bScreenActive=bActive;
-	if (OwnedPreview) { HALFlowDisplay::PreviewValue(OwnedPreview,TEXT("SetPreviewActive"),bActive); }
-	if (WidgetTree) { WidgetTree->ForEachWidget([&](UWidget* W){ if (auto* HUD=Cast<UHALMatchHUDWidget>(W)) { IHALRoomScreenInterface::Execute_SetScreenActive(HUD,bActive); } }); }
+	if (UsesPanelPresentation())
+	{
+		if (OwnedPreview) { HALFlowDisplay::PreviewValue(OwnedPreview,TEXT("SetPreviewActive"),bActive); }
+		if (WidgetTree) { WidgetTree->ForEachWidget([&](UWidget* W){ if (auto* HUD=Cast<UHALMatchHUDWidget>(W)) { IHALRoomScreenInterface::Execute_SetScreenActive(HUD,bActive); } }); }
+	}
+	OnScreenActiveChanged(bActive);
 }
 void UHALGameFlowScreenWidget::FinishView()
 {
+	if (!UsesPanelPresentation()) { return; }
 	using namespace HALFlowDisplay;
 	for (const auto& Pair:Actions)
 	{
@@ -122,6 +134,7 @@ void UHALGameFlowScreenWidget::FinishView()
 }
 UWidget* UHALGameFlowScreenWidget::GetDefaultFocusTarget_Implementation() const
 {
+	if (!UsesPanelPresentation()) { return nullptr; }
 	// Designer order is the intended navigation order; map iteration never determines focus.
 	UWidget* Result=nullptr;
 	if (WidgetTree) { WidgetTree->ForEachWidget([&](UWidget* W){ if (!Result && W->IsVisible() && W->GetIsEnabled() && Cast<UButton>(W)) { Result=W; } }); }
@@ -154,7 +167,7 @@ void UHALGameFlowScreenWidget::NativeDestruct()
 		if (auto* P=FindFProperty<FObjectPropertyBase>(GetClass(),TEXT("PreviewActor")); P && P->GetObjectPropertyValue_InContainer(this)==OwnedPreview) { P->SetObjectPropertyValue_InContainer(this,nullptr); }
 		OwnedPreview->Destroy(); OwnedPreview=nullptr;
 	}
-	RoomRoot=nullptr; LatestView={}; Super::NativeDestruct();
+	RoomRoot=nullptr; LatestView={}; bUsesRoomView=false; bScreenActive=false; Super::NativeDestruct();
 }
 void UHALGameFlowSeatWidget::ApplySeat(const FHALRoomSeatView& Seat,const TArray<FHALVehicleDisplayView>& Vehicles)
 {
