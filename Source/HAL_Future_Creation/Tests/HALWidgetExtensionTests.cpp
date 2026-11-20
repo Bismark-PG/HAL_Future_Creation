@@ -8,11 +8,14 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
+#include "Components/WidgetSwitcher.h"
 
 struct FHALRoomScreenTestAccess
 {
 	static void Apply(UHALPracticeRoomWidget* Root,const FHALRoomView& View) { Root->ApplyRoomPresentation(View); }
 	static void Clear(UHALPracticeRoomWidget* Root) { Root->ClearRoomScreens(); }
+	static void Discover(UHALPracticeRoomWidget* Root) { Root->RegisterDesignerScreens(); }
+	static void Deliver(UHALPracticeRoomWidget* Root,const FHALRoomView& View) { Root->DeliverRoomView(View); }
 };
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALWidgetClassFallbackTest,"HAL.FutureCreation.GameFlow.GF5.WidgetClassesAndNativeFallback",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
@@ -166,6 +169,142 @@ bool FHALRoomMatchHUDLifecycleTest::RunTest(const FString&)
 	TestEqual(TEXT("Legacy cache cannot retain the previous round"),HUD->GetMatchView().RoundId,int64(8));
 	FHALRoomScreenTestAccess::Clear(Root);
 	TestEqual(TEXT("Root cleanup deactivates the shared HUD"),HUD->GetVisibility(),ESlateVisibility::Collapsed);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALRoomMatchFlowTest,"HAL.FutureCreation.GameFlow.UIIntegration.MatchFlowOwnsPages",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALRoomMatchFlowTest::RunTest(const FString&)
+{
+	auto* Root=NewObject<UHALPracticeRoomWidget>(); Root->WidgetTree=NewObject<UWidgetTree>(Root);
+	auto* RootPanel=Root->WidgetTree->ConstructWidget<UVerticalBox>(); Root->WidgetTree->RootWidget=RootPanel;
+	auto* Flow=Root->WidgetTree->ConstructWidget<UHALContractMatchFlowWidget>(); RootPanel->AddChild(Flow); Flow->bMatchFlowContainer=true;
+	Flow->WidgetTree=NewObject<UWidgetTree>(Flow);
+	auto* Switcher=Flow->WidgetTree->ConstructWidget<UWidgetSwitcher>(); Flow->WidgetTree->RootWidget=Switcher;
+	auto* Loading=Flow->WidgetTree->ConstructWidget<UHALGameFlowScreenWidget>(); Loading->Panel=EHALGameFlowPanel::Loading; Switcher->AddChild(Loading);
+	auto* Countdown=Flow->WidgetTree->ConstructWidget<UHALGameFlowScreenWidget>(); Countdown->Panel=EHALGameFlowPanel::Countdown; Switcher->AddChild(Countdown);
+	auto* HUD=Flow->WidgetTree->ConstructWidget<UHALMatchHUDWidget>(); Switcher->AddChild(HUD);
+	auto* Results=Flow->WidgetTree->ConstructWidget<UHALGameFlowScreenWidget>(); Results->Panel=EHALGameFlowPanel::Results; Switcher->AddChild(Results);
+	Results->WidgetTree=NewObject<UWidgetTree>(Results);
+	auto* ReturnButton=Results->WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(),TEXT("ReturnButton")); Results->WidgetTree->RootWidget=ReturnButton;
+	// UWidget::IsVisible requires a live Slate widget, as it has in the actual Switcher.
+	const auto ReturnSlate=ReturnButton->TakeWidget();
+	TestTrue(TEXT("Focus fixture has a visible Slate return button"),ReturnSlate->GetVisibility().IsVisible());
+	Results->Actions.Add(TEXT("ReturnButton"),EHALGameFlowUIAction::Return);
+	Flow->Pages.Add(EHALRoomPhase::Loading,Loading); Flow->Pages.Add(EHALRoomPhase::Countdown,Countdown);
+	Flow->Pages.Add(EHALRoomPhase::Playing,HUD); Flow->Pages.Add(EHALRoomPhase::Results,Results);
+	auto* Selection=Root->WidgetTree->ConstructWidget<UHALContractChildScreen>(); RootPanel->AddChild(Selection);
+	auto* Menu=Root->WidgetTree->ConstructWidget<UHALContractChildScreen>(); RootPanel->AddChild(Menu);
+	FHALRoomScreenTestAccess::Discover(Root);
+	TestTrue(TEXT("Designer flag discovers the flow without changing Room Blueprint"),Root->ManagesMatchHUD());
+	TestTrue(TEXT("Existing Room GetMatchHUD registration remains valid"),Root->RegisterRoomScreen(EHALRoomScreen::Match,HUD));
+	Root->RegisterRoomScreen(EHALRoomScreen::Selection,Selection); Root->RegisterLocalMenu(Menu);
+	FHALRoomView V; V.bRoomAvailable=true; V.bCatalogLoaded=true; V.Phase=EHALRoomPhase::Open; V.LocalPhase=EHALRoomPlayerPhase::Selecting;
+	FHALRoomScreenTestAccess::Apply(Root,V);
+	TestTrue(TEXT("Selection keeps its existing root routing"),Selection->bActiveNow);
+	TestEqual(TEXT("MatchFlow stays hidden during selection"),Flow->GetVisibility(),ESlateVisibility::Collapsed);
+	for (const auto Phase:{EHALRoomPhase::Loading,EHALRoomPhase::Countdown,EHALRoomPhase::Playing})
+	{
+		V.Phase=Phase; V.RoundId=10; V.Match.bActive=true; V.MatchRemaining=61; V.LocalUltimateEnergy.Energy=37;
+		FHALRoomScreenTestAccess::Apply(Root,V);
+		TestEqual(TEXT("Flow selects each internal page"),Switcher->GetActiveWidget(),static_cast<UWidget*>(Flow->Pages.FindRef(Phase).Get()));
+		TestEqual(TEXT("Flow receives the current phase"),Flow->GetScreenView().Phase,Phase);
+	}
+	TestEqual(TEXT("Internal pages never reactivate the container"),Flow->Activations,1);
+	TestEqual(TEXT("Nested HUD consumes the root's supplied energy"),HUD->GetLocalUltimateEnergy().Energy,37.f);
+	TestEqual(TEXT("Nested HUD consumes the shared countdown"),HUD->GetCountdownText().ToString(),FString(TEXT("01:01")));
+	V.bMenuVisible=true; FHALRoomScreenTestAccess::Apply(Root,V);
+	TestTrue(TEXT("Local menu still overlays the flow"),Menu->bActiveNow);
+	// A late, unchanged legacy registration must not leave the selected HUD deactivated.
+	Root->RegisterRoomScreen(EHALRoomScreen::Match,HUD);
+	V.Phase=EHALRoomPhase::Results; V.bShowResults=true; V.bRequestPending=true; V.bCanReturnToRoom=true;
+	V.ResultSummary=FText::FromString(TEXT("P1 WINS")); Flow->SetVisibility(ESlateVisibility::Collapsed);
+	FHALRoomScreenTestAccess::Apply(Root,V);
+	TestEqual(TEXT("Flow stays visible through results"),Flow->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+	TestEqual(TEXT("Results replace HUD without root registration"),Switcher->GetActiveWidget(),static_cast<UWidget*>(Results));
+	TestEqual(TEXT("Old HUD stays inactive"),HUD->GetVisibility(),ESlateVisibility::Collapsed);
+	TestFalse(TEXT("Results close the local menu"),Menu->bActiveNow);
+	TestEqual(TEXT("Results receive the same full view"),Results->GetScreenView().ResultSummary.ToString(),V.ResultSummary.ToString());
+	TestTrue(TEXT("Root return permission configures the native button"),ReturnButton->GetIsEnabled());
+	TestTrue(TEXT("Return action is bound after injecting the root"),ReturnButton->OnClicked.IsBound());
+	TestEqual(TEXT("Flow supplies its current child's focus"),IHALRoomScreenInterface::Execute_GetDefaultFocusTarget(Flow),static_cast<UWidget*>(ReturnButton));
+	const int32 FlowActivations=Flow->Activations;
+	V.bCanReturnToRoom=false; FHALRoomScreenTestAccess::Apply(Root,V);
+	TestEqual(TEXT("Client does not receive the host return button"),ReturnButton->GetVisibility(),ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Results refresh never reactivates flow"),Flow->Activations,FlowActivations);
+	TestFalse(TEXT("Flow rejects another container's page"),Flow->ShowFlowScreen(NewObject<UHALGameFlowScreenWidget>(Root)));
+	TestFalse(TEXT("Non-container cannot drive pages"),Results->ShowFlowScreen(HUD));
+	// The root supplies data; the container, not Room's Results enum, chooses the displayed widget.
+	Flow->Pages.Add(EHALRoomPhase::Results,Countdown); FHALRoomScreenTestAccess::Apply(Root,V);
+	TestEqual(TEXT("Flow alone decides the phase-to-page mapping"),Switcher->GetActiveWidget(),static_cast<UWidget*>(Countdown));
+	TestEqual(TEXT("Replaced results become inactive"),Results->GetVisibility(),ESlateVisibility::Collapsed);
+	V.Phase=EHALRoomPhase::Returning; V.bShowResults=false; FHALRoomScreenTestAccess::Apply(Root,V);
+	TestEqual(TEXT("Returning deactivates the entire flow"),Flow->GetVisibility(),ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Returning deactivates the current child"),Countdown->GetVisibility(),ESlateVisibility::Collapsed);
+	V.Phase=EHALRoomPhase::Open; FHALRoomScreenTestAccess::Apply(Root,V);
+	TestTrue(TEXT("Vehicle selection routing is unchanged after return"),Selection->bActiveNow);
+	V.Phase=EHALRoomPhase::Playing; V.RoundId=11; V.MatchRemaining=30; FHALRoomScreenTestAccess::Apply(Root,V);
+	TestEqual(TEXT("Next round selects HUD again"),Switcher->GetActiveWidget(),static_cast<UWidget*>(HUD));
+	TestEqual(TEXT("Next round cannot reuse old HUD data"),HUD->GetMatchView().RoundId,int64(11));
+	TestEqual(TEXT("Next round receives the new time"),HUD->GetCountdownText().ToString(),FString(TEXT("00:30")));
+	TestTrue(TEXT("Null clears the flow's selected page"),Flow->ShowFlowScreen(nullptr));
+	TestNull(TEXT("Cleared flow has no stale focus"),IHALRoomScreenInterface::Execute_GetDefaultFocusTarget(Flow));
+	FHALRoomScreenTestAccess::Clear(Root);
+	TestFalse(TEXT("Cleanup releases flow ownership"),Root->ManagesMatchHUD());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALRoomResultsOnlyTest,"HAL.FutureCreation.GameFlow.UIIntegration.ResultsHideLegacyRoomContent",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALRoomResultsOnlyTest::RunTest(const FString&)
+{
+	auto* Root=NewObject<UHALContractRoomWidget>(); Root->WidgetTree=NewObject<UWidgetTree>(Root); Root->NativeOnInitialized();
+	auto* OuterPanel=Root->WidgetTree->ConstructWidget<UVerticalBox>(); OuterPanel->AddChild(Root->Panel); Root->WidgetTree->RootWidget=OuterPanel;
+	auto* Chrome=Root->WidgetTree->ConstructWidget<UTextBlock>(); OuterPanel->AddChild(Chrome); Chrome->SetVisibility(ESlateVisibility::Visible);
+	auto* HiddenChrome=Root->WidgetTree->ConstructWidget<UTextBlock>(); OuterPanel->AddChild(HiddenChrome); HiddenChrome->SetVisibility(ESlateVisibility::Hidden);
+	auto* SharedPanel=Root->WidgetTree->ConstructWidget<UVerticalBox>(); OuterPanel->AddChild(SharedPanel); SharedPanel->SetVisibility(ESlateVisibility::Visible);
+	auto* SharedChrome=Root->WidgetTree->ConstructWidget<UTextBlock>(); SharedPanel->AddChild(SharedChrome); SharedChrome->SetVisibility(ESlateVisibility::Visible);
+	auto* Flow=Root->WidgetTree->ConstructWidget<UHALContractMatchFlowWidget>(); SharedPanel->AddChild(Flow); Flow->bMatchFlowContainer=true;
+	Flow->WidgetTree=NewObject<UWidgetTree>(Flow);
+	auto* Switcher=Flow->WidgetTree->ConstructWidget<UWidgetSwitcher>(); Flow->WidgetTree->RootWidget=Switcher;
+	auto* HUD=Flow->WidgetTree->ConstructWidget<UHALMatchHUDWidget>(); Switcher->AddChild(HUD);
+	auto* Results=Flow->WidgetTree->ConstructWidget<UHALGameFlowScreenWidget>(); Switcher->AddChild(Results); Results->Panel=EHALGameFlowPanel::Results;
+	Flow->Pages.Add(EHALRoomPhase::Playing,HUD); Flow->Pages.Add(EHALRoomPhase::Results,Results);
+	FHALRoomScreenTestAccess::Discover(Root);
+	FHALRoomView V; V.bRoomAvailable=true; V.Phase=EHALRoomPhase::Open; V.LocalPhase=EHALRoomPlayerPhase::Selecting; V.bMenuVisible=true;
+	FHALRoomScreenTestAccess::Deliver(Root,V);
+	TestEqual(TEXT("Legacy selection remains visible before the match"),Root->Panel->GetVisibility(),ESlateVisibility::Visible);
+	V.Phase=EHALRoomPhase::Playing; V.bMenuVisible=false; V.Match.bActive=true; V.MatchRemaining=30;
+	FHALRoomScreenTestAccess::Deliver(Root,V);
+	TestEqual(TEXT("Playing retains the existing Blueprint hide rule"),Root->Panel->GetVisibility(),ESlateVisibility::Collapsed);
+	V.Phase=EHALRoomPhase::Results; V.bShowResults=true; V.bMenuVisible=true; V.ResultsRemaining=8;
+	V.ResultSummary=FText::FromString(TEXT("RESULTS SNAPSHOT")); FHALRoomScreenTestAccess::Deliver(Root,V);
+	TestTrue(TEXT("Legacy Blueprint still receives the Results snapshot"),Root->LastWasResults);
+	TestTrue(TEXT("Legacy result text is updated while its branch is hidden"),Root->StateText->GetText().ToString().Contains(TEXT("RESULTS SNAPSHOT")));
+	TestEqual(TEXT("Legacy selection/results panel cannot overlap the new Results"),Root->Panel->GetVisibility(),ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Room-owned labels are hidden too"),Chrome->GetVisibility(),ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Siblings deeper along the MatchFlow path are hidden"),SharedChrome->GetVisibility(),ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Shared layout ancestor stays visible"),SharedPanel->GetVisibility(),ESlateVisibility::Visible);
+	TestEqual(TEXT("MatchFlow stays visible"),Flow->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+	TestEqual(TEXT("Results remains selected"),Switcher->GetActiveWidget(),static_cast<UWidget*>(Results));
+	TestEqual(TEXT("Results is the visible child"),Results->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+	TestEqual(TEXT("HUD is inactive during Results"),HUD->GetVisibility(),ESlateVisibility::Collapsed);
+	V.ResultsRemaining=7; FHALRoomScreenTestAccess::Deliver(Root,V);
+	TestEqual(TEXT("Repeated old Blueprint show requests cannot reveal its Results panel"),Root->Panel->GetVisibility(),ESlateVisibility::Collapsed);
+	V.Phase=EHALRoomPhase::Returning; V.bShowResults=false; V.bMenuVisible=false;
+	FHALRoomScreenTestAccess::Deliver(Root,V);
+	TestEqual(TEXT("Restore happens before Blueprint decides the returning visibility"),Root->Panel->GetVisibility(),ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Leaving Results restores visible Room content"),Chrome->GetVisibility(),ESlateVisibility::Visible);
+	TestEqual(TEXT("Originally hidden content is not made visible"),HiddenChrome->GetVisibility(),ESlateVisibility::Hidden);
+	TestEqual(TEXT("Shared sibling is restored"),SharedChrome->GetVisibility(),ESlateVisibility::Visible);
+	V.Phase=EHALRoomPhase::Open; V.bMenuVisible=true; FHALRoomScreenTestAccess::Deliver(Root,V);
+	TestEqual(TEXT("Returning to selection preserves the old UI"),Root->Panel->GetVisibility(),ESlateVisibility::Visible);
+	V.Phase=EHALRoomPhase::Results; V.bShowResults=true; FHALRoomScreenTestAccess::Deliver(Root,V);
+	FHALRoomScreenTestAccess::Clear(Root);
+	TestEqual(TEXT("Cleanup releases the temporary visibility mask"),Chrome->GetVisibility(),ESlateVisibility::Visible);
+	TestEqual(TEXT("Cleanup preserves Hidden rather than forcing Visible"),HiddenChrome->GetVisibility(),ESlateVisibility::Hidden);
+	Flow->bMatchFlowContainer=false; FHALRoomScreenTestAccess::Discover(Root); FHALRoomScreenTestAccess::Deliver(Root,V);
+	TestEqual(TEXT("Without the opt-in flow, old Results presentation is unchanged"),Root->Panel->GetVisibility(),ESlateVisibility::Visible);
+	TestEqual(TEXT("Legacy-only Room content is never masked"),Chrome->GetVisibility(),ESlateVisibility::Visible);
+	FHALRoomScreenTestAccess::Clear(Root);
 	return true;
 }
 #endif

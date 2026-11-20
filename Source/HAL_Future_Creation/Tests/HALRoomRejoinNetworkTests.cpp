@@ -25,9 +25,9 @@ namespace
 		FAutomationTestBase* Test;
 		FString Role,SentName;
 		bool Host=false,Returning=false,Fresh=false,Joined=false,LeftResults=false,Rejoined=false,Carried=false,Returned=false,Marked=false,HostSawExit=false;
-		uint32 ConfiguredWorld=0,SeenPlaying=0,SeenResults=0;
+		uint32 ConfiguredWorld=0,SeenPlaying=0,SeenResults=0,RequestedReturn=0;
 		FGuid InitialKey; int32 InitialSeat=INDEX_NONE;
-		double Deadline=FPlatformTime::Seconds()+190,Next=0,NameAt=-1,RejoinAt=0,CompleteAt=-1;
+		double Deadline=FPlatformTime::Seconds()+190,Next=0,NameAt=-1,RejoinAt=0,CompleteAt=-1,ReturnAt=-1;
 		void Name(AHALPlayerController* PC,const FString& Value)
 		{
 			const double Now=FPlatformTime::Seconds();
@@ -87,7 +87,7 @@ namespace
 			if (D.Phase==EHALRoomPhase::Open)
 			{
 				if (D.RoundId==1 && Host && !Marked)
-				{ Test->TestTrue(TEXT("Host saw Results departure before automatic return"),HostSawExit); Marked=true;
+				{ Test->TestTrue(TEXT("Host saw Results departure before manual return"),HostSawExit); Marked=true;
 					UE_LOG(LogTemp,Display,TEXT("GF7 rejoin returned room open Round=1 FreshPeerMayJoin=1")); }
 				if (D.RoundId==1 && Returning && !Rejoined)
 				{
@@ -132,13 +132,16 @@ namespace
 			if (D.Phase==EHALRoomPhase::Results)
 			{
 				if (SeenResults!=D.RoundId)
-				{ Test->TestEqual(TEXT("Timed match ends normally"),D.Match.Reason,EHALMatchEndReason::TimeExpired); SeenResults=D.RoundId; }
+				{ Test->TestEqual(TEXT("Timed match ends normally"),D.Match.Reason,EHALMatchEndReason::TimeExpired); SeenResults=D.RoundId;
+					if (Host) { ReturnAt=Now+D.Match.Rules.ResultsSeconds+1.5; } }
 				if (D.RoundId==1 && Host && D.Members.Num()==2) { HostSawExit=true; }
 				if (D.RoundId==1 && Returning && !LeftResults)
 				{
-					RejoinAt=Now+FMath::Max(0.,D.Match.ReturnServerTime-S->GetServerWorldTimeSeconds())+1.;
+					RejoinAt=Now+FMath::Max(0.,D.Match.ReturnServerTime-S->GetServerWorldTimeSeconds())+5.;
 					LeftResults=true; PC->LeaveRoom();
 				}
+				if (Host && RequestedReturn!=D.RoundId && ReturnAt>0 && Now>=ReturnAt && (D.RoundId!=1 || HostSawExit))
+				{ RequestedReturn=D.RoundId; PC->HALReturnToRoom(); }
 			}
 			return false;
 		}

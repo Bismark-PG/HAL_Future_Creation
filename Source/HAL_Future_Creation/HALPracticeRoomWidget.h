@@ -40,11 +40,16 @@ private:
 	friend struct FHALRoomScreenTestAccess;
 	bool IsRoomChild(const UUserWidget* Child) const;
 	void ApplyRoomPresentation(const FHALRoomView& View);
+	void DeliverRoomView(const FHALRoomView& View);
+	void HideResultsSiblings();
+	void RestoreResultsSiblings();
 	void ClearRoomScreens();
 	void RegisterDesignerScreens();
 	UPROPERTY(Transient) TMap<EHALRoomScreen, TObjectPtr<UUserWidget>> RoomScreens;
 	UPROPERTY(Transient) TObjectPtr<UUserWidget> LocalMenuScreen;
 	UPROPERTY(Transient) TObjectPtr<UUserWidget> ActiveRoomScreen;
+	UPROPERTY(Transient) TObjectPtr<class UHALGameFlowScreenWidget> MatchFlowScreen;
+	UPROPERTY(Transient) TMap<TObjectPtr<UWidget>,ESlateVisibility> ResultsHiddenSiblings;
 	FHALRoomPresentation Presentation;
 	bool bPresentationApplied=false;
 	void PublishRoomView();

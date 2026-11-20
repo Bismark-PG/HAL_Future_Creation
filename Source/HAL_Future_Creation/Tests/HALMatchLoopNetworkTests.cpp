@@ -12,6 +12,7 @@
 #include "../HALGameFlowPermissions.h"
 #include "../TestVehiclePawn.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Components/Button.h"
 #include "Camera/CameraActor.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -26,12 +27,13 @@ namespace
 	{
 		FAutomationTestBase* Test; bool Four=false,Known=false,Host=false,Configured=false,Contract=false,Final=false,Departed=false;
 		bool FollowingFour=false,Retargeted=false; uint32 ActionRound=0,ObservedResult=0,FreshRound=0;
-		bool EarlyReturnRequested=false;
-		double EarlyReturnAt=-1;
+		bool ReturnRequested=false;
+		double ReturnAt=-1;
 		TWeakObjectPtr<UHALPracticeRoomWidget> ResultScreen;
 		double Deadline=FPlatformTime::Seconds()+220,Next=0,DoneAt=-1,FinishAt=-1,FollowAt=-1;
 		FString SentName;
 		double LastNameAttempt=-1;
+		double NextResultDiagnostic=0;
 		void SetProbeName(AHALPlayerController* PC,const FString& Value)
 		{ const double Now=FPlatformTime::Seconds(); if (SentName!=Value || Now-LastNameAttempt>.5) { SentName=Value; LastNameAttempt=Now; PC->SetName(Value); } }
 		void Shot(const FString& Name)
@@ -82,7 +84,7 @@ namespace
 				{
 					Test->TestEqual(TEXT("Result observed before seamless return"),ObservedResult,D.RoundId);
 					Test->TestTrue(TEXT("Copied value result retained in practice"),D.Match.bComplete && !D.Match.bActive && D.Match.RoundId==D.RoundId);
-					if (D.RoundId==(Four?1:3)) { if (Four && Host) { Test->TestTrue(TEXT("Exhibition host returned early through the widget action"),EarlyReturnRequested); } Final=true; return false; }
+					if (D.RoundId==(Four?1:3)) { if (Host) { Test->TestTrue(TEXT("Host returned through the widget action"),ReturnRequested); } Final=true; return false; }
 				}
 				if (Now<Next || PC->IsRoomRequestPending()) { return false; } Next=Now+.15;
 				if (Identity.Phase==EHALRoomPlayerPhase::Selecting)
@@ -138,12 +140,25 @@ namespace
 				{ Test->TestEqual(TEXT("Client departure occurs while match still playing"),D.Phase,EHALRoomPhase::Playing); Departed=true; PC->LeaveRoom(); }
 				return false;
 			}
-			if (D.Phase==EHALRoomPhase::Results && Four && Host && ObservedResult==D.RoundId && EarlyReturnAt>0 && Now>=EarlyReturnAt)
+			if (D.Phase==EHALRoomPhase::Results && ObservedResult!=D.RoundId && Now>=NextResultDiagnostic)
 			{
-				EarlyReturnAt=-1;
+				NextResultDiagnostic=Now+1.;
+				TArray<UUserWidget*> Visible,All; UWidgetBlueprintLibrary::GetAllWidgetsOfClass(W,Visible,UHALPracticeRoomWidget::StaticClass(),true);
+				UWidgetBlueprintLibrary::GetAllWidgetsOfClass(W,All,UHALPracticeRoomWidget::StaticClass(),false);
+				auto* Screen=Visible.IsEmpty()?nullptr:Cast<UHALPracticeRoomWidget>(Visible[0]);
+				auto* Custom=Cast<UHALContractRoomWidget>(Screen); const auto* Mine=D.Match.Find(Identity.PlayerKey);
+				const auto View=Screen?Screen->GetRoomView():FHALRoomView();
+				UE_LOG(LogTemp,Display,TEXT("GF7 ResultsWait Host=%d Round=%u Mine=%d Life=%d Pawn=%s Camera=%s Visible=%d All=%d Screen=%s Owner=%s PC=%s Show=%d Complete=%d ContractSeen=%d ContractRound=%lld"),Host,D.RoundId,Mine!=nullptr,Mine?int32(Mine->Life):-1,*GetNameSafe(PC->GetPawn()),*GetNameSafe(PC->GetViewTarget()),Visible.Num(),All.Num(),*GetNameSafe(Screen),*GetNameSafe(Screen?Screen->GetOwningPlayer():nullptr),*GetNameSafe(PC),View.bShowResults,View.Match.bComplete,Custom?Custom->LastWasResults:false,Custom?Custom->LastMatch.RoundId:0);
+			}
+			if (D.Phase==EHALRoomPhase::Results && Host && ObservedResult==D.RoundId && ReturnAt>0 && Now>=ReturnAt)
+			{
+				ReturnAt=-1;
 				if (auto* Screen=ResultScreen.Get())
-				{ Test->TestTrue(TEXT("Finished Exhibition permits host return without test opt-in"),Screen->GetRoomView().bCanReturnToRoom);
-					Screen->ReturnToRoom(); EarlyReturnRequested=true; }
+				{ Test->TestTrue(TEXT("Results remain after the former automatic deadline"),S->GetServerWorldTimeSeconds()>=D.Match.ReturnServerTime);
+					Test->TestTrue(TEXT("Finished match permits host return without test opt-in"),Screen->GetRoomView().bCanReturnToRoom);
+					if (auto* Custom=Cast<UHALContractRoomWidget>(Screen)) { Custom->ReturnButton->OnClicked.Broadcast(); }
+					else { Screen->ReturnToRoom(); }
+					ReturnRequested=true; }
 				return false;
 			}
 			if (D.Phase==EHALRoomPhase::Results && ObservedResult!=D.RoundId)
@@ -164,7 +179,7 @@ namespace
 				Test->TestFalse(TEXT("Results cannot cycle spectator"),View.bCanCycleSpectator);
 				if (!Host) { Test->TestFalse(TEXT("Client cannot finish host's results screen early"),View.bCanReturnToRoom); }
 				if (Four && Host) { Test->TestTrue(TEXT("Follow target quit automatically retargeted"),Retargeted); }
-				if (Four && Host) { ResultScreen=Screen; EarlyReturnAt=Now+1.5; }
+				if (Host) { ResultScreen=Screen; ReturnAt=Now+D.Match.Rules.ResultsSeconds+1.5; }
 				ObservedResult=D.RoundId; Shot(FString::Printf(TEXT("GF7_Results_%s_%u.png"),Host?TEXT("Host"):TEXT("Client"),D.RoundId));
 				UE_LOG(LogTemp,Display,TEXT("GF7 result verified Four=%d Host=%d Round=%u Reason=%d Winners=%d Designer=%d"),Four,Host,D.RoundId,int32(D.Match.Reason),Winners,Contract);
 			}

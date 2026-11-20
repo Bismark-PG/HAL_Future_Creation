@@ -22,6 +22,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Game Flow") EHALGameFlowPanel Panel=EHALGameFlowPanel::Transition;
 	UPROPERTY(EditDefaultsOnly, Category="Game Flow") TMap<FName,EHALGameFlowUIAction> Actions;
 	UPROPERTY(EditDefaultsOnly, Category="Game Flow|Preview") TSubclassOf<AActor> PreviewClass;
+	/** Receives match-phase views as one room child; this widget selects its own Switcher pages. */
+	UPROPERTY(EditDefaultsOnly, Category="Game Flow|Match Flow") bool bMatchFlowContainer=false;
+	/** Select an existing direct Switcher child and forward the cached Room view. Null clears the page. */
+	UFUNCTION(BlueprintCallable, Category="Game Flow|Match Flow") bool ShowFlowScreen(UHALGameFlowScreenWidget* Screen);
 	void SetRoomRoot(UHALPracticeRoomWidget* Root);
 	void PrepareView(const FHALRoomView& View);
 	void FinishView();
@@ -41,11 +45,13 @@ protected:
 	virtual void OnRoomViewApplied(const FHALRoomView& View) {}
 	virtual void OnScreenActiveChanged(bool bActive) {}
 private:
+	void UpdateFlowScreenActive(bool bActive);
 	void BindActions();
 	void Request(EHALGameFlowUIAction Action);
 	UPROPERTY(Transient) TObjectPtr<UHALPracticeRoomWidget> RoomRoot;
 	UPROPERTY(Transient) FHALRoomView LatestView;
 	UPROPERTY(Transient) TObjectPtr<AActor> OwnedPreview;
+	UPROPERTY(Transient) TObjectPtr<UHALGameFlowScreenWidget> ActiveFlowScreen;
 	bool bUsesRoomView=false, bScreenActive=false;
 	UFUNCTION() void Previous() { Request(EHALGameFlowUIAction::Previous); }
 	UFUNCTION() void Next() { Request(EHALGameFlowUIAction::Next); }

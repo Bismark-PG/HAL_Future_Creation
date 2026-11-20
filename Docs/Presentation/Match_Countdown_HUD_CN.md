@@ -98,3 +98,95 @@ Room 接管后的原生 MatchHUD 从 View 读取能量、显示许可和服务�
 - `HAL.FutureCreation.GameFlow.GF7.MatchHUDServerDeadline` **1/1 成功，0 警告、0 错误、0 失败、0 未运行**，独立 HUD 的无 World、服务器截止时间、取整边界和比赛结束隐藏回退维持。进程退出 0。报告 `Saved/UIIntegration/SharedScreenStandalone_20261120/index.json`，日志同目录的 `SharedScreenStandalone_20261120.log`。
 
 合计 **5/5 专项通过**；上述零警告指自动化测试事件，不将引擎启动日志或 R2 中既有编译警告描述为零。没有打开 Editor GUI、没有运行 PIE 或多人实测、没有单独构建 Game Target，也没有编辑／编译保存任何 Blueprint 资产。验证前后再次对保存后的 21 份 UI 资产做 SHA-256 比较，确认测试未改动用户接线；PreMatchFlow 与 Room／MatchFlow 资产不变。`git diff --check` 通过，未新增工程文件，未提交或推送。
+
+## 2026-11-21：MatchFlow 决定内部页面迁移
+
+本轮从 `main/b414f06` 接续。用户已有 `WBP_GF_MatchFlow` 未提交修改及未跟踪的 `WBP_GF_Results`；开工时共 22 份 UI 资产，均不编辑。代码修改不编辑任何 Blueprint，不新增源码文件或生产管理类，不修改 PreMatchFlow 逻辑；Room 资产和原有 `GetMatchHUD → RegisterRoomScreen(Match)` 接线保持。以下是本次新入口，前文逐页由 Room 选择的描述保留为历史。
+
+### C++ 职责与兼容
+
+- 公共父类增加 `bMatchFlowContainer`（Designer 中显示 Match Flow Container，默认 false）。Room 在既有 Designer 扫描中识别开启配置的容器，设置 Room 引用，不把它登记为 Transition 页面。
+- 在 Loading／Countdown／Playing／Results 期间，Room 将同一份完整 View 下发到该容器，只管理整个容器的激活。容器没有启用时，所有现有逐页登记、显示和独立 HUD 回退路径保留。原有 MatchHUD 登记仍可保留，且不会覆盖容器入口；容器也能独立声明 Room 已接管 HUD，避免额外生成独立 HUD。
+- MatchFlow 的 Apply View 接线选择已有页面，调用新增 `ShowFlowScreen(Screen)`。这个函数只允许当前容器内直接放在 WidgetSwitcher 下的 `HALGameFlowScreenWidget` 子实例，统一完成旧页面停用、Switcher 切页、新页面 View 下发／激活、Room 引用注入和默认焦点更新。传入空引用可清空页面。它不创建控件、不重新读取 GameState、不决定比赛规则。
+- 容器跳过普通页面的标题、按钮、预览和嵌套 HUD 广播；只有选中的子页面接收 View 与激活。比赛中的内部切页不反复激活容器，也不抢占已打开的 LocalMenu；离开比赛或销毁 Room 时停用当前子页。现有 Return Action 仍通过注入的 Room 提交 Host 返房请求。
+- **本轮没有改动服务器的结算超时自动返房规则。** Results 按钮仍可由 Host 提前请求返房；“必须按按钮才返房”尚不成立，须另行修改 `HALPracticeRoomMatch.cpp` 的自动返房路径，不能用 UI 隐藏或自行切回 Selection 代替服务器地图迁移。
+
+### 团队只在 MatchFlow 中接线
+
+1. 完整构建后重启 Editor，在 `WBP_GF_MatchFlow` 将父类由 UserWidget 改为 `HALGameFlowScreenWidget`，Class Defaults 勾选 **Match Flow Container**。其他页面保持关闭此配置；整个 Room 只启用一个 MatchFlow 容器。保留 GetMatchHUD／GetResults 现有返回类型和实例引用。
+2. MatchHUD、ResultsWidget 放在 `MatchPageSwitcher` 的直接子级；两者都是公共父类的派生页面。Results 的 Panel 设为 Results，Actions 保留 `ReturnButton → Return`；不要再手动绑定第二条 OnClicked 返房路径。
+3. 在 MatchFlow 增加继承的 **Event Apply View**，先 **Add Call to Parent Function**，然后拆出 View.Phase，根据阶段调用 **Show Flow Screen**（Target=Self，Screen=对应的已有控件）。Playing 接原 MatchHUD，Results 接 ResultsWidget；按现有功能需要处理 Loading、Countdown 与观战分支。只有两个子页时，不存在的准备页分支传空引用，不临时创建新 WBP，也不要把准备阶段误当作 Playing。若需兼容 View.ShowResults 提示，可在 Switch 前先判断该字段并优先进入 Results。
+4. 原生 helper 会完成切换、View 转发、激活和 Room 引用注入，不再额外接 Set Active Widget、Apply View 或 Set Screen Active，也不在 Results 内查询 GameState／Room。**不要往 WBP_GF_Room 增加 Results 登记，也不要在 MatchFlow 内向 Room 逐页登记。** 已经试接的 Results 单独登记可以撤去；Room 原有 Match 登记保留。
+5. 手动验收：正式比赛 HUD → 比赛结束 Results → Host 按钮请求返房 → 车辆选择 → 第二局。再覆盖 LocalMenu 开关、观战、Host／Client 返回按钮权限、加载／倒计时阶段，以及目录延迟加载后的 HUD 数据。开关默认 false，因此 C++ 完成不等于用户资产已经接入新模式。
+
+### 本轮验证
+
+新增原生专项 `HAL.FutureCreation.GameFlow.UIIntegration.MatchFlowOwnsPages`，用内存控件模拟 ApplyView 接线，检查无需 Room Blueprint 改动的自动识别、原登记兼容、准备／HUD／Results 迁移、完整 View／能量／倒计时、返回按钮绑定与焦点、LocalMenu、错误子页面拒绝、由容器改变阶段映射、返房与下一局及清理。
+
+本机 UE **5.8.3-58210709**，`HAL_Future_CreationEditor / Win64 / Development` 完整 R1 构建 **Succeeded，退出 0，53/53 步骤，432.04 秒**，两个正式 DLL 均完成链接。日志 `Saved/UIIntegration/MatchFlowBuild_20261121.log`。未改动文件的数值转换／弃用警告仍保留，不能描述成整个构建零警告。
+
+首次 UIIntegration **4/5 通过、1 项失败**：新增测试的默认焦点断言失败，原因是内存夹具未构建按钮的 Slate 控件，UE `UWidget::IsVisible()` 在没有 Slate 时返回 false。测试随后通过 TakeWidget 持有真实 Slate 按钮；**没有为迁就夹具修改生产焦点规则**。R2 增量构建 **Succeeded，退出 0，4/4 步骤，19.19 秒**；日志 `Saved/UIIntegration/MatchFlowBuild_R2_20261121.log`。首轮失败报告保留在 `Saved/UIIntegration/MatchFlowTests_20261121/index.json`，日志同名 `.log`。自动化进程退出码可能为 0，结果以 JSON 的用例状态为准。
+
+最终使用 R2 正式 DLL，在两个独立的 UnrealEditor-Cmd 无界面 NullRHI 进程中验证，均退出 0：
+
+- `HAL.FutureCreation.GameFlow.UIIntegration` **5/5 成功**，含新增 MatchFlowOwnsPages 和既有 ChildLifecycle、MatchHUDRootLifecycle、MatchHUDView、PresentationPriority。报告 `Saved/UIIntegration/MatchFlowTests_R2_20261121/index.json`，日志 `Saved/UIIntegration/MatchFlowTests_R2_20261121.log`。
+- `HAL.FutureCreation.GameFlow.GF7.MatchHUDServerDeadline` **1/1 成功**，独立 HUD 回退保持。报告 `Saved/UIIntegration/MatchFlowStandalone_20261121/index.json`，日志 `Saved/UIIntegration/MatchFlowStandalone_20261121.log`。
+
+合计 **6/6 成功，0 测试事件警告、0 错误、0 失败、0 未运行**。验证前后 22 份 UI 资产 SHA-256 全部一致，保护清单 `Saved/UIIntegration/MatchFlowAssets_20261121.json`；用户已有的 MatchFlow 修改和 Results 新资产保持，Room／MatchHUD／PreMatchFlow 资产未编辑。`git diff --check` 通过，未新增工程源码／资产文件，未提交或推送。没有打开 Editor GUI、没有保存／修改 Blueprint，没有进行 PIE／真实地图迁移／多人或手柄视觉验收，Game Target 未单独构建；上述测试是原生控件合同验证，不能替代团队按上节完成资产接线后的实测。
+
+## 2026-11-21：Results 独占显示，避免旧选车结果重叠
+
+团队已接通 MatchFlow → Results，随后回报 Results 与车辆选择页面中的旧结果同时显示。原有管理只停用已登记的页面，未覆盖 Room Designer 中未登记的旧页面和直接放置的文字；保留的 ReceiveRoomView 仍可能显示旧选车／结算分支。因此切中 Switcher 的 Results 不等于整个 Room 只剩该页面。
+
+本次在 Room 现有 C++ 分发层补上临时显示约束：启用 MatchFlow 容器且进入 Results 时，沿 Room 内通向 MatchFlow 的布局路径折叠其它同级分支，涵盖未登记的旧 WBP 和 Room 自身文字；路径上的布局祖先与 MatchFlow 保持可见，内部子页依旧由 MatchFlow 决定。没有按资产路径／控件名硬编码，也没有移除、销毁或重新创建旧页面。
+
+每次新 View 下发前，先恢复这些分支原来的 Visibility，再执行旧 ReceiveRoomView 和现有原生分发，最后重新施加 Results 约束。这样旧蓝图反复显示结算内容也不会覆盖新页面；退出 Results、返房或清理时恢复原值，随后由旧选车／练习规则决定显示，原本 Hidden／Collapsed 的内容不会被强制设为 Visible。不增加 Tick，不改阶段、权限或自动返房规则，不修改任何 WBP 或 PreMatchFlow 逻辑，不新增工程文件。已正确接好 MatchFlow 的项目不需要新增接线，须完整构建后重启 Editor 加载新 DLL。
+
+新增专项 `HAL.FutureCreation.GameFlow.UIIntegration.ResultsHideLegacyRoomContent`：用现有合同 Room 夹具复现“旧 ReceiveRoomView 在 Results 仍显示自身结果”的路径，检查旧内容继续收到数据但不可见、未登记旧页面／Room 文字和深层同级分支被折叠、Flow／Results 保持可见、反复 View 不复显、返回前先恢复再执行旧可见性规则、原 Hidden 保留、回选车、清理，以及未启用新容器时旧 Results 行为不变。
+
+本机 UE **5.8.3-58210709**，本轮 `HAL_Future_CreationEditor / Win64 / Development` 完整构建 **Succeeded，退出 0，53/53 步骤，852.41 秒**，两个正式 DLL 均已链接。日志 `Saved/UIIntegration/ResultsExclusiveBuild_20261121.log`；未改动文件的既有数值转换和弃用警告保留。
+
+随后使用本轮正式 DLL 在独立无界面 NullRHI 进程验证：
+
+- UIIntegration **6/6 成功**，含本轮 ResultsHideLegacyRoomContent 及原有五项；报告 `Saved/UIIntegration/ResultsExclusiveTests_20261121/index.json`，日志 `Saved/UIIntegration/ResultsExclusiveTests_20261121.log`，进程退出 0。
+- MatchHUDServerDeadline **1/1 成功**；报告 `Saved/UIIntegration/ResultsExclusiveStandalone_20261121/index.json`，日志 `Saved/UIIntegration/ResultsExclusiveStandalone_20261121.log`，进程退出 0。
+
+合计 **7/7 成功，0 测试事件警告／错误／失败／未运行**。开工时保存的 22 份 UI 资产 SHA-256 全部相同，清单 `Saved/UIIntegration/ResultsExclusiveAssets_20261121.json`；Room 及 PreMatchFlow 未编辑，用户已完成的 MatchFlow／Results 接线和资产修改保留。`git diff --check` 通过；没有新增工程源码或资产文件，没有提交／推送。未打开 Editor GUI，未修改或保存 Blueprint，未单独构建 Game Target，未进行本次修复后的实际 PIE 画面、多人、手柄或地图迁移验收。团队下一步只需重启 Editor，以现有接线确认 Results 期间旧选车结果／Room 文字／练习页面不再出现，然后返回选车并开第二局；用户已确认的“能进入 Results”是修复前的流程验收，不能当作本次重叠修复的画面证据。
+
+## 2026-11-21：Loading／Countdown／Results 独占显示约定
+
+用户确认：**MatchFlow 的 Loading、Countdown、Results 三个页面最终均采用独占显示，但按占位 WBP 的准备进度分别启用。** 独占显示时只呈现当前页面，隐藏 GF_Room 的其它内容及其它 Screens 页面；Room 与 MatchFlow 容器保留，用于数据分发和页面管理，不因此销毁。
+
+| 阶段 | 当前占位状态 | 当前独占显示 | 后续执行条件 |
+|---|---|---|---|
+| Loading | 尚未准备占位 WBP | 暂不启用，保持现状 | 后续准备并接入 Loading 占位 WBP 时，再单独启用并验证该阶段的独占显示 |
+| Countdown | 尚未准备占位 WBP | 暂不启用，保持现状 | 后续准备并接入 Countdown 占位 WBP 时，再单独启用并验证该阶段的独占显示 |
+| Results | 已有占位 WBP，已接通流程 | 已在 C++ 启用，实际画面待复测 | 保持现有独占规则，验证旧选车结算不重叠及返回后恢复 |
+
+这是已确认的设计约定，**本轮只记录文档，不提前创建 Loading／Countdown 占位，也不现在扩展 C++ 的独占阶段判断**。当前代码仍仅对 Results 施加显示约束；后续有了占位文件不能视为独占已自动生效，届时须分别完成页面接线与相应独占规则的实现／配置，并检查进入、退出及切到下一阶段时的显示与恢复。避免在没有对应占位页面时提前隐藏旧 UI，造成空白界面。
+
+Playing 的 HUD／观战／LocalMenu 行为、Room 的选车／练习迁移及服务器规则均保持现状。前一节的构建和 7/7 测试是 Results 实现的历史验证，不代表 Loading／Countdown 独占显示已经实现或测试；本轮文档更新不重新声明编译或自动化通过。
+
+## 2026-11-21：Results 等待 Return 按钮返房
+
+用户要求关闭结算超时自动返房，并以最小修改保留 Return 按钮路径。本节覆盖前文“自动返房仍保留／必须按按钮返房尚未实现”的历史限制。
+
+生产代码只修改 `HALPracticeRoomMatch.cpp`：`PollMatchRules` 在比赛完成后直接返回，不再比较 ReturnServerTime 并自动调用 ReturnActiveRoundToRoom，也不再走该自动调用失败后的返入口兜底。正常 Results 阶段一直保持，直到主机通过既有 Return 动作提交返房请求；Room／PlayerController／GameMode 的现有权限、请求参数和实际地图迁移路径保持。加载、开赛倒计时、比赛结束判定、正常故障处理和开发调试入口不改。
+
+为保留蓝图、配置和结果快照兼容性，ResultsSeconds、ReturnServerTime、ResultsRemaining 字段及其现有显示数据暂不删改，但这些值到期不再触发返房；无需修改 DA 数值，也不要将 ResultsSeconds 设置为不符合既有校验的 0。当前 Results 占位只有 Return 按钮，按钮接线保持。本轮没有修改 Room、MatchFlow 或 PreMatchFlow 的生产代码，没有修改 WBP 或新增参数／数据结构。
+
+对应测试在已有文件中维护：新增 ResultsWaitForHostReturn，强制原截止时间过期后重复评估，检查仍在 Results、结果冻结、Host 请求可用、非 Host／旧 Revision 被拒绝；旧 GF7 三局／四人夹具改为超过原结果期限后手动返房，合同 UI 模式通过实际 UButton.OnClicked 广播提交请求；重连夹具的 Host 返房及重连等待也同步适配，不再依赖服务器自动迁移。
+
+本机 UE **5.8.3-58210709**。Editor Win64 Development R1 完整构建 **Succeeded，57/57 步骤，562.53 秒，退出 0**；R2 仅增加网络测试的控件诊断后增量构建 **Succeeded，4/4 步骤，29.25 秒，退出 0**，生产返房代码不再改变。日志 `Saved/UIIntegration/ManualResultsReturnBuild_20261121.log`、`ManualResultsReturnBuild_R2_20261121.log`。既有未改动文件的数值转换与弃用警告保留。
+
+原生比赛规则及 UI 专项 **14/14 成功，0 测试事件警告／错误／失败／未运行，进程退出 0**，包括新增 ResultsWaitForHostReturn、既有结束判定／冻结结果／截止时间／返房准入及六项 UIIntegration。报告 `Saved/UIIntegration/ManualResultsReturnTests_20261121/index.json`，日志 `Saved/UIIntegration/ManualResultsReturnTests_20261121.log`。R2 只改网络测试诊断，未重新把这份报告描述为 R2 原生复跑。
+
+实际双进程 Listen Server／Client 做了三轮尝试，每次都运行完整三局：
+
+- R1／R2 启用合同 UI。Host 都是 **1/1 成功、测试事件零警告／错误、退出 0**；通过真实 UButton.OnClicked 提交既有 Return 动作，三局均超过旧的 3 秒期限后才按下，最后存活、超时并列和同批全灭结果及返房后下一局均可完成。
+- R2 诊断显示 Client 已进入 Results，有当前世界的 Room 控件对象（All=1），但没有挂在视口的该类控件（Visible=0），因而旧客户端用例的“结果 UI 已观察”检查没有完成。R3 取消合同 UI，使用项目当前 UI 配置复测，现象相同。三轮均是 **Host 1/1 成功、Client 0/1 失败**；双方进程均退出 0，但启动器严格检查 JSON 后退出 1，不能把双端整项记为通过。报告分别在 `Saved/UIIntegration/ManualResultsReturnNetwork_20261121`、`ManualResultsReturnNetwork_R2_20261121`、`ManualResultsReturnNetwork_R3_20261121` 的 Host／Client／Summary.json，详细日志在对应目录。
+- R3 Host 从进入 Results 到接受手动返房的三次间隔分别约 **4.521、4.531、4.543 秒**，均大于原 3 秒期限；Client 三次返房地图迁移发生在 Host 接受请求后的约 **26、39、43 毫秒**，不是客户端自行计时退出。客户端的 UI 视口检查仍未通过，不以地图迁移成功替代该检查。
+
+为满足最小生产修改要求，本轮没有改 UI 工厂／客户端视口重挂代码，也没有把上述现象直接认定为有渲染客户端的表现；后续需独立验证客户端实际 Results 显示及控件重挂。同步适配的四人 Forfeit／重连夹具已编译，未在本轮重新运行四人／重连专项。未单独构建 Game Target、未打开 Editor GUI、未做实际手柄或打包验收。
+
+22 份 UI 资产与开工快照 SHA-256 全同，清单 `Saved/UIIntegration/ManualResultsReturnAssets_20261121.json`；原有 WBP／配置／数据结构／Room／MatchFlow／PreMatchFlow 生产代码不改，未新增工程文件，Saved 下的启动器和报告仅为本轮验证产物。`git diff --check` 通过，未提交或推送。团队使用当前占位 Results 无需改变接线，重启 Editor 加载本轮 DLL 后，在正常结算停留超过原期限，再按 Host Return 验证返房。
