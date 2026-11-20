@@ -2,7 +2,10 @@
 // have their own V band, so small airborne droplets stay bright at playing distance.
 if (UV.y > 2.01)
 {
-    return lerp(Middle,Crest,.53+.47*smoothstep(.24,.75,UV.y-2.0));
+    float fold = saturate((UV.y-2.02)/.96);
+    float3 film = lerp(lerp(Shadow,Middle,.34),Middle,smoothstep(.04,.38,fold));
+    float3 foam = lerp(film,lerp(Middle,Crest,.52),smoothstep(.39,.54,fold));
+    return lerp(foam,Crest,smoothstep(.62,.80,fold));
 }
 float u = UV.x - Travel;
 float v = UV.y > 1.0 ? UV.y-1.0 : UV.y;

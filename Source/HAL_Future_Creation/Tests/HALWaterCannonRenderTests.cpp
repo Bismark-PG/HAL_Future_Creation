@@ -4,8 +4,11 @@
 #include "../HALWaterCannonAbility.h"
 #include "../TestVehiclePawn.h"
 #include "AssetCompilingManager.h"
+#include "Components/DynamicMeshComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Components/StaticMeshComponent.h"
+#include "DynamicMesh/DynamicMesh3.h"
+#include "DynamicMesh/DynamicMeshAttributeSet.h"
 #include "Engine/DirectionalLight.h"
 #include "Engine/Engine.h"
 #include "Engine/SceneCapture2D.h"
@@ -17,7 +20,9 @@
 #include "Materials/Material.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "MaterialShaderPrecompileMode.h"
+#include "Misc/CommandLine.h"
 #include "Misc/FileHelper.h"
+#include "Misc/Parse.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopeExit.h"
 
@@ -26,9 +31,13 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALWaterRenderTest,"HAL.RenderSmoke.WaterCanno
 bool FHALWaterRenderTest::RunTest(const FString&)
 {
 	if (!FApp::CanEverRender()) { AddError(TEXT("Water render check requires RHI")); return false; }
-	auto* Config = LoadObject<UHALWaterCannonConfig>(nullptr,TEXT("/Game/Data/Abilities/DA_Ability_Car09_WaterCannon.DA_Ability_Car09_WaterCannon"));
+	auto* Asset = LoadObject<UHALWaterCannonConfig>(nullptr,TEXT("/Game/Data/Abilities/DA_Ability_Car09_WaterCannon.DA_Ability_Car09_WaterCannon"));
 	auto* Model = LoadClass<ATestVehiclePawn>(nullptr,TEXT("/Game/Blueprints/Vehicles/BP_VehiclePawn_Car_09.BP_VehiclePawn_Car_09_C"));
-	if (!TestNotNull(TEXT("Fire engine"),Model) || !TestNotNull(TEXT("Water cannon config"),Config) || !Config->WaterMaterial) { return false; }
+	if (!TestNotNull(TEXT("Fire engine"),Model) || !TestNotNull(TEXT("Water cannon config"),Asset) || !Asset->WaterMaterial) { return false; }
+	// Measure the reference look without imposing a minimum VFX intensity on the authored skill.
+	auto* Config = DuplicateObject<UHALWaterCannonConfig>(Asset,GetTransientPackage());
+	constexpr float ReferenceSize = 34.f;
+	Config->SplashSize=ReferenceSize; Config->FreeSplashScale=1; Config->ImpactSplashScale=1;
 	Config->WaterMaterial->GetMaterial()->ForceRecompileForRendering(EMaterialShaderPrecompileMode::Synchronous);
 	FAssetCompilingManager::Get().FinishAllCompilation();
 	const auto Init = UWorld::InitializationValues().AllowAudioPlayback(false).CreatePhysicsScene(true).ShouldSimulatePhysics(false)
@@ -75,6 +84,21 @@ bool FHALWaterRenderTest::RunTest(const FString&)
 	auto& Surface=Jet->View.Contacts.AddDefaulted_GetRef();
 	Surface.Point=FVector(Config->Range*148.f/255.f,0,0); Surface.Normal=FVector::BackwardVector; Surface.LastLane=AHALWaterCannon::LaneCount-1;
 	const auto Contact = Capture(.52f,TEXT("Contact.bmp"));
+	{
+		const auto& Water=*Jet->Mesh->GetMesh();
+		const auto* UV=Water.Attributes()->PrimaryUV();
+		FBox FoamBounds(ForceInit);
+		for (const int32 Id:Water.TriangleIndicesItr())
+		{
+			const auto UVs=UV->GetTriangle(Id);
+			if (UV->GetElement(UVs.A).Y<=2.01f) { continue; }
+			const auto Vertices=Water.GetTriangle(Id);
+			for(int32 Corner=0;Corner<3;++Corner) { FoamBounds+=Water.GetVertex(Vertices[Corner]); }
+		}
+		TestTrue(TEXT("All spray stays on the wet side and spreads to both sides more than it rises"),
+			FoamBounds.IsValid && FoamBounds.Max.X<=Surface.Point.X+.1 && FoamBounds.Min.Y<-ReferenceSize && FoamBounds.Max.Y>ReferenceSize
+			&& FoamBounds.GetSize().Y>1.75*FoamBounds.GetSize().Z);
+	}
 	Jet->View.Contacts.Reset(); Jet->LastMeshAge=-1;
 	const auto WithoutSplash=Capture(.52f,TEXT("ContactWithoutFoam.bmp"));
 	Jet->View.ContactMask=0; Jet->View.Reach.Init(0,AHALWaterCannon::LaneCount);
@@ -140,6 +164,68 @@ bool FHALWaterRenderTest::RunTest(const FString&)
 	Jet->SampleJet(Jet->ServerTime());
 	TestTrue(TEXT("Moving that same wall across the nozzle line stops all lanes"),Jet->View.ContactMask==AllLanes);
 	Capture(1.19f,TEXT("WallImpact.bmp"));
+
+	// Compare exactly the same stream, frame and camera with and without terminal foam.
+	Wall->Destroy();
+	auto* Floor=W->SpawnActor<AStaticMeshActor>();
+	auto* FloorMesh=Floor->GetStaticMeshComponent();
+	FloorMesh->SetMobility(EComponentMobility::Movable);
+	FloorMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FloorMesh->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube")));
+	FloorMesh->SetMaterial(0,LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Assets/Materials/MI_ArenaFloor_Metal.MI_ArenaFloor_Metal")));
+	Floor->SetActorTransform(FTransform(FQuat::Identity,Focus-FVector(0,0,155),FVector(50,50,.12)));
+	Camera->SetWorldLocation(Focus+FVector(250,790,1340));
+	Camera->SetWorldRotation((Focus-Camera->GetComponentLocation()).Rotation());
+	const bool bSequence=FParse::Param(FCommandLine::Get(),TEXT("WaterSplashSequence"));
+	const auto PhotographSpray=[&](const TCHAR* Name, float& Strength, float& OtherStrength)
+	{
+		constexpr float Age=1.36f;
+		const auto Still=[&](const TCHAR* Suffix)
+		{
+			Jet->LastMeshAge=-1;
+			return Capture(Age,*(FString(Name)+Suffix));
+		};
+		Config->SplashSize=0;
+		const auto Bare=Still(TEXT("WithoutSpray.bmp"));
+		Config->SplashSize=ReferenceSize;
+		Strength=0;
+		const auto Muted=Still(TEXT("Muted.bmp"));
+		Strength=1;
+		OtherStrength=0;
+		const auto Isolated=Still(TEXT("Isolated.bmp"));
+		OtherStrength=1;
+		const auto Wet=Still(TEXT("Burst.bmp"));
+		for(const auto* Frame:{&Bare,&Wet,&Muted,&Isolated})
+		{
+			if(Frame->Num()!=Width*Height) { AddError(TEXT("Missing splash comparison frame")); return; }
+		}
+		TestTrue(FString(Name)+TEXT(" has an independent size control"),Different(Bare,Muted)<30 && Different(Isolated,Wet)<30);
+		const int32 Visible=Different(Bare,Wet);
+		AddInfo(FString::Printf(TEXT("%s splash changes %d pixels at playing distance"),Name,Visible));
+		TestTrue(FString(Name)+TEXT(" produces a readable splash at playing distance"),Visible>Width*Height/400);
+		if(bSequence)
+		{
+			for(int32 Frame=0;Frame<24;++Frame)
+			{
+				Capture(Age+Frame*.05f,*FString::Printf(TEXT("%sBurst_%02d.bmp"),Name,Frame));
+			}
+		}
+	};
+	Jet->SampleJet(Jet->ServerTime());
+	TestTrue(TEXT("Removing the wall opens all spray lanes"),Jet->View.ContactMask==0 && Jet->View.Contacts.IsEmpty());
+	PhotographSpray(TEXT("Open"),Config->FreeSplashScale,Config->ImpactSplashScale);
+	auto* TargetModel=LoadClass<ATestVehiclePawn>(nullptr,TEXT("/Game/Blueprints/Vehicles/BP_VehiclePawn_Car_03.BP_VehiclePawn_Car_03_C"));
+	if(!TestNotNull(TEXT("Car03 target"),TargetModel)) { return false; }
+	FActorSpawnParameters Spawn;
+	Spawn.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	auto* Target=W->SpawnActor<ATestVehiclePawn>(TargetModel,Aim.TransformPosition(FVector(Config->Range*.78f,0,0)),FRotator(0,73,0),Spawn);
+	Target->PreInitializeComponents(); Target->InitializeComponents(); Target->PostInitializeComponents();
+	const auto* Hull=CastChecked<UPrimitiveComponent>(Target->GetRootComponent());
+	Target->SetActorLocation(Target->GetActorLocation()+Aim.TransformPosition(FVector(Config->Range*.78f,0,0))-Hull->Bounds.Origin,false,nullptr,ETeleportType::TeleportPhysics);
+	Jet->SampleJet(Jet->ServerTime());
+	TestTrue(TEXT("The second production vehicle clips the jet and supplies a wet front face"),
+		Jet->View.ContactMask==AllLanes && Jet->View.Contacts.ContainsByPredicate([](const FHALWaterJetContact& Hit){return Hit.Normal.X<-.5 && Hit.Point.X>0;}));
+	PhotographSpray(TEXT("Vehicle"),Config->ImpactSplashScale,Config->FreeSplashScale);
 	return true;
 }
 #endif

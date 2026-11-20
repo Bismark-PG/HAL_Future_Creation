@@ -6,6 +6,7 @@
 #include "DynamicMesh/DynamicMeshAttributeSet.h"
 #include "HALWaterCannonAbility.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Math/RandomStream.h"
 #include "Sound/SoundBase.h"
 
 namespace
@@ -13,6 +14,30 @@ namespace
 	using namespace UE::Geometry;
 	constexpr int32 Lanes=AHALWaterCannon::LaneCount;
 	constexpr int32 Rows=27;
+
+	struct FSplashArc
+	{
+		FVector Root;
+		FVector Travel;
+		FVector Bow;
+
+		FVector At(float T) const { return Root + T * Travel + (4.f*T*(1.f-T)) * Bow; }
+		FVector Tangent(float T) const { return Travel + (4.f-8.f*T) * Bow; }
+	};
+
+	// Internal fan edges border an occluded lane. Surface spray is clipped to the wet
+	// half-space, including the thickness of the droplets, at every angle of incidence.
+	struct FSprayClip
+	{
+		double MinY = -UE_BIG_NUMBER, MaxY = UE_BIG_NUMBER;
+		FVector Point = FVector::ZeroVector, Normal = FVector::ZeroVector;
+
+		FVector Constrain(FVector P) const
+		{
+			P.Y = FMath::Clamp(P.Y,MinY,MaxY);
+			return P + Normal * FMath::Max(0.,FVector::DotProduct(Point-P,Normal));
+		}
+	};
 
 	class FWaterGeometry
 	{
@@ -33,48 +58,186 @@ namespace
 			if(Id>=0) { Water.Attributes()->PrimaryUV()->SetTriangle(Id,FIndex3i(A,B,C)); }
 		}
 
-		// A curved foam tongue with a short, detached teardrop. The whole path stays on the wet side
-		// of the hit plane; tangent/up motion makes a glancing car hit read differently from a head-on hit.
-		void Splash(const FVector& Origin,const FVector& Normal,float Span,float Size,float Time,int32 Count,float Seed,bool bSurfaceContact)
+		FVector Tip(int32 Lane) const { return Water.GetVertex(Lane*Rows+Rows-1); }
+
+		void OpenSpray(int32 First, int32 Last, float LaneWidth, float Size, float Time, float HeadX)
 		{
-			const FVector Side=FVector::CrossProduct(FVector::UpVector,Normal).GetSafeNormal(UE_SMALL_NUMBER,FVector::RightVector);
-			const FVector Up=FVector::CrossProduct(Normal,Side).GetSafeNormal();
-			for(int32 I=0;I<Count;++I)
+			const int32 Count = Last-First+1;
+			Size *= .38f + .62f*FMath::Sqrt(static_cast<float>(Count)/Lanes);
+			FSprayClip Clip;
+			if (First>0) { Clip.MinY = Tip(First).Y - .45f*LaneWidth; }
+			if (Last+1<Lanes) { Clip.MaxY = Tip(Last).Y + .45f*LaneWidth; }
+
+			// A rolling lip joins the sheets along the actual wavy ends of this open band.
+			int32 Previous[3] = {};
+			for (int32 Lane=First; Lane<=Last; ++Lane)
 			{
-				const float Angle=I*2.39996f+Seed;
-				const float Phase=FMath::Frac(Time*(1.85f+.32f*FMath::Cos(Angle))+I*.61803f+Seed);
-				const float Pulse=FMath::Sin(PI*Phase);
-				const float Sideward=FMath::Cos(Angle);
-				// On impact the near water sheet can obscure inward-facing foam. Its crown
-				// spreads from the wetted footprint, predominantly across the surface.
-				const FVector Along=Side*Sideward*(bSurfaceContact?1.38f:.98f)
-					+Up*(bSurfaceContact?.53f+1.12f*FMath::Sin(Angle):.32f+.78f*FMath::Sin(Angle));
-				const FVector Base=Origin+Normal*1.5+Side*(Sideward*Span)+Up*(bSurfaceContact?.12f*Size:0.f);
-				const auto Path=[&](float T) {
-					return Base+Size*(Normal*(.18*T+.57*FMath::Sin(T*PI*.76))+Along*T-Up*.27*T*T);
+				const FVector P = Tip(Lane);
+				const float Crest = .55f+.30f*FMath::Sin(Lane*.86f+Time*7.f)+.15f*FMath::Sin(Lane*1.53f-Time*5.f);
+				const int32 Row[] = {
+					FoamVertex(Clip,P+Size*FVector(-.44,0,-.03),.05f),
+					FoamVertex(Clip,P+Size*FVector(.05+.16*Crest,0,.16+.63*Crest),.47f),
+					FoamVertex(Clip,P+Size*FVector(.24+.42*Crest,0,.12+.50*Crest),.48f+.50f*Crest)
 				};
-				const FVector Axis=(Path(.5f)-Path(.2f)).GetSafeNormal();
-				const FVector Cross=FVector::CrossProduct(Axis,Normal).GetSafeNormal(UE_SMALL_NUMBER,Side);
-				if((I%2)==0)
+				for (int32 R=0; R<2 && Lane>First; ++R)
 				{
-					const float End=.33f+.54f*Pulse, W=Size*(.052f+.064f*Pulse);
-					const int32 A=Vertex(Path(.02f)-Cross*W,0,2.12f), B=Vertex(Path(.02f)+Cross*W,0,2.60f);
-					const int32 C=Vertex(Path(End*.52f)-Cross*(W*.77),.35f,2.18f), D=Vertex(Path(End*.52f)+Cross*(W*.77),.35f,2.92f);
-					const int32 E=Vertex(Path(End),.7f,2.78f);
-					Triangle(A,B,C); Triangle(B,D,C); Triangle(C,D,E);
+					Triangle(Previous[R],Row[R],Previous[R+1]); Triangle(Row[R],Row[R+1],Previous[R+1]);
 				}
-				const FVector P=Path(.18f+1.22f*Phase);
-				const float R=Size*(.067f+.054f*FMath::Abs(FMath::Sin(Angle)))*Pulse;
-				const FVector Lift=FVector::CrossProduct(Axis,Cross);
-				const int32 Nose=Vertex(P+Axis*(R*1.4),.9f,2.93f), Tail=Vertex(P-Axis*(R*2.25),.1f,2.33f);
-				const int32 Ring=Water.VertexCount();
-				constexpr int32 Sides=6;
-				for(int32 J=0;J<Sides;++J)
+				for (int32 R=0; R<3; ++R) { Previous[R]=Row[R]; }
+			}
+			const int32 Sheets = 1+(Count+1)/3;
+			for (int32 I=0; I<Sheets; ++I)
+			{
+				const int32 Lane = First + (Last-First)*I/FMath::Max(1,Sheets-1);
+				const float Side = 2.f*Lane/(Lanes-1)-1.f;
+				const float Ripple = FMath::Sin(Time*6.4f+Lane*1.81f);
+				const FVector Root = Tip(Lane) + Size*FVector(-.32,0,.01);
+				const float Forward = FMath::Min(Size*(1.82f-1.25f*FMath::Square(Side)+.48f*Ripple),
+					FMath::Max(0.f,HeadX-static_cast<float>(Root.X))*.72f);
+				const FVector Travel(Forward,Size*(2.1f*Side+.48f*FMath::Sin(Lane*1.31f+.8f)),
+					Size*(.28f+.45f*Ripple));
+				const FSplashArc Arc{Root,Travel,Size*FVector(.20,.12*Side,.36+.24*Ripple)};
+				const FVector Across = FVector::CrossProduct(FVector::UpVector,Travel).GetSafeNormal(UE_SMALL_NUMBER,FVector::RightVector);
+				FoamCap(Clip,Tip(Lane)+Size*FVector(.12,0,.30),FVector::ForwardVector,FVector::RightVector,FVector::UpVector,
+					Size*(.82f+.14f*Ripple),Size*.68f,Size*.52f,Lane,Time);
+				FoldSheet(Clip,Arc,Across,Size*(.35f+.12f*(1.f+Ripple)),Lane,Time);
+				EjectDrops(Clip,Arc,Across,Size,Time,Lane,FMath::Min(6,2+Count/3));
+			}
+		}
+
+		void ImpactSpray(const FHALWaterJetContact& Hit, float Span, float Size, float Time)
+		{
+			FSprayClip Clip;
+			Clip.Point = Hit.Point;
+			Clip.Normal = Hit.Normal.GetSafeNormal(UE_SMALL_NUMBER,FVector::BackwardVector);
+			const FVector Side = FVector::CrossProduct(FVector::UpVector,Clip.Normal).GetSafeNormal(UE_SMALL_NUMBER,FVector::RightVector);
+			const FVector FaceUp = FVector::CrossProduct(Clip.Normal,Side);
+			const FVector Skim = FVector::VectorPlaneProject(FVector::ForwardVector,Clip.Normal);
+			const int32 Coverage = 1+Hit.LastLane-Hit.FirstLane;
+			Size *= .42f+.58f*FMath::Sqrt(static_cast<float>(Coverage)/Lanes);
+			FoamCap(Clip,Clip.Point+Clip.Normal*Size*.24+FaceUp*Size*.18,Clip.Normal,Side,FaceUp,
+				Size*.81f,FMath::Max(Size*.82f,Span*.78f),Size*.48f,Hit.FirstLane+23,Time);
+			const int32 Sheets = 2+Coverage/4;
+			for (int32 I=0; I<Sheets; ++I)
+			{
+				const int32 Seed = 37+Hit.FirstLane*7+I;
+				const float Hand = I%2 ? 1.f : -1.f;
+				const float Tier = static_cast<float>(I/2)/FMath::Max(1,(Sheets-1)/2);
+				const float Pulse = FMath::Sin(Seed*2.31f+Time*(6.f+Tier));
+				// Two low, spreading wings peel away along the panel, with shorter sheets
+				// rebounding towards the shooter. The tangential flow carries glancing hits.
+				const FVector Root = Clip.Point + Clip.Normal*2. + Side*Hand*Span*(.25+.55*Tier);
+				const FVector Travel = Size*(Side*Hand*(2.9-1.25*Tier+.36*Pulse) + Skim*1.18
+					+ Clip.Normal*(.56+1.40*Tier+.18*Pulse) + FaceUp*(.12+.34*Pulse));
+				const FSplashArc Arc{Root,Travel,Size*(Clip.Normal*(.27+.18*Tier)+FaceUp*(.19+.19*Tier))};
+				const FVector Across = FVector::CrossProduct(FVector::UpVector,Travel).GetSafeNormal(UE_SMALL_NUMBER,Side);
+				FoldSheet(Clip,Arc,Across,Size*(.56f+.20f*Tier),Seed,Time);
+				EjectDrops(Clip,Arc,Across,Size,Time,Seed,FMath::Min(6,2+Coverage/3));
+			}
+		}
+
+	private:
+		int32 FoamVertex(const FSprayClip& Clip, const FVector& P, float Tone)
+		{
+			return Vertex(Clip.Constrain(P),0,2.02f+.96f*Tone);
+		}
+
+		// A broken patch of whitewater at the pressure front joins the separate sheets.
+		// Unequal lobes roll through the outline independently of the downstream water lines.
+		void FoamCap(const FSprayClip& Clip, const FVector& Center, const FVector& Ahead, const FVector& Side,
+			const FVector& Up, float Length, float Width, float Height, int32 Seed, float Time)
+		{
+			constexpr int32 Segments=16;
+			const float Roll = Time*5.8f+Seed*1.73f;
+			const int32 Hub = FoamVertex(Clip,Center+Up*(Height*.72f),.88f);
+			const int32 Start = Water.VertexCount();
+			for (int32 I=0; I<Segments; ++I)
+			{
+				const float Angle=2.f*PI*I/Segments;
+				const float Curl=.52f+.27f*FMath::Sin(3.f*Angle+Roll)+.17f*FMath::Cos(5.f*Angle-Roll*.83f);
+				const FVector Out=(Ahead*(Length*FMath::Cos(Angle))+Side*(Width*FMath::Sin(Angle)))*(.51f+.86f*Curl);
+				FoamVertex(Clip,Center+.57*Out+Up*Height*(.63+.46*Curl),.51f+.45f*Curl);
+				FoamVertex(Clip,Center+Out+Up*Height*(.18+.51*Curl),.59f+.40f*Curl);
+				FoamVertex(Clip,Center+Out*1.06-Up*Height*.18,.19f+.31f*Curl);
+			}
+			for (int32 I=0; I<Segments; ++I)
+			{
+				const int32 A=Start+3*I, B=Start+3*((I+1)%Segments);
+				Triangle(Hub,A,B);
+				for (int32 J=0; J<2; ++J) { Triangle(A+J,A+J+1,B+J); Triangle(B+J,A+J+1,B+J+1); }
+			}
+		}
+
+		// A folded film with an uneven, forked rim. The cyan underside and white crest
+		// share vertices so they move together as the film tears into lobes.
+		void FoldSheet(const FSprayClip& Clip, const FSplashArc& Arc, const FVector& Across, float Width, int32 Seed, float Time)
+		{
+			constexpr float Stations[] = {0.f,.36f,.68f,.87f,1.f};
+			constexpr float Widths[] = {.52f,.79f,1.f,1.03f,.87f};
+			constexpr float Shades[] = {.18f,.38f,.52f,.68f,.88f};
+			constexpr int32 Columns=11;
+			int32 Grid[Columns][5];
+			const float Wave = Time*(6.4f+.35f*(Seed%4))+Seed*2.31f;
+			const float Surge = .30f+.79f*FMath::SmoothStep(-.96f,.80f,FMath::Sin(Wave));
+			for (int32 Col=0; Col<Columns; ++Col)
+			{
+				const float S = 2.f*Col/(Columns-1)-1.f;
+				const float Shoulder = FMath::Sqrt(FMath::Max(0.f,1.f-S*S));
+				const float Lobe = .5f+.5f*FMath::Sin((5.f+.55f*(Seed%4))*S +.75f*FMath::Sin(Wave)+Seed);
+				const float Length = .27f+Shoulder*(.40f+.46f*FMath::SmoothStep(.05f,.95f,Lobe));
+				for (int32 Row=0; Row<5; ++Row)
 				{
-					const float Theta=2*PI*J/Sides;
-					Vertex(P+R*(Cross*FMath::Cos(Theta)+Lift*FMath::Sin(Theta)),.5f,2.56f+.32f*FMath::Sin(Theta));
+					const float T = Stations[Row]*Length*Surge;
+					const FVector P = Arc.At(T)+Across*Width*(Widths[Row]*S+.26f*FMath::Sin(Wave+3.f*T)*T)
+						+ Arc.Bow*(.42f*S*S+.25f*Lobe)*T;
+					Grid[Col][Row] = FoamVertex(Clip,P,Shades[Row]+.10f*Lobe-.07f*FMath::Abs(S));
+					if (Col && Row)
+					{
+						Triangle(Grid[Col-1][Row-1],Grid[Col][Row-1],Grid[Col-1][Row]);
+						Triangle(Grid[Col][Row-1],Grid[Col][Row],Grid[Col-1][Row]);
+					}
 				}
-				for(int32 J=0;J<Sides;++J) { Triangle(Nose,Ring+J,Ring+(J+1)%Sides); Triangle(Tail,Ring+(J+1)%Sides,Ring+J); }
+			}
+		}
+
+		void EjectDrops(const FSprayClip& Clip, const FSplashArc& Arc, const FVector& Across,
+			float Size, float Time, int32 Seed, int32 Count)
+		{
+			for (int32 I=0; I<Count; ++I)
+			{
+				// Stagger a large drop and its satellites. Each birth gets a stable throw
+				// until the droplet dies, independent of frame rate and of other contacts.
+				const float Clock = Time*(1.62f+.12f*(Seed%4))+Seed*.381966f+(I/3)*.48f-(I%3)*.102f;
+				const int32 Cycle = FMath::FloorToInt(Clock);
+				const float Phase = Clock-Cycle;
+				FRandomStream Random(1973*Seed+7907*(Cycle+4)+131*I);
+				const float Distance = Random.FRandRange(1.35f,2.10f);
+				const float Scatter = Random.FRandRange(-1.f,1.f)*(I<3 ? .95f : 1.74f);
+				const float Rise = Random.FRandRange(.21f,1.36f);
+				const FSplashArc Flight{Arc.At(.55f),Arc.Travel*Distance+Across*(Scatter*Size),Arc.Bow*.50+FVector::UpVector*(Rise*Size)};
+				const float Envelope = FMath::SmoothStep(0.f,.13f,Phase)*(1.f-FMath::SmoothStep(.63f,1.f,Phase));
+				const float Radius = Size*(I%3==0 ? .20f : Random.FRandRange(.075f,.158f))*Envelope;
+				if (Radius < .3f) { continue; }
+				const FVector Axis = Flight.Tangent(Phase).GetSafeNormal(UE_SMALL_NUMBER,FVector::UpVector);
+				const FVector Cross = FVector::CrossProduct(FVector::UpVector,Axis).GetSafeNormal(UE_SMALL_NUMBER,FVector::RightVector);
+				const FVector Lift = FVector::CrossProduct(Axis,Cross);
+				const FVector P = Flight.At(Phase);
+				const int32 Nose = FoamVertex(Clip,P+Axis*Radius*1.35,.97f);
+				const int32 Tail = FoamVertex(Clip,P-Axis*Radius*(I%3==1 ? 3.8f : 1.9f),.46f);
+				const int32 Ring = Water.VertexCount();
+				constexpr int32 Sides=7;
+				for (int32 J=0; J<Sides; ++J)
+				{
+					const float Angle = 2.f*PI*J/Sides;
+					const FVector Radial=Cross*FMath::Cos(Angle)+Lift*FMath::Sin(Angle);
+					FoamVertex(Clip,P+Radius*(Axis*.73+.80*Radial),.77f+.19f*FMath::Sin(Angle));
+					FoamVertex(Clip,P+Radius*(-Axis*.29+Radial),.64f+.28f*FMath::Sin(Angle));
+				}
+				for (int32 J=0; J<Sides; ++J)
+				{
+					const int32 A=Ring+2*J, B=Ring+2*((J+1)%Sides);
+					Triangle(Nose,A,B); Triangle(A,A+1,B); Triangle(B,A+1,B+1); Triangle(Tail,B+1,A+1);
+				}
 			}
 		}
 	};
@@ -122,24 +285,34 @@ namespace
 				}
 			}
 		}
-		if(C.SplashSize>0)
+		const float FreeSize=C.SplashSize*C.FreeSplashScale*Remaining*FMath::SmoothStep(0.f,.25f,Head);
+		if(FreeSize>.1f)
 		{
-			for(int32 Lane=1;Lane<Lanes;Lane+=3)
+			const auto HasOpenTip=[&](int32 Lane)
 			{
-				if(View.ContactMask&(1u<<Lane)) { continue; }
-				const FVector Tip=Shape.Water.GetVertex(Lane*Rows+Rows-1);
-				if(Tip.X<=Rear*C.Range+.1f) { continue; }
-				const float S=2.f*Lane/(Lanes-1)-1.f;
-				Shape.Splash(Tip,FVector(.81,S*.44,.38).GetSafeNormal(),0,
-					C.SplashSize*.80f*Remaining*FMath::SmoothStep(0.f,.15f,Head),Age,4,Lane*.39f,false);
+				return !(View.ContactMask & (1u<<Lane)) && Shape.Tip(Lane).X>Rear*C.Range+.1f;
+			};
+			for(int32 Lane=0;Lane<Lanes;)
+			{
+				if(!HasOpenTip(Lane)) { ++Lane; continue; }
+				const int32 First=Lane++;
+				while(Lane<Lanes && HasOpenTip(Lane)) { ++Lane; }
+				const float Spacing=2.f*HalfWidth(Head*C.Range)*Remaining/(Lanes-1);
+				Shape.OpenSpray(First,Lane-1,Spacing,FreeSize,Age,Head*C.Range);
 			}
+		}
+		const float ImpactSize=C.SplashSize*C.ImpactSplashScale*Remaining;
+		if(ImpactSize>.1f)
+		{
 			for(const auto& Hit:View.Contacts)
 			{
 				const float X=Hit.Point.X;
 				if(Head*C.Range+2<X) { continue; }
+				const float HitFraction=FMath::Max(0.f,X/C.Range);
+				const float Size=ImpactSize*(1.f-FMath::SmoothStep(HitFraction,HitFraction+.2f,Rear));
+				if(Size<=.1f) { continue; }
 				const float Span=HalfWidth(FMath::Max(0.f,X))*(Hit.LastLane-Hit.FirstLane)/(Lanes-1)*.83f;
-				Shape.Splash(Hit.Point,Hit.Normal.GetSafeNormal(UE_SMALL_NUMBER,FVector::BackwardVector),Span,
-					C.SplashSize*1.92f*Remaining,Age,11+(Hit.LastLane-Hit.FirstLane)/2,Hit.FirstLane*.31f,true);
+				Shape.ImpactSpray(Hit,Span*Remaining,Size,Age);
 			}
 		}
 		Mesh.SetMesh(MoveTemp(Shape.Water));
