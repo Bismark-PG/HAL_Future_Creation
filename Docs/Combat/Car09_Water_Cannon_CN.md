@@ -10,7 +10,7 @@ Car09 按一次主技能键便向车头持续喷水。按住油门可顶着后�
 
 `Fred_TestScene` 使用 `BP_FredSkillTestGameMode`。进入测试场后，在测试面板选择 Car09，点击 **Apply selected vehicle**，再用主技能键对场内木桩喷水。
 
-2026-11-20 在 UE 5.8.2 接续机读回的 `Test Vehicle Classes` 已包含 `BP_VehiclePawn_Car_09`，本机可直接试车。这份 GameMode 蓝图仍是本地改动。只同步到提交 `342b361` 的设备，如果测试面板里没有 Car09，打开 `BP_FredSkillTestGameMode → Class Defaults → Vehicle Test → Test Vehicle Classes`，添加 `BP_VehiclePawn_Car_09`，然后 **Compile → Save** 并重新进场。
+从 `main` 提交 `a23530a` 起，测试面板使用的 `BP_FredSkillTestGameMode` 已随工程同步，`Test Vehicle Classes` 包含 `BP_VehiclePawn_Car_09`。更新到该提交的设备可以直接选车试喷。
 
 如果用 `SingleVehicleTest`，在 `BP_VehicleTestGameMode` 的同名数组添加这辆车即可。正式房间读取 `DA_VehicleCatalog_Default`，本次核对到正式目录为 Car01、Car02、Car03。
 
@@ -27,7 +27,9 @@ Car09 按一次主技能键便向车头持续喷水。按住油门可顶着后�
 | 后坐力可把车加速到的倒车速度 | Recoil → Reverse Limit | 1400 cm/s，到达后水炮停止继续增加后退速度 |
 | 水柱分色与纹理速度 | Water → Shadow Color / Mid Color / Light Color / Tone Softness / Flow Speed | 深青蓝、亮蓝、近白，过渡 0.11，亮纹 1700 cm/s |
 | 开喷到完整射程、停喷到余水消失 | Water → Spray In Seconds / Spray Out Seconds | 0.19 秒 / 0.26 秒，可分别调整 |
-| 端部飞溅大小 | Water → Splash Size | 34 cm，设 0 可关闭 |
+| 两种水花的总尺寸 | Water → Splash Size | 34 cm，设 0 可同时关闭空喷和命中水花 |
+| 空喷末端的浪头和水滴 | Water → Free Splash Scale | 1.0 倍，范围 0–3。增大会加宽翻开的浪头，让水滴飞得更远 |
+| 撞车、撞墙时弹开的水花 | Water → Impact Splash Scale | 1.0 倍，范围 0–3。增大会加宽贴着命中面展开的水片，也会放大甩出的水滴 |
 | 消防警报 | Fire Siren → Siren / Siren Volume / Siren Inner Radius / Siren Falloff | 单声道高低双音循环，音量 0.65，内半径 450 cm，再衰减 2700 cm。更换音效时，Sound Wave 需勾选 Looping，Sound Cue 需配置循环 |
 
 ## 命中和状态
@@ -40,7 +42,9 @@ Car09 按一次主技能键便向车头持续喷水。按住油门可顶着后�
 
 ## 实车调试
 
-检查水花时，在测试场先对空开喷，再慢慢扫过墙角，最后整股对准木桩或另一辆车。对空能看到参差的水头和漂离的水滴。贴着墙角时，两边的可见长度会分开，亮色水花留在实际受阻面上。若只想加强飞溅，在技能 DA 调 `Water → Splash Size`。要改变开喷或收回的节奏，分别调 `Spray In Seconds` 和 `Spray Out Seconds`。
+在 `Fred_TestScene` 对空开喷，观察水头有没有先翻成一片青色带白边的浪，再向前方和两侧甩出大小不同的水滴。随后让喷口正对另一辆车的侧面，观察两股较低的水花是否从接触点向两侧展开。斜擦车身时，水花会顺着来水方向沿车身偏向一侧。最后慢慢扫过墙角，观察受阻侧留在墙面，敞开侧继续向前喷。
+
+只调整空喷时使用 `Free Splash Scale`，只调整命中时使用 `Impact Splash Scale`。把其中一项暂时设为 0，可以单独对照相应水花。两项都以 `Splash Size` 为尺寸基准。开喷和收回的节奏仍由 `Spray In Seconds`、`Spray Out Seconds` 控制。
 
 1. 在练习场选择 Car09，分别在静止、踩油门和倒车时开喷。先独立调 `Recoil Acceleration` 和 `Forward Limit Scale`，再测试倒车退出距离。
 2. 对准技能木桩，保持命中，再快速扫开、扫回。用半面墙遮住目标，观察露出部位、水花位置和伤害间隔。用电墙截停消防车，观察眩晕中剩余喷射时间。
@@ -79,3 +83,13 @@ UE 5.8.2 的 D3D12 实拍覆盖开喷、全长、收束、完全消失和喷口�
 双进程用例在主机创建了一个仅主机可查询的阻挡面。设置主机出站延迟 80 ms 后，施法客户端和观察主机均收到了水花位置与朝外的表面法线。击球归属、眩晕中持续后坐和不同踏板输入的回归也通过。两端各 2/2，报告在 `Saved/SkillFXReview/Net_Water_Verified`。
 
 正式水流材质为 `M_WaterCannon_ToonFlow`。如果编辑了内部水纹的着色器源码，通过工程的资产生成脚本传入 Editor 参数 `-RefreshWaterMaterial`，即可单独更新水流材质。[水纹着色器源码](../../Tools/WaterCannon/ToonWater.hlsl) · [资产生成脚本](../../Tools/WaterCannon/CreateWaterCannonAssets.py)
+
+### 2026-11-20 空喷浪头与撞车飞溅
+
+Car09 的每段敞开水束在各自的末端翻起青白色泡沫。水片随时间卷起、破开，成组的水滴会沿不同方向脱离浪头。命中车身和墙面时，迎水面的接触点产生两片较低的回溅，斜入射会带出沿表面的偏移。只有部分水束被挡时，两种水花可以同时出现。水花使用已复制的接触点、法线和各束长度，在现有水柱网格中绘制。
+
+本机 UE 5.8.2 使用相同车位、机位和施放时刻拍摄修改前后的图像。900 × 480 画面中，与同帧关闭水花的画面对比，空喷水花影响的像素从 174 增至 6,137，水束撞到正式 Car03 车身时从 811 增至 3,221。该数字来自默认倍率和 34 cm 的参考尺寸，用于复核这次美术调整。D3D12 三项水炮专项通过，包括两组倍率分别关停、飞滴留在迎水面、真实车身截流、墙角遮挡和停喷退场。
+
+在有 RHI 的 Editor 运行 `HAL.RenderSmoke.WaterCannon.FlowTonesAndContact` 可以重拍。在启动参数中加入 `-WaterSplashSequence`，测试还会把空喷与撞车各 24 帧的连续画面写入 `Saved/WaterCannon/Render`。本机新旧对照、动图和专项报告在 `Saved/WaterSplashPolish`。
+
+本次验证使用 `a23530a` 加本地水花改动，Win64 Development Editor 和 Game 均已构建。重开 Editor 后通过 MCP 读回了正式技能 DA 的水流材质、34 cm 总尺寸和两项 1.0 倍倍率。双进程复测中，客户端发起技能，主机模拟 80 ms 出站延迟并创建仅主机能查询的墙面。两端均收到了命中面的水花数据，水炮联机用例两端各 2/2 通过。报告在 `Saved/WaterSplashPolish/Net_Water`。四人实机同时喷水时的清晰度和帧耗仍待现场确认。

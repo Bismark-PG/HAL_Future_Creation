@@ -47,7 +47,12 @@ public:
 	UPROPERTY(EditAnywhere, Category="Water", meta=(Units="s", ClampMin=".03", ClampMax="1")) float SprayInSeconds = .19f;
 	/** Time for the last water and foam to drain after emission stops. */
 	UPROPERTY(EditAnywhere, Category="Water", meta=(Units="s", ClampMin=".03", ClampMax="1")) float SprayOutSeconds = .26f;
+	/** Master size of the terminal foam and flying droplets. Zero disables both sprays. */
 	UPROPERTY(EditAnywhere, Category="Water", meta=(Units="cm", ClampMin="0", ClampMax="120")) float SplashSize = 34;
+	/** Size of the breaking crest and droplets where water reaches open air. */
+	UPROPERTY(EditAnywhere, Category="Water", meta=(ClampMin="0", ClampMax="3")) float FreeSplashScale = 1.f;
+	/** Size of the rebounding water sheets and droplets at vehicle and wall contacts. */
+	UPROPERTY(EditAnywhere, Category="Water", meta=(ClampMin="0", ClampMax="3")) float ImpactSplashScale = 1.f;
 	/** A mono looping Sound Wave or looping cue. */
 	UPROPERTY(EditAnywhere, Category="Fire Siren") TObjectPtr<USoundBase> Siren;
 	UPROPERTY(EditAnywhere, Category="Fire Siren", meta=(ClampMin="0", ClampMax="4")) float SirenVolume = .65f;
