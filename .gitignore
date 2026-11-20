@@ -372,6 +372,8 @@ Plugins/Monolith/
 !Source/HAL_Future_Creation/HALMatchHUDWidget.h
 !Source/HAL_Future_Creation/HALMatchHUDWidget.cpp
 !Docs/Presentation/Match_Countdown_HUD_CN.md
+!Docs/Networking/RoomView_Vehicle_Skill_Card_CN.md
+!Docs/Presentation/Gameplay_Technology_Presentation_CN.md
 !Docs/Combat/Vehicle_Smoke_Screen_Ability_Discussion_CN_v0.1.md
 !Docs/Combat/Car08_Smoke_Screen_CN_v0.1.md
 !Docs/Combat/Vehicle_Ultimate_Energy_CN.md
@@ -389,3 +391,9 @@ Plugins/Monolith/
 !Source/HAL_Future_Creation/Tests/HALSmokeScreenNetworkTests.cpp
 !Source/HAL_Future_CreationEditor/Public/HALBuildSmokeScreenFXCommandlet.h
 !Source/HAL_Future_CreationEditor/Private/HALBuildSmokeScreenFXCommandlet.cpp
+
+# Car09 fire engine's water cannon, authoring sources and regression tests.
+!Source/HAL_Future_Creation/HALWaterCannon*.h
+!Source/HAL_Future_Creation/HALWaterCannon*.cpp
+!Source/HAL_Future_Creation/Tests/HALWaterCannon*.cpp
+!Docs/Combat/Car09_Water_Cannon_CN.md

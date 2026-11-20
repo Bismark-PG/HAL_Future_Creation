@@ -137,6 +137,8 @@ public:
 	FHALCombatAction(const FHALCombatAction&) = delete;
 	FHALCombatAction& operator=(const FHALCombatAction&) = delete;
 	bool Begin(AActor& AuthorityOwner, const FHALAttackSourceSnapshot& Source);
+	/** Validate a fresh action before retiring the old identity and its consumed-target ledger. */
+	bool Replace(AActor& AuthorityOwner, const FHALAttackSourceSnapshot& Source);
 	bool AdvancePulse(uint32 NewSequence);
 	void Close();
 	const FHALAttackSourceSnapshot& GetSnapshot() const { return Snapshot; }

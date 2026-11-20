@@ -104,6 +104,7 @@ private:
 	friend class FHALMovementSolverTest;
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALVehicleStabilityTestAccess;
+	friend struct FHALWaterCannonTestAccess;
 	friend struct FHALBattleTopTestAccess;
 	friend struct FHALBullChargeTestAccess;
 	friend struct FHALSideShiftTestAccess;

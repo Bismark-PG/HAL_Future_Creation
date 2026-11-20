@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BallControlComponent.h"
+#include "HALWaterCannon.h"
 #include "HALBattleTopComponent.h"
 #include "HALBullChargeComponent.h"
 #include "HALGameFlowPermissions.h"
@@ -130,6 +131,12 @@ bool UBallControlComponent::LaunchSkillHeldBall(float LaunchSpeed)
 	if (!VehicleBody || (!UHALBattleTopComponent::IsActiveOn(GetOwner()) && !UHALBullChargeComponent::IsActiveOn(GetOwner()))
 		|| !FMath::IsFinite(LaunchSpeed) || LaunchSpeed <= 0.f) { return false; }
 	return LaunchHeldBallWithVelocity(VehicleBody->GetForwardVector().GetSafeNormal() * LaunchSpeed);
+}
+
+bool UBallControlComponent::LaunchWaterJetHeldBall(AHALWaterCannon& Source, ABasicBallActor& Contact, const FVector& Velocity)
+{
+	return Source.GetOwner() == GetOwner() && HeldBall == &Contact && Source.AuthorizesBallContact(Contact)
+		&& !Velocity.ContainsNaN() && !Velocity.IsNearlyZero() && LaunchHeldBallWithVelocity(Velocity);
 }
 
 bool UBallControlComponent::LaunchHeldBallWithVelocity(const FVector& InitialVelocity)

@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-20，Car09 消防车的水炮已完成开发并绑定车型。** 主技能持续 3 秒，按车辆独立结算伤害和冲击。水流能把自由球或来袭球正式发射并取得攻击归属，攻击持球车时沿用通用冲击脱球规则。消防车受眩晕后继续出水、鸣笛和承受后坐。水柱、接触水花、警报与技能参数集中在 `DA_Ability_Car09_WaterCannon`。UE 5.8.3 Editor 和 Game 均已编译链接。玩法全量通过 263/263（两项既有换车用例带警告），D3D12 渲染与战斗专项通过 27/27，80 ms 主机出站延迟下两项联机专项在 Host 与 Client 均通过。另一次 D3D12 全量在木桩换车用例期间遇到显卡驱动中断，详见验证记录。下一步由团队把 Car09 加入 `Fred_TestScene` 的测试车型列表，验收实车手感、视听效果与四人可读性。[配置、试车入口与实测数据](Combat/Car09_Water_Cannon_CN.md)
+
 **2026-11-20 黑洞粒子特效已經由 PR #3 合併進 `main`（合併提交 `f0b5f90`）。** 本機 `main` 已同步到同一提交；遠端分支 `black-hole-fx` 保留未刪。下文與更早條目中「尚未合併進 `main`」的敘述為合併前的紀錄。合併前先把分支併入當時最新的 `main`（`3b08d5b`）並解掉 PR 的衝突：`BP_HALBlackHole.uasset` 兩邊都改過，取 `main` 版（`Duration Seconds` 為 10、其餘 Class Defaults 不動），再經 Monolith 把特效接線原樣重做（`FieldFX` 元件、`LastRadius`／`SwirlSign`、三個表現事件、兩處有效性檢查、強拉特效的 `Set Translucent Sort Priority = 1`）；本文件兩邊條目都保留。`main` 對 `HALBlackHole.h` 只新增 `GetBlackHoleConfig()`，三個表現事件不變。**已驗證**：合併後 `HAL_Future_CreationEditor` Win64 Development 編譯通過（exit 0）；Blueprint 編譯 0 錯誤 0 警告；無頭 `HAL.FutureCreation.BlackHole`＋`ArenaGenerator` **11/11 通過**（`Saved/Automation/20261120/BlackHoleFX_Merged`），契約測試的元件端檢查有執行；單機 PIE（`Saved/BlackHole/20261120/PIE_Merged`）看到力場、質心、金線，**並第一次拍到收束**：範圍線先熄、力場與質心一起縮到消失（`PIE_Merged_OverStrip.png`），結束後畫面無殘留、無 Blueprint Runtime Error。之後無頭全量 `HAL.FutureCreation` **262/262 通過、0 失敗、0 未執行**（260 乾淨＋2 項帶警告，皆為既有的 `VehicleTest.InvalidAndBlockedReplacementRetainsCurrentCar` 與 `VehicleTest.OpponentSpawnsReplacesAndSurvivesPlayerSwap`；報告 `Saved/Automation/20261120/MergedFull`，-nullrhi）。**未驗證**：順時針方向、正常幀率下的連續動態、雙端、效能、Cook 仍未做。以下為 2026-11-19 的原始紀錄。
 
 **2026-11-19 黑洞粒子特效：資產完成、已接進 `BP_HALBlackHole`、編譯通過、黑洞測試 7/7 通過、單機 PIE 截圖看到生效與金色強拉；收束特效未在 PIE 看到，雙端、效能、Cook 未做。已提交到分支 `black-hole-fx`（`8f8ff9a`，自 `main/1ea8a0d` 分出）並推送；尚未合併進 `main`。** 提交當下 `origin/main` 領先本機 17 個提交，其中也改了 `BP_HALBlackHole.uasset`（二進位，無法自動合併）、`HALBlackHole.h` 與本文件，合併時 Blueprint 必須人工擇一再補另一邊的改動。`SingleVehicleTest.umap` 的本機修改不是本輪所做，未納入提交。 下列條目中「尚未接線／未做 PIE／重啟後未複查」的敘述為接線前的歷史紀錄，以本段末的「接線與 PIE」條目為準。 接續 `main/1ea8a0d`，Monolith 回報引擎 `Release-5.8-CL-56702186`。用戶提供參考圖，確認三個元素（質心點、向內旋力場、範圍提示）與兩個階段（生效、結束；不做預警）。**沒有改任何生產 C++、Config、Blueprint 或地圖**，黑洞規則與壽命不變。
@@ -987,6 +989,8 @@ VP-4B既有75项与双端、水平预设77项与双端及完整构建证据均�
 当前**VP-2俯仰真人初测通过，参数精调后置**；下一开发可进入VP-3视觉悬挂方案／接口准备，尚未施工。各30°可配范围保留，侧倾／漂移、双端及完整画面回归继续跟踪，不据本次反馈写成全部验收。支撑过滤正向反馈、车轮正常及自救功能真人验收保持，自救表现以后优化。具体见[实施与团队反馈](Presentation/MVPB_Vehicle_Presentation_VP2_Implementation_CN_v0.1.md)。VP-4与自然有限落地辅助尚未实现。
 
 ## 1. 先读什么、先检查什么
+
+**2026-11-20 选车 UI 交接与项目演示。** 已按当前源码及 Editor 中的车辆目录、选车 Widget 核对房间引脚与展示数据。主技能卡新增字段属于待开发方案。五个技术案例已扩成约八分钟的讲稿，配有项目实图、演示动作和 11 月 18 日持球同步修复前后的测试数据。 [选车引脚与技能卡](Networking/RoomView_Vehicle_Skill_Card_CN.md) · [项目技术演示完整讲稿](Presentation/Gameplay_Technology_Presentation_CN.md)
 
 量产技能当前先读[Car04 蛮牛冲撞规则、配置与验收](Combat/Car04_Bull_Charge_CN_v0.1.md)，打滑带接续见[扩散打滑带规则、配置与验收](Combat/Vehicle_Slippery_Trail_Ability_CN_v0.1.md)，车型技能授予见[车型技能实现与DA迁移](Combat/MVPB_Vehicle_Ability_Loadout_Implementation_CN_v0.1.md)。
 

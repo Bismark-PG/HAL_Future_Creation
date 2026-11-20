@@ -1,6 +1,39 @@
 #include "HALMovementTypes.h"
 #include "Serialization/Archive.h"
 
+bool FHALWaterJetDrive::IsValid(bool bStamped) const
+{
+	if (!Activation.IsValid()) { return *this == FHALWaterJetDrive{}; }
+	return Seconds >= .1f && Seconds <= 30 && RecoilAcceleration >= 0 && RecoilAcceleration <= 6000
+		&& ForwardLimitScale >= .05f && ForwardLimitScale <= 1 && ReverseLimit >= 1 && ReverseLimit <= 10000
+		&& (bStamped ? StartFrame >= 0 && Frames > 0 : StartFrame >= INDEX_NONE) && Frames >= 0 && Frames <= 18000;
+}
+bool FHALWaterJetDrive::IsActive(int32 Frame) const
+{
+	return Activation.IsValid() && StartFrame >= 0 && Frame >= StartFrame && int64(Frame) - StartFrame < Frames;
+}
+float FHALWaterJetDrive::RecoilAt(float ForwardSpeed, float DeltaSeconds) const
+{
+	return DeltaSeconds > 0 ? FMath::Clamp((ForwardSpeed + ReverseLimit) / DeltaSeconds, 0.f, RecoilAcceleration) : 0.f;
+}
+void FHALWaterJetDrive::Stamp(const FHALWaterJetDrive* Previous, int32 Frame, float FixedDeltaSeconds)
+{
+	if (!Activation.IsValid()) { return; }
+	StartFrame = Previous && Previous->Activation == Activation ? Previous->StartFrame : Frame;
+	Frames = FixedDeltaSeconds > 0 ? FMath::Clamp(FMath::CeilToInt(Seconds / FixedDeltaSeconds), 1, 18000) : 0;
+}
+void FHALWaterJetDrive::Serialize(FArchive& Ar)
+{
+	bool bActive = Activation.IsValid();
+	Ar.SerializeBits(&bActive, 1);
+	if (bActive)
+	{
+		Ar << Activation << Seconds << RecoilAcceleration << ForwardLimitScale << ReverseLimit << StartFrame << Frames;
+		if (!Activation.IsValid()) { Ar.SetError(); }
+	}
+	else if (Ar.IsLoading()) { *this = {}; }
+}
+
 bool FHALGravityDrive::IsValid(bool bStamped) const
 {
 	if (!Source.IsValid()) { return *this == FHALGravityDrive{}; }
@@ -105,7 +138,7 @@ bool FHALMovementSnapshot::IsValidValues() const
 	return Epoch.IsValid() && Revision != 0 && FMath::IsFinite(AccelerationScale) && FMath::IsFinite(SpeedScale)
 		&& FMath::IsFinite(GripScale) && AccelerationScale >= 0 && AccelerationScale <= 3
 		&& SpeedScale >= 0 && SpeedScale <= 3 && GripScale >= 0 && GripScale <= 3
-		&& Overdrive.IsValidState(false) && SideShift.IsValid(false) && GravityDrive.IsValid(false) && Hook.IsValid(false) && AreaSway.IsValid() && (bHasAreaState || AreaSway.Amplitude == 0)
+		&& WaterJet.IsValid(false) && Overdrive.IsValidState(false) && SideShift.IsValid(false) && GravityDrive.IsValid(false) && Hook.IsValid(false) && AreaSway.IsValid() && (bHasAreaState || AreaSway.Amplitude == 0)
 		&& (!bHasAreaState || (AreaAcceleration.IsValid(false) && AreaSpeed.IsValid(false) && AreaGrip.IsValid(false)));
 }
 bool FHALMovementSnapshot::IsValid() const
@@ -118,6 +151,7 @@ bool FHALMovementSnapshot::IsValid() const
 		|| (Overdrive.StartFrame <= EffectiveServerFrame && (!Overdrive.bStunned
 			|| (Overdrive.StunFrame >= Overdrive.StartFrame && Overdrive.StunFrame <= EffectiveServerFrame))));
 	return IsValidValues() && GravityDrive.IsValid(true) && (!GravityDrive.Source.IsValid() || GravityDrive.StartFrame <= EffectiveServerFrame)
+		&& WaterJet.IsValid(true) && WaterJet.StartFrame <= EffectiveServerFrame
 		&& Hook.IsValid(true) && (!Hook.Activation.IsValid() || int64(Hook.StartFrame) <= int64(EffectiveServerFrame)+((Hook.bThrow||Hook.bSwing)?1:0))
 		&& SideShift.IsValid(true) && (!SideShift.Activation.IsValid() || SideShift.StartFrame<=EffectiveServerFrame)
 		&& bOverdriveValid && bSwayValid && EffectiveServerFrame >= 0 && (!bHasAreaState
@@ -127,13 +161,13 @@ bool FHALMovementSnapshot::IsValid() const
 }
 bool FHALMovementSnapshot::IsUnset() const
 {
-	return !Epoch.IsValid() && Revision == 0 && EffectiveServerFrame == INDEX_NONE
+	return WaterJet == FHALWaterJetDrive{} && !Epoch.IsValid() && Revision == 0 && EffectiveServerFrame == INDEX_NONE
 		&& AccelerationScale == 1 && SpeedScale == 1 && GripScale == 1 && !bHasAreaState && !bControlsBlocked && !bHandbrakeBlocked
 		&& Overdrive == FHALOverdriveMotion{} && SideShift == FHALSideShiftMotion{} && GravityDrive == FHALGravityDrive{} && Hook == FHALHookMotion{} && AreaSway == FHALMovementAreaSway{} && SwayStartFrame == INDEX_NONE && SwayPeriodFrames == 0 && SwayRampFrames == 0;
 }
 bool FHALMovementSnapshot::Equals(const FHALMovementSnapshot& Other) const
 {
-	return Epoch == Other.Epoch && Revision == Other.Revision && EffectiveServerFrame == Other.EffectiveServerFrame
+	return WaterJet == Other.WaterJet && Epoch == Other.Epoch && Revision == Other.Revision && EffectiveServerFrame == Other.EffectiveServerFrame
 		&& FMath::IsNearlyEqual(AccelerationScale, Other.AccelerationScale, 1.e-4f)
 		&& FMath::IsNearlyEqual(SpeedScale, Other.SpeedScale, 1.e-4f)
 		&& FMath::IsNearlyEqual(GripScale, Other.GripScale, 1.e-4f) && bHasAreaState == Other.bHasAreaState
@@ -151,6 +185,7 @@ void FHALMovementSnapshot::Serialize(FArchive& Ar)
 	SideShift.Serialize(Ar);
 	GravityDrive.Serialize(Ar);
 	Hook.Serialize(Ar);
+	WaterJet.Serialize(Ar);
 	if (bHasAreaState) { AreaAcceleration.Serialize(Ar); AreaSpeed.Serialize(Ar); AreaGrip.Serialize(Ar); }
 	else if (Ar.IsLoading()) { AreaAcceleration = {}; AreaSpeed = {}; AreaGrip = {}; }
 	bool bHasSway = !Ar.IsLoading() && AreaSway.Amplitude > 0;
@@ -170,6 +205,7 @@ void FHALMovementSnapshot::Stamp(const FHALMovementSnapshot* Previous, int32 Fra
 	SideShift.Stamp(Previous ? &Previous->SideShift : nullptr, Frame, FixedDeltaSeconds);
 	GravityDrive.Stamp(Previous ? &Previous->GravityDrive : nullptr, Frame, FixedDeltaSeconds);
 	Hook.Stamp(Previous ? &Previous->Hook : nullptr, Frame, FixedDeltaSeconds);
+	WaterJet.Stamp(Previous ? &Previous->WaterJet : nullptr, Frame, FixedDeltaSeconds);
 	SwayStartFrame = INDEX_NONE;
 	SwayPeriodFrames = SwayRampFrames = 0;
 	if (!bHasAreaState) { return; }

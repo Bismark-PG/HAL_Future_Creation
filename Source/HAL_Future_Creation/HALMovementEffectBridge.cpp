@@ -97,6 +97,22 @@ void UHALMovementEffectBridge::SetHookMotion(const FHALHookMotion& Motion)
 void UHALMovementEffectBridge::EndHookMotion(FGuid Activation)
 { if(GetOwner()->HasAuthority()&&HookMotion.Activation==Activation&&!HookMotion.bThrow) { HookMotion={}; bDirty=true; } }
 
+void UHALMovementEffectBridge::SetWaterJet(const FHALWaterJetDrive& Drive)
+{
+	if (GetOwner()->HasAuthority() && Drive.Activation.IsValid() && Drive.IsValid(false))
+	{
+		WaterJet = Drive;
+		bDirty = true;
+	}
+}
+void UHALMovementEffectBridge::EndWaterJet(FGuid Activation)
+{
+	if (GetOwner()->HasAuthority() && Activation.IsValid() && WaterJet.Activation == Activation)
+	{
+		WaterJet = {};
+		bDirty = true;
+	}
+}
 void UHALMovementEffectBridge::Unbind()
 {
 	if (ASC)
@@ -117,6 +133,7 @@ void UHALMovementEffectBridge::Unbind()
 	SideShift = {};
 	DragDrive = {};
 	HookMotion = {};
+	WaterJet = {};
 	if (GetOwner()->HasAuthority() && Epoch.IsValid()) { Epoch.Invalidate(); GetOwner()->ForceNetUpdate(); }
 	if (Movement) { Movement->ConfigureMovementEffects({}, History, GetOwner()->HasAuthority(), BoundPlayerId); }
 }
@@ -147,6 +164,7 @@ void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float D
 	Snapshot.Overdrive = Overdrive;
 	Snapshot.SideShift = SideShift;
 	Snapshot.Hook = HookMotion;
+	if (!bFlowBlocked) { Snapshot.WaterJet = WaterJet; }
 	Snapshot.Overdrive.bStunned = Overdrive.bActive && ASC->IsStunned();
 	Snapshot.GravityDrive = ASC->HasMatchingGameplayTag(HALGameplayTags::State_Movement_Drag) ? DragDrive : FHALGravityDrive{};
 	if (!Values) { return; }
@@ -172,6 +190,7 @@ void UHALMovementEffectBridge::Flush(UWorld* World, ELevelTick TickType, float D
 		&& LastPublished.Overdrive == Snapshot.Overdrive
 		&& LastPublished.SideShift == Snapshot.SideShift
 		&& LastPublished.Hook == Snapshot.Hook
+		&& LastPublished.WaterJet == Snapshot.WaterJet
 		&& LastPublished.GravityDrive == Snapshot.GravityDrive
 		&& LastPublished.AreaSway == Snapshot.AreaSway
 		&& SameTarget(LastPublished.AreaAcceleration, Snapshot.AreaAcceleration)

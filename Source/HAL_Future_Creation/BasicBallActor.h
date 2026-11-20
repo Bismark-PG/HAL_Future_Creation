@@ -114,6 +114,7 @@ public:
 	bool LaunchFreeFromVehicleSkill(AActor* NewLauncher, const FVector& InitialVelocity);
 	/** Narrow authority capability: only the tornado's current accepted contact may call this. */
 	bool DeflectByTornado(AHALTornado& Source, const FVector& InitialVelocity);
+	bool LaunchFromWaterCannon(class AHALWaterCannon& Source, const FVector& Velocity);
 	bool ReleaseFromControl(AActor* ExpectedHolder, float ReacquireLockDuration);
 	void AddReleaseImpulse(const FVector& Impulse);
 	/** Server cleanup before a vehicle Pawn is destroyed; preserves a launched ball's stable PlayerId. */

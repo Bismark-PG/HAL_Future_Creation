@@ -2,6 +2,7 @@
 
 #include "BasicBallActor.h"
 #include "HALTornado.h"
+#include "HALWaterCannon.h"
 #include "CoreGlobals.h"
 #include "HALBattleTopComponent.h"
 #include "HALBullChargeComponent.h"
@@ -226,6 +227,17 @@ bool ABasicBallActor::LaunchFreeFromVehicleSkill(AActor* NewLauncher, const FVec
 	return CommitLaunch(NewLauncher, InitialVelocity, NewLauncher);
 }
 
+bool ABasicBallActor::LaunchFromWaterCannon(AHALWaterCannon& Source, const FVector& Velocity)
+{
+	AActor* Launcher = Source.GetOwner();
+	if (!HasAuthority() || !bConfigurationValid || bResolvingDamageHit || !Source.AuthorizesBallContact(*this)
+		|| !HALGameFlow::Permissions(GetWorld(),Cast<APawn>(Launcher)).bBallControl
+		|| Velocity.ContainsNaN() || Velocity.IsNearlyZero()) { return false; }
+	if (RepState.State == EBasicBallState::Free && (LastBecameFreeGameFrame == GFrameCounter || !PassesPickupLocks(Launcher))) { return false; }
+	if (RepState.State != EBasicBallState::Free && RepState.State != EBasicBallState::Launched) { return false; }
+	return CommitLaunch(Launcher, Velocity, Launcher);
+}
+
 bool ABasicBallActor::DeflectByTornado(AHALTornado& Source, const FVector& InitialVelocity)
 {
 	if (!HasAuthority() || !bConfigurationValid || bResolvingDamageHit || !Source.AuthorizesBallContact(*this)
@@ -277,7 +289,8 @@ bool ABasicBallActor::CommitLaunch(AActor* NewLauncher, const FVector& InitialVe
 	Attack.Impact = RuntimeImpactConfig;
 	Attack.EffectTags = RuntimeDamageConfig.EffectTags;
 	Attack.bCanHitInstigator = false;
-	if (!LaunchAction.Begin(*this, Attack)) { return false; }
+	// A water intercept changes attack ownership without inserting an observable Free state.
+	if (!LaunchAction.Replace(*this, Attack)) { return false; }
 	FBallRepState Next;
 	Next.State = EBasicBallState::Launched;
 	Next.AttackSnapshot = LaunchAction.GetSnapshot();

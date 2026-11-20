@@ -66,6 +66,25 @@ struct HAL_FUTURE_CREATION_API FHALGravityDrive
 
 /** Absolute parameters for one Avatar; no GAS/UObject data crosses into physics. */
 USTRUCT()
+struct HAL_FUTURE_CREATION_API FHALWaterJetDrive
+{
+	GENERATED_BODY()
+	UPROPERTY() FGuid Activation;
+	UPROPERTY() float Seconds = 0;
+	UPROPERTY() float RecoilAcceleration = 0;
+	UPROPERTY() float ForwardLimitScale = 1;
+	UPROPERTY() float ReverseLimit = 0;
+	UPROPERTY() int32 StartFrame = INDEX_NONE;
+	UPROPERTY() int32 Frames = 0;
+	bool IsValid(bool bStamped) const;
+	bool IsActive(int32 Frame) const;
+	float RecoilAt(float ForwardSpeed, float DeltaSeconds) const;
+	void Stamp(const FHALWaterJetDrive* Previous, int32 Frame, float FixedDeltaSeconds);
+	void Serialize(FArchive& Ar);
+	bool operator==(const FHALWaterJetDrive& Other) const = default;
+};
+
+USTRUCT()
 struct HAL_FUTURE_CREATION_API FHALMovementSnapshot
 {
 	GENERATED_BODY()
@@ -80,6 +99,7 @@ struct HAL_FUTURE_CREATION_API FHALMovementSnapshot
 	UPROPERTY() FHALSideShiftMotion SideShift;
 	UPROPERTY() FHALGravityDrive GravityDrive;
 	UPROPERTY() FHALHookMotion Hook;
+	UPROPERTY() FHALWaterJetDrive WaterJet;
 	UPROPERTY() float GripScale = 1;
 	/** Legacy/native callers may supply constant scales. The GAS bridge supplies all three channels. */
 	UPROPERTY() bool bHasAreaState = false;
@@ -107,8 +127,8 @@ struct HAL_FUTURE_CREATION_API FHALMovementTimeline
 {
 	GENERATED_BODY()
 	static constexpr int32 MaximumEntries = 256;
-	/** Version 13 adds the connected hook swing and momentum-preserving release. */
-	static constexpr uint8 CurrentFormat = 13;
+	/** Version 14 includes continuous water jet recoil on the physics timeline. */
+	static constexpr uint8 CurrentFormat = 14;
 	UPROPERTY() uint8 FormatVersion = CurrentFormat;
 	UPROPERTY() FGuid Epoch;
 	UPROPERTY() int32 StartFrame = INDEX_NONE;

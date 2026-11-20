@@ -388,6 +388,18 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	const FVector RightDirection = FVector::CrossProduct(GroundNormal, ForwardDirection).GetSafeNormal();
 
 	ForwardSpeed = FVector::DotProduct(Velocity, ForwardDirection);
+	// The pump keeps running when driver input is blocked. Apply force at the COM, including during replay.
+	const auto& WaterJet = CurrentMovement.WaterJet;
+	if (WaterJet.IsActive(CurrentMovementServerFrame) && GroundProbeRotation.GetUpVector().Z > .35f && !RecoveryPhysics.bActive)
+	{
+		const FVector Heading = GroundProbeRotation.GetForwardVector().GetSafeNormal2D();
+		const float Recoil = WaterJet.RecoilAt(FVector::DotProduct(Velocity, Heading), DeltaTime);
+		if (Recoil > 0)
+		{
+			if (PhysicsHandle->ObjectState() == Chaos::EObjectStateType::Sleeping) { PhysicsHandle->SetObjectState(Chaos::EObjectStateType::Dynamic, true); }
+			FPhysicsInterface::AddForce_AssumesLocked(Body->GetPhysicsActor(), -Heading * Recoil, false, true, true);
+		}
+	}
 	{
 		FScopeLock Lock(&PendingPhysicsDataLock);
 		PublishedPresentationInput.Steering = FMath::IsFinite(InputCommand.Steering)
@@ -1246,7 +1258,8 @@ void UArcadeVehicleMovementComponent::ApplyLongitudinalForces(
 	const bool bThrottleHeld = InputCommand.Throttle > KINDA_SMALL_NUMBER && !bBrakeHeld;
 	const float EffectiveForwardAcceleration = ForwardAcceleration * CurrentMovementScales.X;
 	const float EffectiveReverseAcceleration = ReverseAcceleration * CurrentMovementScales.X;
-	const float EffectiveMaxForwardSpeed = MaxForwardSpeed * CurrentMovementScales.Y;
+	const bool bSpraying = CurrentMovement.WaterJet.IsActive(CurrentMovementServerFrame) && GroundProbeRotation.GetUpVector().Z > .35f && !RecoveryPhysics.bActive;
+	const float EffectiveMaxForwardSpeed = MaxForwardSpeed * CurrentMovementScales.Y * (bSpraying ? CurrentMovement.WaterJet.ForwardLimitScale : 1.f);
 	const float EffectiveMaxReverseSpeed = MaxReverseSpeed * CurrentMovementScales.Y;
 
 	float RequestedAcceleration = 0.0f;

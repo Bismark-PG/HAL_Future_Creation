@@ -34,6 +34,8 @@ public:
 	void SetDragDrive(const FHALGravityDrive& Field);
 	void SetHookMotion(const FHALHookMotion& Motion);
 	void EndHookMotion(FGuid Activation);
+	void SetWaterJet(const FHALWaterJetDrive& Drive);
+	void EndWaterJet(FGuid Activation);
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 private:
@@ -58,6 +60,7 @@ private:
 	FHALSideShiftMotion SideShift;
 	FHALGravityDrive DragDrive;
 	FHALHookMotion HookMotion;
+	FHALWaterJetDrive WaterJet;
 	FHALMovementSnapshot LastPublished;
 	int32 BoundPlayerId = INDEX_NONE;
 	bool bDirty = false;

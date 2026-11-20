@@ -10,6 +10,12 @@
 struct FHALVehicleAbilityTestAccess
 {
 	static constexpr float BattleTopNetworkSpinRate = 540.f;
+	static void Pedals(ATestVehiclePawn& Pawn, float Throttle, float Brake)
+	{
+		Pawn.CurrentInputCommand.Throttle = Throttle;
+		Pawn.CurrentInputCommand.Brake = Brake;
+		Pawn.PushInputCommand();
+	}
 	static FHALVehicleAbilityConfig Config(TSubclassOf<UGameplayAbility> Ability)
 	{
 		FHALVehicleAbilityConfig C; C.Version=EHALVehicleAbilityVersion::VehicleDefinitionV1;

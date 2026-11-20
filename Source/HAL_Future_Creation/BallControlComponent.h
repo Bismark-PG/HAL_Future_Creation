@@ -41,6 +41,7 @@ public:
 	bool LaunchHeldBall(FVector& OutRecoilDeltaVelocity);
 	bool LaunchBattleTopHeldBall(float LaunchSpeed);
 	bool LaunchSkillHeldBall(float LaunchSpeed);
+	bool LaunchWaterJetHeldBall(class AHALWaterCannon& Source, ABasicBallActor& Contact, const FVector& Velocity);
 	/** The same tuned recoil calculation is used by the server and owning client's prediction. */
 	FVector CalculateRecoilDeltaVelocity() const;
 	/** Explicit server cleanup before the owning Pawn is unpossessed/destroyed. */
@@ -135,6 +136,9 @@ private:
 	ABasicBallActor* FindBestCandidate() const;
 	bool HasLineOfSightTo(const ABasicBallActor* Candidate) const;
 	bool AcquireBall(ABasicBallActor* Candidate);
+#if WITH_DEV_AUTOMATION_TESTS
+	friend struct FHALWaterCannonTestAccess;
+#endif
 	void ConfigureConstraint(ABasicBallActor* Ball);
 	void ReleaseConstraint();
 	void ReleaseHeldBall(const FVector& ReleaseDirection, bool bApplyReleaseImpulse, FName Reason = NAME_None);

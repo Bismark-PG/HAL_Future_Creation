@@ -39,9 +39,13 @@ bool FHALAttackSourceSnapshot::CalculateRawDamage(float& OutDamage) const
 
 bool FHALCombatAction::Begin(AActor& AuthorityOwner, const FHALAttackSourceSnapshot& Source)
 {
+	return !bActive && Replace(AuthorityOwner,Source);
+}
+bool FHALCombatAction::Replace(AActor& AuthorityOwner, const FHALAttackSourceSnapshot& Source)
+{
 	float Damage;
 	UWorld* OwnerWorld = AuthorityOwner.GetWorld();
-	if (bActive || !IsValid(&AuthorityOwner) || !AuthorityOwner.HasAuthority() || !OwnerWorld || OwnerWorld->GetNetMode() == NM_Client
+	if (!IsValid(&AuthorityOwner) || !AuthorityOwner.HasAuthority() || !OwnerWorld || OwnerWorld->GetNetMode() == NM_Client
 		|| !Source.CalculateRawDamage(Damage)) { return false; }
 	Snapshot = Source;
 	Snapshot.AttackId = FGuid::NewGuid();

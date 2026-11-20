@@ -15,6 +15,8 @@ namespace HALGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Arrested,"State.Vehicle.Arrested","Pursuit arrest marker during shared Stun.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_PursuitProtected,"State.Vehicle.PursuitProtected","Blocks Car06 arrest only; never blocks ordinary Stun.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Tornado,"Ability.Vehicle.Tornado","Car05 moving tornado primary ability.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_WaterCannon,"Ability.Vehicle.WaterCannon","Car09 sustained forward water jet.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_WaterCannon,"Combat.Source.WaterCannon","Water jet damage and directional impact.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_Tornado,"Cooldown.Vehicle.Tornado","Tornado cooldown from successful activation.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_Tornado,"Combat.Source.Tornado","Independent tornado impact, no direct damage.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_BattleTop, "Ability.Vehicle.BattleTop", "Car03 primary ability.");

@@ -5,6 +5,7 @@
 #include "HALAbilityTypes.generated.h"
 
 class UGameplayAbility;
+class UDataAsset;
 
 /** One owner-scoped grant. Input identity is independent of the concrete GA class. */
 USTRUCT(BlueprintType)
@@ -18,6 +19,9 @@ struct HAL_FUTURE_CREATION_API FHALAbilityGrant
 	FGameplayTag InputTag;
 	UPROPERTY(EditDefaultsOnly, Category = "Ability", meta = (ClampMin = "1"))
 	int32 Level = 1;
+	/** Optional per-vehicle tuning for native abilities that read configuration from their grant. */
+	UPROPERTY(EditDefaultsOnly, Category="Ability")
+	TObjectPtr<UDataAsset> SkillConfig;
 };
 
 UENUM(BlueprintType)
