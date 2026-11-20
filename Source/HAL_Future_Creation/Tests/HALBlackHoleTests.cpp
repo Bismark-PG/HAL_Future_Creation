@@ -16,6 +16,9 @@
 #include "Chaos/SimCallbackObject.h"
 #include "PhysicsEngine/BodyInstance.h"
 #include "PhysicsProxy/SingleParticlePhysicsProxy.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
+#include "NiagaraTypes.h"
 #include <limits>
 
 /** Reaches the production physics-thread impact consumer; the arcade tick stays off. */
@@ -359,4 +362,80 @@ bool FHALBlackHoleDebugTest::RunTest(const FString& Parameters)
 #endif
 	return true;
 }
+
+#if WITH_EDITOR
+namespace HALBlackHoleFX
+{
+	struct FParameter { const TCHAR* Name; bool bColor; };
+	struct FSystem { const TCHAR* Path; TArray<FParameter> Contract; };
+	static const TCHAR* BlueprintPath = TEXT("/Game/Blueprints/MapMechanic/BP_HALBlackHole.BP_HALBlackHole_C");
+	static const TCHAR* FieldSystemPath = TEXT("/Game/Assets/FX/NS_BlackHole.NS_BlackHole");
+	/** What the Blueprint pushes from OnFieldUpdated / OnAttractionPulse / OnStageChanged(Ended). */
+	static TArray<FSystem> Systems()
+	{
+		return {
+			{ FieldSystemPath, { {TEXT("User.Radius"),false}, {TEXT("User.SwirlSign"),false}, {TEXT("User.Preparation"),false}, {TEXT("User.Color"),true} } },
+			{ TEXT("/Game/Assets/FX/NS_BlackHole_Pulse.NS_BlackHole_Pulse"), { {TEXT("User.Radius"),false}, {TEXT("User.SwirlSign"),false}, {TEXT("User.Color"),true} } },
+			{ TEXT("/Game/Assets/FX/NS_BlackHole_Over.NS_BlackHole_Over"), { {TEXT("User.Radius"),false}, {TEXT("User.SwirlSign"),false}, {TEXT("User.Color"),true} } } };
+	}
+	static TMap<FName,FNiagaraTypeDefinition> Declared(const UNiagaraSystem* System)
+	{
+		TMap<FName,FNiagaraTypeDefinition> Out;
+		for (const FNiagaraVariableWithOffset& V : System->GetExposedParameters().ReadParameterVariables()) { Out.Add(V.GetName(), V.GetType()); }
+		return Out;
+	}
+}
+// Presentation wiring only. UNiagaraComponent::SetVariable* adds a parameter when the name or type
+// misses, so a typo in the Blueprint is silent at runtime: the swirl keeps its asset defaults and the
+// log stays clean. This locks the names and types the three systems declare, and rejects any override
+// on the Blueprint's component that the asset does not declare. It checks the contract, not the picture.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALBlackHoleFXContractTest, "HAL.FutureCreation.BlackHole.FXParameterContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALBlackHoleFXContractTest::RunTest(const FString& Parameters)
+{
+	for (const HALBlackHoleFX::FSystem& Entry : HALBlackHoleFX::Systems())
+	{
+		const UNiagaraSystem* System = LoadObject<UNiagaraSystem>(nullptr, Entry.Path);
+		if (!TestNotNull(FString::Printf(TEXT("%s loads"), Entry.Path), System)) { continue; }
+		const TMap<FName,FNiagaraTypeDefinition> Declared = HALBlackHoleFX::Declared(System);
+		for (const HALBlackHoleFX::FParameter& P : Entry.Contract)
+		{
+			const FNiagaraTypeDefinition* Type = Declared.Find(FName(P.Name));
+			if (!TestNotNull(FString::Printf(TEXT("%s declares %s"), Entry.Path, P.Name), Type)) { continue; }
+			TestTrue(FString::Printf(TEXT("%s %s has the pushed type"), Entry.Path, P.Name),
+				*Type == (P.bColor ? FNiagaraTypeDefinition::GetColorDef() : FNiagaraTypeDefinition::GetFloatDef()));
+		}
+	}
+
+	UClass* BlueprintClass = LoadClass<AHALBlackHole>(nullptr, HALBlackHoleFX::BlueprintPath);
+	if (!TestNotNull(TEXT("Saved BP_HALBlackHole loads"), BlueprintClass)) { return false; }
+	const auto Options = UWorld::InitializationValues().AllowAudioPlayback(false).CreatePhysicsScene(false)
+		.CreateNavigation(false).CreateAISystem(false).CreateFXSystem(false).SetTransactional(false);
+	UWorld* World = UWorld::CreateWorld(EWorldType::Game, false, NAME_None, nullptr, true, ERHIFeatureLevel::Num, &Options);
+	GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(World);
+	ON_SCOPE_EXIT { World->DestroyWorld(false); GEngine->DestroyWorldContext(World); };
+	auto* Hole = World->SpawnActor<AHALBlackHole>(BlueprintClass);
+	if (!TestNotNull(TEXT("Blueprint black hole spawns"), Hole)) { return false; }
+	TArray<UNiagaraComponent*> Components;
+	Hole->GetComponents(Components);
+	if (Components.IsEmpty())
+	{
+		// The team wires the component by hand in the Editor; until then only the asset side is checkable.
+		AddInfo(TEXT("BP_HALBlackHole carries no Niagara component yet: component checks skipped."));
+		return true;
+	}
+	const UNiagaraSystem* Field = LoadObject<UNiagaraSystem>(nullptr, HALBlackHoleFX::FieldSystemPath);
+	UNiagaraComponent* FieldComponent = nullptr;
+	for (UNiagaraComponent* Component : Components) { if (Component->GetAsset() == Field) { FieldComponent = Component; break; } }
+	if (!TestNotNull(TEXT("A Niagara component on BP_HALBlackHole plays NS_BlackHole"), FieldComponent) || !Field) { return false; }
+	const TMap<FName,FNiagaraTypeDefinition> Declared = HALBlackHoleFX::Declared(Field);
+	for (const FNiagaraVariableWithOffset& V : FieldComponent->GetOverrideParameters().ReadParameterVariables())
+	{
+		const FNiagaraTypeDefinition* Type = Declared.Find(V.GetName());
+		TestTrue(FString::Printf(TEXT("Override %s is declared by NS_BlackHole with the same type"), *V.GetName().ToString()),
+			Type && *Type == V.GetType());
+	}
+	return true;
+}
+#endif
 #endif
