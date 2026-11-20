@@ -63,6 +63,7 @@ void UHALMatchHUDWidget::ReleaseSlateResources(bool bReleaseChildren)
 }
 FHALUltimateEnergyView UHALMatchHUDWidget::GetLocalUltimateEnergy() const
 {
+	if (bUsesRoomView) { return RoomView.LocalUltimateEnergy; }
 	const auto* Pawn = Cast<ATestVehiclePawn>(GetOwningPlayerPawn());
 	const auto* ASC = Pawn ? Cast<UHALAbilitySystemComponent>(Pawn->GetAbilitySystemComponent()) : nullptr;
 	return ASC && ASC->GetAvatarActor() == Pawn ? ASC->GetUltimateEnergyView() : FHALUltimateEnergyView();
@@ -115,7 +116,8 @@ void UHALMatchHUDWidget::RefreshCountdown()
 	const FText Text=GetCountdownText();
 	const auto Energy = GetLocalUltimateEnergy();
 	const bool ScreenActive = !bUsesRoomView || bRoomScreenActive;
-	const bool Driving = ScreenActive && Energy.Cost > 0 && HALGameFlow::Permissions(GetWorld(), GetOwningPlayerPawn()).bAbilities;
+	const bool Driving = ScreenActive && (bUsesRoomView ? RoomView.bShowUltimateEnergy
+		: Energy.Cost > 0 && HALGameFlow::Permissions(GetWorld(), GetOwningPlayerPawn()).bAbilities);
 	const bool ShowEnergy = Driving && bShowNativeUltimateMeter;
 	SetVisibility(ScreenActive && (!Text.IsEmpty() || Driving) ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	if (ClockPanel) { ClockPanel->SetVisibility(ScreenActive && (!Text.IsEmpty() || (Driving && !bShowNativeUltimateMeter)) ? EVisibility::HitTestInvisible : EVisibility::Collapsed); }
@@ -129,9 +131,11 @@ void UHALMatchHUDWidget::RefreshCountdown()
 		float DisplayEnergy = Energy.Energy;
 		if (Energy.bRecharging && Energy.FullRechargeSeconds > 0.f)
 		{
-			if (const auto* Match = GetWorld()->GetGameState<AHALMatchGameState>())
+			const auto* Match = !bUsesRoomView && GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr;
+			if (bUsesRoomView || Match)
 			{
-				const double Elapsed = FMath::Max(0., Match->GetServerWorldTimeSeconds() - Energy.SampleServerTime);
+				const double Now = bUsesRoomView ? RoomView.ServerWorldTimeSeconds : Match->GetServerWorldTimeSeconds();
+				const double Elapsed = FMath::Max(0., Now - Energy.SampleServerTime);
 				DisplayEnergy += float(Elapsed * HALUltimate::Capacity / Energy.FullRechargeSeconds);
 			}
 		}

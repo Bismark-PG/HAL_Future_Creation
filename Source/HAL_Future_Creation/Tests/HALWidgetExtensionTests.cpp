@@ -3,6 +3,7 @@
 #include "HALWidgetExtensionTestAccess.h"
 #include "UObject/UnrealType.h"
 #include "../HALMatchHUDWidget.h"
+#include "../HALVehicleCatalog.h"
 
 struct FHALRoomScreenTestAccess
 {
@@ -104,15 +105,26 @@ bool FHALRoomMatchHUDViewTest::RunTest(const FString&)
 {
 	auto* HUD=NewObject<UHALMatchHUDWidget>(); FHALRoomView V;
 	V.bRoomAvailable=true; V.Phase=EHALRoomPhase::Playing; V.Match.bActive=true; V.MatchRemaining=60.01f;
+	V.LoadedCatalog=NewObject<UHALVehicleCatalog>();
+	V.LocalUltimateEnergy.Energy=42; V.LocalUltimateEnergy.Cost=25; V.bShowUltimateEnergy=true;
 	IHALRoomScreenInterface::Execute_ApplyView(HUD,V);
+	TestEqual(TEXT("Embedded HUD uses supplied energy without a pawn"),HUD->GetLocalUltimateEnergy().Energy,42.f);
+	TestEqual(TEXT("Embedded HUD keeps the root's loaded catalog"),HUD->GetMatchView().LoadedCatalog.Get(),V.LoadedCatalog.Get());
 	TestEqual(TEXT("Applying hidden screen does not reveal it"),HUD->GetVisibility(),ESlateVisibility::Collapsed);
 	TestEqual(TEXT("View can fill Designer text before activation"),HUD->GetCountdownText().ToString(),FString(TEXT("01:01")));
 	IHALRoomScreenInterface::Execute_SetScreenActive(HUD,true);
 	TestEqual(TEXT("Embedded HUD reads supplied server-derived remaining time"),HUD->GetCountdownText().ToString(),FString(TEXT("01:01")));
-	IHALRoomScreenInterface::Execute_SetScreenActive(HUD,false); V.MatchRemaining=30; IHALRoomScreenInterface::Execute_ApplyView(HUD,V);
+	IHALRoomScreenInterface::Execute_SetScreenActive(HUD,false); V.MatchRemaining=30; V.LocalUltimateEnergy.Energy=7;
+	V.LoadedCatalog=nullptr; IHALRoomScreenInterface::Execute_ApplyView(HUD,V);
 	TestEqual(TEXT("Later data never revives deactivated HUD"),HUD->GetVisibility(),ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Hidden HUD receives the latest energy snapshot"),HUD->GetLocalUltimateEnergy().Energy,7.f);
+	TestNull(TEXT("Cleared root catalog does not retain an old reference"),HUD->GetMatchView().LoadedCatalog.Get());
 	IHALRoomScreenInterface::Execute_SetScreenActive(HUD,true);
 	TestEqual(TEXT("Reactivation uses latest snapshot"),HUD->GetCountdownText().ToString(),FString(TEXT("00:30")));
+	V.Match.bActive=false; IHALRoomScreenInterface::Execute_ApplyView(HUD,V);
+	TestEqual(TEXT("Root energy visibility works without local pawn permission queries"),HUD->GetVisibility(),ESlateVisibility::HitTestInvisible);
+	V.bShowUltimateEnergy=false; IHALRoomScreenInterface::Execute_ApplyView(HUD,V);
+	TestEqual(TEXT("Root can hide an energy-only HUD"),HUD->GetVisibility(),ESlateVisibility::Collapsed);
 	V.bShowResults=true; IHALRoomScreenInterface::Execute_ApplyView(HUD,V);
 	TestTrue(TEXT("Results remove match countdown"),HUD->GetCountdownText().IsEmpty());
 	return true;

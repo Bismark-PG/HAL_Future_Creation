@@ -31,3 +31,37 @@
 团队从 NetEntry 建房并开始 Match，检查：顶部仅新倒计时；背景为半透明白、文字黑色；从本局配置时间递减；主机与客户端时间基本一致；驾驶／漂移／发射／技能输入不被抢占；菜单开关后计时继续；淘汰观战仍计时；比赛结束后隐藏；返回房间再开一局无重复控件。直接打开未初始化 Match 应不显示虚假时间。检查 1280×720 与 1920×1080 的顶部位置及自定义 Room 页有无重复顶栏。
 
 2026-11-16 显示范围补充：将旧顶栏条件从排除 Playing 改为明确仅允许 Open；本次 Editor R4 构建成功（构建系统触发 51 项关联重编），新 DLL 的 Tests_R4 回归 9/9 成功、0 测试警告／失败／未运行，进程退出 0。构建既有警告保留；本次仍未进行实际画面与手柄输入验收。证据：Saved/MatchHUD/20261116/Editor_R4_PracticeOnly.log、Tests_R4.log、Tests_R4/index.json。此前 R3／Tests 记录保留。
+
+## 2026-11-20：Room 向 MatchHUD 的最小数据分发
+
+基于干净的 `main/b97ca6c`，实际本机引擎为 UE 5.8.3-58210709；项目状态中的其他设备 5.8.2 构建记录不是本轮证据。没有新增源码、资产或数据结构。
+
+当前资产已由团队移动到 `Screens/PreMatchFlow` 和 `Screens/MatchFlow`。Room 已在 Construct 中调用 `MatchFlowWidget.GetMatchHUD()`，将返回的 HUD 注册为 Match 页面。`WBP_GF_MatchFlow` 当前为 UserWidget 容器，只有 GetMatchHUD，没有 Switcher 或加载／结果页面；没有独立的 PreMatchFlow 管理 WBP。本轮不扩展这些页面职责。
+
+本轮 C++ 仅在已有 `FHALRoomView` 末尾追加四个只读字段：
+
+- `LoadedCatalog`：复用 Room 根页面原有的异步目录加载。
+- `LocalUltimateEnergy`：当前本地 Avatar 的既有能量显示结构。
+- `bShowUltimateEnergy`：沿用原来 HUD 使用的 Cost 与动作权限判断，由 Room 采样。
+- `ServerWorldTimeSeconds`：由 Room 提供的服务器时间，用于保持能量条原有的显示插值。
+
+`GetRoomView()` 只在 Playing 采样后三项，Open 选车／练习阶段不增加周期时间或能量采样，不改变其刷新条件。已有 Match.Players 的内容、顺序和编号，以及旧 View 字段、页面解析、输入、按钮与 Preview 逻辑均不改。
+
+Room 接管后的原生 MatchHUD 从 View 读取能量、显示许可和服务器时间，不再独立查询 Pawn／ASC／GameState。比赛时间继续使用现有 MatchRemaining 和 GetCountdownText。独立测试场未被 Room 接管的 HUD 保留原读取及定时回退路径。ReceiveMatchView、GetMatchView 等既有接口不改名、不改参数；MatchHUD 父类不变。
+
+所有 uasset／umap 均不编辑，包括 WBP_GF_Room、MatchFlow、MatchHUD、PlayerStatusRow、Network 参考画面和 PreMatchFlow 文件夹。没有调用 Editor、修改默认配置、重排玩家或修改选车／练习逻辑。
+
+### 团队随后只需在 WBP_GF_MatchHUD 手动完成
+
+1. 在 Receive Match View 中，从事件 View 拆出新增 LoadedCatalog，赋给现有 LoadedCatalog 变量，然后执行原来的 RefreshPlayers。初始为 null 时也赋值，避免保留旧目录；Room 完成加载后会通过同一事件更新。
+2. RefreshPlayers 继续使用 GetMatchView → Match.Players 和现有 SetPlayerData，保留现有行、HP、编号与车型表现。
+3. 确认上述路径生效后，移除运行时 Construct 中自行 GetGameState／GetRoom、绑定 RoomChanged、读取 GetData.Catalog 和异步加载目录的旧链路。仅清理依赖该旧链路的变量／事件；保留 Designer 预览所需的表现分支。
+4. GetText → GetCountdownText 及能量显示的既有继承接口保持不变。无需修改 Room 注册接线、MatchFlow 或 PreMatchFlow。
+
+这些 Blueprint 接线未在本轮执行，因此不能将当前资产描述为“已全部改由 Room 供数”。团队接线后仍需确认目录延迟加载、血量／车型显示、能量恢复、技能消耗、观战、返回房间及第二局；至少覆盖一主一客。
+
+已有 `HAL.FutureCreation.GameFlow.UIIntegration.MatchHUDView` 已扩展并随 Target 编译：无 Pawn 时使用供应的能量、目录更新／清空、失活不复显，以及由 Room 决定能量显示许可。
+
+本次 `HAL_Future_CreationEditor / Win64 / Development` 完整构建 **Succeeded，退出 0，50/50 构建步骤完成，394.48 秒**；运行时与 Editor 模块均已链接，生成的反射代码确认四个新字段存在。日志为 `Saved/UIIntegration/RoomViewBuild_20261120.log`。未改动代码仍有既有数值转换和弃用警告，本次修改文件未报告编译错误／警告。首次沙箱调用停在脚本临时锁阶段，已停止；上述成功结果来自获准的沙箱外构建。Game Target 未单独构建。
+
+本次 `git diff --check` 通过，Content／Config 和 PreMatchFlow 相关页面逻辑无修改。检查前后 Content/UI 下 21 份 uasset 的 SHA-256 全部一致，含 Room、MatchFlow、MatchHUD 和 PreMatchFlow 两个 WBP；没有新增工程文件。按用户要求没有启动 Editor，自动化／PIE／联机实测未执行，回归用例只能记为“已编译、未运行”。本轮未提交或推送。

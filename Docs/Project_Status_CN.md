@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-20，Room → MatchHUD 最小数据分发的 C++ 已完成，Editor Target 完整编译链接通过。** 从干净的 `main/b97ca6c` 接续，实际本机 UE 5.8.3-58210709。已有 `FHALRoomView` 只追加 LoadedCatalog、LocalUltimateEnergy、bShowUltimateEnergy、ServerWorldTimeSeconds 四个只读字段；Room 复用现有目录加载，仅在 Playing 采样后三项，原生 MatchHUD 接管后消费快照，独立测试 HUD 保留旧回退。玩家顺序、页面规则、输入、选车与练习逻辑不改，未新增文件或数据结构。所有 UI 资产均未编辑，尤其 WBP_GF_Room 与 PreMatchFlow 文件夹；MatchHUD 父类和现有注册接线保持。后续仅需团队在 WBP_GF_MatchHUD 的 ReceiveMatchView 中先赋 View.LoadedCatalog，再 RefreshPlayers，然后移除旧 GetGameState／Room／目录加载链。本次 Editor Win64 Development 完整构建退出 0（50/50 步骤，394.48 秒），反射及扩展回归用例已编译；21 份 UI 资产 SHA-256 全部一致，git diff --check 通过。按用户要求未启动 Editor，自动化／PIE／联机未执行，不能宣称 Blueprint 已完成迁移或功能已实测。[本次修改范围、接线与验证](Presentation/Match_Countdown_HUD_CN.md#2026-11-20room-向-matchhud-的最小数据分发)
+
 **2026-11-20，Car08 烟幕与 Car09 水炮更新了正式表现。** 烟团沿用炭灰配色，翻卷的烟瓣和外围薄烟在寿命末尾逐渐散开。水柱开喷时向前推进，停喷时余水收束，扫过墙或车辆时在服务器测到的表面上溅开。水流可以在墙角分成受阻和敞开的两部分。复测入口为 `Fred_TestScene`，两辆车继续使用各自的技能 DA。[Car08 烟幕外观与调参](Combat/Car08_Smoke_Screen_CN_v0.1.md) · [Car09 水炮外观与调参](Combat/Car09_Water_Cannon_CN.md)
 
 本机 UE 5.8.2 已构建 Win64 Editor 和 Game。D3D12 玩法与渲染专项 7/7 通过。主机模拟 80 ms 出站延迟时，一主一客各通过 3/3 项联机用例。从项目默认地图启动，玩法全量 264/264 通过，其中两项既有换车用例带警告。用空的 `/Engine/Maps/Entry` 启动全量时，既有 `SavedMapFloors` 读不到地面刚体，和 11 月 19 日记录一致。报告在本机 `Saved/SkillFXReview/NativeDefaultMap`、`Verified` 和 `Net_*_Verified`。四台实机同场释放时的可读性和帧耗待团队验收。

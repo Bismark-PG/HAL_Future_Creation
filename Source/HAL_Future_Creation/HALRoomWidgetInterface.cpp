@@ -8,6 +8,9 @@
 #include "HALRoomComponent.h"
 #include "HALVehicleCatalog.h"
 #include "HALPracticeRoomGameMode.h"
+#include "HALAbilitySystemComponent.h"
+#include "HALGameFlowPermissions.h"
+#include "TestVehiclePawn.h"
 #include "Engine/World.h"
 #include "Components/PanelWidget.h"
 #include "Components/WidgetSwitcher.h"
@@ -73,6 +76,14 @@ FHALRoomView UHALPracticeRoomWidget::GetRoomView() const
 		View.Match=D.Match; View.bShowResults=D.Phase==EHALRoomPhase::Results;
 		View.bCanCycleSpectator=View.bSpectating && D.Phase==EHALRoomPhase::Playing;
 		const double Now=GetWorld()->GetGameState<AHALMatchGameState>()->GetServerWorldTimeSeconds();
+		if (D.Phase==EHALRoomPhase::Playing)
+		{
+			View.ServerWorldTimeSeconds=Now;
+			const auto* Pawn=PC?Cast<ATestVehiclePawn>(PC->GetPawn()):nullptr;
+			const auto* ASC=Pawn?Cast<UHALAbilitySystemComponent>(Pawn->GetAbilitySystemComponent()):nullptr;
+			if (ASC && ASC->GetAvatarActor()==Pawn) { View.LocalUltimateEnergy=ASC->GetUltimateEnergyView(); }
+			View.bShowUltimateEnergy=View.LocalUltimateEnergy.Cost>0 && HALGameFlow::Permissions(GetWorld(),Pawn).bAbilities;
+		}
 		if (D.Match.bActive) { View.MatchRemaining=D.Match.bComplete?0:float(FMath::Max(0.0,D.Match.EndServerTime-Now)); }
 		if (View.bShowResults) { View.ResultsRemaining=float(FMath::Max(0.0,D.Match.ReturnServerTime-Now)); }
 		View.ResultSummary=MatchResultText();
@@ -92,6 +103,7 @@ FHALRoomView UHALPracticeRoomWidget::GetRoomView() const
 			View.Seats.Add(Seat);
 		}
 	}
+	View.LoadedCatalog=LoadedCatalog;
 	if (LoadedCatalog)
 	{
 		for (const auto& E:LoadedCatalog->Vehicles)
