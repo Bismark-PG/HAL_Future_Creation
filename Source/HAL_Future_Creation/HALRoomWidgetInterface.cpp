@@ -120,7 +120,7 @@ void UHALPracticeRoomWidget::PublishRoomView()
 }
 void UHALPracticeRoomWidget::DeliverRoomView(const FHALRoomView& View)
 {
-	// Let the existing Blueprint decide its visibility afresh, then apply the Results-only mask.
+	// Let the existing Blueprint decide its visibility afresh, then apply the exclusive MatchFlow mask.
 	RestoreResultsSiblings(); ReceiveRoomView(View); ApplyRoomPresentation(View);
 }
 void UHALPracticeRoomWidget::RestoreResultsSiblings()
@@ -212,8 +212,9 @@ bool UHALPracticeRoomWidget::ManagesMatchHUD() const
 { return IsValid(MatchFlowScreen) || IsValid(RoomScreens.FindRef(EHALRoomScreen::Match)); }
 void UHALPracticeRoomWidget::ApplyRoomPresentation(const FHALRoomView& View)
 {
-	const bool ResultsOnly=MatchFlowScreen && View.bRoomAvailable && (View.bShowResults || View.Phase==EHALRoomPhase::Results);
-	if (!ResultsOnly) { RestoreResultsSiblings(); }
+	const bool ExclusiveFlow=MatchFlowScreen && View.bRoomAvailable && (View.bShowResults || View.Phase==EHALRoomPhase::Results
+		|| View.Phase==EHALRoomPhase::Loading || View.Phase==EHALRoomPhase::Countdown);
+	if (!ExclusiveFlow) { RestoreResultsSiblings(); }
 	if (RoomScreens.IsEmpty() && !LocalMenuScreen && !MatchFlowScreen) { return; }
 	const auto Next=ResolvePresentation(View);
 	auto* NextScreen=RoomScreens.FindRef(Next.Screen).Get();
@@ -253,7 +254,7 @@ void UHALPracticeRoomWidget::ApplyRoomPresentation(const FHALRoomView& View)
 		auto* FocusScreen=Next.bShowLocalMenu?LocalMenuScreen.Get():NextScreen;
 		SetMenuFocusTarget(FocusScreen?IHALRoomScreenInterface::Execute_GetDefaultFocusTarget(FocusScreen):nullptr);
 	}
-	if (ResultsOnly) { HideResultsSiblings(); }
+	if (ExclusiveFlow) { HideResultsSiblings(); }
 }
 void UHALPracticeRoomWidget::ClearRoomScreens()
 {

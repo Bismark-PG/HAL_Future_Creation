@@ -167,6 +167,8 @@ Room 接管后的原生 MatchHUD 从 View 读取能量、显示许可和服务�
 
 Playing 的 HUD／观战／LocalMenu 行为、Room 的选车／练习迁移及服务器规则均保持现状。前一节的构建和 7/7 测试是 Results 实现的历史验证，不代表 Loading／Countdown 独占显示已经实现或测试；本轮文档更新不重新声明编译或自动化通过。
 
+本表为 2026-11-21 当时的准备状态；2026-11-22 已按用户指令扩展 Loading／Countdown，见文末本轮记录。
+
 ## 2026-11-21：Results 等待 Return 按钮返房
 
 用户要求关闭结算超时自动返房，并以最小修改保留 Return 按钮路径。本节覆盖前文“自动返房仍保留／必须按按钮返房尚未实现”的历史限制。
@@ -190,3 +192,69 @@ Playing 的 HUD／观战／LocalMenu 行为、Room 的选车／练习迁移及�
 为满足最小生产修改要求，本轮没有改 UI 工厂／客户端视口重挂代码，也没有把上述现象直接认定为有渲染客户端的表现；后续需独立验证客户端实际 Results 显示及控件重挂。同步适配的四人 Forfeit／重连夹具已编译，未在本轮重新运行四人／重连专项。未单独构建 Game Target、未打开 Editor GUI、未做实际手柄或打包验收。
 
 22 份 UI 资产与开工快照 SHA-256 全同，清单 `Saved/UIIntegration/ManualResultsReturnAssets_20261121.json`；原有 WBP／配置／数据结构／Room／MatchFlow／PreMatchFlow 生产代码不改，未新增工程文件，Saved 下的启动器和报告仅为本轮验证产物。`git diff --check` 通过，未提交或推送。团队使用当前占位 Results 无需改变接线，重启 Editor 加载本轮 DLL 后，在正常结算停留超过原期限，再按 Host Return 验证返房。
+
+## 2026-11-22：Loading／Countdown 启用独占显示
+
+用户已准备两个占位并要求启用独占显示。本轮基线 `main/2482dbd`，开工时有未提交的 WBP_GF_Room／WBP_GF_MatchFlow 修改，以及未跟踪的 WBP_GF_Loading／WBP_GF_Countdown；以这些实际磁盘版本作为保护基线，共 24 份 UI 资产。本轮不编辑或保存任何 WBP，不修改 PreMatchFlow，不新增源码、资产或配置。
+
+生产修改仅在 HALRoomWidgetInterface.cpp：将原 Results-only 条件扩为 Loading／Countdown／Results（含 bShowResults 提示），仍要求有效 Room View 和已启用的 MatchFlow 容器。每次 View 先恢复原 Visibility，再执行旧 ReceiveRoomView 与原生页面分发，最后折叠通向 MatchFlow 路径之外的其它分支，包含未登记的旧页面和 Room 自身文字；保留布局祖先及当前 Flow 子页。沿用原恢复缓存与清理函数，未增加 Tick、阶段状态或资产名称依赖。
+
+Loading → Countdown 连续切换时仍保持独占；进入 Playing、返回 Open、退出或清理时恢复旧显示值，原 Hidden／Collapsed 不强制设为 Visible。Playing 的 HUD／观战／LocalMenu、选车／练习和服务器加载屏障／开赛倒计时／比赛规则／Host 手动 Return 均不改。页面选择仍由 MatchFlow 的 ApplyView → ShowFlowScreen 接线负责，已接好时不需新增 Blueprint 节点；本次 C++ 启用不代表已验证新资产的可视接线。
+
+保留既有自动化名称 ResultsHideLegacyRoomContent，在同一夹具中补 Loading、Countdown 的连续切换、完整 View 转发、Pending 与重复 View 下不复显、准备阶段回选车、进入 Playing 恢复与 LocalMenu、Loading 中途清理，以及未启用 MatchFlow 时三阶段旧行为保持。原 Results 各项断言保留。
+
+本机 UE **5.8.3-58210709**，`HAL_Future_CreationEditor / Win64 / Development` 完整构建 **Succeeded，49/49 步骤，752.15 秒，退出 0**，两个正式 DLL 均完成链接。日志 `Saved/UIIntegration/LoadingCountdownExclusiveBuild_20261122.log`。未修改代码的既有数值转换／弃用警告保留，本次两个修改 cpp 未报告编译错误／警告。
+
+随后使用本轮正式 DLL，在两个独立的 UnrealEditor-Cmd 无界面 NullRHI 进程中执行：UIIntegration **6/6 成功**，报告 `Saved/UIIntegration/LoadingCountdownExclusiveTests_20261122/index.json`；独立 MatchHUDServerDeadline **1/1 成功**，报告 `Saved/UIIntegration/LoadingCountdownExclusiveStandalone_20261122/index.json`。合计 **7/7 成功，0 测试事件警告、0 错误、0 失败、0 未运行**，两个进程均退出 0；按 JSON 状态核对，不仅依赖进程退出码。扩展后的 ResultsHideLegacyRoomContent 覆盖本轮 Loading／Countdown 各分支，其余既有页面优先级、生命周期、MatchFlow、HUD 缓存和独立倒计时回退用例维持通过。
+
+编译与测试后，开工时的 **24 份 UI 资产 SHA-256 全部一致**，含用户未提交的 Room／MatchFlow 和未跟踪的两个新占位；清单 `Saved/UIIntegration/LoadingCountdownExclusiveAssets_20261122.json`。`git diff --check` 通过；本轮仅修改一个生产 cpp、现有测试 cpp 和两份既有交接文档，不新增工程文件、不编辑任何 WBP／PreMatchFlow，不提交／推送。用户已有四项资产改动保持。
+
+Editor GUI／PIE／有渲染客户端与真人联机验收未执行，Game Target 未单独构建；上一轮已知的 Client Results 视口观察失败不在本轮扩大修复。团队下一步保存工作并重启 Editor 加载本轮 DLL，以已接好的占位验证 Loading → Countdown → Playing、Results → Host Return → 选车，以及下一局：三个独占阶段不残留旧 Room／Screens 内容，离开后原可见性和菜单恢复。无界面内存控件合同测试不等同于新 Blueprint 接线或实际画面已通过。
+
+## 2026-11-22：正式比赛转场使用新版 Loading
+
+用户实际确认 Countdown 画面正确，但进入比赛的 Loading 仍显示旧画面。`HALNetworkPresentation.cpp` 中的 `TRAVELLING TO THE ARENA` 是 GameInstance 直接添加到视口的 ZOrder=1000 Slate 层，既用于 Create Room 也用于地图转场，不在 Room 的 WidgetTree 内；前节 Room 内部独占约束不能隐藏这一层。这是本轮待替换的显示入口，不删除旧画面。
+
+本轮保持 `main/2482dbd` 及之前未提交工作。生产侧只改现有四个文件：`HALNetworkGameInstance.h/.cpp`、`HALNetworkPresentation.cpp`、`HALPlayerControllerRound.cpp`。新增可选 MatchTravelLoadingClass 和一份 Transient 临时控件引用；ShowPracticeRoom 在实际 Open 房间记录规范化后的地图名，PreClientTravel 提供目标 URL 和无缝标记，以源地图为房间地图且目标为另一非入口地图识别进入比赛，不要求客户端事先收到 Locked／Loading 的复制阶段。PIE 前缀、URL 参数不影响匹配，反向返房保持旧显示；没有新增 RPC、地图配置或硬编码比赛资产路径。
+
+进入比赛时，先沿用原路径移除离开的 Room，再创建由 GameInstance 所属的新占位实例作为原转场层的内容；清除 PlayerContext，整页不可命中，不设置 RoomRoot、不传旧 FHALRoomView、不查询旧世界 Actor。加载完成后仍由既有 ShowPracticeRoom／EndTravelPresentation 移除转场层并释放临时实例，新地图的 Room → MatchFlow 正常显示自己的 Loading → Countdown。返回入口、网络／转场失败及 Shutdown 继续复用现有清理入口。类为空、抽象／过期或创建失败时使用旧 Slate 遮罩，不留加载空档。当前仅支持用户的静态占位用途，不对阻塞加载期间的动画或进度刷新作承诺。
+
+编辑器侧由团队手动设置，不添加节点或新资产：
+
+1. 保存工作并重启 Editor，加载本轮正式 DLL。
+2. 打开项目当前 `GameInstanceClass` 指向的 `/Game/Blueprints/Network/BP_MVPB_NetworkGameInstance`，进入 Class Defaults。
+3. 在 Front End → Screens 下，将新增 **Match Travel Loading Class** 指定为已有 **WBP_GF_Loading**；Compile／Save。保持原有 Room Screen Class 与 MatchFlow 页面接线。
+4. 从入口 Create Room，确认仍用旧遮罩进入选车；选车／练习后开始比赛，确认转场使用新占位，随后接上 MatchFlow 的 Loading／Countdown；Results 的 Host Return 仍返回选车，下一局重复通过。
+
+原生专项在现有 WidgetExtensionTests／TestAccess 中补转场方向与临时控件生命周期用例，覆盖首次创建／加入、PIE 参数、返房、返回入口、缺失目标、重复 Begin、清理／Shutdown、未配置及抽象类回退。生命周期用例通过真实 HideTravelWidgets 入口替换已有旧遮罩，检查只挂一层、临时实例 Outer 为 GameInstance、没有旧 PlayerController／Room 数据且不捕获输入。无窗口测试夹具在本机 5.8.3 仍需使用 SetViewportOverlayWidget；该版本尚未公开弃用提示所指的 Bind 替代，兼容宏仅限该行，生产代码不使用这一接口。
+
+本机 UE **5.8.3-58210709**，Editor Win64 Development：R1 完整构建 **52/52、624.33 秒、Succeeded、退出 0**（MatchTravelLoadingBuild_20261122.log）；R2 测试夹具增量构建 **4/4、17.77 秒、退出 0**（MatchTravelLoadingBuild_R2_20261122.log）；R3 修正测试收尾后的增量构建 **4/4、13.44 秒、退出 0**（MatchTravelLoadingBuild_R3_20261122.log）。日志均在 Saved/UIIntegration。生产代码首次构建即编译／链接通过，后两次没有修改生产逻辑；既有未改文件的数值转换与弃用警告保留。
+
+首轮无界面 UIIntegration 没有完成：六项既有 UI 用例已成功，新增 TravelLoadingLifecycle 在测试收尾时，于 Shutdown 已清空 GameInstance.WorldContext 后再次取用而崩溃，进程退出 1、没有完整 JSON 报告；保留 MatchTravelLoadingTests_20261122.log，不记为通过。R3 只在测试中保存有效 Context 指针再清理，生产逻辑不变。
+
+使用 R3 正式 DLL 重新执行整组 UIIntegration，**8/8 成功**，报告 Saved/UIIntegration/MatchTravelLoadingTests_R2_20261122/index.json；另一个独立进程执行 MatchHUDServerDeadline，**1/1 成功**，报告 Saved/UIIntegration/MatchTravelLoadingStandalone_20261122/index.json。合计 **9/9 成功，0 测试事件警告／错误／失败／未运行**，两进程退出 0，均逐项核对 JSON 状态；这些是本轮新报告，不复用前节 7/7。
+
+不编辑／保存 WBP 或 PreMatchFlow，不新增工程文件，不修改服务器阶段、加载屏障、倒计时、比赛和手动 Return 规则。开工／编译／自动化后的 **24 份 UI 资产 SHA-256 全同**，清单 Saved/UIIntegration/MatchTravelLoadingAssets_20261122.json；保留原有 Room／MatchFlow 修改和两个未跟踪的占位资产。git diff --check 通过，未提交／推送。本轮 Editor GUI／实际 PIE／多人画面未执行，Game Target 未单独构建；上述新类字段仍待团队配置，既有 Client Results 视口观察问题不在本轮扩大修复。完成类配置及实际画面验收前，只声明代码／编译／原生专项完成。
+
+## 2026-11-22：Loading 内部分为地图与人数两部分
+
+用户明确要求在同一 Loading WBP 内分开设计地图加载 UI 与加载结束后的人数 UI。此前 PREPARING MATCH／PLAYERS LOADED 来源于 2026-11-19 d615f46 的父类默认填充，不是本轮转场替换新增的页面或阶段；这次仅对现有页面内的两个容器控制可见性，保留加载屏障与倒计时规则。
+
+生产仅修改既有 HALGameFlowWidgets.cpp（12 行）：当 Panel=Loading、不是 MatchFlow 容器且采用普通 Panel 表现时，在 NativeConstruct 和 FinishView 按缓存 FHALRoomView.bRoomAvailable 切换两个同级容器。没有 Room View 的临时转场实例只显示 MapLoadingPanel；新地图 Room 的有效 View 到达后显示 PlayersLoadingPanel，人数继续来自 Room View，旧默认 TitleText／DetailText 填充仍保留于该部分。两个命名控件均存在才启用，不改变旧 Loading 布局，Countdown／HUD／Results 不适用该规则；不新增 Tick、枚举、RPC 或数据字段，不调用旧世界 Actor，也不改变地图何时加载结束的定义。
+
+团队在 Editor 手动完成以下设置；代码代理不编辑 WBP：
+
+1. 打开现有 WBP_GF_Loading，确认父类 HALGameFlowScreenWidget，Class Defaults 的 Panel=Loading、Match Flow Container 不勾选。
+2. Designer 根 Canvas Panel 下保留全屏背景 Img_Background，在其上放两个**同级**容器，精确命名 MapLoadingPanel 和 PlayersLoadingPanel。可用 Overlay 或 Vertical Box；两个容器的 Canvas Slot 都全屏 Stretch，四个 Offset=0，ZOrder 高于背景。
+3. MapLoadingPanel 内放地图加载期间的文字／图片，文字用自由名称，例如 MapLoadingText；Designer 文字可为 LOADING MAP…。不要在此部分使用 TitleText 或 DetailText。
+4. PlayersLoadingPanel 内放现有 TitleText 与 DetailText。TitleText 接收 PREPARING MATCH，DetailText 接收 PLAYERS LOADED x / y；从根移入容器后保持控件名，不加新的蓝图读数或定时器。
+5. 默认 MapLoadingPanel 可见，PlayersLoadingPanel=Collapsed。两个容器建议勾选 Is Variable 方便在 Designer 识别；C++ 按精确名称查找，无需事件图接线。
+6. Compile／Save。GameInstance 的 Match Travel Loading Class 和 MatchFlow 的 Loading 页仍引用同一 WBP_GF_Loading。保存并重启 Editor 加载新 DLL，再验收进入比赛时地图部分 → Room 数据就绪后人数部分 → Countdown；转场实例与 MatchFlow 实例仍是两个对象，不保留旧 Room 跨图。
+
+新增原生 LoadingParts 用例放在既有测试文件，检查初次 Construct 显示地图且不伪造人数、Room View 切换／人数更新、地图自定义文字保持、其它 Panel 和缺少容器的兼容、Room 不可用时隐藏旧人数。
+
+本机 UE **5.8.3-58210709**，Editor Win64 Development 首轮构建未通过：生产 cpp 编译成功，新增测试用 auto* 推断 TObjectPtr<UWidgetTree> 失败，日志 Saved/UIIntegration/LoadingPartsBuild_20261122.log，436.24 秒、退出 1。仅将测试读取改为 WidgetTree.Get() 后，R2 完成 **5/5 步骤、20.49 秒、Succeeded、退出 0**，两个正式 DLL 均链接成功，日志 LoadingPartsBuild_R2_20261122.log；生产切换逻辑没有为测试另行改动，既有其它文件警告保留。
+
+使用本轮 R2 正式 DLL 的 UIIntegration **9/9 成功**，报告 Saved/UIIntegration/LoadingPartsTests_20261122/index.json；独立进程的 MatchHUDServerDeadline **1/1 成功**，报告 Saved/UIIntegration/LoadingPartsStandalone_20261122/index.json。合计 **10/10 成功，0 测试事件警告／错误／失败／未运行**，两进程退出 0，逐项核对 JSON；均为本轮新报告，不复用前节 9/9。原生夹具没有加载或保存用户 WBP，不能作为实际资产接线与渲染画面通过的证据。
+
+本轮保护快照包括 24 份 UI 资产及用户已修改的 BP_MVPB_NetworkGameInstance，共 **25 份 SHA-256 开工后全同**，清单 Saved/UIIntegration/LoadingPartsAssets_20261122.json；未编辑任何资产、PreMatchFlow 或配置，不新增工程文件，git diff --check 通过，未提交／推送。未打开 Editor GUI、未单独构建 Game Target；实际布局和 PIE／多人画面待团队完成，既有 Client Results 视口观察问题未在此扩大修复。

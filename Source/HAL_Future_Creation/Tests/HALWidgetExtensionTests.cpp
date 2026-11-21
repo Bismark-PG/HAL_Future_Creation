@@ -9,6 +9,71 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/WidgetSwitcher.h"
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/World.h"
+#include "Widgets/SOverlay.h"
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALTravelLoadingRoutingTest,"HAL.FutureCreation.GameFlow.UIIntegration.TravelLoadingRouting",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALTravelLoadingRoutingTest::RunTest(const FString&)
+{
+	auto* GI=NewObject<UHALNetworkGameInstance>();
+	const FString Practice=TEXT("/Game/Maps/ContractPractice"),Match=TEXT("/Game/Maps/ContractMatch?game=/Script/HAL_Future_Creation.HALPracticeRoomGameMode");
+	TestFalse(TEXT("Create/Join without a Room preserves legacy loading"),FHALWidgetExtensionTestAccess::MatchTravel(GI,Practice,Match));
+	FHALWidgetExtensionTestAccess::ConfigureTravel(GI,UHALGameFlowScreenWidget::StaticClass(),Practice);
+	TestTrue(TEXT("Practice to match selects the new loading without relying on replicated phase"),FHALWidgetExtensionTestAccess::MatchTravel(GI,Practice,Match));
+	TestTrue(TEXT("PIE package prefixes do not change travel direction"),FHALWidgetExtensionTestAccess::MatchTravel(GI,TEXT("/Game/Maps/UEDPIE_1_ContractPractice"),TEXT("/Game/Maps/UEDPIE_1_ContractMatch?listen")));
+	TestFalse(TEXT("Results return preserves legacy loading"),FHALWidgetExtensionTestAccess::MatchTravel(GI,TEXT("/Game/Maps/ContractMatch"),Practice));
+	TestFalse(TEXT("Travel to the current practice map preserves legacy loading"),FHALWidgetExtensionTestAccess::MatchTravel(GI,Practice,Practice));
+	TestFalse(TEXT("Disconnect to entry preserves legacy loading"),FHALWidgetExtensionTestAccess::MatchTravel(GI,Practice,TEXT("/Game/Maps/MVPB_NetEntry")));
+	TestFalse(TEXT("Ordinary Create/Join travel preserves legacy loading"),FHALWidgetExtensionTestAccess::MatchTravel(GI,Practice,Match,false));
+	TestFalse(TEXT("Missing destination cannot select match loading"),FHALWidgetExtensionTestAccess::MatchTravel(GI,Practice,TEXT("")));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALTravelLoadingLifecycleTest,"HAL.FutureCreation.GameFlow.UIIntegration.TravelLoadingLifecycle",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALTravelLoadingLifecycleTest::RunTest(const FString&)
+{
+	auto* GI=NewObject<UHALNetworkGameInstance>(GEngine); GI->InitializeStandalone();
+	auto* World=GI->GetWorld();
+	auto* Viewport=NewObject<UGameViewportClient>(GEngine);
+	// UE 5.8.3 has not exposed the suggested Bind replacement; this fixture needs no real window.
+	const auto Overlay=SNew(SOverlay);
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	Viewport->SetViewportOverlayWidget(nullptr,Overlay);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	auto* Context=GI->GetWorldContext(); Context->GameViewport=Viewport;
+	FHALWidgetExtensionTestAccess::ConfigureTravel(GI,UHALGameFlowScreenWidget::StaticClass(),UWorld::RemovePIEPrefix(World->GetOutermost()->GetName()));
+	GI->BeginTravelPresentation();
+	TestNull(TEXT("Configured match loading does not replace Create/Join/return overlay"),FHALWidgetExtensionTestAccess::TravelWidget(GI));
+	TestEqual(TEXT("Legacy travel still mounts one overlay"),Overlay->GetChildren()->Num(),1);
+	GI->HideTravelWidgets(TEXT("/Game/Maps/ContractMatch"),true);
+	auto* Loading=FHALWidgetExtensionTestAccess::TravelWidget(GI);
+	if (TestNotNull(TEXT("Match travel creates the configured placeholder"),Loading))
+	{
+		TestEqual(TEXT("Temporary placeholder belongs to the GameInstance"),Loading->GetOuter(),static_cast<UObject*>(GI));
+		TestNull(TEXT("Temporary placeholder keeps no departing PlayerController"),Loading->GetOwningPlayer());
+		TestEqual(TEXT("Temporary placeholder does not capture input"),Loading->GetVisibility(),ESlateVisibility::HitTestInvisible);
+		TestFalse(TEXT("Temporary placeholder does not read gameplay data"),CastChecked<UHALGameFlowScreenWidget>(Loading)->GetScreenView().bRoomAvailable);
+		TestTrue(TEXT("Temporary placeholder has a Slate widget"),Loading->GetCachedWidget().IsValid());
+		GI->BeginTravelPresentation(true);
+		TestEqual(TEXT("Repeated begin reuses the current placeholder"),FHALWidgetExtensionTestAccess::TravelWidget(GI),Loading);
+	}
+	TestEqual(TEXT("Match travel mounts only one overlay"),Overlay->GetChildren()->Num(),1);
+	FHALWidgetExtensionTestAccess::EndTravel(GI);
+	TestNull(TEXT("Existing end-travel handoff releases the placeholder"),FHALWidgetExtensionTestAccess::TravelWidget(GI));
+	TestEqual(TEXT("Handoff removes the viewport overlay"),Overlay->GetChildren()->Num(),0);
+	FHALWidgetExtensionTestAccess::ConfigureTravel(GI,nullptr,TEXT("/Game/Maps/ContractPractice")); GI->BeginTravelPresentation(true);
+	TestNull(TEXT("Unconfigured match loading falls back to legacy"),FHALWidgetExtensionTestAccess::TravelWidget(GI));
+	TestEqual(TEXT("Fallback still displays a loading overlay"),Overlay->GetChildren()->Num(),1);
+	FHALWidgetExtensionTestAccess::EndTravel(GI);
+	FHALWidgetExtensionTestAccess::ConfigureTravel(GI,UUserWidget::StaticClass(),TEXT("/Game/Maps/ContractPractice")); GI->BeginTravelPresentation(true);
+	TestNull(TEXT("Abstract class safely uses the legacy overlay"),FHALWidgetExtensionTestAccess::TravelWidget(GI));
+	GI->Shutdown();
+	TestEqual(TEXT("Shutdown removes the fallback overlay"),Overlay->GetChildren()->Num(),0);
+	Context->GameViewport=nullptr; World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
+	return true;
+}
 
 struct FHALRoomScreenTestAccess
 {
@@ -17,6 +82,42 @@ struct FHALRoomScreenTestAccess
 	static void Discover(UHALPracticeRoomWidget* Root) { Root->RegisterDesignerScreens(); }
 	static void Deliver(UHALPracticeRoomWidget* Root,const FHALRoomView& View) { Root->DeliverRoomView(View); }
 };
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALLoadingPartsTest,"HAL.FutureCreation.GameFlow.UIIntegration.LoadingParts",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALLoadingPartsTest::RunTest(const FString&)
+{
+	auto* GI=NewObject<UHALNetworkGameInstance>(GEngine); GI->InitializeStandalone(); auto* World=GI->GetWorld();
+	auto* Screen=CreateWidget<UHALGameFlowScreenWidget>(GI); Screen->Panel=EHALGameFlowPanel::Loading;
+	auto* Tree=Screen->WidgetTree.Get();
+	auto* Root=Tree->ConstructWidget<UVerticalBox>(); Tree->RootWidget=Root;
+	auto* Map=Tree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),TEXT("MapLoadingPanel")); Root->AddChild(Map);
+	auto* Players=Tree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),TEXT("PlayersLoadingPanel")); Root->AddChild(Players);
+	auto* MapText=Tree->ConstructWidget<UTextBlock>(); Map->AddChild(MapText); MapText->SetText(FText::FromString(TEXT("MY MAP LOADING")));
+	auto* Title=Tree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(),TEXT("TitleText")); Players->AddChild(Title);
+	auto* Detail=Tree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(),TEXT("DetailText")); Players->AddChild(Detail);
+	Map->SetVisibility(ESlateVisibility::Collapsed); Players->SetVisibility(ESlateVisibility::Visible);
+	TSharedPtr<SWidget> Slate=Screen->TakeWidget();
+	TestEqual(TEXT("Before a Room view only map loading is shown"),Map->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+	TestEqual(TEXT("Map travel hides the player-count section"),Players->GetVisibility(),ESlateVisibility::Collapsed);
+	TestTrue(TEXT("Map travel does not fabricate player counts"),Detail->GetText().IsEmpty());
+	FHALRoomView V; V.bRoomAvailable=true; V.Phase=EHALRoomPhase::Loading; V.LoadedPlayers=1; V.ExpectedPlayers=4;
+	Screen->PrepareView(V); IHALRoomScreenInterface::Execute_ApplyView(Screen,V); Screen->FinishView();
+	TestEqual(TEXT("Room data hides map loading"),Map->GetVisibility(),ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Room data shows the player-count section"),Players->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+	TestEqual(TEXT("Player counts still use the Room snapshot"),Detail->GetText().ToString(),FString(TEXT("PLAYERS LOADED  1 / 4")));
+	TestEqual(TEXT("Map section keeps its Designer text"),MapText->GetText().ToString(),FString(TEXT("MY MAP LOADING")));
+	V.LoadedPlayers=3; Screen->PrepareView(V); Screen->FinishView();
+	TestEqual(TEXT("Repeated Room views update player counts"),Detail->GetText().ToString(),FString(TEXT("PLAYERS LOADED  3 / 4")));
+	Screen->Panel=EHALGameFlowPanel::Countdown; Map->SetVisibility(ESlateVisibility::Hidden); Players->SetVisibility(ESlateVisibility::Visible); Screen->FinishView();
+	TestEqual(TEXT("Other panels preserve their own visibility"),Map->GetVisibility(),ESlateVisibility::Hidden);
+	Screen->Panel=EHALGameFlowPanel::Loading; Players->Rename(TEXT("LegacyPlayersPanel"),Tree); Screen->FinishView();
+	TestEqual(TEXT("Missing one container preserves the existing layout"),Map->GetVisibility(),ESlateVisibility::Hidden);
+	Players->Rename(TEXT("PlayersLoadingPanel"),Tree); V.bRoomAvailable=false; Screen->PrepareView(V); Screen->FinishView();
+	TestEqual(TEXT("Unavailable Room hides stale player counts"),Players->GetVisibility(),ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Unavailable Room restores the map section"),Map->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+	Slate.Reset(); GI->Shutdown(); World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
+	return true;
+}
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALWidgetClassFallbackTest,"HAL.FutureCreation.GameFlow.GF5.WidgetClassesAndNativeFallback",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FHALWidgetClassFallbackTest::RunTest(const FString&)
@@ -265,16 +366,50 @@ bool FHALRoomResultsOnlyTest::RunTest(const FString&)
 	auto* Flow=Root->WidgetTree->ConstructWidget<UHALContractMatchFlowWidget>(); SharedPanel->AddChild(Flow); Flow->bMatchFlowContainer=true;
 	Flow->WidgetTree=NewObject<UWidgetTree>(Flow);
 	auto* Switcher=Flow->WidgetTree->ConstructWidget<UWidgetSwitcher>(); Flow->WidgetTree->RootWidget=Switcher;
+	auto* Loading=Flow->WidgetTree->ConstructWidget<UHALGameFlowScreenWidget>(); Switcher->AddChild(Loading); Loading->Panel=EHALGameFlowPanel::Loading;
+	auto* Countdown=Flow->WidgetTree->ConstructWidget<UHALGameFlowScreenWidget>(); Switcher->AddChild(Countdown); Countdown->Panel=EHALGameFlowPanel::Countdown;
 	auto* HUD=Flow->WidgetTree->ConstructWidget<UHALMatchHUDWidget>(); Switcher->AddChild(HUD);
 	auto* Results=Flow->WidgetTree->ConstructWidget<UHALGameFlowScreenWidget>(); Switcher->AddChild(Results); Results->Panel=EHALGameFlowPanel::Results;
+	Flow->Pages.Add(EHALRoomPhase::Loading,Loading); Flow->Pages.Add(EHALRoomPhase::Countdown,Countdown);
 	Flow->Pages.Add(EHALRoomPhase::Playing,HUD); Flow->Pages.Add(EHALRoomPhase::Results,Results);
 	FHALRoomScreenTestAccess::Discover(Root);
 	FHALRoomView V; V.bRoomAvailable=true; V.Phase=EHALRoomPhase::Open; V.LocalPhase=EHALRoomPlayerPhase::Selecting; V.bMenuVisible=true;
 	FHALRoomScreenTestAccess::Deliver(Root,V);
 	TestEqual(TEXT("Legacy selection remains visible before the match"),Root->Panel->GetVisibility(),ESlateVisibility::Visible);
+	for (const auto Phase:{EHALRoomPhase::Loading,EHALRoomPhase::Countdown})
+	{
+		V.Phase=Phase; V.bRequestPending=true; V.LoadedPlayers=1; V.ExpectedPlayers=4; V.CountdownRemaining=3;
+		FHALRoomScreenTestAccess::Deliver(Root,V);
+		auto* Page=Flow->Pages.FindRef(Phase).Get();
+		TestEqual(TEXT("Preparation phase selects its own page"),Switcher->GetActiveWidget(),static_cast<UWidget*>(Page));
+		TestEqual(TEXT("Current preparation page stays visible"),Page->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+		TestEqual(TEXT("Preparation page receives the current Room phase"),Page->GetScreenView().Phase,Phase);
+		TestEqual(TEXT("Loading progress comes from the Room view"),Page->GetScreenView().LoadedPlayers,1);
+		TestEqual(TEXT("Countdown comes from the Room view"),Page->GetScreenView().CountdownRemaining,3.f);
+		TestEqual(TEXT("Preparation masks the old Blueprint menu despite pending requests"),Root->Panel->GetVisibility(),ESlateVisibility::Collapsed);
+		TestEqual(TEXT("Preparation masks Room labels"),Chrome->GetVisibility(),ESlateVisibility::Collapsed);
+		TestEqual(TEXT("Preparation masks deep siblings"),SharedChrome->GetVisibility(),ESlateVisibility::Collapsed);
+		TestEqual(TEXT("Preparation preserves the layout path to MatchFlow"),SharedPanel->GetVisibility(),ESlateVisibility::Visible);
+		TestEqual(TEXT("Preparation preserves MatchFlow"),Flow->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+		FHALRoomScreenTestAccess::Deliver(Root,V);
+		TestEqual(TEXT("Repeated preparation views cannot reveal legacy content"),Root->Panel->GetVisibility(),ESlateVisibility::Collapsed);
+	}
+	TestEqual(TEXT("Countdown deactivates Loading"),Loading->GetVisibility(),ESlateVisibility::Collapsed);
+	V.Phase=EHALRoomPhase::Open; V.bRequestPending=false; FHALRoomScreenTestAccess::Deliver(Root,V);
+	TestEqual(TEXT("Returning to selection from preparation restores the legacy menu"),Root->Panel->GetVisibility(),ESlateVisibility::Visible);
+	TestEqual(TEXT("Leaving preparation restores Room labels"),Chrome->GetVisibility(),ESlateVisibility::Visible);
+	TestEqual(TEXT("Leaving preparation preserves originally Hidden labels"),HiddenChrome->GetVisibility(),ESlateVisibility::Hidden);
+	TestEqual(TEXT("Leaving preparation deactivates its current page"),Countdown->GetVisibility(),ESlateVisibility::Collapsed);
+	V.Phase=EHALRoomPhase::Countdown; FHALRoomScreenTestAccess::Deliver(Root,V);
 	V.Phase=EHALRoomPhase::Playing; V.bMenuVisible=false; V.Match.bActive=true; V.MatchRemaining=30;
 	FHALRoomScreenTestAccess::Deliver(Root,V);
 	TestEqual(TEXT("Playing retains the existing Blueprint hide rule"),Root->Panel->GetVisibility(),ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Playing restores nonexclusive Room content"),Chrome->GetVisibility(),ESlateVisibility::Visible);
+	TestEqual(TEXT("Playing restores originally Hidden content"),HiddenChrome->GetVisibility(),ESlateVisibility::Hidden);
+	TestEqual(TEXT("Playing restores deep siblings"),SharedChrome->GetVisibility(),ESlateVisibility::Visible);
+	TestEqual(TEXT("Playing deactivates Countdown"),Countdown->GetVisibility(),ESlateVisibility::Collapsed);
+	V.bMenuVisible=true; FHALRoomScreenTestAccess::Deliver(Root,V);
+	TestEqual(TEXT("Playing still permits the existing local menu"),Root->Panel->GetVisibility(),ESlateVisibility::Visible);
 	V.Phase=EHALRoomPhase::Results; V.bShowResults=true; V.bMenuVisible=true; V.ResultsRemaining=8;
 	V.ResultSummary=FText::FromString(TEXT("RESULTS SNAPSHOT")); FHALRoomScreenTestAccess::Deliver(Root,V);
 	TestTrue(TEXT("Legacy Blueprint still receives the Results snapshot"),Root->LastWasResults);
@@ -301,9 +436,17 @@ bool FHALRoomResultsOnlyTest::RunTest(const FString&)
 	FHALRoomScreenTestAccess::Clear(Root);
 	TestEqual(TEXT("Cleanup releases the temporary visibility mask"),Chrome->GetVisibility(),ESlateVisibility::Visible);
 	TestEqual(TEXT("Cleanup preserves Hidden rather than forcing Visible"),HiddenChrome->GetVisibility(),ESlateVisibility::Hidden);
-	Flow->bMatchFlowContainer=false; FHALRoomScreenTestAccess::Discover(Root); FHALRoomScreenTestAccess::Deliver(Root,V);
-	TestEqual(TEXT("Without the opt-in flow, old Results presentation is unchanged"),Root->Panel->GetVisibility(),ESlateVisibility::Visible);
-	TestEqual(TEXT("Legacy-only Room content is never masked"),Chrome->GetVisibility(),ESlateVisibility::Visible);
+	FHALRoomScreenTestAccess::Discover(Root); V.Phase=EHALRoomPhase::Loading; V.bShowResults=false;
+	FHALRoomScreenTestAccess::Deliver(Root,V); FHALRoomScreenTestAccess::Clear(Root);
+	TestEqual(TEXT("Cleanup during Loading restores Room content"),Chrome->GetVisibility(),ESlateVisibility::Visible);
+	TestEqual(TEXT("Cleanup during Loading preserves Hidden content"),HiddenChrome->GetVisibility(),ESlateVisibility::Hidden);
+	Flow->bMatchFlowContainer=false; FHALRoomScreenTestAccess::Discover(Root);
+	for (const auto Phase:{EHALRoomPhase::Loading,EHALRoomPhase::Countdown,EHALRoomPhase::Results})
+	{
+		V.Phase=Phase; V.bShowResults=Phase==EHALRoomPhase::Results; FHALRoomScreenTestAccess::Deliver(Root,V);
+		TestEqual(TEXT("Without the opt-in flow, legacy presentation is unchanged"),Root->Panel->GetVisibility(),ESlateVisibility::Visible);
+		TestEqual(TEXT("Legacy-only Room content is never masked"),Chrome->GetVisibility(),ESlateVisibility::Visible);
+	}
 	FHALRoomScreenTestAccess::Clear(Root);
 	return true;
 }

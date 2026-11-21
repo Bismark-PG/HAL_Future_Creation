@@ -18,6 +18,15 @@ namespace HALFlowDisplay
 {
 	void Text(UUserWidget* Owner,FName Name,const FString& Value)
 	{ if (auto* W=Cast<UTextBlock>(Owner->GetWidgetFromName(Name))) { W->SetText(FText::FromString(Value)); } }
+	void LoadingParts(UUserWidget* Owner,bool bPlayersAvailable)
+	{
+		auto* Map=Owner->GetWidgetFromName(TEXT("MapLoadingPanel"));
+		auto* Players=Owner->GetWidgetFromName(TEXT("PlayersLoadingPanel"));
+		// Both optional containers opt in together; existing Loading layouts keep their visibility.
+		if (!Map || !Players) { return; }
+		Map->SetVisibility(bPlayersAvailable?ESlateVisibility::Collapsed:ESlateVisibility::SelfHitTestInvisible);
+		Players->SetVisibility(bPlayersAvailable?ESlateVisibility::SelfHitTestInvisible:ESlateVisibility::Collapsed);
+	}
 	bool Allowed(EHALGameFlowUIAction Action,const FHALRoomView& V)
 	{
 		switch (Action)
@@ -52,6 +61,8 @@ void UHALGameFlowScreenWidget::SetRoomRoot(UHALPracticeRoomWidget* Root) { RoomR
 void UHALGameFlowScreenWidget::NativeConstruct()
 {
 	Super::NativeConstruct(); BindActions();
+	if (!bMatchFlowContainer && UsesPanelPresentation() && Panel==EHALGameFlowPanel::Loading)
+	{ HALFlowDisplay::LoadingParts(this,LatestView.bRoomAvailable); }
 	if (bMatchFlowContainer && WidgetTree)
 	{
 		// Inactive HUDs must not run their standalone refresh before the first Room view.
@@ -140,6 +151,7 @@ void UHALGameFlowScreenWidget::FinishView()
 {
 	if (bMatchFlowContainer || !UsesPanelPresentation()) { return; }
 	using namespace HALFlowDisplay;
+	if (Panel==EHALGameFlowPanel::Loading) { LoadingParts(this,LatestView.bRoomAvailable); }
 	for (const auto& Pair:Actions)
 	{
 		if (auto* Button=Cast<UButton>(GetWidgetFromName(Pair.Key)))

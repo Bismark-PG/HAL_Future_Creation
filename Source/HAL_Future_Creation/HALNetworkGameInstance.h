@@ -40,7 +40,7 @@ public:
 	bool IsConnecting() const { return bConnecting; }
 	const FString& GetLastHostAddress() const { return LastHostAddress; }
 	void CancelConnection();
-	void BeginTravelPresentation();
+	void BeginTravelPresentation(bool bMatchTravel=false);
 
 	/** Called by the local match PlayerController once its map has begun play. */
 	void ShowMatchLobby(APlayerController* LocalController);
@@ -48,7 +48,7 @@ public:
 	/** True only after the visible Room/Pause has registered its own match screen. */
 	bool RoomOwnsMatchHUD(const APlayerController* LocalController) const;
 	void ReturnToEntry(const FText& Reason);
-	void HideTravelWidgets();
+	void HideTravelWidgets(const FString& DestinationURL,bool bSeamless);
 	/** Server GameMode's one-shot map handoff; not a replicated rule store. */
 	void StoreRoundTravel(const FHALRoundTravel& Value) { PendingRoundTravel=Value; }
 	bool TakeRoundTravel(const FString& Map, FHALRoundTravel& Out);
@@ -59,6 +59,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Front End|Screens") TSubclassOf<UHALPracticeRoomWidget> RoomScreenClass;
 	/** Optional separate local menu while a confirmed driver opens the menu in practice or Playing. */
 	UPROPERTY(EditDefaultsOnly, Category="Front End|Screens") TSubclassOf<UHALPracticeRoomWidget> PauseScreenClass;
+	/** Optional static placeholder for practice-to-match travel only; None keeps the legacy Slate overlay. */
+	UPROPERTY(EditDefaultsOnly, Category="Front End|Screens") TSubclassOf<UUserWidget> MatchTravelLoadingClass;
 	/** Serialized compatibility only. New screen-class settings always take precedence. */
 	UPROPERTY(meta=(DeprecatedProperty,DeprecationMessage="Use Entry Screen Class; None selects the native fallback.")) bool bUseNativeArcadeEntry = true;
 	UPROPERTY(EditDefaultsOnly, Category="Front End") TObjectPtr<UHALFrontEndConfig> FrontEndConfig;
@@ -81,6 +83,7 @@ private:
 	friend struct FHALWidgetExtensionTestAccess;
 	UClass* ResolveEntryScreen() const;
 	UClass* ResolveRoomScreen(APlayerController* LocalController) const;
+	bool IsMatchTravel(const FString& SourceMap,const FString& DestinationURL,bool bSeamless) const;
 	void OnNetworkFailure(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString);
 	void OnTravelFailure(UWorld* World, ETravelFailure::Type FailureType, const FString& ErrorString);
 	void ShowEntryMenu();
@@ -92,8 +95,10 @@ private:
 	bool bPracticeRoomActive = false, bReturningToEntry = false;
 	bool bConnecting=false;
 	FString LastHostAddress=TEXT("127.0.0.1");
+	FString PracticeMapPath;
 	FTSTicker::FDelegateHandle ConnectionTicker;
 	TSharedPtr<SWidget> TravelOverlay;
+	UPROPERTY(Transient) TObjectPtr<UUserWidget> TravelLoadingWidget;
 	UPROPERTY(Transient) FHALRoundTravel PendingRoundTravel;
 
 	UPROPERTY(Transient)

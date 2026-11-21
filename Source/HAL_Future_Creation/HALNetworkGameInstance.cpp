@@ -53,6 +53,7 @@ void UHALNetworkGameInstance::LoadComplete(const float LoadTime, const FString& 
 	if (!EntryMapPath.IsEmpty() && MapName.EndsWith(FPackageName::GetShortName(EntryMapPath)))
 	{
 		bPracticeRoomActive = false; bReturningToEntry = false;
+		PracticeMapPath.Reset();
 		PendingRoundTravel={};
 		ShowEntryMenu();
 	}
@@ -166,6 +167,8 @@ void UHALNetworkGameInstance::ShowPracticeRoom(APlayerController* PC)
 {
 	if (bReturningToEntry || !GetWorld() || GetWorld()->bIsTearingDown || !PC || PC->IsActorBeingDestroyed() || !PC->IsLocalController() || !PC->GetLocalPlayer()) { return; }
 	bPracticeRoomActive = true;
+	if (const auto* State=PC->GetWorld()->GetGameState<AHALMatchGameState>(); State && State->GetRoom()->GetData().Phase==EHALRoomPhase::Open)
+	{ PracticeMapPath=UWorld::RemovePIEPrefix(PC->GetWorld()->GetOutermost()->GetName()); }
 	FinishConnection(); EndTravelPresentation();
 	UClass* Desired=ResolveRoomScreen(PC);
 	if (!VisibleWidget || VisibleWidget->GetClass()!=Desired || VisibleWidget->GetWorld()!=PC->GetWorld() || VisibleWidget->GetOwningPlayer()!=PC)
@@ -182,6 +185,7 @@ void UHALNetworkGameInstance::ReturnToEntry(const FText& Reason)
 	if (bReturningToEntry || !GetWorld()) { return; }
 	SetConnectionMessage(Reason.ToString()); bReturningToEntry = true;
 	FinishConnection(); EndTravelPresentation(); bPracticeRoomActive=false;
+	PracticeMapPath.Reset();
 	PendingRoundTravel={};
 	ReplaceVisibleWidget(nullptr);
 	// Defer out of network failure / RPC callbacks; OpenLevel closes the old NetDriver.

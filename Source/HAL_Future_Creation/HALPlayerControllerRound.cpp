@@ -33,7 +33,7 @@ void AHALPlayerController::PreClientTravel(const FString& URL,ETravelType Type,b
 		ClearRoundSpectator();
 		if (auto* Vehicle=Cast<ATestVehiclePawn>(GetPawn()))
 		{ Vehicle->NeutralizeInputForMenu(); Vehicle->FindComponentByClass<UHALDynamicCameraComponent>()->ResetCamera(EHALCameraResetReason::Travel); }
-		if (auto* GI=GetGameInstance<UHALNetworkGameInstance>()) { GI->HideTravelWidgets(); }
+		if (auto* GI=GetGameInstance<UHALNetworkGameInstance>()) { GI->HideTravelWidgets(URL,Seamless); }
 		if (DebugHUD) { DebugHUD->RemoveFromParent(); DebugHUD=nullptr; }
 		if (CameraDebugHUD) { CameraDebugHUD->RemoveFromParent(); CameraDebugHUD=nullptr; }
 	}
