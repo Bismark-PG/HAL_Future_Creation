@@ -364,6 +364,13 @@ C++ 修改完成后，应尽可能执行与当前环境相符的验证：
 
 如果当前环境无法运行 Unreal Editor 或完成编译，必须明确说明未执行的验证，并提供团队可直接执行的测试步骤；不得声称已经通过。
 
+### 14.1 本地 Editor 构建统一入口
+
+- 代码代理与团队的日常 Editor 编译验证统一执行工程根目录的 `BuildAndLaunch.cmd -NoLaunch`；无人值守时可加 `-NoPopup`。需要编译后打开 Editor 时使用同一入口的默认模式。`Tools/BuildEditor.ps1` 和 `Tools/BuildAndLaunch.ps1` 仅作兼容转发，不维护第二套构建参数。
+- 当前默认构建基线为 `HAL_Future_CreationEditor / Win64 / Development`，由统一入口传入 `-WaitMutex -NoHotReload -NoLiveCoding`。代码验证与日常启动必须保持相同引擎、Target、配置和这些参数；不得在直接调用 `Build.bat` 时省略 `-NoLiveCoding`，避免 `WITH_LIVE_CODING` 来回切换并使 PCH／大量编译产物失效。
+- 日常 Editor 验证不另行拼接 `Build.bat`／UBT 命令。确需诊断 UBT 或构建独立 Game Target 时，记录原因、完整命令及验证范围；直接构建同一个 Editor Target 仍须与统一入口保持上述构建基线。
+- 普通验证使用增量 Build；`-Rebuild` 只用于明确需要重建的任务，不通过 Clean 或删除构建缓存处理正常的增量检查。`-CheckOnly` 仅检查环境和运行占用，不能作为编译产物最新或编译通过的证据。
+
 ---
 
 ## 15. 完成标准

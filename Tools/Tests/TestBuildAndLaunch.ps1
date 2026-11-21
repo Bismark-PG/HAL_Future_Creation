@@ -1,4 +1,4 @@
-# Windows PowerShell 5.1. Isolated launcher checks; no real Unreal build or Editor launch.
+﻿# Windows PowerShell 5.1. Isolated launcher checks; no real Unreal build or Editor launch.
 [CmdletBinding()]
 param()
 $ErrorActionPreference = 'Stop'
@@ -16,6 +16,13 @@ $fakeBuild = @'
 @echo off
 echo %~nx0 %*>>"%HAL_LAUNCHER_TEST_TRACE%"
 if "%~1"=="-ProjectFiles" goto generate
+:scanlog
+if "%~1"=="" goto build
+set "FixtureArgument=%~1"
+if defined HAL_LAUNCHER_TEST_LOG_SOURCE if /i "%FixtureArgument:~0,5%"=="-Log=" copy /y "%HAL_LAUNCHER_TEST_LOG_SOURCE%" "%FixtureArgument:~5%" >nul
+shift
+goto scanlog
+:build
 echo fixture native stderr 1>&2
 exit /b %HAL_LAUNCHER_TEST_BUILD_EXIT%
 :generate
@@ -53,13 +60,31 @@ function Start-Process {
 exit $LASTEXITCODE
 '@
 $results = @()
-function Run-Case([string]$Name, [int]$ExpectedExit, [string[]]$Options = @(), [string]$Block = '', [switch]$MockLaunch, [switch]$ExistingSolution, [switch]$MissingTarget, [int]$BuildExit = 0, [int]$GenerateExit = 0, [switch]$EarlyExit) {
+$incrementalLog = @'
+Using Unreal Build Accelerator local executor to run 3 action(s)
+[1/3] Compile [x64] Fixture.cpp
+[2/3] Link [x64] Fixture.dll
+[3/3] WriteMetadata Fixture.target
+Total execution time: 12.50 seconds
+'@
+$upToDateLog = @'
+Target is up to date
+Using Unreal Build Accelerator local executor to run 0 action(s)
+Total execution time: 1.68 seconds
+'@
+function Run-Case([string]$Name, [int]$ExpectedExit, [string[]]$Options = @(), [string]$Block = '', [switch]$MockLaunch, [switch]$ExistingSolution, [switch]$MissingTarget, [int]$BuildExit = 0, [int]$GenerateExit = 0, [switch]$EarlyExit,
+    [AllowNull()][string]$BuildLog = $incrementalLog, [string]$ExpectedBuildKind = 'Incremental', [Nullable[int]]$ExpectedActions = 3, [Nullable[double]]$ExpectedUbtSeconds = 12.5) {
     $fixture = Join-Path $testRoot ($Name + ' ' + [char]0x4e2d + [char]0x6587 + ' & space')
     New-Item -ItemType Directory -Path $fixture -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $projectRoot 'BuildAndLaunch.cmd') -Destination (Join-Path $fixture 'BuildAndLaunch.cmd')
     Write-FixtureFile (Join-Path $fixture 'Fixture.uproject') '{"EngineAssociation":"5.8"}'
     if (-not $MissingTarget) { Write-FixtureFile (Join-Path $fixture 'Source\CustomEditor.Target.cs') '// Type = TargetType.Editor' }
     if ($ExistingSolution) { Write-FixtureFile (Join-Path $fixture 'Fixture.sln') 'fixture solution' }
+    $env:HAL_LAUNCHER_TEST_LOG_SOURCE = ''
+    if ($BuildLog) {
+        $env:HAL_LAUNCHER_TEST_LOG_SOURCE = Join-Path $fixture 'NativeLog.txt'
+        Write-FixtureFile $env:HAL_LAUNCHER_TEST_LOG_SOURCE $BuildLog
+    }
     $env:HAL_LAUNCHER_TEST_TRACE = Join-Path $fixture 'Trace.txt'
     $env:HAL_LAUNCHER_TEST_PROJECT = $fixture
     $env:HAL_LAUNCHER_TEST_BUILD_EXIT = [string]$BuildExit
@@ -101,6 +126,18 @@ function Run-Case([string]$Name, [int]$ExpectedExit, [string[]]$Options = @(), [
         if (-not $ExistingSolution -and $trace -notmatch '-ProjectFiles') { throw "$Name : missing solution was not generated" }
         if (($Options -contains '-Rebuild') -and $trace -notmatch 'Rebuild.bat') { throw "$Name : did not use official Rebuild entry" }
         if ($MockLaunch -and $trace -notmatch 'LAUNCH') { throw "$Name : launch path was not reached" }
+        $expectedKind = if ($GenerateExit -ne 0) { 'NotRun' } elseif ($BuildExit -ne 0) { 'Failed' } elseif ($Options -contains '-Rebuild') { 'Rebuild' } else { $ExpectedBuildKind }
+        if ($report.BuildKind -ne $expectedKind) { throw "$Name : expected summary $expectedKind, got $($report.BuildKind)" }
+        if ($GenerateExit -ne 0) {
+            if ($null -ne $report.BuildSeconds -or $null -ne $report.UbtSeconds -or $null -ne $report.ActionCount) { throw "$Name : generation failure reported build statistics" }
+        }
+        else {
+            if ($null -eq $report.BuildSeconds -or $report.BuildSeconds -lt 0) { throw "$Name : missing build invocation duration" }
+            if ($report.ActionCount -ne $ExpectedActions -or $report.UbtSeconds -ne $ExpectedUbtSeconds) { throw "$Name : incorrect action count or UBT duration" }
+            $expectedLabels = @{ UpToDate = 'Up to date (no compilation needed)'; Incremental = 'Incremental build completed'; Rebuild = 'Explicit rebuild completed'; Failed = 'Build failed'; Unknown = 'action statistics unknown' }
+            if ($output -notmatch [regex]::Escape($expectedLabels[$expectedKind])) { throw "$Name : missing console summary" }
+            if ($BuildExit -ne 0 -and $output -match 'BUILD SUCCEEDED') { throw "$Name : failed build printed success" }
+        }
     }
     $script:results += [pscustomobject]@{ Name = $Name; ExitCode = $actualExit; Passed = $true }
 }
@@ -117,6 +154,14 @@ Run-Case 'OfficialRebuild' 0 @('-Rebuild', '-NoLaunch')
 Run-Case 'DeprecatedMSBuildPath' 0 @('-CheckOnly', '-MSBuildPath', 'Z:\Missing\MSBuild.exe')
 Run-Case 'LaunchSuccessMock' 0 -MockLaunch
 Run-Case 'LaunchEarlyExitMock' 1 -MockLaunch -EarlyExit
+Run-Case 'UpToDateSummary' 0 @('-NoLaunch') -BuildLog $upToDateLog -ExpectedBuildKind 'UpToDate' -ExpectedActions 0 -ExpectedUbtSeconds 1.68
+Run-Case 'ZeroActionsSummary' 0 @('-NoLaunch') -BuildLog 'Using Parallel executor to run 0 action(s)' -ExpectedBuildKind 'UpToDate' -ExpectedActions 0 -ExpectedUbtSeconds $null
+Run-Case 'ProgressSummary' 0 @('-NoLaunch') -BuildLog (@('[1/4] Compile [x64] Fixture.cpp', '[2/4] Link [x64] Fixture.dll', 'Total execution time: 0,75 seconds') -join [Environment]::NewLine) -ExpectedActions 4 -ExpectedUbtSeconds 0.75
+Run-Case 'MissingStatistics' 0 @('-NoLaunch') -BuildLog $null -ExpectedBuildKind 'Unknown' -ExpectedActions $null -ExpectedUbtSeconds $null
+Run-Case 'UnknownLogFormat' 0 @('-NoLaunch') -BuildLog 'Build completed without recognized statistics.' -ExpectedBuildKind 'Unknown' -ExpectedActions $null -ExpectedUbtSeconds $null
+Run-Case 'FailedUpToDateLog' 6 -BuildExit 6 -BuildLog $upToDateLog -ExpectedActions 0 -ExpectedUbtSeconds 1.68
+Run-Case 'LaunchEarlyExitAfterUpToDateMock' 1 -MockLaunch -EarlyExit -BuildLog $upToDateLog -ExpectedBuildKind 'UpToDate' -ExpectedActions 0 -ExpectedUbtSeconds 1.68
+Run-Case 'RebuildWithoutStatistics' 0 @('-Rebuild', '-NoLaunch') -BuildLog $null -ExpectedActions $null -ExpectedUbtSeconds $null
 $results | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $testRoot 'Results.json') -Encoding UTF8
 $results | Format-Table -AutoSize
 Write-Host "Fixture reports: $testRoot"
