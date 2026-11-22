@@ -6,6 +6,7 @@
 
 class USplineComponent;
 class ATestVehiclePawn;
+enum class EHALMatchPhase : uint8;
 
 UENUM(BlueprintType)
 enum class EHALBlackHoleStage : uint8 { Expanding, PreparingPulse, Ended };
@@ -78,6 +79,8 @@ public:
 	AHALBlackHole();
 	/** Authority-only deferred spawn configuration, before FinishSpawning. */
 	bool ConfigureBlackHole(const FHALBlackHoleConfig& Config);
+	/** A field left by a consumable belongs to this round and uses the authored Niagara display. */
+	bool ConfigureMatchBallField(const FHALBlackHoleConfig& Config);
 	const FHALBlackHoleConfig& GetBlackHoleConfig() const { return Settings; }
 	UFUNCTION(BlueprintPure, Category="Black Hole") float GetCurrentRadius() const;
 	UFUNCTION(BlueprintPure, Category="Black Hole") EHALBlackHoleStage GetStage() const;
@@ -102,6 +105,8 @@ private:
 	friend class FHALBlackHoleDebugTest;
 #endif
 	double Age() const;
+	bool bMatchBallField = false;
+	UFUNCTION() void MatchPhaseChanged(EHALMatchPhase Phase);
 	void UpdateField();
 	void ApplyAttraction(double Elapsed, float StepSeconds, bool bPulse);
 	void DrawFieldDebug(double Elapsed) const;

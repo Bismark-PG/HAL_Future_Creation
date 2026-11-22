@@ -3,6 +3,7 @@
 #include "HALVehicleStabilityTestRules.h"
 #include "../HALBombActor.h"
 #include "../HALSpecialBall.h"
+#include "../HALBlackHoleBall.h"
 #include "../HALSpecialBallCue.h"
 #include "../HALElectricWallGimmick.h"
 #include "../HALElectricSphereGimmick.h"
@@ -260,7 +261,7 @@ bool FHALExplosiveBallTest::RunTest(const FString&)
 	auto* Second = SpawnBall(FVector(0, 2100, 100));
 	TestTrue(TEXT("Electric test launch"), Second->BeginControl(Shooter) && Second->LaunchFromControl(Shooter,Shooter,FVector(0, 15000, 0)));
 	FHitResult Curtain;
-	TestTrue(TEXT("Thin powered query-only curtain swept at high speed"), Second->FindFieldHit(FVector(0, 2900, 100), Curtain));
+	TestTrue(TEXT("Thin powered query-only curtain swept at high speed"), Second->FindFieldHit(Second->GetActorLocation(), FVector(0, 2900, 100), Curtain));
 	TestTrue(TEXT("Contact on approach side of screen"), Curtain.ImpactPoint.Y > 2400 && Curtain.ImpactPoint.Y <= 2500);
 	FHitResult Behind(Wall, Box, FVector(0, 2950, 100), -FVector::RightVector);
 	Second->ResolveLaunchedContact(Wall, Box, FVector::ZeroVector, Behind);
@@ -273,7 +274,7 @@ bool FHALExplosiveBallTest::RunTest(const FString&)
 	Inactive->DispatchBeginPlay();
 	auto* Third = SpawnBall(FVector(0, 4000, 100));
 	TestTrue(TEXT("Dormant field test shot"), Third->BeginControl(Shooter) && Third->LaunchFromControl(Shooter,Shooter,FVector(0, 15000, 0)));
-	TestFalse(TEXT("Warning-stage electric sphere does not trigger"), Third->FindFieldHit(FVector(0, 4900, 100), Curtain));
+	TestFalse(TEXT("Warning-stage electric sphere does not trigger"), Third->FindFieldHit(Third->GetActorLocation(), FVector(0, 4900, 100), Curtain));
 	// The actual Fred wall callback reported its contact 16 cm inside the blocking box.
 	FHitResult WallHit(Wall, Box, FVector(246, 0, 110), -FVector::ForwardVector);
 	Third->ResolveLaunchedContact(Wall, Box, FVector::ZeroVector, WallHit);
@@ -288,6 +289,89 @@ bool FHALExplosiveBallTest::RunTest(const FString&)
 	TestTrue(TEXT("Embedded physics contact places the effect on the incoming face"), bWallCueOnFace);
 	TestEqual(TEXT("Far side of a directly hit wall is protected"), HP(Shielded), Full);
 	TestEqual(TEXT("Wall hit can splash the approach side"), HP(Victim), Full - 2 * Type->Gameplay.Damage.VehicleHitDamage);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALBlackHoleBallTest, "HAL.FutureCreation.SpecialBall.BlackHoleDirectDamageAndGroundField",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALBlackHoleBallTest::RunTest(const FString&)
+{
+	FBombWorld F;
+	const auto* Defaults = GetDefault<UHALMatchBallSettings>();
+	const auto* Type = Defaults->BlackHoleBallType.LoadSynchronous();
+	const auto* Solar = Defaults->ExplosiveBallType.LoadSynchronous();
+	FString Error;
+	FHALBlackHoleConfig Scaled;
+	if (!TestTrue(TEXT("Both production balls load, including the original field and collapse"), Solar && Type
+		&& Type->Validate(Error) && Type->ResolveField(Scaled) && Type->ExpirationVortex)) { AddError(Error); return false; }
+	TestEqual(TEXT("Equal physical radius"), Type->Radius, Solar->Radius);
+	TestTrue(TEXT("Equal visual scale"), Type->Visual.RelativeTransform.GetScale3D().Equals(Solar->Visual.RelativeTransform.GetScale3D()));
+	const auto& Base = Type->FieldClass.GetDefaultObject()->GetBlackHoleConfig();
+	TestTrue(TEXT("Ball scales the live authored field, including swirl, pulse, grip and both lifetime stages"),
+		Scaled.MaximumRadius < Base.MaximumRadius && Scaled.ContinuousAcceleration < Base.ContinuousAcceleration
+		&& Scaled.SwirlAcceleration < Base.SwirlAcceleration && Scaled.PulseDeltaSpeed < Base.PulseDeltaSpeed
+		&& Scaled.DragGripMultiplier > Base.DragGripMultiplier && Scaled.SwirlDirection == Base.SwirlDirection
+		&& Scaled.DurationSeconds < Base.DurationSeconds && Scaled.ExpansionSeconds < Base.ExpansionSeconds
+		&& Scaled.PulseIndexAt(Scaled.ExpansionSeconds + Scaled.DurationSeconds - .01) >= 1);
+	const auto MakeBox = [&](FVector Center, FVector Extent)
+	{
+		auto* Actor = F.World->SpawnActor<AActor>();
+		auto* Box = NewObject<UBoxComponent>(Actor);
+		Actor->SetRootComponent(Box); Box->SetBoxExtent(Extent); Box->SetCollisionProfileName(TEXT("BlockAll"));
+		Box->SetWorldLocation(Center); Box->RegisterComponent();
+		return Box;
+	};
+	auto* Ground = MakeBox(FVector(0,0,-25), FVector(3000,3000,25));
+	auto* Wall = MakeBox(FVector(600,0,150), FVector(20,250,150));
+	auto* Shooter = F.Target(FVector(-220,0,100));
+	auto* Victim = F.Target(FVector(0,0,100));
+	auto* Bystander = F.Target(FVector(200,50,100));
+	auto HP = [](AActor* Car) { return Car->FindComponentByClass<UVehicleHealthComponent>()->GetCurrentHP(); };
+	const auto SpawnBall = [&]()
+	{
+		auto* Ball = F.World->SpawnActor<AHALBlackHoleBall>(FVector(-400,0,115), FRotator::ZeroRotator);
+		Ball->PreInitializeComponents(); Ball->DispatchBeginPlay();
+		return Ball;
+	};
+	const auto Fields = [&]()
+	{
+		TArray<AHALBlackHole*> Found;
+		for (TActorIterator<AHALBlackHole> It(F.World); It; ++It) { Found.Add(*It); }
+		return Found;
+	};
+	auto* Ball = SpawnBall();
+	auto* Body = CastChecked<UPrimitiveComponent>(Victim->GetRootComponent());
+	const FVector Contact(-67,0,98);
+	FHitResult Direct(Victim, Body, Contact, -FVector::ForwardVector);
+	Ball->ResolveLaunchedContact(Victim, Body, FVector::ZeroVector, Direct);
+	TestEqual(TEXT("Free physical touches do not leave a black hole"), Fields().Num(), 0);
+	TestTrue(TEXT("First holder can drop it, another can launch it"), Ball->BeginControl(Victim)
+		&& Ball->ReleaseFromControl(Victim, .1f) && Ball->BeginControl(Shooter)
+		&& Ball->LaunchFromControl(Shooter, Shooter, FVector(3200,0,0)));
+	FHitResult Floor(Ground->GetOwner(), Ground, FVector(-190,0,0), FVector::UpVector);
+	Ball->ResolveLaunchedContact(Ground->GetOwner(), Ground, FVector::ZeroVector, Floor);
+	Ball->ResolveLaunchedContact(Shooter, CastChecked<UPrimitiveComponent>(Shooter->GetRootComponent()), FVector::ZeroVector, Direct);
+	TestEqual(TEXT("Floor and last formal shooter pass through"), Fields().Num(), 0);
+	const float Before = HP(Victim), NearHP = HP(Bystander);
+	Ball->ResolveLaunchedContact(Victim, Body, FVector::ZeroVector, Direct);
+	Ball->ResolveLaunchedContact(Victim, Body, FVector::ZeroVector, Direct);
+	TestEqual(TEXT("One direct hit"), HP(Victim), Before - Type->Gameplay.Damage.VehicleHitDamage);
+	TestEqual(TEXT("A nearby opponent receives no splash damage"), HP(Bystander), NearHP);
+	auto Active = Fields();
+	if (!TestEqual(TEXT("Repeated hit produces exactly one field"), Active.Num(), 1)) { return false; }
+	TestTrue(TEXT("Real arena BP on the physical floor below the hit"), Active[0]->GetClass() == Type->FieldClass
+		&& Active[0]->GetActorLocation().Equals(FVector(Contact.X, Contact.Y, 2), 1.));
+	TestEqual(TEXT("World radius from ball DA"), Active[0]->GetBlackHoleConfig().MaximumRadius, Scaled.MaximumRadius);
+	Active[0]->Destroy();
+	auto* WallShot = SpawnBall();
+	TestTrue(TEXT("Formal wall test shot"), WallShot->BeginControl(Shooter) && WallShot->LaunchFromControl(Shooter,Shooter,FVector(3200,0,0)));
+	FHitResult Solid(Wall->GetOwner(), Wall, FVector(589,0,115), -FVector::ForwardVector);
+	WallShot->ResolveLaunchedContact(Wall->GetOwner(), Wall, FVector::ZeroVector, Solid);
+	Active = Fields();
+	if (!TestEqual(TEXT("Solid obstacle also consumes the ball"), Active.Num(), 1)) { return false; }
+	TestTrue(TEXT("Wall field sits on the incoming side and on the floor"), Active[0]->GetActorLocation().X < 580
+		&& FMath::IsNearlyEqual(Active[0]->GetActorLocation().Z, 2., 1.));
+	TestEqual(TEXT("Obstacle creates field without a damage event nearby"), HP(Bystander), NearHP);
 	return true;
 }
 

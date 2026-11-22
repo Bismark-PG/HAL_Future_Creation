@@ -2,6 +2,7 @@
 
 #include "HALPlayerController.h"
 #include "HALSpecialBall.h"
+#include "HALBlackHoleBall.h"
 #include "HALImpactAttributeSet.h"
 #include "HALImpactReceiverComponent.h"
 #include "HALImpactImmunityEffects.h"
@@ -404,20 +405,25 @@ void AHALPlayerController::HALImpactDebug(int32 PlayerId, int32 Reduction, bool 
 
 void AHALPlayerController::HALSpawnBall()
 {
-	RequestDebugBall(false);
+	RequestDebugBall(EHALDebugBallType::Normal);
 }
 
 void AHALPlayerController::HALSpawnExplosiveBall()
 {
-	RequestDebugBall(true);
+	RequestDebugBall(EHALDebugBallType::Explosive);
 }
 
-void AHALPlayerController::RequestDebugBall(bool bExplosive)
+void AHALPlayerController::HALSpawnBlackHoleBall()
+{
+	RequestDebugBall(EHALDebugBallType::BlackHole);
+}
+
+void AHALPlayerController::RequestDebugBall(EHALDebugBallType Type)
 {
 #if !UE_BUILD_SHIPPING
 	if (!IsLocalController()) { return; }
-	if (HasAuthority()) { ServerSpawnDebugBall_Implementation(bExplosive); }
-	else { ServerSpawnDebugBall(bExplosive); }
+	if (HasAuthority()) { ServerSpawnDebugBall_Implementation(Type); }
+	else { ServerSpawnDebugBall(Type); }
 #endif
 }
 
@@ -439,7 +445,7 @@ void AHALPlayerController::HALSpawnBomb()
 #endif
 }
 
-void AHALPlayerController::ServerSpawnDebugBall_Implementation(bool bExplosive)
+void AHALPlayerController::ServerSpawnDebugBall_Implementation(EHALDebugBallType Type)
 {
 #if !UE_BUILD_SHIPPING
 	ATestVehiclePawn* Vehicle = Cast<ATestVehiclePawn>(GetPawn());
@@ -457,7 +463,14 @@ void AHALPlayerController::ServerSpawnDebugBall_Implementation(bool bExplosive)
 	}
 	else
 	{
-		UClass* BallClass = bExplosive ? AHALExplosiveBall::StaticClass() : Settings->DefaultBallClass.LoadSynchronous();
+		UClass* BallClass = nullptr;
+		switch (Type)
+		{
+		case EHALDebugBallType::Normal: BallClass = Settings->DefaultBallClass.LoadSynchronous(); break;
+		case EHALDebugBallType::Explosive: BallClass = AHALExplosiveBall::StaticClass(); break;
+		case EHALDebugBallType::BlackHole: BallClass = AHALBlackHoleBall::StaticClass(); break;
+		default: return;
+		}
 		const FVector Forward = Vehicle->GetActorForwardVector().GetSafeNormal2D();
 		if (!BallClass || !BallClass->IsChildOf(ABasicBallActor::StaticClass()) || BallClass->HasAnyClassFlags(CLASS_Abstract))
 		{
@@ -492,7 +505,8 @@ void AHALPlayerController::ServerSpawnDebugBall_Implementation(bool bExplosive)
 			}
 		}
 	}
-	if (bExplosive) { Message.ReplaceInline(TEXT("HALSpawnBall"), TEXT("HALSpawnExplosiveBall")); }
+	if (Type == EHALDebugBallType::Explosive) { Message.ReplaceInline(TEXT("HALSpawnBall"), TEXT("HALSpawnExplosiveBall")); }
+	else if (Type == EHALDebugBallType::BlackHole) { Message.ReplaceInline(TEXT("HALSpawnBall"), TEXT("HALSpawnBlackHoleBall")); }
 	UE_LOG(LogTemp, Display, TEXT("%s"), *Message);
 	ClientDebugBallResult(Message, Ball != nullptr);
 #endif

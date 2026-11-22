@@ -10,6 +10,7 @@ class ABasicBallActor;
 class UDynamicMeshComponent;
 class UMaterialInterface;
 class UHALExplosiveBallDefinition;
+class UHALBlackHoleBallDefinition;
 
 /** World-space bounds of a circular playing surface. Heights are relative to FloorCenter.Z. */
 USTRUCT()
@@ -42,6 +43,7 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category="Presentation") TSoftObjectPtr<UMaterialInterface> ReturnRingMaterial;
 	/** Default type for the placeable explosive ball and its development spawn command. */
 	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALExplosiveBallDefinition> ExplosiveBallType;
+	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALBlackHoleBallDefinition> BlackHoleBallType;
 };
 
 USTRUCT()

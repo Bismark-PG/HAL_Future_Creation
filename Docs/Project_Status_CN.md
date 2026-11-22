@@ -1,5 +1,9 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-22，第二颗一次性特殊球「黑洞球」已完成。** 在 Development 控制台使用 `HALSpawnBlackHoleBall`，球型为 `/Game/Data/Balls/DA_Ball_BlackHole`。直击对手车辆扣除 25 HP。命中车辆、墙体、机关实体或通电电幕时，服务器消耗球并贴地生成正式 `BP_HALBlackHole`。球体与碰撞直径均为 2 m，紫色球面持续旋转，生成时旋臂聚拢，自然到期时沿用场地黑洞的粒子收束。首测半径 3.5 m、吸力倍率 0.45、总时长 4.8 秒。力场对包括发射者在内的车辆生效，每颗球和每个力场分别计时。
+
+UE 5.8.3 的 Editor 与独立 Win64 Development Game 构建通过。玩法回归 **278/278**（276 项干净通过，两项既有换车用例带警告）。本机一主三客各跑两局。第一局四端都观察到直击后靶车从 100 降至 75 HP，350 cm 的力场展开并退场。第二局自由球到期消散，车辆保持 100 HP，主球仍在。共用命中逻辑的爆炸球也完成了一主三客两局复测。D3D12 实射覆盖比赛图车辆、自然消散及 `Fred_TestScene` 实墙。原始结果在 `Saved/BlackHoleBall/{Regression,NetworkFinal,ExplosiveRegression,FinalView,Wall}`。下一步是团队实机确认牵引手感和远景可读性。[球型调参](Combat/Special_Ball_Base_CN.md#黑洞球) · [比赛图实拍](Combat/Art/BlackHoleBall/BlackHoleBall_InMatch.webp)
+
 **2026-11-22，爆炸球火弧的收尾已改为回卷、冷却和渐隐。** 旧版会整段切掉弧面。新版保留前段爆发，金色亮纹在透出地板时仍沿弧线移动。正式球型的 `Prominence Tail Seconds` 为 0.26 秒，加上基础命中演出的 0.54 秒，全长 0.80 秒。D3D12 已逐帧验证余焰熄灭和墙体遮挡。Editor 与独立 Game 构建通过，277 项玩法用例全部通过（两项既有换车用例带警告），本机一主三客两局均通过。[同机位实射对照](Combat/Art/ExplosiveBall/SolarProminence_TailComparison.webp) · [调参与回归记录](Combat/Special_Ball_Base_CN.md#火弧回卷与消散)
 
 **2026-11-22，爆炸球的日珥拱高和内部流纹已保存到正式材质与球型 DA。** 拱高由 0.67 调至 0.50，火纹以每秒 1.35 条弧长向落点移动，对比度为 0.70。`MVPB_Match` 的固定近景与实际驾驶镜头均已重新载入资产并实射，木桩均从 1000 降至 975 HP。D3D12 专项通过，固定火弧姿态后，仅推进火纹便有 4,891 个外围像素变色，深度轮廓变化为 0。Editor 与独立 Game 均构建通过，277 项玩法回归全部通过（两项既有换车用例带警告）。[近景实射对照](Combat/Art/ExplosiveBall/SolarProminence_FlowComparison.webp) · [调参与验证记录](Combat/Special_Ball_Base_CN.md#近景拱高与日珥内部流纹)

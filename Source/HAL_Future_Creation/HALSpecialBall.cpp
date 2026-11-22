@@ -18,7 +18,7 @@
 
 namespace
 {
-	void FindBlastContactFace(UPrimitiveComponent& Body, const FHitResult& Hit, const FVector& IncomingCenter,
+	void FindSpecialBallContactFace(UPrimitiveComponent& Body, const FHitResult& Hit, const FVector& IncomingCenter,
 		float BallRadius, FVector& Point, FVector& Normal)
 	{
 		// Chaos may report its solver contact inside a wall. Start on the incoming side and
@@ -320,7 +320,7 @@ UHALSpecialBallDefinition* AHALExplosiveBall::DefaultType() const
 	return GetDefault<UHALMatchBallSettings>()->ExplosiveBallType.LoadSynchronous();
 }
 
-void AHALExplosiveBall::OnAuthorityBallStateChanged(EBasicBallState Previous)
+void AHALContactSpecialBall::OnAuthorityBallStateChanged(EBasicBallState Previous)
 {
 	Super::OnAuthorityBallStateChanged(Previous);
 	GetWorldTimerManager().ClearTimer(FlightTimer);
@@ -331,7 +331,7 @@ void AHALExplosiveBall::OnAuthorityBallStateChanged(EBasicBallState Previous)
 	}
 }
 
-bool AHALExplosiveBall::FindFieldHit(const FVector& End, FHitResult& Out) const
+bool AHALContactSpecialBall::FindFieldHit(const FVector& Start, const FVector& End, FHitResult& Out) const
 {
 	bool bFound = false;
 	const float Radius = PhysicsRoot->GetScaledSphereRadius();
@@ -342,30 +342,29 @@ bool AHALExplosiveBall::FindFieldHit(const FVector& End, FHitResult& Out) const
 		if (!Field || !Field->IsQueryCollisionEnabled()) { continue; }
 		FHitResult Hit;
 		FVector Closest;
-		const float Gap = Field->GetClosestPointOnCollision(LastFlightCenter, Closest);
+		const float Gap = Field->GetClosestPointOnCollision(Start, Closest);
 		if (Gap >= 0 && Gap <= Radius)
 		{
+			Hit = FHitResult(*It, Field, Closest, (Start - Closest).GetSafeNormal());
 			Hit.Time = 0;
-			Hit.ImpactPoint = Closest;
-			Hit.ImpactNormal = (LastFlightCenter - Closest).GetSafeNormal();
 		}
-		else if (End.Equals(LastFlightCenter, .01) ||
-			!Field->SweepComponent(Hit, LastFlightCenter, End, FQuat::Identity, Sphere, false)) { continue; }
+		else if (End.Equals(Start, .01) ||
+			!Field->SweepComponent(Hit, Start, End, FQuat::Identity, Sphere, false)) { continue; }
 		if (!bFound || Hit.Time < Out.Time) { bFound = true; Out = Hit; }
 	}
 	return bFound;
 }
 
-void AHALExplosiveBall::CheckFlight()
+void AHALContactSpecialBall::CheckFlight()
 {
 	if (bConsumed || GetBallState() != EBasicBallState::Launched) { return; }
 	const FVector Center = GetActorLocation();
 	FHitResult Hit;
-	if (FindFieldHit(Center, Hit)) { Detonate(Hit.ImpactPoint, Hit.ImpactNormal); return; }
+	if (FindFieldHit(LastFlightCenter, Center, Hit)) { ConsumeContact(Hit.GetActor(), Hit.ImpactPoint, Hit.ImpactNormal); return; }
 	LastFlightCenter = Center;
 }
 
-void AHALExplosiveBall::ResolveLaunchedContact(AActor* Other, UPrimitiveComponent* Body, FVector Impulse, const FHitResult& Hit)
+void AHALContactSpecialBall::ResolveLaunchedContact(AActor* Other, UPrimitiveComponent* Body, FVector Impulse, const FHitResult& Hit)
 {
 	if (bConsumed || !Body || !IsValid(Other)) { return; }
 	// A query-only electric curtain can precede the rigid contact in the same physics step.
@@ -373,7 +372,7 @@ void AHALExplosiveBall::ResolveLaunchedContact(AActor* Other, UPrimitiveComponen
 	FVector ImpactPoint = Hit.ImpactPoint;
 	const FVector ContactCenter = Hit.ImpactPoint + Normal * PhysicsRoot->GetScaledSphereRadius();
 	FHitResult FieldHit;
-	if (FindFieldHit(ContactCenter, FieldHit)) { Detonate(FieldHit.ImpactPoint, FieldHit.ImpactNormal); return; }
+	if (FindFieldHit(LastFlightCenter, ContactCenter, FieldHit)) { ConsumeContact(FieldHit.GetActor(), FieldHit.ImpactPoint, FieldHit.ImpactNormal); return; }
 	if (Other->IsA<ABasicBallActor>() || Other == GetLaunchedBy()) { LastFlightCenter = ContactCenter; return; }
 	if (const auto* Health = Other->FindComponentByClass<UVehicleHealthComponent>())
 	{
@@ -395,27 +394,34 @@ void AHALExplosiveBall::ResolveLaunchedContact(AActor* Other, UPrimitiveComponen
 		}
 		if (!Normal.IsNearlyZero())
 		{
-			FindBlastContactFace(*Body, Hit, LastFlightCenter, PhysicsRoot->GetScaledSphereRadius(), ImpactPoint, Normal);
+			FindSpecialBallContactFace(*Body, Hit, LastFlightCenter, PhysicsRoot->GetScaledSphereRadius(), ImpactPoint, Normal);
 		}
 	}
-	Detonate(ImpactPoint, Normal);
+	ConsumeContact(Other, ImpactPoint, Normal);
 }
 
-void AHALExplosiveBall::Detonate(const FVector& Origin, const FVector& Normal)
+void AHALContactSpecialBall::ConsumeContact(AActor* Other, const FVector& Origin, const FVector& Normal)
 {
-	const auto* Type = Cast<UHALExplosiveBallDefinition>(Definition);
-	if (!HasAuthority() || bConsumed || !Type || GetBallState() != EBasicBallState::Launched || !GetLaunchAction().IsActive()) { return; }
+	if (!HasAuthority() || bConsumed || GetBallState() != EBasicBallState::Launched || !GetLaunchAction().IsActive()) { return; }
 	bConsumed = true;
 	const FVector Travel = (Origin - LastFlightCenter).GetSafeNormal2D();
+	if (ApplyContact(Other, Origin, Normal, Travel)) { Destroy(); }
+	else { bConsumed = false; }
+}
+
+bool AHALExplosiveBall::ApplyContact(AActor* Other, const FVector& Origin, const FVector& Normal, const FVector& Travel)
+{
+	const auto* Type = Cast<UHALExplosiveBallDefinition>(Definition);
+	if (!Type) { return false; }
 	FHALBlastArea Area{Origin, Type->ExplosionRadius};
 	Area.FallbackDirection = Travel.IsNearlyZero() ? -Normal.GetSafeNormal2D(UE_SMALL_NUMBER, FVector::BackwardVector) : Travel;
 	Area.CoverStart = Origin + Normal.GetSafeNormal() * 1.5f;
 	Area.Apply(*this, GetLaunchAction());
 	PlayCue(EHALBallCue::Impact, Origin, Area.Radius, Normal.GetSafeNormal());
-	Destroy();
+	return true;
 }
 
-void AHALExplosiveBall::EndPlay(EEndPlayReason::Type Reason)
+void AHALContactSpecialBall::EndPlay(EEndPlayReason::Type Reason)
 {
 	GetWorldTimerManager().ClearTimer(FlightTimer);
 	Super::EndPlay(Reason);

@@ -123,21 +123,34 @@ private:
 	FTimerHandle ExpiryTimer, ArenaTimer;
 };
 
-/** Place in a map directly, or spawn on the authority. The default type is selected in HAL Match Ball settings. */
+/** One shared flight sweep and one authoritative contact for consumable impact balls. */
+UCLASS(Abstract)
+class HAL_FUTURE_CREATION_API AHALContactSpecialBall : public AHALSpecialBall
+{
+	GENERATED_BODY()
+protected:
+	virtual void OnAuthorityBallStateChanged(EBasicBallState Previous) override;
+	virtual void ResolveLaunchedContact(AActor* Other, UPrimitiveComponent* Body, FVector Impulse, const FHitResult& Hit) override;
+	virtual void EndPlay(EEndPlayReason::Type Reason) override;
+	/** Return false if this is not an eligible hit and the shot should keep flying. */
+	virtual bool ApplyContact(AActor* Other, const FVector& Origin, const FVector& Normal, const FVector& Travel) PURE_VIRTUAL(AHALContactSpecialBall::ApplyContact, return false;);
+private:
+	friend class FHALExplosiveBallTest;
+	friend class FHALBlackHoleBallTest;
+	friend struct FHALSpecialBallNetworkCheck;
+	void CheckFlight();
+	bool FindFieldHit(const FVector& Start, const FVector& End, FHitResult& Out) const;
+	void ConsumeContact(AActor* Other, const FVector& Origin, const FVector& Normal);
+	FVector LastFlightCenter = FVector::ZeroVector;
+	FTimerHandle FlightTimer;
+};
+
+/** Place directly or spawn on the authority using the project's explosive ball type. */
 UCLASS()
-class HAL_FUTURE_CREATION_API AHALExplosiveBall : public AHALSpecialBall
+class HAL_FUTURE_CREATION_API AHALExplosiveBall : public AHALContactSpecialBall
 {
 	GENERATED_BODY()
 protected:
 	virtual UHALSpecialBallDefinition* DefaultType() const override;
-	virtual void OnAuthorityBallStateChanged(EBasicBallState Previous) override;
-	virtual void ResolveLaunchedContact(AActor* Other, UPrimitiveComponent* Body, FVector Impulse, const FHitResult& Hit) override;
-	virtual void EndPlay(EEndPlayReason::Type Reason) override;
-private:
-	friend class FHALExplosiveBallTest;
-	void CheckFlight();
-	bool FindFieldHit(const FVector& End, FHitResult& Out) const;
-	void Detonate(const FVector& Origin, const FVector& Normal);
-	FVector LastFlightCenter = FVector::ZeroVector;
-	FTimerHandle FlightTimer;
+	virtual bool ApplyContact(AActor* Other, const FVector& Origin, const FVector& Normal, const FVector& Travel) override;
 };

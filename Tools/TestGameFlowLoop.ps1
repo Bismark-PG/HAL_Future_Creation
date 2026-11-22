@@ -7,6 +7,7 @@ param(
     [string]$ReportDirectory,
     [switch]$VerifyPrimaryBall,
     [switch]$VerifyExplosiveBall,
+    [switch]$VerifyBlackHoleBall,
     [switch]$VerifyGroundRoll
 )
 $ErrorActionPreference = 'Stop'
@@ -41,6 +42,8 @@ $owned = @()
 if ($VerifyPrimaryBall -or $VerifyGroundRoll) { $common += '-HALMatchBallFixture' }
 if ($VerifyGroundRoll) { $common += '-HALGroundRollFixture' }
 if ($VerifyExplosiveBall) { $common += '-HALExplosiveBallFixture' }
+if ($VerifyBlackHoleBall -and $VerifyExplosiveBall) { throw 'Select one special ball per two-round test.' }
+if ($VerifyBlackHoleBall) { $common += '-HALBlackHoleBallFixture' }
 $roles = @('Host') + @(1..($players - 1) | ForEach-Object { "Client$_" })
 try {
     foreach ($role in $roles) {

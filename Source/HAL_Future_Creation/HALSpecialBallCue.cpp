@@ -1,5 +1,6 @@
 #include "HALSpecialBallCue.h"
 #include "HALBombActor.h"
+#include "HALBlackHoleBall.h"
 #include "HALMatchBallLifecycle.h"
 #include "Components/DynamicMeshComponent.h"
 #include "DynamicMesh/DynamicMesh3.h"
@@ -9,6 +10,8 @@
 #include "Engine/World.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Net/UnrealNetwork.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 
 using UE::Geometry::FDynamicMesh3;
 
@@ -115,7 +118,26 @@ void AHALSpecialBallCue::OnRep_State()
 {
 	if (bPrepared || !State.Type || State.Radius <= 0 || !Ribbons->IsRegistered() || GetNetMode() == NM_DedicatedServer) { return; }
 	bPrepared = true;
-	if (BallCueTime(*GetWorld()) - State.Started >= State.Type->CueSeconds(State.Kind)) { return; }
+	const float Age = FMath::Max(0., BallCueTime(*GetWorld()) - State.Started);
+	if (Age >= State.Type->CueSeconds(State.Kind)) { return; }
+	if (State.Kind == EHALBallCue::Expiration)
+	{
+		const auto* Hole = Cast<UHALBlackHoleBallDefinition>(State.Type);
+		if (Hole && Hole->ExpirationVortex && Hole->FieldClass)
+		{
+			auto* FX = UNiagaraFunctionLibrary::SpawnSystemAttached(Hole->ExpirationVortex, RootComponent, NAME_None,
+				FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::KeepRelativeOffset, true, false);
+			if (FX)
+			{
+				const auto Direction = Hole->FieldClass.GetDefaultObject()->GetBlackHoleConfig().SwirlDirection;
+				FX->SetVariableFloat(TEXT("User.Radius"), State.Radius * Hole->CoronaSize);
+				FX->SetVariableFloat(TEXT("User.SwirlSign"), Direction == EHALBlackHoleSwirlDirection::Clockwise ? -1.f : 1.f);
+				FX->Activate(true);
+				if (Age >= 1.f/60.f) { FX->AdvanceSimulation(FMath::FloorToInt(Age * 60.f), 1.f/60.f); }
+				return;
+			}
+		}
+	}
 	Ribbons->SetMaterial(0, State.Type->CueMaterial);
 	if (State.Kind == EHALBallCue::Impact)
 	{

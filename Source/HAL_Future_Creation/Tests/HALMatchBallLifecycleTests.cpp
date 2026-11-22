@@ -4,6 +4,7 @@
 #include "../HALMatchGameState.h"
 #include "../BasicBallActor.h"
 #include "../HALSpecialBallCue.h"
+#include "../HALBlackHoleBall.h"
 #include "../BallControlComponent.h"
 #include "../TestVehiclePawn.h"
 #include "../HALPlayerController.h"
@@ -372,8 +373,17 @@ bool FHALSpecialBallArenaTest::RunTest(const FString&)
 	Ball->CheckArena();
 	TestFalse(TEXT("Sustained exit retires the special ball"), IsValid(Ball));
 	auto* Next = F.World->SpawnActor<AHALExplosiveBall>(FVector(0,0,100), FRotator::ZeroRotator);
+	const auto* HoleType = Settings->BlackHoleBallType.LoadSynchronous();
+	FHALBlackHoleConfig Reduced;
+	if (!TestTrue(TEXT("Production field settings load"), HoleType && HoleType->ResolveField(Reduced))) { return false; }
+	const FTransform Placement(FVector(200, 0, 2));
+	auto* ActiveField = F.World->SpawnActorDeferred<AHALBlackHole>(HoleType->FieldClass, Placement);
+	if (!TestTrue(TEXT("Ball can configure its own field"), ActiveField && ActiveField->ConfigureMatchBallField(Reduced))) { return false; }
+	ActiveField->FinishSpawning(Placement);
+	TestTrue(TEXT("Match was present when the field began play"), ActiveField->HasActorBegunPlay() && F.World->GetGameState() == Match);
 	Match->SetMatchPhase(EHALMatchPhase::Finished);
 	TestFalse(TEXT("Results clean up a surviving drop"), IsValid(Next));
+	TestFalse(TEXT("Results also clean up the active ball field immediately"), IsValid(ActiveField));
 	for (TActorIterator<AHALSpecialBallCue> It(F.World); It; ++It)
 	{ TestFalse(TEXT("Round or arena cleanup never detonates"), It->GetCueState().Kind == EHALBallCue::Impact); }
 	return true;

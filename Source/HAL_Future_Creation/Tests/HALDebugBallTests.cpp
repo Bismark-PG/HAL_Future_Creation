@@ -7,6 +7,7 @@
 #include "../HALPlayerState.h"
 #include "../BasicBallActor.h"
 #include "../HALSpecialBall.h"
+#include "../HALBlackHoleBall.h"
 #include "../TestVehiclePawn.h"
 #include "../VehicleDefinition.h"
 #include "Components/BoxComponent.h"
@@ -107,6 +108,8 @@ bool FHALDebugBallSpawnTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Blocked position does not embed or relocate a ball"), F.Balls().Num(), 1);
 	Controller->HALSpawnExplosiveBall();
 	TestEqual(TEXT("Special ball also respects blocked spawn"), F.Balls().Num(), 1);
+	Controller->HALSpawnBlackHoleBall();
+	TestEqual(TEXT("Black hole ball respects blocked spawn"), F.Balls().Num(), 1);
 	Wall->DestroyComponent();
 	F.Settings->DefaultBallClass.Reset();
 	Controller->HALSpawnBall();
@@ -119,6 +122,13 @@ bool FHALDebugBallSpawnTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Debug special has its production DA and is additional"), Special->GetTypeDefinition()
 		== GetDefault<UHALMatchBallSettings>()->ExplosiveBallType.LoadSynchronous() && !Special->IsPrimaryMatchBall() && F.Balls().Num() == 2);
 	Special->Destroy();
+	Controller->HALSpawnBlackHoleBall();
+	AHALBlackHoleBall* Hole = nullptr;
+	for (auto* Spawned : F.Balls()) { if (auto* Typed = Cast<AHALBlackHoleBall>(Spawned)) { Hole = Typed; } }
+	if (!TestNotNull(TEXT("Black hole command spawns its native type"), Hole)) { return false; }
+	TestTrue(TEXT("Black hole command uses registered DA"), Hole->GetTypeDefinition() == GetDefault<UHALMatchBallSettings>()->BlackHoleBallType.LoadSynchronous()
+		&& !Hole->IsPrimaryMatchBall() && F.Balls().Num() == 2);
+	Hole->Destroy();
 	Controller->UnPossess();
 	Controller->Possess(F.World->SpawnActor<APawn>());
 	Controller->HALSpawnBall();
