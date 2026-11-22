@@ -22,6 +22,57 @@
 - **自然消散。** 寿命耗尽时有清晰的退场特效，能看出剩余能量已耗尽。自然消散不造成伤害或冲击。
 - **触发消耗。** 由球型的命中特效承接球体退场。生成、自然消散和命中应当一眼可区分。主机和客户端依据同一次服务器事件呈现结果。
 
+## 陨石球
+
+在 Development 的场地中开车面向空地，打开控制台执行 `HALSpawnMeteorBall`，驶近拾球后按普通发射键。单人测试可在 `Fred_TestScene` 放一辆活着的 `BP_SkillTestDummy` 当对手。正式球型位于 `/Game/Data/Balls/DA_Ball_Meteor`。
+
+| 时机 | 场上看到的表现与判定 |
+| --- | --- |
+| 生成、争夺 | 发亮的碎岩向中心聚成一颗带熔岩裂纹的球。显示直径、物理直径均为 2 m。持球暂停自由寿命，易手沿用剩余时间。 |
+| 正式发射 | 球从原处竖直升空。服务器从有有效地面位置的存活对手中等概率选一辆，随后移除可争抢、可碰撞的球体。没有合格对手时保留球，可以稍后再发。 |
+| 追踪 | 被选车辆上方显示 B 款三瓣锁环，中心陨石固定，三片外环随追踪进度向内收。目标在此期间被淘汰或离场，陨石沿用最后的有效地面位置。 |
+| 下坠 | 车顶锁环退场，地上出现固定大小的伤害边界，环内的暗影逐渐扩大。陨石拖着火焰和烟从上方落下。锁定后，目标可以开出范围，其他车辆也可能驶入。 |
+| 落地 | 以落点为圆心结算一次伤害和向外的冲击，范围包括发射者。三股橙金焰云从爆心翻出，一道贴地音爆沿钢板扩至预警边界。各车沿用现有减伤、抗冲击规则。 |
+| 自然到期 | 球化为向外飘散的余烬。场上车辆可以从旁经过，没有伤害或落击。 |
+
+**首测调参**。下列字段均在同一份球型 DA。
+
+| 在 DA 中查找 | 首版值 | 改动后的感觉 |
+| --- | --- | --- |
+| `Meteor → Tracking Seconds` | 1.6 s | 三瓣环从张开到收拢的时间，也是落点还能跟车移动的时间。 |
+| `Meteor → Fall Seconds` | 1.0 s | 落点固定后至命中的躲避窗口，阴影、烟焰与陨石共同使用。 |
+| `Meteor → Damage Radius` | 500 cm 半径 | 地面外圈和实际伤害取同一个半径。车身碰撞体触及范围即可受击。 |
+| `Gameplay → Damage → Vehicle Hit Damage` | 25 HP | 正式资产使用固定伤害。 |
+| `Gameplay → Impact → Tier / Push Preset` | Heavy / Standard | 分别控制冲击档位和横向推开距离。 |
+| `Meteor → Tracking Marker → Marker Size / Marker Closed Scale / Marker Lift` | 48 / 0.78 / 38 | 屏幕中的标记尺寸、锁定结束时的外环比例、车顶标识上方的间距。 |
+| `Meteor → Flight FX → Sky Height / Falling Rock Radius / Trail Length` | 6000 cm / 110 cm / 3.2 | 调上下飞行的高度、下落岩体的尺寸和烟焰尾长。另有 `Rise Seconds` 和 `Smoke Color`。 |
+| `Meteor → Flight FX → Smoke Lifetime / Smoke Spread` | 0.46 s / 1.15 | 前者控制一团烟从排出到散尽的时间，后者控制向两侧翻卷、散开的幅度，以岩体半径为单位。`Trail Length` 限制可见烟尾长度。 |
+| `Meteor → Flight FX → Rock Spin Rate` | 320°/s | 调整下坠岩体绕斜轴翻转的速度。设为 0 可以单独观察烟和气流。 |
+| `Meteor → Flight FX → Airflow Strength / Airflow Speed` | 0.72 / 2.4 周期每秒 | 前者调迎风面两侧风痕的可见度，后者调亮纹和扰动向尾部推进的速度。 |
+| `Meteor → Impact FX → Cloud Coverage / Cloud Lift` | 0.88 / 0.29 | 调焰云横向铺展和卷顶高度，均相对伤害半径。范围分别为 0.35–0.94 和 0–0.65。 |
+| `Meteor → Impact FX → Cloud Curl` | 1.0 | 0–2，值越大，橙色火纹向卷心翻回去的幅度越大。设为 0 方便单看网格的升起。 |
+| `Meteor → Impact FX → Cloud Tint / Cooled Smoke Color` | 白色乘色 / 暗紫灰 | 前者给手绘火面染色，后者控制熄灭时露出的烟底。 |
+| `Meteor → Impact FX → Shock Ring Width / Shock Ring Intensity` | 23 cm / 1.25 | 调音爆的基础笔触宽度与亮度。宽度可填 2–100 cm，从外沿向内加粗。基础宽度会限制在半径的 0.3%–24%，再沿圆周收尖和展宽。亮度 0–4，设为 0 可单看焰云。 |
+| `Meteor → Impact FX → Shock Accent Color` | 浅青 | 控制外环迎光弧段的冷色，暖色取球型的 `Corona Color`。 |
+| `Lifetime → Free Life Seconds / Warning Seconds` | 20 s / 3 s | 累计可争抢时间，以及自然消散前的提醒。 |
+| `Effects → Arrival Seconds / Expiration Seconds / Impact Seconds` | 0.62 s / 0.65 s / 0.80 s | 分别调生成聚合、余烬消散和命中收尾。球面颜色、流动速度与发光也在此组。 |
+
+美术资产在 `/Game/Assets/FX/SpecialBalls/Meteor`。原生控件会绘制 `Marker Core` 与 `Marker Jaws` 两层纹理。若团队改做 Widget Blueprint，可以在 `Marker Widget Class` 引用派生自 `HALMeteorMarkerWidget` 的控件，读取 `Ball Type`、`Tracking Progress` 或响应 `Receive Tracking Progress`。进度由同一次服务器发射的起始时间计算。
+
+四人联机回归入口为 `Tools/TestGameFlowLoop.ps1 -Profile Exhibition -VerifyMeteorBall`。第一局验证锁定、实际落地伤害与主球共存，第二局验证自然到期。
+
+下坠烟团留在陨石经过的位置，在那里翻卷、膨胀、飘散。岩体绕斜轴自转，迎风面两侧有细亮风痕向上掠过。要让烟留久一点，先调 `Smoke Lifetime`。若尾端已经达到可见长度，再增大 `Trail Length`。这次实拍中，岩体在约 0.1 秒里下降了 1.52 m，同一团烟在这段时间上浮了 0.18 m。[下坠实拍动图](Art/MeteorBall/MeteorBall_Descent.webp) · [落地爆炸选型草图](Art/MeteorBall/ImpactConcepts/README.md)
+
+在 `MVPB_Match` 的 D3D12 实射中，木桩从 1000 降至 975 HP，独立生成的自由球在 20.0 秒自然消散。四进程两局的记录在 `Saved/MeteorBall/FinalNetwork`，画面原帧在 `Saved/MeteorBall/ReleaseView`。[实拍对照](Art/MeteorBall/MeteorBall_InMatch.webp)
+
+### 逆卷焰云与外围音爆
+
+落地先闪出紧凑的金白爆心，三股焰云从同一处向外翻起。火面下方露出暗紫灰烟底，末段分块冷却、散开。最外侧只有一道贴地音爆，沿圆周有宽窄和冷暖变化。按正式演出时长 0.80 秒，它在落地约 0.35 秒后扫到 5 米边界。伤害在落地瞬间由服务器结算一次。
+
+要让爆炸更饱满，先调 `Cloud Coverage`。要让火头卷得更高，调 `Cloud Lift`。想把外围笔触收细，调 `Shock Ring Width`。要给玩家更长的演出阅读时间，调 `Effects → Impact Seconds`。外沿始终跟随 `Damage Radius`。[比赛镜头与近景实射](Art/MeteorBall/MeteorBall_RollingImpact.webp) · [B、C 原草图及正式纹理](Art/MeteorBall/ImpactConcepts/README.md)
+
+两次比赛图实射都从正常拾球和发射开始，驾驶镜头与近景各记录 53 帧。木桩均从 1000 降至 975 HP，三瓣焰云的相位各异，结束后全部退场。另在正交镜头固定演出进度，并对比打开与关闭音爆的画面。正式 500 cm 与对照 300 cm 两档各读 48 个方向，外沿半径中位数分别为 499.5 cm、299.7 cm。原始帧、逐帧数据和四进程两局报告位于 `Saved/MeteorBall/RollingImpact`。
+
 ## 黑洞球
 
 在 Development 的场地中驾驶车辆，朝空地执行控制台命令 `HALSpawnBlackHoleBall`。也可以从 Place Actors 将原生 `HALBlackHoleBall` 放进测试图。选用的球型为 `/Game/Data/Balls/DA_Ball_BlackHole`。

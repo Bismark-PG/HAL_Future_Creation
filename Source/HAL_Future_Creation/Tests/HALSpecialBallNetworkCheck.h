@@ -2,6 +2,8 @@
 #if WITH_DEV_AUTOMATION_TESTS && !UE_BUILD_SHIPPING
 #include "../HALSpecialBall.h"
 #include "../HALBlackHoleBall.h"
+#include "../HALMeteorBall.h"
+#include "../TestVehiclePawn.h"
 #include "../HALSpecialBallCue.h"
 #include "../HALRoomComponent.h"
 #include "../HALPlayerState.h"
@@ -15,12 +17,15 @@
 struct FHALSpecialBallNetworkCheck
 {
 	const bool bBlackHole = FParse::Param(FCommandLine::Get(), TEXT("HALBlackHoleBallFixture"));
-	const bool bEnabled = bBlackHole || FParse::Param(FCommandLine::Get(), TEXT("HALExplosiveBallFixture"));
+	const bool bMeteor = FParse::Param(FCommandLine::Get(), TEXT("HALMeteorBallFixture"));
+	const bool bEnabled = bBlackHole || bMeteor || FParse::Param(FCommandLine::Get(), TEXT("HALExplosiveBallFixture"));
 	uint32 Round = 0;
 	bool bSpawned = false, bArrival = false, bSawBody = false, bShot = false, bTerminalCue = false, bDone = false;
 	bool bReportedDuplicateImpact = false, bReportedFieldEnd = false;
 	float InitialHP = 0.f;
 	double FieldEndTime = 0.;
+	TWeakObjectPtr<UVehicleHealthComponent> MeteorVictim;
+	TOptional<FVector> LockedGround;
 	bool Update(FAutomationTestBase& Test, AHALMatchGameState& Match, AHALPlayerController& PC, bool bHost, uint32 Id)
 	{
 		if (!bEnabled) { return true; }
@@ -28,6 +33,7 @@ struct FHALSpecialBallNetworkCheck
 		const UHALSpecialBallDefinition* ExpectedType = bBlackHole
 			? static_cast<UHALSpecialBallDefinition*>(Settings->BlackHoleBallType.LoadSynchronous())
 			: static_cast<UHALSpecialBallDefinition*>(Settings->ExplosiveBallType.LoadSynchronous());
+		if (bMeteor) { ExpectedType = Settings->MeteorBallType.LoadSynchronous(); }
 		if (!ExpectedType) { Test.AddError(TEXT("Missing production special ball type")); return true; }
 		const auto& Room = Match.GetRoom()->GetData();
 		APawn* Target = Room.Host ? Room.Host->GetPawn() : nullptr;
@@ -39,6 +45,8 @@ struct FHALSpecialBallNetworkCheck
 			Round = Id;
 			bSpawned = bArrival = bSawBody = bShot = bTerminalCue = bDone = false;
 			bReportedDuplicateImpact = bReportedFieldEnd = false;
+			MeteorVictim.Reset();
+			LockedGround.Reset();
 			InitialHP = Health->GetCurrentHP();
 			if (bHost)
 			{
@@ -64,7 +72,9 @@ struct FHALSpecialBallNetworkCheck
 			const auto* Arena = Arenas.FindByPredicate([&](const FHALMatchBallArena& Entry)
 			{ return Entry.MatchMap.ToSoftObjectPath().GetLongPackageName() == UWorld::RemovePIEPrefix(World->GetOutermost()->GetName()); });
 			if (!Arena) { Test.AddError(TEXT("Missing competition arena for special ball")); return true; }
-			World->SpawnActor<AHALSpecialBall>(bBlackHole ? AHALBlackHoleBall::StaticClass() : AHALExplosiveBall::StaticClass(),
+			UClass* BallClass = bBlackHole ? AHALBlackHoleBall::StaticClass() : AHALExplosiveBall::StaticClass();
+			if (bMeteor) { BallClass = AHALMeteorBall::StaticClass(); }
+			World->SpawnActor<AHALSpecialBall>(BallClass,
 				Arena->FloorCenter + FVector(1650, -1850, 175), FRotator::ZeroRotator);
 			bSpawned = true;
 		}
@@ -83,7 +93,7 @@ struct FHALSpecialBallNetworkCheck
 			bArrival |= Cue.Kind == EHALBallCue::Arrival;
 			VisibleImpactActors += Cue.Kind == EHALBallCue::Impact;
 			const bool bHadTerminalCue = bTerminalCue;
-			if (!bBlackHole && Id == 1 && Cue.Kind == EHALBallCue::Impact && !bTerminalCue)
+			if (!bBlackHole && !bMeteor && Id == 1 && Cue.Kind == EHALBallCue::Impact && !bTerminalCue)
 			{
 				Test.TestEqual(TEXT("Replicated impact uses actual type radius"), Cue.Radius, CastChecked<UHALExplosiveBallDefinition>(ExpectedType)->ExplosionRadius);
 				Test.TestFalse(TEXT("The match broadcasts one local impact without a second replicated actor"), It->GetIsReplicated());
@@ -99,6 +109,36 @@ struct FHALSpecialBallNetworkCheck
 			}
 		}
 		bool bFieldActive = false;
+		if (bMeteor)
+		{
+			int32 Count = 0;
+			for (TActorIterator<AHALMeteorStrike> It(World); It; ++It)
+			{
+				const auto& Strike = It->GetStrikeState();
+				if (Strike.Type != ExpectedType) { continue; }
+				++Count;
+				if (Strike.Phase == EHALMeteorPhase::Tracking && Strike.Target && !MeteorVictim.IsValid())
+				{
+					MeteorVictim = Strike.Target->FindComponentByClass<UVehicleHealthComponent>();
+					if (MeteorVictim.IsValid()) { InitialHP = MeteorVictim->GetCurrentHP(); }
+				}
+				if (Strike.Phase == EHALMeteorPhase::Falling && !LockedGround.IsSet())
+				{
+					Test.TestNull(TEXT("Falling releases tracking target on this peer"), Strike.Target.Get());
+					LockedGround = FVector(Strike.Ground);
+				}
+				if (Strike.Phase == EHALMeteorPhase::Impact && !bTerminalCue)
+				{
+					Test.TestTrue(TEXT("Meteor tracking, fixed descent and impact seen in order"),
+						MeteorVictim.IsValid() && LockedGround.IsSet() && LockedGround->Equals(Strike.Ground, .15));
+					UE_LOG(LogTemp, Display, TEXT("Meteor observed Host=%d Ground=%s Victim=%s Radius=%.1f"),
+						bHost, *Strike.Ground.ToCompactString(), *GetNameSafe(MeteorVictim.IsValid() ? MeteorVictim->GetOwner() : nullptr), Strike.Type->DamageRadius);
+					bTerminalCue = true;
+				}
+			}
+			if (Count > (Id == 1 ? 1 : 0) && !bReportedDuplicateImpact)
+			{ Test.AddError(TEXT("Extra meteor strike or meteor created by free expiry")); bReportedDuplicateImpact = true; }
+		}
 		if (bBlackHole)
 		{
 			const auto* Hole = CastChecked<UHALBlackHoleBallDefinition>(ExpectedType);
@@ -151,6 +191,22 @@ struct FHALSpecialBallNetworkCheck
 			if (!Shooter) { return false; }
 			FVector Forward = Target->GetActorForwardVector().GetSafeNormal2D();
 			FVector From = Target->GetActorLocation() - Forward * 380.f + FVector::UpVector * 18.f;
+			if (bMeteor)
+			{
+				const auto* Arena = Settings->Arenas.FindByPredicate([&](const FHALMatchBallArena& Entry)
+				{ return Entry.MatchMap.ToSoftObjectPath().GetLongPackageName() == UWorld::RemovePIEPrefix(World->GetOutermost()->GetName()); });
+				if (!Arena) { Test.AddError(TEXT("Missing meteor test floor")); return true; }
+				// Four separated patches of deck keep the random target clear of moving arena hazards.
+				for (int32 I = 0; I < Room.Members.Num(); ++I)
+				{
+					if (auto* Car = Room.Members[I] ? Room.Members[I]->GetPawn() : nullptr)
+					{
+						const FVector Position = Arena->FloorCenter + FVector(I & 1 ? 1480 : -1480, I & 2 ? 1600 : -1600, 130);
+						Car->SetActorLocation(Position,false,nullptr,ETeleportType::ResetPhysics);
+					}
+				}
+				From = Shooter->GetActorLocation() + Shooter->GetActorForwardVector() * 250.f + FVector::UpVector * 100.f;
+			}
 			if (bBlackHole)
 			{
 				// Spawn pads may border a punch or a wall. A radial explosion could still score there;
@@ -185,6 +241,11 @@ struct FHALSpecialBallNetworkCheck
 			if (!bShot) { Test.AddError(TEXT("Formal special shot could not start in match")); return true; }
 		}
 		if (!bSawBody || !bTerminalCue || Ball || Primaries != 1 || bFieldActive) { return false; }
+		if (bMeteor && Id == 1)
+		{
+			Health = MeteorVictim.Get();
+			if (!Health) { return false; }
+		}
 		const float Expected = InitialHP - (Id == 1 ? ExpectedType->Gameplay.Damage.VehicleHitDamage : 0.f);
 		if (!FMath::IsNearlyEqual(Health->GetCurrentHP(), Expected))
 		{

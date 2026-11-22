@@ -1,6 +1,7 @@
 #include "HALSpecialBallCue.h"
 #include "HALBombActor.h"
 #include "HALBlackHoleBall.h"
+#include "HALMeteorBall.h"
 #include "HALMatchBallLifecycle.h"
 #include "Components/DynamicMeshComponent.h"
 #include "DynamicMesh/DynamicMesh3.h"
@@ -297,6 +298,29 @@ void AHALSpecialBallCue::Draw(float T)
 						Tint(Type.CoronaColor, 1.8f, Fade));
 				}
 			}
+		}
+	}
+	else if (Type.IsA<UHALMeteorBallDefinition>())
+	{
+		// Arrival accretes incandescent fragments. Expiry cools and loosens the rock into drifting ash.
+		const bool bArrival = State.Kind == EHALBallCue::Arrival;
+		const float Smooth = FMath::SmoothStep(0.f,1.f,T);
+		const float Fade = bArrival ? 1.f-Smooth*.45f : 1.f-Smooth;
+		for (int32 I=0; I<13; ++I)
+		{
+			const float Seed = (I%5) / 4.f;
+			const float Angle = I*2.39996f + (bArrival ? Smooth*.96f : Smooth*.28f);
+			const FVector Out(FMath::Cos(Angle),FMath::Sin(Angle),0);
+			const FVector Across(-Out.Y,Out.X,0);
+			const float Distance = bArrival ? FMath::Lerp(Type.CoronaSize,.68f,Smooth) : .48f + .88f*Smooth;
+			const float Height = bArrival ? (.65f+Seed)*(1.f-Smooth) : T*(.35f+1.15f*Seed);
+			const FVector P = Radius * (Out*Distance + FVector::UpVector*Height);
+			const FVector W = Across * Radius*(.10f+.08f*Seed)*Fade;
+			const FVector H = (Out*.56f+FVector::UpVector)*Radius*(.20f+.12f*Seed)*Fade;
+			const FVector Peak = P + (Out*.70f+FVector::UpVector)*Radius*(bArrival ? .60f : .30f)*Fade;
+			const FLinearColor Char = FMath::Lerp(Type.CurrentColor,Type.CoreColor,bArrival ? .30f : Smooth);
+			Corona.Quad(P-W,P-H,P+W,P+H,Tint(Char,1.1f,Fade));
+			Corona.Quad(P-W*.75f,P+H*.24f,P+W*.65f,Peak,Tint(Type.CoronaColor,bArrival ? 1.7f : Fade,Fade));
 		}
 	}
 	else

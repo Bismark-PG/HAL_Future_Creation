@@ -4,6 +4,9 @@
 #include "../HALBombActor.h"
 #include "../HALSpecialBall.h"
 #include "../HALBlackHoleBall.h"
+#include "../HALMeteorBall.h"
+#include "../HALSkillTestDummy.h"
+#include "../HALHealthAttributeSet.h"
 #include "../HALSpecialBallCue.h"
 #include "../HALElectricWallGimmick.h"
 #include "../HALElectricSphereGimmick.h"
@@ -372,6 +375,100 @@ bool FHALBlackHoleBallTest::RunTest(const FString&)
 	TestTrue(TEXT("Wall field sits on the incoming side and on the floor"), Active[0]->GetActorLocation().X < 580
 		&& FMath::IsNearlyEqual(Active[0]->GetActorLocation().Z, 2., 1.));
 	TestEqual(TEXT("Obstacle creates field without a damage event nearby"), HP(Bystander), NearHP);
+	return true;
+}
+
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FHALMeteorStrikeTest, "HAL.FutureCreation.SpecialBall.Meteor",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+void FHALMeteorStrikeTest::GetTests(TArray<FString>& Names, TArray<FString>& Commands) const
+{
+	Names = {TEXT("DodgeAfterLockAndSelfDamage"),TEXT("EliminatedTargetKeepsLastGround")};
+	Commands = Names;
+}
+bool FHALMeteorStrikeTest::RunTest(const FString& Scenario)
+{
+	auto F = MakeShared<FBombWorld>();
+	auto* Type = GetDefault<UHALMatchBallSettings>()->MeteorBallType.LoadSynchronous();
+	FString Error;
+	if (!TestTrue(TEXT("Authored type and both marker layers load"), Type && Type->Validate(Error)))
+	{ AddError(Error); return false; }
+	auto* Floor = F->World->SpawnActor<AActor>();
+	auto* Box = NewObject<UBoxComponent>(Floor);
+	Floor->SetRootComponent(Box);
+	Box->SetBoxExtent(FVector(6000,6000,25));
+	Box->SetCollisionProfileName(TEXT("BlockAll"));
+	Box->SetWorldLocation(FVector(0,0,-25));
+	Box->RegisterComponent();
+
+	auto* Shooter = F->Target(FVector(1050,0,100));
+	auto* Bystander = F->Target(FVector(1500,0,100));
+	auto* Distant = F->Target(FVector(-2300,0,100));
+	auto* Ball = F->World->SpawnActor<AHALMeteorBall>(FVector(600,0,130), FRotator::ZeroRotator);
+	Ball->PreInitializeComponents();
+	Ball->DispatchBeginPlay();
+	TestTrue(TEXT("Can hold without an eligible opponent"), Ball->BeginControl(Shooter));
+	TestFalse(TEXT("Cannot consume held meteor without target"), Ball->LaunchFromControl(Shooter,Shooter,FVector::ForwardVector*3600));
+	TestEqual(TEXT("Unspent ball remains held"), Ball->GetControlledBy(), static_cast<AActor*>(Shooter));
+
+	auto* DummyClass = LoadClass<AHALSkillTestDummy>(nullptr,TEXT("/Game/Blueprints/Vehicles/BP_SkillTestDummy.BP_SkillTestDummy_C"));
+	if (!TestNotNull(TEXT("Skill test dummy blueprint"), DummyClass)) { return false; }
+	auto* Dummy = F->World->SpawnActor<AHALSkillTestDummy>(DummyClass,FVector(500,0,105),FRotator::ZeroRotator);
+	Dummy->PreInitializeComponents(); Dummy->InitializeComponents(); Dummy->PostInitializeComponents(); Dummy->DispatchBeginPlay();
+	if (!TestTrue(TEXT("Eligible opponent allows formal launch"), Dummy->CanReceiveSkillEffects()
+		&& Ball->LaunchFromControl(Shooter,Shooter,FVector::ForwardVector*3600))) { return false; }
+	TestTrue(TEXT("Consumed ball immediately loses its physics presence"), Ball->IsActorBeingDestroyed() && !Ball->GetActorEnableCollision());
+	TActorIterator<AHALMeteorStrike> It(F->World);
+	if (!TestTrue(TEXT("Single independent strike"), bool(It))) { return false; }
+	auto* Strike = *It;
+	++It;
+	TestFalse(TEXT("Only one strike on launch"), bool(It));
+	Strike->DispatchBeginPlay();
+	TestEqual(TEXT("Lock identifies the opponent"), Strike->GetStrikeState().Target.Get(), static_cast<ATestVehiclePawn*>(Dummy));
+
+	const FVector Mark(1250,0,100);
+	Dummy->SetActorLocation(Mark,false,nullptr,ETeleportType::TeleportPhysics);
+	auto HP = [](AActor* Car) { return Car->FindComponentByClass<UVehicleHealthComponent>()->GetCurrentHP(); };
+	const float OwnHP = HP(Shooter), OtherHP = HP(Bystander), FarHP = HP(Distant), TargetHP = HP(Dummy);
+	const bool bEliminate = Scenario == TEXT("EliminatedTargetKeepsLastGround");
+	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FFunctionLatentCommand>(
+		[this,F,Type,Dummy,Shooter,Bystander,Distant,Strike,HP,OwnHP,OtherHP,FarHP,TargetHP,bEliminate,
+			bReleased=false,bLocked=false,Elapsed=0.f,ExpectedGround=Mark,FrozenGround=FVector::ZeroVector]() mutable
+		{
+			F->World->Tick(LEVELTICK_All,.05f);
+			Elapsed += .05f;
+			const auto& S = Strike->GetStrikeState();
+			if (bEliminate && !bReleased && Elapsed > Type->TrackingSeconds*.4f)
+			{
+				ExpectedGround = Dummy->GetActorLocation();
+				Dummy->GetAbilitySystemComponent()->SetNumericAttributeBase(UHALHealthAttributeSet::GetCurrentHPAttribute(),0.f);
+				TestNull(TEXT("Elimination removes the tracking marker immediately"), S.Target.Get());
+				Dummy->SetActorLocation(FVector(3200,800,100),false,nullptr,ETeleportType::TeleportPhysics);
+				bReleased = true;
+			}
+			if (S.Phase == EHALMeteorPhase::Falling && !bLocked)
+			{
+				if (!bEliminate) { ExpectedGround = Dummy->GetActorLocation(); }
+				ExpectedGround.Z = 0.;
+				FrozenGround = S.Ground;
+				TestTrue(TEXT("Locks the actual floor beneath the moving chassis"), FrozenGround.Equals(ExpectedGround,3.));
+				TestNull(TEXT("No moving target during descent"), S.Target.Get());
+				TestEqual(TEXT("Warning deals no early damage"), HP(Bystander),OtherHP);
+				if (!bEliminate) { Dummy->SetActorLocation(FVector(3200,800,100),false,nullptr,ETeleportType::TeleportPhysics); }
+				bLocked = true;
+			}
+			if (S.Phase != EHALMeteorPhase::Impact)
+			{
+				if (Elapsed < Type->TrackingSeconds+Type->FallSeconds+2.f) { return false; }
+				AddError(TEXT("Meteor never reached impact")); return true;
+			}
+			TestTrue(TEXT("Descent precedes impact and final ground is immutable"), bLocked && FVector(S.Ground).Equals(FrozenGround,.01));
+			const float Damage = Type->Gameplay.Damage.VehicleHitDamage;
+			TestEqual(TEXT("Shooter inside radius receives the same attack once"),HP(Shooter),OwnHP-Damage);
+			TestEqual(TEXT("Nearby bystander hit once"),HP(Bystander),OtherHP-Damage);
+			TestEqual(TEXT("Outside target untouched"),HP(Distant),FarHP);
+			TestEqual(TEXT("Selected target can escape or remain eliminated"),HP(Dummy),bEliminate ? 0.f : TargetHP);
+			return true;
+		}));
 	return true;
 }
 

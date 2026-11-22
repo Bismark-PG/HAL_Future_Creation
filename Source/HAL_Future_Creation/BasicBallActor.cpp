@@ -290,6 +290,11 @@ bool ABasicBallActor::CommitLaunch(AActor* NewLauncher, const FVector& InitialVe
 	Attack.Impact = RuntimeImpactConfig;
 	Attack.EffectTags = RuntimeDamageConfig.EffectTags;
 	Attack.bCanHitInstigator = false;
+	return DeliverLaunch(Attack, NewLauncher, InitialVelocity, FrameSource);
+}
+
+bool ABasicBallActor::DeliverLaunch(const FHALAttackSourceSnapshot& Attack, AActor* NewLauncher, const FVector& InitialVelocity, const AActor* FrameSource)
+{
 	// A water intercept changes attack ownership without inserting an observable Free state.
 	if (!LaunchAction.Replace(*this, Attack)) { return false; }
 	FBallRepState Next;

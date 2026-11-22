@@ -11,6 +11,7 @@ class UDynamicMeshComponent;
 class UMaterialInterface;
 class UHALExplosiveBallDefinition;
 class UHALBlackHoleBallDefinition;
+class UHALMeteorBallDefinition;
 
 /** World-space bounds of a circular playing surface. Heights are relative to FloorCenter.Z. */
 USTRUCT()
@@ -44,6 +45,7 @@ public:
 	/** Default type for the placeable explosive ball and its development spawn command. */
 	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALExplosiveBallDefinition> ExplosiveBallType;
 	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALBlackHoleBallDefinition> BlackHoleBallType;
+	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALMeteorBallDefinition> MeteorBallType;
 };
 
 USTRUCT()

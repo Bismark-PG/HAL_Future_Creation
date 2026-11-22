@@ -16,7 +16,7 @@ class UHALMatchHUDWidget;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHALRoomRequestCompleted, EHALRoomResult, Result);
 
 UENUM()
-enum class EHALDebugBallType : uint8 { Normal, Explosive, BlackHole };
+enum class EHALDebugBallType : uint8 { Normal, Explosive, BlackHole, Meteor };
 
 /** Local input, camera and match UI entry point for a single player. */
 UCLASS()
@@ -85,6 +85,7 @@ public:
 	/** Development only. Request one explosive ball in front of the possessed vehicle. */
 	UFUNCTION(Exec) void HALSpawnExplosiveBall();
 	UFUNCTION(Exec) void HALSpawnBlackHoleBall();
+	UFUNCTION(Exec) void HALSpawnMeteorBall();
 	/** Request the current primary skill through the same local input/GAS path as an Input Action. */
 	UFUNCTION(Exec)
 	void HALUseSkill();

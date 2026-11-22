@@ -139,6 +139,8 @@ protected:
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual bool CanUseBall() const { return true; }
+	/** Called once after a formal shot has captured its source. False keeps the ball with its current holder. */
+	virtual bool DeliverLaunch(const FHALAttackSourceSnapshot& Attack, AActor* Launcher, const FVector& Velocity, const AActor* FrameSource);
 	virtual void OnAuthorityBallStateChanged(EBasicBallState Previous) {}
 	virtual void ResolveLaunchedContact(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 	virtual void OnAcceptedVehicleHit();

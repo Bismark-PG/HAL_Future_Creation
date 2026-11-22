@@ -1,5 +1,17 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-22，陨石球落地已采用 B 的三股逆卷焰云，外围加入 C 的一道贴地音爆。** 三瓣焰云从同一个爆心向外展开，橙金火面翻起后露出暗紫灰烟底。正式球型演出 0.80 秒，音爆在约 0.35 秒扫到伤害边界。焰云覆盖、高度、翻卷、颜色以及音爆宽度、亮度和冷色都集中在 `DA_Ball_Meteor → Meteor → Impact FX`。[驾驶镜头与近景实射动图](Combat/Art/MeteorBall/MeteorBall_RollingImpact.webp) · [调参与验证](Combat/Special_Ball_Base_CN.md#逆卷焰云与外围音爆)
+
+UE 5.8.3 的统一 Editor 和独立 Win64 Development Game 构建通过。玩法回归 280 项通过，其中两项既有换车用例带警告。本机一主三客在模拟 80 ms 延迟下通过命中、自然到期两局，四端零测试警告。D3D12 在 `MVPB_Match` 的驾驶镜头与固定近景分别实射，两次木桩均仅扣一次 25 HP。独立正交读回用 48 个方向测量音爆外沿，设置 500 cm 与 300 cm 的终点中位数分别为 499.5 cm 与 299.7 cm。Editor 记录为 `Saved/BuildTool/BuildAndLaunch_20261122_233101_721_003f38/Result.json`，独立构建、回归和实拍记录在 `Saved/MeteorBall/RollingImpact/{FinalGame.log,FinalGameplay,FinalNetwork,FinalDriving,FinalClose,OuterFront}`。四台设备上的打包观感待团队验收。
+
+**2026-11-22，陨石球下坠烟尾、岩体自转和两侧气流已完成。** 陨石经过时排出烟团，每团烟按自己的寿命向外翻滚。岩体绕斜轴转动，细风痕沿迎风面向尾部掠过。调参入口是 `DA_Ball_Meteor → Meteor → Flight FX`。本次提供的三款落地草图与后来选定的组合已归档。[比赛图下坠动图](Combat/Art/MeteorBall/MeteorBall_Descent.webp) · [三款概念草图](Combat/Art/MeteorBall/ImpactConcepts/README.md) · [球型调参](Combat/Special_Ball_Base_CN.md#陨石球)
+
+UE 5.8.3 统一 Editor 构建和独立 Win64 Development Game 构建均通过。本轮玩法回归 280 项通过，其中两项既有换车测试带警告。本机一主三客模拟 80 ms 延迟，命中与自然到期两局均通过，四端零测试警告。D3D12 比赛图实拍里，0.098 秒内岩体下降 152 cm，同一团烟上浮 18 cm、横移 51 cm，木桩从 1000 降至 975 HP。构建记录为 `Saved/BuildTool/BuildAndLaunch_20261122_230728_282_b038f2/Result.json`。本轮独立构建命令及结果、逐帧数据和多人报告位于 `Saved/MeteorBall/FlightV2/{FinalGame.log,FinalPlay,FinalRegression,FinalNetwork}`。
+
+**2026-11-22，第三颗一次性特殊球「陨石球」已完成开发和本机验证。** Development 控制台命令为 `HALSpawnMeteorBall`。正式发射后球从车头升空，随机锁定一名存活对手。B 款车顶三瓣锁环在 1.6 秒内收拢。随后落点固定，地面阴影扩大，陨石拖着烟焰在 1 秒后落地。追踪中被淘汰的车辆保留最后有效地面位置。5 米半径内包含发射者，每车结算一次 25 HP 与 Heavy / Standard 冲击。自由寿命 20 秒，生成聚合与自然消散已接通。所有调参集中在 `DA_Ball_Meteor`。[调参与单人测试](Combat/Special_Ball_Base_CN.md#陨石球) · [比赛图实拍](Combat/Art/MeteorBall/MeteorBall_InMatch.webp)
+
+UE 5.8.3 的统一 Editor 与独立 Win64 Development Game 构建通过。玩法自动化 **280/280**，其中两个既有换车用例带警告。新增用例验证无目标保留球、锁定后驶离、发射者受击，以及目标淘汰后沿用最后落点。本机一主三客在模拟 80 ms 延迟下跑完两局，四端均为零测试警告。第一局四端都观察到同一点落击，目标从 100 降至 75 HP。第二局自然到期，目标保持 100 HP，两局主球均在场。D3D12 正式赛场单人实射中，木桩由 1000 降至 975 HP，另一颗球自由存在 20.0 秒后单独消散。独立实射还记录到木桩击飞后的水平峰值约 748 cm/s、向上峰值约 943 cm/s。构建记录为 `Saved/BuildTool/BuildAndLaunch_20261122_220056_488_32ace2/Result.json`。独立构建、玩法、四端与实拍证据位于 `Saved/MeteorBall/{Game.log,FinalRegression,FinalNetwork,ReleaseView,ImpactPhysics}`。下一轮由团队在四台设备上确认锁环大小与躲避时间。
+
 **2026-11-22，第二颗一次性特殊球「黑洞球」已完成。** 在 Development 控制台使用 `HALSpawnBlackHoleBall`，球型为 `/Game/Data/Balls/DA_Ball_BlackHole`。直击对手车辆扣除 25 HP。命中车辆、墙体、机关实体或通电电幕时，服务器消耗球并贴地生成正式 `BP_HALBlackHole`。球体与碰撞直径均为 2 m，紫色球面持续旋转，生成时旋臂聚拢，自然到期时沿用场地黑洞的粒子收束。首测半径 3.5 m、吸力倍率 0.45、总时长 4.8 秒。力场对包括发射者在内的车辆生效，每颗球和每个力场分别计时。
 
 UE 5.8.3 的 Editor 与独立 Win64 Development Game 构建通过。玩法回归 **278/278**（276 项干净通过，两项既有换车用例带警告）。本机一主三客各跑两局。第一局四端都观察到直击后靶车从 100 降至 75 HP，350 cm 的力场展开并退场。第二局自由球到期消散，车辆保持 100 HP，主球仍在。共用命中逻辑的爆炸球也完成了一主三客两局复测。D3D12 实射覆盖比赛图车辆、自然消散及 `Fred_TestScene` 实墙。原始结果在 `Saved/BlackHoleBall/{Regression,NetworkFinal,ExplosiveRegression,FinalView,Wall}`。下一步是团队实机确认牵引手感和远景可读性。[球型调参](Combat/Special_Ball_Base_CN.md#黑洞球) · [比赛图实拍](Combat/Art/BlackHoleBall/BlackHoleBall_InMatch.webp)
