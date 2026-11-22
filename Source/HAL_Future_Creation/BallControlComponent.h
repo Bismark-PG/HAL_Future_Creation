@@ -46,6 +46,8 @@ public:
 	FVector CalculateRecoilDeltaVelocity() const;
 	/** Explicit server cleanup before the owning Pawn is unpossessed/destroyed. */
 	void PrepareForOwnerExit();
+	/** Forget this exact destroyed ball even when the holder's acquisition timer is gated by Stun. */
+	void OnHeldBallDestroyed(const ABasicBallActor* Ball);
 	void HandleVehicleCollision(const FVector& NormalImpulse, const FHitResult& Hit);
 	/** Authority-only tier outcome; raw impulse never bypasses resistance in TieredV1. */
 	bool ReleaseFromImpact(const FVector& Direction);
@@ -131,6 +133,7 @@ private:
 	friend struct FHALRecoveryTestAccess;
 	friend struct FHALBattleTopTestAccess;
 	friend struct FHALBallRelativeNetworkAccess;
+	friend class FHALMatchBallLifecycleTest;
 #endif
 	void EvaluateBallControl();
 	ABasicBallActor* FindBestCandidate() const;

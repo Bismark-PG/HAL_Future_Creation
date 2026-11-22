@@ -22,12 +22,93 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
 #include "HALWidgetExtensionTestAccess.h"
+#include "../HALMatchBallLifecycle.h"
+#include "../BasicBallActor.h"
+#include "Components/SphereComponent.h"
+#include "Engine/NetDriver.h"
+#include "EngineUtils.h"
 
 namespace
 {
+	/** Enabled only by the match-ball fixture. All clients must see the original before the host removes it. */
+	struct FMatchBallNetworkCheck
+	{
+		const bool Enabled = FParse::Param(FCommandLine::Get(), TEXT("HALMatchBallFixture"));
+		uint32 Round = 0;
+		bool Armed = false, Triggered = false, SawNotice = false, Finished = false;
+		TWeakObjectPtr<ABasicBallActor> Original;
+		FVector AnnouncedGround = FVector::ZeroVector;
+
+		bool Update(FAutomationTestBase& Test, AHALMatchGameState& State, AHALPlayerController& PC, bool Host, uint32 Id)
+		{
+			if (!Enabled) { return true; }
+			UWorld* World = State.GetWorld();
+			if (Round != Id)
+			{
+				Round = Id;
+				Armed = Triggered = SawNotice = Finished = false;
+				Original.Reset();
+				if (Host)
+				{
+					FPacketSimulationSettings Lag;
+					Lag.PktLag = 80;
+					World->GetNetDriver()->SetPacketSimulationSettings(Lag);
+				}
+			}
+			if (Finished) { return true; }
+			const auto* Life = State.FindComponentByClass<UHALMatchBallLifecycle>();
+			if (!Life) { return false; }
+			ABasicBallActor* Primary = nullptr;
+			int32 Count = 0;
+			for (TActorIterator<ABasicBallActor> It(World); It; ++It)
+			{
+				if (It->IsPrimaryMatchBall() && !It->IsActorBeingDestroyed()) { Primary = *It; ++Count; }
+			}
+			const FString ArmedName = FString::Printf(TEXT("BALL_READY_%u"), Id);
+			if (!Armed && Count == 1)
+			{
+				Original = Primary;
+				Armed = true;
+				if (!Host) { PC.SetName(ArmedName); }
+			}
+			if (!Armed) { return false; }
+			if (Host && !Triggered)
+			{
+				for (const auto& Player : State.GetRoom()->GetData().Members)
+				{
+					if (!Player || (Player != PC.GetPlayerState<AHALPlayerState>() && Player->GetPlayerName() != ArmedName)) { return false; }
+				}
+				auto* Ball = Original.Get();
+				if (!Ball) { Test.AddError(TEXT("Authored primary disappeared before fixture input")); return true; }
+				if (Id == 1)
+				{
+					Ball->SetActorLocation(Ball->GetActorLocation() + FVector(30000, 0, 0), false, nullptr, ETeleportType::TeleportPhysics);
+					Ball->GetPhysicsRoot()->SetPhysicsLinearVelocity(FVector::ZeroVector);
+					Ball->ForceNetUpdate();
+				}
+				else { Ball->Destroy(); }
+				Triggered = true;
+			}
+			if (Life->IsReturnAnnounced())
+			{
+				SawNotice = true;
+				AnnouncedGround = Life->GetReturnGround();
+				return false;
+			}
+			if (!SawNotice || Count != 1 || Primary == Original.Get()) { return false; }
+			Test.TestTrue(TEXT("Replacement at the announced XY"), FVector::Dist2D(Primary->GetActorLocation(), AnnouncedGround) < 100.);
+			Test.TestTrue(TEXT("Replacement Free, unowned and replicated"), Primary->GetBallState() == EBasicBallState::Free
+				&& !Primary->GetControlledBy() && !Primary->GetBallRepState().AttackSnapshot.AttackId.IsValid() && Primary->GetIsReplicated());
+			UE_LOG(LogTemp, Display, TEXT("Match ball verified: Host=%d Round=%u Unique=%d Cue=1 Free=1"), Host, Id, Count);
+			Finished = true;
+			return true;
+		}
+	};
+
 	class FRoundProbe : public IAutomationLatentCommand
 	{
 		FAutomationTestBase* Test;
+		FMatchBallNetworkCheck MatchBallCheck;
 		bool Solo=false,Timeout=false,RoleKnown=false,Host=false,Verified=false,SawLoading=false,SawCountdown=false,Disconnect=false,BadMap=false;
 		uint32 LoadedRound=0, CountdownRound=0;
 		uint32 SkillRequestedRound=0, SkillVerifiedRound=0;
@@ -148,6 +229,7 @@ namespace
 			{
 				if (!Ready || Physics.Value.bControlsBlocked) { return false; }
 				if (Timeout) { Test->AddError(TEXT("Timeout fixture must never enter Playing")); return true; }
+				if (!MatchBallCheck.Update(*Test, *S, *PC, Host, D.RoundId)) { return false; }
 				CountedPlaying=FMath::Max(CountedPlaying,D.RoundId);
 				Test->TestTrue(TEXT("Barrier and countdown observed for this round"),LoadedRound==D.RoundId && CountdownRound==D.RoundId);
 				Test->TestEqual(TEXT("Explicit new round identity"),PS->GetVehicleLifecycle().RoundId,D.RoundId);

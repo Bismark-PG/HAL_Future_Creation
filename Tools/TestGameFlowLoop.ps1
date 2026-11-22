@@ -4,7 +4,8 @@ param(
     [string]$EngineRoot,
     [ValidateSet('Development', 'Exhibition')][string]$Profile = 'Exhibition',
     [ValidateRange(1024, 65535)][int]$Port = 7909,
-    [string]$ReportDirectory
+    [string]$ReportDirectory,
+    [switch]$VerifyPrimaryBall
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -35,6 +36,7 @@ if ($Profile -eq 'Exhibition') {
 $common = @('-game', '-nullrhi', '-unattended', '-NoGamepad', '-DisablePlugins=XInputDevice', '-nop4', '-nosplash', '-nosound',
     '-UDPMESSAGING_TRANSPORT_ENABLE=0', "-port=$Port", '-stdout', '-FullStdOutLogOutput', '-TestExit="Automation Test Queue Empty"')
 $owned = @()
+if ($VerifyPrimaryBall) { $common += '-HALMatchBallFixture' }
 $roles = @('Host') + @(1..($players - 1) | ForEach-Object { "Client$_" })
 try {
     foreach ($role in $roles) {

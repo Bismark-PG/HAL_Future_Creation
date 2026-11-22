@@ -385,12 +385,28 @@ void ABasicBallActor::AddReleaseImpulse(const FVector& Impulse)
 
 void ABasicBallActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (EndPlayReason == EEndPlayReason::Destroyed && HasAuthority() && IsValid(RepState.Holder))
+	{
+		if (auto* Control = RepState.Holder->FindComponentByClass<UBallControlComponent>())
+		{
+			Control->OnHeldBallDestroyed(this);
+		}
+	}
 	LaunchAction.Close();
 	StopLowSpeedMonitor();
 	Super::EndPlay(EndPlayReason);
 }
 
-void ABasicBallActor::SetPrimaryCameraTarget(bool bPrimary)
+float ABasicBallActor::GetConfiguredSphereRadius() const
+{
+	if (ConfigurationSource == EVehicleConfigurationSource::Definition && Definition)
+	{
+		return Definition->Radius * Definition->Physics.Scale.GetAbsMin();
+	}
+	return PhysicsRoot->GetScaledSphereRadius();
+}
+
+void ABasicBallActor::SetPrimaryMatchBall(bool bPrimary)
 {
 	if (HasAuthority() && bPrimaryCameraTarget != bPrimary) { bPrimaryCameraTarget = bPrimary; ForceNetUpdate(); }
 }
