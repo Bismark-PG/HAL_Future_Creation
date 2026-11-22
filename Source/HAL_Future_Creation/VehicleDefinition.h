@@ -251,7 +251,7 @@ public:
 	/** Optional client mesh presentation; invalid values fall back to the existing PI display. */
 	UPROPERTY(EditAnywhere, Category="Presentation")
 	FHALBallPresentationConfig Presentation;
-	bool Validate(FString& Error) const;
+	virtual bool Validate(FString& Error) const;
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 #endif

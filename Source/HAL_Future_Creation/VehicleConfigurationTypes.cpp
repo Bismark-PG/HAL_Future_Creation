@@ -119,12 +119,15 @@ bool FBallStateConfig::Validate(FString& Error) const
 	if (!FMath::IsFinite(LowSpeedThreshold) || LowSpeedThreshold < 0.0f) { Error = TEXT("FBallStateConfig.LowSpeedThreshold is outside its valid finite range."); return false; }
 	if (!FMath::IsFinite(LowSpeedRequiredDuration) || LowSpeedRequiredDuration < 0.0f) { Error = TEXT("FBallStateConfig.LowSpeedRequiredDuration is outside its valid finite range."); return false; }
 	if (!FMath::IsFinite(LowSpeedCheckInterval) || LowSpeedCheckInterval < 0.01f) { Error = TEXT("FBallStateConfig.LowSpeedCheckInterval is outside its valid finite range."); return false; }
+	if (!FMath::IsWithinInclusive(GroundRollReleaseSpeed, 0.f, 10000.f) || !FMath::IsWithinInclusive(GroundRollRequiredDuration, 0.f, 5.f))
+	{ Error = TEXT("Ground roll release speed must be 0-10000 cm/s and duration 0-5 s."); return false; }
 	return true;
 }
 
 bool FBallAcquisitionConfig::Validate(FString& Error) const
 {
 	if (!FMath::IsFinite(PostLaunchPickupLockDuration) || PostLaunchPickupLockDuration < 0.0f) { Error = TEXT("FBallAcquisitionConfig.PostLaunchPickupLockDuration is outside its valid finite range."); return false; }
+	if (!FMath::IsWithinInclusive(GroundRollPickupLockDuration, 0.f, 5.f)) { Error = TEXT("Ground roll pickup lock must be 0-5 s."); return false; }
 	return true;
 }
 

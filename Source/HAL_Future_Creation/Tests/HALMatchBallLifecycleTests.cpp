@@ -3,6 +3,7 @@
 #include "../HALMatchBallLifecycle.h"
 #include "../HALMatchGameState.h"
 #include "../BasicBallActor.h"
+#include "../HALSpecialBallCue.h"
 #include "../BallControlComponent.h"
 #include "../TestVehiclePawn.h"
 #include "../HALPlayerController.h"
@@ -22,6 +23,9 @@
 #include "AssetCompilingManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Misc/ScopeExit.h"
 
 namespace
 {
@@ -68,6 +72,66 @@ namespace
 			return Count;
 		}
 	};
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALMatchBallGroundRollTest, "HAL.FutureCreation.MatchBall.GroundedLaunchRelease",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALMatchBallGroundRollTest::RunTest(const FString&)
+{
+	FMatchBallWorld F;
+	const auto* Arena = ProductionBallArena();
+	UClass* Class = Arena ? Arena->PrimaryBallClass.LoadSynchronous() : nullptr;
+	if (!TestNotNull(TEXT("Production ball class"), Class)) { return false; }
+	auto* Ball = F.World->SpawnActorDeferred<ABasicBallActor>(Class, FTransform::Identity);
+	auto* Type = DuplicateObject<UBallDefinition>(Class->GetDefaultObject<ABasicBallActor>()->Definition, Ball);
+	Type->Gameplay.State.GroundRollReleaseSpeed = 1000;
+	Type->Gameplay.State.GroundRollRequiredDuration = .15f;
+	Type->Gameplay.Acquisition.GroundRollPickupLockDuration = .15f;
+	Type->Gameplay.Damage.Version = EHALCombatConfigVersion::LegacyFixedDamage;
+	Ball->Definition = Type;
+	Ball->FinishSpawning(FTransform::Identity);
+	AActor* Shooter = F.World->SpawnActor<AActor>();
+	AActor* NextHolder = F.World->SpawnActor<AActor>();
+	const float Radius = Ball->GetPhysicsRoot()->GetScaledSphereRadius();
+	F.Block(FVector(0,0,-25), FVector(1000,1000,25));
+	F.Block(FVector(500,0,500), FVector(20,200,200));
+	auto* Trigger = CastChecked<UBoxComponent>(F.Block(FVector(-500,0,400), FVector(180,180,15))->GetRootComponent());
+	Trigger->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	auto Sample = [&](FVector Point, float Speed, double Step = .05)
+	{
+		F.World->TimeSeconds += Step;
+		Ball->SetActorLocation(Point, false, nullptr, ETeleportType::TeleportPhysics);
+		Ball->PhysicsRoot->SetPhysicsLinearVelocity(FVector(Speed,0,0));
+		Ball->CheckLaunchedLowSpeed();
+	};
+	const FVector Floor(0,0,Radius);
+	const FVector Slow(650,0,0);
+	if (!TestTrue(TEXT("Formal shot"), Ball->BeginControl(Shooter) && Ball->LaunchFromControl(Shooter,Shooter,Slow))) { return false; }
+	const FGuid Attack = Ball->GetBallRepState().AttackSnapshot.AttackId;
+	for (const FVector Point : {FVector(0,0,500), FVector(480-Radius,0,500), FVector(-500,0,415+Radius)})
+	{
+		Sample(Point, Slow.X); Sample(Point, Slow.X, .45);
+		TestTrue(TEXT("Air, wall-only and query-only surfaces keep flight active"), Ball->GetBallRepState().AttackSnapshot.AttackId == Attack);
+	}
+	Sample(Floor, 1600); Sample(Floor, 1600, .30);
+	TestTrue(TEXT("Fast ground shot keeps its original attack"), Ball->GetBallRepState().AttackSnapshot.AttackId == Attack);
+	Sample(Floor, Slow.X); Sample(Floor, Slow.X, .09); Sample(Floor + FVector(0,0,200), Slow.X);
+	Sample(Floor, Slow.X); Sample(Floor, Slow.X, .08);
+	TestTrue(TEXT("A bounce resets continuous support time"), Ball->GetBallState() == EBasicBallState::Launched);
+	Sample(Floor, Slow.X, .08);
+	TestTrue(TEXT("Ground roll ends the attack and clears its attribution"), Ball->GetBallState() == EBasicBallState::Free
+		&& !Ball->GetLaunchedBy() && !Ball->GetBallRepState().AttackSnapshot.AttackId.IsValid());
+	TestFalse(TEXT("The brief pickup lock applies to every car"), Ball->CanBeControlledBy(NextHolder));
+	F.World->TimeSeconds += .16;
+	if (!TestTrue(TEXT("Another holder can pick up and relaunch"), Ball->BeginControl(NextHolder) && Ball->LaunchFromControl(NextHolder, NextHolder, Slow))) { return false; }
+	const FQuat Tilt(FVector::RightVector, FMath::DegreesToRadians(30.f));
+	const FVector RampCenter(2700,0,200);
+	auto* Ramp = F.Block(RampCenter, FVector(400,250,20));
+	Ramp->SetActorRotation(Tilt, ETeleportType::TeleportPhysics);
+	const FVector OnRamp = RampCenter + Tilt.GetUpVector() * (20.f + Radius);
+	Sample(OnRamp, Slow.X); Sample(OnRamp, Slow.X, .16);
+	TestTrue(TEXT("A supported slow shot on a ramp also becomes Free"), Ball->GetBallState() == EBasicBallState::Free);
+	return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALMatchBallMapTest, "HAL.FutureCreation.MatchBall.ProductionMap",
@@ -269,6 +333,303 @@ bool FHALMatchBallCueRenderTest::RunTest(const FString&)
 	}
 	TestTrue(TEXT("Cyan annulus visible from the top; center stays clear"), RingPixels > 750 && InteriorPixels < 40);
 	AddInfo(FString::Printf(TEXT("Visible cyan pixels=%d inside center=%d"), RingPixels, InteriorPixels));
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSpecialBallArenaTest, "HAL.FutureCreation.SpecialBall.RoundAndOutOfBounds",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALSpecialBallArenaTest::RunTest(const FString&)
+{
+	FMatchBallWorld F;
+	auto* Settings = GetMutableDefault<UHALMatchBallSettings>();
+	const auto* Production = ProductionBallArena();
+	if (!TestNotNull(TEXT("Configured match arena"), Production)) { return false; }
+	auto Rules = *Production;
+	Rules.MatchMap = F.World;
+	Rules.FloorCenter = FVector::ZeroVector;
+	const int32 Index = Settings->Arenas.Add(Rules);
+	ON_SCOPE_EXIT { Settings->Arenas.RemoveAt(Index); };
+	auto* Match = F.World->SpawnActor<AHALMatchGameState>();
+	F.World->SetGameState(Match);
+	auto* Ball = F.World->SpawnActor<AHALExplosiveBall>(FVector(0,0,100), FRotator::ZeroRotator);
+	TestEqual(TEXT("Preplaced ball waits for kickoff"), Ball->RemainingFreeSeconds(), 0.f);
+	TestTrue(TEXT("Waiting ball cannot fall or block cars before it appears"),
+		!Ball->GetPhysicsRoot()->IsGravityEnabled() && Ball->GetPhysicsRoot()->GetCollisionResponseToChannel(ECC_PhysicsBody) == ECR_Ignore);
+	Match->SetMatchPhase(EHALMatchPhase::Playing);
+	TestTrue(TEXT("Playing starts its own free budget"), Ball->RemainingFreeSeconds() > 0);
+	TestTrue(TEXT("Kickoff restores the authored physical body"),
+		Ball->GetPhysicsRoot()->IsGravityEnabled() && Ball->GetPhysicsRoot()->GetCollisionResponseToChannel(ECC_PhysicsBody) == ECR_Block);
+	const FVector Outside(2*Rules.PlayableRadius,0,100);
+	Ball->SetActorLocation(Outside, false, nullptr, ETeleportType::TeleportPhysics);
+	Ball->CheckArena();
+	F.World->TimeSeconds += Rules.OutsideGraceSeconds * .5f;
+	Ball->CheckArena();
+	TestTrue(TEXT("Brief excursion survives"), IsValid(Ball));
+	Ball->SetActorLocation(FVector(0,0,100), false, nullptr, ETeleportType::TeleportPhysics);
+	Ball->CheckArena();
+	Ball->SetActorLocation(Outside, false, nullptr, ETeleportType::TeleportPhysics);
+	Ball->CheckArena();
+	F.World->TimeSeconds += Rules.OutsideGraceSeconds + .1;
+	Ball->CheckArena();
+	TestFalse(TEXT("Sustained exit retires the special ball"), IsValid(Ball));
+	auto* Next = F.World->SpawnActor<AHALExplosiveBall>(FVector(0,0,100), FRotator::ZeroRotator);
+	Match->SetMatchPhase(EHALMatchPhase::Finished);
+	TestFalse(TEXT("Results clean up a surviving drop"), IsValid(Next));
+	for (TActorIterator<AHALSpecialBallCue> It(F.World); It; ++It)
+	{ TestFalse(TEXT("Round or arena cleanup never detonates"), It->GetCueState().Kind == EHALBallCue::Impact); }
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSpecialBallRenderTest, "HAL.RenderSmoke.SpecialBall.DarkSunAndThreeCues",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALSpecialBallRenderTest::RunTest(const FString&)
+{
+	if (!FApp::CanEverRender()) { AddError(TEXT("Actual RHI required.")); return false; }
+	FMatchBallWorld F;
+	auto* World = F.World;
+	auto* Type = GetDefault<UHALMatchBallSettings>()->ExplosiveBallType.LoadSynchronous();
+	if (!TestNotNull(TEXT("Production explosive type"), Type)) { return false; }
+	if (!TestNotNull(TEXT("Production dark sun has a persistent corona material"), Type->BodyCoronaMaterial.Get())) { return false; }
+	if (!TestNotNull(TEXT("Production impact has a solar eruption material"), Type->EruptionMaterial.Get())) { return false; }
+	for (UMaterialInterface* Material : {Type->CueMaterial.Get(), Type->Visual.Materials[0].Get(), Type->BodyCoronaMaterial.Get(), Type->EruptionMaterial.Get()})
+	{
+		Material->GetMaterial()->ForceRecompileForRendering(EMaterialShaderPrecompileMode::Synchronous);
+	}
+	const FVector Origin(0, 0, 150);
+	auto* Ball = World->SpawnActor<AHALExplosiveBall>(Origin, FRotator::ZeroRotator);
+	auto* Camera = World->SpawnActor<ASceneCapture2D>()->GetCaptureComponent2D();
+	Camera->bCaptureEveryFrame = false;
+	Camera->ProjectionType = ECameraProjectionMode::Orthographic;
+	Camera->CaptureSource = SCS_FinalColorLDR;
+	Camera->PostProcessSettings.bOverride_AutoExposureMethod = true;
+	Camera->PostProcessSettings.AutoExposureMethod = AEM_Manual;
+	Camera->PostProcessSettings.bOverride_AutoExposureApplyPhysicalCameraExposure = true;
+	Camera->PostProcessSettings.AutoExposureApplyPhysicalCameraExposure = false;
+	Camera->SetWorldLocation(Origin + FVector(0,0,900));
+	Camera->SetWorldRotation(FRotator(-90,0,0));
+	Camera->ShowFlags.SetTemporalAA(false);
+	Camera->ShowFlags.SetBloom(false);
+	Camera->ShowFlags.SetFog(false);
+	Camera->PrimitiveRenderMode = ESceneCapturePrimitiveRenderMode::PRM_UseShowOnlyList;
+	auto* Target = NewObject<UTextureRenderTarget2D>();
+	Target->InitCustomFormat(320,320,PF_B8G8R8A8,false);
+	Camera->TextureTarget = Target;
+	FAssetCompilingManager::Get().FinishAllCompilation();
+	const FString Directory = FPaths::ProjectSavedDir() / TEXT("ExplosiveBall/Visual");
+	IFileManager::Get().MakeDirectory(*Directory,true);
+	auto ReadCapture = [&]()
+	{
+		World->SendAllEndOfFrameUpdates();
+		FlushRenderingCommands();
+		Camera->CaptureScene();
+		TArray<FColor> Pixels;
+		Target->GameThread_GetRenderTargetResource()->ReadPixels(Pixels);
+		return Pixels;
+	};
+	auto Capture = [&](AActor* Actor, float Width, const TCHAR* Name)
+	{
+		Camera->OrthoWidth = Width;
+		Camera->ShowOnlyActors.Reset();
+		Camera->ShowOnlyActors.Add(Actor);
+		const auto* Root = Cast<UPrimitiveComponent>(Actor->GetRootComponent());
+		AddInfo(FString::Printf(TEXT("%s origin=%s bounds=%s width=%.1f"), *Actor->GetName(),
+			*Actor->GetActorLocation().ToCompactString(), Root ? *Root->Bounds.BoxExtent.ToCompactString() : TEXT("?"), Width));
+		TArray<FColor> Pixels = ReadCapture();
+		int32 Warm = 0;
+		for (const FColor& P : Pixels) { Warm += P.R > 18 && int32(P.R) > int32(P.B) + 8; }
+		if (Pixels.Num() == 320*320) { FFileHelper::CreateBitmap(*(Directory / Name), 320, 320, Pixels.GetData()); }
+		AddInfo(FString::Printf(TEXT("%s: %d warm pixels"), Name, Warm));
+		TestTrue(Name, Warm > 120);
+		return Pixels;
+	};
+	const float BodyRadius = Ball->GetPhysicsRoot()->GetScaledSphereRadius();
+	const auto* Shell = Ball->GetVisualMesh();
+	TestTrue(TEXT("Visible core matches the physical radius"),
+		FMath::IsNearlyEqual(Shell->GetStaticMesh()->GetBounds().BoxExtent.X * Shell->GetComponentScale().X, double(BodyRadius), .5));
+	const auto BodyPixels = Capture(Ball, BodyRadius*3.f, TEXT("DarkSun.bmp"));
+	int32 HaloPixels = 0;
+	for (int32 I = 0; I < BodyPixels.Num(); ++I)
+	{
+		const double PixelRadius = FVector2D(I%320-159.5, I/320-159.5).Size() * 3./320;
+		const FColor& Pixel = BodyPixels[I];
+		HaloPixels += PixelRadius > 1.04 && PixelRadius < 1. + Type->BodyCoronaWidth &&
+			Pixel.G > 22 && int32(Pixel.R) - Pixel.B > 20;
+	}
+	AddInfo(FString::Printf(TEXT("%d warm corona pixels outside the solid sphere with bloom disabled"), HaloPixels));
+	TestTrue(TEXT("A persistent warm corona is visible outside the core"), HaloPixels > 250);
+	bool bOpenImpactCaptured = false;
+	for (const auto Kind : {EHALBallCue::Arrival, EHALBallCue::Expiration, EHALBallCue::Impact, EHALBallCue::Impact})
+	{
+		const float Radius = Kind == EHALBallCue::Impact ? Type->ExplosionRadius : Ball->GetConfiguredSphereRadius();
+		const bool bImpact = Kind == EHALBallCue::Impact;
+		const bool bCovered = bImpact && bOpenImpactCaptured;
+		if (bCovered) { F.Block(Origin + FVector(110,0,0), FVector(10,1000,700)); }
+		AHALSpecialBallCue::Spawn(*World, Kind, Type, Origin, Radius, FVector::ZeroVector);
+		World->TimeSeconds += (bImpact ? Type->ImpactSeconds : Type->CueSeconds(Kind))*.22f;
+		AHALSpecialBallCue* Latest = nullptr;
+		for (TActorIterator<AHALSpecialBallCue> It(World); It; ++It)
+		{ if (It->GetCueState().Kind == Kind && (!Latest || It->GetCueState().Started >= Latest->GetCueState().Started)) { Latest = *It; } }
+		if (!TestNotNull(TEXT("Independent world effect"), Latest)) { return false; }
+		Latest->Tick(0);
+		TInlineComponentArray<UDynamicMeshComponent*> Meshes(Latest);
+		TestEqual(TEXT("Only impacts add the prominence and smoke mesh"), Meshes.Num(), bImpact ? 2 : 1);
+		const float Width = Radius * (bImpact ? 2.25f : 2.3f*Type->CoronaSize);
+		const TCHAR* Name = bCovered ? TEXT("ImpactWithCover.bmp") : bImpact ? TEXT("Impact.bmp") :
+			Kind == EHALBallCue::Arrival ? TEXT("Arrival.bmp") : TEXT("Expiration.bmp");
+		const auto Pixels = Capture(Latest, Width, Name);
+		if (bImpact && Pixels.Num() == 320*320)
+		{
+			int32 BehindWall = 0, BeyondRadius = 0, Edge = 0;
+			const FVector CameraUp = Camera->GetUpVector();
+			const FVector CameraRight = Camera->GetRightVector();
+			for (int32 I=0; I<Pixels.Num(); ++I)
+			{
+				if (int32(Pixels[I].R) - Pixels[I].B <= 8) { continue; }
+				const FVector Offset = Width/320 * ((I%320-159.5f)*CameraRight + (159.5f-I/320)*CameraUp);
+				BehindWall += Offset.X > 114.f;
+				BeyondRadius += Offset.Size2D() > Radius + 8;
+				Edge += Offset.Size2D() > Radius*.96f;
+			}
+			TestTrue(TEXT("The impact edge is visible at the authored radius"), Edge > 50);
+			if (bCovered) { TestEqual(TEXT("No ribbons beyond solid cover"), BehindWall, 0); }
+			else { TestTrue(TEXT("Same sector lit without cover"), BehindWall > 100); }
+			TestEqual(TEXT("No ribbon beyond gameplay radius"), BeyondRadius, 0);
+			// Isolate the opaque eruption at full bloom so the pressure ring cannot pass this check alone.
+			World->TimeSeconds += Type->ImpactSeconds*.22f;
+			Latest->Tick(0);
+			Latest->GetRootComponent()->SetVisibility(false, false);
+			const auto Peak = Capture(Latest, Width, bCovered ? TEXT("SolarPeakWithCover.bmp") : TEXT("SolarPeak.bmp"));
+			int32 Core = 0, Arches = 0, ThroughCover = 0, Outside = 0;
+			for (int32 I = 0; I < Peak.Num(); ++I)
+			{
+				if (int32(Peak[I].R) - Peak[I].B <= 8) { continue; }
+				const FVector Offset = Width/320 * ((I%320-159.5f)*CameraRight + (159.5f-I/320)*CameraUp);
+				const double Distance = Offset.Size2D();
+				Core += Distance < Radius*.22;
+				Arches += Distance > Radius*.38;
+				ThroughCover += Offset.X > 114.f;
+				Outside += Distance > Radius + 8;
+			}
+			TestTrue(TEXT("Compact solar core is visible at peak"), Core > 120);
+			TestTrue(TEXT("Prominences extend past the core without the range ring"), Arches > 150);
+			TestEqual(TEXT("Prominences stay inside the damage radius"), Outside, 0);
+			if (bCovered) { TestEqual(TEXT("No prominence or smoke behind the wall at peak"), ThroughCover, 0); }
+			else if (Type->CoreSmokeSize > .1f)
+			{
+				auto* BareType = DuplicateObject<UHALExplosiveBallDefinition>(Type, GetTransientPackage());
+				BareType->CoreSmokeSize = 0.f;
+				AHALSpecialBallCue::Spawn(*World, Kind, BareType, Origin, Radius, FVector::ZeroVector);
+				AHALSpecialBallCue* Bare = nullptr;
+				for (TActorIterator<AHALSpecialBallCue> It(World); It; ++It)
+				{ if (It->GetCueState().Type == BareType) { Bare = *It; break; } }
+				if (!TestNotNull(TEXT("Smoke-free impact"), Bare)) { return false; }
+				World->TimeSeconds += Type->ImpactSeconds*.44f;
+				Bare->Tick(0);
+				Bare->GetRootComponent()->SetVisibility(false, false);
+				const auto BarePixels = Capture(Bare, Width, TEXT("SolarPeakWithoutSmoke.bmp"));
+				if (BarePixels.Num() != Peak.Num()) { AddError(TEXT("Incomplete smoke comparison")); return false; }
+				int32 ChangedCore = 0, ChangedOuterSilhouette = 0;
+				for (int32 I = 0; I < Peak.Num(); ++I)
+				{
+					const FColor& A = Peak[I];
+					const FColor& B = BarePixels[I];
+					const double Distance = Width/320 * FVector2D(I%320-159.5, I/320-159.5).Size();
+					const int32 ColorDifference = FMath::Abs(int(A.R)-B.R) + FMath::Abs(int(A.G)-B.G) + FMath::Abs(int(A.B)-B.B);
+					ChangedCore += Distance < Radius*Type->CoreSmokeSize && ColorDifference >= 36;
+					// Subpixel coverage can change a few edge colours between captures. Compare their silhouettes.
+					const bool bHasFlame = int(A.R)-A.B > 8;
+					const bool bBareHasFlame = int(B.R)-B.B > 8;
+					ChangedOuterSilhouette += Distance > Radius*.50 && bHasFlame != bBareHasFlame;
+				}
+				AddInfo(FString::Printf(TEXT("Switching off core smoke changed %d central pixels and %d outer silhouette pixels"), ChangedCore, ChangedOuterSilhouette));
+				TestTrue(TEXT("Core Smoke Size adds visible cloud faces in the centre"), ChangedCore > 50);
+				TestEqual(TEXT("Switching off the smoke preserves the outer silhouette"), ChangedOuterSilhouette, 0);
+			}
+			if (!bCovered)
+			{
+				const auto* Child = Meshes.FindByPredicate([Latest](UDynamicMeshComponent* Mesh) { return Mesh != Latest->GetRootComponent(); });
+				auto* Paint = Child ? Cast<UMaterialInstanceDynamic>((*Child)->GetMaterial(0)) : nullptr;
+				if (!TestNotNull(TEXT("Fire arches have their own material instance"), Paint)) { return false; }
+				TestTrue(TEXT("Flow speed is measured in ribbon lengths per second"),
+					FMath::IsNearlyEqual(Paint->K2_GetScalarParameterValue(TEXT("ProminenceFlowTravel")), Type->ProminenceFlowSpeed * Type->ImpactSeconds));
+				TestTrue(TEXT("Flow contrast comes from the ball type"),
+					FMath::IsNearlyEqual(Paint->K2_GetScalarParameterValue(TEXT("ProminenceFlowStrength")), Type->ProminenceFlowStrength));
+
+				// Freeze the pose and mask at peak. Only the UV phase of the interior paint changes.
+				auto CaptureDepth = [&]()
+				{
+					Camera->CaptureSource = SCS_DeviceDepth;
+					auto Depth = ReadCapture();
+					Camera->CaptureSource = SCS_FinalColorLDR;
+					return Depth;
+				};
+				Paint->SetScalarParameterValue(TEXT("ProminenceFlowStrength"), .8f);
+				Paint->SetScalarParameterValue(TEXT("ProminenceFlowTravel"), 0.f);
+				const auto Still = Capture(Latest, Width, TEXT("SolarFlowStill.bmp"));
+				const auto StillDepth = CaptureDepth();
+				Paint->SetScalarParameterValue(TEXT("ProminenceFlowTravel"), .68f);
+				const auto Moved = Capture(Latest, Width, TEXT("SolarFlowMoved.bmp"));
+				const auto MovedDepth = CaptureDepth();
+				if (Still.Num() != 320*320 || Moved.Num() != Still.Num() || StillDepth.Num() != Still.Num() || MovedDepth.Num() != Still.Num())
+				{ AddError(TEXT("Incomplete flow comparison")); return false; }
+				// Only the eruption is rendered. The top-left pixel is outside its radius and gives the clear depth.
+				const FColor BackgroundDepth = StillDepth[0];
+				TestTrue(TEXT("Both depth captures use the same background"), MovedDepth[0] == BackgroundDepth);
+				int32 ChangedRibbon = 0, CoveredPixels = 0, ChangedCoverage = 0;
+				for (int32 I = 0; I < Still.Num(); ++I)
+				{
+					const FColor A = Still[I], B = Moved[I];
+					const double Distance = Width/320 * FVector2D(I%320-159.5, I/320-159.5).Size();
+					const int32 Difference = FMath::Abs(int(A.R)-B.R) + FMath::Abs(int(A.G)-B.G) + FMath::Abs(int(A.B)-B.B);
+					ChangedRibbon += Distance > Radius*.38 && Difference >= 36;
+					const bool bWasCovered = StillDepth[I] != BackgroundDepth;
+					CoveredPixels += bWasCovered;
+					ChangedCoverage += bWasCovered != (MovedDepth[I] != BackgroundDepth);
+				}
+				AddInfo(FString::Printf(TEXT("Advancing only the flow changed %d outer ribbon colours and %d coverage pixels (%d foreground depth pixels)"), ChangedRibbon, ChangedCoverage, CoveredPixels));
+				TestTrue(TEXT("The depth pass contains the eruption"), CoveredPixels > 150 && CoveredPixels < Still.Num());
+				TestTrue(TEXT("Surface paint travels visibly outside the central smoke"), ChangedRibbon > 80);
+				TestEqual(TEXT("Flow alone preserves the eruption silhouette"), ChangedCoverage, 0);
+				if (Type->ProminenceTailSeconds > 0.f)
+				{
+					Paint->SetScalarParameterValue(TEXT("ProminenceFlowTravel"), Type->ProminenceFlowSpeed * Type->ImpactSeconds);
+					Paint->SetScalarParameterValue(TEXT("ProminenceFlowStrength"), Type->ProminenceFlowStrength);
+					Latest->GetRootComponent()->SetVisibility(true, false);
+					Camera->ShowOnlyActors.Reset();
+					Camera->ShowOnlyComponent(*Child);
+					const float Duration = Type->CueSeconds(Kind);
+					int64 Energy[11] = {};
+					for (int32 Sample = 0; Sample < UE_ARRAY_COUNT(Energy); ++Sample)
+					{
+						// Sample the real cue starting just after its flash has ended, through actor-side hiding.
+						const float Elapsed = FMath::Lerp(Type->ImpactSeconds, Duration, Sample/10.f) + .0001f;
+						World->TimeSeconds = Latest->GetCueState().Started + Elapsed;
+						Latest->Tick(0);
+						const auto Frame = ReadCapture();
+						if (Frame.Num() != Still.Num()) { AddError(TEXT("Incomplete afterglow capture")); return false; }
+						for (int32 I = 0; I < Frame.Num(); ++I)
+						{
+							const double Distance = Width/320 * FVector2D(I%320-159.5, I/320-159.5).Size();
+							if (Distance > Radius*.38) { Energy[Sample] += FMath::Max(0, int32(Frame[I].R) - Frame[I].B - 8); }
+						}
+						if (Sample == 0)
+						{
+							TestFalse(TEXT("The range ring has finished"), Latest->GetRootComponent()->IsVisible());
+							TestTrue(TEXT("The arches outlive the range ring"), (*Child)->IsVisible());
+						}
+					}
+					Camera->ClearShowOnlyComponents();
+					int64 LargestLoss = 0;
+					for (int32 I = 1; I < UE_ARRAY_COUNT(Energy); ++I) { LargestLoss = FMath::Max(LargestLoss, Energy[I-1]-Energy[I]); }
+					AddInfo(FString::Printf(TEXT("Prominence tail warm signal at 0/50/90/100%%: %lld/%lld/%lld/%lld; largest step %lld"), Energy[0], Energy[5], Energy[9], Energy[10], LargestLoss));
+					TestTrue(TEXT("Visible embers cool across the tail"), Energy[0] > 1000 && Energy[5] > 0 && Energy[5] < Energy[0]);
+					TestTrue(TEXT("No single tenth cuts away most of the remaining display"), LargestLoss < Energy[0]*.40);
+					TestTrue(TEXT("The last rendered embers are already faint before the cue is hidden"), Energy[9] < Energy[0]*.04);
+					TestEqual(TEXT("No eruption after its visual lifetime"), Energy[10], int64(0));
+				}
+			}
+			bOpenImpactCaptured = true;
+		}
+	}
 	return true;
 }
 #endif

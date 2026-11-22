@@ -79,6 +79,8 @@ public:
 	/** Development only: request one authored Free ball in front of this controller's current vehicle. */
 	UFUNCTION(Exec)
 	void HALSpawnBall();
+	/** Development only. Request one explosive ball in front of the possessed vehicle. */
+	UFUNCTION(Exec) void HALSpawnExplosiveBall();
 	/** Request the current primary skill through the same local input/GAS path as an Input Action. */
 	UFUNCTION(Exec)
 	void HALUseSkill();
@@ -135,7 +137,8 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerRequestStartMatch();
 	UFUNCTION(Server, Reliable)
-	void ServerSpawnDebugBall();
+	void ServerSpawnDebugBall(bool bExplosive);
+	void RequestDebugBall(bool bExplosive);
 	UFUNCTION(Client, Reliable)
 	void ClientDebugBallResult(const FString& Message, bool bSuccess);
 	UFUNCTION(Server, Reliable)

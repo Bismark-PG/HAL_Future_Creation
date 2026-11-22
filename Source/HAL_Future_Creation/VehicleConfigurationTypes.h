@@ -312,6 +312,14 @@ struct HAL_FUTURE_CREATION_API FBallStateConfig
 	UPROPERTY(EditAnywhere, Category = "State", meta = (ClampMin = "0.01", Units = "s"))
 	float LowSpeedCheckInterval = 0.05f;
 
+	/** Extra release rule while supported by a solid floor or ramp. Zero disables it for this ball type. */
+	UPROPERTY(EditAnywhere, Category = "State", meta = (ClampMin = "0", ClampMax = "10000", Units = "cm/s"))
+	float GroundRollReleaseSpeed = 0.f;
+
+	/** Continuous time below Ground Roll Release Speed on the ground before this shot becomes Free. */
+	UPROPERTY(EditAnywhere, Category = "State", meta = (ClampMin = "0", ClampMax = "5", Units = "s", EditCondition = "GroundRollReleaseSpeed > 0"))
+	float GroundRollRequiredDuration = 0.15f;
+
 	bool Validate(FString& Error) const;
 };
 
@@ -322,6 +330,10 @@ struct HAL_FUTURE_CREATION_API FBallAcquisitionConfig
 
 	UPROPERTY(EditAnywhere, Category = "Acquisition", meta = (ClampMin = "0.0", Units = "s"))
 	float PostLaunchPickupLockDuration = 0.2f;
+
+	/** Replaces the general post-launch lock only after the ground-roll rule ends the shot. */
+	UPROPERTY(EditAnywhere, Category = "Acquisition", meta = (ClampMin = "0", ClampMax = "5", Units = "s"))
+	float GroundRollPickupLockDuration = 0.15f;
 
 	bool Validate(FString& Error) const;
 };

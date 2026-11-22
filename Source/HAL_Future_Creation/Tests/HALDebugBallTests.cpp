@@ -6,6 +6,7 @@
 #include "../HALPlayerController.h"
 #include "../HALPlayerState.h"
 #include "../BasicBallActor.h"
+#include "../HALSpecialBall.h"
 #include "../TestVehiclePawn.h"
 #include "../VehicleDefinition.h"
 #include "Components/BoxComponent.h"
@@ -104,11 +105,20 @@ bool FHALDebugBallSpawnTest::RunTest(const FString& Parameters)
 	Wall->RegisterComponent();
 	Controller->HALSpawnBall();
 	TestEqual(TEXT("Blocked position does not embed or relocate a ball"), F.Balls().Num(), 1);
+	Controller->HALSpawnExplosiveBall();
+	TestEqual(TEXT("Special ball also respects blocked spawn"), F.Balls().Num(), 1);
 	Wall->DestroyComponent();
 	F.Settings->DefaultBallClass.Reset();
 	Controller->HALSpawnBall();
 	TestEqual(TEXT("Missing authored class has no native fallback"), F.Balls().Num(), 1);
 	F.Settings->DefaultBallClass = F.PreviousClass;
+	Controller->HALSpawnExplosiveBall();
+	AHALExplosiveBall* Special = nullptr;
+	for (auto* Spawned : F.Balls()) { if (auto* Typed = Cast<AHALExplosiveBall>(Spawned)) { Special = Typed; } }
+	if (!TestNotNull(TEXT("Explosive command spawns the native type"), Special)) { return false; }
+	TestTrue(TEXT("Debug special has its production DA and is additional"), Special->GetTypeDefinition()
+		== GetDefault<UHALMatchBallSettings>()->ExplosiveBallType.LoadSynchronous() && !Special->IsPrimaryMatchBall() && F.Balls().Num() == 2);
+	Special->Destroy();
 	Controller->UnPossess();
 	Controller->Possess(F.World->SpawnActor<APawn>());
 	Controller->HALSpawnBall();

@@ -138,6 +138,11 @@ protected:
 	bool ApplyDefinition(bool bPreview);
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual bool CanUseBall() const { return true; }
+	virtual void OnAuthorityBallStateChanged(EBasicBallState Previous) {}
+	virtual void ResolveLaunchedContact(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+	virtual void OnAcceptedVehicleHit();
+	FHALCombatAction& GetLaunchAction() { return LaunchAction; }
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ball|Components")
 	TObjectPtr<USphereComponent> PhysicsRoot;
@@ -191,6 +196,7 @@ private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend class FHALImpactBallPipelineTest;
 	friend class FControlledBallProxyPresentationTest;
+	friend class FHALMatchBallGroundRollTest;
 	friend class FHALCombatBallConsumptionTest;
 	friend struct FHALBallPresentationTestAccess;
 #endif
@@ -205,7 +211,8 @@ private:
 	void StartLowSpeedMonitor();
 	void StopLowSpeedMonitor();
 	void CheckLaunchedLowSpeed();
-	void FinishLaunchAsFree();
+	bool HasGroundSupport() const;
+	void FinishLaunchAsFree(float PickupLockSeconds);
 
 	UFUNCTION()
 	void OnPhysicsRootHit(
@@ -226,6 +233,7 @@ private:
 	bool bHasAppliedRepState = false;
 	uint32 LastAppliedStateSequence = 0;
 	float AccumulatedLowSpeedTime = 0.0f;
+	double GroundRollStartedAt = -1.;
 	FTimerHandle LowSpeedTimerHandle;
 	bool bResolvingDamageHit = false;
 	uint32 LastResolvedHitEventSequence = 0;

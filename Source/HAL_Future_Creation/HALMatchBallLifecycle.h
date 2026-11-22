@@ -9,6 +9,7 @@
 class ABasicBallActor;
 class UDynamicMeshComponent;
 class UMaterialInterface;
+class UHALExplosiveBallDefinition;
 
 /** World-space bounds of a circular playing surface. Heights are relative to FloorCenter.Z. */
 USTRUCT()
@@ -39,6 +40,8 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category="Match Ball") TArray<FHALMatchBallArena> Arenas;
 	/** Ground cue material. A vector parameter named Color, when present, receives the cyan cue tint. */
 	UPROPERTY(Config, EditAnywhere, Category="Presentation") TSoftObjectPtr<UMaterialInterface> ReturnRingMaterial;
+	/** Default type for the placeable explosive ball and its development spawn command. */
+	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALExplosiveBallDefinition> ExplosiveBallType;
 };
 
 USTRUCT()
@@ -49,7 +52,7 @@ struct FHALMatchBallReturnCue
 	UPROPERTY() FVector_NetQuantize10 Ground = FVector::ZeroVector;
 };
 
-/** The authoritative GameState owns the permanent match ball. Clients receive only the return cue. */
+/** The GameState owns the permanent match ball and distributes one-shot ball impact notifications. */
 UCLASS()
 class HAL_FUTURE_CREATION_API UHALMatchBallLifecycle : public UActorComponent
 {
@@ -62,6 +65,9 @@ public:
 	void SetPlaying(bool bPlaying);
 	bool IsReturnAnnounced() const { return ReturnCue.bVisible; }
 	const FVector& GetReturnGround() const { return ReturnCue.Ground; }
+	/** An infrequent confirmed hit, delivered over the already-open GameState channel. */
+	UFUNCTION(NetMulticast, Reliable) void MulticastExplosiveImpact(UHALExplosiveBallDefinition* Type, FVector_NetQuantize10 Origin,
+		float Radius, FVector_NetQuantizeNormal Normal, double ServerStarted);
 
 private:
 #if WITH_DEV_AUTOMATION_TESTS

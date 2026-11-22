@@ -10,6 +10,18 @@ class UStaticMeshComponent;
 class UTextRenderComponent;
 class AHALBombExplosion;
 
+/** Instantaneous sphere shared by timed bombs and launched explosive balls. */
+struct HAL_FUTURE_CREATION_API FHALBlastArea
+{
+	FVector Origin;
+	float Radius;
+	FVector FallbackDirection = FVector::ForwardVector;
+	TOptional<FVector> CoverStart;
+	void Apply(AActor& Source, FHALCombatAction& Action) const;
+	FHALCombatHitResult Resolve(AActor& Source, FHALCombatAction& Action, AActor* Target) const;
+	static float OpenFraction(UWorld& World, const FVector& Start, const FVector& End);
+};
+
 /** Shared editable explosion payload. No ASC or live source attributes on a bomb. */
 USTRUCT(BlueprintType)
 struct HAL_FUTURE_CREATION_API FHALBombConfig

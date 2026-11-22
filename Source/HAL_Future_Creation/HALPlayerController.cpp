@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "HALPlayerController.h"
+#include "HALSpecialBall.h"
 #include "HALImpactAttributeSet.h"
 #include "HALImpactReceiverComponent.h"
 #include "HALImpactImmunityEffects.h"
@@ -403,11 +404,20 @@ void AHALPlayerController::HALImpactDebug(int32 PlayerId, int32 Reduction, bool 
 
 void AHALPlayerController::HALSpawnBall()
 {
+	RequestDebugBall(false);
+}
+
+void AHALPlayerController::HALSpawnExplosiveBall()
+{
+	RequestDebugBall(true);
+}
+
+void AHALPlayerController::RequestDebugBall(bool bExplosive)
+{
 #if !UE_BUILD_SHIPPING
 	if (!IsLocalController()) { return; }
-	// The RPC has no class, target or transform arguments: authority derives them from this owner.
-	if (HasAuthority()) { ServerSpawnDebugBall_Implementation(); }
-	else { ServerSpawnDebugBall(); }
+	if (HasAuthority()) { ServerSpawnDebugBall_Implementation(bExplosive); }
+	else { ServerSpawnDebugBall(bExplosive); }
 #endif
 }
 
@@ -429,7 +439,7 @@ void AHALPlayerController::HALSpawnBomb()
 #endif
 }
 
-void AHALPlayerController::ServerSpawnDebugBall_Implementation()
+void AHALPlayerController::ServerSpawnDebugBall_Implementation(bool bExplosive)
 {
 #if !UE_BUILD_SHIPPING
 	ATestVehiclePawn* Vehicle = Cast<ATestVehiclePawn>(GetPawn());
@@ -447,7 +457,7 @@ void AHALPlayerController::ServerSpawnDebugBall_Implementation()
 	}
 	else
 	{
-		UClass* BallClass = Settings->DefaultBallClass.LoadSynchronous();
+		UClass* BallClass = bExplosive ? AHALExplosiveBall::StaticClass() : Settings->DefaultBallClass.LoadSynchronous();
 		const FVector Forward = Vehicle->GetActorForwardVector().GetSafeNormal2D();
 		if (!BallClass || !BallClass->IsChildOf(ABasicBallActor::StaticClass()) || BallClass->HasAnyClassFlags(CLASS_Abstract))
 		{
@@ -482,6 +492,7 @@ void AHALPlayerController::ServerSpawnDebugBall_Implementation()
 			}
 		}
 	}
+	if (bExplosive) { Message.ReplaceInline(TEXT("HALSpawnBall"), TEXT("HALSpawnExplosiveBall")); }
 	UE_LOG(LogTemp, Display, TEXT("%s"), *Message);
 	ClientDebugBallResult(Message, Ball != nullptr);
 #endif

@@ -1,4 +1,5 @@
 #include "HALMatchBallLifecycle.h"
+#include "HALSpecialBallCue.h"
 
 #include "BasicBallActor.h"
 #include "HALGameFlowPermissions.h"
@@ -42,6 +43,15 @@ UHALMatchBallLifecycle::UHALMatchBallLifecycle()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
+}
+
+void UHALMatchBallLifecycle::MulticastExplosiveImpact_Implementation(UHALExplosiveBallDefinition* Type, FVector_NetQuantize10 Origin,
+	float Radius, FVector_NetQuantizeNormal Normal, double ServerStarted)
+{
+	if (Type && GetWorld() && GetNetMode() != NM_DedicatedServer)
+	{
+		AHALSpecialBallCue::CreateCue(*GetWorld(), EHALBallCue::Impact, Type, Origin, Radius, Normal, ServerStarted, false);
+	}
 }
 
 void UHALMatchBallLifecycle::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

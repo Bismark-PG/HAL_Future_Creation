@@ -198,35 +198,66 @@ void AHALBombExplosion::BeginPlay()
 	if (HasAuthority() && GetNetMode() != NM_Client)
 	{
 		if (!bInitialized) { Destroy(); return; }
-		TArray<FOverlapResult> Hits;
-		const FCollisionQueryParams Query(SCENE_QUERY_STAT(BombExplosion),false,this);
-		GetWorld()->OverlapMultiByObjectType(Hits, GetActorLocation(), FQuat::Identity,
-			FCollisionObjectQueryParams(ECC_PhysicsBody), FCollisionShape::MakeSphere(Config.ExplosionRadius),Query);
-		for (const FOverlapResult& Hit : Hits) { ResolveTarget(Hit.GetActor()); }
+		FHALBlastArea{GetActorLocation(), Config.ExplosionRadius}.Apply(*this, Action);
 		SetLifeSpan(DisplaySeconds);
 	}
 }
 
 FHALCombatHitResult AHALBombExplosion::ResolveTarget(AActor* Target)
 {
+	if (!bInitialized) { FHALCombatHitResult Rejected; Rejected.RejectReason = EHALHitRejectReason::InvalidTarget; return Rejected; }
+	return FHALBlastArea{GetActorLocation(), Config.ExplosionRadius}.Resolve(*this, Action, Target);
+}
+
+float FHALBlastArea::OpenFraction(UWorld& World, const FVector& Start, const FVector& End)
+{
+	if (Start.Equals(End, .1)) { return 1.f; }
+	FCollisionObjectQueryParams Walls;
+	Walls.AddObjectTypesToQuery(ECC_WorldStatic);
+	Walls.AddObjectTypesToQuery(ECC_WorldDynamic);
+	TArray<FHitResult> Hits;
+	const FCollisionQueryParams Query(SCENE_QUERY_STAT(BallBlastCover), false);
+	World.LineTraceMultiByObjectType(Hits, Start, End, Walls, Query);
+	float Fraction = 1.f;
+	for (const FHitResult& Hit : Hits)
+	{
+		const auto* Surface = Hit.GetComponent();
+		if (Surface && Surface->IsPhysicsCollisionEnabled() && Surface->GetCollisionResponseToChannel(ECC_PhysicsBody) == ECR_Block)
+		{ Fraction = FMath::Min(Fraction, Hit.Time); }
+	}
+	return Fraction;
+}
+
+void FHALBlastArea::Apply(AActor& Source, FHALCombatAction& Action) const
+{
+	TArray<FOverlapResult> Hits;
+	const FCollisionQueryParams Query(SCENE_QUERY_STAT(BombExplosion), false, &Source);
+	Source.GetWorld()->OverlapMultiByObjectType(Hits, Origin, FQuat::Identity,
+		FCollisionObjectQueryParams(ECC_PhysicsBody), FCollisionShape::MakeSphere(Radius), Query);
+	for (const FOverlapResult& Hit : Hits) { Resolve(Source, Action, Hit.GetActor()); }
+}
+
+FHALCombatHitResult FHALBlastArea::Resolve(AActor& Source, FHALCombatAction& Action, AActor* Target) const
+{
 	FHALCombatHitResult Rejected;
 	Rejected.RejectReason = EHALHitRejectReason::InvalidTarget;
-	if (!HasAuthority() || GetNetMode() == NM_Client || !bInitialized || !IsValid(Target)
+	if (!Source.HasAuthority() || Source.GetNetMode() == NM_Client || !IsValid(Target)
 		|| !Target->FindComponentByClass<UVehicleHealthComponent>()) { return Rejected; }
 	auto* Body = Cast<UPrimitiveComponent>(Target->GetRootComponent());
 	if (!Body || !Body->IsCollisionEnabled()) { return Rejected; }
 	FVector Closest;
-	const float Distance = Body->GetClosestPointOnCollision(GetActorLocation(), Closest);
-	if (Distance < 0 || Distance > Config.ExplosionRadius) { return Rejected; }
-	FVector Direction = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
-	if (Direction.IsNearlyZero()) { Direction = FVector::ForwardVector; }
+	const float Distance = Body->GetClosestPointOnCollision(Origin, Closest);
+	if (Distance < 0 || Distance > Radius) { return Rejected; }
+	if (CoverStart && OpenFraction(*Source.GetWorld(), *CoverStart, Closest) < 1.f) { return Rejected; }
+	FVector Direction = (Target->GetActorLocation() - Origin).GetSafeNormal2D();
+	if (Direction.IsNearlyZero()) { Direction = FallbackDirection; }
 	FHALCombatHitRequest Request;
 	Request.AttackId = Action.GetSnapshot().AttackId;
 	Request.bApplyImpact = true;
 	Request.Impact.Mode = EHALImpactMode::ExplicitTier;
 	Request.Impact.Tier = Action.GetSnapshot().Impact.Tier;
 	Request.Impact.PushPreset = Action.GetSnapshot().Impact.PushPreset;
-	Request.Hit.SourceActor = this;
+	Request.Hit.SourceActor = &Source;
 	Request.Hit.TargetActor = Target;
 	Request.Hit.TargetPhysicsBody = Body;
 	Request.Hit.ImpactPoint = Closest;
