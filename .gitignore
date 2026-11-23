@@ -64,6 +64,7 @@ Tools/UnrealBridge/
 # Precompiled Assets
 SourceArt/**/*.png
 SourceArt/**/*.tga
+!SourceArt/ArenaNight/T_ArenaNight_SouthCrowd.png
 !SourceArt/SlipperyTrail/T_SlipperyTrail_OilSheen_Mask.png
 !SourceArt/SkillIcons/Car03_Car04_Pilot/*.png
 
