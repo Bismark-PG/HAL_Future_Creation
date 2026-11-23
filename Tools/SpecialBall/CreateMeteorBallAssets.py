@@ -11,6 +11,7 @@ tools = u.AssetToolsHelpers.get_asset_tools()
 CORE = (.006, .008, .010)
 CURRENT = (.86, .065, .004)
 CORONA = (1.65, .54, .06)
+REFRESH_VOLUME = '-RefreshMeteorVolume' in u.SystemLibrary.get_command_line().split()
 
 
 def load(path):
@@ -33,20 +34,52 @@ def compensate_impact_exposure(mat, color):
     return exposure
 
 
+def bind_lobe_swelling(mat, phase, banks):
+    normal = edit.create_material_expression(mat, u.MaterialExpressionVertexNormalWS, -470, 920)
+    radius = edit.create_material_expression(mat, u.MaterialExpressionObjectRadius, -470, 1020)
+    amount = edit.create_material_expression(mat, u.MaterialExpressionScalarParameter, -470, 1120)
+    amount.set_editor_property('parameter_name', 'LobeSwelling')
+    amount.set_editor_property('default_value', 1.)
+    offset = edit.create_material_expression(mat, u.MaterialExpressionCustom, 0, 850)
+    offset.set_editor_property('description', 'Inflate cloud lobes once, with a stable base in each fold')
+    offset.set_editor_property('output_type', u.CustomMaterialOutputType.CMOT_FLOAT3)
+    args = [('N', normal), ('Radius', radius), ('Amount', amount), ('Phase', phase), ('Banks', banks)]
+    pins = []
+    for name, _ in args:
+        pin = u.CustomInput()
+        pin.set_editor_property('input_name', name)
+        pins.append(pin)
+    offset.set_editor_property('inputs', pins)
+    offset.set_editor_property('code', """
+float inflation=smoothstep(.035+.12*Banks.b,.45+.18*Banks.b,Phase);
+return N*Radius*(.074*Amount)*inflation*(1.-Banks.r)*(.55+.45*Banks.g);
+""")
+    for name, node in args:
+        if not edit.connect_material_expressions(node, '', offset, name):
+            raise RuntimeError('Missing lobe displacement pin ' + name)
+    if not edit.connect_material_property(offset, '', u.MaterialProperty.MP_WORLD_POSITION_OFFSET):
+        raise RuntimeError('Cannot bind lobe displacement')
+
+
 def make_material(name, inputs, shader_code, translucent=False):
     if assets.does_asset_exist(FX + '/' + name):
-        return load(FX + '/' + name)
-    mat = tools.create_asset(name, FX, u.Material, u.MaterialFactoryNew())
+        mat = load(FX + '/' + name)
+        if not (name == 'M_Meteor_ImpactVolume' and REFRESH_VOLUME):
+            return mat
+        edit.delete_all_material_expressions(mat)
+    else:
+        mat = tools.create_asset(name, FX, u.Material, u.MaterialFactoryNew())
     mat.set_editor_property('shading_model', u.MaterialShadingModel.MSM_UNLIT)
     if translucent:
         mat.set_editor_property('blend_mode', u.BlendMode.BLEND_TRANSLUCENT)
-        mat.set_editor_property('two_sided', True)
+        mat.set_editor_property('two_sided', name != 'M_Meteor_ImpactVolume')
     shader = edit.create_material_expression(mat, u.MaterialExpressionCustom, 0, 0)
     shader.set_editor_property('description', name)
     shader.set_editor_property('output_type', u.CustomMaterialOutputType.CMOT_FLOAT4 if translucent else u.CustomMaterialOutputType.CMOT_FLOAT3)
     pins, links = [], []
-    classes = {'UV': u.MaterialExpressionTextureCoordinate, 'Clock': u.MaterialExpressionTime, 'Lane': u.MaterialExpressionVertexColor,
-               'N': u.MaterialExpressionPixelNormalWS, 'Rim': u.MaterialExpressionFresnel}
+    classes = {'UV': u.MaterialExpressionTextureCoordinate, 'Clock': u.MaterialExpressionTime,
+               'Lane': u.MaterialExpressionVertexColor, 'Banks': u.MaterialExpressionVertexColor,
+               'N': u.MaterialExpressionPixelNormalWS, 'V': u.MaterialExpressionCameraVectorWS, 'Rim': u.MaterialExpressionFresnel}
     for index, (key, value) in enumerate(inputs):
         if isinstance(value, u.Texture2D):
             cls = u.MaterialExpressionTextureObjectParameter
@@ -68,6 +101,9 @@ def make_material(name, inputs, shader_code, translucent=False):
     for node, output, key in links:
         if not edit.connect_material_expressions(node, output, shader, key):
             raise RuntimeError('Missing pin ' + key)
+    if name == 'M_Meteor_ImpactVolume':
+        nodes = {key: node for node, _, key in links}
+        bind_lobe_swelling(mat, nodes['Phase'], nodes['Banks'])
     for alpha, prop in [(False, u.MaterialProperty.MP_EMISSIVE_COLOR)] + ([(True, u.MaterialProperty.MP_OPACITY)] if translucent else []):
         out = shader
         if translucent:
@@ -76,8 +112,14 @@ def make_material(name, inputs, shader_code, translucent=False):
                 out.set_editor_property(channel, (channel == 'a') == alpha)
             if not edit.connect_material_expressions(shader, '', out, ''):
                 raise RuntimeError('Missing colour/alpha mask')
-        if not alpha and name in ('M_Meteor_ImpactBillow', 'M_Meteor_ImpactFront'):
+        if not alpha and name in ('M_Meteor_ImpactBillow', 'M_Meteor_ImpactFront', 'M_Meteor_ImpactVolume'):
             out = compensate_impact_exposure(mat, out)
+        if alpha and name == 'M_Meteor_ImpactVolume':
+            contact = edit.create_material_expression(mat, u.MaterialExpressionDepthFade, 440, 150)
+            contact.set_editor_property('fade_distance_default', 12.)
+            if not edit.connect_material_expressions(out, '', contact, ''):
+                raise RuntimeError('Cannot soften the cloud at an intersecting surface')
+            out = contact
         if not edit.connect_material_property(out, '', prop):
             raise RuntimeError('Missing material output')
     if name in ('M_Meteor_Plume', 'M_Meteor_RollingSmoke'):
@@ -196,7 +238,7 @@ def seed():
     ball.set_editor_property('visual',visual)
     for key,value in [('ground_plane',load('/Engine/BasicShapes/Plane')),('flame_mesh',load('/Engine/BasicShapes/Cone')),
                       ('warning_material',warning),('plume_material',plume),
-                      ('marker_core',core),('marker_jaws',jaws),('core_color',u.LinearColor(*CORE,1.)),
+                      ('marker_core',core),('marker_jaws',jaws),('marker_size',96.),('core_color',u.LinearColor(*CORE,1.)),
                       ('current_color',u.LinearColor(*CURRENT,1.)),('corona_color',u.LinearColor(*CORONA,1.)),
                       ('glow',1.25),('surface_flow_speed',.8),('arrival_seconds',.62),('expiration_seconds',.65),
                       ('impact_seconds',.80),('ready_for_use',True)]:
@@ -308,6 +350,104 @@ color=lerp(color,RimColor*1.7,ember/max(.001,alpha));
 return float4(color,alpha);
 """, translucent=True)
 
+volume_material = make_material('M_Meteor_ImpactVolume',
+    [('UV',None),('N',None),('V',None),('Banks',None),('Tint',(1.,1.,1.)),('CoolColor',(.094,.052,.082)),
+     ('CoreDirection',(-.7,-.3,-.45)),('Phase',.30),('Heat',.88),('Seed',0.)], """
+float az=6.283185*UV.x, el=3.141593*UV.y;
+float3 patch=float3(cos(az)*sin(el),sin(az)*sin(el),cos(el));
+// Density stays attached to the material. The moving silhouette comes from the swelling geometry.
+float density=saturate(.50+.26*sin(dot(patch,float3(3.9,-2.1,1.8))+Seed)
+                          +.18*cos(dot(patch,float3(1.6,3.3,-2.8))-.8*Seed)+.06*patch.z);
+float3 n=normalize(N);
+float fold=saturate(Banks.r);
+float light=saturate(.42+.56*dot(n,normalize(float3(-.54,-.39,.75)))-.19*fold+.06*(density-.5));
+float middle=smoothstep(.26,.46,light), top=smoothstep(.69,.87,light);
+float3 soot=lerp(CoolColor,dot(CoolColor,float3(.24,.63,.13)).xxx,.54);
+float3 ash=lerp(soot*.52,soot*1.10+float3(.029,.036,.044),middle);
+ash=lerp(ash,soot*1.36+float3(.13,.145,.15),top);
+float3 flame=lerp(float3(.43,.037,.007),float3(1.55,.235,.017),middle);
+flame=lerp(flame,float3(2.05,.90,.15),top);
+flame=lerp(flame,float3(2.80,1.78,.58),.62*smoothstep(.84,.98,light+.07*density)*Heat);
+// Cool from the outer caps towards the warmer base and blast center, in broad patches.
+float core=saturate(.5+.5*dot(n,normalize(CoreDirection)));
+float ember=smoothstep(.38,.91,fold)*Heat*core;
+flame=lerp(flame,float3(2.35,.66,.08),.29*ember);
+float threshold=.17+.43*Banks.g+.16*(1.-core)+.16*density-.055*fold;
+float fire=smoothstep(threshold-.16,threshold+.18,sqrt(saturate(Heat)));
+float3 warmAsh=lerp(ash,Tint*float3(.50,.105,.024),.65);
+float3 color=lerp(lerp(ash,warmAsh,smoothstep(.025,.48,fire)),flame*Tint,smoothstep(.25,1.,fire));
+// Thinner edges and the less dense pockets clear first. The centers retain smoke for longer.
+float body=.57*density+.33*(1.-fold)+.10*Banks.g;
+float remaining=1.-smoothstep(.20+.19*body,.82+.18*body,Phase);
+float facing=saturate(dot(n,normalize(V)));
+float column=smoothstep(0.,.68,facing)*(.71+.29*facing);
+float alpha=(1.-exp2(-6.*column*remaining*(.62+.38*remaining)))*smoothstep(0.,.05,Phase);
+return float4(color,alpha);
+""", translucent=True)
+
+
+def impact_volume_mesh(material):
+    path = FX + '/SM_Meteor_ImpactVolume'
+    existing = load(path) if assets.does_asset_exist(path) else None
+    if existing and not REFRESH_VOLUME:
+        return existing
+    # Sculpt one closed puff from broad overlapping lobes. Sample a smooth union on radial rays.
+    lobes = [(0.,0.,0.,.52), (-.40,-.22,.26,.53), (.33,-.37,.25,.49),
+             (.48,.13,.17,.44), (.04,.44,.15,.50), (-.10,.05,.53,.44),
+             (.18,-.14,-.31,.50), (-.33,.16,-.12,.46), (.28,.22,.47,.32),
+             (-.44,.18,.33,.32), (.04,-.49,-.04,.33)]
+
+    def distances(point):
+        x, y, z = point.x, point.y, point.z
+        return [math.sqrt((x-a)**2 + (y-b)**2 + (z-c)**2) - radius for a, b, c, radius in lobes]
+
+    mesh = u.DynamicMesh()
+    u.GeometryScript_Primitives.append_sphere_lat_long(mesh, u.GeometryScriptPrimitiveOptions(), u.Transform(), 1., 32, 52)
+    queries = u.GeometryScript_MeshQueries
+    colors = []
+    for index in range(queries.get_vertex_count(mesh)):
+        direction, valid = queries.get_vertex_position(mesh, index)
+        if not valid:
+            raise RuntimeError('Missing vertex in meteor puff')
+        lo, hi = 0., 1.5
+        for _ in range(15):
+            mid = .5*(lo+hi)
+            combined = 10.
+            for d in distances(direction*mid):
+                blend = max(.12 - abs(d-combined), 0.) / .12
+                combined = min(combined, d) - .03*blend*blend
+            if combined < 0.:
+                lo = mid
+            else:
+                hi = mid
+        point = direction*(.5*(lo+hi))
+        first, second = sorted(distances(point))[:2]
+        fold = max(0., 1.-(second-first)/.24)
+        colors.append(u.LinearColor(fold*fold*(3.-2.*fold), .5+.5*point.z, .5+.38*point.x+.16*point.y, 1.))
+        u.GeometryScript_MeshEdits.set_vertex_position(mesh, index, point*50., defer_change_notifications=True)
+    if not queries.get_is_closed_mesh(mesh):
+        raise RuntimeError('Meteor puff has an open silhouette')
+    u.GeometryScript_Normals.set_per_vertex_normals(mesh)
+    u.GeometryScript_VertexColors.set_mesh_per_vertex_colors(mesh, u.GeometryScript_List.convert_array_to_color_list(colors))
+    if existing:
+        options = u.GeometryScriptCopyMeshToAssetOptions()
+        options.enable_recompute_normals = False
+        options.enable_recompute_tangents = True
+        _, outcome = u.GeometryScript_AssetUtils.copy_mesh_to_static_mesh(mesh, existing, options, u.GeometryScriptMeshWriteLOD())
+        result = existing
+    else:
+        options = u.GeometryScriptCreateNewStaticMeshAssetOptions()
+        options.enable_collision = False
+        options.enable_recompute_normals = False
+        options.enable_recompute_tangents = True
+        result, outcome = u.GeometryScript_NewAssetUtils.create_new_static_mesh_asset_from_mesh(mesh, path, options)
+    if not result or outcome != u.GeometryScriptOutcomePins.SUCCESS:
+        raise RuntimeError('Cannot build ' + path)
+    result.set_material(0, material)
+    save(result)
+    return result
+
+
 meteor = seed()
 updated = False
 for field, asset in [('airflow_mesh', load('/Game/Assets/FX/BullCharge/SM_BullCharge_ConnectedFlow')),
@@ -317,6 +457,14 @@ for field, asset in [('airflow_mesh', load('/Game/Assets/FX/BullCharge/SM_BullCh
     if not meteor.get_editor_property(field):
         meteor.set_editor_property(field, asset)
         updated = True
+volume_mesh = impact_volume_mesh(volume_material)
+if (not meteor.get_editor_property('impact_volume_mesh')
+        and meteor.get_editor_property('impact_cloud_mesh') == load(FX+'/SM_Meteor_ImpactCrest')
+        and meteor.get_editor_property('impact_cloud_material') == cloud):
+    meteor.set_editor_property('impact_volume_mesh', volume_mesh)
+    if abs(meteor.get_editor_property('cloud_lift')-.29) < .0001:
+        meteor.set_editor_property('cloud_lift', .42)
+    updated = True
 if updated:
     save(meteor)
 u.log('METEOR_BALL_READY '+meteor.get_path_name())

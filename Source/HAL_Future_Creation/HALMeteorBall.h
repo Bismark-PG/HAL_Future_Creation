@@ -51,8 +51,12 @@ public:
 	UPROPERTY(EditAnywhere, Category="Meteor|Impact FX", meta=(ClampMin=".35", ClampMax=".94")) float CloudCoverage = .88f;
 	/** Crest height as a fraction of the damage radius. Zero keeps the clouds on the ground. */
 	UPROPERTY(EditAnywhere, Category="Meteor|Impact FX", meta=(ClampMin="0", ClampMax=".65")) float CloudLift = .29f;
-	/** Amount of turnover in the painted fire as each crest rises. */
+	/** Forward roll of the expanding puffs. Zero lets the volumes expand without rolling. */
 	UPROPERTY(EditAnywhere, Category="Meteor|Impact FX", meta=(ClampMin="0", ClampMax="2")) float CloudCurl = 1.f;
+	/** Fraction of Impact Seconds spent inflating the main fire clouds. */
+	UPROPERTY(EditAnywhere, Category="Meteor|Impact FX", meta=(ClampMin=".2", ClampMax=".95")) float CloudExpansionFraction = .62f;
+	/** Extra seconds for cooling smoke to rise and disperse after the ground effect ends. */
+	UPROPERTY(EditAnywhere, Category="Meteor|Impact FX", meta=(ClampMin="0", ClampMax="1.5", Units="s")) float CloudTailSeconds = .44f;
 	UPROPERTY(EditAnywhere, Category="Meteor|Impact FX") FLinearColor CloudTint = FLinearColor::White;
 	/** Deep smoke revealed as the flame front cools. */
 	UPROPERTY(EditAnywhere, Category="Meteor|Impact FX") FLinearColor CooledSmokeColor = FLinearColor(.094f,.052f,.082f);
@@ -61,10 +65,13 @@ public:
 	/** Brightness of the single ground pressure ring; zero hides it. */
 	UPROPERTY(EditAnywhere, Category="Meteor|Impact FX", meta=(ClampMin="0", ClampMax="4")) float ShockRingIntensity = 1.25f;
 	UPROPERTY(EditAnywhere, Category="Meteor|Impact FX") FLinearColor ShockAccentColor = FLinearColor(.24f,.87f,1.f);
-	/** A radial crest sheet with its root at X=0, nominal length 100 cm and crest height 40 cm. */
-	UPROPERTY(EditAnywhere, Category="Meteor|Impact FX") TObjectPtr<UStaticMesh> ImpactCloudMesh;
-	UPROPERTY(EditAnywhere, Category="Meteor|Impact FX") TObjectPtr<UMaterialInterface> ImpactCloudMaterial;
+	/** Closed cloud puff centered on its pivot. Slot 0 supplies its fire-to-ash material. */
+	UPROPERTY(EditAnywhere, Category="Meteor|Impact FX") TObjectPtr<UStaticMesh> ImpactVolumeMesh;
+	/** Optional sheet for types authored with the original crest effect. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category="Meteor|Impact FX") TObjectPtr<UStaticMesh> ImpactCloudMesh;
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category="Meteor|Impact FX") TObjectPtr<UMaterialInterface> ImpactCloudMaterial;
 	UPROPERTY(EditAnywhere, Category="Meteor|Impact FX") TObjectPtr<UMaterialInterface> ImpactGroundMaterial;
+	float GetCloudDuration() const { return ImpactSeconds + (ImpactVolumeMesh ? CloudTailSeconds : 0.f); }
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Meteor|Tracking Marker") TObjectPtr<UTexture2D> MarkerCore;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Meteor|Tracking Marker") TObjectPtr<UTexture2D> MarkerJaws;
 	/** An authored Widget Blueprint may replace the native two-layer marker. */
@@ -125,7 +132,8 @@ private:
 	void DrawFlight(double Age);
 	void DrawDescentSmoke(double SecondsSinceLock);
 	void PrepareImpactFX();
-	void DrawImpactClouds(float Progress);
+	void DrawCrestSheets(float Progress);
+	void DrawVolumeClouds(float SecondsAfterImpact);
 	double ServerNow() const;
 	UPROPERTY(ReplicatedUsing=RefreshPresentation) FHALMeteorStrikeState State;
 	FVector LastGround = FVector::ZeroVector;
@@ -146,6 +154,7 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> DescentSmokeMID;
 	UPROPERTY(Transient) TArray<TObjectPtr<UMaterialInstanceDynamic>> CloudMIDs;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> ImpactGroundMID;
+	bool bUsesVolumeClouds = false;
 	TArray<FTransform> PuffTransforms;
 	TArray<FTransform> PreviousPuffTransforms;
 };

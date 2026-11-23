@@ -60,7 +60,8 @@ AHALMeteorStrike::AHALMeteorStrike()
 		Part->SetupAttachment(RootComponent);
 		ConfigureMeteorVisual(*Part);
 	}
-	for (const FName Name : {FName(TEXT("ImpactCloudA")), FName(TEXT("ImpactCloudB")), FName(TEXT("ImpactCloudC"))})
+	for (const FName Name : {FName(TEXT("ImpactCloudA")), FName(TEXT("ImpactCloudB")), FName(TEXT("ImpactCloudC")),
+		FName(TEXT("ImpactVaporA")), FName(TEXT("ImpactVaporB")), FName(TEXT("ImpactVaporC"))})
 	{
 		auto* Cloud = CreateDefaultSubobject<UStaticMeshComponent>(Name);
 		Cloud->SetupAttachment(RootComponent);
@@ -189,7 +190,8 @@ void AHALMeteorStrike::DrawFlight(double Age)
 	const bool bImpact = State.Phase == EHALMeteorPhase::Impact;
 	const double SecondsSinceLock = Age - Type.TrackingSeconds;
 	const float Fall = FMath::Clamp((Age-Type.TrackingSeconds)/Type.FallSeconds,0.,1.);
-	const float After = FMath::Clamp((Age-Type.TrackingSeconds-Type.FallSeconds)/Type.ImpactSeconds,0.,1.);
+	const double SecondsAfterImpact = SecondsSinceLock - Type.FallSeconds;
+	const float After = FMath::Clamp(SecondsAfterImpact / Type.ImpactSeconds, 0., 1.);
 	const float RiseTime = FMath::Min(Type.TrackingSeconds,Type.RiseSeconds);
 	const bool bRising = bTracking && Age < RiseTime;
 	const bool bMark = bTracking && Age < Type.TrackingSeconds && IsValid(State.Target);
@@ -219,7 +221,11 @@ void AHALMeteorStrike::DrawFlight(double Age)
 			GroundMID->SetScalarParameterValue(TEXT("ImpactProgress"), bImpact ? After : -1.f);
 		}
 	}
-	if (bImpact) { DrawImpactClouds(After); }
+	if (bImpact)
+	{
+		if (bUsesVolumeClouds) { DrawVolumeClouds(SecondsAfterImpact); }
+		else { DrawCrestSheets(After); }
+	}
 	const bool bFlight = bRising || bFalling;
 	Rock->SetVisibility(bFlight);
 	const bool bTail = bFlight && Type.TrailLength > 0;
@@ -235,7 +241,7 @@ void AHALMeteorStrike::DrawFlight(double Age)
 	if (!bFlight && !bImpact) { return; }
 	if (bImpact && After >= 1.f)
 	{
-		if (!bWake) { SetActorTickEnabled(false); }
+		if (!bWake && SecondsAfterImpact >= Type.GetCloudDuration()) { SetActorTickEnabled(false); }
 		return;
 	}
 

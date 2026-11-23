@@ -1,5 +1,11 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-23，陨石球瞄准期间的车顶图标已放大一倍。** 正式球型 `DA_Ball_Meteor → Meteor → Tracking Marker → Marker Size` 从 48 调至 96，中心陨石和三瓣外环一起放大。比赛驾驶镜头实射中，外环可见高度在追踪初段从 21 增至 43 像素，接近锁定时从 17 增至 34 像素，进入下落阶段后图标退场。两项陨石球专项测试通过，实拍对照及读数在 `Saved/MeteorBall/MarkerDouble/{Comparison.png,Readback.json,Tests}`。[球型参数](Combat/Special_Ball_Base_CN.md#陨石球)
+
+**2026-11-23，陨石落地焰云已改为三股有厚度、可见膨胀过程的火团。** 火团在约 0.50 秒内向外撑开并鼓起，靠近爆心的底部最后冷却。随后余烟上浮，地板从云边缘逐渐露出来。单道贴地音爆长 0.80 秒，正式球型为散烟多留 0.44 秒。`DA_Ball_Meteor → Meteor → Impact FX` 可调膨胀时间、云高和烟尾。[新旧同机位对照](Combat/Art/MeteorBall/MeteorBall_CloudExpansion.webp) · [驾驶镜头和斜侧近景](Combat/Art/MeteorBall/MeteorBall_CloudInMatch.webp) · [参数与逐帧验证](Combat/Special_Ball_Base_CN.md#逆卷焰云与外围音爆)
+
+UE 5.8.3 统一 Editor 和独立 Win64 Development Game 均编译通过。玩法自动化 280 项通过，其中两项既有换车测试带警告。本机一主三客通过命中、自然到期两局，四端均为零测试警告。D3D12 三个机位各实射 73 帧，木桩每次只扣 25 HP。另在 13 个落地时刻开关焰云对比，1.12 秒时焰云的画面差值已低于峰值的 1%。编译记录在 `Saved/BuildTool/BuildAndLaunch_20261123_101208_658_86a011/Result.json`。独立 Game 使用 `Build.bat HAL_Future_Creation Win64 Development -Project=D:/HAL_Future_Creation/HAL_Future_Creation.uproject -WaitMutex -NoHotReload -NoLiveCoding -Log=D:/HAL_Future_Creation/Saved/MeteorBall/ReleaseCloud/Game.log` 验证游戏目标。资产、回归和四端报告在 `Saved/MeteorBall/ReleaseCloud/{Assets.log,Regression,Network}`。下一步由团队在目标设备上确认多人混战时的遮挡和烟尾观感。
+
 **2026-11-22，陨石球落地已采用 B 的三股逆卷焰云，外围加入 C 的一道贴地音爆。** 三瓣焰云从同一个爆心向外展开，橙金火面翻起后露出暗紫灰烟底。正式球型演出 0.80 秒，音爆在约 0.35 秒扫到伤害边界。焰云覆盖、高度、翻卷、颜色以及音爆宽度、亮度和冷色都集中在 `DA_Ball_Meteor → Meteor → Impact FX`。[驾驶镜头与近景实射动图](Combat/Art/MeteorBall/MeteorBall_RollingImpact.webp) · [调参与验证](Combat/Special_Ball_Base_CN.md#逆卷焰云与外围音爆)
 
 UE 5.8.3 的统一 Editor 和独立 Win64 Development Game 构建通过。玩法回归 280 项通过，其中两项既有换车用例带警告。本机一主三客在模拟 80 ms 延迟下通过命中、自然到期两局，四端零测试警告。D3D12 在 `MVPB_Match` 的驾驶镜头与固定近景分别实射，两次木桩均仅扣一次 25 HP。独立正交读回用 48 个方向测量音爆外沿，设置 500 cm 与 300 cm 的终点中位数分别为 499.5 cm 与 299.7 cm。Editor 记录为 `Saved/BuildTool/BuildAndLaunch_20261122_233101_721_003f38/Result.json`，独立构建、回归和实拍记录在 `Saved/MeteorBall/RollingImpact/{FinalGame.log,FinalGameplay,FinalNetwork,FinalDriving,FinalClose,OuterFront}`。四台设备上的打包观感待团队验收。

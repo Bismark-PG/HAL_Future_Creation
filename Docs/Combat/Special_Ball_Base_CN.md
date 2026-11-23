@@ -32,7 +32,7 @@
 | 正式发射 | 球从原处竖直升空。服务器从有有效地面位置的存活对手中等概率选一辆，随后移除可争抢、可碰撞的球体。没有合格对手时保留球，可以稍后再发。 |
 | 追踪 | 被选车辆上方显示 B 款三瓣锁环，中心陨石固定，三片外环随追踪进度向内收。目标在此期间被淘汰或离场，陨石沿用最后的有效地面位置。 |
 | 下坠 | 车顶锁环退场，地上出现固定大小的伤害边界，环内的暗影逐渐扩大。陨石拖着火焰和烟从上方落下。锁定后，目标可以开出范围，其他车辆也可能驶入。 |
-| 落地 | 以落点为圆心结算一次伤害和向外的冲击，范围包括发射者。三股橙金焰云从爆心翻出，一道贴地音爆沿钢板扩至预警边界。各车沿用现有减伤、抗冲击规则。 |
+| 落地 | 以落点为圆心结算一次伤害和向外的冲击，范围包括发射者。三股橙金焰云从爆心向外鼓起，一道贴地音爆沿钢板扩至预警边界，余烟随后上浮消散。各车沿用现有减伤、抗冲击规则。 |
 | 自然到期 | 球化为向外飘散的余烬。场上车辆可以从旁经过，没有伤害或落击。 |
 
 **首测调参**。下列字段均在同一份球型 DA。
@@ -44,14 +44,16 @@
 | `Meteor → Damage Radius` | 500 cm 半径 | 地面外圈和实际伤害取同一个半径。车身碰撞体触及范围即可受击。 |
 | `Gameplay → Damage → Vehicle Hit Damage` | 25 HP | 正式资产使用固定伤害。 |
 | `Gameplay → Impact → Tier / Push Preset` | Heavy / Standard | 分别控制冲击档位和横向推开距离。 |
-| `Meteor → Tracking Marker → Marker Size / Marker Closed Scale / Marker Lift` | 48 / 0.78 / 38 | 屏幕中的标记尺寸、锁定结束时的外环比例、车顶标识上方的间距。 |
+| `Meteor → Tracking Marker → Marker Size / Marker Closed Scale / Marker Lift` | 96 / 0.78 / 38 | 图标展开时为 96 × 96 个屏幕逻辑单位。追踪结束时外环收至约 75，中心陨石大小固定。第三项控制车顶标识上方的间距。 |
 | `Meteor → Flight FX → Sky Height / Falling Rock Radius / Trail Length` | 6000 cm / 110 cm / 3.2 | 调上下飞行的高度、下落岩体的尺寸和烟焰尾长。另有 `Rise Seconds` 和 `Smoke Color`。 |
 | `Meteor → Flight FX → Smoke Lifetime / Smoke Spread` | 0.46 s / 1.15 | 前者控制一团烟从排出到散尽的时间，后者控制向两侧翻卷、散开的幅度，以岩体半径为单位。`Trail Length` 限制可见烟尾长度。 |
 | `Meteor → Flight FX → Rock Spin Rate` | 320°/s | 调整下坠岩体绕斜轴翻转的速度。设为 0 可以单独观察烟和气流。 |
 | `Meteor → Flight FX → Airflow Strength / Airflow Speed` | 0.72 / 2.4 周期每秒 | 前者调迎风面两侧风痕的可见度，后者调亮纹和扰动向尾部推进的速度。 |
-| `Meteor → Impact FX → Cloud Coverage / Cloud Lift` | 0.88 / 0.29 | 调焰云横向铺展和卷顶高度，均相对伤害半径。范围分别为 0.35–0.94 和 0–0.65。 |
-| `Meteor → Impact FX → Cloud Curl` | 1.0 | 0–2，值越大，橙色火纹向卷心翻回去的幅度越大。设为 0 方便单看网格的升起。 |
-| `Meteor → Impact FX → Cloud Tint / Cooled Smoke Color` | 白色乘色 / 暗紫灰 | 前者给手绘火面染色，后者控制熄灭时露出的烟底。 |
+| `Meteor → Impact FX → Cloud Coverage / Cloud Lift` | 0.88 / 0.42 | 调云团的横向覆盖和向上鼓起的高度，均相对伤害半径。范围分别为 0.35–0.94 和 0–0.65。 |
+| `Meteor → Impact FX → Cloud Expansion Fraction` | 0.62 | 主体膨胀占 `Impact Seconds` 的比例，可填 0.20–0.95。值越大，越能看清火团从小到大。当前为约 0.50 秒。 |
+| `Meteor → Impact FX → Cloud Tail Seconds` | 0.44 s | 外圈演出结束后，余烟额外上浮和变薄的时间，可填 0–1.5 秒。 |
+| `Meteor → Impact FX → Cloud Curl` | 1.0 | 0–2，控制云团在向外膨胀时向前翻起的角度。设为 0 可单看膨胀。 |
+| `Meteor → Impact FX → Cloud Tint / Cooled Smoke Color` | 白色乘色 / 暗紫灰 | 前者给受光火面染色，后者调火焰冷却后的烟色。 |
 | `Meteor → Impact FX → Shock Ring Width / Shock Ring Intensity` | 23 cm / 1.25 | 调音爆的基础笔触宽度与亮度。宽度可填 2–100 cm，从外沿向内加粗。基础宽度会限制在半径的 0.3%–24%，再沿圆周收尖和展宽。亮度 0–4，设为 0 可单看焰云。 |
 | `Meteor → Impact FX → Shock Accent Color` | 浅青 | 控制外环迎光弧段的冷色，暖色取球型的 `Corona Color`。 |
 | `Lifetime → Free Life Seconds / Warning Seconds` | 20 s / 3 s | 累计可争抢时间，以及自然消散前的提醒。 |
@@ -67,11 +69,13 @@
 
 ### 逆卷焰云与外围音爆
 
-落地先闪出紧凑的金白爆心，三股焰云从同一处向外翻起。火面下方露出暗紫灰烟底，末段分块冷却、散开。最外侧只有一道贴地音爆，沿圆周有宽窄和冷暖变化。按正式演出时长 0.80 秒，它在落地约 0.35 秒后扫到 5 米边界。伤害在落地瞬间由服务器结算一次。
+落地先闪出金白爆心，三股火团向外撑开并向上鼓起，较小的烟团从侧面接续展开。每团的凸面陆续鼓起一次，三档卡通明暗沿圆弧过渡。云顶先冷却，靠近爆心和底部的余火稍后转暗。烟团继续上浮，轮廓薄处先露出地面，厚处稍后散尽。最外侧的一道贴地音爆在约 0.35 秒后扫到 5 米边界，地面演出长 0.80 秒。余烟可延续至落地后 1.24 秒。伤害在落地瞬间结算一次。
 
-要让爆炸更饱满，先调 `Cloud Coverage`。要让火头卷得更高，调 `Cloud Lift`。想把外围笔触收细，调 `Shock Ring Width`。要给玩家更长的演出阅读时间，调 `Effects → Impact Seconds`。外沿始终跟随 `Damage Radius`。[比赛镜头与近景实射](Art/MeteorBall/MeteorBall_RollingImpact.webp) · [B、C 原草图及正式纹理](Art/MeteorBall/ImpactConcepts/README.md)
+要放慢膨胀，先增大 `Cloud Expansion Fraction`。要单独延长烟尾，增大 `Cloud Tail Seconds`。宽度调 `Cloud Coverage`，高度调 `Cloud Lift`。手工制作其它陨石球型时，可以在 `Impact Volume Mesh` 引用同一个闭合网格 `SM_Meteor_ImpactVolume`，槽 0 使用 `M_Meteor_ImpactVolume`。[新旧焰云实射对照](Art/MeteorBall/MeteorBall_CloudExpansion.webp) · [B、C 原草图](Art/MeteorBall/ImpactConcepts/README.md)
 
-两次比赛图实射都从正常拾球和发射开始，驾驶镜头与近景各记录 53 帧。木桩均从 1000 降至 975 HP，三瓣焰云的相位各异，结束后全部退场。另在正交镜头固定演出进度，并对比打开与关闭音爆的画面。正式 500 cm 与对照 300 cm 两档各读 48 个方向，外沿半径中位数分别为 499.5 cm、299.7 cm。原始帧、逐帧数据和四进程两局报告位于 `Saved/MeteorBall/RollingImpact`。
+11 月 23 日在 `MVPB_Match` 从拾球开始实射，驾驶、固定近景和斜侧机位各录了 73 帧。三个机位的木桩均从 1000 降至 975 HP，只扣一次。另在 13 个时刻暂停比赛，对照同一帧开关焰云后的像素差。落地 0.54 秒时差值总量达到采样峰值，0.84 秒剩约 39%，1.05 秒剩约 6%，1.12 秒降到与背景波动相当的 1% 以内。原始结果在 `Saved/MeteorBall/ReleaseCloud/{Close,Side,Driving,ClosePairs,VisibleCloud.json}`。[驾驶与斜侧实拍](Art/MeteorBall/MeteorBall_CloudInMatch.webp)
+
+11 月 22 日首版记录了驾驶镜头与近景各 53 帧，木桩均从 1000 降至 975 HP。当时另用正交镜头对照开关音爆的画面。正式 500 cm 与对照 300 cm 两档各读 48 个方向，外沿半径中位数分别为 499.5 cm、299.7 cm。原始数据在 `Saved/MeteorBall/RollingImpact`。[首版实射](Art/MeteorBall/MeteorBall_RollingImpact.webp)
 
 ## 黑洞球
 

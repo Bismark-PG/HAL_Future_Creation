@@ -65,6 +65,7 @@ bool UHALMeteorBallDefinition::Validate(FString& Error) const
 		|| !FMath::IsWithinInclusive(AirflowSpeed,0.f,8.f)
 		|| !FMath::IsWithinInclusive(CloudCoverage,.35f,.94f) || !FMath::IsWithinInclusive(CloudLift,0.f,.65f)
 		|| !FMath::IsWithinInclusive(CloudCurl,0.f,2.f) || !FMath::IsWithinInclusive(ShockRingWidth,2.f,100.f)
+		|| !FMath::IsWithinInclusive(CloudExpansionFraction,.2f,.95f) || !FMath::IsWithinInclusive(CloudTailSeconds,0.f,1.5f)
 		|| !FMath::IsWithinInclusive(ShockRingIntensity,0.f,4.f)
 		|| !FMath::IsWithinInclusive(MarkerClosedScale,.55f,1.f) || !FMath::IsWithinInclusive(MarkerLift,0.f,200.f)
 		|| !FMath::IsWithinInclusive(SmokeColor.R,0.f,32.f) || !FMath::IsWithinInclusive(SmokeColor.G,0.f,32.f)
@@ -208,7 +209,7 @@ void AHALMeteorStrike::Land()
 	UE_LOG(LogHALMeteorBall, Log, TEXT("Impact %s ground=%s radius=%.0f"), *GetName(), *LastGround.ToCompactString(), Area.Radius);
 	RefreshPresentation();
 	// Keep the completed state relevant through the render tail, including a lethal final pulse.
-	SetLifeSpan(State.Type->ImpactSeconds + 1.f);
+	SetLifeSpan(FMath::Max(State.Type->GetCloudDuration(), State.Type->SmokeLifetime) + 1.f);
 }
 
 void AHALMeteorStrike::OnMatchPhase(EHALMatchPhase Phase)
