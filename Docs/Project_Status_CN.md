@@ -1,5 +1,17 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-23，正式比赛图 `MVPB_Match` 的八段看台前五排已加入错峰身体摇摆。** 在共用材质实例 `MI_ArenaNight_SouthCrowd_Motion → Body Sway` 可调节单侧摆角和往返周期，默认上限 5°、周期 2.5 秒。八段共 40 个活动座排逐排实拍均测到面部侧移，腰部和第六排参照区的像素差均为零。西侧同框拍到相邻小组同时朝相反方向摆动。RTX 5070 Ti 在 1080p 下采集 26,801 帧，贴边驾驶、前排近景及全场俯视的整帧 GPU 配对中位差分别为 +0.026、+0.011、−0.003 ms。Windows 正式图 Cook 零错误、零警告。学校设备的四人混战帧耗待实测。[摇摆近景与贴边实拍](Presentation/Images/MVPB_Match_CrowdSway_20261123.webp) · [调参与本机性能记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-crowd-sway)
+
+**2026-11-23，正式比赛图 `MVPB_Match` 的八段看台已采用前两排后仰 28°、前五排错峰欢呼。** 从赛道向外数，第三至第五排直立，第六排起静态。西侧贴边实拍中，同一名观众衣服的可见高度从约 17 px 增至 38 px，实车沿护栏跨过西侧与西北段接缝。八段共 40 个活动座排均测到围巾或旗面的形变。RTX 5070 Ti 在 1080p 下对比原南侧试点，共采 27,244 帧，贴边驾驶、看台近景、全场俯视的整帧 GPU 配对中位增量分别为 +0.079、+0.325、+0.008 ms。Windows 正式图 Cook 零错误、零警告。本机一主三客通过首局返房及第二局开赛，四端零测试警告。学校设备的多人帧耗待实测。[比赛画面与动作实拍](Presentation/Images/MVPB_Match_FiveRowsCrowd_20261123.webp) · [材质参数、逐排验证与帧耗](Presentation/ArenaFloor_SatinMetal_CN.md#arena-five-row-crowd)
+
+**2026-11-23，观众席下沿完成同机位可见性试验。** 车辆贴西侧护栏时，比赛镜头会把直立的观众压成细条。前两排以座位为轴向看台后方倾斜 18° 后，1600 × 870 实拍中同一处青绿色衣服的可见高度约从 17 px 增至 31 px。此处留档的是单段在直立、18° 与 28° 之间的对照。[同机位对照与试验条件](Presentation/ArenaFloor_SatinMetal_CN.md#crowd-view-angle)
+
+**2026-11-23，正式图南侧前两排已试装挥旗与举围巾。** `stand_001_0118 → Element 5` 使用独立的动态材质实例。沿用原观众面片和单张图集，握持处固定，各组欢呼与停顿错开。720p 固定近景中，旗尖亮纹和围巾中段的上下行程分别为 17 px 和 7 px。实车沿南侧护栏行驶 38.4 米完成录制。RTX 5070 Ti 在 1080p 采 27,316 帧，相对静态版，贴边驾驶和前排近景的整帧 GPU 配对中位差为 +0.019 和 +0.038 ms。正式图重载和 Windows 地图 Cook 均通过。[停车与行驶实拍](Presentation/Images/MVPB_Match_SouthCrowdMotion_20261123.webp) · [试点材质参数与性能记录](Presentation/ArenaFloor_SatinMetal_CN.md#south-front-row-motion)
+
+**2026-11-23，正式比赛图的八段前排均已加入错峰闪光和小烟花。** 七处新增落点按各段座排单独定位，八段复用南侧 Niagara 资源。五分钟内每 0.05 秒回读一次粒子，八段均有两种效果，6,000 次采样中没有出现全场同亮。RTX 5070 Ti 在 1080p 下对照关闭、仅南侧和八段三种配置，共采 64,120 帧。相对仅南侧，贴边驾驶、八段同屏、前排近景的整帧 GPU 配对中位差分别为 −0.003、+0.013、+0.035 ms。Windows 地图 Cook 零错误、零警告，本机 Exhibition 一主三客完成首局返房及第二局开赛。学校设备四人混战帧耗待测。观众人物动态处于方案讨论阶段，优先考虑前排旗帜和围巾的局部摆动。[两段同镜头实拍](Presentation/Images/MVPB_Match_FullStandCheers_20261123.webp) · [单段调参与四机位性能记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-full-cheers)
+
+**2026-11-23，正式图 `MVPB_Match` 的八段看台已铺满星际观众。** 七段新看台分别错开了人群空位、前排围巾和旗帜，沿用南侧已确认的图集。全场复用原有的 3,824 个观众三角形，图集满分辨率共占 704 KiB。RTX 5070 Ti 在 1920 × 1080 下独立启动两次，对原观众、南侧试点和八段版交替采样，共 8,640 个有效帧。相对原观众，八段版在贴边驾驶和全景中的整帧 GPU 配对中位差分别为 +0.006 ms、+0.010 ms。正式图重载核对了 152 个 Actor 及其组件，单图 Windows Cook 零错误、零警告。学校设备上的四人混战性能待实测。[全景与八段前排实拍](Presentation/Images/MVPB_Match_FullCrowd_20261123.jpg) · [各段调参与完整对照](Presentation/ArenaFloor_SatinMetal_CN.md#arena-full-crowd) · [早期南侧试点](Presentation/ArenaFloor_SatinMetal_CN.md#south-crowd)
+
 **2026-11-23，正式图 `MVPB_Match` 的场边已换成深色拉丝钢板、细青色护网，南侧一段看台已加入氛围特效。** 同一贴边驾驶机位的护网可见宽度约为原来的 31%。停车和沿墙行驶实拍均能看到观众席暖白闪光与低矮金色火花。原有场边碰撞已通过 216 条射线复核，Windows 地图 Cook 和本机一主三客两局流程均通过。团队可在 World Outliner 搜索 `SouthFrontRow_Cheers` 定位试点，下一轮看多人技能同屏时的亮度与频率。[场边前后对照](Presentation/Images/MVPB_Match_RimNight_20261123.jpg) · [驾驶实拍动图](Presentation/Images/MVPB_Match_FrontRow_20261123.webp) · [调参与验证记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-night-rim)
 
 **2026-11-23，正式比赛图 `MVPB_Match` 已调整为夜间赛车场灯光。** 主光由 3.65 降至 1.35 lux，场内十盏地灯改为小范围暖琥珀色，看台灯面、灯带与八束侧光采用香槟金、琥珀和珊瑚色。五个机位完成 D3D12 调整前后实拍，中场驾驶画面亮度中位数从 111 降至 74，普通地灯附近从 219 降至 156。UE 5.8.3 正式图重载核对 151 个 Actor，Windows 地图 Cook 收齐五份新材质。本机 Exhibition 一主三客完成首局返房和第二局开赛，四端零测试警告。四台实机上的暗部与技能同屏观感待团队验收。[三个机位的画面对照](Presentation/Images/MVPB_Match_NightRace_20261123.jpg) · [灯光调参和验证记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-match-lighting)

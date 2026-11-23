@@ -1,6 +1,131 @@
 # MVPB_Match 波纹缎面金属地面
 
-正式比赛图 `/Game/Maps/MVPB_Match` 已采用六边形拉丝钢板、整边防滑条、外圈灯带和九盏嵌地灯。中场的第十盏灯嵌在与行车面齐平的金属圆盘中央。正式图与临时图 `MVPB_Match_Temp` 共用可见地板和灯壳网格，正式图独立配置行车面、外环钢板和夜场灯光。[外环与南侧看台](#arena-night-rim) · [行车碰撞](#arena-flat-drive-surface) · [比赛图灯光](#arena-match-lighting) · [六边形钢板与地灯调参](#arena-deck-inset-lights)
+正式比赛图 `/Game/Maps/MVPB_Match` 已采用六边形拉丝钢板、整边防滑条、外圈灯带和九盏嵌地灯。中场的第十盏灯嵌在与行车面齐平的金属圆盘中央。正式图与临时图 `MVPB_Match_Temp` 共用可见地板和灯壳网格，正式图独立配置行车面、外环钢板和夜场灯光。[观众身体摇摆](#arena-crowd-sway) · [前五排欢呼与后仰角度](#arena-five-row-crowd) · [八段闪光与烟花](#arena-full-cheers) · [八段星际观众](#arena-full-crowd) · [外环与南侧看台](#arena-night-rim) · [行车碰撞](#arena-flat-drive-surface) · [比赛图灯光](#arena-match-lighting) · [六边形钢板与地灯调参](#arena-deck-inset-lights)
+
+<a id="arena-crowd-sway"></a>
+
+## 八段看台前五排的身体摇摆
+
+前五排的观众沿座排左右轻晃，腰部贴住座位。头、肩、手和举起的道具随上身移动，布料还会独立飘动。相邻人群的起拍时间约错开三分之一个周期，再沿座排交替提前、延后。每排有自己的基础速度，每小组也有轻微变速和不同摆幅。靠赛道的前两排同时向后倾斜 28°，第六排起静止。[同机位开关对照与贴边实拍](Images/MVPB_Match_CrowdSway_20261123.webp)
+
+在八段共用的 `/Game/Assets/Materials/ArenaNight/MI_ArenaNight_SouthCrowd_Motion` 中展开 **Body Sway**。调整参数时先勾选左侧覆盖框。
+
+| 参数 | 正式值 | 调节效果 |
+|---|---:|---|
+| `Body Sway Enabled` | 开启 | 单独开关身体摇摆，可用于同镜头对照。 |
+| `Body Sway Angle` | 5° | 单侧最大摆角，范围 0–8°。各组按上限的 65%–100% 取值，相邻组之间平滑过渡。 |
+| `Body Sway Period` | 2.5 秒 | 完成一次左右往返的基准时间，范围 0.5–6 秒。各组在基准上下 12% 内错速。 |
+
+身体摇摆和道具共用 `Front Row Motion → Cheering Rows Upper Height` 的排数边界。材质在顶点上计算节奏，在取样前按人物高度横移图集坐标。腰线以下的位移为零。颜色和透明轮廓来自同一次取样，全场沿用 4,240 个观众顶点和原有的 1024 × 512 图集。想单看摇摆幅度时，可暂时关闭 `Animate Front Row Props`，并在护栏旁观察举围巾观众的头部相对座位的位移。
+
+**逐排实拍。** 以固定近景、平光分别拍摄八段的第一至第六排，每处 25 帧。前五排共 40 处都测到面部横移，头部左右两端相距 4.72–13.60 px，腰部参照区的像素差均为零。第六排的面部和道具参照区也都静止。另在西侧第四排固定机位连续跟踪四名观众 4.08 秒，其中一对在 47 个重叠的四分之一秒观测窗里有 25 个朝相反方向移动。
+
+**单独开启身体摇摆的帧耗。** UE 5.8.3、RTX 5070 Ti、D3D12、1920 × 1080。两组都开启前五排的道具动作、28° 后仰和八段看台氛围特效。两次独立启动，交换开关顺序，三个机位各四对采样，共 26,801 个有效帧、140.34 秒。下表差值在每对内计算后取中位数。全场俯视的四对样本有正有负，差值落在重复测量的波动内。
+
+| 机位 | 开启后的整帧 GPU 中位数 | 摇摆带来的 GPU 配对差值 |
+|---|---:|---:|
+| 西侧护栏旁的驾驶镜头 | 4.968 ms | +0.026 ms |
+| 看台近景 | 4.928 ms | +0.011 ms |
+| 全场俯视 | 3.935 ms | −0.003 ms |
+
+另用相同机位做两对虚拟阴影贴图计数。开关两组的每帧动态失效页数中位数在贴边、近景、全景分别为 321、391、143，静态失效页数均为 0。三个机位的阴影深度绘制调用数中位数分别为 50、36、14，两组读数相同。阴影深度绘制的 GPU 配对差值分别为 +0.001、+0.004、+0.001 ms。学校设备的四人混战帧耗待实测。
+
+正式图在独立进程重载后核对了八段材质绑定。Windows 正式图 Cook 共处理 852 个包，零错误、零警告，产物包含正式图、观众母材质、动态实例和图集。本机逐排读数、同框错峰读数和两项性能报告位于 `Saved/StadiumSway/{motion.json,groups.json,performance.json,shadows.json}`，烹制日志在同目录 `FinalCook.log`。
+
+<a id="arena-five-row-crowd"></a>
+
+## 2026-11-23 全场前两排后仰与前五排欢呼
+
+本节实拍与性能数据记录加入身体摇摆以前的版本，用于单独核对观众后仰和布料动作。现行版的身体参数及额外帧耗见[观众身体摇摆](#arena-crowd-sway)。
+
+正式图 `MVPB_Match` 的八段看台从赛道向外数，第一排的围巾和第二排的旗帜随观众面片向看台后方倾斜 **28°**，转轴位于腰部与座位交接处。第三至第五排直立，各段按排交错安排围巾组和旗帜组，沿用原图集中穿插的普通观众和空位。挥旗和举围巾都只动布料，时序按看台、座排和人群组错开。第六至第十三排使用原来的静态观众。[西侧贴边、第三至第五排动作与西北接缝实拍](Images/MVPB_Match_FiveRowsCrowd_20261123.webp)
+
+八段共用 `/Game/Assets/Materials/ArenaNight/MI_ArenaNight_SouthCrowd_Motion`，资产名沿用南侧试点。东南、西南、东北、西北四段在看台静态网格组件的 `Element 4`，另四段在 `Element 5`。在实例的 `Seat Geometry → Front Row Lean Degrees` 调前两排的后仰角。在 `Front Row Motion` 调 `Flag Tip Travel`（旗尖摆幅）、`Scarf Sag`（围巾弯曲）和 `Cheer Tempo`（节奏）。`Animate Front Row Props` 可单独切换动作以作对照。`Cheering Rows Upper Height` 是相对于现有导入网格轴点的排底高度，单位为厘米。正式值 2345 位于第五排与第六排之间。
+
+逐段读取了实际网格和正式图材质绑定。全部 40 个活动座排各实拍一组道具，固定镜头下每组取 16 帧、覆盖 4.17 秒。隔离灯光影响后，40 个道具采样区均出现形变，40 个面部参照区及八段第六排的静态参照区最大通道差均为 0。正式图 1600 × 870 的西侧贴边驾驶实拍中，同一名观众的青绿色衣服从约 17 px 高增至 38 px。另以真实驾驶镜头从西侧开过西北段接缝，行驶 18.38 米。关卡重载核对了 159 个 Actor 及组件。全场继续复用 3,824 个观众三角形和一份 1024 × 512 图集，材质每像素采样一次。
+
+**全场性能。** 对照组为改动前的正式配置，仅南侧两排有道具动作。两组均开启八段闪光与小烟花。在 RTX 5070 Ti / Core Ultra 7 270K Plus 上，以 D3D12、1920 × 1080、100% 渲染比例独立启动两次，调换采样次序。每个机位四对样本，去除每段首尾各 0.2 秒后，共 27,244 帧、140.32 秒。差值为各对差值的中位数。
+
+| 机位 | 新版整帧 GPU 中位数 | 整帧 GPU 增量 | 整帧时长 P95 增量 |
+|---|---:|---:|---:|
+| 西侧护栏旁的驾驶镜头 | 4.912 ms | +0.079 ms | +0.045 ms |
+| 看台人物占据大半画面的近景 | 4.904 ms | +0.325 ms | +0.372 ms |
+| 全场俯视 | 3.960 ms | +0.008 ms | +0.013 ms |
+
+近景的四对 GPU 增量为 +0.291 至 +0.437 ms，贴边驾驶为 +0.026 至 +0.138 ms。学校设备上的四人混战帧耗待实测。本机逐排读数、驾驶画面量测与逐段帧表位于 `Saved/StadiumFiveRows/{motion_check.json,edge_check.json,performance.json}`。
+
+UE 5.8.3 的 Windows 单图 Cook 完成，零错误、零警告，产物包含正式图、观众母材质、动态实例和图集。本机 Exhibition 一主三客完成首局返房及第二局开赛，四端均通过且零测试警告。日志与结果分别位于 `Saved/StadiumFiveRows/Cook.log` 和 `Saved/StadiumFiveRows/Network/Summary.json`。
+
+<a id="crowd-view-angle"></a>
+
+## 比赛镜头下沿的观众可见性试验
+
+UE 5.8.3，在正式图的独立 D3D12 游戏进程中，将车辆固定在西侧护栏旁（X −7760、Y 1532 cm）。玩家相机俯角 80°、水平视场角 90°，分辨率 1600 × 870。西侧第一、二排的原面片竖直，顶部与底部处在相同半径，材质已开启双面。这个角度里，前景台阶上的人影清楚，彩色人物自身却压成细条。
+
+当时在运行时替换西侧观众材质槽，让前两排绕腰部与座位的交界向场外后仰。以同一组青绿色衣服的像素纵向跨度衡量（去掉上下各 1% 的色样），直立约 17 px，18° 约 31 px，28° 约 39 px。团队随后选定 28° 作为全场前两排的正式角度。[同机位、同裁切的三档实拍](Images/MVPB_Match_CrowdSightline_20261123.jpg)
+
+<a id="south-front-row-motion"></a>
+
+## 2026-11-23 南侧前排挥旗与举围巾
+
+南侧第一排的围巾在两手之间松下再绷平。第二排的旗面从旗杆向旗尖传递波动，挥几下会歇一拍。相邻组各自起拍。开到南侧护栏旁可以看到两个动作，近景能分辨布料和手的相对运动。[南侧前排、贴边停车与行驶实拍](Images/MVPB_Match_SouthCrowdMotion_20261123.webp)
+
+在正式图搜索 `stand_001_0118`，打开 `StaticMeshComponent → Materials → Element 5 → MI_ArenaNight_SouthCrowd_Motion`，展开 `Front Row Motion`。勾选参数左侧的覆盖框即可调值。
+
+| 参数 | 试点值 | 调节作用 |
+|---|---:|---|
+| `Animate Front Row Props` | 开启 | 关闭即可对照静态版。试点时其余七段使用共享母材质的静态分支。 |
+| `Flag Tip Travel` | 8 | 旗尖单侧摆幅，单位为原图集纹素，范围 0–12。旗杆旁的布料位移较小。 |
+| `Scarf Sag` | 5 | 围巾中部最大下垂量，单位为原图集纹素，范围 0–6。两端和手的位置固定。 |
+| `Cheer Tempo` | 1.0 | 播放速度倍率，范围 0.2–2.0，同时缩放动作和休息时间。 |
+
+材质先按原有座排选择图集坐标，仅在两种道具的局部区域偏移取样，颜色与透明轮廓共用一次取样。试点复用原网格和 1024 × 512 图集。动作随观察深度在 46–95 米之间逐渐减弱。若美术重排图集中的道具，需同步调整母材质 `M_ArenaNight_SouthCrowd` 中 `Front row scarf and flag, anchored in atlas texels` 节点的定位范围。关卡重载核对了 159 个 Actor，场景配置差异集中在南侧看台的一个材质槽。
+
+**动作验证。** 在 1280 × 720 的南侧固定近景中，连续 85 帧采样里，旗尖附近的亮色条纹上下行程为 17 px，围巾中段上沿行程为 7 px，静态对照均为 0 px。实拍中能分别找到只动旗面、只动围巾的时刻。另用无光照画面隔离场灯变化，九处固定采样区覆盖握旗手、围巾两端、脸、身体下缘和邻座，逐像素对照的最大通道差为 0。驾驶实拍使用玩家自己的比赛镜头，沿南侧护栏实际行驶 38.4 米。
+
+**南侧单段的性能。** UE 5.8.3，RTX 5070 Ti / Core Ultra 7 270K Plus，D3D12、1920 × 1080、100% 渲染比例。保留八段正常的闪光与烟花，同机位轮换施工前保存的静态材质和南侧动态实例。两次独立启动调换次序，三个机位各做四对采样，首尾各去掉 0.2 秒，共 27,316 个有效帧。表中的差值先在每一对内计算，再取四对的中位数。
+
+| 机位 | 动态版整帧 GPU 中位数 | 动态相对静态的 GPU 差值 | 整帧时长 P95 差值 |
+|---|---:|---:|---:|
+| 南侧贴边驾驶机位 | 4.881 ms | +0.019 ms | +0.027 ms |
+| 南侧前排近景 | 4.665 ms | +0.038 ms | +0.085 ms |
+| 全场俯视 | 3.902 ms | +0.009 ms | −0.066 ms |
+
+贴边驾驶的四对 GPU 差值范围为 −0.049 至 +0.030 ms，近景为 +0.020 至 +0.118 ms。整圈推广后的实测见上方「全场前两排后仰与前五排欢呼」。南侧试点的 Windows 单图 Cook 零错误、零警告，产物包含动态实例、共享母材质、图集与正式图。Exhibition 本机一主三客完成返房和第二局开赛，四端零测试警告。试点的像素对照、帧表与四端报告分别在本机 `Saved/StadiumCrowdMotion/visual_checks.json`、`performance.json` 和 `Network/Summary.json`。
+
+<a id="arena-full-cheers"></a>
+
+## 2026-11-23 八段看台的闪光与小烟花
+
+八段各使用一处前排烟花落点，座位间的暖白短闪会在各自约 13.2 米宽的范围换位置。七处新落点沿各段前排内缘取样，分别调整沿座排的位置和高度，金色火花朝看台展开。八段共用南侧的 `NS_ArenaNight_FrontRowCheers` 和两份粒子材质，本地播放。独立载入正式图，确认八个实例均关闭碰撞、投影和网络复制，原有 152 个 Actor 及其配置通过对照。正式图现有 159 个 Actor。[东侧与东北侧同镜头、东侧近景实拍](Images/MVPB_Match_FullStandCheers_20261123.webp)
+
+**在 Editor 调整节奏。** 在 World Outliner 搜索 `FrontRow_Cheers`，八个 Actor 都在 `Presentation/Grandstand Ambience`。挪动单段 Actor 可调整烟花落点和闪光区域。选中它的 Niagara 组件，`Random Seed Offset` 控制实例随机偏移，`Warmup Tick Count` 控制启动时预先推进多少步。七个新增实例每步 0.16 秒。各自启动后，闪光每轮随机取 0.82–1.50 秒，烟花每轮随机取 4.1–5.4 秒。
+
+| 方位 | Actor 名前缀 | 预热步数 | 起始提前量 | 实例随机偏移 |
+|---|---|---:|---:|---:|
+| 南 | `South` | 0 | 0 秒 | 0 |
+| 东南 | `SouthEast` | 13 | 2.08 秒 | 113 |
+| 东 | `East` | 4 | 0.64 秒 | 307 |
+| 东北 | `NorthEast` | 22 | 3.52 秒 | 569 |
+| 北 | `North` | 9 | 1.44 秒 | 863 |
+| 西北 | `NorthWest` | 26 | 4.16 秒 | 1097 |
+| 西 | `West` | 17 | 2.72 秒 | 1367 |
+| 西南 | `SouthWest` | 6 | 0.96 秒 | 1619 |
+
+**五分钟的同时触发情况。** 在游戏世界内同帧重新激活八个系统，每 0.05 秒读取各段实际存活粒子，共 6,000 次，有效读数覆盖全部八段。每段记录到 255–261 次闪光和 63–64 簇烟花，闪光沿座位的横向跨度为 13.09–13.18 米。同一个采样间隔内最多三段开始闪光、两段开始放烟花。86% 的时刻只有零至两段闪光可见，偶尔会有更多段重叠，此次没有记录到八段同亮。
+
+**性能对照条件。** UE 5.8.3，正式图、独立游戏进程、D3D12、1920 × 1080、100% 渲染比例、关闭垂直同步和帧率上限。测试机为 Core Ultra 7 270K Plus / RTX 5070 Ti。每个机位固定构图和车球位置，在同一份地图内交替让 0、1、8 个看台 Niagara 组件运行，三种配置均使用全场星际观众。两次独立启动反转机位及开关顺序。每个机位、每种配置采四组，各组采 7.5 秒并略去首尾各 0.2 秒。有效采样共 48 组、64,120 帧，约 341 秒。性能采样时关闭实拍和粒子回读。下列数据衡量进入比赛后的持续开销，七处新增实例在激活时另有共 97 个预热步，未计入表中。
+
+| 固定机位 | 整帧 GPU，全关 | 整帧 GPU，南侧 | 整帧 GPU，八段 | 八段相对全关 GPU 差 | 新增七段 GPU 差 | 新增七段游戏线程差 |
+|---|---:|---:|---:|---:|---:|---:|
+| 场中央驾驶 | 5.664 ms | 5.616 ms | 5.600 ms | −0.045 ms | −0.040 ms | +0.025 ms |
+| 东侧贴边驾驶 | 4.877 ms | 4.853 ms | 4.829 ms | −0.006 ms | −0.003 ms | +0.018 ms |
+| 八段同时入镜 | 3.900 ms | 3.943 ms | 3.954 ms | +0.047 ms | +0.013 ms | +0.008 ms |
+| 北侧前排近景 | 4.638 ms | 4.627 ms | 4.700 ms | +0.026 ms | +0.035 ms | +0.015 ms |
+
+各配置显示四组整帧 GPU 中位数的中位数。后三列按同一机位、同一轮的两种配置先求差，再取四个差的中位数。贴边驾驶新增七段的 GPU 差在 −0.079 至 +0.013 ms 间波动。全景新增七段平均每帧多约 9.4 次绘制提交，全景的整帧 P95 为 5.31 ms，较南侧的配对差为 +0.040 ms。本轮可以看出少量 CPU 与绘制开销。学校设备上四人同时释放技能时的帧耗需要实机另测。
+
+Windows 单图 Cook 零错误、零警告，产物包含正式地图、星际观众图集、共享 Niagara 系统及两份粒子材质。Exhibition 本机一主三客完成首局返房和第二局开赛，四端均为零测试警告、零失败。四端回归使用 NullRHI，渲染性能取自上表的独立 D3D12 游戏进程。本机粒子与性能记录在 `Saved/StadiumCheers/{timing_match.json,performance.json}`，四端报告在同目录的 `Network/Summary.json`，原始帧表在 `Saved/Profiling/CSV/StadiumFX_*.csv`。
 
 <a id="arena-night-rim"></a>
 
@@ -14,7 +139,7 @@
 | 青色网丝与挡墙线 | `Path → Materials → MI_ArenaNight_SidelineNet` | `Line Width` 为 0.018，`Glow Strength` 为 1.70。`Visible Top Fraction` 为 0.30，控制宽顶面上从赛道向看台的显示距离。`Visible Height Cm` 为 143，控制侧网向上淡出的高度。贴地亮线位于挡墙内壁、离行车面约 12 cm。 |
 | 看台闪光与火花 | `/Game/Assets/FX/ArenaNight/NS_ArenaNight_FrontRowCheers` | `Camera Flashes` 在约 13.2 m 长的座位区随机取点，每次亮 0.20 秒。`Gold Fan` 每轮发出 17 颗火花，单颗持续 0.76 秒。各发射器的 `Emitter State → Loop Duration` 分别控制间隔，火花的 `Spawn Burst → Spawn Count` 控制数量。 |
 
-场边材质实例位于 `/Game/Assets/Materials/ArenaNight/`。护网材质直接画在原挡墙网格上。调宽度从 `Visible Top Fraction` 入手，调网丝粗细用 `Line Width`。看台演出由一个无碰撞的 Niagara Actor 本地播放，位于 `Presentation/Grandstand Ambience` 文件夹。
+场边材质实例位于 `/Game/Assets/Materials/ArenaNight/`。护网材质直接画在原挡墙网格上。调宽度从 `Visible Top Fraction` 入手，调网丝粗细用 `Line Width`。南侧试点由 `Presentation/Grandstand Ambience` 下的 `SouthFrontRow_Cheers` 本地播放。
 
 **本机验证（UE 5.8.3）**
 
@@ -22,6 +147,75 @@
 - 停车录制 6.2 秒，Niagara 回读到闪光分布在相距最远 7.25 m 的座位上。沿护栏实际行驶 20.19 m，驾驶镜头下也拍到了闪光与扇形火花。动图前段为停车观察，后段为沿墙行驶。
 - 重新加载正式图后，核对原有 151 个 Actor 的身份、变换、组件碰撞、场灯和比赛模式。沿 72 个方向测量行车面，并在离地 45、120 cm 两个高度测量侧墙，共 216 条射线的命中位置与修改前一致。
 - Windows 地图 Cook 收齐七份新增资产，零错误、零警告。本机 Exhibition 一主三客完成首局返房和第二局开赛，四端通过。不同显示器上与多人技能同屏时的观感待团队实测。
+
+<a id="arena-full-crowd"></a>
+
+## 2026-11-23 全场八段星际观众
+
+八段看台共用南侧试点的 `M_ArenaNight_SouthCrowd` 和 `T_ArenaNight_SouthCrowd`。第一排举围巾，第二排挥旗，后排按小群穿插空位。每段分别调节空位、整群位置和两种道具的位置。南侧保留已确认的排布。八个方向均已在正式图中实拍。[全景、贴边驾驶与八段前排对照](Images/MVPB_Match_FullCrowd_20261123.jpg)
+
+**在 Editor 调整单段。** 在 `MVPB_Match` 的 World Outliner 搜索下表的 Actor，选中 `StaticMeshComponent`，在 Details 搜索 `Custom Primitive Data`，调整 `Custom Primitive Data Defaults`。数组依次是四个浮点数。南侧空数组使用四个零默认值。
+
+| 索引 | 材质参数 | 调整效果 |
+|---:|---|---|
+| 0 | `Crowd Group Phase` | 整段人群沿座排错开，1.0 等于一整组图案。 |
+| 1 | `Crowd Extra Gap` | 正值拉开组间空位，负值收紧。0.10 表示每一组多留原图案宽度的 10%。有效范围 −0.025 至 0.12，人物宽度固定。 |
+| 2 | `Front Scarf Phase` | 单独移动举围巾的第一排，单位同索引 0。 |
+| 3 | `Front Flag Phase` | 单独移动挥旗的第二排，单位同索引 0。 |
+
+| 方位 | 看台 Actor | 观众材质槽 | 整群 / 空位 / 围巾 / 旗帜 |
+|---|---|---:|---|
+| 南 | `stand_001_0118` | 5 | 0 / 0 / 0 / 0 |
+| 东南 | `stand_002_0126` | 4 | 0.31 / 0.065 / −0.12 / 0.22 |
+| 东 | `stand_001_0120` | 5 | 0.68 / −0.024 / 0.14 / −0.27 |
+| 东北 | `stand_002_0128` | 4 | 0.12 / 0.10 / 0.28 / −0.09 |
+| 北 | `stand_001_0122` | 5 | 0.54 / 0.028 / −0.23 / 0.31 |
+| 西北 | `stand_002_0130` | 4 | 0.86 / 0.078 / 0.11 / −0.29 |
+| 西 | `stand_001_0116` | 5 | 0.23 / −0.015 / 0.34 / −0.13 |
+| 西南 | `stand_002_0124` | 4 | 0.76 / 0.044 / −0.18 / 0.16 |
+
+**全场性能实测。** UE 5.8.3、D3D12、RTX 5070 Ti，以独立游戏模式载入正式比赛图，用测试车和球固定构图。输出 1920 × 1080，渲染比例 100%，关闭动态分辨率、垂直同步和帧率上限。两次独立启动换序测试三种布局，每个机位每种布局采六组，各组保留中间 120 帧，共 8,640 帧。“南侧试点”使用改造前保存的试点材质，其余七段使用原观众。全景镜头能同时看到八段的外排。
+
+| 固定机位 | 原观众整帧 GPU | 仅南侧试点 | 全场八段 | 同组配对中位差，八段相对原观众 |
+|---|---:|---:|---:|---:|
+| 场中央驾驶 | 5.641 ms | 5.714 ms | 5.672 ms | −0.009 ms |
+| 东侧贴边驾驶 | 4.911 ms | 4.911 ms | 4.923 ms | +0.006 ms |
+| 八段同时入镜 | 4.037 ms | 4.055 ms | 4.045 ms | +0.010 ms |
+| 北侧看台近景 | 4.770 ms | 4.785 ms | 4.761 ms | −0.022 ms |
+
+前三列取各采样组的 GPU 帧时间中位数，再对六组取中位数。末列先比较同一轮相邻采样里的原观众和八段版，再对六个差值取中位数。相对已采用的南侧试点，补齐七段后，贴边驾驶的配对差为 **+0.009 ms**，全景为 **−0.014 ms**。这些差值小于组间波动，本机没有测出可辨认的帧率损失。学校目标机上的四人混战尚待实测。
+
+全场观众复用原有的 8 个材质段，LOD0 合计 4,240 个顶点、3,824 个三角形。每像素取样一张图集。D3D12 `ListTextures` 记录满分辨率图集为 1024 × 512、DXT5、11 级 mip，整场共用一份 **704 KiB**。观众由静态面片绘制，个体不用更新动画或同步网络状态。重新打开地图后，比对 152 个 Actor 及其组件，关卡差异为七个观众材质槽和对应的布局值。南侧前排同机位对照的轮廓位移为 0 像素。
+
+单图 Windows Cook 收入正式地图、共享材质和图集，零错误、零警告。本机原始帧表在 `Saved/Profiling/CSV/Stands_Full{A,B}_*.csv`。逐组结果在 `Saved/StadiumCrowd/performance.json`，各方位截图在同目录的 `Visual/`，重载核对在 `reload.json`，Cook 记录在 `Cook.log`。
+
+<a id="south-crowd"></a>
+
+## 2026-11-23 南侧星际观众试点
+
+从比赛镜头沿南侧贴边行驶，约在 `X 1830、Y −7410 cm`，可看到朝场内欢呼的星际观众。最前排有举围巾的观众，第二排有挥旗姿势。后排由不同头形、耳鳍和头盔的小群组成，群与群之间留出空位。旗与围巾采用静态姿势，座位间的闪光和火花继续由 `SouthFrontRow_Cheers` 播放。[近景与驾驶机位对照](Images/MVPB_Match_SouthCrowd_20261123.jpg)
+
+在正式图 `MVPB_Match` 的 World Outliner 搜索 `stand_001_0118`，打开 `StaticMeshComponent → Materials → Element 5`。该槽引用 `/Game/Assets/Materials/ArenaNight/M_ArenaNight_SouthCrowd`。两条普通人群、围巾组、旗帜组预先排成一张 RGBA 图集。材质用原面片顶点选择座排并错开图案，每个像素采样一次图集。`Group Tile Angle` 增大时人物和组间空位一起变宽；单独修改空位、身高及姿势可编辑源图后重新导入 `T_ArenaNight_SouthCrowd`。`Clothing Brightness` 控制衣服亮度，`Shadow Fill` 控制暗部可见度。[可重新导入的观众图集](../../SourceArt/ArenaNight/T_ArenaNight_SouthCrowd.png)
+
+南侧原有观众材质槽的 LOD0 为 540 个顶点、488 个三角形。相邻发光看台灯带为 32 个三角形，各自占一个材质段。试点继续使用原几何，当时另外七段引用旧观众材质，供当轮对照。
+
+**本机对照。** UE 5.8.3、D3D12、RTX 5070 Ti，PIE 有效视口 997 × 640。两次独立启动分别用原材质和试点材质交替渲染。每个机位每次采 8 组，每组 96 帧，去掉首尾各 8 帧，共计 2,560 帧。下表是各组中位数再取中位数，计量对象为整帧 GPU 时间。
+
+| 固定机位 | 首次，原观众 → 星际观众 | 独立重载，原观众 → 星际观众 |
+|---|---:|---:|
+| 贴边驾驶 | 3.043 → 3.098 ms | 2.977 → 3.134 ms |
+| 南侧看台近景 | 2.822 → 2.913 ms | 2.952 → 2.907 ms |
+
+贴边驾驶两轮相差约 +0.05 和 +0.16 ms，看台近景两轮差异方向相反。分辨率、同时入镜的面积和设备都会影响数值；学校电脑上的多人混战帧时间待实测。D3D12 的 `ListTextures` 显示试点图集为 1024 × 512、DXT5、11 级 mip，最高 mip 驻留时占 704 KiB；原观众的 1024 × 128 贴图占 192 KiB。若多个看台复用本图集，各段可共享这一份纹理。[Epic 材质与几何性能指南](https://dev.epicgames.com/documentation/en-us/unreal-engine/performance-guidelines-for-artists-and-designers?application_version=4.27)
+
+重新载入磁盘上的正式图并比对 152 个 Actor 的身份、变换、组件碰撞和网格材质，差异仅有 `stand_001_0118` 的 `Element 5`。Windows 地图 Cook 收入新材质及图集，零错误、零警告。两轮帧样本与截图在本机 `Saved/ArenaCrowdBudget/SouthArt`、`SouthReload`；原始 CSV 在 `Saved/Profiling/CSV/CrowdBudget_*.csv`。分配内存的读数见 `Saved/ArenaCrowdBudget/SouthReload.log`。
+
+<details>
+<summary>人物原画的 ImageGen 提示词</summary>
+
+Production texture source for an arcade sci-fi sport videogame. A transparent RGBA sprite sheet of exactly TWELVE distinct cutout extraterrestrial spectators. Strict contact sheet of FOUR evenly sized columns by THREE evenly spaced rows, one completely isolated waist-up seated fan in each cell. All twelve look slightly upward toward the camera / a race, with their lower torsos cut off cleanly at the waist and their shoulders, heads, antennae, and props completely within their own cell. Generous truly transparent padding between every cell, nothing touches canvas boundaries. Transparent everywhere behind the figures and in negative spaces. No text, frame, base, stadium, seats, background, floor, vignette, gradients of atmosphere, cast shadow, glow or sticker outline. Original retro-future sports mascots rendered with bold tactile rounded shapes and two to three softly separated planes of matte color, hand-designed silhouette, elegant graphic poster finish, quiet warm stadium light grazing the top edge. Very legible at 20 pixels high. Medium-dark plum, rusty coral, terracotta, muted petroleum teal, small amber and warm ivory highlights, deep wine shadows. Vary heads, body shapes, gaze and height naturally. First row left to right: slender coral alien with two club-tipped antennae, round teal astronaut with broad amber-ivory visor, purple round chunky fan with a side fin, wide dark teal manta-shaped fan with a creamy winged brow. Second row: stout plump coral fan with small ears leaning toward a friend, slender plum fan with an asymmetric swept-back crest, squat teal pilot with a narrow pale visor leaning forward, young amber long-eared fan with a lifted hand. Third row: ONE plump alien with two hands holding a clearly readable wide striped woven coral-and-amber scarf horizontally over its head, ONE teal alien waving a lightweight warm ivory and coral pennant on a short diagonal rod, one quiet coral helmeted fan tilting its head, one quiet purple creature with sleek pointed ears clapping at chest level. All four in last row must fit entirely in separate cells, including flags/scarf; first two rows no banners or props. Flat sprite atlas, not an image of a crowd or a stadium. No thin decorative micro-detail.
+
+</details>
 
 <a id="arena-flat-drive-surface"></a>
 
