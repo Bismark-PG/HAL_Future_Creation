@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-23，正式图 `MVPB_Match` 的场边已换成深色拉丝钢板、细青色护网，南侧一段看台已加入氛围特效。** 同一贴边驾驶机位的护网可见宽度约为原来的 31%。停车和沿墙行驶实拍均能看到观众席暖白闪光与低矮金色火花。原有场边碰撞已通过 216 条射线复核，Windows 地图 Cook 和本机一主三客两局流程均通过。团队可在 World Outliner 搜索 `SouthFrontRow_Cheers` 定位试点，下一轮看多人技能同屏时的亮度与频率。[场边前后对照](Presentation/Images/MVPB_Match_RimNight_20261123.jpg) · [驾驶实拍动图](Presentation/Images/MVPB_Match_FrontRow_20261123.webp) · [调参与验证记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-night-rim)
+
 **2026-11-23，正式比赛图 `MVPB_Match` 已调整为夜间赛车场灯光。** 主光由 3.65 降至 1.35 lux，场内十盏地灯改为小范围暖琥珀色，看台灯面、灯带与八束侧光采用香槟金、琥珀和珊瑚色。五个机位完成 D3D12 调整前后实拍，中场驾驶画面亮度中位数从 111 降至 74，普通地灯附近从 219 降至 156。UE 5.8.3 正式图重载核对 151 个 Actor，Windows 地图 Cook 收齐五份新材质。本机 Exhibition 一主三客完成首局返房和第二局开赛，四端零测试警告。四台实机上的暗部与技能同屏观感待团队验收。[三个机位的画面对照](Presentation/Images/MVPB_Match_NightRace_20261123.jpg) · [灯光调参和验证记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-match-lighting)
 
 **2026-11-23，陨石球瞄准期间的车顶图标已放大一倍。** 正式球型 `DA_Ball_Meteor → Meteor → Tracking Marker → Marker Size` 从 48 调至 96，中心陨石和三瓣外环一起放大。比赛驾驶镜头实射中，外环可见高度在追踪初段从 21 增至 43 像素，接近锁定时从 17 增至 34 像素，进入下落阶段后图标退场。两项陨石球专项测试通过，实拍对照及读数在 `Saved/MeteorBall/MarkerDouble/{Comparison.png,Readback.json,Tests}`。[球型参数](Combat/Special_Ball_Base_CN.md#陨石球)

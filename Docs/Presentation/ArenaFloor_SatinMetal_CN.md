@@ -1,6 +1,27 @@
 # MVPB_Match 波纹缎面金属地面
 
-正式比赛图 `/Game/Maps/MVPB_Match` 已采用六边形拉丝钢板、整边防滑条、外圈灯带和九盏嵌地灯。中场的第十盏灯嵌在与行车面齐平的金属圆盘中央。正式图与临时图 `MVPB_Match_Temp` 共用可见地板和灯壳资产，正式图有独立的平整行车面。场馆的光源在各自关卡内调节。[正式图行车碰撞](#arena-flat-drive-surface) · [正式比赛图灯光](#arena-match-lighting) · [六边形钢板与地灯调参](#arena-deck-inset-lights)
+正式比赛图 `/Game/Maps/MVPB_Match` 已采用六边形拉丝钢板、整边防滑条、外圈灯带和九盏嵌地灯。中场的第十盏灯嵌在与行车面齐平的金属圆盘中央。正式图与临时图 `MVPB_Match_Temp` 共用可见地板和灯壳网格，正式图独立配置行车面、外环钢板和夜场灯光。[外环与南侧看台](#arena-night-rim) · [行车碰撞](#arena-flat-drive-surface) · [比赛图灯光](#arena-match-lighting) · [六边形钢板与地灯调参](#arena-deck-inset-lights)
+
+<a id="arena-night-rim"></a>
+
+## 2026-11-23 外环钢板、贴边护网与南侧看台
+
+在正式图的 World Outliner 搜索 `SouthFrontRow_Cheers` 可以定位看台试点。用比赛镜头开到南侧偏东的护栏旁，约在世界坐标 **X 1830、Y −7410 cm**，停车数秒可看见不同座位的暖白短闪，以及朝看台内侧展开的低矮金色火花。[同机位前后对照](Images/MVPB_Match_RimNight_20261123.jpg) · [驾驶视角实拍动图](Images/MVPB_Match_FrontRow_20261123.webp)
+
+| 要调的效果 | 编辑入口 | 首版设置 |
+|---|---|---|
+| 外环钢板与警示漆 | 关卡 Actor `base_circle_inflatable_006_1373` 的 `MI_ArenaNight_ApronSteel` | `Gunmetal` 调钢板底色，`Brush Strength` 为 0.56，`Panel Roughness` 为 0.445。两排钢板绕场拼接，每隔三块留一组哑光短标。`Amber Paint` 和 `Paint Coverage` 调漆色和覆盖强度。 |
+| 青色网丝与挡墙线 | `Path → Materials → MI_ArenaNight_SidelineNet` | `Line Width` 为 0.018，`Glow Strength` 为 1.70。`Visible Top Fraction` 为 0.30，控制宽顶面上从赛道向看台的显示距离。`Visible Height Cm` 为 143，控制侧网向上淡出的高度。贴地亮线位于挡墙内壁、离行车面约 12 cm。 |
+| 看台闪光与火花 | `/Game/Assets/FX/ArenaNight/NS_ArenaNight_FrontRowCheers` | `Camera Flashes` 在约 13.2 m 长的座位区随机取点，每次亮 0.20 秒。`Gold Fan` 每轮发出 17 颗火花，单颗持续 0.76 秒。各发射器的 `Emitter State → Loop Duration` 分别控制间隔，火花的 `Spawn Burst → Spawn Count` 控制数量。 |
+
+场边材质实例位于 `/Game/Assets/Materials/ArenaNight/`。护网材质直接画在原挡墙网格上。调宽度从 `Visible Top Fraction` 入手，调网丝粗细用 `Line Width`。看台演出由一个无碰撞的 Niagara Actor 本地播放，位于 `Presentation/Grandstand Ambience` 文件夹。
+
+**本机验证（UE 5.8.3）**
+
+- 在 997 × 640 的 D3D12 驾驶画面中，于停靠车辆上方取 58 条水平扫描线，测得青色护网可见宽度的中位数由 197 px 降至 61.5 px，约为原来的 31%。同一段护栏内，近白青光像素占比由 27.8% 降至 0.28%。
+- 停车录制 6.2 秒，Niagara 回读到闪光分布在相距最远 7.25 m 的座位上。沿护栏实际行驶 20.19 m，驾驶镜头下也拍到了闪光与扇形火花。动图前段为停车观察，后段为沿墙行驶。
+- 重新加载正式图后，核对原有 151 个 Actor 的身份、变换、组件碰撞、场灯和比赛模式。沿 72 个方向测量行车面，并在离地 45、120 cm 两个高度测量侧墙，共 216 条射线的命中位置与修改前一致。
+- Windows 地图 Cook 收齐七份新增资产，零错误、零警告。本机 Exhibition 一主三客完成首局返房和第二局开赛，四端通过。不同显示器上与多人技能同屏时的观感待团队实测。
 
 <a id="arena-flat-drive-surface"></a>
 
