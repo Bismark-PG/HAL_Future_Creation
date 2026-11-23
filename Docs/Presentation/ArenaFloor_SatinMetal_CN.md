@@ -48,13 +48,31 @@
 
 <a id="arena-match-lighting"></a>
 
-## 2026-11-19 正式比赛图灯光
+## 2026-11-23 正式比赛图夜场灯光
+
+打开 `/Game/Maps/MVPB_Match`。驾驶区用冷蓝主光勾出车身、球和拉丝钢板。靠近地灯时，车身下缘会掠过一小片暖琥珀色。看台用香槟金、橘金和珊瑚色组成八个方向的灯区，外圈的光带顺着座席延伸。[同机位调整前后实拍](Images/MVPB_Match_NightRace_20261123.jpg)
+
+| 想调哪里 | 编辑器入口 | 本版设置 |
+|---|---|---|
+| 中场整体明暗 | Outliner → `DirectionalLight`、`SkyLight`、`Match_Exposure` | 主光 1.35 lux、6900 K，`Specular Scale` 0.60。天光 0.32，sRGB (184, 202, 239)。自动曝光补偿 −0.40 EV。 |
+| 地灯照到车身和地面的范围 | `DeckLamp_01_Light`～`DeckLamp_09_Light`、`CenterInlay_Light` | 普通灯 420 lm、半径 3.95 m、sRGB (255, 151, 70)。中场灯 570 lm、半径 4.40 m、sRGB (255, 157, 77)。 |
+| 十盏地灯的灯芯与外围短灯带 | `MI_ArenaNight_InsetLamp` → `Lens Emission` / `Lens Tint`。外圈在 `MI_ArenaNight_Perimeter` → `Lamp Intensity` / `Lamp Color` | 灯芯发光强度 1.65，线性 RGB (1, 0.26, 0.042)。外圈短灯强度 1.20，线性 RGB (1, 0.225, 0.035)。 |
+| 看台光束 | Outliner 搜索 `StandWash_` | 四盏照座席，各 21,500 lm。四盏斜照外沿，各 32,000 lm。原灯名的 `Ice` 对应香槟金 (255, 191, 125)，`Gold` 对应琥珀 (255, 154, 73)，`Orchid` 对应珊瑚 (255, 132, 115)，均为 sRGB。 |
+| 看台灯面、条幅底纹与座席配色 | Content Browser → `/Game/Assets/Materials/ArenaNight/` | `M_ArenaNight_Grandstand` 的 `Palette Mix` 控制原座席图案与暖色的混合，当前 0.86。`MI_ArenaNight_StandLenses` 和 `MI_ArenaNight_StandRibbon` 分别控制灯面和条带。灯面发光 1.60，条带 0.12。 |
+
+夜场地灯的两个材质实例继承原有地板实例。可以在正式图里独立调灯，同时沿用地板的拉丝、拼缝和灯壳细节。
+
+**实拍与回归。** UE 5.8.3、D3D12 SM6 下，从磁盘重载正式地图，用同一辆车和主球拍摄了中场驾驶、近中场、全场、看台和外沿驾驶五个机位。成像亮度按截图的 0～255 取值，驾驶画面中央区域的中位数从 111 降到 74（约 33%）。普通地灯附近从 219 降到 156，中场灯附近从 214 降到 169。看台座席区域的平均 sRGB 从 (75, 114, 161) 变为 (126, 82, 78)。两次捕获中，五个机位、车辆和球的记录坐标均一致。原图和采样位置在 `Saved/ArenaNightRace/{Before,After,measurements.json}`。
+
+逐项复核了正式图的 151 个 Actor、网格和碰撞配置。Windows 地图 Cook 零错误、零警告，产物含正式图和五份夜场材质。Exhibition 本机一主三客完成首局返房并再次开赛，四端均通过且零测试警告。重载记录、Cook 和四端报告在 `Saved/ArenaNightRace/{reload.json,Cook.log,Network}`。四台实机显示器上的暗部和多人技能同屏观感待团队实测。
+
+## 2026-11-19 正式比赛图灯光首版留档
 
 中场以偏冷的环境光保留钢板拉丝和球的明暗面，琥珀色地灯照亮经过的车身。沿看台选择了八个已有灯具，按灯面原色配三盏青蓝、三盏琥珀和两盏淡紫聚光灯。四盏照座席，另外四盏斜照赛道外沿。各束光略微错开，中场留给地灯和机关特效。[调整前后同机位实拍](Images/MVPB_Match_Lighting_20261119.jpg)
 
 在正式图的 World Outliner 搜索下列名称即可调节。
 
-| 想调整的效果 | 选择哪个 Actor | 正式图当前值 |
+| 想调整的效果 | 选择哪个 Actor | 11 月 19 日设置 |
 |---|---|---|
 | 整个画面再亮或再暗一点 | `Match_Exposure` → **Exposure Compensation** | +0.34 EV，原为 +1.0 EV。数值越低画面越暗，自动曝光仍随视野适应。 |
 | 主光角度与钢板反光 | `DirectionalLight` | 3.65 lux，6150 K，Pitch −42°，Yaw −32°，光源角直径 1.55°，`Specular Scale` 0.72。 |
