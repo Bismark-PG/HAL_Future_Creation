@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-23，正式比赛图 `MVPB_Match` 南侧看台已试装第 3 项暖金舞台追光，四项夜场氛围方案已留档。** 一片软边光从前排围巾、旗帜扫到后方横幅，默认 12 秒一轮。在 `MPC_ArenaNight_StandSweep` 可调强度、周期、宽度和光色。RTX 5070 Ti、1080p 共采 27,261 帧，贴边、看台近景与全场俯视的整帧 GPU 配对中位差依次为 −0.039、−0.015、+0.009 ms。正式图独立重载通过，Windows 地图 Cook 零错误、零警告。南侧观感待团队确认，学校设备的四人帧耗待测。母星地面涂装、赛事联动灯带和巡场摄影机已记录为候选。[南侧实拍动图](Presentation/Images/MVPB_Match_SouthStandSweep_20261123.webp) · [四项方案、调参与性能记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-ambience-ideas)
+
 **2026-11-23，正式比赛图 `MVPB_Match` 的八段看台前五排已加入错峰身体摇摆。** 在共用材质实例 `MI_ArenaNight_SouthCrowd_Motion → Body Sway` 可调节单侧摆角和往返周期，默认上限 5°、周期 2.5 秒。八段共 40 个活动座排逐排实拍均测到面部侧移，腰部和第六排参照区的像素差均为零。西侧同框拍到相邻小组同时朝相反方向摆动。RTX 5070 Ti 在 1080p 下采集 26,801 帧，贴边驾驶、前排近景及全场俯视的整帧 GPU 配对中位差分别为 +0.026、+0.011、−0.003 ms。Windows 正式图 Cook 零错误、零警告。学校设备的四人混战帧耗待实测。[摇摆近景与贴边实拍](Presentation/Images/MVPB_Match_CrowdSway_20261123.webp) · [调参与本机性能记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-crowd-sway)
 
 **2026-11-23，正式比赛图 `MVPB_Match` 的八段看台已采用前两排后仰 28°、前五排错峰欢呼。** 从赛道向外数，第三至第五排直立，第六排起静态。西侧贴边实拍中，同一名观众衣服的可见高度从约 17 px 增至 38 px，实车沿护栏跨过西侧与西北段接缝。八段共 40 个活动座排均测到围巾或旗面的形变。RTX 5070 Ti 在 1080p 下对比原南侧试点，共采 27,244 帧，贴边驾驶、看台近景、全场俯视的整帧 GPU 配对中位增量分别为 +0.079、+0.325、+0.008 ms。Windows 正式图 Cook 零错误、零警告。本机一主三客通过首局返房及第二局开赛，四端零测试警告。学校设备的多人帧耗待实测。[比赛画面与动作实拍](Presentation/Images/MVPB_Match_FiveRowsCrowd_20261123.webp) · [材质参数、逐排验证与帧耗](Presentation/ArenaFloor_SatinMetal_CN.md#arena-five-row-crowd)
