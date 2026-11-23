@@ -23,7 +23,7 @@
 
 最新 `main/69a16d5` 已提交首版和接触飞溅加强的源码／资源。只读加载当前保存配方，确认以下实际状态；没有保存或修改资产。
 
-| 项目 | 当前核对结果 |
+| 项目  | 当前核对结果 |
 | --- | --- |
 | 接触专用资源 | `NS_BattleTop_ContactSpray`／`M_BattleTop_ContactSpray` 已存在且可加载 |
 | 技能 DA / Contact Sparks | **仍引用 `NS_BattleTop_Sparks`**，新资源尚未接入 |

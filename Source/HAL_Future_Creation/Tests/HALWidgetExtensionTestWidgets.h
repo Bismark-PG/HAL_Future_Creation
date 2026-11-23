@@ -1,6 +1,7 @@
 #pragma once
 #include "../HALArcadeEntryWidget.h"
 #include "../HALPracticeRoomWidget.h"
+#include "../HALGameFlowWidgets.h"
 #include "HALWidgetExtensionTestWidgets.generated.h"
 
 class UButton;
@@ -69,4 +70,21 @@ public:
 	int32 Updates=0, Activations=0, Deactivations=0;
 	mutable int32 FocusQueries=0;
 	bool bActiveNow=false;
+};
+
+/** Models a MatchFlow Blueprint's ApplyView -> ShowFlowScreen wiring without loading assets. */
+UCLASS(NotBlueprintable,Transient,HideDropdown)
+class UHALContractMatchFlowWidget : public UHALGameFlowScreenWidget
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(Transient) TMap<EHALRoomPhase,TObjectPtr<UHALGameFlowScreenWidget>> Pages;
+	virtual void ApplyView_Implementation(const FHALRoomView& View) override
+	{
+		Super::ApplyView_Implementation(View); ++Updates;
+		ShowFlowScreen(Pages.FindRef(View.bShowResults?EHALRoomPhase::Results:View.Phase));
+	}
+	int32 Updates=0, Activations=0, Deactivations=0;
+protected:
+	virtual void OnScreenActiveChanged(bool bActive) override { if (bActive) { ++Activations; } else { ++Deactivations; } }
 };

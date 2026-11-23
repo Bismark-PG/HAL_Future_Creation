@@ -1,11 +1,13 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "HALRoomTypes.h"
+#include "HALUltimateEnergy.h"
 #include "UObject/Interface.h"
 #include "HALFrontEndViewTypes.generated.h"
 
 class UTexture2D;
 class UWidget;
+class UHALVehicleCatalog;
 
 /** Local display values, never a request payload or an authoritative rule store. */
 USTRUCT(BlueprintType)
@@ -86,6 +88,12 @@ struct HAL_FUTURE_CREATION_API FHALRoomView
 	UPROPERTY(BlueprintReadOnly, Category="Match") FText ResultSummary;
 	UPROPERTY(BlueprintReadOnly, Category="UI") TArray<FHALRoomSeatView> Seats;
 	UPROPERTY(BlueprintReadOnly, Category="UI") TArray<FHALVehicleDisplayView> Vehicles;
+	/** Reuses the root's existing async catalog load; children do not need their own room lookup. */
+	UPROPERTY(BlueprintReadOnly, Category="Match") TObjectPtr<UHALVehicleCatalog> LoadedCatalog;
+	/** Match HUD samples supplied by the root during Playing; preparation views keep their existing update cadence. */
+	UPROPERTY(BlueprintReadOnly, Category="Match") FHALUltimateEnergyView LocalUltimateEnergy;
+	UPROPERTY(BlueprintReadOnly, Category="Match") bool bShowUltimateEnergy=false;
+	UPROPERTY(BlueprintReadOnly, Category="Match") double ServerWorldTimeSeconds=0;
 };
 
 /** Local presentation only. Pending requests never freeze phase transitions. */

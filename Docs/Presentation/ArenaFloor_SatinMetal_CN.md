@@ -1,6 +1,27 @@
 # MVPB_Match 波纹缎面金属地面
 
-正式比赛图 `/Game/Maps/MVPB_Match` 已采用六边形拉丝钢板、整边防滑条、外圈灯带和九盏嵌地灯。中场的第十盏灯嵌在与行车面齐平的金属圆盘中央。正式图与临时图 `MVPB_Match_Temp` 共用可见地板和灯壳资产，正式图有独立的平整行车面。场馆的光源在各自关卡内调节。[正式图行车碰撞](#arena-flat-drive-surface) · [正式比赛图灯光](#arena-match-lighting) · [六边形钢板与地灯调参](#arena-deck-inset-lights)
+正式比赛图 `/Game/Maps/MVPB_Match` 已采用六边形拉丝钢板、整边防滑条、外圈灯带和九盏嵌地灯。中场的第十盏灯嵌在与行车面齐平的金属圆盘中央。正式图与临时图 `MVPB_Match_Temp` 共用可见地板和灯壳网格，正式图独立配置行车面、外环钢板和夜场灯光。[外环与南侧看台](#arena-night-rim) · [行车碰撞](#arena-flat-drive-surface) · [比赛图灯光](#arena-match-lighting) · [六边形钢板与地灯调参](#arena-deck-inset-lights)
+
+<a id="arena-night-rim"></a>
+
+## 2026-11-23 外环钢板、贴边护网与南侧看台
+
+在正式图的 World Outliner 搜索 `SouthFrontRow_Cheers` 可以定位看台试点。用比赛镜头开到南侧偏东的护栏旁，约在世界坐标 **X 1830、Y −7410 cm**，停车数秒可看见不同座位的暖白短闪，以及朝看台内侧展开的低矮金色火花。[同机位前后对照](Images/MVPB_Match_RimNight_20261123.jpg) · [驾驶视角实拍动图](Images/MVPB_Match_FrontRow_20261123.webp)
+
+| 要调的效果 | 编辑入口 | 首版设置 |
+|---|---|---|
+| 外环钢板与警示漆 | 关卡 Actor `base_circle_inflatable_006_1373` 的 `MI_ArenaNight_ApronSteel` | `Gunmetal` 调钢板底色，`Brush Strength` 为 0.56，`Panel Roughness` 为 0.445。两排钢板绕场拼接，每隔三块留一组哑光短标。`Amber Paint` 和 `Paint Coverage` 调漆色和覆盖强度。 |
+| 青色网丝与挡墙线 | `Path → Materials → MI_ArenaNight_SidelineNet` | `Line Width` 为 0.018，`Glow Strength` 为 1.70。`Visible Top Fraction` 为 0.30，控制宽顶面上从赛道向看台的显示距离。`Visible Height Cm` 为 143，控制侧网向上淡出的高度。贴地亮线位于挡墙内壁、离行车面约 12 cm。 |
+| 看台闪光与火花 | `/Game/Assets/FX/ArenaNight/NS_ArenaNight_FrontRowCheers` | `Camera Flashes` 在约 13.2 m 长的座位区随机取点，每次亮 0.20 秒。`Gold Fan` 每轮发出 17 颗火花，单颗持续 0.76 秒。各发射器的 `Emitter State → Loop Duration` 分别控制间隔，火花的 `Spawn Burst → Spawn Count` 控制数量。 |
+
+场边材质实例位于 `/Game/Assets/Materials/ArenaNight/`。护网材质直接画在原挡墙网格上。调宽度从 `Visible Top Fraction` 入手，调网丝粗细用 `Line Width`。看台演出由一个无碰撞的 Niagara Actor 本地播放，位于 `Presentation/Grandstand Ambience` 文件夹。
+
+**本机验证（UE 5.8.3）**
+
+- 在 997 × 640 的 D3D12 驾驶画面中，于停靠车辆上方取 58 条水平扫描线，测得青色护网可见宽度的中位数由 197 px 降至 61.5 px，约为原来的 31%。同一段护栏内，近白青光像素占比由 27.8% 降至 0.28%。
+- 停车录制 6.2 秒，Niagara 回读到闪光分布在相距最远 7.25 m 的座位上。沿护栏实际行驶 20.19 m，驾驶镜头下也拍到了闪光与扇形火花。动图前段为停车观察，后段为沿墙行驶。
+- 重新加载正式图后，核对原有 151 个 Actor 的身份、变换、组件碰撞、场灯和比赛模式。沿 72 个方向测量行车面，并在离地 45、120 cm 两个高度测量侧墙，共 216 条射线的命中位置与修改前一致。
+- Windows 地图 Cook 收齐七份新增资产，零错误、零警告。本机 Exhibition 一主三客完成首局返房和第二局开赛，四端通过。不同显示器上与多人技能同屏时的观感待团队实测。
 
 <a id="arena-flat-drive-surface"></a>
 
@@ -48,13 +69,31 @@
 
 <a id="arena-match-lighting"></a>
 
-## 2026-11-19 正式比赛图灯光
+## 2026-11-23 正式比赛图夜场灯光
+
+打开 `/Game/Maps/MVPB_Match`。驾驶区用冷蓝主光勾出车身、球和拉丝钢板。靠近地灯时，车身下缘会掠过一小片暖琥珀色。看台用香槟金、橘金和珊瑚色组成八个方向的灯区，外圈的光带顺着座席延伸。[同机位调整前后实拍](Images/MVPB_Match_NightRace_20261123.jpg)
+
+| 想调哪里 | 编辑器入口 | 本版设置 |
+|---|---|---|
+| 中场整体明暗 | Outliner → `DirectionalLight`、`SkyLight`、`Match_Exposure` | 主光 1.35 lux、6900 K，`Specular Scale` 0.60。天光 0.32，sRGB (184, 202, 239)。自动曝光补偿 −0.40 EV。 |
+| 地灯照到车身和地面的范围 | `DeckLamp_01_Light`～`DeckLamp_09_Light`、`CenterInlay_Light` | 普通灯 420 lm、半径 3.95 m、sRGB (255, 151, 70)。中场灯 570 lm、半径 4.40 m、sRGB (255, 157, 77)。 |
+| 十盏地灯的灯芯与外围短灯带 | `MI_ArenaNight_InsetLamp` → `Lens Emission` / `Lens Tint`。外圈在 `MI_ArenaNight_Perimeter` → `Lamp Intensity` / `Lamp Color` | 灯芯发光强度 1.65，线性 RGB (1, 0.26, 0.042)。外圈短灯强度 1.20，线性 RGB (1, 0.225, 0.035)。 |
+| 看台光束 | Outliner 搜索 `StandWash_` | 四盏照座席，各 21,500 lm。四盏斜照外沿，各 32,000 lm。原灯名的 `Ice` 对应香槟金 (255, 191, 125)，`Gold` 对应琥珀 (255, 154, 73)，`Orchid` 对应珊瑚 (255, 132, 115)，均为 sRGB。 |
+| 看台灯面、条幅底纹与座席配色 | Content Browser → `/Game/Assets/Materials/ArenaNight/` | `M_ArenaNight_Grandstand` 的 `Palette Mix` 控制原座席图案与暖色的混合，当前 0.86。`MI_ArenaNight_StandLenses` 和 `MI_ArenaNight_StandRibbon` 分别控制灯面和条带。灯面发光 1.60，条带 0.12。 |
+
+夜场地灯的两个材质实例继承原有地板实例。可以在正式图里独立调灯，同时沿用地板的拉丝、拼缝和灯壳细节。
+
+**实拍与回归。** UE 5.8.3、D3D12 SM6 下，从磁盘重载正式地图，用同一辆车和主球拍摄了中场驾驶、近中场、全场、看台和外沿驾驶五个机位。成像亮度按截图的 0～255 取值，驾驶画面中央区域的中位数从 111 降到 74（约 33%）。普通地灯附近从 219 降到 156，中场灯附近从 214 降到 169。看台座席区域的平均 sRGB 从 (75, 114, 161) 变为 (126, 82, 78)。两次捕获中，五个机位、车辆和球的记录坐标均一致。原图和采样位置在 `Saved/ArenaNightRace/{Before,After,measurements.json}`。
+
+逐项复核了正式图的 151 个 Actor、网格和碰撞配置。Windows 地图 Cook 零错误、零警告，产物含正式图和五份夜场材质。Exhibition 本机一主三客完成首局返房并再次开赛，四端均通过且零测试警告。重载记录、Cook 和四端报告在 `Saved/ArenaNightRace/{reload.json,Cook.log,Network}`。四台实机显示器上的暗部和多人技能同屏观感待团队实测。
+
+## 2026-11-19 正式比赛图灯光首版留档
 
 中场以偏冷的环境光保留钢板拉丝和球的明暗面，琥珀色地灯照亮经过的车身。沿看台选择了八个已有灯具，按灯面原色配三盏青蓝、三盏琥珀和两盏淡紫聚光灯。四盏照座席，另外四盏斜照赛道外沿。各束光略微错开，中场留给地灯和机关特效。[调整前后同机位实拍](Images/MVPB_Match_Lighting_20261119.jpg)
 
 在正式图的 World Outliner 搜索下列名称即可调节。
 
-| 想调整的效果 | 选择哪个 Actor | 正式图当前值 |
+| 想调整的效果 | 选择哪个 Actor | 11 月 19 日设置 |
 |---|---|---|
 | 整个画面再亮或再暗一点 | `Match_Exposure` → **Exposure Compensation** | +0.34 EV，原为 +1.0 EV。数值越低画面越暗，自动曝光仍随视野适应。 |
 | 主光角度与钢板反光 | `DirectionalLight` | 3.65 lux，6150 K，Pitch −42°，Yaw −32°，光源角直径 1.55°，`Specular Scale` 0.72。 |

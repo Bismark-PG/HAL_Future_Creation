@@ -4,8 +4,13 @@
 
 #include "Net/UnrealNetwork.h"
 #include "HALRoomComponent.h"
+#include "HALMatchBallLifecycle.h"
 
-AHALMatchGameState::AHALMatchGameState() { Room = CreateDefaultSubobject<UHALRoomComponent>(TEXT("Room")); }
+AHALMatchGameState::AHALMatchGameState()
+{
+	Room = CreateDefaultSubobject<UHALRoomComponent>(TEXT("Room"));
+	MatchBall = CreateDefaultSubobject<UHALMatchBallLifecycle>(TEXT("MatchBall"));
+}
 
 void AHALMatchGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -21,6 +26,7 @@ void AHALMatchGameState::SetMatchPhase(const EHALMatchPhase NewPhase)
 	}
 
 	MatchPhase = NewPhase;
+	MatchBall->SetPlaying(NewPhase == EHALMatchPhase::Playing);
 	OnRep_MatchPhase();
 	ForceNetUpdate();
 }

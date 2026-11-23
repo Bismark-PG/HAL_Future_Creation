@@ -23,18 +23,40 @@ def save(asset):
     if not ASSETS.save_loaded_asset(asset, only_if_is_dirty=False):
         raise RuntimeError('Could not save ' + asset.get_path_name())
 
+def set_flow_surface(result, shader):
+    code = (ROOT / 'Tools/WaterCannon/ToonWater.hlsl').read_text(encoding='utf-8')
+    shader.set_editor_property('code', code)
+    result.set_editor_property('blend_mode', unreal.BlendMode.BLEND_TRANSLUCENT)
+    opacity = EDIT.get_material_property_input_node(result, unreal.MaterialProperty.MP_OPACITY)
+    if not opacity:
+        opacity = EDIT.create_material_expression(result, unreal.MaterialExpressionScalarParameter, -100, 480)
+        opacity.set_editor_property('parameter_name', 'SprayOpacity')
+        opacity.set_editor_property('default_value', 1.0)
+        if not EDIT.connect_material_property(opacity, '', unreal.MaterialProperty.MP_OPACITY):
+            raise RuntimeError('Missing spray opacity output')
+    elif not isinstance(opacity, unreal.MaterialExpressionScalarParameter) or str(opacity.get_editor_property('parameter_name')) != 'SprayOpacity':
+        raise RuntimeError('The water material has a custom opacity connection')
+    errors = EDIT.recompile_material(result)
+    if errors:
+        raise RuntimeError(str(errors))
+    save(result)
 
-def material():
+
+def material(refresh=False):
     name = 'M_WaterCannon_ToonFlow'
     result = existing(FX + '/' + name)
     if result:
+        if refresh:
+            shader = EDIT.get_material_property_input_node(result, unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+            if not isinstance(shader, unreal.MaterialExpressionCustom):
+                raise RuntimeError('Expected the production water flow shader')
+            set_flow_surface(result, shader)
         return result
     result = TOOLS.create_asset(name, FX, unreal.Material, unreal.MaterialFactoryNew())
     result.set_editor_property('shading_model', unreal.MaterialShadingModel.MSM_UNLIT)
     result.set_editor_property('two_sided', True)
     shader = EDIT.create_material_expression(result, unreal.MaterialExpressionCustom, 0, 0)
     shader.set_editor_property('description', 'Soft three-tone water and travelling foam')
-    shader.set_editor_property('code', (ROOT / 'Tools/WaterCannon/ToonWater.hlsl').read_text(encoding='utf-8'))
     shader.set_editor_property('output_type', unreal.CustomMaterialOutputType.CMOT_FLOAT3)
     pins = []
     for pin_name in ('UV', 'Travel', 'Soft', 'Shadow', 'Middle', 'Crest'):
@@ -62,10 +84,7 @@ def material():
         wire(node, pin, 'RGB')
     if not EDIT.connect_material_property(shader, '', unreal.MaterialProperty.MP_EMISSIVE_COLOR):
         raise RuntimeError('Missing water material output')
-    errors = EDIT.recompile_material(result)
-    if errors:
-        raise RuntimeError(str(errors))
-    save(result)
+    set_flow_surface(result, shader)
     return result
 
 
@@ -137,4 +156,7 @@ def main():
     unreal.log('CAR09_WATER_AUTHORED ' + config.get_path_name() + ' ' + str(slot))
 
 
-main()
+if '-refreshwatermaterial' in unreal.SystemLibrary.get_command_line().lower().split():
+    material(refresh=True)
+else:
+    main()

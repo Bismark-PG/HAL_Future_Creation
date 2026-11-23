@@ -2,6 +2,18 @@
 
 2026-11-17，日本时间。接续 `main/8a97ed1`，保留团队 Car08 资产、胎痕修复及既有未提交讨论稿／忽略规则。用户已确认玩法并授权技能与特效施工。**代码、五份新资源、两 Target 构建及程序验证完成；团队 GA／车型接线、真实管口校准和画面／手感验收待执行。**
 
+## 2026-11-20 烟云外观
+
+俯视画面中的每团烟由几片大小、朝向各异的烟瓣组成。烟瓣共用光向，迎光、过渡和背光三个色块沿着翻卷的表面移动。每团烟的朝向由出生信息确定，同一段烟在主机和客户端能保持相同的轮廓。排气管的 Niagara 粒子也有不对称外形和分色，便于看清烟从哪里喷出。
+
+打开 `DA_Ability_Car08_SmokeScreen`。`FX → World Smoke` 下的 `Dark Color` 和 `Light Color` 决定炭灰色调，`Flow Speed` 控制翻卷速度，`Cloud Opacity` 控制遮挡浓度。`Rules → Timing → Dissolve Seconds` 控制每团烟寿命末尾的退散，默认 1 秒，包含在 `Puff Seconds` 内。退散时烟瓣之间和薄烟边缘先露出地面，浓度同步降低。若角色被提前清理，残余烟影只在本地短暂淡走。视野遮挡层继续绘制在常规 HUD 下方。
+
+UE 5.8.2 的 D3D12 固定机位使用同一堵墙和两种背景。按相同阈值统计，充分展开时可见烟云覆盖 15,626 像素，退散取样为 8,221，完全消失为 0。更换烟团朝向后有 4,143 个像素改变轮廓归属。正常 HUD 区域改变 0 像素。本机报告为 `Saved/SkillFXReview/Verified/index.json`，画面对照为 `Saved/SkillFXReview/SmokeComparison.png`。
+
+主机出站延迟 80 ms 的双进程复测中，两端均观察到各自与对方的烟团、实际 Niagara 粒子、自己施放时的屏幕免疫，以及进入对方烟区后的干扰与最终清理。两端各 1/1，真实客户端画面见本机 `Saved/SkillFXReview/Net_Smoke_Verified/Immune_Client.png` 和 `Live_Client.png`。
+
+已保存的覆盖材质为 `M_SmokeScreen_CloudCoverage`，排气粒子使用 `M_SmokeScreen_ToonPuff`。如果编辑了烟瓣轮廓的着色器源码，在 PowerShell 用 `UnrealEditor-Cmd.exe` 打开工程并传入 `'-run=HAL_Future_CreationEditor.HALBuildSmokeScreenFX' -RefreshMaterials -AllowCommandletRendering`，会把配方写回这两份材质。只调技能 DA 时可直接进场预览。[烟瓣着色器源码](../../Tools/SmokeScreen/CloudCoverage.hlsl)
+
 ## 已确认规则与默认值
 
 2026-11-19 更新：Car08 车型 DA 已授予烟幕为主技能。车辆调参和补能接口见[车辆大招能量](Vehicle_Ultimate_Energy_CN.md)。

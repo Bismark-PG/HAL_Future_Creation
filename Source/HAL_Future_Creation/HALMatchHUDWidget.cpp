@@ -63,14 +63,16 @@ void UHALMatchHUDWidget::ReleaseSlateResources(bool bReleaseChildren)
 }
 FHALUltimateEnergyView UHALMatchHUDWidget::GetLocalUltimateEnergy() const
 {
+	if (UsesRoomView()) { return GetCachedRoomView().LocalUltimateEnergy; }
 	const auto* Pawn = Cast<ATestVehiclePawn>(GetOwningPlayerPawn());
 	const auto* ASC = Pawn ? Cast<UHALAbilitySystemComponent>(Pawn->GetAbilitySystemComponent()) : nullptr;
 	return ASC && ASC->GetAvatarActor() == Pawn ? ASC->GetUltimateEnergyView() : FHALUltimateEnergyView();
 }
 FText UHALMatchHUDWidget::GetCountdownText() const
 {
-	if (bUsesRoomView)
+	if (UsesRoomView())
 	{
+		const auto& RoomView=GetCachedRoomView();
 		if (!RoomView.bRoomAvailable || RoomView.bShowResults || RoomView.Phase!=EHALRoomPhase::Playing
 			|| !RoomView.Match.bActive || RoomView.Match.bComplete || !FMath::IsFinite(RoomView.MatchRemaining)) { return FText::GetEmpty(); }
 		const int32 Seconds=FMath::CeilToInt(FMath::Clamp(RoomView.MatchRemaining,0.f,3600.f));
@@ -90,23 +92,20 @@ void UHALMatchHUDWidget::NativeConstruct()
 	Super::NativeConstruct();
 	SetIsFocusable(false);
 	RefreshCountdown();
-	if (auto* World=GetWorld(); World && !bUsesRoomView) { World->GetTimerManager().SetTimer(RefreshTimer,this,&ThisClass::RefreshCountdown,.1f,true); }
+	if (auto* World=GetWorld(); World && !UsesRoomView()) { World->GetTimerManager().SetTimer(RefreshTimer,this,&ThisClass::RefreshCountdown,.1f,true); }
 }
 void UHALMatchHUDWidget::NativeDestruct()
 {
 	if (auto* World=GetWorld()) { World->GetTimerManager().ClearTimer(RefreshTimer); }
-	bUsesRoomView=false; bRoomScreenActive=false; RoomView={};
 	Super::NativeDestruct();
 }
-void UHALMatchHUDWidget::ApplyView_Implementation(const FHALRoomView& View)
+void UHALMatchHUDWidget::OnRoomViewApplied(const FHALRoomView& View)
 {
-	bUsesRoomView=true; RoomView=View;
 	if (auto* World=GetWorld()) { World->GetTimerManager().ClearTimer(RefreshTimer); }
 	ReceiveMatchView(View); RefreshCountdown();
 }
-void UHALMatchHUDWidget::SetScreenActive_Implementation(bool bActive)
+void UHALMatchHUDWidget::OnScreenActiveChanged(bool bActive)
 {
-	bUsesRoomView=true; bRoomScreenActive=bActive;
 	if (auto* World=GetWorld()) { World->GetTimerManager().ClearTimer(RefreshTimer); }
 	RefreshCountdown();
 }
@@ -114,8 +113,11 @@ void UHALMatchHUDWidget::RefreshCountdown()
 {
 	const FText Text=GetCountdownText();
 	const auto Energy = GetLocalUltimateEnergy();
-	const bool ScreenActive = !bUsesRoomView || bRoomScreenActive;
-	const bool Driving = ScreenActive && Energy.Cost > 0 && HALGameFlow::Permissions(GetWorld(), GetOwningPlayerPawn()).bAbilities;
+	const bool bRoomManaged = UsesRoomView();
+	const auto& RoomView = GetCachedRoomView();
+	const bool ScreenActive = !bRoomManaged || IsRoomScreenActive();
+	const bool Driving = ScreenActive && (bRoomManaged ? RoomView.bShowUltimateEnergy
+		: Energy.Cost > 0 && HALGameFlow::Permissions(GetWorld(), GetOwningPlayerPawn()).bAbilities);
 	const bool ShowEnergy = Driving && bShowNativeUltimateMeter;
 	SetVisibility(ScreenActive && (!Text.IsEmpty() || Driving) ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	if (ClockPanel) { ClockPanel->SetVisibility(ScreenActive && (!Text.IsEmpty() || (Driving && !bShowNativeUltimateMeter)) ? EVisibility::HitTestInvisible : EVisibility::Collapsed); }
@@ -129,9 +131,11 @@ void UHALMatchHUDWidget::RefreshCountdown()
 		float DisplayEnergy = Energy.Energy;
 		if (Energy.bRecharging && Energy.FullRechargeSeconds > 0.f)
 		{
-			if (const auto* Match = GetWorld()->GetGameState<AHALMatchGameState>())
+			const auto* Match = !bRoomManaged && GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr;
+			if (bRoomManaged || Match)
 			{
-				const double Elapsed = FMath::Max(0., Match->GetServerWorldTimeSeconds() - Energy.SampleServerTime);
+				const double Now = bRoomManaged ? RoomView.ServerWorldTimeSeconds : Match->GetServerWorldTimeSeconds();
+				const double Elapsed = FMath::Max(0., Now - Energy.SampleServerTime);
 				DisplayEnergy += float(Elapsed * HALUltimate::Capacity / Energy.FullRechargeSeconds);
 			}
 		}

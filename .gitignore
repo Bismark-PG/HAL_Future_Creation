@@ -65,6 +65,7 @@ Tools/UnrealBridge/
 SourceArt/**/*.png
 SourceArt/**/*.tga
 !SourceArt/SlipperyTrail/T_SlipperyTrail_OilSheen_Mask.png
+!SourceArt/SkillIcons/Car03_Car04_Pilot/*.png
 
 # Binary Files
 Binaries/*
@@ -141,6 +142,8 @@ DerivedDataCache/*
 !Docs/Combat/MVPB_Phase10F4_Integration_Plan_CN_v0.1.md
 !Docs/Combat/MVPB_SpringPunch_Combat_Handoff_CN_v0.1.md
 !Docs/Combat/MVPB_Bomb_Rebuild_CN_v0.1.md
+!Docs/Combat/Special_Ball_Base_CN.md
+!Docs/Combat/Art/MeteorBall/ImpactConcepts/README.md
 !Docs/Combat/MVPB_Impact_Push_Presets_CN_v0.1.md
 !Docs/Presentation/MVPB_Vehicle_Presentation_Rig_Plan_CN_v0.1.md
 !Docs/Presentation/MVPB_Vehicle_Model_Import_And_AnimBP_Setup_CN_v0.1.md
@@ -261,6 +264,7 @@ Tools/SlipperyTrailGraffiti/__pycache__/
 !Docs/Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md
 !Docs/Networking/GF7_Match_Loop_Plan_CN_v0.1.md
 !Docs/Networking/GF7_Match_Loop_Implementation_CN_v0.1.md
+!Docs/Networking/Match_Primary_Ball_Lifecycle_CN.md
 
 # Editor-only MCP plugin (Monolith). Precompiled third-party binaries, installed
 # per machine and tied to a specific engine BuildId, so it never goes to a remote.

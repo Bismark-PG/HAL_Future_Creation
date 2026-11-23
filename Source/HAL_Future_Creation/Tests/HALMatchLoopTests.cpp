@@ -21,6 +21,8 @@ struct FHALMatchLoopTestAccess
 	static void Expire(AHALPracticeRoomGameMode* M)
 	{ M->ActiveMatch.EndServerTime=M->GetGameState<AHALMatchGameState>()->GetServerWorldTimeSeconds(); M->GetGameState<AHALMatchGameState>()->GetRoom()->SetMatchData(M->ActiveMatch); }
 	static void Forfeit(AHALPracticeRoomGameMode* M,AHALPlayerState* P) { M->ForfeitMatchPlayer(P); }
+	static void ExpireResults(AHALPracticeRoomGameMode* M)
+	{ M->ActiveMatch.ReturnServerTime=M->GetGameState<AHALMatchGameState>()->GetServerWorldTimeSeconds()-1.; }
 	static void Stop(AHALPracticeRoomGameMode* M) { M->StopMatchRules(); }
 };
 namespace
@@ -120,6 +122,23 @@ bool FHALMatchBatchTest::RunTest(const FString&)
 	const auto Result=F.R->GetData().Match; F.HP(0,100); FHALMatchLoopTestAccess::Evaluate(F.Mode);
 	TestTrue(TEXT("Late health changes cannot rewrite result"),FHALRoundMatchData::StaticStruct()->CompareScriptStruct(&Result,&F.R->GetData().Match,0));
 	TestFalse(TEXT("Public API cannot republish a frozen result"),F.R->SetMatchData(Result));
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALResultsManualReturnTest,"HAL.FutureCreation.GameFlow.GF7.ResultsWaitForHostReturn",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALResultsManualReturnTest::RunTest(const FString&)
+{
+	FMatchWorld F(2); F.HP(1,0); FHALMatchLoopTestAccess::Evaluate(F.Mode);
+	TestEqual(TEXT("Normal match completion enters Results"),F.R->GetData().Phase,EHALRoomPhase::Results);
+	const auto Snapshot=F.R->GetData().Match; FHALMatchLoopTestAccess::ExpireResults(F.Mode);
+	for (int32 I=0;I<3;++I) { FHALMatchLoopTestAccess::Evaluate(F.Mode); }
+	TestEqual(TEXT("Expired former return deadline never leaves Results"),F.R->GetData().Phase,EHALRoomPhase::Results);
+	TestTrue(TEXT("Waiting preserves the frozen result"),FHALRoundMatchData::StaticStruct()->CompareScriptStruct(&Snapshot,&F.R->GetData().Match,0));
+	TestTrue(TEXT("Host's manual return remains available after the deadline"),F.Mode->CanRequestRoundReturn());
+	const auto Revision=F.Player(0)->GetRoomData().SelectionRevision;
+	TestEqual(TEXT("Other player cannot submit the host return"),F.Mode->HandleRoomAction(F.PCs[1],EHALRoomAction::ReturnToRoom,NAME_None,F.Player(1)->GetRoomData().SelectionRevision),EHALRoomResult::NotHost);
+	TestEqual(TEXT("Stale host return is still rejected"),F.Mode->HandleRoomAction(F.PCs[0],EHALRoomAction::ReturnToRoom,NAME_None,Revision+1),EHALRoomResult::StaleSelection);
+	TestEqual(TEXT("Valid host request reaches travel, absent only the fixture's travel context"),F.Mode->HandleRoomAction(F.PCs[0],EHALRoomAction::ReturnToRoom,NAME_None,Revision),EHALRoomResult::InvalidConfiguration);
+	TestEqual(TEXT("Failed travel does not dismiss Results"),F.R->GetData().Phase,EHALRoomPhase::Results);
 	return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALMatchCutoffTest,"HAL.FutureCreation.GameFlow.GF7.DeadlineSnapshotAndSinglePlayer",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)

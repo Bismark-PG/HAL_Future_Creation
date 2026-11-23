@@ -2,6 +2,15 @@
 #include "Misc/AutomationTest.h"
 #include "HALVehicleStabilityTestRules.h"
 #include "../HALBombActor.h"
+#include "../HALSpecialBall.h"
+#include "../HALBlackHoleBall.h"
+#include "../HALMeteorBall.h"
+#include "../HALSkillTestDummy.h"
+#include "../HALHealthAttributeSet.h"
+#include "../HALSpecialBallCue.h"
+#include "../HALElectricWallGimmick.h"
+#include "../HALElectricSphereGimmick.h"
+#include "Components/SphereComponent.h"
 #include "../HALAbilitySystemComponent.h"
 #include "../HALGameplayTags.h"
 #include "../HALImpactAttributeSet.h"
@@ -172,6 +181,331 @@ bool FHALBombTimerTest::RunTest(const FString&)
 	TestFalse(TEXT("Repeated trigger cannot reset countdown"),Bomb->StartCountdown());
 	TestEqual(TEXT("Fuse end remains stable"),Bomb->GetFuseEndServerTime(),End);
 	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FBombTimerAdvance>(Fixture,this,Bomb));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALExplosiveBallTest, "HAL.FutureCreation.SpecialBall.LifetimeContactsAndCover",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALExplosiveBallTest::RunTest(const FString&)
+{
+	FBombWorld F;
+	const auto* Type = GetDefault<UHALMatchBallSettings>()->ExplosiveBallType.LoadSynchronous();
+	FString Why;
+	if (!TestTrue(TEXT("Saved production ball DA and materials validate"), Type && Type->Validate(Why)))
+	{ AddError(Why); return false; }
+	auto SpawnBall = [&](FVector Position)
+	{
+		auto* Ball = F.World->SpawnActor<AHALExplosiveBall>(Position, FRotator::ZeroRotator);
+		Ball->PreInitializeComponents();
+		Ball->DispatchBeginPlay();
+		return Ball;
+	};
+	auto CueCount = [&](EHALBallCue Kind)
+	{
+		int32 Count = 0;
+		for (TActorIterator<AHALSpecialBallCue> It(F.World); It; ++It)
+		{ if (It->GetCueState().Kind == Kind && It->GetCueState().Type == Type) { ++Count; } }
+		return Count;
+	};
+	auto* Ball = SpawnBall(FVector(0, -300, 110));
+	if (!TestTrue(TEXT("Native drop uses its configured ball type"), Ball->GetTypeDefinition() == Type && Ball->IsConfigurationValid())) { return false; }
+	TestFalse(TEXT("Does not compete for primary designation or camera"), Ball->IsPrimaryMatchBall() || Ball->IsPrimaryCameraTarget());
+	TestEqual(TEXT("One arrival cue"), CueCount(EHALBallCue::Arrival), 1);
+	auto* Shooter = F.Target(FVector(-160, 0, 110));
+	auto* Victim = F.Target(FVector(90, 5, 110));
+	auto* Shielded = F.Target(FVector(360, 5, 110));
+	auto* Far = F.Target(FVector(0, 0, 1100));
+	auto HP = [](AActor* Vehicle) { return Vehicle->FindComponentByClass<UVehicleHealthComponent>()->GetCurrentHP(); };
+	const float Full = HP(Victim);
+	F.World->TimeSeconds += 5.;
+	TestTrue(TEXT("Free lifetime counts down"), FMath::IsNearlyEqual(Ball->RemainingFreeSeconds(), Type->FreeLifeSeconds - 5.f, .01f));
+	TestTrue(TEXT("First holder"), Ball->BeginControl(Victim));
+	F.World->TimeSeconds += 8.;
+	TestTrue(TEXT("Clock paused while held"), FMath::IsNearlyEqual(Ball->RemainingFreeSeconds(), Type->FreeLifeSeconds - 5.f, .01f));
+	TestTrue(TEXT("Forced drop"), Ball->ReleaseFromControl(Victim, .15f));
+	TestFalse(TEXT("Recent holder cannot recapture immediately"), Ball->CanBeControlledBy(Victim));
+	F.World->TimeSeconds += 2.;
+	TestTrue(TEXT("Another car can take the same special ball"), Ball->BeginControl(Shooter));
+	TestTrue(TEXT("Formal shot"), Ball->LaunchFromControl(Shooter, Shooter, FVector(0, 2400, 0)));
+	F.World->TimeSeconds += 6.;
+	TestTrue(TEXT("Flight retains remaining budget and new attribution"), Ball->GetLaunchedBy() == Shooter
+		&& FMath::IsNearlyEqual(Ball->RemainingFreeSeconds(), Type->FreeLifeSeconds - 7.f, .01f));
+	auto* Wall = F.World->SpawnActor<AActor>();
+	auto* Box = NewObject<UBoxComponent>(Wall);
+	Wall->SetRootComponent(Box);
+	Box->SetBoxExtent(FVector(10, 400, 180));
+	Box->SetCollisionProfileName(TEXT("BlockAll"));
+	Box->SetWorldLocation(FVector(240, 0, 110));
+	Box->RegisterComponent();
+	FHitResult FloorHit(Wall, Box, FVector(0, -250, 60), FVector::UpVector);
+	Ball->ResolveLaunchedContact(Wall, Box, FVector::ZeroVector, FloorHit);
+	TestFalse(TEXT("Floor normal does not detonate"), Ball->IsActorBeingDestroyed());
+	const FVector Origin(0, 0, 110);
+	TestTrue(TEXT("Unshielded ray"), FHALBlastArea::OpenFraction(*F.World, Origin, Victim->GetActorLocation()) == 1.f);
+	TestTrue(TEXT("Solid wall blocks ray"), FHALBlastArea::OpenFraction(*F.World, Origin, Shielded->GetActorLocation()) < 1.f);
+	auto* Body = CastChecked<UPrimitiveComponent>(Victim->GetRootComponent());
+	FHitResult Direct(Victim, Body, Origin, -FVector::RightVector);
+	Ball->ResolveLaunchedContact(Victim, Body, FVector::ZeroVector, Direct);
+	Ball->ResolveLaunchedContact(Victim, Body, FVector::ZeroVector, Direct);
+	TestTrue(TEXT("Shot consumed"), Ball->IsActorBeingDestroyed() || !IsValid(Ball));
+	TestEqual(TEXT("No stacked direct and radial damage"), HP(Victim), Full - Type->Gameplay.Damage.VehicleHitDamage);
+	TestEqual(TEXT("Cover protects the other car"), HP(Shielded), Full);
+	TestEqual(TEXT("Launcher exempt even in radius"), HP(Shooter), Full);
+	TestEqual(TEXT("Vertical distance counts"), HP(Far), Full);
+	TestEqual(TEXT("Multiple contacts only create one impact"), CueCount(EHALBallCue::Impact), 1);
+	for (TActorIterator<AHALSpecialBallCue> It(F.World); It; ++It)
+	{
+		if (It->GetCueState().Kind != EHALBallCue::Impact) { continue; }
+		TestTrue(TEXT("Authoritative visual center and radius match hit query"),
+			It->GetActorLocation().Equals(Origin, .1) && It->GetCueState().Radius == Type->ExplosionRadius);
+	}
+	auto* Field = F.World->SpawnActor<AHALElectricWallGimmick>(FVector(0, 2500, 0), FRotator::ZeroRotator);
+	Field->DispatchBeginPlay();
+	auto* Second = SpawnBall(FVector(0, 2100, 100));
+	TestTrue(TEXT("Electric test launch"), Second->BeginControl(Shooter) && Second->LaunchFromControl(Shooter,Shooter,FVector(0, 15000, 0)));
+	FHitResult Curtain;
+	TestTrue(TEXT("Thin powered query-only curtain swept at high speed"), Second->FindFieldHit(Second->GetActorLocation(), FVector(0, 2900, 100), Curtain));
+	TestTrue(TEXT("Contact on approach side of screen"), Curtain.ImpactPoint.Y > 2400 && Curtain.ImpactPoint.Y <= 2500);
+	FHitResult Behind(Wall, Box, FVector(0, 2950, 100), -FVector::RightVector);
+	Second->ResolveLaunchedContact(Wall, Box, FVector::ZeroVector, Behind);
+	bool bCurtainFirst = false;
+	for (TActorIterator<AHALSpecialBallCue> It(F.World); It; ++It)
+	{ bCurtainFirst |= It->GetCueState().Kind == EHALBallCue::Impact && It->GetActorLocation().Equals(Curtain.ImpactPoint, 1.f); }
+	TestTrue(TEXT("Powered curtain wins over later solid contact in the same step"), bCurtainFirst);
+	Field->Destroy();
+	auto* Inactive = F.World->SpawnActor<AHALElectricSphereGimmick>(FVector(0, 4500, 0), FRotator::ZeroRotator);
+	Inactive->DispatchBeginPlay();
+	auto* Third = SpawnBall(FVector(0, 4000, 100));
+	TestTrue(TEXT("Dormant field test shot"), Third->BeginControl(Shooter) && Third->LaunchFromControl(Shooter,Shooter,FVector(0, 15000, 0)));
+	TestFalse(TEXT("Warning-stage electric sphere does not trigger"), Third->FindFieldHit(Third->GetActorLocation(), FVector(0, 4900, 100), Curtain));
+	// The actual Fred wall callback reported its contact 16 cm inside the blocking box.
+	FHitResult WallHit(Wall, Box, FVector(246, 0, 110), -FVector::ForwardVector);
+	Third->ResolveLaunchedContact(Wall, Box, FVector::ZeroVector, WallHit);
+	TestEqual(TEXT("Wall hit itself consumes ball"), CueCount(EHALBallCue::Impact), 3);
+	bool bWallCueOnFace = false;
+	for (TActorIterator<AHALSpecialBallCue> It(F.World); It; ++It)
+	{
+		bWallCueOnFace |= It->GetCueState().Kind == EHALBallCue::Impact &&
+			It->GetActorLocation().Equals(FVector(230,0,110), .1) &&
+			FVector(It->GetCueState().SurfaceNormal).Equals(-FVector::ForwardVector, .01);
+	}
+	TestTrue(TEXT("Embedded physics contact places the effect on the incoming face"), bWallCueOnFace);
+	TestEqual(TEXT("Far side of a directly hit wall is protected"), HP(Shielded), Full);
+	TestEqual(TEXT("Wall hit can splash the approach side"), HP(Victim), Full - 2 * Type->Gameplay.Damage.VehicleHitDamage);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALBlackHoleBallTest, "HAL.FutureCreation.SpecialBall.BlackHoleDirectDamageAndGroundField",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALBlackHoleBallTest::RunTest(const FString&)
+{
+	FBombWorld F;
+	const auto* Defaults = GetDefault<UHALMatchBallSettings>();
+	const auto* Type = Defaults->BlackHoleBallType.LoadSynchronous();
+	const auto* Solar = Defaults->ExplosiveBallType.LoadSynchronous();
+	FString Error;
+	FHALBlackHoleConfig Scaled;
+	if (!TestTrue(TEXT("Both production balls load, including the original field and collapse"), Solar && Type
+		&& Type->Validate(Error) && Type->ResolveField(Scaled) && Type->ExpirationVortex)) { AddError(Error); return false; }
+	TestEqual(TEXT("Equal physical radius"), Type->Radius, Solar->Radius);
+	TestTrue(TEXT("Equal visual scale"), Type->Visual.RelativeTransform.GetScale3D().Equals(Solar->Visual.RelativeTransform.GetScale3D()));
+	const auto& Base = Type->FieldClass.GetDefaultObject()->GetBlackHoleConfig();
+	TestTrue(TEXT("Ball scales the live authored field, including swirl, pulse, grip and both lifetime stages"),
+		Scaled.MaximumRadius < Base.MaximumRadius && Scaled.ContinuousAcceleration < Base.ContinuousAcceleration
+		&& Scaled.SwirlAcceleration < Base.SwirlAcceleration && Scaled.PulseDeltaSpeed < Base.PulseDeltaSpeed
+		&& Scaled.DragGripMultiplier > Base.DragGripMultiplier && Scaled.SwirlDirection == Base.SwirlDirection
+		&& Scaled.DurationSeconds < Base.DurationSeconds && Scaled.ExpansionSeconds < Base.ExpansionSeconds
+		&& Scaled.PulseIndexAt(Scaled.ExpansionSeconds + Scaled.DurationSeconds - .01) >= 1);
+	const auto MakeBox = [&](FVector Center, FVector Extent)
+	{
+		auto* Actor = F.World->SpawnActor<AActor>();
+		auto* Box = NewObject<UBoxComponent>(Actor);
+		Actor->SetRootComponent(Box); Box->SetBoxExtent(Extent); Box->SetCollisionProfileName(TEXT("BlockAll"));
+		Box->SetWorldLocation(Center); Box->RegisterComponent();
+		return Box;
+	};
+	auto* Ground = MakeBox(FVector(0,0,-25), FVector(3000,3000,25));
+	auto* Wall = MakeBox(FVector(600,0,150), FVector(20,250,150));
+	auto* Shooter = F.Target(FVector(-220,0,100));
+	auto* Victim = F.Target(FVector(0,0,100));
+	auto* Bystander = F.Target(FVector(200,50,100));
+	auto HP = [](AActor* Car) { return Car->FindComponentByClass<UVehicleHealthComponent>()->GetCurrentHP(); };
+	const auto SpawnBall = [&]()
+	{
+		auto* Ball = F.World->SpawnActor<AHALBlackHoleBall>(FVector(-400,0,115), FRotator::ZeroRotator);
+		Ball->PreInitializeComponents(); Ball->DispatchBeginPlay();
+		return Ball;
+	};
+	const auto Fields = [&]()
+	{
+		TArray<AHALBlackHole*> Found;
+		for (TActorIterator<AHALBlackHole> It(F.World); It; ++It) { Found.Add(*It); }
+		return Found;
+	};
+	auto* Ball = SpawnBall();
+	auto* Body = CastChecked<UPrimitiveComponent>(Victim->GetRootComponent());
+	const FVector Contact(-67,0,98);
+	FHitResult Direct(Victim, Body, Contact, -FVector::ForwardVector);
+	Ball->ResolveLaunchedContact(Victim, Body, FVector::ZeroVector, Direct);
+	TestEqual(TEXT("Free physical touches do not leave a black hole"), Fields().Num(), 0);
+	TestTrue(TEXT("First holder can drop it, another can launch it"), Ball->BeginControl(Victim)
+		&& Ball->ReleaseFromControl(Victim, .1f) && Ball->BeginControl(Shooter)
+		&& Ball->LaunchFromControl(Shooter, Shooter, FVector(3200,0,0)));
+	FHitResult Floor(Ground->GetOwner(), Ground, FVector(-190,0,0), FVector::UpVector);
+	Ball->ResolveLaunchedContact(Ground->GetOwner(), Ground, FVector::ZeroVector, Floor);
+	Ball->ResolveLaunchedContact(Shooter, CastChecked<UPrimitiveComponent>(Shooter->GetRootComponent()), FVector::ZeroVector, Direct);
+	TestEqual(TEXT("Floor and last formal shooter pass through"), Fields().Num(), 0);
+	const float Before = HP(Victim), NearHP = HP(Bystander);
+	Ball->ResolveLaunchedContact(Victim, Body, FVector::ZeroVector, Direct);
+	Ball->ResolveLaunchedContact(Victim, Body, FVector::ZeroVector, Direct);
+	TestEqual(TEXT("One direct hit"), HP(Victim), Before - Type->Gameplay.Damage.VehicleHitDamage);
+	TestEqual(TEXT("A nearby opponent receives no splash damage"), HP(Bystander), NearHP);
+	auto Active = Fields();
+	if (!TestEqual(TEXT("Repeated hit produces exactly one field"), Active.Num(), 1)) { return false; }
+	TestTrue(TEXT("Real arena BP on the physical floor below the hit"), Active[0]->GetClass() == Type->FieldClass
+		&& Active[0]->GetActorLocation().Equals(FVector(Contact.X, Contact.Y, 2), 1.));
+	TestEqual(TEXT("World radius from ball DA"), Active[0]->GetBlackHoleConfig().MaximumRadius, Scaled.MaximumRadius);
+	Active[0]->Destroy();
+	auto* WallShot = SpawnBall();
+	TestTrue(TEXT("Formal wall test shot"), WallShot->BeginControl(Shooter) && WallShot->LaunchFromControl(Shooter,Shooter,FVector(3200,0,0)));
+	FHitResult Solid(Wall->GetOwner(), Wall, FVector(589,0,115), -FVector::ForwardVector);
+	WallShot->ResolveLaunchedContact(Wall->GetOwner(), Wall, FVector::ZeroVector, Solid);
+	Active = Fields();
+	if (!TestEqual(TEXT("Solid obstacle also consumes the ball"), Active.Num(), 1)) { return false; }
+	TestTrue(TEXT("Wall field sits on the incoming side and on the floor"), Active[0]->GetActorLocation().X < 580
+		&& FMath::IsNearlyEqual(Active[0]->GetActorLocation().Z, 2., 1.));
+	TestEqual(TEXT("Obstacle creates field without a damage event nearby"), HP(Bystander), NearHP);
+	return true;
+}
+
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FHALMeteorStrikeTest, "HAL.FutureCreation.SpecialBall.Meteor",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+void FHALMeteorStrikeTest::GetTests(TArray<FString>& Names, TArray<FString>& Commands) const
+{
+	Names = {TEXT("DodgeAfterLockAndSelfDamage"),TEXT("EliminatedTargetKeepsLastGround")};
+	Commands = Names;
+}
+bool FHALMeteorStrikeTest::RunTest(const FString& Scenario)
+{
+	auto F = MakeShared<FBombWorld>();
+	auto* Type = GetDefault<UHALMatchBallSettings>()->MeteorBallType.LoadSynchronous();
+	FString Error;
+	if (!TestTrue(TEXT("Authored type and both marker layers load"), Type && Type->Validate(Error)))
+	{ AddError(Error); return false; }
+	auto* Floor = F->World->SpawnActor<AActor>();
+	auto* Box = NewObject<UBoxComponent>(Floor);
+	Floor->SetRootComponent(Box);
+	Box->SetBoxExtent(FVector(6000,6000,25));
+	Box->SetCollisionProfileName(TEXT("BlockAll"));
+	Box->SetWorldLocation(FVector(0,0,-25));
+	Box->RegisterComponent();
+
+	auto* Shooter = F->Target(FVector(1050,0,100));
+	auto* Bystander = F->Target(FVector(1500,0,100));
+	auto* Distant = F->Target(FVector(-2300,0,100));
+	auto* Ball = F->World->SpawnActor<AHALMeteorBall>(FVector(600,0,130), FRotator::ZeroRotator);
+	Ball->PreInitializeComponents();
+	Ball->DispatchBeginPlay();
+	TestTrue(TEXT("Can hold without an eligible opponent"), Ball->BeginControl(Shooter));
+	TestFalse(TEXT("Cannot consume held meteor without target"), Ball->LaunchFromControl(Shooter,Shooter,FVector::ForwardVector*3600));
+	TestEqual(TEXT("Unspent ball remains held"), Ball->GetControlledBy(), static_cast<AActor*>(Shooter));
+
+	auto* DummyClass = LoadClass<AHALSkillTestDummy>(nullptr,TEXT("/Game/Blueprints/Vehicles/BP_SkillTestDummy.BP_SkillTestDummy_C"));
+	if (!TestNotNull(TEXT("Skill test dummy blueprint"), DummyClass)) { return false; }
+	auto* Dummy = F->World->SpawnActor<AHALSkillTestDummy>(DummyClass,FVector(500,0,105),FRotator::ZeroRotator);
+	Dummy->PreInitializeComponents(); Dummy->InitializeComponents(); Dummy->PostInitializeComponents(); Dummy->DispatchBeginPlay();
+	if (!TestTrue(TEXT("Eligible opponent allows formal launch"), Dummy->CanReceiveSkillEffects()
+		&& Ball->LaunchFromControl(Shooter,Shooter,FVector::ForwardVector*3600))) { return false; }
+	TestTrue(TEXT("Consumed ball immediately loses its physics presence"), Ball->IsActorBeingDestroyed() && !Ball->GetActorEnableCollision());
+	TActorIterator<AHALMeteorStrike> It(F->World);
+	if (!TestTrue(TEXT("Single independent strike"), bool(It))) { return false; }
+	auto* Strike = *It;
+	++It;
+	TestFalse(TEXT("Only one strike on launch"), bool(It));
+	Strike->DispatchBeginPlay();
+	TestEqual(TEXT("Lock identifies the opponent"), Strike->GetStrikeState().Target.Get(), static_cast<ATestVehiclePawn*>(Dummy));
+
+	const FVector Mark(1250,0,100);
+	Dummy->SetActorLocation(Mark,false,nullptr,ETeleportType::TeleportPhysics);
+	auto HP = [](AActor* Car) { return Car->FindComponentByClass<UVehicleHealthComponent>()->GetCurrentHP(); };
+	const float OwnHP = HP(Shooter), OtherHP = HP(Bystander), FarHP = HP(Distant), TargetHP = HP(Dummy);
+	const bool bEliminate = Scenario == TEXT("EliminatedTargetKeepsLastGround");
+	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FFunctionLatentCommand>(
+		[this,F,Type,Dummy,Shooter,Bystander,Distant,Strike,HP,OwnHP,OtherHP,FarHP,TargetHP,bEliminate,
+			bReleased=false,bLocked=false,Elapsed=0.f,ExpectedGround=Mark,FrozenGround=FVector::ZeroVector]() mutable
+		{
+			F->World->Tick(LEVELTICK_All,.05f);
+			Elapsed += .05f;
+			const auto& S = Strike->GetStrikeState();
+			if (bEliminate && !bReleased && Elapsed > Type->TrackingSeconds*.4f)
+			{
+				ExpectedGround = Dummy->GetActorLocation();
+				Dummy->GetAbilitySystemComponent()->SetNumericAttributeBase(UHALHealthAttributeSet::GetCurrentHPAttribute(),0.f);
+				TestNull(TEXT("Elimination removes the tracking marker immediately"), S.Target.Get());
+				Dummy->SetActorLocation(FVector(3200,800,100),false,nullptr,ETeleportType::TeleportPhysics);
+				bReleased = true;
+			}
+			if (S.Phase == EHALMeteorPhase::Falling && !bLocked)
+			{
+				if (!bEliminate) { ExpectedGround = Dummy->GetActorLocation(); }
+				ExpectedGround.Z = 0.;
+				FrozenGround = S.Ground;
+				TestTrue(TEXT("Locks the actual floor beneath the moving chassis"), FrozenGround.Equals(ExpectedGround,3.));
+				TestNull(TEXT("No moving target during descent"), S.Target.Get());
+				TestEqual(TEXT("Warning deals no early damage"), HP(Bystander),OtherHP);
+				if (!bEliminate) { Dummy->SetActorLocation(FVector(3200,800,100),false,nullptr,ETeleportType::TeleportPhysics); }
+				bLocked = true;
+			}
+			if (S.Phase != EHALMeteorPhase::Impact)
+			{
+				if (Elapsed < Type->TrackingSeconds+Type->FallSeconds+2.f) { return false; }
+				AddError(TEXT("Meteor never reached impact")); return true;
+			}
+			TestTrue(TEXT("Descent precedes impact and final ground is immutable"), bLocked && FVector(S.Ground).Equals(FrozenGround,.01));
+			const float Damage = Type->Gameplay.Damage.VehicleHitDamage;
+			TestEqual(TEXT("Shooter inside radius receives the same attack once"),HP(Shooter),OwnHP-Damage);
+			TestEqual(TEXT("Nearby bystander hit once"),HP(Bystander),OtherHP-Damage);
+			TestEqual(TEXT("Outside target untouched"),HP(Distant),FarHP);
+			TestEqual(TEXT("Selected target can escape or remain eliminated"),HP(Dummy),bEliminate ? 0.f : TargetHP);
+			return true;
+		}));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSpecialBallExpiryTest, "HAL.FutureCreation.SpecialBall.RealExpiryIsHarmless",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALSpecialBallExpiryTest::RunTest(const FString&)
+{
+	auto F = MakeShared<FBombWorld>();
+	auto* Type = GetDefault<UHALMatchBallSettings>()->ExplosiveBallType.LoadSynchronous();
+	if (!TestNotNull(TEXT("Authored type"), Type)) { return false; }
+	auto* Short = DuplicateObject<UHALExplosiveBallDefinition>(Type, GetTransientPackage());
+	Short->FreeLifeSeconds = .25f;
+	auto* Ball = F->World->SpawnActor<AHALExplosiveBall>();
+	FindFProperty<FObjectProperty>(Ball->GetClass(),TEXT("Definition"))->SetObjectPropertyValue_InContainer(Ball, Short);
+	Ball->PreInitializeComponents();
+	Ball->DispatchBeginPlay();
+	auto* Target = F->Target(FVector(80,0,100));
+	const float Initial = Target->FindComponentByClass<UVehicleHealthComponent>()->GetCurrentHP();
+	const TWeakObjectPtr<AHALExplosiveBall> Weak(Ball);
+	const double Deadline = FPlatformTime::Seconds() + 8.;
+	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FFunctionLatentCommand>(
+		[this, F, Weak, Target, Initial, Deadline]()
+		{
+			F->World->Tick(LEVELTICK_All, .05f);
+			if (Weak.IsValid() && FPlatformTime::Seconds() < Deadline) { return false; }
+			TestFalse(TEXT("Free lifetime timer destroys physical ball"), Weak.IsValid());
+			int32 Expirations = 0, Impacts = 0;
+			for (TActorIterator<AHALSpecialBallCue> It(F->World); It; ++It)
+			{
+				Expirations += It->GetCueState().Kind == EHALBallCue::Expiration;
+				Impacts += It->GetCueState().Kind == EHALBallCue::Impact;
+			}
+			TestEqual(TEXT("Independent expiration effect"), Expirations, 1);
+			TestEqual(TEXT("No explosion on expiration"), Impacts, 0);
+			TestEqual(TEXT("Nearby car retains HP"), Target->FindComponentByClass<UVehicleHealthComponent>()->GetCurrentHP(), Initial);
+			return true;
+		}));
 	return true;
 }
 #endif

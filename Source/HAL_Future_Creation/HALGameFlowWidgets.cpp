@@ -8,6 +8,7 @@
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
 #include "Components/Image.h"
+#include "Components/WidgetSwitcher.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "UObject/StructOnScope.h"
@@ -17,6 +18,15 @@ namespace HALFlowDisplay
 {
 	void Text(UUserWidget* Owner,FName Name,const FString& Value)
 	{ if (auto* W=Cast<UTextBlock>(Owner->GetWidgetFromName(Name))) { W->SetText(FText::FromString(Value)); } }
+	void LoadingParts(UUserWidget* Owner,bool bPlayersAvailable)
+	{
+		auto* Map=Owner->GetWidgetFromName(TEXT("MapLoadingPanel"));
+		auto* Players=Owner->GetWidgetFromName(TEXT("PlayersLoadingPanel"));
+		// Both optional containers opt in together; existing Loading layouts keep their visibility.
+		if (!Map || !Players) { return; }
+		Map->SetVisibility(bPlayersAvailable?ESlateVisibility::Collapsed:ESlateVisibility::SelfHitTestInvisible);
+		Players->SetVisibility(bPlayersAvailable?ESlateVisibility::SelfHitTestInvisible:ESlateVisibility::Collapsed);
+	}
 	bool Allowed(EHALGameFlowUIAction Action,const FHALRoomView& V)
 	{
 		switch (Action)
@@ -48,7 +58,47 @@ namespace HALFlowDisplay
 	}
 }
 void UHALGameFlowScreenWidget::SetRoomRoot(UHALPracticeRoomWidget* Root) { RoomRoot=Root; BindActions(); }
-void UHALGameFlowScreenWidget::NativeConstruct() { Super::NativeConstruct(); BindActions(); }
+void UHALGameFlowScreenWidget::NativeConstruct()
+{
+	Super::NativeConstruct(); BindActions();
+	if (!bMatchFlowContainer && UsesPanelPresentation() && Panel==EHALGameFlowPanel::Loading)
+	{ HALFlowDisplay::LoadingParts(this,LatestView.bRoomAvailable); }
+	if (bMatchFlowContainer && WidgetTree)
+	{
+		// Inactive HUDs must not run their standalone refresh before the first Room view.
+		WidgetTree->ForEachWidget([](UWidget* Widget)
+		{
+			if (auto* Screen=Cast<UHALGameFlowScreenWidget>(Widget))
+			{ Screen->UpdateActive(false); IHALRoomScreenInterface::Execute_SetScreenActive(Screen,false); Screen->SetVisibility(ESlateVisibility::Collapsed); }
+		});
+	}
+}
+bool UHALGameFlowScreenWidget::ShowFlowScreen(UHALGameFlowScreenWidget* Screen)
+{
+	if (!bMatchFlowContainer || Screen==this || (Screen && !IsValid(Screen))) { return false; }
+	auto* Switcher=Screen?Cast<UWidgetSwitcher>(Screen->GetParent()):nullptr;
+	if (Screen && (!Switcher || Switcher->GetTypedOuter<UUserWidget>()!=this || Screen->bMatchFlowContainer)) { return false; }
+	const bool Changed=ActiveFlowScreen!=Screen;
+	if (Changed) { UpdateFlowScreenActive(false); ActiveFlowScreen=Screen; }
+	if (Screen)
+	{
+		Switcher->SetActiveWidget(Screen);
+		Screen->SetRoomRoot(RoomRoot); Screen->PrepareView(LatestView);
+		IHALRoomScreenInterface::Execute_ApplyView(Screen,LatestView); Screen->FinishView();
+		if (Changed || Screen->IsRoomScreenActive()!=bScreenActive) { UpdateFlowScreenActive(bScreenActive); }
+	}
+	// Internal page changes do not reactivate the container or steal an open local menu's focus.
+	if (Changed && bScreenActive && RoomRoot && !(LatestView.Phase==EHALRoomPhase::Playing && LatestView.bMenuVisible))
+	{ RoomRoot->SetMenuFocusTarget(IHALRoomScreenInterface::Execute_GetDefaultFocusTarget(this)); }
+	return true;
+}
+void UHALGameFlowScreenWidget::UpdateFlowScreenActive(bool bActive)
+{
+	if (!ActiveFlowScreen) { return; }
+	ActiveFlowScreen->SetVisibility(bActive?ESlateVisibility::SelfHitTestInvisible:ESlateVisibility::Collapsed);
+	ActiveFlowScreen->UpdateActive(bActive);
+	IHALRoomScreenInterface::Execute_SetScreenActive(ActiveFlowScreen,bActive);
+}
 void UHALGameFlowScreenWidget::BindActions()
 {
 	static const FName Names[]={TEXT("Previous"),TEXT("Next"),TEXT("Confirm"),TEXT("CancelSelection"),TEXT("Start"),TEXT("Resume"),TEXT("Leave"),TEXT("Return"),TEXT("PreviousSpectator"),TEXT("NextSpectator"),TEXT("Back")};
@@ -60,7 +110,8 @@ void UHALGameFlowScreenWidget::BindActions()
 }
 void UHALGameFlowScreenWidget::PrepareView(const FHALRoomView& View)
 {
-	LatestView=View;
+	bUsesRoomView=true; LatestView=View;
+	if (bMatchFlowContainer || !UsesPanelPresentation()) { return; }
 	if (Panel==EHALGameFlowPanel::Selection && !OwnedPreview && PreviewClass && GetWorld() && !GetWorld()->bIsTearingDown)
 	{
 		FActorSpawnParameters Spawn; Spawn.ObjectFlags|=RF_Transient; Spawn.Owner=GetOwningPlayer();
@@ -75,19 +126,32 @@ void UHALGameFlowScreenWidget::PrepareView(const FHALRoomView& View)
 	}
 	if (OwnedPreview) { HALFlowDisplay::PreviewValue(OwnedPreview,TEXT("SetPreviewVehicle"),false,View.SelectedVehicleId); }
 }
-void UHALGameFlowScreenWidget::ApplyView_Implementation(const FHALRoomView& View) { LatestView=View; }
+void UHALGameFlowScreenWidget::ApplyView_Implementation(const FHALRoomView& View)
+{
+	bUsesRoomView=true; LatestView=View;
+	OnRoomViewApplied(LatestView);
+}
 void UHALGameFlowScreenWidget::SetScreenActive_Implementation(bool bActive)
 { UpdateActive(bActive); }
 void UHALGameFlowScreenWidget::UpdateActive(bool bActive)
 {
-	if (bScreenActive==bActive) { return; }
+	const bool bFirstRoomControl=!bUsesRoomView;
+	bUsesRoomView=true;
+	if (bScreenActive==bActive && !bFirstRoomControl) { return; }
 	bScreenActive=bActive;
-	if (OwnedPreview) { HALFlowDisplay::PreviewValue(OwnedPreview,TEXT("SetPreviewActive"),bActive); }
-	if (WidgetTree) { WidgetTree->ForEachWidget([&](UWidget* W){ if (auto* HUD=Cast<UHALMatchHUDWidget>(W)) { IHALRoomScreenInterface::Execute_SetScreenActive(HUD,bActive); } }); }
+	if (bMatchFlowContainer) { UpdateFlowScreenActive(bActive); }
+	else if (UsesPanelPresentation())
+	{
+		if (OwnedPreview) { HALFlowDisplay::PreviewValue(OwnedPreview,TEXT("SetPreviewActive"),bActive); }
+		if (WidgetTree) { WidgetTree->ForEachWidget([&](UWidget* W){ if (auto* HUD=Cast<UHALMatchHUDWidget>(W)) { IHALRoomScreenInterface::Execute_SetScreenActive(HUD,bActive); } }); }
+	}
+	OnScreenActiveChanged(bActive);
 }
 void UHALGameFlowScreenWidget::FinishView()
 {
+	if (bMatchFlowContainer || !UsesPanelPresentation()) { return; }
 	using namespace HALFlowDisplay;
+	if (Panel==EHALGameFlowPanel::Loading) { LoadingParts(this,LatestView.bRoomAvailable); }
 	for (const auto& Pair:Actions)
 	{
 		if (auto* Button=Cast<UButton>(GetWidgetFromName(Pair.Key)))
@@ -122,6 +186,9 @@ void UHALGameFlowScreenWidget::FinishView()
 }
 UWidget* UHALGameFlowScreenWidget::GetDefaultFocusTarget_Implementation() const
 {
+	if (bMatchFlowContainer)
+	{ return ActiveFlowScreen?IHALRoomScreenInterface::Execute_GetDefaultFocusTarget(ActiveFlowScreen):nullptr; }
+	if (!UsesPanelPresentation()) { return nullptr; }
 	// Designer order is the intended navigation order; map iteration never determines focus.
 	UWidget* Result=nullptr;
 	if (WidgetTree) { WidgetTree->ForEachWidget([&](UWidget* W){ if (!Result && W->IsVisible() && W->GetIsEnabled() && Cast<UButton>(W)) { Result=W; } }); }
@@ -154,7 +221,7 @@ void UHALGameFlowScreenWidget::NativeDestruct()
 		if (auto* P=FindFProperty<FObjectPropertyBase>(GetClass(),TEXT("PreviewActor")); P && P->GetObjectPropertyValue_InContainer(this)==OwnedPreview) { P->SetObjectPropertyValue_InContainer(this,nullptr); }
 		OwnedPreview->Destroy(); OwnedPreview=nullptr;
 	}
-	RoomRoot=nullptr; LatestView={}; Super::NativeDestruct();
+	ActiveFlowScreen=nullptr; RoomRoot=nullptr; LatestView={}; bUsesRoomView=false; bScreenActive=false; Super::NativeDestruct();
 }
 void UHALGameFlowSeatWidget::ApplySeat(const FHALRoomSeatView& Seat,const TArray<FHALVehicleDisplayView>& Vehicles)
 {

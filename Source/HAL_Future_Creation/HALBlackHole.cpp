@@ -8,6 +8,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/GameStateBase.h"
 #include "HALGameFlowPermissions.h"
+#include "HALMatchGameState.h"
 #include "HALMovementAreaReceiver.h"
 #include "Net/UnrealNetwork.h"
 #include "TestVehiclePawn.h"
@@ -150,6 +151,19 @@ bool AHALBlackHole::ConfigureBlackHole(const FHALBlackHoleConfig& Config)
 	return true;
 }
 
+bool AHALBlackHole::ConfigureMatchBallField(const FHALBlackHoleConfig& Config)
+{
+	if (!ConfigureBlackHole(Config)) { return false; }
+	bMatchBallField = true;
+	bDebugDraw = false;
+	return true;
+}
+
+void AHALBlackHole::MatchPhaseChanged(EHALMatchPhase Phase)
+{
+	if (Phase == EHALMatchPhase::Finished) { Destroy(); }
+}
+
 double AHALBlackHole::Age() const
 {
 	if (!GetWorld() || StartedAt < 0) { return -1; }
@@ -176,7 +190,19 @@ void AHALBlackHole::BeginPlay()
 		if (HasAuthority()) { Destroy(); }
 		return;
 	}
-	if (HasAuthority()) { StartedAt = GetWorld()->GetTimeSeconds(); ForceNetUpdate(); }
+	if (HasAuthority())
+	{
+		if (bMatchBallField)
+		{
+			if (auto* Match = GetWorld()->GetGameState<AHALMatchGameState>())
+			{
+				if (Match->GetMatchPhase() == EHALMatchPhase::Finished) { Destroy(); return; }
+				Match->OnMatchPhaseChanged.AddUniqueDynamic(this, &ThisClass::MatchPhaseChanged);
+			}
+		}
+		StartedAt = GetWorld()->GetTimeSeconds();
+		ForceNetUpdate();
+	}
 	UpdateField();
 	FTimerManagerTimerParameters Timer;
 	Timer.bLoop = true;
@@ -381,6 +407,11 @@ void AHALBlackHole::OnRep_Pulse()
 
 void AHALBlackHole::EndPlay(const EEndPlayReason::Type Reason)
 {
+	if (bMatchBallField)
+	{
+		if (auto* Match = GetWorld()->GetGameState<AHALMatchGameState>())
+		{ Match->OnMatchPhaseChanged.RemoveDynamic(this, &ThisClass::MatchPhaseChanged); }
+	}
 	GetWorldTimerManager().ClearTimer(UpdateTimer);
 	for (const auto& Entry : Occupants)
 	{

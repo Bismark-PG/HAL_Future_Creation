@@ -49,6 +49,8 @@ public:
 	bool Configure(const FHALElectricWallConfig& InConfig);
 	uint32 GetAcceptedContactCount() const { return AcceptedContactCount; }
 	uint32 GetPhysicsSourceId() const { return PhysicsSourceId; }
+	/** Live gameplay surface only, including armed spherical variants. Detection volumes do not qualify. */
+	UPrimitiveComponent* GetEnergizedSurface() const { return bReady && IsContactActive() ? GetContactSurface() : nullptr; }
 protected:
 	UPROPERTY(EditDefaultsOnly, ReplicatedUsing=OnRep_Config, Category="Electric Wall") FHALElectricWallConfig Config;
 	UPROPERTY(EditDefaultsOnly, Category="Electric Wall|Debug") bool bDrawDebug = false;

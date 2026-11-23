@@ -130,7 +130,7 @@ bool ABasicBallActor::CanBeControlledBy(const AActor* CandidateVehicle) const
 {
 	if (!HALGameFlow::Permissions(GetWorld(),Cast<APawn>(CandidateVehicle)).bBallControl) { return false; }
 	if (UHALAbilitySystemComponent::IsActorStunned(CandidateVehicle)) { return false; }
-	if (!HasAuthority() || !bConfigurationValid || !VehicleConfiguration::IsReadyForGameplay(CandidateVehicle)
+	if (!HasAuthority() || !CanUseBall() || !bConfigurationValid || !VehicleConfiguration::IsReadyForGameplay(CandidateVehicle)
 		|| RepState.State != EBasicBallState::Free)
 	{
 		return false;
@@ -260,6 +260,7 @@ bool ABasicBallActor::DeflectByTornado(AHALTornado& Source, const FVector& Initi
 
 bool ABasicBallActor::CommitLaunch(AActor* NewLauncher, const FVector& InitialVelocity, const AActor* FrameSource)
 {
+	if (!CanUseBall()) { return false; }
 	FHALAttackSourceSnapshot Attack;
 	FHALCollisionImpactRules ImpactRules;
 	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules()
@@ -289,6 +290,11 @@ bool ABasicBallActor::CommitLaunch(AActor* NewLauncher, const FVector& InitialVe
 	Attack.Impact = RuntimeImpactConfig;
 	Attack.EffectTags = RuntimeDamageConfig.EffectTags;
 	Attack.bCanHitInstigator = false;
+	return DeliverLaunch(Attack, NewLauncher, InitialVelocity, FrameSource);
+}
+
+bool ABasicBallActor::DeliverLaunch(const FHALAttackSourceSnapshot& Attack, AActor* NewLauncher, const FVector& InitialVelocity, const AActor* FrameSource)
+{
 	// A water intercept changes attack ownership without inserting an observable Free state.
 	if (!LaunchAction.Replace(*this, Attack)) { return false; }
 	FBallRepState Next;
@@ -385,12 +391,28 @@ void ABasicBallActor::AddReleaseImpulse(const FVector& Impulse)
 
 void ABasicBallActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (EndPlayReason == EEndPlayReason::Destroyed && HasAuthority() && IsValid(RepState.Holder))
+	{
+		if (auto* Control = RepState.Holder->FindComponentByClass<UBallControlComponent>())
+		{
+			Control->OnHeldBallDestroyed(this);
+		}
+	}
 	LaunchAction.Close();
 	StopLowSpeedMonitor();
 	Super::EndPlay(EndPlayReason);
 }
 
-void ABasicBallActor::SetPrimaryCameraTarget(bool bPrimary)
+float ABasicBallActor::GetConfiguredSphereRadius() const
+{
+	if (ConfigurationSource == EVehicleConfigurationSource::Definition && Definition)
+	{
+		return Definition->Radius * Definition->Physics.Scale.GetAbsMin();
+	}
+	return PhysicsRoot->GetScaledSphereRadius();
+}
+
+void ABasicBallActor::SetPrimaryMatchBall(bool bPrimary)
 {
 	if (HasAuthority() && bPrimaryCameraTarget != bPrimary) { bPrimaryCameraTarget = bPrimary; ForceNetUpdate(); }
 }
@@ -493,6 +515,7 @@ void ABasicBallActor::CommitRepState(const FBallRepState& NewState, const AActor
 		Committed.ServerPhysicsFrame = Movement->GetLastPhysicsFrame();
 	}
 	RepState = Committed;
+	OnAuthorityBallStateChanged(PreviousState);
 	if (BallPresentation) { BallPresentation->NotifyStateChanged(); }
 	// The client path below returns early on authority, so the listen-server host would
 	// otherwise be the one player who never sees who holds the ball.
@@ -523,6 +546,7 @@ void ABasicBallActor::CommitRepState(const FBallRepState& NewState, const AActor
 
 void ABasicBallActor::StartLowSpeedMonitor()
 {
+	GroundRollStartedAt = -1.;
 	if (UWorld* World = GetWorld())
 	{
 		const float Interval = FMath::Max(0.01f, LowSpeedCheckInterval);
@@ -542,6 +566,27 @@ void ABasicBallActor::StopLowSpeedMonitor()
 		World->GetTimerManager().ClearTimer(LowSpeedTimerHandle);
 	}
 	AccumulatedLowSpeedTime = 0.0f;
+	GroundRollStartedAt = -1.;
+}
+
+bool ABasicBallActor::HasGroundSupport() const
+{
+	const float Radius = PhysicsRoot->GetScaledSphereRadius();
+	const float Skin = FMath::Min(2.f, Radius * .05f);
+	const FVector Center = PhysicsRoot->GetComponentLocation();
+	// A slightly inset sphere finds ramps and floor seams without treating a side wall as support.
+	FCollisionObjectQueryParams Surfaces(ECC_WorldStatic);
+	Surfaces.AddObjectTypesToQuery(ECC_WorldDynamic);
+	TArray<FHitResult> Hits;
+	GetWorld()->SweepMultiByObjectType(Hits, Center, Center - FVector::UpVector * (3.f * Skin),
+		FQuat::Identity, Surfaces, FCollisionShape::MakeSphere(Radius - Skin), FCollisionQueryParams(SCENE_QUERY_STAT(BallGroundRoll), false, this));
+	return Hits.ContainsByPredicate([this](const FHitResult& Hit)
+	{
+		const UPrimitiveComponent* Floor = Hit.GetComponent();
+		return Floor && Hit.ImpactNormal.Z >= UE_INV_SQRT_2 && Floor->IsPhysicsCollisionEnabled()
+			&& Floor->GetCollisionResponseToChannel(PhysicsRoot->GetCollisionObjectType()) == ECR_Block
+			&& PhysicsRoot->GetCollisionResponseToChannel(Floor->GetCollisionObjectType()) == ECR_Block;
+	});
 }
 
 void ABasicBallActor::CheckLaunchedLowSpeed()
@@ -554,12 +599,28 @@ void ABasicBallActor::CheckLaunchedLowSpeed()
 
 	const float Interval = FMath::Max(0.01f, LowSpeedCheckInterval);
 	const float SpeedSquared = PhysicsRoot->GetPhysicsLinearVelocity().SizeSquared();
+	if (ConfigurationSource == EVehicleConfigurationSource::Definition && Definition)
+	{
+		const FBallStateConfig& State = Definition->Gameplay.State;
+		if (State.GroundRollReleaseSpeed > 0.f && SpeedSquared <= FMath::Square(State.GroundRollReleaseSpeed) && HasGroundSupport())
+		{
+			const double Now = GetWorld()->GetTimeSeconds();
+			if (GroundRollStartedAt < 0.) { GroundRollStartedAt = Now; }
+			if (Now - GroundRollStartedAt >= State.GroundRollRequiredDuration)
+			{
+				FinishLaunchAsFree(Definition->Gameplay.Acquisition.GroundRollPickupLockDuration);
+			}
+			AccumulatedLowSpeedTime = 0.f;
+			return;
+		}
+	}
+	GroundRollStartedAt = -1.;
 	if (SpeedSquared <= FMath::Square(LowSpeedThreshold))
 	{
 		AccumulatedLowSpeedTime += Interval;
 		if (AccumulatedLowSpeedTime >= LowSpeedRequiredDuration)
 		{
-			FinishLaunchAsFree();
+			FinishLaunchAsFree(PostLaunchPickupLockDuration);
 		}
 	}
 	else
@@ -568,13 +629,13 @@ void ABasicBallActor::CheckLaunchedLowSpeed()
 	}
 }
 
-void ABasicBallActor::FinishLaunchAsFree()
+void ABasicBallActor::FinishLaunchAsFree(float PickupLockSeconds)
 {
 	UWorld* World = GetWorld();
 	StopLowSpeedMonitor();
 	FBallRepState Next;
 	Next.GlobalPickupLockEndServerTime = (World ? World->GetTimeSeconds() : 0.0f)
-		+ FMath::Max(0.0f, PostLaunchPickupLockDuration);
+		+ FMath::Max(0.0f, PickupLockSeconds);
 	CommitRepState(Next, nullptr);
 }
 
@@ -591,7 +652,12 @@ void ABasicBallActor::OnPhysicsRootHit(
 		return;
 	}
 
-	bResolvingDamageHit = true;
+	TGuardValue<bool> Resolving(bResolvingDamageHit, true);
+	ResolveLaunchedContact(OtherActor, OtherComponent, NormalImpulse, Hit);
+}
+
+void ABasicBallActor::ResolveLaunchedContact(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
+{
 	FVehicleHitContext Context;
 	Context.SourceActor = this;
 	Context.TargetActor = OtherActor;
@@ -645,9 +711,13 @@ void ABasicBallActor::OnPhysicsRootHit(
 				Resolution.ImpactSpeed,
 				LexToString(Resolution.KnockbackTier));
 		}
-		FinishLaunchAsFree();
+		OnAcceptedVehicleHit();
 	}
-	bResolvingDamageHit = false;
+}
+
+void ABasicBallActor::OnAcceptedVehicleHit()
+{
+	FinishLaunchAsFree(PostLaunchPickupLockDuration);
 }
 
 void ABasicBallActor::OnConstruction(const FTransform& Transform)

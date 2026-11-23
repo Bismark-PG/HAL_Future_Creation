@@ -11,5 +11,11 @@ struct FHALWidgetExtensionTestAccess
 	static UClass* Entry(UHALNetworkGameInstance* GI) { return GI->ResolveEntryScreen(); }
 	static UClass* Room(UHALNetworkGameInstance* GI,APlayerController* PC) { return GI->ResolveRoomScreen(PC); }
 	static void ShowEntry(UHALNetworkGameInstance* GI) { GI->ShowEntryMenu(); }
+	static void ConfigureTravel(UHALNetworkGameInstance* GI,UClass* LoadingClass,const FString& PracticeMap)
+	{ GI->MatchTravelLoadingClass=LoadingClass; GI->PracticeMapPath=PracticeMap; GI->bPracticeRoomActive=!PracticeMap.IsEmpty(); }
+	static bool MatchTravel(UHALNetworkGameInstance* GI,const FString& Source,const FString& Destination,bool Seamless=true)
+	{ return GI->IsMatchTravel(Source,Destination,Seamless); }
+	static UUserWidget* TravelWidget(UHALNetworkGameInstance* GI) { return GI->TravelLoadingWidget; }
+	static void EndTravel(UHALNetworkGameInstance* GI) { GI->EndTravelPresentation(); }
 };
 #endif

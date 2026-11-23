@@ -8,6 +8,9 @@
 #include "HALRoomComponent.h"
 #include "HALVehicleCatalog.h"
 #include "HALPracticeRoomGameMode.h"
+#include "HALAbilitySystemComponent.h"
+#include "HALGameFlowPermissions.h"
+#include "TestVehiclePawn.h"
 #include "Engine/World.h"
 #include "Components/PanelWidget.h"
 #include "Components/WidgetSwitcher.h"
@@ -73,6 +76,14 @@ FHALRoomView UHALPracticeRoomWidget::GetRoomView() const
 		View.Match=D.Match; View.bShowResults=D.Phase==EHALRoomPhase::Results;
 		View.bCanCycleSpectator=View.bSpectating && D.Phase==EHALRoomPhase::Playing;
 		const double Now=GetWorld()->GetGameState<AHALMatchGameState>()->GetServerWorldTimeSeconds();
+		if (D.Phase==EHALRoomPhase::Playing)
+		{
+			View.ServerWorldTimeSeconds=Now;
+			const auto* Pawn=PC?Cast<ATestVehiclePawn>(PC->GetPawn()):nullptr;
+			const auto* ASC=Pawn?Cast<UHALAbilitySystemComponent>(Pawn->GetAbilitySystemComponent()):nullptr;
+			if (ASC && ASC->GetAvatarActor()==Pawn) { View.LocalUltimateEnergy=ASC->GetUltimateEnergyView(); }
+			View.bShowUltimateEnergy=View.LocalUltimateEnergy.Cost>0 && HALGameFlow::Permissions(GetWorld(),Pawn).bAbilities;
+		}
 		if (D.Match.bActive) { View.MatchRemaining=D.Match.bComplete?0:float(FMath::Max(0.0,D.Match.EndServerTime-Now)); }
 		if (View.bShowResults) { View.ResultsRemaining=float(FMath::Max(0.0,D.Match.ReturnServerTime-Now)); }
 		View.ResultSummary=MatchResultText();
@@ -92,6 +103,7 @@ FHALRoomView UHALPracticeRoomWidget::GetRoomView() const
 			View.Seats.Add(Seat);
 		}
 	}
+	View.LoadedCatalog=LoadedCatalog;
 	if (LoadedCatalog)
 	{
 		for (const auto& E:LoadedCatalog->Vehicles)
@@ -104,7 +116,33 @@ void UHALPracticeRoomWidget::PublishRoomView()
 {
 	const auto View=GetRoomView();
 	if (!bHasPublishedView || !FHALRoomView::StaticStruct()->CompareScriptStruct(&View,&PublishedView,0))
-	{ PublishedView=View; bHasPublishedView=true; ReceiveRoomView(View); ApplyRoomPresentation(View); }
+	{ PublishedView=View; bHasPublishedView=true; DeliverRoomView(View); }
+}
+void UHALPracticeRoomWidget::DeliverRoomView(const FHALRoomView& View)
+{
+	// Let the existing Blueprint decide its visibility afresh, then apply the exclusive MatchFlow mask.
+	RestoreResultsSiblings(); ReceiveRoomView(View); ApplyRoomPresentation(View);
+}
+void UHALPracticeRoomWidget::RestoreResultsSiblings()
+{
+	for (const auto& Pair:ResultsHiddenSiblings)
+	{ if (IsValid(Pair.Key)) { Pair.Key->SetVisibility(Pair.Value); } }
+	ResultsHiddenSiblings.Reset();
+}
+void UHALPracticeRoomWidget::HideResultsSiblings()
+{
+	// Keep the path to MatchFlow visible; hide other Room content without changing its logic.
+	for (UWidget* Branch=MatchFlowScreen; WidgetTree && Branch && Branch!=WidgetTree->RootWidget;)
+	{
+		auto* Parent=Branch->GetParent(); if (!Parent) { break; }
+		for (int32 I=0;I<Parent->GetChildrenCount();++I)
+		{
+			auto* Sibling=Parent->GetChildAt(I); if (!Sibling || Sibling==Branch) { continue; }
+			if (!ResultsHiddenSiblings.Contains(Sibling)) { ResultsHiddenSiblings.Add(Sibling,Sibling->GetVisibility()); }
+			Sibling->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		Branch=Parent;
+	}
 }
 
 FHALRoomPresentation UHALPracticeRoomWidget::ResolvePresentation(const FHALRoomView& View)
@@ -171,12 +209,18 @@ bool UHALPracticeRoomWidget::RegisterLocalMenu(UUserWidget* Child)
 	return true;
 }
 bool UHALPracticeRoomWidget::ManagesMatchHUD() const
-{ return IsValid(RoomScreens.FindRef(EHALRoomScreen::Match)); }
+{ return IsValid(MatchFlowScreen) || IsValid(RoomScreens.FindRef(EHALRoomScreen::Match)); }
 void UHALPracticeRoomWidget::ApplyRoomPresentation(const FHALRoomView& View)
 {
-	if (RoomScreens.IsEmpty() && !LocalMenuScreen) { return; }
+	const bool ExclusiveFlow=MatchFlowScreen && View.bRoomAvailable && (View.bShowResults || View.Phase==EHALRoomPhase::Results
+		|| View.Phase==EHALRoomPhase::Loading || View.Phase==EHALRoomPhase::Countdown);
+	if (!ExclusiveFlow) { RestoreResultsSiblings(); }
+	if (RoomScreens.IsEmpty() && !LocalMenuScreen && !MatchFlowScreen) { return; }
 	const auto Next=ResolvePresentation(View);
 	auto* NextScreen=RoomScreens.FindRef(Next.Screen).Get();
+	const bool InMatchFlow=View.bRoomAvailable && (View.bShowResults || View.Phase==EHALRoomPhase::Loading
+		|| View.Phase==EHALRoomPhase::Countdown || View.Phase==EHALRoomPhase::Playing || View.Phase==EHALRoomPhase::Results);
+	if (MatchFlowScreen && InMatchFlow) { NextScreen=MatchFlowScreen; }
 	const bool Changed=ActiveRoomScreen!=NextScreen;
 	const bool MenuChanged=!bPresentationApplied || Presentation.bShowLocalMenu!=Next.bShowLocalMenu;
 	if (Changed && ActiveRoomScreen)
@@ -187,6 +231,7 @@ void UHALPracticeRoomWidget::ApplyRoomPresentation(const FHALRoomView& View)
 	Presentation=Next; bPresentationApplied=true; ActiveRoomScreen=NextScreen;
 	if (NextScreen)
 	{
+		if (NextScreen==MatchFlowScreen) { NextScreen->SetVisibility(ESlateVisibility::SelfHitTestInvisible); }
 		if (auto* Switcher=Cast<UWidgetSwitcher>(NextScreen->GetParent())) { Switcher->SetActiveWidget(NextScreen); }
 		if (auto* Native=Cast<UHALGameFlowScreenWidget>(NextScreen)) { Native->PrepareView(View); }
 		IHALRoomScreenInterface::Execute_ApplyView(NextScreen,View);
@@ -209,12 +254,16 @@ void UHALPracticeRoomWidget::ApplyRoomPresentation(const FHALRoomView& View)
 		auto* FocusScreen=Next.bShowLocalMenu?LocalMenuScreen.Get():NextScreen;
 		SetMenuFocusTarget(FocusScreen?IHALRoomScreenInterface::Execute_GetDefaultFocusTarget(FocusScreen):nullptr);
 	}
+	if (ExclusiveFlow) { HideResultsSiblings(); }
 }
 void UHALPracticeRoomWidget::ClearRoomScreens()
 {
-	if (ActiveRoomScreen) { IHALRoomScreenInterface::Execute_SetScreenActive(ActiveRoomScreen,false); }
+	RestoreResultsSiblings();
+	if (ActiveRoomScreen)
+	{ if (auto* Native=Cast<UHALGameFlowScreenWidget>(ActiveRoomScreen)) { Native->UpdateActive(false); }
+	  IHALRoomScreenInterface::Execute_SetScreenActive(ActiveRoomScreen,false); }
 	if (LocalMenuScreen && Presentation.bShowLocalMenu) { IHALRoomScreenInterface::Execute_SetScreenActive(LocalMenuScreen,false); }
-	RoomScreens.Reset(); LocalMenuScreen=nullptr; ActiveRoomScreen=nullptr; Presentation={}; bPresentationApplied=false;
+	RoomScreens.Reset(); LocalMenuScreen=nullptr; ActiveRoomScreen=nullptr; MatchFlowScreen=nullptr; Presentation={}; bPresentationApplied=false;
 }
 void UHALPracticeRoomWidget::RegisterDesignerScreens()
 {
@@ -223,6 +272,12 @@ void UHALPracticeRoomWidget::RegisterDesignerScreens()
 	{
 		if (auto* HUD=Cast<UHALMatchHUDWidget>(Widget)) { RegisterRoomScreen(EHALRoomScreen::Match,HUD); return; }
 		auto* Child=Cast<UHALGameFlowScreenWidget>(Widget); if (!Child) { return; }
+		if (Child->bMatchFlowContainer)
+		{
+			if (!MatchFlowScreen)
+			{ MatchFlowScreen=Child; Child->SetRoomRoot(this); Child->UpdateActive(false); Child->SetVisibility(ESlateVisibility::Collapsed); }
+			return;
+		}
 		if (Child->Panel==EHALGameFlowPanel::LocalMenu) { RegisterLocalMenu(Child); return; }
 		EHALRoomScreen Screen=EHALRoomScreen::Transition;
 		switch (Child->Panel)

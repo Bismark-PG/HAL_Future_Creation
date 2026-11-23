@@ -94,6 +94,15 @@ void UBallControlComponent::PrepareForOwnerExit()
 	}
 }
 
+void UBallControlComponent::OnHeldBallDestroyed(const ABasicBallActor* Ball)
+{
+	if (GetOwner()->HasAuthority() && HeldBall == Ball)
+	{
+		ReleaseConstraint();
+		HeldBall = nullptr;
+	}
+}
+
 void UBallControlComponent::SetVehicleComponents(
 	UPrimitiveComponent* InVehicleBody,
 	USceneComponent* InControlPoint,

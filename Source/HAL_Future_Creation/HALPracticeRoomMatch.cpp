@@ -69,16 +69,8 @@ void AHALPracticeRoomGameMode::PollMatchRules()
 	auto* S=GetGameState<AHALMatchGameState>(); auto* R=S?S->GetRoom():nullptr;
 	if (!R || R->GetData().RoundId!=ActiveMatch.RoundId || R->GetData().FlowId!=MatchFlow) { StopMatchRules(); return; }
 	const double Now=S->GetServerWorldTimeSeconds();
-	if (ActiveMatch.bComplete)
-	{
-		if (R->GetData().Phase==EHALRoomPhase::Results && Now>=ActiveMatch.ReturnServerTime)
-		{
-			if (ReturnActiveRoundToRoom()!=EHALRoomResult::Accepted)
-			{ UE_LOG(LogTemp,Error,TEXT("GF7 automatic return failed Round=%lld"),ActiveMatch.RoundId);
-				if (auto* Host=R->GetData().Host.Get()) { ReturnRoomToEntry(Cast<AHALPlayerController>(Host->GetOwner())); } }
-		}
-		return;
-	}
+	// Keep Results until the host uses the existing Return button/request path.
+	if (ActiveMatch.bComplete) { return; }
 	if (R->GetData().Phase!=EHALRoomPhase::Playing) { return; }
 	TGuardValue<bool> Guard(bEvaluatingMatch,true);
 	TArray<TWeakObjectPtr<ATestVehiclePawn>> Retiring;

@@ -1,5 +1,78 @@
 # 编译、重新构建并启动 Editor 工具
 
+## 2026-11-22：构建显示统一为英语
+
+按用户要求，BuildAndLaunch.cmd 自有的构建结果、耗时、动作数、未知统计、工程／文件检查错误及错误对话框标题均使用英语。结果示例为 `Build result: Up to date (no compilation needed)`；其余分类为 `Incremental build completed`、`Explicit rebuild completed`、`Build failed` 和 `Build succeeded (action statistics unknown)`。统计标签为 `Build invocation time`、`UBT time`、`Build actions`，时间单位为 `seconds`，缺失统计显示 `Unknown`。JSON 字段与取值、构建参数及行为不变；底层工具自行输出的诊断和路径按原样保留。
+
+本轮同步更新原有输出断言，21/21 假引擎／进程检查通过；启动器 ASCII 显示文本检查与 git diff --check 通过。结果位于本机 `Saved/BuildTool/LauncherIntegration_97e1daf285004d04915ba202a4cf21e9/Results.json`。本轮仅改提示文本，没有再次执行真实 Unreal 编译或启动 Editor；下节中文输出保留为 P1 初次实施、英文化前的实测记录。
+
+## 2026-11-22：P1 构建结果与耗时摘要
+
+根目录 CMD 在 UBT 返回后读取本次独立的 `UnrealBuildTool.log`，在控制台和 `Console.log` 显示构建结果、构建调用耗时、UBT 耗时及动作数，并将统计追加到原有 `Result.json`。使用方式及 P0 构建参数不变。
+
+| Result.json 新字段 | 含义 |
+|---|---|
+| BuildKind | `UpToDate`＝已是最新；`Incremental`＝增量编译完成；`Rebuild`＝显式重建完成；`Failed`＝构建失败；`Unknown`＝构建成功但动作统计未知；`NotRun`＝尚未进入构建（例如生成解决方案失败） |
+| ActionCount | UBT 本轮调度的构建动作数，包括编译、链接、元数据等；从 executor 动作数或进度总数读取，无法识别时为 null。失败时的数量不代表全部动作已完成 |
+| BuildSeconds | 调用 Build.bat／Rebuild.bat 的墙钟耗时，含工具启动与锁等待，不含生成解决方案、结果解析或 Editor 启动 |
+| UbtSeconds | UBT 日志中的 Total execution time；无法识别时为 null |
+
+分类以构建退出码为先；非零退出仍失败、不启动 Editor，显式 `-Rebuild` 成功单列为重建。普通 Build 的 0 动作显示“已是最新”，正动作显示“增量编译完成”。日志缺失或格式不识别时显示未知，不把未知当作 0，也不改变原生退出码或原有启动条件。后续 Editor 启动失败仍由原有 Status／ExitCode／Error 表示，BuildKind 保留已经完成的构建结果。
+
+本轮在 UE5.8.3 CL58210709 运行 `BuildAndLaunch.cmd -NoLaunch -NoPopup`，真实输出为：
+
+```text
+构建结果: 已是最新（无需重新编译）
+构建调用耗时: 1.97 秒（含工具启动与等待）
+UBT 耗时: 1.65 秒
+构建动作数: 0
+```
+
+退出 0，Result.json 为 BuildSucceeded／BuildKind=UpToDate／ActionCount=0／BuildSeconds=1.97／UbtSeconds=1.65，未发生 makefile 参数失效或 PCH 重编。本机日志为 `Saved/BuildTool/BuildAndLaunch_20261122_043248_695_298004`。
+
+现有假引擎／进程夹具扩展为 **21/21 通过**，包含原有 13 项及零动作、进度回退、逗号小数、缺日志、未知格式、失败码优先、编译成功后启动早退、重建缺统计等检查。本机结果为 `Saved/BuildTool/LauncherIntegration_0f5392f9aa834661bcc36b4678aae45e/Results.json`。首轮新增中文输出断言因测试脚本无 UTF-8 BOM、被 Windows PowerShell5.1 按本地编码读取而失败；保留失败夹具，修正测试文件编码后完整复跑通过，CMD 的实际中文输出正常。
+
+本轮真实验证覆盖当前产物的增量检查；正动作编译和显式 Rebuild 的摘要由假引擎夹具验证，没有为提示功能触发真实全量重建或修改玩法源码。未启动 Editor／PIE／联机或运行玩法自动化。P2 内存／并行度和 P3 源码依赖优化仍未实施。
+
+## 2026-11-22：P0 统一代码验证与日常启动的构建参数
+
+日常启动与代码代理的 Editor 编译验证必须使用同一个入口：
+
+```powershell
+# 代码验证／只编译；无人值守时可加 -NoPopup
+.\BuildAndLaunch.cmd -NoLaunch
+
+# 日常编译并打开 Editor
+.\BuildAndLaunch.cmd
+```
+
+两条命令均由 CMD 构建 `HAL_Future_CreationEditor Win64 Development`，使用 `-WaitMutex -NoHotReload -NoLiveCoding`；`-NoLaunch` 仅控制成功后是否打开 Editor。保留现有关闭 Editor／游戏／Live Coding 后再构建的约束，不使用热更新。
+
+本机已有日志确认，之前代码验证直接调用 `Build.bat` 时未带 `-NoLiveCoding`，而 CMD 带该参数。UBT 在两种入口切换时记录 `Old/New command line arguments` 在空值与 `-NoLiveCoding` 间变化；Core、CoreUObject、Engine 的 SharedDefinitions 新旧文件差异为 `WITH_LIVE_CODING=1/0`，随后 PCH 与大量项目文件重编。2026-11-22 三次 CMD 构建分别耗时 399.01、346.00、375.45 秒；2026-11-21 一次正常缓存命中仅 2.39 秒，零编译动作。这些是实施前的历史证据，不是本轮性能复测结果。
+
+P0 不需要改写已有 CMD 或两个兼容适配器。已将入口与参数约束写入根目录 [AGENTS.md 第 14.1 节](../../AGENTS.md#141-本地-editor-构建统一入口)，供后续代理与换机接续执行。日常验证不再单独拼接 Editor 的 UBT 命令；需要独立 Game Target 或 UBT 诊断时单列用途和结果，直接构建相同 Editor Target 仍须保持上述参数及相同引擎／配置。
+
+普通运行保留 UBT 自身的增量检查，不新增文件时间戳／Git 状态判断，不清理缓存、不默认 Rebuild，也不调整内存、并行度、Unity 或源码依赖。`-CheckOnly` 只是环境预检，不能判断产物是否最新。
+
+验收时在无源码／配置变更、相同引擎与参数下，连续运行两次 `-NoLaunch -NoPopup`：后一次应显示 `Target is up to date`、零编译动作，且不再因 `-NoLiveCoding` 切换重建 PCH。首次若原产物来自其他参数，允许先做一次必要构建；实际耗时和本轮检查结果另记，不以历史数值作为承诺。
+
+### 本轮真实增量构建验证
+
+从干净的 `main/56e2223` 接续，本机 UE 5.8.3 CL58210709。只修改构建约定与说明，CMD、两个兼容适配器、Target／模块规则、玩法源码及资产均未修改。
+
+| 验证 | 命令 | UBT 耗时 | 结果与本机日志目录（位于 Saved/BuildTool） |
+|---|---|---|---|
+| 第一次增量检查 | `BuildAndLaunch.cmd -NoLaunch -NoPopup` | 2.49 秒 | 退出 0，`Target is up to date`，0 actions；`BuildAndLaunch_20261122_042639_397_aa03e6` |
+| 第二次增量检查 | 同上 | 1.68 秒 | 退出 0，`Target is up to date`，0 actions；`BuildAndLaunch_20261122_042655_184_01b812` |
+
+两次均使用相同 Target／参数，没有参数变更导致的 makefile 重建或 PCH 编译，也未启动 Editor。表中为 UBT 的 `Total execution time`，不是包含 PowerShell 启动等开销的命令总耗时。本轮证明当前产物能连续复用，不代表任意后续源码改动均可零编译。
+
+首次在受限沙箱内执行时停在引擎 Build.bat 锁文件等待，未进入 UBT；已中止该次进程，再在沙箱外完成上述两次验证，不把中止记录算作成功。
+
+### 本轮脚本检查
+
+运行现有 `Tools/Tests/TestBuildAndLaunch.ps1`，13/13 假引擎／进程夹具通过，覆盖构建参数、生成与构建失败码、占用阻止、Rebuild、模拟启动及早退。本机结果为 `Saved/BuildTool/LauncherIntegration_a86e9322845a48c7b8036db86f9c93f5/Results.json`。该检查不代表真实 Editor 启动或玩法自动化；本轮未运行 PIE、联机、独立 Game Target 或修改源码后的重编测试。日志属于本机生成证据，不作为工程运行依赖纳入 Git。
+
 <a id="local-editor-mcp"></a>
 
 ## 本机编译并接入 MCP

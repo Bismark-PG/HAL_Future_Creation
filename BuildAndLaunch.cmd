@@ -101,6 +101,42 @@ function Invoke-UnrealBuild([string]$Entry, [string[]]$Arguments) {
     finally { $ErrorActionPreference = $previousPreference }
 }
 
+function Get-BuildSummary([string]$LogPath, [int]$BuildExitCode, [bool]$WasRebuild) {
+    $summary = [ordered]@{ Kind = 'Unknown'; ActionCount = $null; UbtSeconds = $null }
+    $upToDate = $false
+    try {
+        if (Test-Path -LiteralPath $LogPath -PathType Leaf) {
+            $log = [IO.File]::ReadAllText($LogPath)
+            $upToDate = [regex]::IsMatch($log, '(?im)^\s*Target is up to date\s*$')
+            $actions = [regex]::Matches($log, '(?im)^\s*(?:Using .+ executor to run|Building)\s+(\d+)\s+action')
+            if ($actions.Count -gt 0) {
+                $summary.ActionCount = [int]$actions[$actions.Count - 1].Groups[1].Value
+            }
+            else {
+                # Other executors may only report progress as [completed/total].
+                foreach ($progress in [regex]::Matches($log, '(?m)^\s*\[\d+/(\d+)\]\s+')) {
+                    $total = [int]$progress.Groups[1].Value
+                    if ($null -eq $summary.ActionCount -or $total -gt $summary.ActionCount) { $summary.ActionCount = $total }
+                }
+                if ($null -eq $summary.ActionCount -and $upToDate) { $summary.ActionCount = 0 }
+            }
+            $times = [regex]::Matches($log, '(?im)^\s*Total execution time:\s*(\d+(?:[.,]\d+)?)\s+seconds')
+            if ($times.Count -gt 0) {
+                $summary.UbtSeconds = [double]::Parse($times[$times.Count - 1].Groups[1].Value.Replace(',', '.'), [Globalization.CultureInfo]::InvariantCulture)
+            }
+        }
+    }
+    catch { Write-Warning "Build statistics are unavailable: $($_.Exception.Message)" }
+    # Statistics never override the native build exit code or an explicit Rebuild.
+    if ($BuildExitCode -ne 0) { $summary.Kind = 'Failed' }
+    elseif ($WasRebuild) { $summary.Kind = 'Rebuild' }
+    elseif ($null -ne $summary.ActionCount) {
+        if ($summary.ActionCount -eq 0) { $summary.Kind = 'UpToDate' }
+        else { $summary.Kind = 'Incremental' }
+    }
+    return [PSCustomObject]$summary
+}
+
 $exitCode = 1
 $transcriptStarted = $false
 $runDirectory = $null
@@ -109,10 +145,10 @@ try {
     $projectRoot = (Resolve-Path -LiteralPath $ProjectDirectory).Path
     $projects = @(Get-ChildItem -LiteralPath $projectRoot -Filter '*.uproject' -File)
     if ($projects.Count -eq 0) {
-        throw "このフォルダーに .uproject ファイルがありません。BuildAndLaunch.cmd をプロジェクトのルートフォルダーに配置してください。`n$projectRoot"
+        throw "No .uproject file was found in this folder. Place BuildAndLaunch.cmd in the project root folder.`n$projectRoot"
     }
     if ($projects.Count -gt 1) {
-        throw "複数の .uproject ファイルが見つかりました。対象を特定できないため、このフォルダーには .uproject ファイルを 1 つだけ配置してください。`n$projectRoot"
+        throw "Multiple .uproject files were found. Keep exactly one .uproject file in this folder so the target project can be identified.`n$projectRoot"
     }
     $projectPath = $projects[0].FullName
     $projectName = $projects[0].BaseName
@@ -126,7 +162,7 @@ try {
     if ($Rebuild) { $buildEntry = Join-Path $EngineRoot 'Engine\Build\BatchFiles\Rebuild.bat' }
     $editorPath = Join-Path $EngineRoot 'Engine\Binaries\Win64\UnrealEditor.exe'
     foreach ($required in @($buildEntry, $editorPath)) {
-        if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "必要なファイルが見つかりません。`n$required" }
+        if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "A required file was not found.`n$required" }
     }
     $version = $engine.Version
     Write-Host "Project:  $projectPath"
@@ -162,6 +198,7 @@ try {
             Project = $projectPath; Engine = $EngineRoot; EngineVersion = "$($version.MajorVersion).$($version.MinorVersion).$($version.PatchVersion)"
             Target = $EditorTarget; Platform = $Platform; EngineChangelist = $version.Changelist; BuildEntry = (Split-Path -Leaf $buildEntry)
             Status = 'Starting'; BuildExitCode = $null; ExitCode = 1; EditorProcessId = $null; Error = $null
+            BuildKind = 'NotRun'; ActionCount = $null; BuildSeconds = $null; UbtSeconds = $null
         }
         Push-Location -LiteralPath $projectRoot
         try {
@@ -174,8 +211,30 @@ try {
             }
             $result.Status = 'Building'
             Write-Host 'Building the project Editor Target...'
-            $exitCode = Invoke-UnrealBuild $buildEntry @($EditorTarget, $Platform, 'Development', "-Project=$projectPath", '-WaitMutex', '-NoHotReload', '-NoLiveCoding', "-Log=$(Join-Path $runDirectory 'UnrealBuildTool.log')")
+            $buildLogPath = Join-Path $runDirectory 'UnrealBuildTool.log'
+            $buildTimer = [Diagnostics.Stopwatch]::StartNew()
+            try {
+                $exitCode = Invoke-UnrealBuild $buildEntry @($EditorTarget, $Platform, 'Development', "-Project=$projectPath", '-WaitMutex', '-NoHotReload', '-NoLiveCoding', "-Log=$buildLogPath")
+            }
+            finally {
+                $buildTimer.Stop()
+                $result.BuildSeconds = [Math]::Round($buildTimer.Elapsed.TotalSeconds, 2)
+            }
             $result.BuildExitCode = $exitCode
+            $summary = Get-BuildSummary $buildLogPath $exitCode $Rebuild.IsPresent
+            $result.BuildKind = $summary.Kind
+            $result.ActionCount = $summary.ActionCount
+            $result.UbtSeconds = $summary.UbtSeconds
+            $kindLabels = @{
+                UpToDate = 'Up to date (no compilation needed)'; Incremental = 'Incremental build completed'; Rebuild = 'Explicit rebuild completed'
+                Failed = 'Build failed'; Unknown = 'Build succeeded (action statistics unknown)'
+            }
+            Write-Host ("Build result: {0}" -f $kindLabels[$result.BuildKind])
+            Write-Host ("Build invocation time: {0:F2} seconds (including tool startup and waiting)" -f $result.BuildSeconds)
+            $ubtTime = if ($null -eq $result.UbtSeconds) { 'Unknown' } else { '{0:F2} seconds' -f $result.UbtSeconds }
+            $actionCount = if ($null -eq $result.ActionCount) { 'Unknown' } else { [string]$result.ActionCount }
+            Write-Host "UBT time: $ubtTime"
+            Write-Host "Build actions: $actionCount"
             if ($exitCode -ne 0) { throw "Build failed (exit code $exitCode). Editor was not launched." }
         }
         finally { Pop-Location }
@@ -196,15 +255,18 @@ try {
 }
 catch {
     if ($exitCode -eq 0) { $exitCode = 1 }
-    if ($result) { $result.Error = $_.Exception.Message; $result.Status = 'Failed' }
-    $message = "処理を中止しました。`n`n$($_.Exception.Message)"
-    Write-Host "エラー: $message" -ForegroundColor Red
+    if ($result) {
+        if ($result.Status -eq 'Building' -and $null -eq $result.BuildExitCode) { $result.BuildKind = 'Failed' }
+        $result.Error = $_.Exception.Message; $result.Status = 'Failed'
+    }
+    $message = "The operation was stopped.`n`n$($_.Exception.Message)"
+    Write-Host "Error: $message" -ForegroundColor Red
     if (-not $NoPopup) {
         try {
             Add-Type -AssemblyName System.Windows.Forms
-            [void][System.Windows.Forms.MessageBox]::Show($message, 'ビルド・起動エラー', 'OK', 'Error')
+            [void][System.Windows.Forms.MessageBox]::Show($message, 'Build / Launch Error', 'OK', 'Error')
         }
-        catch { Write-Host 'エラーダイアログを表示できませんでした。上のエラーメッセージを確認してください。' }
+        catch { Write-Host 'The error dialog could not be displayed. Check the error message above.' }
     }
 }
 finally {

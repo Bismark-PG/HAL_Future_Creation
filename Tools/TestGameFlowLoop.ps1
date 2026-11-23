@@ -4,9 +4,17 @@ param(
     [string]$EngineRoot,
     [ValidateSet('Development', 'Exhibition')][string]$Profile = 'Exhibition',
     [ValidateRange(1024, 65535)][int]$Port = 7909,
-    [string]$ReportDirectory
+    [string]$ReportDirectory,
+    [switch]$VerifyPrimaryBall,
+    [switch]$VerifyExplosiveBall,
+    [switch]$VerifyBlackHoleBall,
+    [switch]$VerifyMeteorBall,
+    [switch]$VerifyGroundRoll
 )
 $ErrorActionPreference = 'Stop'
+if (@(@($VerifyExplosiveBall, $VerifyBlackHoleBall, $VerifyMeteorBall) | Where-Object { $_ }).Count -gt 1) {
+    throw 'Select one special ball per two-round test.'
+}
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $projectFile = Join-Path $projectRoot 'HAL_Future_Creation.uproject'
 if (-not $EngineRoot) {
@@ -35,6 +43,11 @@ if ($Profile -eq 'Exhibition') {
 $common = @('-game', '-nullrhi', '-unattended', '-NoGamepad', '-DisablePlugins=XInputDevice', '-nop4', '-nosplash', '-nosound',
     '-UDPMESSAGING_TRANSPORT_ENABLE=0', "-port=$Port", '-stdout', '-FullStdOutLogOutput', '-TestExit="Automation Test Queue Empty"')
 $owned = @()
+if ($VerifyPrimaryBall -or $VerifyGroundRoll) { $common += '-HALMatchBallFixture' }
+if ($VerifyGroundRoll) { $common += '-HALGroundRollFixture' }
+if ($VerifyExplosiveBall) { $common += '-HALExplosiveBallFixture' }
+if ($VerifyBlackHoleBall) { $common += '-HALBlackHoleBallFixture' }
+if ($VerifyMeteorBall) { $common += '-HALMeteorBallFixture' }
 $roles = @('Host') + @(1..($players - 1) | ForEach-Object { "Client$_" })
 try {
     foreach ($role in $roles) {

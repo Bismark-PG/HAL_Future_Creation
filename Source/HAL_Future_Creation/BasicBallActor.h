@@ -102,10 +102,13 @@ public:
 	uint32 GetBallStateSequence() const { return RepState.StateSequence; }
 
 	USphereComponent* GetPhysicsRoot() const { return PhysicsRoot; }
+	/** Radius of a fresh actor of this authored class, including the configured physics scale. */
+	float GetConfiguredSphereRadius() const;
 	UStaticMeshComponent* GetVisualMesh() const { return VisualMesh; }
-	bool IsPrimaryCameraTarget() const { return bPrimaryCameraTarget; }
-	/** Authority metadata only, never set from a client camera request. */
-	void SetPrimaryCameraTarget(bool bPrimary);
+	bool IsPrimaryMatchBall() const { return bPrimaryCameraTarget; }
+	void SetPrimaryMatchBall(bool bPrimary);
+	bool IsPrimaryCameraTarget() const { return IsPrimaryMatchBall(); }
+	void SetPrimaryCameraTarget(bool bPrimary) { SetPrimaryMatchBall(bPrimary); }
 
 	bool CanBeControlledBy(const AActor* CandidateVehicle) const;
 	bool BeginControl(AActor* NewHolder);
@@ -121,7 +124,7 @@ public:
 	bool HandleVehicleExit(const AActor* LeavingVehicle);
 
 protected:
-	/** Mark exactly one placed ordinary ball. Debug-spawned balls remain unmarked. */
+	/** Marks the permanent match ball and camera focus. Keep this property name for existing maps. */
 	UPROPERTY(EditInstanceOnly, Replicated, Category="Ball|Camera") bool bPrimaryCameraTarget = false;
 	UPROPERTY(EditAnywhere, Category = "Ball|Configuration")
 	EVehicleConfigurationSource ConfigurationSource = EVehicleConfigurationSource::Legacy;
@@ -135,6 +138,13 @@ protected:
 	bool ApplyDefinition(bool bPreview);
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual bool CanUseBall() const { return true; }
+	/** Called once after a formal shot has captured its source. False keeps the ball with its current holder. */
+	virtual bool DeliverLaunch(const FHALAttackSourceSnapshot& Attack, AActor* Launcher, const FVector& Velocity, const AActor* FrameSource);
+	virtual void OnAuthorityBallStateChanged(EBasicBallState Previous) {}
+	virtual void ResolveLaunchedContact(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+	virtual void OnAcceptedVehicleHit();
+	FHALCombatAction& GetLaunchAction() { return LaunchAction; }
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ball|Components")
 	TObjectPtr<USphereComponent> PhysicsRoot;
@@ -188,6 +198,7 @@ private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend class FHALImpactBallPipelineTest;
 	friend class FControlledBallProxyPresentationTest;
+	friend class FHALMatchBallGroundRollTest;
 	friend class FHALCombatBallConsumptionTest;
 	friend struct FHALBallPresentationTestAccess;
 #endif
@@ -202,7 +213,8 @@ private:
 	void StartLowSpeedMonitor();
 	void StopLowSpeedMonitor();
 	void CheckLaunchedLowSpeed();
-	void FinishLaunchAsFree();
+	bool HasGroundSupport() const;
+	void FinishLaunchAsFree(float PickupLockSeconds);
 
 	UFUNCTION()
 	void OnPhysicsRootHit(
@@ -223,6 +235,7 @@ private:
 	bool bHasAppliedRepState = false;
 	uint32 LastAppliedStateSequence = 0;
 	float AccumulatedLowSpeedTime = 0.0f;
+	double GroundRollStartedAt = -1.;
 	FTimerHandle LowSpeedTimerHandle;
 	bool bResolvingDamageHit = false;
 	uint32 LastResolvedHitEventSequence = 0;
