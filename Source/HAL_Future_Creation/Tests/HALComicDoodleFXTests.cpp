@@ -128,16 +128,31 @@ bool FHALBallComicFXTransitionTest::RunTest(const FString&)
 	FHALBallComicFXConfig Cut; Cut.HoldShrinkSeconds = 0;
 	TestEqual(TEXT("A zero shrink time cuts at once"), HoldRingScale(Cut, EHALBallHoldRingPhase::Leaving, 0.f), 0.f);
 
-	// Roof crest: level with the world over the car's world bounds, sized from the car's own width.
-	FTransform Crest;
-	TestTrue(TEXT("A car has a roof anchor"), HoldRoofAnchor(Config, FVector(1000, 2000, 50), FVector(130, 90, 45), 120.f, 1.f, Crest));
-	TestTrue(TEXT("Crest sits above the top of the bounds"), Crest.GetLocation().Equals(FVector(1000, 2000, 50 + 45 + Config.HoldRoofLiftCm), .01));
-	TestTrue(TEXT("Crest stays level whatever the car does"), Crest.GetUnitAxis(EAxis::Z).Equals(FVector::UpVector, .001));
-	TestTrue(TEXT("Crest size follows the car's width"), Crest.GetScale3D().Equals(FVector(120 * Config.HoldRoofSizeWidthFraction * .01, 120 * Config.HoldRoofSizeWidthFraction * .01, 1), .001));
-	TestTrue(TEXT("Crest scales with the pop"), HoldRoofAnchor(Config, FVector::ZeroVector, FVector(130, 90, 45), 120.f, .5f, Crest)
-		&& FMath::IsNearlyEqual(Crest.GetScale3D().X, 120 * Config.HoldRoofSizeWidthFraction * .005, .001));
-	TestFalse(TEXT("A car without width has no crest"), HoldRoofAnchor(Config, FVector::ZeroVector, FVector(130, 90, 45), 0.f, 1.f, Crest));
-	TestFalse(TEXT("Non finite bounds are rejected"), HoldRoofAnchor(Config, FVector(std::numeric_limits<double>::quiet_NaN(), 0, 0), FVector(130, 90, 45), 120.f, 1.f, Crest));
+	// Holder marker: over the rear half of the car, facing the camera, its arrow (+Y of the quad) pointing at the roof centre.
+	{
+		const FVector Down = -FVector::UpVector, North = FVector::ForwardVector, Roof(1000, 2000, 95);
+		FTransform Marker;
+		TestTrue(TEXT("A car has a marker"), HoldMarkerQuad(Config, Roof, North, 400.f, 120.f, Down, North, 1.f, Marker));
+		TestTrue(TEXT("Marker floats behind the middle of the car and above the roof"), Marker.GetLocation().Equals(
+			Roof + FVector(-400 * Config.HoldMarkerBackLengthFraction, 0, 120 * Config.HoldMarkerLiftWidthFraction), .01));
+		TestTrue(TEXT("Marker faces the camera"), Marker.GetUnitAxis(EAxis::Z).Equals(FVector::UpVector, .001));
+		TestTrue(TEXT("Arrow points from the rear at the middle of the car"), Marker.GetUnitAxis(EAxis::Y).Equals(North, .001));
+		TestTrue(TEXT("Marker size follows the car's width"), Marker.GetScale3D().Equals(FVector(120 * Config.HoldRoofSizeWidthFraction * .01, 120 * Config.HoldRoofSizeWidthFraction * .01, 1), .001));
+		TestTrue(TEXT("Car heading east: the arrow turns with it"), HoldMarkerQuad(Config, Roof, FVector::RightVector, 400.f, 120.f, Down, North, 1.f, Marker)
+			&& Marker.GetUnitAxis(EAxis::Y).Equals(FVector::RightVector, .001) && Marker.GetLocation().Y < Roof.Y);
+		TestTrue(TEXT("Marker scales with the pop"), HoldMarkerQuad(Config, Roof, North, 400.f, 120.f, Down, North, .5f, Marker)
+			&& FMath::IsNearlyEqual(Marker.GetScale3D().X, 120 * Config.HoldRoofSizeWidthFraction * .005, .001));
+		// Tilted camera: the lift alone already puts the marker up the screen, so the arrow still has a direction.
+		const FRotationMatrix Tilted(FRotator(-60, 0, 0));
+		TestTrue(TEXT("Tilted camera keeps the quad facing it"), HoldMarkerQuad(Config, Roof, North, 400.f, 120.f, Tilted.GetUnitAxis(EAxis::X), Tilted.GetUnitAxis(EAxis::Z), 1.f, Marker)
+			&& Marker.GetUnitAxis(EAxis::Z).Equals(-Tilted.GetUnitAxis(EAxis::X), .001) && FMath::Abs(Marker.GetUnitAxis(EAxis::Y) | Tilted.GetUnitAxis(EAxis::X)) < .001);
+		FHALBallComicFXConfig Overhead; Overhead.HoldMarkerBackLengthFraction = 0;
+		TestTrue(TEXT("Straight overhead and seen from above, the arrow points down the screen"), HoldMarkerQuad(Overhead, Roof, North, 400.f, 120.f, Down, North, 1.f, Marker)
+			&& Marker.GetUnitAxis(EAxis::Y).Equals(-North, .001));
+		TestFalse(TEXT("A car without width has no marker"), HoldMarkerQuad(Config, Roof, North, 400.f, 0.f, Down, North, 1.f, Marker));
+		TestFalse(TEXT("Nothing is drawn at zero size"), HoldMarkerQuad(Config, Roof, North, 400.f, 120.f, Down, North, 0.f, Marker));
+		TestFalse(TEXT("Non finite bounds are rejected"), HoldMarkerQuad(Config, FVector(std::numeric_limits<double>::quiet_NaN(), 0, 0), North, 400.f, 120.f, Down, North, 1.f, Marker));
+	}
 
 	// Ball sprite: wider than the ball as drawn, so the rings have room outside it.
 	TestEqual(TEXT("Ball sprite half size follows the drawn radius"), HoldBallHalfSize(Config, 160.f, 1.f), 160.f * Config.HoldBallSizeDiameterFraction, .001f);
@@ -169,7 +184,7 @@ bool FHALBallComicFXTransitionTest::RunTest(const FString&)
 	}
 	Config.HoldBallSizeDiameterFraction = 1.f; TestFalse(TEXT("A sprite no wider than the ball leaves no room for rings"), Config.Validate(Error));
 	Config = {}; Config.HoldRoofMaterial = FSoftObjectPath(TEXT("/Game/Assets/FX/Materials/MI_FX_BallHoldRing_Roof.MI_FX_BallHoldRing_Roof"));
-	TestFalse(TEXT("A roof crest needs its quad mesh"), Config.Validate(Error));
+	TestFalse(TEXT("A holder marker needs its quad mesh"), Config.Validate(Error));
 	return true;
 }
 

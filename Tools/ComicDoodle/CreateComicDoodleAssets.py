@@ -10,7 +10,7 @@ Creates or rebuilds, in this order (every asset below is fully owned by this scr
   7. /Game/Assets/FX/Materials/MI_FX_DoodleStatus_LowHealth  sweat drops (only override: FX_Kind = 1)
   8. /Game/Assets/FX/Materials/M_FX_BallHoldRing    parent of the held-ball ownership marks
   9. /Game/Assets/FX/Materials/MI_FX_BallHoldRing_Ball  orbit rings on the held ball (0 overrides)
- 10. /Game/Assets/FX/Materials/MI_FX_BallHoldRing_Roof  holder roof crest (only override: FX_Kind = 1)
+ 10. /Game/Assets/FX/Materials/MI_FX_BallHoldRing_Roof  holder marker over the car (only override: FX_Kind = 1)
 
 Idempotent: parent graphs are rebuilt on every run, instances keep their identity so the settings and the
 Niagara renderer never lose their reference. The Niagara system NS_BallInkTrail and its modules
@@ -140,10 +140,10 @@ STATUS = {
     'driven': (),
 }
 
-# Held-ball ownership marks: orbit rings on the ball and the crest over the holder's roof. They replace the
+# Held-ball ownership marks: orbit rings on the ball and the marker floating over the holder. They replace the
 # magnet beam arc while UHALBallComicFXSettings.bHoldReplacesBeam is set.
 HOLD = {
-    'marker': 'HAL Ball Hold Ring v1 (ball orbit rings / roof crest)',
+    'marker': 'HAL Ball Hold Ring v2 (ball orbit rings / holder marker)',
     'material': '/Game/Assets/FX/Materials/M_FX_BallHoldRing',
     'instance': '/Game/Assets/FX/Materials/MI_FX_BallHoldRing_Ball',
     'variants': (('/Game/Assets/FX/Materials/MI_FX_BallHoldRing_Roof', {'FX_Kind': 1.0}),),
@@ -153,26 +153,20 @@ HOLD = {
     'disable_depth_test': True,
     'sources': ('UV', 'Time'),
     'scalars': (
-        ('FX_Kind', 'Kind', 0.0, 0.0, 1.0, '01 Kind'),                    # 0 ball orbit rings, 1 roof crest
+        ('FX_Kind', 'Kind', 0.0, 0.0, 1.0, '01 Kind'),                    # 0 ball orbit rings, 1 holder marker
         ('FX_FlipV', 'FlipV', 0.0, 0.0, 1.0, '01 Kind'),                  # 1 when the far side of the ball is at V = 1
         ('FX_BallRadius', 'BallRadius', 0.5, 0.0, 1.0, '00 Driven By Runtime'),  # drawn ball radius, sprite half extents
         ('FX_Fps', 'Fps', 8.0, 1.0, 24.0, '02 Motion'),                   # drawings per second
         ('FX_BoilAmount', 'BoilAmount', 0.012, 0.0, 0.1, '02 Motion'),    # line wobble
-        ('FX_TurnsPerSecond', 'TurnsPerSecond', 0.12, -2.0, 2.0, '02 Motion'),  # crest spin; 0 holds it still
         ('FX_OrbitWidth', 'OrbitWidth', 0.88, 0.1, 0.95, '03 Ball Rings'),  # ring half length, sprite half extents
         ('FX_OrbitHeight', 'OrbitHeight', 0.27, 0.02, 0.9, '03 Ball Rings'),  # ring half height: the squash that reads as an orbit
         ('FX_OrbitLine', 'OrbitLine', 0.07, 0.005, 0.2, '03 Ball Rings'),  # half thickness including ink
         ('FX_OrbitTilt', 'OrbitTilt', 18.0, 0.0, 60.0, '03 Ball Rings'),  # degrees; the second ring leans the other way
         ('FX_OrbitWobble', 'OrbitWobble', 3.0, 0.0, 15.0, '03 Ball Rings'),  # degrees of rocking between drawings
-        ('FX_RingOuter', 'RingOuter', 0.78, 0.1, 0.95, '04 Roof Crest'),  # ring radii, quad half extents
-        ('FX_RingInner', 'RingInner', 0.57, 0.05, 0.9, '04 Roof Crest'),
-        ('FX_RingLine', 'RingLine', 0.06, 0.005, 0.2, '04 Roof Crest'),   # half thickness including ink
-        ('FX_StarOut', 'StarOut', 0.24, 0.01, 0.5, '04 Roof Crest'),      # short tip, outward from the ring pair
-        ('FX_StarIn', 'StarIn', 0.52, 0.01, 0.9, '04 Roof Crest'),        # long tip, toward the centre
-        ('FX_StarWidth', 'StarWidth', 0.25, 0.01, 0.5, '04 Roof Crest'),  # half width across the rings
-        ('FX_StarPinch', 'StarPinch', 0.72, 0.2, 1.0, '04 Roof Crest'),    # lower is more concave
-        ('FX_StarTipBias', 'StarTipBias', 0.012, 0.0, 0.05, '04 Roof Crest'),  # trims the hairline off each tip
-        ('FX_StarTwinkle', 'StarTwinkle', 0.86, 0.5, 1.0, '04 Roof Crest'),  # star size on every other drawing
+        ('FX_MarkerArrowTop', 'MarkerArrowTop', -0.31, -0.9, 0.8, '04 Holder Marker'),  # V of the arrow head's base; centred by default
+        ('FX_MarkerArrowLength', 'MarkerArrowLength', 0.62, 0.05, 1.5, '04 Holder Marker'),  # base to tip
+        ('FX_MarkerArrowWidth', 'MarkerArrowWidth', 0.4, 0.05, 0.9, '04 Holder Marker'),  # half width of the base
+        ('FX_MarkerBob', 'MarkerBob', 0.07, 0.0, 0.3, '04 Holder Marker'),  # shift along the arrow on every other drawing
         ('FX_InkWidth', 'InkWidth', 0.036, 0.0, 0.2, '05 Ink'),
         ('FX_ShadowOffset', 'ShadowOffset', 0.02, 0.0, 0.2, '05 Ink'),
         ('FX_ShadowAngle', 'ShadowAngle', 45.0, -180.0, 180.0, '05 Ink'),  # side of the heavy ink, degrees in UV space

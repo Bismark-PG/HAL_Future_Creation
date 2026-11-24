@@ -251,7 +251,7 @@ PIE 截圖 `Saved/ComicDoodle/PIE/R9`（例：`L2_19_slow_v300.png`、`L4_16_t25
 用戶要求把持球效果靠攏塗鴉風，從四個提案中選定「球上軌道環＋車頂環」，車頂環的造型由用戶提供參考圖後定案。
 
 - **球上**：以球的外觀中心為準、面向攝影機的平面（引擎內建 Plane，與車頂共用 `HoldRoofMesh`；原為 `UMaterialBillboardComponent`，團隊要求環隨車頭轉後改用平面）。平面只在畫面內旋轉：**環的長軸＝持球車右向在畫面上的投影，所以環始終與車頭方向垂直**（`HALBallComicFX::HoldBallQuad`，取本機第一個 PlayerController 的視角，純表現）；被球遮住的那半邊固定取畫面上方，車頭朝畫面下方時不會翻到近側。材質 `MI_FX_BallHoldRing_Ball`：兩圈持有者身份色的手繪橢圓環，一左傾一右傾，8fps 三姿態晃動；每圈的遠半邊落在球的輪廓內時被遮掉，讀成「繞著球」而不是「畫在球上」。精靈寬＝球外觀直徑 × `HoldBallSizeDiameterFraction`（程式預設 1.7，`DefaultGame.ini` 調為 1.35：團隊看過實機後要求「環只比球稍大」，環最寬處約為球徑的 1.2 倍）。
-- **車頂**：持球車世界包圍盒頂面上方 `HoldRoofLiftCm`(6) 的水平平面（引擎內建 Plane），材質 `MI_FX_BallHoldRing_Roof`：**兩圈同心細環＋上下左右四顆四角星芒**，星芒朝外的尖端短、朝圓心的尖端細長且不碰到圓心；整體以 0.12 圈／秒逐格慢轉，星芒隔格縮到 0.86。寬＝車寬 × `HoldRoofSizeWidthFraction`（程式預設 1.1，`DefaultGame.ini` 現為 0.975：曾調到 1.3，團隊看過實機後要求縮為 75%；星芒本身已在材質預設值放大）。永遠取世界向上，車翻滾時仍在正上方。
+- **車上指示器**（2026-11-24 取代原本的車頂雙環星芒，團隊選定方案 2）：面向攝影機的平面（引擎內建 Plane），材質 `MI_FX_BallHoldRing_Roof`（`FX_Kind=1`）：**一個三角形箭頭**（第一版是帶環小球＋箭頭，團隊看過實機後只留三角形），8fps 兩姿態沿箭頭方向跳動。位置在車子**後半上方**：車頂中心沿地面往車尾退 車長 × `HoldMarkerBackLengthFraction`(0.3)、抬高 車寬 × `HoldMarkerLiftWidthFraction`(0.1)；箭頭在畫面上**由該位置斜指向車子中心**，車轉向時跟著轉（`HALBallComicFX::HoldMarkerQuad`，取本機視角，純表現）。大小＝車寬 × `HoldRoofSizeWidthFraction`（程式預設 1.1，`DefaultGame.ini` 為 0.9）。抬高刻意取低：第一輪用 0.45 車寬，透視視差把指示器帶到車身左後方之外。設定欄位沿用 `HoldRoof*` 命名。
 - **語彙**：平塗身份色＋黑墨線＋單側重墨，與其他塗鴉層一致；兩者都關閉深度測試。
 - **進出場**：控球瞬間 0.16 秒彈出（0→1.25→1）；發射或脫球後 `HoldShrinkSeconds`(0.12) 內**縮小到 0，不淡出**，車頂環縮在剛失去球的那台車上。被搶球（一次更新內換持有者）時舊標示直接切掉、在新持有者身上重新彈出。
 - **觸發**：與 P3 瞄準箭頭同一條件（`Controlled`＋已解析的 `Holder`），沿用 `ResolveTransition` 的 `bStartAim／bStopAim`，沒有新增狀態或網路資料。

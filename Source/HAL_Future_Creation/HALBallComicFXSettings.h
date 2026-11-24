@@ -49,11 +49,11 @@ struct HAL_FUTURE_CREATION_API FHALBallComicFXConfig
 	UPROPERTY(EditAnywhere, Category="Aim Arrow", meta=(ClampMin="1", ClampMax="2")) float AimPopOvershoot = 1.25f;
 	UPROPERTY(EditAnywhere, Category="Aim Arrow") FName AimColorParameter = TEXT("FX_Color");
 
-	/** Ownership marks of a held ball in the holder's colour: orbit rings on the ball and a crest over the holder's roof. */
+	/** Ownership marks of a held ball in the holder's colour: orbit rings on the ball and a marker floating over the holder. */
 	UPROPERTY(EditAnywhere, Category="Hold Rings") bool bHoldRings = true;
 	/** Unlit translucent material for the camera facing sprite centred on the held ball. None keeps the ball rings off. */
 	UPROPERTY(EditAnywhere, Category="Hold Rings") TSoftObjectPtr<UMaterialInterface> HoldBallMaterial;
-	/** Unlit translucent material drawn on Hold Roof Mesh above the holder. None keeps the roof crest off. */
+	/** Unlit translucent material drawn on Hold Roof Mesh above the holder. None keeps the holder marker off. */
 	UPROPERTY(EditAnywhere, Category="Hold Rings") TSoftObjectPtr<UMaterialInterface> HoldRoofMaterial;
 	/** Flat 100 x 100 cm quad in the XY plane. */
 	UPROPERTY(EditAnywhere, Category="Hold Rings") TSoftObjectPtr<UStaticMesh> HoldRoofMesh;
@@ -61,10 +61,14 @@ struct HAL_FUTURE_CREATION_API FHALBallComicFXConfig
 	UPROPERTY(EditAnywhere, Category="Hold Rings") bool bHoldReplacesBeam = true;
 	/** Ball sprite width as a share of the diameter of the ball as drawn. Must leave room for the rings outside the ball. */
 	UPROPERTY(EditAnywhere, Category="Hold Rings", meta=(ClampMin="1.1", ClampMax="4")) float HoldBallSizeDiameterFraction = 1.7f;
-	/** Roof crest width as a share of the holder body's width, so it reads the same on every car. */
+	/** Holder marker quad size as a share of the holder body's width, so it reads the same on every car. */
 	UPROPERTY(EditAnywhere, Category="Hold Rings", meta=(ClampMin="0.1", ClampMax="4")) float HoldRoofSizeWidthFraction = 1.1f;
-	/** Lift of the crest above the top of the holder's bounds. */
-	UPROPERTY(EditAnywhere, Category="Hold Rings", meta=(ClampMin="0", ClampMax="200", Units="cm")) float HoldRoofLiftCm = 6;
+	/** Height of the marker above the top of the holder's bounds, as a share of the body's width. Kept low: under a perspective
+	 * camera anything lifted slides away from the screen centre, which would carry the marker off the rear half. */
+	UPROPERTY(EditAnywhere, Category="Hold Rings", meta=(ClampMin="0", ClampMax="3")) float HoldMarkerLiftWidthFraction = .1f;
+	/** How far behind the middle of the car the marker floats, as a share of the body's length. 0.5 is the rear bumper;
+	 * 0 puts it straight overhead, where its arrow points down the screen. */
+	UPROPERTY(EditAnywhere, Category="Hold Rings", meta=(ClampMin="0", ClampMax="1.5")) float HoldMarkerBackLengthFraction = .3f;
 	/** Pop-in when the ball is captured. */
 	UPROPERTY(EditAnywhere, Category="Hold Rings", meta=(ClampMin="0", ClampMax="1", Units="s")) float HoldPopSeconds = .16f;
 	UPROPERTY(EditAnywhere, Category="Hold Rings", meta=(ClampMin="1", ClampMax="2")) float HoldPopOvershoot = 1.25f;

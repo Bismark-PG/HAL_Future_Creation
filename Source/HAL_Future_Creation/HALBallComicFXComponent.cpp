@@ -59,13 +59,25 @@ float HALBallComicFX::HoldRingScale(const FHALBallComicFXConfig& Config, EHALBal
 	return FMath::Clamp(1.f - PhaseSeconds / Config.HoldShrinkSeconds, 0.f, 1.f);
 }
 
-bool HALBallComicFX::HoldRoofAnchor(const FHALBallComicFXConfig& Config, const FVector& BoundsOrigin, const FVector& BoundsExtent,
-	float BodyWidthCm, float Scale, FTransform& OutQuad)
+bool HALBallComicFX::HoldMarkerQuad(const FHALBallComicFXConfig& Config, const FVector& RoofCentre, const FVector& HolderForward,
+	float BodyLengthCm, float BodyWidthCm, const FVector& ViewForward, const FVector& ViewUp, float Scale, FTransform& OutQuad)
 {
-	if (BoundsOrigin.ContainsNaN() || BoundsExtent.ContainsNaN() || !FMath::IsFinite(BodyWidthCm) || BodyWidthCm <= 0 || !FMath::IsFinite(Scale)) { return false; }
-	// The quad mesh is 100 cm square, so a scale of one hundredth of the size keeps real centimetres.
-	const double Size = double(BodyWidthCm) * Config.HoldRoofSizeWidthFraction * .01 * FMath::Max(Scale, 0.f);
-	OutQuad = FTransform(FQuat::Identity, BoundsOrigin + FVector(0, 0, FMath::Max(BoundsExtent.Z, 0.) + Config.HoldRoofLiftCm), FVector(Size, Size, 1.));
+	if (RoofCentre.ContainsNaN() || HolderForward.ContainsNaN() || ViewForward.ContainsNaN() || ViewUp.ContainsNaN() || !FMath::IsFinite(BodyLengthCm)
+		|| BodyLengthCm < 0 || !FMath::IsFinite(BodyWidthCm) || BodyWidthCm <= 0 || !FMath::IsFinite(Scale) || Scale <= 0) { return false; }
+	const FVector Normal = -ViewForward.GetSafeNormal();
+	if (Normal.IsNearlyZero()) { return false; }
+	// Over the rear half, measured along the ground: a car standing on its nose keeps the marker straight overhead.
+	const FVector Back = -HolderForward.GetSafeNormal2D();
+	const FVector Anchor = RoofCentre + Back * (double(BodyLengthCm) * Config.HoldMarkerBackLengthFraction)
+		+ FVector(0, 0, double(BodyWidthCm) * Config.HoldMarkerLiftWidthFraction);
+	// The arrow (+V of the quad) points from there at the middle of the car, as that line lies on the screen.
+	FVector Down = FVector::VectorPlaneProject(RoofCentre - Anchor, Normal);
+	// Seen exactly along that line there is no direction on screen: point down the screen.
+	if (!Down.Normalize(1.)) { Down = FVector::VectorPlaneProject(-ViewUp, Normal); }
+	if (!Down.Normalize()) { return false; }
+	// The quad mesh is 100 cm square with U along its X and V along its Y.
+	const double Size = double(BodyWidthCm) * Config.HoldRoofSizeWidthFraction * .01 * Scale;
+	OutQuad = FTransform(FMatrix(Down ^ Normal, Down, Normal, FVector::ZeroVector).ToQuat(), Anchor, FVector(Size, Size, 1.));
 	return true;
 }
 
@@ -388,35 +400,39 @@ void UHALBallComicFXComponent::UpdateHold(const FHALBallComicFXConfig& ComicConf
 {
 	const float Scale = HALBallComicFX::HoldRingScale(ComicConfig, HoldPhase, HoldSeconds);
 	if (HoldPhase == EHALBallHoldRingPhase::Off || (HoldPhase == EHALBallHoldRingPhase::Leaving && Scale <= 0)) { HideHold(); return; }
+	const AActor* Holder = HoldHolder.Get();
+	const UPrimitiveComponent* Body = Holder ? Cast<UPrimitiveComponent>(Holder->GetRootComponent()) : nullptr;
+	// This machine's own view; a top-down one stands in where there is none (nothing is drawn there anyway).
+	FVector ViewLocation;
+	FRotator ViewRotation(-90, 0, 0);
+	if (const APlayerController* Viewer = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr) { Viewer->GetPlayerViewPoint(ViewLocation, ViewRotation); }
+	const FRotationMatrix View(ViewRotation);
+	const FVector ViewForward = View.GetUnitAxis(EAxis::X);
+	const FVector ViewUp = View.GetUnitAxis(EAxis::Z);
 	if (IsValid(HoldBallComponent))
 	{
 		FVector DrawnCentre;
 		float DrawnRadius = 0;
-		const AActor* RingHolder = HoldHolder.Get();
-		const USceneComponent* RingBody = RingHolder ? RingHolder->GetRootComponent() : nullptr;
-		// This machine's own view; a top-down one stands in where there is none (nothing is drawn there anyway).
-		FVector ViewLocation;
-		FRotator ViewRotation(-90, 0, 0);
-		if (const APlayerController* Viewer = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr) { Viewer->GetPlayerViewPoint(ViewLocation, ViewRotation); }
-		const FRotationMatrix View(ViewRotation);
 		FTransform Quad;
 		// The rings stay square to the holder's heading: their long axis is the car's right as seen on screen.
-		const bool bPlaced = RingBody && ResolveDrawnBall(DrawnCentre, DrawnRadius) && HALBallComicFX::HoldBallQuad(DrawnCentre,
-			HALBallComicFX::HoldBallHalfSize(ComicConfig, DrawnRadius, Scale), RingBody->GetComponentTransform().GetUnitAxis(EAxis::Y),
-			View.GetUnitAxis(EAxis::X), View.GetUnitAxis(EAxis::Z), Quad);
+		const bool bPlaced = Body && ResolveDrawnBall(DrawnCentre, DrawnRadius) && HALBallComicFX::HoldBallQuad(DrawnCentre,
+			HALBallComicFX::HoldBallHalfSize(ComicConfig, DrawnRadius, Scale), Body->GetComponentTransform().GetUnitAxis(EAxis::Y), ViewForward, ViewUp, Quad);
 		if (bPlaced) { HoldBallComponent->SetWorldTransform(Quad); }
 		HoldBallComponent->SetVisibility(bPlaced);
 	}
 	if (IsValid(HoldRoofComponent))
 	{
-		const AActor* Holder = HoldHolder.Get();
-		const UPrimitiveComponent* Body = Holder ? Cast<UPrimitiveComponent>(Holder->GetRootComponent()) : nullptr;
 		FTransform Quad;
-		// Local bounds times scale is the car's own width whichever way it faces; world bounds place the crest overhead.
-		const bool bPlaced = Body && Scale > 0 && HALBallComicFX::HoldRoofAnchor(ComicConfig, Body->Bounds.Origin, Body->Bounds.BoxExtent,
-			float(2. * Body->CalcBounds(FTransform::Identity).BoxExtent.Y * FMath::Abs(Body->GetComponentScale().Y)), Scale, Quad);
+		bool bPlaced = false;
+		if (Body)
+		{
+			// Local bounds times scale are the car's own length and width whichever way it faces; world bounds give the roof.
+			const FVector Extent = Body->CalcBounds(FTransform::Identity).BoxExtent * Body->GetComponentScale().GetAbs();
+			bPlaced = HALBallComicFX::HoldMarkerQuad(ComicConfig, Body->Bounds.Origin + FVector(0, 0, FMath::Max(Body->Bounds.BoxExtent.Z, 0.)),
+				Body->GetComponentTransform().GetUnitAxis(EAxis::X), float(2. * Extent.X), float(2. * Extent.Y), ViewForward, ViewUp, Scale, Quad);
+		}
 		if (bPlaced) { HoldRoofComponent->SetWorldTransform(Quad); }
-		// Holder gone: no crest, rather than one left hanging where the car used to be.
+		// Holder gone: no marker, rather than one left hanging where the car used to be.
 		HoldRoofComponent->SetVisibility(bPlaced);
 	}
 }

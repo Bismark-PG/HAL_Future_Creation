@@ -52,13 +52,13 @@ namespace HALBallComicFX
 	HAL_FUTURE_CREATION_API float AimPopScale(const FHALBallComicFXConfig& Config, float AimSeconds);
 	/** Size of the hold rings: the pop while Shown, a linear shrink to zero while Leaving (they shrink, never fade), zero when Off. */
 	HAL_FUTURE_CREATION_API float HoldRingScale(const FHALBallComicFXConfig& Config, EHALBallHoldRingPhase Phase, float PhaseSeconds);
-	/** Roof crest quad: level with the world, centred over the holder's world bounds, sized from the car's own width.
-	 * World up rather than the car's up, so the crest stays overhead while the car rolls. False on unusable input. */
 	/** Camera facing quad round the held ball whose long axis is the holder's right as seen on screen; the hidden half stays up-screen. */
 	HAL_FUTURE_CREATION_API bool HoldBallQuad(const FVector& Centre, float HalfSizeCm, const FVector& HolderRight, const FVector& ViewForward,
 		const FVector& ViewUp, FTransform& OutQuad);
-	HAL_FUTURE_CREATION_API bool HoldRoofAnchor(const FHALBallComicFXConfig& Config, const FVector& BoundsOrigin, const FVector& BoundsExtent,
-		float BodyWidthCm, float Scale, FTransform& OutQuad);
+	/** Holder marker quad: camera facing, floating over the rear half of the car (world up, so it stays overhead while the car
+	 * rolls), its +V pointing at the middle of the roof as seen on screen. Sized from the car's own width. False on unusable input. */
+	HAL_FUTURE_CREATION_API bool HoldMarkerQuad(const FHALBallComicFXConfig& Config, const FVector& RoofCentre, const FVector& HolderForward,
+		float BodyLengthCm, float BodyWidthCm, const FVector& ViewForward, const FVector& ViewUp, float Scale, FTransform& OutQuad);
 	/** Half size in cm of the camera facing ring sprite for a ball drawn with this radius. */
 	HAL_FUTURE_CREATION_API float HoldBallHalfSize(const FHALBallComicFXConfig& Config, float DrawnRadiusCm, float Scale);
 }
@@ -67,7 +67,7 @@ namespace HALBallComicFX
  * Ball-side doodle readability layers, driven only by the ball's replicated state:
  *   Launched    an ink ribbon in the launcher's colour marks the ball as dangerous and says whose it is;
  *   Controlled  a hand drawn arrow on the ground ahead of the holder shows where the shot will go, and orbit rings
- *               on the ball plus a crest over the holder's roof, both in the holder's colour, say whose ball it is.
+ *               on the ball plus a marker floating over the holder, both in the holder's colour, say whose ball it is.
  * Called from the authority state commit and from the client OnRep, like the magnet beam, because a
  * listen-server host never runs the OnRep. Never reads or writes HP, physics, acquisition or launch permission.
  */
@@ -118,7 +118,7 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> HoldRoofInstance;
 	FHALBallComicFXSeen Seen;
 	TWeakObjectPtr<AActor> AimHolder;
-	/** Kept through Leaving, so the crest shrinks on the car that just lost the ball. */
+	/** Kept through Leaving, so the marker shrinks on the car that just lost the ball. */
 	TWeakObjectPtr<AActor> HoldHolder;
 	EHALBallHoldRingPhase HoldPhase = EHALBallHoldRingPhase::Off;
 	float HoldSeconds = 0;

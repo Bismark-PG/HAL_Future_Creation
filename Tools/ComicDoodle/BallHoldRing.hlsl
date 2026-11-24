@@ -1,8 +1,7 @@
 // Held-ball ownership marks, drawn from UV. No texture.
 // Kind 0: two hand drawn orbit rings around the held ball (camera facing sprite centred on the ball).
-// Kind 1: the holder's roof crest, seen from above (flat quad over the roof): two concentric thin rings with a
-//         four-point star on each of the four axes. Each star has a short tip pointing out and a long thin tip
-//         pointing at the centre; the four long tips stop short of the centre, which stays empty.
+// Kind 1: the holder marker over the rear half of the holder (camera facing quad, rolled by C++ so that +V points
+//         at the car's centre): one arrow head.
 // Same hand-inked language as the other doodle layers: flat fill, black contour, heavier ink on one side,
 // redrawn a few times per second, never faded.
 // Inputs are Custom node pins supplied by Tools/ComicDoodle/CreateComicDoodleAssets.py.
@@ -18,7 +17,7 @@ float pose = floor(Time * fps);
 // Stepped clock: everything moves on the same few drawings per second.
 float clock = pose / fps;
 float aa = max(fwidth(q0.x) + fwidth(q0.y), 1e-4) * 0.75;
-float isCrest = step(0.5, Kind);
+float isMarker = step(0.5, Kind);
 // Three poses cycle; each one bends the line along a different pair of waves.
 float phase = fmod(pose, 3.0) * 2.1;
 float2 wobble = float2(sin(q0.y * 7.0 + phase * 3.7) + sin(q0.x * 5.0 + phase), sin(q0.x * 9.0 + phase * 2.3) + sin(q0.y * 4.0 + phase * 1.7)) * 0.5 * max(BoilAmount, 0.0);
@@ -29,31 +28,19 @@ float silhouette = -1.0;
 float body = -1.0;
 for (int pass = 0; pass < 2; ++pass)
 {
-	// The heavy ink side is offset before any rotation, so it stays on the same side while the crest turns.
+	// The heavy ink side is offset in quad space.
 	float2 q = q0 + wobble - shadow * pass;
 	float field = -1.0;
-	if (isCrest > 0.5)
+	if (isMarker > 0.5)
 	{
-		float turn = 6.2831853 * TurnsPerSecond * clock;
-		float cs = cos(turn);
-		float sn = sin(turn);
-		float2 r = float2(q.x * cs - q.y * sn, q.x * sn + q.y * cs);
-		float radius = length(r);
-		float ringHalf = max(RingLine, 0.005);
-		field = max(ringHalf - abs(radius - RingOuter), ringHalf - abs(radius - RingInner));
-		// Fold the four axes onto one: a.y runs along the nearest axis, a.x across it.
-		float2 a = abs(r);
-		if (a.x > a.y) { a = a.yx; }
-		// Two-pose twinkle: every other drawing the stars are a little smaller.
-		float twinkle = lerp(1.0, saturate(StarTwinkle), fmod(pose, 2.0));
-		float along = a.y - 0.5 * (RingOuter + RingInner);
-		float reach = max(along > 0.0 ? StarOut * twinkle : StarIn, 0.01);
-		float halfWidth = max(StarWidth, 0.01) * twinkle;
-		float k = clamp(StarPinch, 0.2, 1.0);
-		// Superellipse with an exponent below one: concave sides, four sharp tips.
-		// The bias retires each tip before it degrades into a hairline along its own axis.
-		float star = (1.0 - pow(pow(abs(along) / reach, k) + pow(a.x / halfWidth, k), 1.0 / k)) * halfWidth - max(StarTipBias, 0.0);
-		field = max(field, star);
+		// Two-pose bob along the pointing direction.
+		float2 m = q - float2(0.0, fmod(pose, 2.0) * MarkerBob);
+		// Arrow head: tip toward +V.
+		float halfWidth = max(MarkerArrowWidth, 0.02);
+		float arrowLength = max(MarkerArrowLength, 0.02);
+		float top = MarkerArrowTop;
+		float arrow = min(m.y - top, ((halfWidth - abs(m.x)) * arrowLength - (m.y - top) * halfWidth) / length(float2(arrowLength, halfWidth)));
+		field = arrow;
 	}
 	else
 	{

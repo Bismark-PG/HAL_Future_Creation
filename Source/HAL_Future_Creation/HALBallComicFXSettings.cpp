@@ -27,10 +27,11 @@ bool FHALBallComicFXConfig::Validate(FString& Error) const
 	}
 	if (bHoldRings && (!HoldBallMaterial.IsNull() || !HoldRoofMaterial.IsNull()))
 	{
-		if (HoldRoofMesh.IsNull()) { Error = TEXT("Hold rings and roof crest need a quad mesh while a material is assigned."); return false; }
+		if (HoldRoofMesh.IsNull()) { Error = TEXT("Hold rings and holder marker need a quad mesh while a material is assigned."); return false; }
 		// At one diameter or less the sprite has no room outside the ball for the rings.
 		if (!FMath::IsFinite(HoldBallSizeDiameterFraction) || HoldBallSizeDiameterFraction <= 1 || !FMath::IsFinite(HoldRoofSizeWidthFraction)
-			|| HoldRoofSizeWidthFraction <= 0 || !FMath::IsFinite(HoldRoofLiftCm) || HoldRoofLiftCm < 0)
+			|| HoldRoofSizeWidthFraction <= 0 || !FMath::IsFinite(HoldMarkerLiftWidthFraction) || HoldMarkerLiftWidthFraction < 0
+			|| !FMath::IsFinite(HoldMarkerBackLengthFraction) || HoldMarkerBackLengthFraction < 0)
 		{ Error = TEXT("Hold ring sizes must be positive, the ball sprite must be wider than the ball, and the roof lift must not be negative."); return false; }
 		if (!FMath::IsFinite(HoldPopSeconds) || HoldPopSeconds < 0 || !FMath::IsFinite(HoldPopOvershoot) || HoldPopOvershoot < 1
 			|| !FMath::IsFinite(HoldShrinkSeconds) || HoldShrinkSeconds < 0)
@@ -70,8 +71,8 @@ bool UHALBallComicFXSettings::CollectCookPackages(TArray<FName>& Packages, FStri
 	if (Comic.bHoldRings && !Comic.HoldBallMaterial.IsNull()
 		&& !Root(Comic.HoldBallMaterial.ToSoftObjectPath(), Comic.HoldBallMaterial.LoadSynchronous() != nullptr, TEXT("Ball hold ring material"))) { return false; }
 	if (Comic.bHoldRings && !Comic.HoldRoofMaterial.IsNull()
-		&& (!Root(Comic.HoldRoofMaterial.ToSoftObjectPath(), Comic.HoldRoofMaterial.LoadSynchronous() != nullptr, TEXT("Hold roof crest material"))
-			|| !Root(Comic.HoldRoofMesh.ToSoftObjectPath(), Comic.HoldRoofMesh.LoadSynchronous() != nullptr, TEXT("Hold roof crest mesh")))) { return false; }
+		&& (!Root(Comic.HoldRoofMaterial.ToSoftObjectPath(), Comic.HoldRoofMaterial.LoadSynchronous() != nullptr, TEXT("Holder marker material"))
+			|| !Root(Comic.HoldRoofMesh.ToSoftObjectPath(), Comic.HoldRoofMesh.LoadSynchronous() != nullptr, TEXT("Holder marker mesh")))) { return false; }
 	return true;
 }
 #endif
