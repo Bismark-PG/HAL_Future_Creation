@@ -13,6 +13,8 @@
 #include "../HALGameplayTags.h"
 #include "../TestVehiclePawn.h"
 #include "Components/BoxComponent.h"
+#include "DynamicMesh/DynamicMesh3.h"
+#include "Materials/MaterialInterface.h"
 #include "Components/LineBatchComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -361,6 +363,28 @@ bool FHALSlipperyGroundDebugTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Hold is blue"), Batch->BatchedMeshes[0].Color.B == 255 && Batch->BatchedMeshes[0].Color.R == 0);
 	TestTrue(TEXT("Full mesh matches gameplay radius"), FMath::IsNearlyEqual(
 		FVector::Dist2D(Batch->BatchedMeshes[0].MeshVerts[0], Batch->BatchedMeshes[0].MeshVerts[1]), 500., .01));
+	// A sloped collider on the spawning pillar used to become the debug circle's ground plane.
+	auto* Pillar=F.World->SpawnActor<AActor>();
+	auto* SlopedBody=NewObject<UBoxComponent>(Pillar);
+	Pillar->AddInstanceComponent(SlopedBody); Pillar->SetRootComponent(SlopedBody);
+	SlopedBody->SetBoxExtent(FVector(100,100,15)); SlopedBody->SetCollisionProfileName(TEXT("BlockAll"));
+	SlopedBody->SetWorldLocationAndRotation(FVector(0,0,100),FRotator(25,0,0)); SlopedBody->RegisterComponent();
+	FCollisionObjectQueryParams Objects; Objects.AddObjectTypesToQuery(ECC_WorldStatic); Objects.AddObjectTypesToQuery(ECC_WorldDynamic);
+	FHitResult LegacyHit;
+	F.World->LineTraceSingleByObjectType(LegacyHit,FVector(0,0,300),FVector(0,0,-100),Objects);
+	TestTrue(TEXT("Reproduction: a ground probe that includes the pillar hits its sloped collider"),LegacyHit.GetActor()==Pillar && LegacyHit.ImpactNormal.Z<.99);
+	const auto FieldPose=Area->GetActorTransform(); const auto PillarPose=Pillar->GetActorTransform();
+	Area->SetOwner(Pillar); Batch->Flush(); Area->Tick(0);
+	if(!TestEqual(TEXT("Owned field still emits its ground mesh"),Batch->BatchedMeshes.Num(),1)) { return false; }
+	for(const auto& Vertex:Batch->BatchedMeshes[0].MeshVerts)
+	{ TestTrue(TEXT("Pillar slope cannot tilt or elevate the circle above the real flat floor"),FMath::IsNearlyEqual(Vertex.Z,3.,.01)); }
+	TestTrue(TEXT("Ground visualization does not move the field or its owner"),Area->GetActorTransform().Equals(FieldPose) && Pillar->GetActorTransform().Equals(PillarPose));
+	SlopedBody->SetWorldLocation(FVector(3000,0,100));
+	Body->SetWorldRotation(FRotator(10,0,0)); Batch->Flush(); Area->Tick(0);
+	if(!TestEqual(TEXT("Real sloped floor remains supported"),Batch->BatchedMeshes.Num(),1)) { return false; }
+	const auto& SlopeMesh=Batch->BatchedMeshes[0];
+	TestTrue(TEXT("Actual terrain slope is still followed"),FMath::Abs(SlopeMesh.MeshVerts[17].Z-SlopeMesh.MeshVerts[1].Z)>50.);
+	TestTrue(TEXT("Slope does not distort world-XY gameplay radius"),FMath::IsNearlyEqual(FVector::Dist2D(SlopeMesh.MeshVerts[0],SlopeMesh.MeshVerts[1]),500.,.01));
 	Batch->Flush();
 	Area->bDebugDraw = false;
 	Area->Tick(0);
@@ -370,6 +394,47 @@ bool FHALSlipperyGroundDebugTest::RunTest(const FString& Parameters)
 	Area->Tick(0);
 	TestEqual(TEXT("Expired area submits no mesh"), Batch->BatchedMeshes.Num(), 0);
 #endif
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSlipperyAreaSurfaceTest, "HAL.FutureCreation.MovementAreas.ExpandingGroundSurface",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALSlipperyAreaSurfaceTest::RunTest(const FString& Parameters)
+{
+	auto* Material = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Assets/FX/Materials/MI_SlipperyTrail_Graffiti.MI_SlipperyTrail_Graffiti"));
+	if (!TestNotNull(TEXT("Trail material loads read-only"), Material)) { return false; }
+	FAreaTestWorld F;
+	auto* Floor = F.World->SpawnActor<AActor>();
+	auto* Body = NewObject<UBoxComponent>(Floor);
+	Floor->AddInstanceComponent(Body); Floor->SetRootComponent(Body);
+	Body->SetBoxExtent(FVector(2000,2000,10));
+	Body->SetCollisionProfileName(TEXT("BlockAll"));
+	Body->SetWorldLocation(FVector(0,0,-10)); Body->RegisterComponent();
+	auto* Area = F.World->SpawnActor<AHALExpandingSlipperyArea>(FVector(0,0,100), FRotator::ZeroRotator);
+	Area->DispatchBeginPlay();
+	Area->Tick(0);
+	TestNull(TEXT("No material draws no surface"), Area->GroundSurface.Get());
+	Area->Presentation.GroundMaterial = Material;
+	Area->Presentation.PaintEdge.bEnabled = false;
+	const auto Extent = [&]() { return Area->GroundSurface->GetMesh()->GetBounds().Extents(); };
+	Area->Tick(0);
+	if (!TestNotNull(TEXT("Material creates the ground surface"), Area->GroundSurface.Get())) { return false; }
+	TestTrue(TEXT("Surface starts at the gameplay seed"), Extent().X <= 1.01 && Area->GroundSurface->IsVisible());
+	TestTrue(TEXT("Surface sits on the floor, not at the volume center"),
+		FMath::IsNearlyEqual(Area->GroundSurface->GetComponentLocation().Z, 0., .01));
+	Area->Settings.ExpansionSeconds = 0;
+	Area->Tick(0);
+	TestTrue(TEXT("Full surface matches gameplay radius"), FMath::IsNearlyEqual(Extent().X, 500., .5));
+	TestTrue(TEXT("Surface stays above the floor"), Area->GroundSurface->GetMesh()->GetBounds().Min.Z >= Area->Presentation.GroundLift - .01);
+	Area->Settings.DurationSeconds = 0;
+	Area->Tick(0);
+	TestTrue(TEXT("Dissolve keeps the surface after gameplay ends"), Area->GroundSurface->IsVisible());
+	Area->Presentation.DissolveSeconds = 0;
+	Area->Tick(0);
+	TestFalse(TEXT("Surface hides after the dissolve"), Area->GroundSurface->IsVisible());
+	Area->Presentation.DissolveSeconds = 1;
+	Area->UpdateArea();
+	TestTrue(TEXT("Expired gameplay with a dissolve keeps the actor"), Area->bGameplayFinished && !Area->IsActorBeingDestroyed());
+	TestEqual(TEXT("Expired gameplay affects nobody"), Area->Occupants.Num(), 0);
 	return true;
 }
 #endif

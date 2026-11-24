@@ -18,6 +18,9 @@ struct HAL_FUTURE_CREATION_API FHALElectricSphereConfig
 	/** Effective electrical lifetime, counted after Begin. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Timing", meta=(ClampMin="0.01", Units="s")) float LoopSeconds = 5;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Timing", meta=(ClampMin="0", Units="s")) float OverSeconds = 1;
+	/** Begin expansion contacts use these instead of the inherited Loop bounce profile. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Begin Bounce Back", meta=(ClampMin="1", ClampMax="1000", Units="cm")) float BeginBounceBackDistance = 500;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Begin Bounce Back", meta=(ClampMin="0.05", ClampMax="2", Units="s")) float BeginBounceBackSeconds = .5f;
 	bool Validate() const;
 	EHALElectricSphereStage StageAt(double Age) const;
 };
@@ -45,11 +48,13 @@ protected:
 	void OnStageChanged(EHALElectricSphereStage NewStage, float StageAgeSeconds, float StageDurationSeconds, float RadiusCm);
 	virtual UPrimitiveComponent* GetContactSurface() const override;
 	virtual bool IsContactActive() const override;
+	virtual void GetBounceBackParameters(float& Distance, float& Seconds) const override;
 	virtual void UpdateGeometry() override;
 	virtual FVector GetPushDirection(UPrimitiveComponent* Surface,const FVector& Current,const FVector& Previous,const FVector& Velocity) const override;
 private:
 	UFUNCTION() void OnRep_Lifecycle();
 	void RefreshLifecycle();
+	EHALElectricSphereStage GetContactStage() const;
 	UPROPERTY(ReplicatedUsing=OnRep_Lifecycle) double StartedAt = -1;
 	EHALElectricSphereStage Stage = EHALElectricSphereStage::Begin;
 	bool bPresented = false;

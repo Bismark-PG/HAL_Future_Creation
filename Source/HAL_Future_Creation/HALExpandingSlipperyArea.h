@@ -5,6 +5,7 @@
 #include "HALSlipperyTrail.h"
 #include "HALExpandingSlipperyArea.generated.h"
 
+class UHALGroundSurfaceComponent;
 class UHALMovementAreaReceiver;
 
 USTRUCT(BlueprintType)
@@ -22,10 +23,14 @@ struct HAL_FUTURE_CREATION_API FHALExpandingSlipperyAreaConfig
 	UPROPERTY(EditAnywhere, Category="Handling") FHALSlipperyTrailHandling Handling;
 	bool IsValid() const;
 	float RadiusAt(double Age) const;
-	bool IsExpired(double Age) const { return Age >= double(ExpansionSeconds) + DurationSeconds; }
+	bool IsExpired(double Age) const { return Age >= GameplaySeconds(); }
+	double GameplaySeconds() const { return double(ExpansionSeconds) + DurationSeconds; }
 };
 
-/** Server-owned circular area with trail handling. Expansion is already effective; nobody is immune. */
+/**
+ * Server-owned circular area with trail handling. Expansion is already effective; nobody is immune.
+ * Each peer draws the ground surface from replicated StartedAt; the actor outlives gameplay only for the visual dissolve.
+ */
 UCLASS()
 class HAL_FUTURE_CREATION_API AHALExpandingSlipperyArea : public AActor
 {
@@ -43,14 +48,24 @@ private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend class FHALExpandingAreaTest;
 	friend class FHALSlipperyGroundDebugTest;
+	friend class FHALSlipperyAreaSurfaceTest;
 #endif
 	double Age() const;
 	void UpdateArea();
+	void FinishGameplay();
+	bool FindGround(FVector& Center, FVector& Normal) const;
+	void UpdateGroundSurface(double Elapsed);
+	void HideGroundSurface();
 	void DrawGroundDebug(double Elapsed) const;
 	/** Debug-only ground mesh and grid. Does not control the slippery effect. */
 	UPROPERTY(EditAnywhere, Replicated, Category="Slippery Area|Debug", meta=(DisplayName="Debug Draw")) bool bDebugDraw = false;
 	UPROPERTY(EditAnywhere, Replicated, Category="Slippery Area") FHALExpandingSlipperyAreaConfig Settings;
+	/** Render-only ground surface, same authoring as the Slippery Trail ability. No material draws nothing. */
+	UPROPERTY(EditAnywhere, Replicated, Category="Slippery Area|Presentation") FHALSlipperyTrailPresentation Presentation;
 	UPROPERTY(Replicated) double StartedAt = -1;
 	FTimerHandle UpdateTimer;
 	TSet<TWeakObjectPtr<UHALMovementAreaReceiver>> Occupants;
+	UPROPERTY(Transient) TObjectPtr<UHALGroundSurfaceComponent> GroundSurface;
+	float LastSurfaceRadius = -1.f;
+	bool bGameplayFinished = false;
 };

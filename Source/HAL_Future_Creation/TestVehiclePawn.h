@@ -13,6 +13,7 @@
 #include "TestVehiclePawn.generated.h"
 
 class UArcadeVehicleMovementComponent;
+class AHALBatarang;
 class UHALShockedPresentationComponent;
 class UHALVehicleDoodleStatusComponent;
 class UHALBattleTopComponent;
@@ -106,10 +107,17 @@ public:
 	FVehicleInputCmd GetCurrentInputCommand() const { return CurrentInputCommand; }
 	/** Local discrete request shared by Enhanced Input and the test console. No target or result parameters. */
 	bool RequestPrimarySkill();
+	/** The follow-up addresses this cast's server-owned dart, never a client-selected victim. */
+	AHALBatarang* GetActiveBatarang() const { return ActiveBatarang; }
 	/** Same held input path as Enhanced Input; native tests may submit intent, never a pose/result. */
 	void SetSelfRightHeld(bool bHeld);
 
 protected:
+	friend class AHALBatarang;
+	friend class UHALBatarangAbility;
+	UPROPERTY(Replicated) TObjectPtr<AHALBatarang> ActiveBatarang;
+	UFUNCTION(Server,Reliable) void ServerBatarangInput(int8 Mirror, bool bDetonate, AHALBatarang* ExpectedDart);
+	int8 BatarangThrowMirror = 1;
 	virtual void InitializeAbilitySystem();
 	/** Shared presentation/movement receivers; caller owns ASC identity and grants. */
 	void BindVehicleAbilitySystem(UHALAbilitySystemComponent* ASC, int32 MovementOwnerId);

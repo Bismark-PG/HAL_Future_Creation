@@ -226,6 +226,87 @@ UE::Geometry::FDynamicMesh3 HALGroundSurface::BuildRibbon(TConstArrayView<FHALGr
 	return Mesh;
 }
 
+UE::Geometry::FDynamicMesh3 HALGroundSurface::BuildDisc(const FHALGroundSurfacePoint& Center, const FVector& Origin,
+	float GroundLift, float TextureTileSize, const FHALGroundSurfaceDeformation& Deformation,
+	const FHALGroundSurfacePaintEdge& PaintEdge)
+{
+	using namespace UE::Geometry;
+	FDynamicMesh3 Mesh;
+	const float Radius = Center.HalfWidth;
+	if (!Deformation.IsValid() || !PaintEdge.IsValid() || !FMath::IsFinite(GroundLift) || !FMath::IsFinite(TextureTileSize)
+		|| TextureTileSize <= 0 || Origin.ContainsNaN() || Center.Ground.ContainsNaN() || Center.Normal.ContainsNaN()
+		|| Center.Normal.Z < .09 || !FMath::IsFinite(Radius) || Radius <= 0) { return Mesh; }
+	// Chord stays near 35 cm at the largest default radius; small seeds keep a round silhouette.
+	const int32 Segments = FMath::Clamp(FMath::CeilToInt(2. * UE_DOUBLE_PI * Radius / 35.), 24, 128);
+	const int32 Rings = Deformation.bEnabled ? FMath::Max(Deformation.WidthSubdivisions / 2,
+		FMath::Min(16, FMath::CeilToInt(Radius / Deformation.VertexSpacing))) : 1;
+	Mesh.EnableAttributes();
+	Mesh.Attributes()->SetNumUVLayers(3);
+	Mesh.Attributes()->EnablePrimaryColors();
+	auto* UVs = Mesh.Attributes()->PrimaryUV();
+	auto* Gradients = Mesh.Attributes()->GetUVLayer(1);
+	auto* Edges = Mesh.Attributes()->GetUVLayer(2);
+	auto* Normals = Mesh.Attributes()->PrimaryNormals();
+	auto* Colors = Mesh.Attributes()->PrimaryColors();
+	const FVector Normal = Center.Normal.GetSafeNormal();
+	const float Padding = PaintEdge.Padding(Radius);
+	const auto AddVertex = [&](const FVector& Radial, float Fraction, bool bMargin)
+	{
+		FVector Offset = Radial * (bMargin ? Radius + Padding : Radius * Fraction);
+		Offset.Z = -(Normal.X * Offset.X + Normal.Y * Offset.Y) / Normal.Z + GroundLift;
+		const FVector Position = Center.Ground - Origin + Offset;
+		const int32 Vertex = Mesh.AppendVertex(Position);
+		UVs->AppendElement(FVector2f(Position.X / TextureTileSize, Position.Y / TextureTileSize));
+		Gradients->AppendElement(bMargin ? FVector2f(0, 0) : FVector2f(Radial.X, Radial.Y) * (-2.f * Fraction / Radius));
+		Edges->AppendElement(FVector2f(bMargin ? Padding : (Fraction - 1.f) * Radius, Padding));
+		Normals->AppendElement(FVector3f(Normal));
+		Colors->AppendElement(FVector4f(bMargin ? 0.f : 1.f - Fraction * Fraction, 0, 0, 1));
+		return Vertex;
+	};
+	const auto AddTriangle = [&](int32 A, int32 B, int32 C)
+	{
+		// Same orientation rule as BuildRibbon so both shapes face the camera identically.
+		const double CrossZ = FVector::CrossProduct(Mesh.GetVertex(B) - Mesh.GetVertex(A), Mesh.GetVertex(C) - Mesh.GetVertex(A)).Z;
+		if (FMath::Abs(CrossZ) <= UE_SMALL_NUMBER) { return; }
+		if (CrossZ > 0) { Swap(B, C); }
+		const FIndex3i Vertices(A, B, C);
+		const int32 Triangle = Mesh.AppendTriangle(Vertices);
+		if (Triangle >= 0)
+		{
+			UVs->SetTriangle(Triangle, Vertices);
+			Gradients->SetTriangle(Triangle, Vertices);
+			Edges->SetTriangle(Triangle, Vertices);
+			Normals->SetTriangle(Triangle, Vertices);
+			Colors->SetTriangle(Triangle, Vertices);
+		}
+	};
+	TArray<FVector> Radials;
+	Radials.Reserve(Segments);
+	for (int32 Segment = 0; Segment < Segments; ++Segment)
+	{
+		const double Angle = 2. * UE_DOUBLE_PI * Segment / Segments;
+		Radials.Add(FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0));
+	}
+	const int32 Hub = AddVertex(FVector::ZeroVector, 0, false);
+	int32 Inner = INDEX_NONE;
+	const auto AddRing = [&](float Fraction, bool bMargin)
+	{
+		const int32 First = Mesh.MaxVertexID();
+		for (const FVector& Radial : Radials) { AddVertex(Radial, Fraction, bMargin); }
+		for (int32 Segment = 0; Segment < Segments; ++Segment)
+		{
+			const int32 Next = (Segment + 1) % Segments;
+			if (Inner == INDEX_NONE) { AddTriangle(Hub, First + Segment, First + Next); continue; }
+			AddTriangle(Inner + Segment, First + Segment, First + Next);
+			AddTriangle(Inner + Segment, First + Next, Inner + Next);
+		}
+		Inner = First;
+	};
+	for (int32 Ring = 1; Ring <= Rings; ++Ring) { AddRing(float(Ring) / Rings, false); }
+	if (Padding > 0) { AddRing(1, true); }
+	return Mesh;
+}
+
 UHALGroundSurfaceComponent::UHALGroundSurfaceComponent()
 {
 	SetMobility(EComponentMobility::Movable);

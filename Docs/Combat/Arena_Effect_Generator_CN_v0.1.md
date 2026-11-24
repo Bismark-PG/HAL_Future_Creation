@@ -1,5 +1,57 @@
 # 場地效果柱子生成器
 
+## 下一環節：單排老虎機圖示演出（方案確認，尚未實作）
+
+用戶確認將現有文字／倒數替換為柱子上方的單排橫向圖示列，在打滑／黑洞／電場三種Icon中抽選。中央選中Icon保持正常1.0倍大小，兩側未選中縮小（建議初始0.65倍，可調）並降低亮度；輪播移動時平滑插值大小，減速後鎖定權威選中結果。鎖定後顯示提示與生成延遲的統一倒數／進度條，到期才生成效果。沿用現有柱子旋轉下沉／升回，面板留在上方；Text Height Offset預計套用面板高度。結果、時序與生成繼續由現有伺服器State管理，C++實作演出，BP僅配置三張圖示與外觀，不在演出重新抽玩法結果。預計參數為正常尺寸、未選中縮放、間距、輪播速度、面板高度。具體圖示、樣式與節奏仍待實作／驗收。
+
+![單排抽選外觀示意，非實際遊戲畫面](Art/ArenaGenerator/SingleRowSlot_Concept.png)
+
+示意圖由內建圖片工具產生，僅作設計參考，不是正式Icon或已接入的遊戲資產。提示詞摘要：明亮未來體育場、淺藍發光柱子、單排橫向三效果圖示、中央正常大小與兩側弱化、黑洞選中框、下方倒數／進度條，以及快速輪播→減速鎖定→倒數啟動三階段示意。用戶本次要求先提交推送目前成果，尚未授權在本次同步中開始演出實作。
+
+## 2026-11-24 獨立文字高度偏移
+
+新增`Settings → Presentation → Text Height Offset`，預設0、範圍-10000～10000局部cm。文字相對Z為`Pillar Half Extent.Z × 2 + 12 + Text Height Offset`；正值往上、負值往下，Actor縮放會影響實際世界距離。只調文字，不改Box大小／位置、模型動畫或效果生成位置。選場景柱子調整該欄位即可預覽；也可由團隊在BP Class Defaults設定，Compile／Save後供未覆寫的實例共用。進入遊戲與設定複製時沿用此值，不再需要手動移動StageText。預設0保留原本位置，沒有新增Tick／RPC／BP修改。
+
+本機main/84a748b、UE5.8.2-56702186，統一入口`BuildAndLaunch.cmd -NoLaunch -NoPopup` **Editor R2成功(exit0，45.57秒／9actions)**，含既有其他檔案數值轉型警告；**既有ArenaGenerator Native R1 5/5通過**，0測試警告／失敗／未執行／進行中。R1構建被Editor／Live Coding占用前置檢查阻止，用戶保存關閉後R2解除；未終止用戶程序。以用戶保存關閉後為基準，3/3份Match／生成器BP／打滑BP雜湊保持，git diff --check通過，保留用戶場景及前輪改動，未編輯BP／地圖、未提交／Push。純文字配置調整，未新增自動化用例，未新跑雙端／Game Target／全量／Cook或實際文字畫面，不沿用前輪雙端結果作本輪證據。下一步重開Editor選柱子，依需求調Text Height Offset，確認編輯預覽及進入遊戲後高度。證據`Saved/ArenaGenerator/20261124/TextHeight`（Build_Editor_R2、Native_R1、ProtectedAfterUserSave／ProtectedAfterTests）；構建詳情`Saved/BuildTool/BuildAndLaunch_20261124_163103_780_8b6d12`。
+
+## 2026-11-24 沉底取消碰撞（取代舊版始終固定碰撞規則）
+
+依用戶最終規格，柱子只使用原生`PillarBody` Box Collider；所有Static Mesh（兩個原模型及動畫顯示副本）在遊戲中一律NoCollision、無Overlap、無物理模擬，不再恢復模型作者原先的碰撞。`Solid Pillar`原生預設改為true，Box尺寸由`Pillar Half Extent`設定；舊BP／場景若明確覆寫false仍尊重該值，需由團隊手動勾選。
+
+啟用兩模型下沉且Sink Depth>0時，進入Active（模型已沉底、效果生成）關閉Box；Finished升回途中保持關閉，完全升回後恢復QueryAndPhysics。Finish Seconds=0即時恢復；等待／停用／取消／下一輪與EndPlay按Solid Pillar恢復。關閉Animate Meshes、Sink Depth=0或沒有有效兩模型下沉時，Box保持Solid Pillar配置。Solid Pillar=false則全程無碰撞。只變更運行時碰撞，不搬動原Actor／原模型，也不改生成中心／Offset／三效果流程；碰撞更新獨立於MeshMotionRoot，沿用複製State，在主機／客戶端及無顯示副本的權威端運行，沒有新Tick／RPC／玩家操作修改。支援模型晚組裝。
+
+已擴充`TwoMeshVisualMotion`：實際水平射線在柱子升起／下沉中被Box阻擋、沉底與升回中不被阻擋、升回完成後再阻擋；驗證原模型即使作者配置QueryOnly／QueryAndPhysics也保持純顯示、零收尾／取消／無視覺根、關動畫／零下沉及Solid Pillar=false。雙端三效果循環驗證Box沉底關閉與下一輪恢復、所有模型全程無碰撞。
+
+最終Box-only版於UE5.8.2-56702186完成驗證：統一入口`BuildAndLaunch.cmd -NoLaunch -NoPopup` **Editor R5成功(exit0，44.93秒／9actions)**，包含既有HALSkillTestDummyWidget／HALTornado數值轉型警告；**Native R2 12/12**（MovementAreas 7＋ArenaGenerator 5），**Network R2主機／客戶端各1/1**，測試報告均0警告／失敗／未執行／進行中。唯讀讀回Native CDO、BP CDO、MVPB_Match柱子均Solid Pillar=true，場景實例有兩個Static Mesh、Animate Meshes=true。3/3份Match／生成器BP／打滑BP雜湊保持，git diff --check通過。本輪不修改BP／地圖，保留此前打滑圈貼地修正與用戶場景改動，未提交／Push。未新跑獨立Game Target／全量／Cook／真人駕車畫面；無視覺根測試不等於實際Dedicated實機驗收。下一步重開Editor在Match確認：柱子升起時擋車、沉底後可通過、完全升回後再擋車，模型斜面不參與碰撞。
+
+證據`Saved/ArenaGenerator/20261124/LoweredCollision`（Build_Editor_R5、Native_R2、Network_R2、SolidPillarDefaults.json、ProtectedBeforeTests／ProtectedAfterTests），構建詳情`Saved/BuildTool/BuildAndLaunch_20261124_161628_622_e9fd57`。此前R1雙端結果屬用戶澄清前的中間版，不作最終驗證。
+
+## 2026-11-19 兩個Mesh的旋轉下沉與升回
+
+用戶要求抽選結果確定後旋轉下沉，並明確限定只有新增的兩個Mesh視覺；效果結束後升回，接下一輪。新增Settings → Mesh Animation：`Animate Meshes`預設開、`Mesh Sink Depth`預設600世界cm、`Mesh Rotation Degrees`預設360度（負值反轉）。從Revealing開始，跨Reveal＋Hint＋Spawn Delay平滑旋轉下沉；Active保持最下方；Finished在Finish Seconds內沿原路升回，Rolling／Waiting／Disabled恢復原姿。Finish Seconds=0即時復位，沒有新增或延長玩法階段。曲線用smoothstep，運行中不累積旋轉誤差。
+
+唯讀載入目前保存Match確認兩個Static Mesh都掛在GeneratorBase、QueryAndPhysics碰撞開啟且不模擬物理；直接移動它們會同時移動碰撞。因此在BeginPlay辨識恰好兩個Static Mesh、均有模型且不模擬物理時，建立兩份暫存、無碰撞／不複製的顯示副本，隱藏原渲染並保留原碰撞／Transform／父子關係。複本沿用各自Mesh、材質與渲染設定，集中在暫存MeshMotionRoot旋轉／下沉；EndPlay刪副本並恢復原渲染。不是新增BP資產，不修改原材質。原生Box占位沒有兩個Static Mesh則保持舊外觀；若日後增加第三個模型，不猜測要動哪兩個，需另行明確指定設計。
+
+Actor原點、PillarBody、StageText、HintRing、揭曉時固定的EffectCenter及三效果生成流程不隨動畫移動。保留原碰撞表示下沉時碰撞仍位於原地，符合這次只改視覺的範圍。下沉採世界Z／世界cm，不乘Actor Scale；兩個模型繞柱底世界垂直軸共同轉動，保留相對位置／旋轉／縮放。
+
+各端從現有複製State＋伺服器時鐘推算目前姿態，不複製每幀Transform或新增RPC。既有0.05s玩法Timer保持；只在下沉／升回階段開最多每幀一次的1/60s純表現Timer，Active與待機時關閉，Dedicated Server不建顯示副本；沒有Actor Tick／車輛操作改動。
+
+最終本機`main/fb3c635`、UE5.8.2-56702186 **Editor R3／Game R3編譯連結成功，Native R3生成器5/5，Network R3 Host／Client各1/1**，測試報告均0警告／失敗／未執行／進行中。原生新增`ArenaGenerator.TwoMeshVisualMotion`驗證兩份副本及其OwnedComponents歸屬／清理、材質保持、非均勻縮放的世界距離、共同轉軸、階段連續／復位、文字／提示／碰撞／生成中心保持、關閉、三模型不猜測與晚組裝立即使用目前姿態。雙端80ms Host出站延遲，保存BP加相同兩模型的暫存組裝，三根柱子均觀測七階段、下沉和升回中間姿態、三效果實際生成及下一輪。**9/9份保存機關BP與Match地圖SHA256保持**，未編輯BP／地圖／Event Graph／車操作，未提交／Push。NullRHI程式姿態與雙端驗證，不冒充真人畫面／動態觀感、四端／晚加入／Cook或大量柱子效能驗收。下一步重開Editor測目前Match實例；Settings→Mesh Animation調距離與旋轉，Timing→Finish Seconds控制升回時間。原始證據`Saved/ArenaGenerator/20261119/MeshMotion`。
+
+本輪診斷留檔：Native R1／R2亦各5/5。Network R1雙端因未觀測動畫而逾時；獨立唯讀比較證實**Match保存實例有2個Static Mesh，新建同BP實例有0個**（`InspectAssembly.log`），兩模型存於場景實例，不是BP預設組件。R2在測試各端暫存組裝同款兩模型，並補晚組裝初始化；兩端已觀測動畫，但各1項測試失敗於OwnedComponents副本數量。引擎`UActorComponent::PostInitProperties`不會自動登記從Instance模板複製的組件；補`AddOwnedComponent`並新增原生歸屬／清理斷言後R3通過。保留R1／R2失敗報告，未覆寫。如果希望日後直接放新的BP也自帶模型，團隊需手動將兩模型配置到BP預設，或複製目前場景柱子；本輪未代改BP。
+
+## 2026-11-19 柱子玻璃改淺藍自發光
+
+用戶已在生成器BP自行加上`SM_0198_PF_engine_001`與`SM_0201_PF_flask_003`，要求將瓶狀模型剩餘紫色改為淺藍自發光。唯讀查明`M_004_Dots`只是半透明點點層；紫色玻璃來自`M_006_Glass`色盤貼圖，匯入模型Slot_00的U約0.167。原本只改Dots不能移除另一層紫色。保留用戶目前對Dots／Glass的未提交材質修改。
+
+透過UE官方資產API新增`/Game/Assets/Materials/Arena/M_ArenaGenerator_LightBlueGlow`：Unlit、Translucent、Two Sided；`GlowColor`線性RGB=(0.14,0.65,1)，`GlowStrength`=2，兩者Multiply接Emissive Color；`Opacity`=0.65。不再採用紫色色盤UV。可在材質節點調參，或團隊自行建立MI調整；自發光代表材質自身亮度，未新增燈光或承諾照亮周圍。
+
+只將`/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0201_PF_flask_003`的預設Slot_00改指向新材質並保存。當時Match中生成器`staticMesh2`無Override Materials，故繼承此更新；Slot_01仍Dots、Slot_02仍Substanse。**同款flask_003模型的其他實例也會繼承新玻璃外觀**，不是修改共享Glass本體。未修改BP／Event Graph／地圖／玩法或C++。若之後只想單一柱子外觀不同，團隊應在該BP元件Element 0自行指定獨立材質覆寫。
+
+本機`main/fb3c635`、UE5.8.2-56702186。獨立UnrealEditor-Cmd進程從磁碟重新載入材質與Mesh，顏色／強度／透明度／Unlit／Translucent／Emissive連線／Opacity連線／3個Slot嚴格查核通過，進程exit 0，沒有記錄Warning／Error。12份原BP／Match／Dots／Glass／Substanse保護檔案SHA256皆保持；只保存新材質與指定Mesh。模型修改前檔案留在Saved作本地備份，不納入Git。
+
+**畫面尚待用戶驗收**：嘗試高解析截圖API已排程，但當時原Glass材質Editor的Color Picker模態仍開啟，沒有產出PNG；未替用戶確認或取消未完成選色。視窗檢查只見原材質預覽與Color Picker，不能視為新材質畫面證據。未新跑Gameplay測試、PIE或Cook（純材質變更）；沒有提交／Push。證據在`Saved/MaterialInspect/20261119`（BlueGlow.json、VerifyGlow.json／log、GlowProtectedBefore／After.json、CreateBlueGlow.py）。下一步關閉原選色視窗回Match檢查淺藍明度／透明度，按實際曝光與Bloom調GlowStrength。
+
 ## 規則與責任
 
 `AHALArenaEffectGenerator` 是可直接建立 BP 子類的伺服器權威 Actor。第一版原生外觀是灰色 Box 柱子、朝上的階段文字，以及地面預告圓環；無需新增資產或 Event Graph 才能執行。三種候選為 `AHALExpandingSlipperyArea`、`AHALBlackHole`、`AHALElectricSphereGimmick`（Electric Field 使用既有球形電擊區域）。
@@ -34,7 +86,8 @@
 | Black Hole Offset | (0,0,190)cm | 對齊MVPB_Match黑洞Z=0（柱底Z=-190） |
 | Electric Field Offset | (0,0,190)cm | 對齊MVPB_Match電擊球Z=0（柱底Z=-190） |
 | Pillar Half Extent | (40,40,100)cm | 柱子總大小為80×80×200cm，Actor原點為底部中心 |
-| Solid Pillar | false | Box預設只展示；開啟後才阻擋車輛／球 |
+| Solid Pillar | true | 僅Box阻擋車輛／球；沉底至完全升回前關閉；Static Mesh全程無碰撞 |
+| Text Height Offset | 0cm | Presentation分類；相對原文字位置的局部Z偏移，正上負下，Actor縮放會影響世界距離 |
 | Wait For Match Start | true | 比賽地圖等待 Playing |
 | Random Seed | 0 | 0每次新建隨機序列；非0用來重現抽選序列 |
 

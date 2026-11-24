@@ -5,8 +5,10 @@
 #include "DrawDebugHelpers.h"
 #include "EngineUtils.h"
 #include "GameFramework/GameStateBase.h"
+#include "HALGroundSurfacePresentation.h"
 #include "HALMovementAreaReceiver.h"
 #include "HALSlipperyTrailAbility.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/App.h"
 #include "Net/UnrealNetwork.h"
 #include "TestVehiclePawn.h"
@@ -38,7 +40,8 @@ AHALExpandingSlipperyArea::AHALExpandingSlipperyArea()
 	bReplicates = true;
 	bAlwaysRelevant = true;
 	SetRootComponent(CreateDefaultSubobject<USceneComponent>(TEXT("AreaCenter")));
-	PrimaryActorTick.bCanEverTick = ENABLE_DRAW_DEBUG && FApp::CanEverRender();
+	// Ticks only on rendering peers: ground surface presentation and optional debug drawing.
+	PrimaryActorTick.bCanEverTick = FApp::CanEverRender();
 	PrimaryActorTick.bAllowTickOnDedicatedServer = false;
 }
 
@@ -69,16 +72,22 @@ void AHALExpandingSlipperyArea::BeginPlay()
 	const auto* State = GetWorld()->GetGameState();
 	StartedAt = State ? State->GetServerWorldTimeSeconds() : GetWorld()->GetTimeSeconds();
 	UpdateArea();
-	SetLifeSpan(Settings.ExpansionSeconds + Settings.DurationSeconds);
+	// Gameplay ends at GameplaySeconds; the remaining life is only the visual dissolve on every peer.
+	SetLifeSpan(Settings.GameplaySeconds() + (Presentation.HasUsableMaterial() ? Presentation.DissolveSeconds : 0.f));
 	GetWorldTimerManager().SetTimer(UpdateTimer, this, &ThisClass::UpdateArea, .02f, true);
 	ForceNetUpdate();
 }
 
 void AHALExpandingSlipperyArea::UpdateArea()
 {
-	if (!HasAuthority() || StartedAt < 0) { return; }
+	if (!HasAuthority() || StartedAt < 0 || bGameplayFinished) { return; }
 	const double Elapsed = Age();
-	if (Settings.IsExpired(Elapsed)) { Destroy(); return; }
+	if (Settings.IsExpired(Elapsed))
+	{
+		if (Presentation.HasUsableMaterial() && Presentation.DissolveSeconds > 0) { FinishGameplay(); }
+		else { Destroy(); }
+		return;
+	}
 	FHALMovementAreaConfig Effect;
 	Effect.Kind = EHALMovementAreaKind::Slippery;
 	Effect.LateralGripMultiplier = Settings.Handling.LateralGripMultiplier;
@@ -100,28 +109,40 @@ void AHALExpandingSlipperyArea::UpdateArea()
 	Occupants = MoveTemp(Inside);
 }
 
+void AHALExpandingSlipperyArea::FinishGameplay()
+{
+	// Gameplay is over; the actor stays alive only so every peer can play the dissolve.
+	bGameplayFinished = true;
+	GetWorldTimerManager().ClearTimer(UpdateTimer);
+	for (const auto& Entry : Occupants) { if (auto* Receiver = Entry.Get()) { Receiver->UnregisterArea(this); } }
+	Occupants.Reset();
+}
+
 void AHALExpandingSlipperyArea::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-#if ENABLE_DRAW_DEBUG
-	if (!bDebugDraw || StartedAt < 0) { return; }
+	if (StartedAt < 0) { return; }
 	const double Elapsed = Age();
-	if (Elapsed < 0 || Settings.IsExpired(Elapsed)) { return; }
+	if (Elapsed < 0) { return; }
+	UpdateGroundSurface(Elapsed);
+#if ENABLE_DRAW_DEBUG
+	if (!bDebugDraw || Settings.IsExpired(Elapsed)) { return; }
 	DrawGroundDebug(Elapsed);
 #endif
 }
 
-void AHALExpandingSlipperyArea::DrawGroundDebug(double Elapsed) const
+bool AHALExpandingSlipperyArea::FindGround(FVector& Center, FVector& Normal) const
 {
-#if ENABLE_DRAW_DEBUG
 	// Presentation only: use a supporting surface below the center, without moving the authority volume.
-	FVector Center = GetActorLocation();
-	FVector Normal = FVector::UpVector;
+	Center = GetActorLocation();
+	Normal = FVector::UpVector;
 	FCollisionObjectQueryParams Objects;
 	Objects.AddObjectTypesToQuery(ECC_WorldStatic);
 	Objects.AddObjectTypesToQuery(ECC_WorldDynamic);
 	FCollisionQueryParams Query(SCENE_QUERY_STAT(SlipperyAreaDebugGround), false, this);
 	if (GetInstigator()) { Query.AddIgnoredActor(GetInstigator()); }
+	// A generator's stationary mesh collision is not the floor beneath its spawned field.
+	if (GetOwner()) { Query.AddIgnoredActor(GetOwner()); }
 	TArray<FHitResult> Hits;
 	GetWorld()->LineTraceMultiByObjectType(Hits, Center + FVector::UpVector * Settings.HalfHeight,
 		Center - FVector::UpVector * Settings.HalfHeight, Objects, Query);
@@ -132,8 +153,71 @@ void AHALExpandingSlipperyArea::DrawGroundDebug(double Elapsed) const
 			|| Hit.bStartPenetrating || Hit.ImpactNormal.Z < .1f) { continue; }
 		Center = Hit.ImpactPoint;
 		Normal = Hit.ImpactNormal;
-		break;
+		return true;
 	}
+	return false;
+}
+
+void AHALExpandingSlipperyArea::UpdateGroundSurface(double Elapsed)
+{
+	const double GameplayEnd = Settings.GameplaySeconds();
+	if (!Presentation.HasUsableMaterial() || Elapsed >= GameplayEnd + Presentation.DissolveSeconds) { HideGroundSurface(); return; }
+	const float Radius = Settings.RadiusAt(FMath::Min(Elapsed, GameplayEnd));
+	// Rebuild only while the radius visibly changes; the hold phase just advances material time.
+	const bool bRebuild = !GroundSurface || !GroundSurface->IsVisible()
+		|| FMath::Abs(Radius - LastSurfaceRadius) >= FMath::Max(1.f, Settings.MaximumRadius * .01f)
+		|| (Radius >= Settings.MaximumRadius && LastSurfaceRadius < Settings.MaximumRadius);
+	if (bRebuild)
+	{
+		FHALGroundSurfacePoint Center;
+		FindGround(Center.Ground, Center.Normal);
+		Center.HalfWidth = Radius;
+		auto Mesh = HALGroundSurface::BuildDisc(Center, Center.Ground, Presentation.GroundLift, Presentation.TextureTileSize,
+			Presentation.Deformation, Presentation.PaintEdge);
+		if (Mesh.TriangleCount() == 0) { HideGroundSurface(); return; }
+		const bool bNewComponent = !GroundSurface;
+		if (bNewComponent)
+		{
+			GroundSurface = NewObject<UHALGroundSurfaceComponent>(this, TEXT("SlipperyGroundSurface"));
+			GroundSurface->SetUsingAbsoluteLocation(true);
+			GroundSurface->SetUsingAbsoluteRotation(true);
+			GroundSurface->SetUsingAbsoluteScale(true);
+			GroundSurface->SetupAttachment(GetRootComponent());
+		}
+		GroundSurface->SetWorldLocationAndRotation(Center.Ground, FQuat::Identity);
+		GroundSurface->SetMesh(MoveTemp(Mesh));
+		if (bNewComponent) { GroundSurface->RegisterComponent(); }
+		GroundSurface->SetVisibility(true);
+		LastSurfaceRadius = Radius;
+	}
+	GroundSurface->ConfigureSurface(Presentation.GroundMaterial, Presentation.TextureTileSize, Presentation.Deformation, Presentation.PaintEdge);
+	GroundSurface->SetSurfaceAge(float(Elapsed));
+	if (Presentation.DissolveSeconds > 0)
+	{
+		GroundSurface->SetDissolveProgress(Presentation.DissolveProgress(float(Elapsed), float(GameplayEnd)));
+	}
+	// Ripple travel contract for ground materials: during expansion the rings advance exactly with the gameplay
+	// radius; afterwards the material adds HoldSeconds x its own slow speed, so the hand-off never jumps.
+	// The MID exists whenever deformation, paint edge or dissolve is enabled; otherwise ripples simply stay static.
+	if (auto* Ripple = Cast<UMaterialInstanceDynamic>(GroundSurface->GetMaterial(0)))
+	{
+		const double Expansion = Settings.ExpansionSeconds;
+		Ripple->SetScalarParameterValue(TEXT("HAL_GroundRippleTravel"), Settings.RadiusAt(FMath::Min(Elapsed, Expansion)));
+		Ripple->SetScalarParameterValue(TEXT("HAL_GroundRippleHoldSeconds"), float(FMath::Max(0., Elapsed - Expansion)));
+	}
+}
+
+void AHALExpandingSlipperyArea::HideGroundSurface()
+{
+	if (GroundSurface) { GroundSurface->SetVisibility(false); }
+	LastSurfaceRadius = -1.f;
+}
+
+void AHALExpandingSlipperyArea::DrawGroundDebug(double Elapsed) const
+{
+#if ENABLE_DRAW_DEBUG
+	FVector Center, Normal;
+	FindGround(Center, Normal);
 	const auto GroundPoint = [&](double X, double Y)
 	{
 		// Keep world-XY radius identical to the gameplay cylinder, including on slopes.
@@ -176,6 +260,7 @@ void AHALExpandingSlipperyArea::EndPlay(const EEndPlayReason::Type Reason)
 	GetWorldTimerManager().ClearTimer(UpdateTimer);
 	for (const auto& Entry : Occupants) { if (auto* Receiver = Entry.Get()) { Receiver->UnregisterArea(this); } }
 	Occupants.Reset();
+	HideGroundSurface();
 	Super::EndPlay(Reason);
 }
 
@@ -185,4 +270,5 @@ void AHALExpandingSlipperyArea::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 	DOREPLIFETIME(AHALExpandingSlipperyArea, Settings);
 	DOREPLIFETIME(AHALExpandingSlipperyArea, StartedAt);
 	DOREPLIFETIME(AHALExpandingSlipperyArea, bDebugDraw);
+	DOREPLIFETIME_CONDITION(AHALExpandingSlipperyArea, Presentation, COND_InitialOnly);
 }
