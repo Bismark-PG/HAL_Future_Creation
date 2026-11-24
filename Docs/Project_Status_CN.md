@@ -1,5 +1,14 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-19 柱子兩個Mesh旋轉下沉／升回已完成編譯與專項／雙端驗證，畫面待用戶試用。** 只改兩個模型視覺；Settings→Mesh Animation新增開關、600世界cm下沉距離、360度旋轉。揭曉起跨Reveal＋Hint＋Delay下沉，Active保持，Finished依Finish Seconds升回；Actor／碰撞／文字／提示／EffectCenter保持。原模型留原位，動畫採無碰撞暫存顯示副本，保留材質／相對姿態；晚組裝直接使用當前姿態。最終本機UE5.8.2-56702186 **Editor R3／Game R3成功，Native R3 5/5、Network R3 Host／Client各1/1**，測試報告均0警告／失敗／未執行／進行中；雙端80ms、三效果、七階段、下沉及升回中間姿態皆驗。**9/9份保存BP／Match哈希保持**，未修改BP／地圖／玩家操作，未提交／Push。Network R1因兩模型僅存場景實例而未觀測動畫，R2補相同組裝後再發現Instance模板副本未登記OwnedComponents；補歸屬與清理斷言後R3通過，保留前輪失敗報告。唯讀比較新建BP為0個Static Mesh、Match實例為2個；現有Match自動套用，新增別根需複製現有場景柱子或團隊手動設定BP預設。NullRHI不等同真人畫面／Cook／效能驗收。下一步重開Editor在Match看演出與調參。詳見[規則與驗證](Combat/Arena_Effect_Generator_CN_v0.1.md#2026-11-19-兩個mesh的旋轉下沉與升回)，證據`Saved/ArenaGenerator/20261119/MeshMotion`。
+
+**2026-11-19 柱子玻璃已套用獨立淺藍自發光材質，磁碟重載查核通過，外觀待用戶驗收。** 新增`M_ArenaGenerator_LightBlueGlow`（`/Game/Assets/Materials/Arena`），Unlit／Translucent／雙面，線性RGB(0.14,0.65,1)×GlowStrength2→Emissive，Opacity0.65；只替換`SM_0201_PF_flask_003`預設Slot_00，保留Dots與Substanse兩槽。當前柱子無材質覆寫，繼承模型更新；同款瓶模型其他實例亦受影響。原Glass／Dots、BP／地圖未改，12份保護檔SHA256保持；保留用戶既有材質／模型／BP／地圖改動。獨立UE5.8.2進程磁碟重載與材質連線／參數／槽位查核exit0，無Warning／Error。原Glass的Color Picker仍開啟，高解析截圖任務未產出PNG，未操作用戶未確認選色，不能宣稱新外觀已看過；未新跑Gameplay／Cook，未提交／Push。下一步回Match目視確認明度與透明度。見[材質與作用範圍](Combat/Arena_Effect_Generator_CN_v0.1.md#2026-11-19-柱子玻璃改淺藍自發光)，證據`Saved/MaterialInspect/20261119`。
+
+**2026-11-19 電球 Begin（擴張）接觸改為獨立較遠回彈。** 基點 `main/fb3c635`；用戶明確指既有三階段，Begin現在可電擊，新增球體專用 Begin Bounce Back Distance／Seconds，預設500cm／0.5s。Loop保持繼承的普通回彈，Over關閉；伺服器／本地預測共用同一階段參數入口，階段切換不重置連續接觸鎖、不額外再彈。普通電牆數值保持。仍使用原固定球形碰撞半徑，未新增半徑擴張或修改特效動畫；此條取代歷史「Begin只是無接觸預告」。團隊接線／調參見[電球最新規則](Combat/Electric_Sphere_CN_v0.1.md#2026-11-19begin-擴張階段獨立回彈最新規則)。
+
+本機實際 **UE5.8.2-56702186**，與其他設備5.8.3分開；Editor／Game成功，原生 **255/255**（253乾淨、2項既有警告，0失敗／未執行）。Begin強回彈、Loop普通回彈、舊電牆三組雙端共6報告皆各端1/1，0測試警告／失敗；Begin實際取640cm／0.6s測試參數，Loop／電牆100cm／0.3s。原始證據在Saved/ElectricSphere/20261119，細節／限制見上述文件。本機Listen Server、NullRHI、Host出站80ms注入，不等於真人手感／畫面、階段邊界延遲完整組合、四機或Cook驗收。保留起始團隊4份機關BP與MVPB_Match地圖未提交改動，代理未編輯保存資產；專用進程已結束，未提交／Push。下一步團隊在電球BP Class Defaults調兩個Begin參數，測擴張接觸與Loop連續接觸／重新進入的手感。
+
+
 **2026-11-19，正式比赛图 `MVPB_Match` 已完成场馆调光。** 降低主光、天空光及曝光补偿，十盏琥珀色嵌地灯扩大照明范围，八盏看台聚光灯分青蓝、琥珀、淡紫三色，分别斜照座席与赛道外沿。UE 5.8.3 重载验证通过。D3D12 同一中场驾驶镜头的亮度中位数下降约 27%，球面中央采样从 204 降至 199。开关对照确认地灯能照亮钢板，看台灯能照亮座席和外沿球面。本机 Exhibition 一主三客完成首局返房及第二局开赛，四端均零测试警告、零失败，Windows 地图 Cook 通过。四台实机同时释放技能时的可读性与帧耗待团队验证。[正式图灯位、调参和实拍对比](Presentation/ArenaFloor_SatinMetal_CN.md#arena-match-lighting)
 
 **2026-11-19，正式比赛图 `MVPB_Match` 已采用验收过的场地。** Development 和 Exhibition 房间配置均指向这张图。六边形钢板、外圈灯带、九盏场内地灯、带灯中场盘、行车面、外围侧挡、四个出生点、主球及机关高度已同步。UE 5.8.3 重载正式图，1,216 条地面和 64 条侧挡射线通过。实车与自由球平稳过盘，外围挡球反弹，五类机关在新高度生效。本机 Exhibition 一主三客通过首局返房及第二局开赛，四端均零测试警告、零失败。Windows 地图 Cook 成功，11 份场地依赖均已产出。学校四机的画面与帧耗待实测，另有一项既有冲击特效的 DX11 编译重试记录。[正式图验证、调参与 Cook 记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-deck-formal-match)

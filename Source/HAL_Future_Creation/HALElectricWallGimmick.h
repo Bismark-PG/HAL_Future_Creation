@@ -64,6 +64,8 @@ protected:
 protected:
 	virtual UPrimitiveComponent* GetContactSurface() const;
 	virtual bool IsContactActive() const { return true; }
+	/** One profile for both authority and autonomous prediction. */
+	virtual void GetBounceBackParameters(float& Distance, float& Seconds) const;
 	virtual void UpdateGeometry();
 	virtual FVector GetPushDirection(UPrimitiveComponent* Surface,const FVector& Current,const FVector& Previous,const FVector& Velocity) const;
 private:

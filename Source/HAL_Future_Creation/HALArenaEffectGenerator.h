@@ -10,6 +10,7 @@ class AHALElectricSphereGimmick;
 class UBoxComponent;
 class UDynamicMeshComponent;
 class UTextRenderComponent;
+class UStaticMeshComponent;
 
 UENUM(BlueprintType)
 enum class EHALArenaEffect : uint8 { None, SlipperyArea, BlackHole, ElectricField };
@@ -43,6 +44,12 @@ struct HAL_FUTURE_CREATION_API FHALArenaGeneratorConfig
 	UPROPERTY(EditAnywhere, Category="Pillar", meta=(ClampMin="1", ClampMax="2000", Units="cm")) FVector PillarHalfExtent = FVector(40,40,100);
 	/** Placeholder is display-only by default; enable explicitly if the pillar should block vehicles/balls. */
 	UPROPERTY(EditAnywhere, Category="Pillar") bool bSolidPillar = false;
+	/** Animate the two authored Static Mesh components; collision and the generator origin stay fixed. */
+	UPROPERTY(EditAnywhere, Category="Mesh Animation") bool bAnimateMeshes = true;
+	/** World-space downward travel, independent of the pillar's authored scale. */
+	UPROPERTY(EditAnywhere, Category="Mesh Animation", meta=(ClampMin="0", ClampMax="10000", Units="cm", EditCondition="bAnimateMeshes")) float MeshSinkDepth = 600.f;
+	/** Total rotation while sinking. Negative values reverse the direction; rising retraces it. */
+	UPROPERTY(EditAnywhere, Category="Mesh Animation", meta=(ClampMin="-7200", ClampMax="7200", Units="deg", EditCondition="bAnimateMeshes")) float MeshRotationDegrees = 360.f;
 	/** Match/room maps wait for Playing; worlds without HAL match state start immediately. */
 	UPROPERTY(EditAnywhere, Category="Lifecycle") bool bWaitForMatchStart = true;
 	/** 0 chooses a fresh authority seed. Nonzero makes the sequence reproducible; repeats are allowed. */
@@ -110,6 +117,20 @@ private:
 	double ServerNow() const;
 	void RefreshGeometry();
 	void RefreshPresentation();
+	void InitializeMeshMotion();
+	void RefreshMeshMotion();
+	void UpdateMeshMotion();
+	void ClearMeshMotion();
+	float MeshMotionAlpha() const;
+	/** Render-only copies leave authored mesh collision, attachment and transforms untouched. */
+	struct FMeshMotionSource
+	{
+		TWeakObjectPtr<UStaticMeshComponent> Source;
+		bool bVisible = true, bHiddenInGame = false, bCastShadow = true;
+	};
+	TArray<FMeshMotionSource> MeshMotionSources;
+	UPROPERTY(Transient) TObjectPtr<USceneComponent> MeshMotionRoot;
+	FTimerHandle MeshMotionTimer;
 	UPROPERTY(ReplicatedUsing=OnRep_State) FHALArenaGeneratorState State;
 	UPROPERTY(Transient) TObjectPtr<UClass> PendingClass;
 	FRandomStream Random;

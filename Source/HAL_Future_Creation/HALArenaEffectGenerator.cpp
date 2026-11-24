@@ -10,6 +10,7 @@
 #include "Components/DynamicMeshComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/TextRenderComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "DynamicMesh/DynamicMesh3.h"
 #include "DynamicMesh/DynamicMeshAttributeSet.h"
 #include "DynamicMesh/MeshNormals.h"
@@ -93,6 +94,9 @@ bool FHALArenaGeneratorConfig::Validate(FString& Error) const
 		|| !Offset(EffectOffset) || !Offset(SlipperyAreaOffset) || !Offset(BlackHoleOffset) || !Offset(ElectricFieldOffset) || PillarHalfExtent.ContainsNaN()
 		|| PillarHalfExtent.GetMin() < 1 || PillarHalfExtent.GetMax() > 2000)
 	{ Error = TEXT("Invalid timing, effect offset or pillar extent."); return false; }
+	if (!FMath::IsFinite(MeshSinkDepth) || MeshSinkDepth < 0 || MeshSinkDepth > 10000
+		|| !FMath::IsFinite(MeshRotationDegrees) || FMath::Abs(MeshRotationDegrees) > 7200)
+	{ Error = TEXT("Invalid mesh sink depth or rotation."); return false; }
 	for (const auto Effect : {EHALArenaEffect::SlipperyArea,EHALArenaEffect::BlackHole,EHALArenaEffect::ElectricField})
 	{
 		if (!Offset(PlacementOffset(Effect))) { Error = TEXT("Combined effect offset exceeds 10000 cm on an axis."); return false; }
@@ -166,6 +170,7 @@ void AHALArenaEffectGenerator::BeginPlay()
 		}
 		Random.Initialize(Settings.RandomSeed != 0 ? Settings.RandomSeed : FMath::Rand());
 	}
+	InitializeMeshMotion();
 	UpdateGenerator();
 	if (bEnding || IsActorBeingDestroyed()) { return; }
 	FTimerManagerTimerParameters Timer; Timer.bLoop = true; Timer.bMaxOncePerFrame = true;
@@ -280,6 +285,7 @@ float AHALArenaEffectGenerator::GetStageRemainingSeconds() const
 }
 void AHALArenaEffectGenerator::RefreshPresentation()
 {
+	RefreshMeshMotion();
 	const bool bWarning = State.Stage == EHALArenaGeneratorStage::Hint || State.Stage == EHALArenaGeneratorStage::Delay;
 	HintRing->SetVisibility(bWarning && State.WarningRadius > 0);
 	if (bWarning && State.WarningRadius > 0)
@@ -331,11 +337,110 @@ void AHALArenaEffectGenerator::RefreshPresentation()
 		if (GetNetMode()!=NM_DedicatedServer) { OnGeneratorStageChanged(State.Stage,State.Effect,State.Cycle); }
 	}
 }
+
+void AHALArenaEffectGenerator::InitializeMeshMotion()
+{
+	if (!Settings.bAnimateMeshes || IsNetMode(NM_DedicatedServer) || MeshMotionRoot) { return; }
+	TInlineComponentArray<UStaticMeshComponent*> Meshes;
+	GetComponents(Meshes);
+	// A native placeholder has no authored meshes. Do not guess which decorations to move if more are added.
+	if (Meshes.Num() != 2) { return; }
+	for (const auto* Mesh : Meshes)
+	{
+		if (!Mesh->GetStaticMesh() || Mesh->IsSimulatingPhysics()) { return; }
+	}
+	MeshMotionRoot = NewObject<USceneComponent>(this,TEXT("MeshMotionRoot"),RF_Transient);
+	MeshMotionRoot->SetupAttachment(RootComponent);
+	MeshMotionRoot->SetMobility(EComponentMobility::Movable);
+	MeshMotionRoot->RegisterComponent();
+	for (auto* Source : Meshes)
+	{
+		FMeshMotionSource Saved;
+		Saved.Source = Source; Saved.bVisible = Source->IsVisible();
+		Saved.bHiddenInGame = Source->bHiddenInGame; Saved.bCastShadow = Source->CastShadow;
+		MeshMotionSources.Add(Saved);
+		// The component template preserves materials and render settings without editing the BP asset.
+		auto* Visual = NewObject<UStaticMeshComponent>(this,Source->GetClass(),NAME_None,RF_Transient,Source);
+		// Instance templates skip automatic ownership in UActorComponent::PostInitProperties.
+		AddOwnedComponent(Visual);
+		Visual->SetIsReplicated(false);
+		Visual->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Visual->SetGenerateOverlapEvents(false);
+		Visual->SetSimulatePhysics(false);
+		Visual->SetMobility(EComponentMobility::Movable);
+		Visual->SetupAttachment(MeshMotionRoot);
+		Visual->SetRelativeTransform(Source->GetComponentTransform().GetRelativeTransform(GetActorTransform()));
+		Visual->RegisterComponent();
+		Source->SetVisibility(false,false); Source->SetHiddenInGame(true,false); Source->SetCastShadow(false);
+	}
+}
+
+float AHALArenaEffectGenerator::MeshMotionAlpha() const
+{
+	const double Age = FMath::Max(0.,ServerNow()-State.StartedAt);
+	double Progress = 0;
+	if (State.Stage == EHALArenaGeneratorStage::Active) { return 1.f; }
+	if (State.Stage == EHALArenaGeneratorStage::Finished)
+	{ Progress = State.Duration > 0 ? 1.-FMath::Clamp(Age/State.Duration,0.,1.) : 0; }
+	else if (State.Stage == EHALArenaGeneratorStage::Revealing || State.Stage == EHALArenaGeneratorStage::Hint || State.Stage == EHALArenaGeneratorStage::Delay)
+	{
+		const double Duration = double(Settings.RevealSeconds)+Settings.HintSeconds+Settings.SpawnDelaySeconds;
+		const double Previous = State.Stage == EHALArenaGeneratorStage::Delay ? double(Settings.RevealSeconds)+Settings.HintSeconds
+			: State.Stage == EHALArenaGeneratorStage::Hint ? Settings.RevealSeconds : 0;
+		Progress = Duration > 0 ? FMath::Clamp((Previous+Age)/Duration,0.,1.) : 1;
+	}
+	return float(Progress*Progress*(3.-2.*Progress));
+}
+
+void AHALArenaEffectGenerator::UpdateMeshMotion()
+{
+	if (!MeshMotionRoot) { return; }
+	const float Alpha = MeshMotionAlpha();
+	const FQuat Rotation(FVector::UpVector,FMath::DegreesToRadians(Settings.MeshRotationDegrees*Alpha));
+	MeshMotionRoot->SetWorldLocationAndRotation(GetActorLocation()-FVector(0,0,Settings.MeshSinkDepth*Alpha),Rotation*GetActorQuat());
+	MeshMotionRoot->SetWorldScale3D(GetActorScale3D());
+}
+
+void AHALArenaEffectGenerator::RefreshMeshMotion()
+{
+	if (!bReady) { return; }
+	// Instance components can arrive after BeginPlay (for example on a late network replica).
+	if (!MeshMotionRoot) { InitializeMeshMotion(); }
+	if (!MeshMotionRoot) { return; }
+	UpdateMeshMotion();
+	const bool bMoving = State.Stage == EHALArenaGeneratorStage::Revealing || State.Stage == EHALArenaGeneratorStage::Hint
+		|| State.Stage == EHALArenaGeneratorStage::Delay || State.Stage == EHALArenaGeneratorStage::Finished;
+	if (bMoving && !GetWorldTimerManager().IsTimerActive(MeshMotionTimer))
+	{
+		FTimerManagerTimerParameters Timer; Timer.bLoop = true; Timer.bMaxOncePerFrame = true;
+		GetWorldTimerManager().SetTimer(MeshMotionTimer,this,&ThisClass::UpdateMeshMotion,1.f/60,Timer);
+	}
+	else if (!bMoving) { GetWorldTimerManager().ClearTimer(MeshMotionTimer); }
+}
+
+void AHALArenaEffectGenerator::ClearMeshMotion()
+{
+	GetWorldTimerManager().ClearTimer(MeshMotionTimer);
+	if (MeshMotionRoot)
+	{
+		TArray<USceneComponent*> Copies; MeshMotionRoot->GetChildrenComponents(false,Copies);
+		for (auto* Copy : Copies) { Copy->DestroyComponent(); }
+		MeshMotionRoot->DestroyComponent(); MeshMotionRoot = nullptr;
+	}
+	for (const auto& Saved : MeshMotionSources)
+	{
+		if (auto* Source = Saved.Source.Get())
+		{ Source->SetVisibility(Saved.bVisible,false); Source->SetHiddenInGame(Saved.bHiddenInGame,false); Source->SetCastShadow(Saved.bCastShadow); }
+	}
+	MeshMotionSources.Reset();
+}
+
 void AHALArenaEffectGenerator::OnRep_Settings() { RefreshGeometry(); RefreshPresentation(); }
 void AHALArenaEffectGenerator::OnRep_State() { RefreshPresentation(); }
 void AHALArenaEffectGenerator::EndPlay(const EEndPlayReason::Type Reason)
 {
 	bEnding=true; GetWorldTimerManager().ClearTimer(UpdateTimer); RemoveEffect();
+	ClearMeshMotion();
 	HintRing->SetVisibility(false); StageText->SetVisibility(false);
 	Super::EndPlay(Reason);
 }

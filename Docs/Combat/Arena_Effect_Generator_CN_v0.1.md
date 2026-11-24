@@ -1,5 +1,31 @@
 # 場地效果柱子生成器
 
+## 2026-11-19 兩個Mesh的旋轉下沉與升回
+
+用戶要求抽選結果確定後旋轉下沉，並明確限定只有新增的兩個Mesh視覺；效果結束後升回，接下一輪。新增Settings → Mesh Animation：`Animate Meshes`預設開、`Mesh Sink Depth`預設600世界cm、`Mesh Rotation Degrees`預設360度（負值反轉）。從Revealing開始，跨Reveal＋Hint＋Spawn Delay平滑旋轉下沉；Active保持最下方；Finished在Finish Seconds內沿原路升回，Rolling／Waiting／Disabled恢復原姿。Finish Seconds=0即時復位，沒有新增或延長玩法階段。曲線用smoothstep，運行中不累積旋轉誤差。
+
+唯讀載入目前保存Match確認兩個Static Mesh都掛在GeneratorBase、QueryAndPhysics碰撞開啟且不模擬物理；直接移動它們會同時移動碰撞。因此在BeginPlay辨識恰好兩個Static Mesh、均有模型且不模擬物理時，建立兩份暫存、無碰撞／不複製的顯示副本，隱藏原渲染並保留原碰撞／Transform／父子關係。複本沿用各自Mesh、材質與渲染設定，集中在暫存MeshMotionRoot旋轉／下沉；EndPlay刪副本並恢復原渲染。不是新增BP資產，不修改原材質。原生Box占位沒有兩個Static Mesh則保持舊外觀；若日後增加第三個模型，不猜測要動哪兩個，需另行明確指定設計。
+
+Actor原點、PillarBody、StageText、HintRing、揭曉時固定的EffectCenter及三效果生成流程不隨動畫移動。保留原碰撞表示下沉時碰撞仍位於原地，符合這次只改視覺的範圍。下沉採世界Z／世界cm，不乘Actor Scale；兩個模型繞柱底世界垂直軸共同轉動，保留相對位置／旋轉／縮放。
+
+各端從現有複製State＋伺服器時鐘推算目前姿態，不複製每幀Transform或新增RPC。既有0.05s玩法Timer保持；只在下沉／升回階段開最多每幀一次的1/60s純表現Timer，Active與待機時關閉，Dedicated Server不建顯示副本；沒有Actor Tick／車輛操作改動。
+
+最終本機`main/fb3c635`、UE5.8.2-56702186 **Editor R3／Game R3編譯連結成功，Native R3生成器5/5，Network R3 Host／Client各1/1**，測試報告均0警告／失敗／未執行／進行中。原生新增`ArenaGenerator.TwoMeshVisualMotion`驗證兩份副本及其OwnedComponents歸屬／清理、材質保持、非均勻縮放的世界距離、共同轉軸、階段連續／復位、文字／提示／碰撞／生成中心保持、關閉、三模型不猜測與晚組裝立即使用目前姿態。雙端80ms Host出站延遲，保存BP加相同兩模型的暫存組裝，三根柱子均觀測七階段、下沉和升回中間姿態、三效果實際生成及下一輪。**9/9份保存機關BP與Match地圖SHA256保持**，未編輯BP／地圖／Event Graph／車操作，未提交／Push。NullRHI程式姿態與雙端驗證，不冒充真人畫面／動態觀感、四端／晚加入／Cook或大量柱子效能驗收。下一步重開Editor測目前Match實例；Settings→Mesh Animation調距離與旋轉，Timing→Finish Seconds控制升回時間。原始證據`Saved/ArenaGenerator/20261119/MeshMotion`。
+
+本輪診斷留檔：Native R1／R2亦各5/5。Network R1雙端因未觀測動畫而逾時；獨立唯讀比較證實**Match保存實例有2個Static Mesh，新建同BP實例有0個**（`InspectAssembly.log`），兩模型存於場景實例，不是BP預設組件。R2在測試各端暫存組裝同款兩模型，並補晚組裝初始化；兩端已觀測動畫，但各1項測試失敗於OwnedComponents副本數量。引擎`UActorComponent::PostInitProperties`不會自動登記從Instance模板複製的組件；補`AddOwnedComponent`並新增原生歸屬／清理斷言後R3通過。保留R1／R2失敗報告，未覆寫。如果希望日後直接放新的BP也自帶模型，團隊需手動將兩模型配置到BP預設，或複製目前場景柱子；本輪未代改BP。
+
+## 2026-11-19 柱子玻璃改淺藍自發光
+
+用戶已在生成器BP自行加上`SM_0198_PF_engine_001`與`SM_0201_PF_flask_003`，要求將瓶狀模型剩餘紫色改為淺藍自發光。唯讀查明`M_004_Dots`只是半透明點點層；紫色玻璃來自`M_006_Glass`色盤貼圖，匯入模型Slot_00的U約0.167。原本只改Dots不能移除另一層紫色。保留用戶目前對Dots／Glass的未提交材質修改。
+
+透過UE官方資產API新增`/Game/Assets/Materials/Arena/M_ArenaGenerator_LightBlueGlow`：Unlit、Translucent、Two Sided；`GlowColor`線性RGB=(0.14,0.65,1)，`GlowStrength`=2，兩者Multiply接Emissive Color；`Opacity`=0.65。不再採用紫色色盤UV。可在材質節點調參，或團隊自行建立MI調整；自發光代表材質自身亮度，未新增燈光或承諾照亮周圍。
+
+只將`/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0201_PF_flask_003`的預設Slot_00改指向新材質並保存。當時Match中生成器`staticMesh2`無Override Materials，故繼承此更新；Slot_01仍Dots、Slot_02仍Substanse。**同款flask_003模型的其他實例也會繼承新玻璃外觀**，不是修改共享Glass本體。未修改BP／Event Graph／地圖／玩法或C++。若之後只想單一柱子外觀不同，團隊應在該BP元件Element 0自行指定獨立材質覆寫。
+
+本機`main/fb3c635`、UE5.8.2-56702186。獨立UnrealEditor-Cmd進程從磁碟重新載入材質與Mesh，顏色／強度／透明度／Unlit／Translucent／Emissive連線／Opacity連線／3個Slot嚴格查核通過，進程exit 0，沒有記錄Warning／Error。12份原BP／Match／Dots／Glass／Substanse保護檔案SHA256皆保持；只保存新材質與指定Mesh。模型修改前檔案留在Saved作本地備份，不納入Git。
+
+**畫面尚待用戶驗收**：嘗試高解析截圖API已排程，但當時原Glass材質Editor的Color Picker模態仍開啟，沒有產出PNG；未替用戶確認或取消未完成選色。視窗檢查只見原材質預覽與Color Picker，不能視為新材質畫面證據。未新跑Gameplay測試、PIE或Cook（純材質變更）；沒有提交／Push。證據在`Saved/MaterialInspect/20261119`（BlueGlow.json、VerifyGlow.json／log、GlowProtectedBefore／After.json、CreateBlueGlow.py）。下一步關閉原選色視窗回Match檢查淺藍明度／透明度，按實際曝光與Bloom調GlowStrength。
+
 ## 規則與責任
 
 `AHALArenaEffectGenerator` 是可直接建立 BP 子類的伺服器權威 Actor。第一版原生外觀是灰色 Box 柱子、朝上的階段文字，以及地面預告圓環；無需新增資產或 Event Graph 才能執行。三種候選為 `AHALExpandingSlipperyArea`、`AHALBlackHole`、`AHALElectricSphereGimmick`（Electric Field 使用既有球形電擊區域）。

@@ -23,13 +23,13 @@ namespace HALElectricWallNetworkTests
 	class FRun : public IAutomationLatentCommand
 	{
 		FAutomationTestBase* Test;
-		bool bSphere=false;
+		bool bSphere=false,bBeginBounce=false;
 		double Deadline=FPlatformTime::Seconds()+100,AlignedAt=-1,Complete=-1;
 		bool Prepared=false,ReadySent=false,Aligned=false,Triggered=false,SawOwn=false,SawRemote=false;
 		float OwnPeak=0;
 		FGuid PreviousImpactId;
 	public:
-		explicit FRun(FAutomationTestBase* T,bool Sphere=false):Test(T),bSphere(Sphere) {}
+		explicit FRun(FAutomationTestBase* T,bool Sphere=false,bool BeginBounce=false):Test(T),bSphere(Sphere),bBeginBounce(BeginBounce) {}
 		bool Update() override
 		{
 			if (Complete>0) { return FPlatformTime::Seconds()-Complete>4; }
@@ -82,7 +82,8 @@ namespace HALElectricWallNetworkTests
 				if (!Wall || !Wall->Configure(Config)) { Test->AddError(TEXT("Cannot create paired electric wall fixture")); return true; }
 				if (bSphere)
 				{
-					FHALElectricSphereConfig SphereConfig; SphereConfig.Radius=650; SphereConfig.BeginSeconds=.3f; SphereConfig.LoopSeconds=30;
+					FHALElectricSphereConfig SphereConfig; SphereConfig.Radius=650; SphereConfig.BeginSeconds=bBeginBounce ? 30.f : .3f; SphereConfig.LoopSeconds=30;
+					SphereConfig.BeginBounceBackDistance=640; SphereConfig.BeginBounceBackSeconds=.6f;
 					if (!CastChecked<AHALElectricSphereGimmick>(Wall)->ConfigureSphere(SphereConfig)) { Test->AddError(TEXT("Sphere config rejected")); return true; }
 				}
 				Wall->FinishSpawning(Pose); Wall->ForceNetUpdate();
@@ -115,6 +116,7 @@ namespace HALElectricWallNetworkTests
 				|| !Physics.bReady || Physics.Value.bControlsBlocked || Wall->GetAcceptedContactCount()!=2 || OwnPeak<1) { return false; }
 			if (Host && OtherName!=TEXT("HAL_Electric_DoneC")) { return false; }
 			Test->TestEqual(TEXT("Group contact applied once per vehicle"),Wall->GetAcceptedContactCount(),uint32(2));
+			if (bBeginBounce) { Test->TestTrue(TEXT("Begin contact works before Loop"),CastChecked<AHALElectricSphereGimmick>(Wall)->GetStage()==EHALElectricSphereStage::Begin); }
 			Test->TestEqual(TEXT("No HP damage"),ASC->GetNumericAttribute(UHALHealthAttributeSet::GetCurrentHPAttribute()),100.f);
 			const auto Impact=Own->FindComponentByClass<UHALImpactReceiverComponent>()->GetLastImpact();
 			if (Host) { Test->TestEqual(TEXT("Bounce leaves authority Impact event unchanged"),Impact.EventId,PreviousImpactId); }
@@ -140,5 +142,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALElectricSphereNetworkTest,"HAL.NetworkSmoke
 bool FHALElectricSphereNetworkTest::RunTest(const FString& Parameters)
 {
 	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<HALElectricWallNetworkTests::FRun>(this,true)); return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALBeginElectricSphereNetworkTest,"HAL.NetworkSmoke.BeginElectricSphere",
+	EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::EngineFilter)
+bool FHALBeginElectricSphereNetworkTest::RunTest(const FString& Parameters)
+{
+	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<HALElectricWallNetworkTests::FRun>(this,true,true)); return true;
 }
 #endif
