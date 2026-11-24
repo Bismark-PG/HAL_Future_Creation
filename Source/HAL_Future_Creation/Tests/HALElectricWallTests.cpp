@@ -33,6 +33,8 @@
 struct FHALElectricWallTestAccess
 {
 	static void Scan(AHALElectricWallGimmick* G) { G->ScanContacts(); }
+	static FVector2D Bounce(AHALElectricWallGimmick* G)
+	{ float D,T; G->GetBounceBackParameters(D,T); return FVector2D(D,T); }
 	static UPrimitiveComponent* Surface(AHALElectricWallGimmick* G,int32 I) { return I==0 ? static_cast<UPrimitiveComponent*>(G->PillarA) : I==1 ? static_cast<UPrimitiveComponent*>(G->PillarB) : G->ElectricField.Get(); }
 	static bool Contact(AHALElectricWallGimmick* G,ATestVehiclePawn* P,int32 I) { return G->ApplyContact(P,Surface(G,I),P->GetActorLocation()); }
 	static FVector Direction(AHALElectricWallGimmick* G,int32 I,FVector Current,FVector Previous,FVector V=FVector::ZeroVector)
@@ -293,6 +295,9 @@ bool FHALElectricSphereLifecycleTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Exact expiry"),C.StageAt(6)==EHALElectricSphereStage::Over);
 	C.BeginSeconds=0; TestTrue(TEXT("Zero preview"),C.StageAt(0)==EHALElectricSphereStage::Loop);
 	C.Radius=std::numeric_limits<float>::quiet_NaN(); TestFalse(TEXT("Reject NaN"),C.Validate());
+	C={}; C.BeginBounceBackDistance=1001; TestFalse(TEXT("Reject Begin distance above physics cap"),C.Validate());
+	C={}; C.BeginBounceBackSeconds=.01f; TestFalse(TEXT("Reject Begin duration below physics minimum"),C.Validate());
+	C={}; C.BeginBounceBackDistance=std::numeric_limits<float>::quiet_NaN(); TestFalse(TEXT("Reject nonfinite Begin bounce"),C.Validate());
 	auto F=MakeShared<HALElectricWallTests::FWorld>();
 	if (!F->Pawn) { AddError(TEXT("Vehicle fixture missing")); return false; }
 	F->Wall->Destroy();
@@ -301,7 +306,9 @@ bool FHALElectricSphereLifecycleTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Deferred configuration"),Sphere->ConfigureSphere(C));
 	Sphere->SetActorLocation(F->Pawn->GetActorLocation()); Sphere->DispatchBeginPlay();
 	FHALElectricWallTestAccess::Scan(Sphere);
-	TestEqual(TEXT("Preview no contact"),Sphere->GetAcceptedContactCount(),0u);
+	TestEqual(TEXT("Begin expansion contact"),Sphere->GetAcceptedContactCount(),1u);
+	TestTrue(TEXT("Begin uses independent profile"),FHALElectricWallTestAccess::Bounce(Sphere).Equals(FVector2D(C.BeginBounceBackDistance,C.BeginBounceBackSeconds),.001));
+	TestTrue(TEXT("Wall profile unchanged"),FHALElectricWallTestAccess::Bounce(GetMutableDefault<AHALElectricWallGimmick>()).Equals(FVector2D(100,.3),.001));
 	for (auto* Capsule : TArray<UCapsuleComponent*>{Sphere->FindComponentByClass<UCapsuleComponent>()})
 	{ TestTrue(TEXT("No solid pillars"),Capsule && Capsule->GetCollisionEnabled()==ECollisionEnabled::NoCollision); }
 	// TimerManager advances once per engine frame. Use the established latent world fixture.
@@ -309,7 +316,8 @@ bool FHALElectricSphereLifecycleTest::RunTest(const FString& Parameters)
 	{
 		FHALElectricWallTestAccess::Scan(Sphere);
 		TestTrue(TEXT("Loop reached"),Sphere->GetStage()==EHALElectricSphereStage::Loop);
-		TestEqual(TEXT("Already inside hits on activation"),Sphere->GetAcceptedContactCount(),1u);
+		TestTrue(TEXT("Loop returns to inherited profile"),FHALElectricWallTestAccess::Bounce(Sphere).Equals(FVector2D(100,.3),.001));
+		TestEqual(TEXT("Stage transition cannot duplicate Begin hit"),Sphere->GetAcceptedContactCount(),1u);
 		FHALElectricWallTestAccess::Scan(Sphere);
 		TestEqual(TEXT("Continuous contact deduplicated"),Sphere->GetAcceptedContactCount(),1u);
 		TestTrue(TEXT("Shared stun"),F->ASC->HasMatchingGameplayTag(HALGameplayTags::State_Stun));

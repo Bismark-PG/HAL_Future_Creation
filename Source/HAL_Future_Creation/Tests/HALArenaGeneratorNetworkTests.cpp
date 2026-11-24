@@ -5,8 +5,10 @@
 #include "../HALPlayerController.h"
 #include "../TestVehiclePawn.h"
 #include "Components/DynamicMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/NetDriver.h"
+#include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerState.h"
 
@@ -22,6 +24,7 @@ namespace
 		FAutomationTestBase& Test; double Deadline=FPlatformTime::Seconds()+100,CompleteAt=-1;
 		bool bNamed=false,bSpawned=false,bReadySent=false,bDoneSent=false;
 		uint32 Phases[3]={0,0,0}; bool bSawActor[3]={false,false,false},bSawWarning[3]={false,false,false};
+		bool bSawSink[3]={false,false,false},bSawRise[3]={false,false,false};
 		TWeakObjectPtr<AHALArenaEffectGenerator> Generators[3];
 	public:
 		explicit FGeneratorNetworkProbe(FAutomationTestBase& T):Test(T) {}
@@ -29,7 +32,7 @@ namespace
 		{
 			if(CompleteAt>0) { return FPlatformTime::Seconds()>=CompleteAt; }
 			if(FPlatformTime::Seconds()>Deadline)
-			{ Test.AddError(FString::Printf(TEXT("Generator network timeout. Spawned=%d Ready=%d Phases=%x/%x/%x Actors=%d/%d/%d"),bSpawned,bReadySent,Phases[0],Phases[1],Phases[2],bSawActor[0],bSawActor[1],bSawActor[2])); return true; }
+			{ Test.AddError(FString::Printf(TEXT("Generator network timeout. Spawned=%d Ready=%d Phases=%x/%x/%x Actors=%d/%d/%d Sink=%d/%d/%d Rise=%d/%d/%d"),bSpawned,bReadySent,Phases[0],Phases[1],Phases[2],bSawActor[0],bSawActor[1],bSawActor[2],bSawSink[0],bSawSink[1],bSawSink[2],bSawRise[0],bSawRise[1],bSawRise[2])); return true; }
 			UWorld* World=nullptr;
 			for(const auto& Context:GEngine->GetWorldContexts())
 			{ auto* W=Context.World(); if(W && W->IsGameWorld() && (W->IsNetMode(NM_Client)||W->IsNetMode(NM_ListenServer))) { World=W; break; } }
@@ -44,6 +47,8 @@ namespace
 			if(!bNamed) { PC->SetName(bHost?TEXT("GenHost"):TEXT("GenClient")); bNamed=true; }
 			if(bHost && !bSpawned && Other->GetPlayerState()->GetPlayerName()==TEXT("GenClient"))
 			{
+				auto* Class=LoadClass<AHALArenaEffectGenerator>(nullptr,TEXT("/Game/Blueprints/MapMechanic/BP_HALArenaEffectGenerator.BP_HALArenaEffectGenerator_C"));
+				if(!Test.TestNotNull(TEXT("Saved two-mesh generator BP loads without editing"),Class)) { return true; }
 				FPacketSimulationSettings Lag; Lag.PktLag=80; World->GetNetDriver()->SetPacketSimulationSettings(Lag);
 				for(int32 I=0;I<3;++I)
 				{
@@ -52,7 +57,7 @@ namespace
 					C.EffectOffset=FVector(10,20,80); C.SlipperyAreaOffset=FVector(100,0,-20);
 					C.BlackHoleOffset=FVector(0,200,30); C.ElectricFieldOffset=FVector(-150,-90,120);
 					const FTransform Pose(FVector(0,(I-1)*3000,10000));
-					auto* G=World->SpawnActorDeferred<AHALArenaEffectGenerator>(AHALArenaEffectGenerator::StaticClass(),Pose,nullptr,nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+					auto* G=World->SpawnActorDeferred<AHALArenaEffectGenerator>(Class,Pose,nullptr,nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 					Test.TestTrue(TEXT("Authority configures generator before spawning"),G->ConfigureGenerator(C));
 					G->FinishSpawning(Pose); Generators[I]=G;
 				}
@@ -61,10 +66,52 @@ namespace
 			int32 Waiting=0;
 			for(TActorIterator<AHALArenaEffectGenerator> It(World);It;++It)
 			{
-				if(It->GetClass()!=AHALArenaEffectGenerator::StaticClass() || FMath::Abs(It->GetActorLocation().Z-10000)>.1) { continue; }
+				if(FMath::Abs(It->GetActorLocation().Z-10000)>.1) { continue; }
 				const int32 I=FMath::RoundToInt(It->GetActorLocation().Y/3000)+1;
 				if(I<0||I>=3) { continue; } Generators[I]=*It;
+				TInlineComponentArray<UStaticMeshComponent*> Authored; It->GetComponents(Authored);
+				if(Authored.IsEmpty())
+				{
+					// The saved Match's two meshes are instance components, not defaults of this BP class.
+					// Recreate the same presentation assembly locally on both peers without editing assets.
+					const TCHAR* Paths[]={TEXT("/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0198_PF_engine_001.SM_0198_PF_engine_001"),TEXT("/Game/Imported/Platformer14SciFi/Prefabs/Decorations/SM_0201_PF_flask_003.SM_0201_PF_flask_003")};
+					for(int32 M=0;M<2;++M)
+					{
+						auto* Mesh=LoadObject<UStaticMesh>(nullptr,Paths[M]);
+						if(!Test.TestNotNull(TEXT("Saved pillar geometry loads read-only"),Mesh)) { return true; }
+						auto* C=NewObject<UStaticMeshComponent>(*It); It->AddInstanceComponent(C); C->SetupAttachment(It->GetRootComponent());
+						C->SetStaticMesh(Mesh); C->SetMobility(EComponentMobility::Movable); C->SetRelativeLocation(FVector(0,0,40+40*M));
+						C->SetRelativeScale3D(FVector(M==0?.03:.2)); C->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics); C->RegisterComponent();
+					}
+				}
 				const auto& S=It->GetGeneratorState();
+				TInlineComponentArray<USceneComponent*> Components; It->GetComponents(Components);
+				USceneComponent* Motion=nullptr;
+				for(auto* Component:Components) { if(Component->GetFName()==TEXT("MeshMotionRoot")) { Motion=Component; break; } }
+				if(Motion)
+				{
+					const float Depth=It->GetActorLocation().Z-Motion->GetComponentLocation().Z;
+					const double Age=FMath::Max(0.,World->GetGameState()->GetServerWorldTimeSeconds()-S.StartedAt);
+					const bool bSinking=S.Stage==EHALArenaGeneratorStage::Revealing || S.Stage==EHALArenaGeneratorStage::Hint || S.Stage==EHALArenaGeneratorStage::Delay;
+					const double Previous=S.Stage==EHALArenaGeneratorStage::Delay?1.:S.Stage==EHALArenaGeneratorStage::Hint?.5:0.;
+					const double Progress=S.Stage==EHALArenaGeneratorStage::Finished?1.-FMath::Clamp(Age/.5,0.,1.):FMath::Clamp((Previous+Age)/2.2,0.,1.);
+					if(bSinking || S.Stage==EHALArenaGeneratorStage::Finished)
+					{
+						const double Expected=600*Progress*Progress*(3-2*Progress);
+						Test.TestTrue(TEXT("Each peer derives smooth mesh travel from the authority stage clock"),FMath::Abs(Depth-Expected)<65);
+						if(Depth>60 && Depth<540) { bSawSink[I]|=bSinking; bSawRise[I]|=S.Stage==EHALArenaGeneratorStage::Finished; }
+					}
+					int32 Copies=0,Sources=0;
+					for(auto* Component:Components)
+					{
+						if(auto* Mesh=Cast<UStaticMeshComponent>(Component))
+						{
+							if(Mesh->GetAttachParent()==Motion) { ++Copies; Test.TestTrue(TEXT("Animated copies have no collision"),Mesh->GetCollisionEnabled()==ECollisionEnabled::NoCollision); }
+							else { ++Sources; Test.TestFalse(TEXT("Authored collider rendering stays hidden"),Mesh->IsVisible()); }
+						}
+					}
+					if(!Test.TestTrue(FString::Printf(TEXT("Exactly two authored meshes and two visual copies on both peers (sources=%d copies=%d)"),Sources,Copies),Copies==2 && Sources==2)) { return true; }
+				}
 				if(S.Stage==EHALArenaGeneratorStage::Waiting) { ++Waiting; }
 				if(S.Cycle<=1) { Phases[I]|=1u<<uint8(S.Stage); }
 				if(S.Cycle==1 && S.Effect!=EHALArenaEffect::None)
@@ -95,7 +142,7 @@ namespace
 			if(!bHost && Waiting==3 && !bReadySent) { PC->SetName(TEXT("GenClientReady")); bReadySent=true; }
 			if(bHost && bSpawned && Match->GetMatchPhase()!=EHALMatchPhase::Playing && Other->GetPlayerState()->GetPlayerName()==TEXT("GenClientReady")) { PC->HALStartMatch(); }
 			bool bComplete=true;
-			for(int32 I=0;I<3;++I) { bComplete&=Generators[I].IsValid() && Generators[I]->GetGeneratorState().Cycle>=2 && bSawActor[I] && bSawWarning[I] && (Phases[I]&0x7f)==0x7f; }
+			for(int32 I=0;I<3;++I) { bComplete&=Generators[I].IsValid() && Generators[I]->GetGeneratorState().Cycle>=2 && bSawActor[I] && bSawWarning[I] && bSawSink[I] && bSawRise[I] && (Phases[I]&0x7f)==0x7f; }
 			if(!bComplete) { return false; }
 			if(!bHost && !bDoneSent) { PC->SetName(TEXT("GenClientDone")); bDoneSent=true; }
 			if(bHost && Other->GetPlayerState()->GetPlayerName()!=TEXT("GenClientDone")) { return false; }
@@ -103,6 +150,7 @@ namespace
 			{
 				Test.TestTrue(TEXT("Waiting, rolling, reveal, hint, delay, active and finished all replicated"),(Phases[I]&0x7f)==0x7f);
 				Test.TestTrue(TEXT("Visible warning ring and actual selected effect replicated"),bSawWarning[I]&&bSawActor[I]);
+				Test.TestTrue(TEXT("Both peers observed intermediate sinking and rising poses"),bSawSink[I]&&bSawRise[I]);
 				if(bHost) { Generators[I]->Destroy(); }
 			}
 			Test.AddInfo(FString::Printf(TEXT("Generator three-effect network Host=%d Phases=%x/%x/%x"),bHost,Phases[0],Phases[1],Phases[2]));

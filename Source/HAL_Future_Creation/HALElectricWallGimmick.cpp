@@ -140,6 +140,10 @@ FVector AHALElectricWallGimmick::GetPushDirection(UPrimitiveComponent* Surface,c
 	if (Direction.IsNearlyZero()) { Direction = -Velocity.GetSafeNormal2D(); }
 	return Direction.IsNearlyZero() ? GetActorRightVector().GetSafeNormal2D() : Direction;
 }
+void AHALElectricWallGimmick::GetBounceBackParameters(float& Distance, float& Seconds) const
+{
+	Distance=Config.BounceBackDistance; Seconds=Config.BounceBackSeconds;
+}
 bool AHALElectricWallGimmick::ApplyContact(ATestVehiclePawn* Target,UPrimitiveComponent* Surface,const FVector& Previous)
 {
 	if (!IsContactActive() || !bReady || !HasAuthority() || GetNetMode()==NM_Client || !IsValid(Target)
@@ -158,16 +162,17 @@ bool AHALElectricWallGimmick::ApplyContact(ATestVehiclePawn* Target,UPrimitiveCo
 	const FVector Direction = Record.bInContact && !Record.IncomingPushDirection.IsNearlyZero()
 		? Record.IncomingPushDirection : GetPushDirection(Surface,Body->GetComponentLocation(),Previous,Body->GetPhysicsLinearVelocity());
 	if (Direction.IsNearlyZero()) { return false; }
+	float BounceDistance,BounceSeconds; GetBounceBackParameters(BounceDistance,BounceSeconds);
 	auto* Movement=Target->FindComponentByClass<UArcadeVehicleMovementComponent>();
-	if (!Movement || !Movement->QueueBounceBack(Direction,Config.BounceBackDistance,Config.BounceBackSeconds,PhysicsSourceId,
+	if (!Movement || !Movement->QueueBounceBack(Direction,BounceDistance,BounceSeconds,PhysicsSourceId,
 		Record.bHasEntryLocation ? &Record.EntryLocation : nullptr)) { return false; }
 	if (!ASC->ApplyStun(Config.StunSeconds,this)) { return false; }
 	const bool bShocked = ASC->MarkShockedForCurrentStun(this);
-	Record.bTriggered = true; Record.BounceEndsAt=GetWorld()->GetTimeSeconds()+Config.BounceBackSeconds+Config.ScanInterval; ++AcceptedContactCount; ForceNetUpdate();
+	Record.bTriggered = true; Record.BounceEndsAt=GetWorld()->GetTimeSeconds()+BounceSeconds+Config.ScanInterval; ++AcceptedContactCount; ForceNetUpdate();
 	if (CVarHALElectricWallLog.GetValueOnGameThread())
 	{
 		UE_LOG(LogTemp,Log,TEXT("Electric wall: Source=%s Target=%s Surface=%s Contact=%u BounceCm=%.2f BounceSeconds=%.3f Direction=%s Stun=%.3f Shocked=%d"),
-			*GetName(),*Target->GetName(),*Surface->GetName(),AcceptedContactCount,Config.BounceBackDistance,Config.BounceBackSeconds,
+			*GetName(),*Target->GetName(),*Surface->GetName(),AcceptedContactCount,BounceDistance,BounceSeconds,
 			*Direction.ToCompactString(),ASC->GetEffectTimeRemaining(HALGameplayTags::State_Stun),bShocked);
 	}
 	return true;
@@ -233,18 +238,19 @@ void AHALElectricWallGimmick::ScanContacts()
 			if (GetNetMode()!=NM_Client) { ApplyContact(V,Surface,Previous); }
 			else if (!Record.bTriggered)
 			{
+				float BounceDistance,BounceSeconds; GetBounceBackParameters(BounceDistance,BounceSeconds);
 				auto* Health=V->FindComponentByClass<UVehicleHealthComponent>();
 				if (V->IsConfigurationValid() && Health && Health->IsHealthReady() && Health->GetCurrentHP()>0
 					&& !UHALAbilitySystemComponent::IsActorStunned(V) && Movement
 					&& Movement->PredictBounceBack(Record.IncomingPushDirection,
-						Config.BounceBackDistance,Config.BounceBackSeconds,PhysicsSourceId,
+						BounceDistance,BounceSeconds,PhysicsSourceId,
 						Record.bHasEntryLocation ? &Record.EntryLocation : nullptr))
 				{
 					Record.bTriggered=true;
 					// A rewind can move the owner out and back through the field before the
 					// authoritative Stun tag arrives. Keep that correction in this interaction.
 					Record.BounceEndsAt=GetWorld()->GetTimeSeconds()
-						+FMath::Max(Config.BounceBackSeconds,Config.StunSeconds)+Config.ScanInterval;
+						+FMath::Max(BounceSeconds,Config.StunSeconds)+Config.ScanInterval;
 				}
 			}
 		}
