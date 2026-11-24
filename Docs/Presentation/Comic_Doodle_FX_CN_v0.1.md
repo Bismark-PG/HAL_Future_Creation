@@ -102,7 +102,7 @@ P2 出局理由：`ColorMode==Source` 只代表「有身份色的發起者、非
 
 - 球 `Launched` 時，在球後方放一張**水平**平面（引擎內建 Plane，高度＝球外觀中心），材質 `MI_FX_BallTrailWedge`：發射者身份色的一片三角形、黑墨線、8fps 三姿態線條抖動＋兩姿態尖端伸縮。底邊貼球、尖端指向球來的方向。
 - 方向與長度取球的**地面速度**（`ABasicBallActor::GetVelocity()` 去掉 Z）：長度＝速度 × `TrailWedgeLengthSeconds`(0.3)，夾在 球徑 × `TrailWedgeMinLengthDiameters`(0.8) 與 × `TrailWedgeMaxLengthDiameters`(2.0) 之間；團隊看過 0.4／2.5 後要求縮短，材質 `FX_Opacity` 同時由 1.0 降為 0.7；地面速度低於 `TrailWedgeMinSpeed`(150 cm/s) 時不畫。寬度沿用 `TrailWidthDiameterFraction`(0.75)。
-- 底邊起點在球心後方 球半徑 × `TrailWedgeStartRadiusFraction`(0.9)。第一輪用 0.6 與長度 0.12 s，實機上三角形大半被球蓋住、只露出一個小尖角。
+- 平面起點在球心後方 球半徑 × `TrailWedgeStartRadiusFraction`(0.35)，底邊因此埋在球內、由球本身遮掉。歷程：0.6 配長度 0.12 s 時三角形大半被球蓋住只露尖角；改 0.9 並拉長後，往畫面上方射時底邊落在球與鏡頭之間而露出一條平邊（團隊回報）；現值在拉長後的長度下兩者都不發生。
 - 平面非等比拉伸，材質以 `FX_Aspect`（長／寬，C++ 每幀寫入）換算，墨線粗細不隨長度變。開深度測試，球與車會自然遮擋它。
 - 離開 `Launched` 當幀隱藏，沒有殘留。純函式 `HALBallComicFX::TrailWedgeQuad`，有自動化斷言。
 - **技能改拖影的接點**：開始／停止／顏色都在 `UHALBallComicFXComponent::StartTrail` 一處決定，只讀同步的球狀態。尚未做樣式選擇接口；待第一個需要的技能出現時，在發射時擷取的 `AttackSnapshot` 加樣式標記，由這裡選材質。

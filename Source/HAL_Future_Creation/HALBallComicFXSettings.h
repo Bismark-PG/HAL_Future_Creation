@@ -31,9 +31,10 @@ struct HAL_FUTURE_CREATION_API FHALBallComicFXConfig
 	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="0.2", ClampMax="10")) float TrailWedgeMaxLengthDiameters = 2.f;
 	/** Below this ground speed the triangle is hidden: a crawling ball has no direction worth drawing. */
 	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="0", ClampMax="5000", Units="cm/s")) float TrailWedgeMinSpeed = 150;
-	/** Where the base starts behind the ball's centre, as a share of the drawn radius. Below 1 the ball covers the base
-	 * (first PIE pass at 0.6 left only the tip showing). */
-	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="0", ClampMax="2")) float TrailWedgeStartRadiusFraction = .9f;
+	/** Where the quad starts behind the ball's centre, as a share of the drawn radius. Kept well inside the ball so the flat
+	 * base edge is always buried in it: the material draws the base a little way into the quad, and at 0.9 that edge
+	 * stood clear of the ball whenever the shot went up the screen. The ball itself hides what lies inside it. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="0", ClampMax="2")) float TrailWedgeStartRadiusFraction = .35f;
 	/** Vector parameter that receives the launcher's colour. */
 	UPROPERTY(EditAnywhere, Category="Ink Trail") FName TrailWedgeColorParameter = TEXT("FX_Color");
 	/** Scalar parameter that receives quad length over width, so the ink keeps one thickness at any length. */
