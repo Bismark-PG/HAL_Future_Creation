@@ -71,8 +71,11 @@ private:
 	void Present(double Now);
 	void BuildGeometry(bool bBurst);
 	void PrepareArt();
-	void PresentArt(float Age, const FTransform& Pin, const FLinearColor& SeatColor);
+	void PrepareBurstClouds();
+	void PresentArt(float Age, const FTransform& Pin);
 	void UpdateWake(float Age);
+	void PresentBurstClouds(const FVector& Origin, float Phase);
+	void BindPinToBody(const FTransform& Vehicle);
 	FTransform PinTransform();
 	UPROPERTY() TObjectPtr<UDynamicMeshComponent> Shape;
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> Blade;
@@ -80,6 +83,7 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> BladeInk;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> WakeInk;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> CueInk;
+	UPROPERTY(Transient) TArray<TObjectPtr<UStaticMeshComponent>> BurstClouds;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> Accent;
 	UPROPERTY(Transient) TObjectPtr<UHALBatarangWidget> OwnerView;
 	bool bBuiltGeometry = false;
@@ -88,7 +92,12 @@ private:
 	bool bArtReady = false;
 	bool bPinWasConcealed = false;
 	bool bBurstConcealed = false;
+	bool bHasBurstContactOffset = false;
 	TWeakObjectPtr<UMeshComponent> PinnedMesh;
+	FName PinBone;
 	FVector MeshAnchor = FVector::ZeroVector;
 	FVector MeshNormal = FVector::ForwardVector;
+	FVector MeshUp = FVector::UpVector;
+	/** Cosmetic offset expressed in the horizontal push frame, before the victim is launched. */
+	FVector BurstContactOffset = FVector::ZeroVector;
 };

@@ -19,44 +19,69 @@ Car12 的主技能有两次操作。第一次按键从车头掷出飞镖，第�
 
 命中位置在目标车自身坐标中记录。车辆转过 90°，底盘箭头和引爆推力也随之转过 90°。箭头表示技能希望施加的水平方向，墙、车辆原速度和冲击免疫都可能改变实际位移。
 
-## 第一版正式视觉
+## 黑钢飞镖与挂镖提示
 
-- **出手。** `SM_Car12_ResonanceBlade` 是独立的双翼镖模型。石墨色折面之间嵌黄绿翼纹，银白前缘和中央菱形镖芯在远镜头下勾出轮廓。镖身自旋时，两笔宽窄不同的弯弧沿刚经过的路径收尖。短尾长度可在技能 DA 调整。
-- **钉入。** 镖尖插入目标车壳，双翼留在中镖侧，随车身移动和转向。接触瞬间有一圈断开的亮纹，随后镖芯和两侧的小弧按节拍亮起，最后 1.2 秒逐渐变快。常规可见的镖身和局部光纹对所有玩家可见。
-- **施放者提示。** 锁定双音配合 0.35 秒的扫描线和收拢的翼标。深底编号牌使用目标的座位色，牌底五格随倒计时缩短，底盘空心箭头给出当前推力方向。出屏时淡线从本车轮廓外连向屏边翼标。目标被 Car08 烟幕遮蔽时，镖身、光纹、编号、方向和连线一并收起，施放者仍能看到「已挂镖」及当前引爆操作状态。
-- **引爆。** 接触处先闪白，随后两道弧形波前和七道长短不同的裂光沿最终推力方向打开并消退。前端亮边给出推动方向，弧线之间的空隙让车身仍然可见。手动和到期引爆共用这一套表现。
+- **出手与钉入。** 飞行和挂镖共用同一枚石墨黑钢镖，翼展 **108 cm**。命中后，系统从目标车型的可见轮廓找到受击侧，镖尖沿该处向内扎约 **28 cm**。两翼露在车壳外，随车身侧倾、翻滚。接触处的短环在 0.20 秒内收起。
+- **B 的飞行尾迹。** 一笔宽黑墨痕贴着飞镖刚走过的弧线，在末端分出细尖，两笔间的留白透出地板。DA 的 `Wake Seconds` 控制显示多长一段已飞路径。
+- **A 的车身蝠翼与击退箭头。** 两片镂空黑翼夹在目标车身两侧。翼内掠过银光、翼尖轻微舒展，起初每秒 0.85 下，最后 1.6 秒逐步加快到每秒 2.4 下。原先屏幕底部的文字和秒数已移除。黑色空心箭头显示此刻的水平推力方向。
+- **C 的屏外点线。** 目标出屏时，黑色方点连到屏边，边缘翼标延续相同节拍。目标进入 Car08 烟幕时，实体镖和方位提示收起。施放者技能栏上方只保留一对原地闪动的小翼，仍可手动引爆。
+- **小型爆炸。** 手动和到期引爆都从钉入处闪出暖白火芯和八枚短碎屑。三团有厚度的焰云错开膨胀，转为冷灰烟、上浮消散，全程约 0.45 秒。车辆被推开后，余烟留在起爆处。
 
-![正式比赛图上客户端实拍的回旋出镖、车轮侧挂镖与定向引爆](Art/Car12/Car12_Resonance.webp)
+![侧翻木桩的车尾挂镖，以及比赛客户端的翼标和引爆实拍](Art/Car12/Car12_PinBurst.webp)
 
-图中三个局部来自 `MVPB_Match` 客户端的游戏画面，使用近景机位和裁切展示轮廓。引爆图中车身的红色来自已有的车辆受击反馈。
+车头自带的青色小箭头指向行驶朝向，车身外的黑色空心箭头指向引爆推力。[上一版的黑钢飞行尾迹和屏边点线实拍](Art/Car12/Car12_BlackInk.webp)
 
 ## 配置与试车
 
 车辆入口是 `/Game/Data/MVP_B/DA_Vehicle_Car_12 → Abilities`。主技能引用原生 `HALBatarangAbility` 和 `/Game/Data/Abilities/DA_Ability_Car12_Batarang`。UE 读回 Car12 的攻击力为 25，动作倍率为 0.4，基础伤害为 10。车辆 DA 的 `Full Recharge Seconds` 为 20 秒。
 
-| 技能 DA 参数 | 初版值或用途 |
+| 技能 DA 参数 | 当前值或用途 |
 |---|---|
 | Flight → Forward Reach / Side Reach | 前伸 1050 cm、侧向约 480 cm，以出手点为原点 |
 | Flight → Flight Seconds / Sweep Radius | 完整飞行 1.45 秒，接触半径 18 cm |
 | Flight → Launch Offset | 相对物理车头的局部偏移，默认向前 12 cm、向上 3 cm |
 | Combat → Fuse Seconds | 从钉住起计时，默认 5 秒 |
 | Combat → Damage Multiplier / Impact Tier / Push Distance | 动作倍率与独立冲击配置 |
-| Presentation → Wing Span / Pin Signal | 模型实际显示翼展默认 68 cm，可换锁定音 |
+| Presentation → Wing Span / Pin Signal | 飞行与挂镖的完整显示翼展共用 **108 cm**，可调 15–150 cm。Pin Signal 指定锁定音 |
 | Presentation → Art → Blade Mesh | 独立模型，鼻尖沿 +X、翼展沿 Y，运行时按实际模型宽度缩放 |
-| Presentation → Art → Wake Seconds / Wake Material | 默认显示最近 0.14 秒的实走弧线，填 0 可收起尾迹 |
-| Presentation → Art → Burst Reach / Resonance Material | 定向冲击波视觉前伸默认 240 cm，材质同时绘制中镖侧的节拍光纹 |
+| Presentation → Art → Wake Seconds / Wake Material | 默认显示最近 **0.20 秒**的黑色尾迹，可调 0–0.35 秒，填 0 收起 |
+| Presentation → Art → Pin Depth Percent | 镖尖扎入车壳的深度占翼展的比例。默认 26%，可调 0–45%。108 cm 翼展时，每加 1 个百分点多扎入约 1.08 cm |
+| Presentation → UI → Fuse Pulse Rate / Final Fuse Pulse Rate / Fuse Warning Seconds | 初始 0.85 Hz，最后 1.6 秒提速到 2.4 Hz。三个参数共用同一倒计时相位 |
+| Presentation → Art → Burst Reach / Resonance Material | 默认 145 cm，控制火光和碎屑展开的距离，以及焰云大小。爆炸伤害只结算给挂镖目标 |
+| Presentation → Art → Burst Cloud Mesh / Burst Fire Tint / Burst Smoke Color | 三团焰云共用一份体积网格。两个颜色分别控制高温中心和冷却后的烟边 |
+| Presentation → UI → Pin Widget Class | 留空使用原生 HUD。要换布局，可选以 `HALBatarangWidget` 为父类、已设置 Designer 根控件的 Widget Blueprint |
 
-美术资产在 `/Game/Assets/FX/Batarang`。模型的材质实例 `MI_Car12_Blade`、飞行拖尾 `MI_Car12_Wake` 和接触／引爆 `MI_Car12_Resonance` 分别开放 `Ink` 与 `Livery` 供调整墨边和车款强调色。镖芯从施放者座位取色，目标编号牌从目标座位取色。美术源在 `Tools/Batarang/`，`CreateResonanceArt.py` 通过 UE Editor 生成模型、材质和实例，优先保留技能 DA 里已有的美术引用。
+美术资产在 `/Game/Assets/FX/Batarang`。`MI_Car12_Blade` 的 `Ink` 控制大面颜色，基色约为 sRGB `#242425`。`BladeMetallic` 默认 0.90。抛光镖芯和暗色折面的粗糙度分别为 0.17 和 0.39。`MI_Car12_Wake` 绘制黑色尾迹，`MI_Car12_Resonance` 绘制短暂的触点、火芯和碎屑。焰云复用陨石效果已有的体积模型和材质，Car12 独立驱动大小、颜色与消散节奏。
+
+自定义挂镖 UI 可从 `Get Pin View` 读取是否挂镖、能否手动引爆、剩余秒数、0–1 的 `Fuse Pulse`、可见车辆和推力方向。用 `Fuse Pulse` 驱动翼标明度即可与镖芯同步。烟幕中可见车辆为空、推力方向为零，脉冲可继续使用。
+
+每个正式车型的车壳轮廓由 `Tools/Batarang/CreateResonanceArt.py` 在 Editor 里预采样。它从车模高度 42% 处提取 96 个方向的实际几何截面，保存进技能 DA 的 `Pin Profiles`。增加展示车型后重跑脚本即可补齐。修改已有车壳时，在命令行加 `-HALRefreshDartProfiles` 刷新截面。自定义车型还没有截面时按可见网格的椭圆轮廓估算。
 
 1. 打开 `/Game/Maps/SingleVehicleTest/SingleVehicleTest`，用 **Play Standalone** 单人进入。这张图的 `BP_VehicleTestGameMode` 车型名单已包含 Car12。
 2. 在测试面板选 `BP_VehiclePawn_Car_12`，点击 **Apply selected vehicle**。在 **OPPONENT CAR** 选一辆车，点击 **Spawn / replace opponent**。对手默认出现在正前方 700 cm。稍微调整车身，让对手落在车头前方偏右的弧线上，松开转向并出镖。挂镖后观察中镖侧和箭头，短按同一键引爆。第二次可以等 5 秒，对比自动引爆。
-3. 双人时，让目标挂镖后原地转向，再驶出画面、进入烟幕。施放者检查屏内箭头、屏外淡线和烟内保密提示。目标玩家应看到插在自己车上的实体镖，追踪 HUD 只出现在施放者屏幕上。在正式比赛中核对单次扣血和击退。
+3. 双人时，让目标挂镖后转向，再驶出画面、进入烟幕。施放者依次检查车身两翼和空心箭头、屏边方点线、烟中的无方位翼标。目标玩家应看到插在自己车上的实体镖，追踪 HUD 只出现在施放者屏幕上。在正式比赛中核对单次扣血和击退。
 
 `hal.AbilityLog 1` 可在主机输出日志中查看 `Batarang release`、`Batarang pin`、`Batarang burst`。引爆日志记录实际扣血、有效冲击档和水平推力方向。
 
 若团队习惯用 `Fred_TestScene`，这张图另有自己的名单。在 `BP_FredSkillTestGameMode → Class Defaults → Vehicle Test → Test Vehicle Classes` 点击 **+**，选择 `BP_VehiclePawn_Car_12`，编译并保存即可加入。
 
-## 本轮视觉验证
+## 车壳与小型爆炸验证 · 2026-11-24
+
+- **构建。** Win64 Development Editor 通过 `BuildAndLaunch.cmd -NoLaunch -NoPopup`，最终日志在 `Saved/BuildTool/BuildAndLaunch_20261124_211803_438_faf7d7/`。为同步团队本机的独立游戏目标，另执行 `Build.bat HAL_Future_Creation Win64 Development -Project=D:\HAL_Future_Creation\HAL_Future_Creation.uproject -WaitMutex -NoHotReload -NoLiveCoding -Log=D:\HAL_Future_Creation\Saved\Batarang\PinBurst\GameVerified.log`，编译和链接均通过。
+- **资产读回。** UE 5.8.3（CL 58210709）已保存正式技能 DA 和共鸣爆炸母材质。在另一个 Editor 进程逐一比对镖身、尾迹、触点／爆炸三份材质的着色器源码，并从 DA 读出 12 款车型各 96 个有效半径。翼展 108 cm、挂镖深度 26%、接触半径 18 cm，体积焰云模型已绑定。记录在 `Saved/Batarang/PinBurst/Author2.log`、`VerifyAssets.log`。
+- **侧翻木桩。** 在正式 `BP_SkillTestDummy` 的车身侧倾 61° 时，从前、后、左、右分别检查。沿每个挂点的法线测得镖尖在车壳截面内 28.08 cm，镖尾在外 32.40 cm。随后将侧倾转至 −44°，同时改变俯仰和朝向，镖身仍跟随原挂点。D3D12 同机位在有镖和无镖两帧间测得 902 个明显变化的像素，另有正对镖翼的车尾特写核对实际遮挡。报告在 `Saved/Batarang/PinBurst/Photo3/`，原图在同级 `Tilted/`。[侧翻与实射画面](Art/Car12/Car12_PinBurst.webp)
+- **独立主机与客户端。** 主机出站增加 60 ms 延迟，D3D12 客户端在 `MVPB_Match` 实射。挂镖时三团焰云已就绪并隐藏。目标转过 90° 后，击退箭头随车更新，尾段银光加速，5 秒到期自动引爆。实拍记录了触点火芯、膨胀焰云和留在原处的冷烟。在 `MVPB_NetTest` 中，目标驶出镜头再进入 Car08 烟幕，施放者仍可手动引爆，提示不泄露目标方位。两次均为挂镖时零伤害、引爆后 HP 从 100 到 90，主机和客户端各 1/1 通过。报告在 `Saved/Batarang/PinBurst/Night2/` 和 `Smoke2/`。
+- **玩法回归。** Car12 三项专项均通过。全量 `HAL.FutureCreation.` 共 288 项，285 项无警告通过，2 项带既有换车警告通过，1 项失败。失败项 `SpecialBall.LifetimeContactsAndCover` 仍期望预警阶段的电球机关不触发接触，和上一轮结果一致。报告在 `Saved/Batarang/PinBurst/Gameplay2/`。本轮联机数据来自同机双进程，四人实机混战留给团队试玩。
+
+## 黑钢版验证 · 2026-11-24
+
+- UE 5.8.3（CL 58210709）的 Win64 Development Editor 通过 `BuildAndLaunch.cmd -NoLaunch -NoPopup` 构建。重新启动 Editor 从磁盘读回翼展 108 cm、尾迹 0.20 秒、命中半径 18 cm、金属度 0.90，核对了三份母材质的着色器源码和镖身材质输入。构建日志在 `Saved/BuildTool/BuildAndLaunch_20261124_195242_276_ec1ed7/`，资产读回见 `Saved/Batarang/BlackInk/Verify2.log`。
+- 在主机出站增加 60 ms 延迟的独立主机和 D3D12 客户端上跑了两次实射。夜场到期引爆和烟幕中手动引爆均为主机、客户端各 1/1 通过。客户端核对飞行与挂镖用的是同一模型组件，三轴缩放一致。转向后的箭头对应服务器的最终推力。进烟后 HUD 只提供计时与操作状态。两次服务器均只结算一次 10 点伤害。两端报告见 `Saved/Batarang/BlackInk/Night2/` 和 `Smoke2/`。四台实机混战的可读性待团队试玩。
+- 全量 `HAL.FutureCreation.` 共 287 项，286 项通过（含两项换车警告），Car12 两项专项均通过。余下的 `SpecialBall.LifetimeContactsAndCover` 在独立进程复测仍失败。断言期望特殊球穿过预警阶段的电球机关，工程当前将机关的 Begin 阶段视为接触有效。记录见 `Saved/Batarang/BlackInk/Gameplay/`、`SpecialBallRetry/`。
+
+## 首版美术验证（改黑钢之前）
+
+[第一版远投、侧面挂镖与定向引爆实拍](Art/Car12/Car12_Resonance.webp)
 
 - **构建与资产。** 2026-11-24 在 UE 5.8.2 通过 `BuildAndLaunch.cmd -NoLaunch -NoPopup` 构建 Win64 Development Editor。Editor 再次读回技能 DA 的独立镖身、尾迹和震荡波材质引用。三份材质在正式比赛图的 D3D12 客户端显示正常。配置读取与材质生成日志在 `Saved/Batarang/Art/AuthorRelease.log`。
 - **常速比赛与烟幕。** 本机使用独立 Listen Server 和客户端，主机出站增加 60 ms 延迟。在 `MVPB_Match` 用测试 GameMode 让客户端钉住主机车，转向后等待 5 秒自动引爆。在 `MVPB_NetTest` 中，客户端目送目标出屏，进入 Car08 烟幕后手动引爆。覆盖了公开镖身、施放者私有翼标、烟内隐藏和最终推力方向。两个用例两端都通过，均只结算一次 10 点伤害。报告在 `Saved/Batarang/Art/Night/`、`Smoke/`，调整波纹后的最终夜场实拍回归在同目录的 `Photo/`。

@@ -11,6 +11,13 @@ namespace
 {
 	using namespace UE::Geometry;
 	constexpr int32 WakeSegments = 12;
+	struct FPuff { FVector Offset; double Radius; float Birth, End; };
+	// Offsets are in the knockback frame. Leave most of the struck vehicle visible from above.
+	const FPuff Puffs[] = {
+		{FVector(-.34,-.05,.21), .37, 0.f, .94f},
+		{FVector( .05, .31,.16), .28, .045f, .86f},
+		{FVector(-.04,-.31,.23), .30, .08f, 1.f},
+	};
 
 	// One strip also serves as the stamp's UV quad. The head of the trail and the
 	// forward end of the shock both lie at U=1, independent of camera or mirror.
@@ -104,7 +111,55 @@ void AHALBatarang::UpdateWake(float Age)
 	Wake->SetVisibility(Head-Tail > .001f);
 }
 
-void AHALBatarang::PresentArt(float Age, const FTransform& Pin, const FLinearColor& SeatColor)
+void AHALBatarang::PrepareBurstClouds()
+{
+	const auto& Config = *State.Config;
+	UStaticMesh* CloudMesh = Config.BurstCloudMesh;
+	if (!BurstClouds.IsEmpty() || !CloudMesh || !CloudMesh->GetMaterial(0)) { return; }
+	for (int32 I=0; I<UE_ARRAY_COUNT(Puffs); ++I)
+	{
+		auto* Cloud = NewObject<UStaticMeshComponent>(this);
+		Cloud->SetStaticMesh(CloudMesh);
+		auto* MID = Cloud->CreateDynamicMaterialInstance(0);
+		MID->SetVectorParameterValue(TEXT("Tint"),Config.BurstFireTint);
+		MID->SetVectorParameterValue(TEXT("CoolColor"),Config.BurstSmokeColor);
+		MID->SetScalarParameterValue(TEXT("LobeSwelling"),.65f);
+		MID->SetScalarParameterValue(TEXT("Seed"),2.4f*I);
+		Cloud->SetBoundsScale(1.15f);
+		Cloud->SetTranslucentSortPriority(1);
+		AttachVisual(*Cloud,GetRootComponent());
+		BurstClouds.Add(Cloud);
+	}
+}
+
+void AHALBatarang::PresentBurstClouds(const FVector& Origin, float Phase)
+{
+	PrepareBurstClouds(); // A late client may first observe the dart during detonation.
+	if (BurstClouds.IsEmpty()) { return; }
+	const auto& Config = *State.Config;
+	const FRotator Heading = State.BurstDirection.Rotation();
+	const FVector Extent = Config.BurstCloudMesh->GetBounds().BoxExtent.ComponentMax(FVector(1));
+	for (int32 I=0; I<BurstClouds.Num(); ++I)
+	{
+		const FPuff& Puff = Puffs[I];
+		auto* Cloud = BurstClouds[I].Get();
+		const float Life = FMath::Clamp((Phase-Puff.Birth)/(Puff.End-Puff.Birth),0.f,1.f);
+		Cloud->SetVisibility(Life > 0 && Life < 1);
+		if (!Cloud->IsVisible()) { continue; }
+		const float Fill = 1.f-FMath::Pow(1.f-FMath::Min(1.f,Life/.52f),2.6f);
+		const float Drift = FMath::SmoothStep(.3f,1.f,Life);
+		const double R = Config.BurstReach*Puff.Radius*(.08+.92*Fill+.13*Drift);
+		const FVector Travel = Heading.RotateVector(Puff.Offset)*Config.BurstReach*(.76*Fill+.24*Life);
+		const FVector Center = Origin+Travel+FVector::UpVector*(5.+Config.BurstReach*(.12*Fill+.20*Drift));
+		Cloud->SetWorldTransform(FTransform(FRotator(10*Fill,I*117+Heading.Yaw,3*Drift),Center,
+			FVector(R,R*.92,R*(.56+.40*Fill))/Extent));
+		auto* MID = CastChecked<UMaterialInstanceDynamic>(Cloud->GetMaterial(0));
+		MID->SetScalarParameterValue(TEXT("Heat"),1.f-FMath::SmoothStep(.16f,.88f,Life));
+		MID->SetScalarParameterValue(TEXT("Phase"),Life);
+	}
+}
+
+void AHALBatarang::PresentArt(float Age, const FTransform& Pin)
 {
 	const auto& Config = *State.Config;
 	const bool bFlying = State.Phase == EHALDartPhase::Flight;
@@ -113,7 +168,6 @@ void AHALBatarang::PresentArt(float Age, const FTransform& Pin, const FLinearCol
 	Blade->SetVisibility(bFlying || bPinned);
 	if (Wake && !bFlying) { Wake->SetVisibility(false); }
 	Shape->SetVisibility(CueInk && !bFlying);
-	if (BladeInk) { BladeInk->SetVectorParameterValue(TEXT("SeatColor"),SeatColor); }
 	if (bFlying)
 	{
 		const float T = FMath::Clamp(Age/Config.FlightSeconds,0.f,1.f);
@@ -121,42 +175,39 @@ void AHALBatarang::PresentArt(float Age, const FTransform& Pin, const FLinearCol
 		if (BladeInk) { BladeInk->SetScalarParameterValue(TEXT("Signal"),.7f); }
 		if (WakeInk)
 		{
-			WakeInk->SetVectorParameterValue(TEXT("SeatColor"),SeatColor);
 			UpdateWake(Age);
 		}
 		return;
 	}
-	if (CueInk) { CueInk->SetVectorParameterValue(TEXT("SeatColor"),SeatColor); }
 	if (bPinned)
 	{
 		const FVector Inward = Pin.GetUnitAxis(EAxis::X);
-		const FVector Socket = Pin.GetLocation()-Inward*(Span*.22);
+		const double Nose = Blade->GetStaticMesh()->GetBoundingBox().Max.X*Blade->GetComponentScale().X;
+		const FVector Socket = Pin.GetLocation()+Inward*(Span*Config.PinDepthPercent*.01-Nose);
 		Blade->SetWorldLocationAndRotation(Socket,Pin.GetRotation());
-		const float TimeLeft = FMath::Max(0.f, Config.FuseSeconds-Age);
-		const float Urgency = 1-FMath::Clamp(TimeLeft/1.2f,0.f,1.f);
-		// Integrating the accelerating frequency keeps the pulse continuous at the warning boundary.
-		const float Cycles = 1.7f*Age + 1.4f*Urgency*Urgency;
-		const float Beat = FMath::Pow(.5f+.5f*FMath::Cos(UE_TWO_PI*Cycles),3.f);
+		const float Beat = Config.FusePulse(Config.FuseSeconds-Age);
 		if (BladeInk) { BladeInk->SetScalarParameterValue(TEXT("Signal"),.35f+1.8f*Beat); }
-		if (CueInk)
+		Shape->SetVisibility(CueInk && Age < .20f);
+		if (Shape->IsVisible())
 		{
-			const FVector Exposed = Socket-Inward*(Span*.20)+FVector(0,0,Span*.075);
-			Shape->SetWorldLocationAndRotation(Exposed,FRotator(0,(-Inward).Rotation().Yaw,0));
-			Shape->SetWorldScale3D(FVector(Span*.69));
+			const FVector Exposed = Pin.GetLocation()-Inward*(Span*.055)+Pin.GetUnitAxis(EAxis::Z)*(Span*.07);
+			Shape->SetWorldLocationAndRotation(Exposed,FRotationMatrix::MakeFromXZ(-Inward,Pin.GetUnitAxis(EAxis::Z)).ToQuat());
+			Shape->SetWorldScale3D(FVector(Span*.39));
 			CueInk->SetScalarParameterValue(TEXT("Burst"),0);
 			CueInk->SetScalarParameterValue(TEXT("Phase"),FMath::Clamp(Age/.24f,0.f,1.f));
 			CueInk->SetScalarParameterValue(TEXT("Signal"),Beat);
 		}
 		return;
 	}
+	const float T = FMath::Clamp(Age/float(HALBatarang::BurstSeconds),0.f,1.f);
+	const FRotator Heading = State.BurstDirection.Rotation();
+	const FVector Origin = State.BurstPoint+Heading.RotateVector(BurstContactOffset);
+	PresentBurstClouds(Origin,T);
 	if (CueInk)
 	{
-		const float T = FMath::Clamp(Age/float(HALBatarang::BurstSeconds),0.f,1.f);
 		const float Reach = FMath::Max(1.f,Config.BurstReach);
-		// A low crest rises out of the contact, then opens towards the resolved horizontal impulse.
-		const FVector Origin = State.BurstPoint+FVector(0,0,Span*(.16f+.63f*FMath::Sin(UE_PI*T)));
-		Shape->SetWorldLocationAndRotation(Origin,State.BurstDirection.Rotation());
-		Shape->SetWorldScale3D(FVector(Reach,Reach*.75f,1));
+		Shape->SetWorldLocationAndRotation(Origin+FVector::UpVector*14.,Heading);
+		Shape->SetWorldScale3D(FVector(Reach,Reach,1));
 		CueInk->SetScalarParameterValue(TEXT("Burst"),1);
 		CueInk->SetScalarParameterValue(TEXT("Phase"),T);
 		Shape->SetVisibility(T < 1);

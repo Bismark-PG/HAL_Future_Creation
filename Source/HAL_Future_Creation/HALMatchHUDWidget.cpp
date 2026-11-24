@@ -127,14 +127,14 @@ void UHALMatchHUDWidget::RefreshCountdown()
 	{
 		const FString Cells = Energy.Cost == HALUltimate::SideShiftCost
 			? FString::Printf(TEXT("   %d/4"), FMath::FloorToInt(Energy.Energy / Energy.Cost)) : FString();
-		const TCHAR* State = Energy.bCanActivate ? TEXT("READY") : Energy.bHasEnergy ? TEXT("BLOCKED") : TEXT("CHARGING");
+		const TCHAR* State = Energy.bCanActivate ? TEXT("   READY") : Energy.bHasEnergy ? TEXT("   BLOCKED") : TEXT("   CHARGING");
 		const auto* Car = Cast<ATestVehiclePawn>(GetOwningPlayerPawn());
 		const auto* Dart = Car ? Car->GetActiveBatarang() : nullptr;
 		if (IsValid(Dart) && Dart->GetState().Phase == EHALDartPhase::Pinned)
 		{
-			State = Dart->IsManualInputOpen() ? TEXT("DETONATE") : TEXT("FUSE ARMED");
+			State = TEXT(""); // The pin's wing pulse carries its fuse cue.
 		}
-		EnergyText->SetText(FText::FromString(FString::Printf(TEXT("ULT   %d/100%s   %s"), FMath::FloorToInt(Energy.Energy), *Cells, State)));
+		EnergyText->SetText(FText::FromString(FString::Printf(TEXT("ULT   %d/100%s%s"), FMath::FloorToInt(Energy.Energy), *Cells, State)));
 		float DisplayEnergy = Energy.Energy;
 		if (Energy.bRecharging && Energy.FullRechargeSeconds > 0.f)
 		{

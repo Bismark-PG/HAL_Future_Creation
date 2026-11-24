@@ -9,6 +9,16 @@
 #include "TestVehiclePawn.h"
 #include "VehicleRecoveryComponent.h"
 
+float UHALBatarangConfig::FusePulse(float RemainingSeconds) const
+{
+	const float Left = FMath::Clamp(RemainingSeconds, 0.f, FuseSeconds);
+	const float Window = FMath::Max(UE_SMALL_NUMBER, FMath::Min(FuseSeconds, FuseWarningSeconds));
+	const float IntoWarning = FMath::Max(0.f, Window - Left);
+	// Integrate the changing rate so there is no jump at the start of the warning.
+	const float Cycles = (FuseSeconds-Left)*FusePulseRate + .5f*(FinalFusePulseRate-FusePulseRate)*IntoWarning*IntoWarning/Window;
+	return FMath::Square(.5f + .5f*FMath::Cos(UE_TWO_PI*Cycles));
+}
+
 bool UHALBatarangConfig::HasValidRules() const
 {
 	return FMath::IsWithinInclusive(ForwardReach,150.f,3000.f) && FMath::IsWithinInclusive(SideReach,80.f,1500.f)
@@ -21,6 +31,13 @@ bool UHALBatarangConfig::HasValidRules() const
 #if WITH_EDITOR
 EDataValidationResult UHALBatarangConfig::IsDataValid(FDataValidationContext& Context) const
 {
+	if (!FMath::IsWithinInclusive(PinDepthPercent,0.f,45.f) || !FMath::IsWithinInclusive(BurstReach,80.f,480.f)
+		|| !FMath::IsWithinInclusive(FusePulseRate,.25f,2.5f) || !FMath::IsWithinInclusive(FinalFusePulseRate,FusePulseRate,2.5f)
+		|| !FMath::IsWithinInclusive(FuseWarningSeconds,.1f,5.f))
+	{
+		Context.AddError(FText::FromString(TEXT("Check pin depth, visual burst reach and rising fuse pulse rates.")));
+		return EDataValidationResult::Invalid;
+	}
 	if (HasValidRules() && (BladeMesh || DartMaterial) && PinSignal) { return EDataValidationResult::Valid; }
 	Context.AddError(FText::FromString(TEXT("Check batarang tuning, its blade mesh or fallback wing material, and the capture signal.")));
 	return EDataValidationResult::Invalid;

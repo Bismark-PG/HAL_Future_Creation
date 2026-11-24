@@ -1,21 +1,203 @@
 #include "HALBatarangWidget.h"
-#include "Blueprint/WidgetLayoutLibrary.h"
-#include "Fonts/FontMeasure.h"
-#include "Framework/Application/SlateApplication.h"
-#include "GameFramework/GameStateBase.h"
-#include "HALAbilitySystemComponent.h"
 #include "HALBatarang.h"
 #include "HALBatarangAbility.h"
-#include "HALPlayerIdentitySettings.h"
-#include "HALPlayerState.h"
 #include "HALSmokeScreenView.h"
 #include "HALVehiclePresentationComponent.h"
-#include "Rendering/DrawElements.h"
-#include "Styling/CoreStyle.h"
 #include "TestVehiclePawn.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
+#include "Blueprint/WidgetTree.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Rendering/DrawElements.h"
+#include "Rendering/SlateRenderer.h"
+#include "Styling/CoreStyle.h"
 #include "Widgets/Layout/SBox.h"
 
-TSharedRef<SWidget> UHALBatarangWidget::RebuildWidget() { return SNew(SBox); }
+namespace
+{
+	// Screen-space silhouette of the visible body only. Nameplates and skill FX
+	// must never enlarge the brackets or move them away from the doors.
+	struct FProjectedDartBody
+	{
+		FVector2D Center = FVector2D::ZeroVector;
+		FVector2D Right = FVector2D(1, 0);
+		TArray<FVector2D, TInlineAllocator<8>> Corners;
+
+		double Reach(FVector2D Axis) const
+		{
+			double Distance = 0;
+			for (const FVector2D& Corner : Corners)
+			{
+				Distance = FMath::Max(Distance, FVector2D::DotProduct(Corner - Center, Axis));
+			}
+			return Distance;
+		}
+	};
+
+	bool ProjectBody(const APlayerController& PC, const APawn& Pawn, FProjectedDartBody& Out)
+	{
+		const USceneComponent* Root = Pawn.GetRootComponent();
+		if (!Root) { return false; }
+		FBox Box = Root->CalcBounds(FTransform::Identity).GetBox();
+		FTransform Frame = Root->GetComponentTransform();
+		if (const auto* Visual = Pawn.FindComponentByClass<UHALVehiclePresentationComponent>())
+		{
+			FHALVehicleFXTargetSnapshot Snapshot;
+			Visual->CaptureStatusFXTargets(Snapshot);
+			if (Snapshot.VehicleBounds.IsValid)
+			{
+				Box = Snapshot.VehicleBounds;
+				Frame = Snapshot.VehicleToWorld;
+			}
+		}
+		auto ProjectLocal = [&](FVector P, FVector2D& Screen)
+		{
+			return UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(&PC, Frame.TransformPosition(P), Screen, true);
+		};
+		const FVector Middle = Box.GetCenter();
+		if (!ProjectLocal(Middle, Out.Center)) { return false; }
+		FVector2D Side;
+		if (ProjectLocal(Middle + FVector(0, Box.GetExtent().Y, 0), Side) && !(Side-Out.Center).IsNearlyZero())
+		{
+			Out.Right = (Side - Out.Center).GetSafeNormal();
+		}
+		for (int32 I = 0; I < 8; ++I)
+		{
+			const FVector Corner(I&1 ? Box.Max.X : Box.Min.X, I&2 ? Box.Max.Y : Box.Min.Y, I&4 ? Box.Max.Z : Box.Min.Z);
+			FVector2D Point;
+			if (ProjectLocal(Corner, Point)) { Out.Corners.Add(Point); }
+		}
+		return true;
+	}
+
+	// Sweep two strips between the scalloped inner edge and the curved outer edge.
+	// Leaving a gap in both strips at the eyelets shows the actual floor through them.
+	struct FDartWingStencil
+	{
+		TArray<FVector2f> Points;
+		TArray<SlateIndex> Indices;
+		FDartWingStencil()
+		{
+			constexpr int32 Rows = 48;
+			for (int32 Row = 0; Row <= Rows; ++Row)
+			{
+				const float Y = 2.f * Row / Rows - 1.f;
+				const float Outer = 1.f - Y*Y;
+				const float Scallop = FMath::Sqrt(FMath::Max(0.f, 1.f-FMath::Square((FMath::Abs(Y)-.50f)/.32f)));
+				const float Inner = Outer * (.15f + .40f*Scallop);
+				const float HoleY = (FMath::Abs(Y)-.145f)/.078f;
+				const float Hole = .155f * FMath::Sqrt(FMath::Max(0.f, 1.f-HoleY*HoleY));
+				const float Middle = FMath::Lerp(Inner, Outer, .54f);
+				Points.Append({{Inner,Y}, {Middle-Hole,Y}, {Middle+Hole,Y}, {Outer,Y}});
+				if (Row == 0) { continue; }
+				for (int32 Column : {0, 2})
+				{
+					const SlateIndex I = SlateIndex((Row-1)*4 + Column);
+					Indices.Append({I, SlateIndex(I+1), SlateIndex(I+4), SlateIndex(I+4), SlateIndex(I+1), SlateIndex(I+5)});
+				}
+			}
+		}
+	};
+
+	void DrawBodyWings(const FGeometry& G, FSlateWindowElementList& E, int32 Layer, const FProjectedDartBody& Body,
+		double HalfHeight, double Width, double Gap, float Pulse)
+	{
+		static const FDartWingStencil Stencil;
+		const FVector2D Along(-Body.Right.Y, Body.Right.X);
+		TArray<FSlateVertex> Vertices;
+		TArray<SlateIndex> Indices;
+		Vertices.Reserve(2*Stencil.Points.Num());
+		Indices.Reserve(2*Stencil.Indices.Num());
+		for (double Sign : {-1., 1.})
+		{
+			const FVector2D Out = Body.Right * Sign;
+			const FVector2D Base = Body.Center + Out * (Body.Reach(Out) + Gap);
+			const SlateIndex Offset = SlateIndex(Vertices.Num());
+			for (int32 I = 0; I < Stencil.Points.Num(); ++I)
+			{
+				const FVector2f Point = Stencil.Points[I];
+				const FVector2D At = Base + Out * (Point.X * Width * (1.+.09*Pulse)) + Along * (Point.Y * HalfHeight);
+				// Lift just the inside of the silhouette to steel; both contours and the eyelets stay legible.
+				const bool bInside = I%4 == 1 || I%4 == 2;
+				const uint8 Glint = bInside ? FMath::RoundToInt(210.f*Pulse*(1.f-.58f*FMath::Abs(Point.Y))) : 0;
+				Vertices.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(G.GetAccumulatedRenderTransform(),
+					FVector2f(At), FVector2f(.5f), FColor(Glint,Glint,Glint)));
+			}
+			for (SlateIndex I : Stencil.Indices) { Indices.Add(Offset + I); }
+		}
+		const auto Resource = FSlateApplication::Get().GetRenderer()->GetResourceHandle(*FCoreStyle::Get().GetBrush("WhiteBrush"));
+		FSlateDrawElement::MakeCustomVerts(E, Layer, Resource, Vertices, Indices, nullptr, 0, 0);
+	}
+
+	void DrawEdgeTrail(const FGeometry& G, FSlateWindowElementList& E, int32 Layer, FVector2D Size,
+			const FProjectedDartBody& Owner, FVector2D Bearing, float Pulse)
+	{
+		const FVector2D Inset = Size * .026 + FVector2D(8);
+		const FBox2D Frame(Inset, Size-Inset);
+		const FVector2D Origin = Frame.GetClosestPointTo(Owner.Center);
+		const auto ToEdge = [](double Position, double Axis, double Min, double Max)
+		{
+			return FMath::IsNearlyZero(Axis) ? UE_BIG_NUMBER : ((Axis > 0 ? Max : Min)-Position)/Axis;
+		};
+		const double Distance = FMath::Min(ToEdge(Origin.X,Bearing.X,Frame.Min.X,Frame.Max.X),
+			ToEdge(Origin.Y,Bearing.Y,Frame.Min.Y,Frame.Max.Y));
+		const FVector2D Edge = Origin + Bearing*Distance;
+		const FVector2D Start = Owner.Center + Bearing*(Owner.Reach(Bearing)+7.);
+		const double Length = FVector2D::DotProduct(Edge-Start, Bearing) - 12.;
+		if (Length > 0)
+		{
+			const double DotSize = FMath::Clamp(Size.Y*.0058, 3.6, 6.);
+			const int32 Count = FMath::Clamp(FMath::CeilToInt(Length/(DotSize*4.)), 1, 72);
+			for (int32 I = 0; I < Count; ++I)
+			{
+				const FVector2D At = Start + Bearing*(Length*(I+.5)/Count) - FVector2D(DotSize*.5);
+				FSlateDrawElement::MakeBox(E, Layer, G.ToPaintGeometry(FVector2D(DotSize), FSlateLayoutTransform(At)),
+					FCoreStyle::Get().GetBrush("WhiteBrush"), ESlateDrawEffect::None, FLinearColor::Black);
+			}
+		}
+		const FVector2D Across(-Bearing.Y, Bearing.X);
+		TArray<FSlateVertex> Vertices;
+		const double MarkerSize = FMath::Clamp(Size.Y*.022, 13., 25.)*(1.+.12*Pulse);
+		for (double Sign : {-1., 1.})
+		{
+			for (FVector2D P : {FVector2D(-.72,.90), FVector2D(-.50,.32), FVector2D(.35,.07), FVector2D(-.03,.58)})
+			{
+				const FVector2D At = Edge + (Bearing*P.X + Across*(P.Y*Sign))*MarkerSize;
+				Vertices.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(G.GetAccumulatedRenderTransform(),
+					FVector2f(At), FVector2f(.5f), FColor::Black));
+			}
+		}
+		const TArray<SlateIndex> Indices = {0,1,2, 0,2,3, 4,5,6, 4,6,7};
+		const auto Resource = FSlateApplication::Get().GetRenderer()->GetResourceHandle(*FCoreStyle::Get().GetBrush("WhiteBrush"));
+		FSlateDrawElement::MakeCustomVerts(E, Layer, Resource, Vertices, Indices, nullptr, 0, 0);
+	}
+}
+
+FHALBatarangPinView UHALBatarangWidget::GetPinView() const
+{
+	FHALBatarangPinView View;
+	const auto* Shot = Dart.Get();
+	const auto* PC = GetOwningPlayer();
+	if (!Shot || !PC || !PC->GetPawn() || PC->GetPawn() != Shot->GetOwner()) { return View; }
+	const auto& State = Shot->GetState();
+	if (State.Phase != EHALDartPhase::Pinned || !State.Config) { return View; }
+	View.bPinned = true;
+	View.bCanDetonate = Shot->IsManualInputOpen();
+	View.RemainingSeconds = FMath::Clamp(float(State.PhaseStart + State.Config->FuseSeconds - Shot->ServerTime()), 0.f, State.Config->FuseSeconds);
+	View.FusePulse = State.Config->FusePulse(View.RemainingSeconds);
+	if (IsValid(State.Target) && !UHALSmokeScreenView::ShouldHideWorldTarget(State.Target))
+	{
+		View.VisibleVehicle = State.Target;
+		View.PushDirection = Shot->PushDirection();
+	}
+	return View;
+}
+
+TSharedRef<SWidget> UHALBatarangWidget::RebuildWidget()
+{
+	bUseNativeArt = !(WidgetTree && WidgetTree->RootWidget);
+	return bUseNativeArt ? SNew(SBox) : Super::RebuildWidget();
+}
+
 void UHALBatarangWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -23,175 +205,70 @@ void UHALBatarangWidget::NativeConstruct()
 	SetIsFocusable(false);
 	ForceVolatile(true);
 }
-int32 UHALBatarangWidget::NativePaint(const FPaintArgs& Args,const FGeometry& G,const FSlateRect& Cull,
-	FSlateWindowElementList& E,int32 Layer,const FWidgetStyle& Style,bool bEnabled) const
+
+int32 UHALBatarangWidget::NativePaint(const FPaintArgs& Args, const FGeometry& G, const FSlateRect& Cull,
+	FSlateWindowElementList& E, int32 Layer, const FWidgetStyle& Style, bool bEnabled) const
 {
 	const int32 Base = Super::NativePaint(Args,G,Cull,E,Layer,Style,bEnabled);
-	const auto* Shot = Dart.Get();
-	const auto* PC = GetOwningPlayer();
-	if (!Shot || !PC || !PC->GetPawn() || PC->GetPawn() != Shot->GetOwner()) { return Base; }
-	const auto& S = Shot->GetState();
-	if (S.Phase != EHALDartPhase::Pinned || !S.Config) { return Base; }
+	if (!bUseNativeArt) { return Base; }
+	const auto View = GetPinView();
 	const FVector2D Size = G.GetLocalSize();
-	if (Size.GetMin() <= 1.) { return Base; }
-	auto Text = [&](FVector2D At,const FString& Value,FLinearColor Color,int32 Pt)
+	if (!View.bPinned || Size.GetMin() < 36.) { return Base; }
+	const APlayerController& PC = *GetOwningPlayer();
+	const float Pulse = View.FusePulse*(View.bCanDetonate ? 1.f : .55f);
+	if (!View.VisibleVehicle)
 	{
-		const auto Font = FCoreStyle::GetDefaultFontStyle("Bold",Pt);
-		for (int32 Pass=0; Pass<2; ++Pass)
-		{
-			FSlateDrawElement::MakeText(E,Base+3+Pass,G.ToPaintGeometry(FVector2D(1),FSlateLayoutTransform(At+FVector2D(1-Pass))),
-				Value,Font,ESlateDrawEffect::None,Pass ? Color : FLinearColor::Black);
-		}
-	};
-	auto Line = [&](const TArray<FVector2D>& Points,FLinearColor Color,float Thickness)
-	{
-		FSlateDrawElement::MakeLines(E,Base+2,G.ToPaintGeometry(),Points,ESlateDrawEffect::None,Color,true,Thickness);
-	};
-	auto Plate = [&](FVector2D At,FVector2D Extent,const FLinearColor& Color)
-	{
-		FSlateDrawElement::MakeBox(E,Base+1,G.ToPaintGeometry(Extent,FSlateLayoutTransform(At)),
-			FCoreStyle::Get().GetBrush("WhiteBrush"),ESlateDrawEffect::None,Color);
-	};
-	const FLinearColor Ink(.012f,.021f,.035f,.93f);
-	const auto Metrics = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	auto Readout = [&](const FString& Message, const FLinearColor& Accent)
-	{
-		const FVector2D Extent = Metrics->Measure(Message,FCoreStyle::GetDefaultFontStyle("Bold",14));
-		const FVector2D At((Size.X-Extent.X)*.5,Size.Y*.82);
-		Plate(At-FVector2D(10,3),Extent+FVector2D(20,6),Ink);
-		Line({At-FVector2D(7,1),At+FVector2D(-7,Extent.Y+1)},Accent,2.f);
-		Text(At,Message,FLinearColor::White,14);
-	};
-	const FString Prompt = Shot->IsManualInputOpen() ? TEXT("可引爆")
-		: (UHALAbilitySystemComponent::IsActorStunned(PC->GetPawn()) ? TEXT("眩晕中") : TEXT("暂不可引爆"));
-	if (!IsValid(S.Target) || UHALSmokeScreenView::ShouldHideWorldTarget(S.Target))
-	{
-		Readout(FString(TEXT("已挂镖 · "))+Prompt,FLinearColor(.69f,.77f,.70f));
-		return Base+4;
+		// Fixed above the skill meter, with no positional or directional information about the concealed car.
+		FProjectedDartBody Glyph;
+		Glyph.Center = FVector2D(Size.X*.5,Size.Y*.86);
+		const double HalfHeight = FMath::Clamp(Size.Y*.014, 7., 15.);
+		DrawBodyWings(G,E,Base+1,Glyph,HalfHeight,HalfHeight*.89,2.,Pulse);
+		return Base+1;
 	}
-	const auto* PS = S.Target->GetPlayerState<AHALPlayerState>();
-	int32 Number = PS ? PS->GetRoomData().Number : 0;
-	// Non-room test maps use engine connection IDs (often 256+). Give their active drivers compact labels too.
-	if (PS && Number <= 0)
-	{
-		Number = 1;
-		if (const auto* GS = Shot->GetWorld()->GetGameState())
-		{
-			for (const APlayerState* Other : GS->PlayerArray)
-			{ if (Other && !Other->IsOnlyASpectator() && Other->GetPlayerId() < PS->GetPlayerId()) { ++Number; } }
-		}
-	}
-	const FString Label = Number > 0 ? FString::Printf(TEXT("P%d"),Number) : FString(TEXT("目标"));
-	FLinearColor Tint(.82f,1.f,.23f);
-	UHALPlayerIdentitySettings::ResolvePlayerColor(Shot->GetWorld(),S.Target,INDEX_NONE,Tint);
-	const FVector World = S.Target->GetActorLocation();
-	auto Project = [&](FVector Where,FVector2D& To) { return UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(PC,Where,To,true); };
-	FVector2D Target = FVector2D::ZeroVector, Own = FVector2D::ZeroVector;
-	const bool bProjected = Project(World,Target);
-	if (!Project(PC->GetPawn()->GetActorLocation(),Own)) { Own = .5*Size; }
-	FVector2D Bearing;
-	if (bProjected) { Bearing = (Target-Own).GetSafeNormal(); }
-	else
-	{
-		FVector Eye; FRotator Facing; PC->GetPlayerViewPoint(Eye,Facing);
-		const FVector Local = Facing.UnrotateVector(World-Eye);
-		Bearing = FVector2D(Local.Y,-Local.Z).GetSafeNormal();
-	}
-	if (Bearing.IsNearlyZero()) { Bearing = FVector2D(0,-1); }
-	static const TCHAR* Compass[] = {TEXT("→"),TEXT("↘"),TEXT("↓"),TEXT("↙"),TEXT("←"),TEXT("↖"),TEXT("↑"),TEXT("↗")};
-	static const TCHAR* Sides[] = {TEXT("前侧"),TEXT("后侧"),TEXT("左侧"),TEXT("右侧")};
-	const int32 Dir = (FMath::RoundToInt(FMath::Atan2(Bearing.Y,Bearing.X)/(UE_PI*.25))+8)%8;
-	const float Age = FMath::Max(0.f,float(Shot->ServerTime()-S.PhaseStart));
-	const float Remaining = FMath::Max(0.f,S.Config->FuseSeconds-Age);
-	Readout(FString::Printf(TEXT("%s %s · %s中镖 · %s  %.1f"),*Label,Compass[Dir],Sides[int32(S.Side)],*Prompt,Remaining),Tint);
 
-	// Switch before the target's label or wings fall outside the frame, even if the car centre is still projected.
-	const FVector2D Inset(FMath::Max(44.,Size.X*.04),FMath::Max(62.,Size.Y*.065));
-	const bool bOnScreen = bProjected && Target.X>=Inset.X && Target.Y>=Inset.Y && Target.X<=Size.X-Inset.X && Target.Y<=Size.Y-Inset.Y;
-	auto ExitDistance = [](FVector2D From,FVector2D Ray,const FBox2D& Box)
+	FProjectedDartBody Body;
+	const bool bProjected = ProjectBody(PC,*View.VisibleVehicle,Body);
+	const FBox2D Screen(FVector2D::ZeroVector, Size);
+	if (!bProjected || !Screen.IsInside(Body.Center))
 	{
-		const double DX = FMath::Abs(Ray.X)<UE_SMALL_NUMBER ? UE_BIG_NUMBER : ((Ray.X>0 ? Box.Max.X : Box.Min.X)-From.X)/Ray.X;
-		const double DY = FMath::Abs(Ray.Y)<UE_SMALL_NUMBER ? UE_BIG_NUMBER : ((Ray.Y>0 ? Box.Max.Y : Box.Min.Y)-From.Y)/Ray.Y;
-		return FMath::Max(0.,FMath::Min(DX,DY));
-	};
-	FVector2D Marker = Target;
-	if (!bOnScreen)
-	{
-		const FBox2D Frame(Size*.085,Size*.915);
-		const FVector2D Origin = Frame.GetClosestPointTo(Own);
-		Marker = Origin+Bearing*ExitDistance(Origin,Bearing,Frame);
-	}
-	const FVector2D Along = (Marker-Own).GetSafeNormal();
-	if (!bOnScreen || Age < .35f)
-	{
-		// Begin outside the actual projected body even with a large truck, zoom or a shifted camera.
-		const APawn* OwnerPawn = PC->GetPawn();
-		FBox Body = OwnerPawn->GetRootComponent()->CalcBounds(FTransform::Identity).GetBox();
-		FTransform Frame = OwnerPawn->GetActorTransform();
-		if (const auto* Visual = OwnerPawn->FindComponentByClass<UHALVehiclePresentationComponent>())
+		FProjectedDartBody Owner;
+		if (!ProjectBody(PC,*PC.GetPawn(),Owner)) { Owner.Center = Size*.5; }
+		FVector2D Bearing = Body.Center - Owner.Center;
+		if (!bProjected)
 		{
-			FHALVehicleFXTargetSnapshot Bounds;
-			Visual->CaptureStatusFXTargets(Bounds);
-			if (Bounds.VehicleBounds.IsValid) { Body=Bounds.VehicleBounds; Frame=Bounds.VehicleToWorld; }
+			FVector Eye; FRotator Facing;
+			PC.GetPlayerViewPoint(Eye, Facing);
+			const FVector Local = Facing.UnrotateVector(View.VisibleVehicle->GetActorLocation()-Eye);
+			Bearing = FVector2D(Local.Y,-Local.Z);
 		}
-		FBox2D Outline(ForceInit);
-		for (int32 I=0; I<8; ++I)
-		{
-			FVector2D P;
-			const FVector Corner(I&1?Body.Max.X:Body.Min.X,I&2?Body.Max.Y:Body.Min.Y,I&4?Body.Max.Z:Body.Min.Z);
-			if (Project(Frame.TransformPosition(Corner),P)) { Outline+=P; }
-		}
-		const double Clearance = (Outline.bIsValid ? ExitDistance(Own,Along,Outline) : 30.)+5;
-		const FVector2D Start = Own+Along*Clearance;
-		for (int32 I=0; I<10 && Clearance+8 < (Marker-Own).Size(); ++I)
-		{
-			const double A = I*.1, B = (I+(Age<.35f?.58:1.))*.1;
-			FLinearColor Trace = Tint; Trace.A = Age<.35f ? .6f : .15f+.18f*I/9.f;
-			Line({FMath::Lerp(Start,Marker,A),FMath::Lerp(Start,Marker,B)},Trace,Age<.35f?2.f:1.3f);
-		}
+		if (Bearing.Normalize()) { DrawEdgeTrail(G,E,Base+1,Size,Owner,Bearing,Pulse); }
+		return Base+1;
 	}
-	const FVector2D WingCenter = bOnScreen ? Marker-FVector2D(0,39) : Marker;
-	const FVector2D LabelSize = Metrics->Measure(Label,FCoreStyle::GetDefaultFontStyle("Bold",14));
-	const double HalfPlate = FMath::Max(16.,LabelSize.X*.5+5.);
-	Plate(WingCenter-FVector2D(HalfPlate,11),FVector2D(2*HalfPlate,22),Ink);
-	const double Spread = HalfPlate+1 + 17*(1.-FMath::Clamp(Age/.35f,0.f,1.f));
-	for (const int32 Sign : {-1,1})
+
+	const FVector2D Along(-Body.Right.Y, Body.Right.X);
+	const double HalfHeight = FMath::Clamp(.38*(Body.Reach(Along)+Body.Reach(-Along)), 12., FMath::Max(12.,Size.Y*.20));
+	const double Width = HalfHeight*.58;
+	const double Gap = FMath::Clamp(HalfHeight*.105, 3., 14.);
+	DrawBodyWings(G,E,Base+1,Body,HalfHeight,Width,Gap,Pulse);
+
+	const FVector World = View.VisibleVehicle->GetActorLocation();
+	FVector2D From, To;
+	if (UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(&PC,World,From,true) &&
+		UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(&PC,World+View.PushDirection*100.,To,true))
 	{
-		const FVector2D P = WingCenter+FVector2D(Sign*Spread,0);
-		const TArray<FVector2D> Wing = {P+FVector2D(Sign*19,-8),P+FVector2D(Sign*11,3),
-			P+FVector2D(Sign*9,0),P+FVector2D(Sign*5,5),P+FVector2D(0,3)};
-		Line(Wing,Ink,6.f);
-		Line(Wing,Tint,3.f);
-	}
-	Text(WingCenter-.5*LabelSize,Label,FLinearColor::White,14);
-	// The cuts under the tab empty continuously from right to left during the fuse.
-	const float Charge = Remaining/S.Config->FuseSeconds;
-	for (int32 Tick=0; Tick<5; ++Tick)
-	{
-		const FVector2D Start = WingCenter+FVector2D(-HalfPlate+(2*HalfPlate/5)*Tick,11);
-		const double Cell = 2*HalfPlate/5-1.5;
-		const float Lit = FMath::Clamp(Charge*5-Tick,0.f,1.f);
-		Line({Start,Start+FVector2D(Cell,0)},Ink,3.f);
-		if (Lit > 0) { Line({Start,Start+FVector2D(Cell*Lit,0)},Tint,2.f); }
-	}
-	if (bOnScreen)
-	{
-		const auto Hull = S.Target->GetRootComponent()->CalcBounds(FTransform::Identity);
-		const FVector Push = Shot->PushDirection();
-		const bool bLongAxis = S.Side == EHALDartSide::Front || S.Side == EHALDartSide::Rear;
-		const FVector Scale = S.Target->GetActorScale3D().GetAbs();
-		const double Extent = bLongAxis ? Hull.BoxExtent.X*Scale.X : Hull.BoxExtent.Y*Scale.Y;
-		const FVector Floor = World-FVector(0,0,Hull.BoxExtent.Z*Scale.Z-4);
-		FVector2D Tail,Tip;
-		if (Project(Floor+Push*Extent*.50,Tail) && Project(Floor+Push*(Extent+80),Tip))
+		const FVector2D Axis = (To-From).GetSafeNormal();
+		if (!Axis.IsNearlyZero())
 		{
-			const FVector2D Axis = (Tip-Tail).GetSafeNormal(), Perp(-Axis.Y,Axis.X);
-			const double W = FMath::Clamp((Tip-Tail).Size()*.14,3.,9.);
-			const FVector2D Neck = Tip-Axis*(3*W);
-			const TArray<FVector2D> Points = {Tail+Perp*W,Neck+Perp*W,Neck+Perp*(2*W),Tip,Neck-Perp*(2*W),Neck-Perp*W,Tail-Perp*W,Tail+Perp*W};
-			Line(Points,FLinearColor(.025f,.035f,.045f,.85f),4.5f);
-			Line(Points,Tint,2.1f);
+			const FVector2D Across(-Axis.Y, Axis.X);
+			const double WingClearance = (Gap+Width*1.09)*FMath::Abs(FVector2D::DotProduct(Axis,Body.Right));
+			const double Radius = FMath::Clamp(HalfHeight*.44, 7.5, FMath::Max(7.5,Size.Y*.075));
+			const FVector2D Back = Body.Center + Axis*(Body.Reach(Axis)+WingClearance+Gap);
+			const FVector2D Upper = Back-Across*Radius, Lower = Back+Across*Radius;
+			const TArray<FVector2D> Chevron = {Upper, Upper+Axis*(Radius*.33), Back+Axis*(Radius*1.25),
+				Lower+Axis*(Radius*.33), Lower, Back+Axis*(Radius*.86), Upper};
+			FSlateDrawElement::MakeLines(E,Base+1,G.ToPaintGeometry(),Chevron,ESlateDrawEffect::None,
+				FLinearColor::Black,true,FMath::Clamp(float(Radius*.14),1.7f,4.f));
 		}
 	}
-	return Base+4;
+	return Base+1;
 }

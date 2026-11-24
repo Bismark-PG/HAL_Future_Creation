@@ -11,16 +11,45 @@
 #include "../HALMatchGameState.h"
 #include "../HALPlayerController.h"
 #include "../HALPlayerState.h"
+#include "../HALSkillTestDummy.h"
+#include "../HALVehiclePresentationComponent.h"
 #include "../TestVehiclePawn.h"
 #include "../VehicleDefinition.h"
 #include "../VehicleHealthComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/SkeletalMesh.h"
+#if WITH_EDITOR
+#include "AssetCompilingManager.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/SceneCaptureComponent2D.h"
+#include "ContentStreaming.h"
+#include "Engine/SceneCapture2D.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "RenderingThread.h"
+#endif
 
 struct FHALBatarangTestAccess
 {
 	static void Advance(AHALBatarang& Dart,double Now) { Dart.Advance(Now); }
+	static FTransform Mount(AHALBatarang& Dart, UHALBatarangConfig& Config, ATestVehiclePawn& Target, FVector Outward)
+	{
+		const auto Hull=Target.GetRootComponent()->CalcBounds(FTransform::Identity);
+		Dart.State.Config=&Config;
+		Dart.State.Phase=EHALDartPhase::Pinned;
+		Dart.State.Target=&Target;
+		Dart.State.LocalAnchor=Hull.Origin+Outward*Hull.BoxExtent;
+		Dart.State.LocalNormal=Outward;
+		Dart.State.PhaseStart=Dart.ServerTime();
+		Dart.Present(Dart.ServerTime()+.4); // Inspect the settled blade after the short contact flash.
+		return Dart.PinTransform();
+	}
 	static void Ground(ATestVehiclePawn& Car,bool bGround)
 	{
 		auto* Move = Car.FindComponentByClass<UArcadeVehicleMovementComponent>();
@@ -48,6 +77,157 @@ bool FHALDartPathTest::RunTest(const FString&)
 		const FVector Out = -HALBatarang::PushDirection(Side,0);
 		TestTrue(TEXT("Four physical contact faces match inward impulse"),HALBatarang::HitSide(Out*Extent,Extent,Out)==Side);
 		TestTrue(TEXT("90 degree target turn rotates expected impulse"),HALBatarang::PushDirection(Side,90).Equals(FRotator(0,90,0).RotateVector(-Out),.001));
+	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALDartPinArtTest,"HAL.FutureCreation.Batarang.EmbeddedBladeOnProductionDummyAndFusePulse",
+	EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+#if WITH_EDITOR
+namespace
+{
+	// Photograph the same tilted production dummy with the blade visible and hidden.
+	// The difference catches an accidentally buried blade that still has the correct numeric depth.
+	void PhotographRearPin(FAutomationTestBase& Test, UWorld& World, UMeshComponent& Body, UStaticMeshComponent& Blade)
+	{
+		auto* Floor=World.SpawnActor<AActor>();
+		auto* Deck=NewObject<UStaticMeshComponent>(Floor);
+		Floor->SetRootComponent(Deck);
+		Deck->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube")));
+		Deck->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Deck->SetWorldScale3D(FVector(22,22,.1));
+		Deck->SetWorldLocation(FVector(0,0,Body.Bounds.GetBox().Min.Z-6));
+		Deck->RegisterComponent();
+		auto* Lamp=World.SpawnActor<AActor>();
+		auto* Light=NewObject<UDirectionalLightComponent>(Lamp);
+		Lamp->SetRootComponent(Light);
+		Light->SetIntensity(5.f);
+		Light->SetWorldRotation(FRotator(-55,-30,0));
+		Light->RegisterComponent();
+		TInlineComponentArray<UMeshComponent*> CarMeshes(Body.GetOwner());
+		for (auto* Mesh : CarMeshes) { Mesh->SetTextureForceResidentFlag(true); }
+		Blade.SetTextureForceResidentFlag(true);
+
+		auto* Camera=World.SpawnActor<ASceneCapture2D>()->GetCaptureComponent2D();
+		Camera->bCaptureEveryFrame=false;
+		Camera->CaptureSource=SCS_FinalColorLDR;
+		Camera->ProjectionType=ECameraProjectionMode::Orthographic;
+		Camera->OrthoWidth=730;
+		Camera->ShowFlags.SetTemporalAA(false);
+		Camera->PostProcessSettings.bOverride_AutoExposureMethod=true;
+		Camera->PostProcessSettings.AutoExposureMethod=AEM_Manual;
+		const FVector Target=FMath::Lerp(Body.Bounds.Origin,Blade.GetComponentLocation(),.12);
+		const FVector Outward=-Blade.GetForwardVector().GetSafeNormal2D();
+		const FVector Across=FVector::CrossProduct(FVector::UpVector,Outward);
+		const FVector Eye=Target+Outward*360.+Across*560.+FVector(0,0,780);
+		Camera->SetWorldLocationAndRotation(Eye,(Target-Eye).Rotation());
+		auto* Texture=NewObject<UTextureRenderTarget2D>();
+		Texture->InitCustomFormat(960,720,PF_B8G8R8A8,false);
+		Camera->TextureTarget=Texture;
+		World.SendAllEndOfFrameUpdates();
+		Camera->CaptureScene();
+		FlushRenderingCommands();
+		IStreamingManager::Get().StreamAllResources(10.f);
+		FAssetCompilingManager::Get().FinishAllCompilation();
+		const FString Folder=FPaths::ProjectSavedDir()/TEXT("Batarang/PinBurst/Tilted");
+		IFileManager::Get().MakeDirectory(*Folder,true);
+		auto Capture=[&](bool bVisible,const TCHAR* Name)
+		{
+			Blade.SetVisibility(bVisible);
+			World.SendAllEndOfFrameUpdates();
+			Camera->CaptureScene();
+			TArray<FColor> Pixels;
+			Texture->GameThread_GetRenderTargetResource()->ReadPixels(Pixels);
+			Test.TestTrue(TEXT("Tilted dummy frame saved"),Pixels.Num()==960*720
+				&& FFileHelper::CreateBitmap(*(Folder/Name),960,720,Pixels.GetData()));
+			return Pixels;
+		};
+		const TArray<FColor> Bare=Capture(false,TEXT("Rear_Bare.bmp"));
+		const TArray<FColor> Embedded=Capture(true,TEXT("Rear_Embedded.bmp"));
+		int32 VisiblePixels=0;
+		for (int32 I=0; I<FMath::Min(Bare.Num(),Embedded.Num()); ++I)
+		{
+			const auto& A=Bare[I]; const auto& B=Embedded[I];
+			if (FMath::Abs(int32(A.R)-B.R)+FMath::Abs(int32(A.G)-B.G)+FMath::Abs(int32(A.B)-B.B)>30) { ++VisiblePixels; }
+		}
+		Test.TestTrue(TEXT("Exposed wings are visible on the tilted dummy at 960x720"),VisiblePixels>120);
+		Test.AddInfo(FString::Printf(TEXT("Tilted rear mount, visible blade footprint %d pixels"),VisiblePixels));
+		// View the broad side of the wing as well as its silhouette next to the bumper.
+		const FVector DetailTarget=FMath::Lerp(Blade.GetComponentLocation(),Body.Bounds.Origin,.13);
+		const FVector DetailEye=DetailTarget-Blade.GetForwardVector()*320.+Blade.GetUpVector()*440.+FVector::UpVector*110.;
+		Camera->OrthoWidth=280;
+		Camera->SetWorldLocationAndRotation(DetailEye,(DetailTarget-DetailEye).Rotation());
+		Capture(true,TEXT("Rear_Detail.bmp"));
+	}
+}
+#endif
+bool FHALDartPinArtTest::RunTest(const FString&)
+{
+	auto* Config=LoadObject<UHALBatarangConfig>(nullptr,TEXT("/Game/Data/Abilities/DA_Ability_Car12_Batarang"));
+	auto* DummyClass=LoadClass<AHALSkillTestDummy>(nullptr,TEXT("/Game/Blueprints/Vehicles/BP_SkillTestDummy.BP_SkillTestDummy_C"));
+	if (!TestTrue(TEXT("Production art and dummy available"),Config && Config->BladeMesh && Config->BurstCloudMesh && DummyClass)) { return false; }
+	TArray<float> Beats;
+	float Previous=0;
+	for (int32 I=0; I<500; ++I)
+	{
+		const float Remaining=(1.f-I/500.f)*Config->FuseSeconds;
+		const float Pulse=Config->FusePulse(Remaining);
+		if (Pulse>.75f && Previous<=.75f)
+		{
+			Beats.Add(Config->FuseSeconds-Remaining);
+		}
+		Previous=Pulse;
+	}
+	TestTrue(TEXT("Production wings beat faster near expiry"),
+		Beats.Num()>=4 && Beats.Last()-Beats.Last(1) < .75f*(Beats[2]-Beats[1]));
+	const auto Init=UWorld::InitializationValues().AllowAudioPlayback(false).CreatePhysicsScene(true).CreateNavigation(false)
+		.CreateAISystem(false).CreateFXSystem(false).ShouldSimulatePhysics(false).SetTransactional(false);
+	auto* W=UWorld::CreateWorld(EWorldType::Game,false,NAME_None,nullptr,true,ERHIFeatureLevel::Num,&Init);
+	GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(W);
+	ON_SCOPE_EXIT { W->DestroyWorld(false); GEngine->DestroyWorldContext(W); };
+	auto* Dummy=W->SpawnActor<AHALSkillTestDummy>(DummyClass,FVector(0,0,120),FRotator(12,30,61));
+	if (!TestNotNull(TEXT("Tilted skill dummy"),Dummy)) { return false; }
+	if (!Dummy->IsActorInitialized()) { Dummy->PreInitializeComponents(); Dummy->InitializeComponents(); Dummy->PostInitializeComponents(); }
+	Dummy->DispatchBeginPlay();
+#if WITH_EDITOR
+	if (FApp::CanEverRender() && FParse::Param(FCommandLine::Get(),TEXT("HALDartPinPhoto")))
+	{
+		// Let the production presentation initialize its skin before photographing either state.
+		for (int32 Frame=0; Frame<30; ++Frame) { W->Tick(LEVELTICK_All,1.f/30.f); }
+		Dummy->SetActorTransform(FTransform(FRotator(12,30,61),FVector(0,0,120)),false,nullptr,ETeleportType::TeleportPhysics);
+	}
+#endif
+	FHALVehicleFXTargetSnapshot Targets;
+	Dummy->FindComponentByClass<UHALVehiclePresentationComponent>()->CaptureStatusFXTargets(Targets);
+	if (!TestTrue(TEXT("Dummy has a visible car body with baked triangle samples"),!Targets.Targets.IsEmpty()
+		&& Config->PinProfiles.ContainsByPredicate([&](const FHALBatarangPinProfile& P) { return P.Mesh.Get()==Targets.Targets[0].MeshAsset.Get() && P.Radii.Num()>=4; }))) { return false; }
+	for (const FVector Side : {FVector::ForwardVector,FVector::BackwardVector,FVector::LeftVector,FVector::RightVector})
+	{
+		auto* Dart=W->SpawnActor<AHALBatarang>();
+		const FTransform Skin=FHALBatarangTestAccess::Mount(*Dart,*Config,*Dummy,Side);
+		auto* Blade=FindObjectFast<UStaticMeshComponent>(Dart,TEXT("ResonanceBlade"));
+		if (!TestNotNull(TEXT("Embedded full-size authored mesh"),Blade)) { return false; }
+		const FBox Bounds=Config->BladeMesh->GetBoundingBox();
+		const FTransform Transform=Blade->GetComponentTransform();
+		const auto Depth=[&](double X) { return FVector::DotProduct(Transform.TransformPosition(FVector(X,0,0))-Skin.GetLocation(),Skin.GetUnitAxis(EAxis::X)); };
+		TestTrue(TEXT("Nose penetrates the shell by the DA depth, rear wing remains exposed on every side"),
+			FMath::IsNearlyEqual(Depth(Bounds.Max.X),double(Config->WingSpan*Config->PinDepthPercent*.01),.12) && Depth(Bounds.Min.X)<-5.);
+		AddInfo(FString::Printf(TEXT("Side %s, tip %.2f cm inside, trailing edge %.2f cm outside"),
+			*Side.ToCompactString(),Depth(Bounds.Max.X),-Depth(Bounds.Min.X)));
+#if WITH_EDITOR
+		if (Side==FVector::BackwardVector && FApp::CanEverRender() && FParse::Param(FCommandLine::Get(),TEXT("HALDartPinPhoto")))
+		{
+			PhotographRearPin(*this,*W,*Targets.Targets[0].Mesh.Get(),*Blade);
+		}
+#endif
+		const FTransform OldPose=Dummy->GetActorTransform();
+		const FTransform RelativeBlade=Transform.GetRelativeTransform(OldPose);
+		Dummy->SetActorRotation(FRotator(-17,85,-44),ETeleportType::TeleportPhysics);
+		FHALBatarangTestAccess::Mount(*Dart,*Config,*Dummy,Side);
+		TestTrue(TEXT("The embedded wings follow the target through a change of pitch, yaw and roll"),
+			Blade->GetComponentTransform().Equals(RelativeBlade*Dummy->GetActorTransform(),.13));
+		Dummy->SetActorRotation(OldPose.GetRotation(),ETeleportType::TeleportPhysics);
+		Dart->Destroy();
 	}
 	return true;
 }

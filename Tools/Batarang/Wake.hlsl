@@ -1,19 +1,15 @@
-// UV.x measures past flight, with 1 beside the blade. A pair of pen strokes
-// and a detached sliver leave negative space between the two wing tracks.
-float x = saturate(UV.x);
-float y = UV.y*2-1;
-float aa = clamp(fwidth(y)*.65,.012,.115);
-float bow = sin(3.14159*x);
-float mainCenter = -.06 + .22*bow;
-float mainWidth = .41*pow(x,.78)*(.85+.15*bow);
-float main = min(mainWidth-abs(y-mainCenter), min(x-.075,1.-x)*4.);
-float slash = min((.040+.055*x)-abs(y+.26+.21*bow), min(x-.29,.95-x)*3.);
-float feather = min(.05-abs(y-.28-.23*bow), min(x,.49-x)*2.);
-float silhouette = max(main,max(slash,feather));
-float outer = smoothstep(-aa,aa,silhouette+.042);
-float interior = smoothstep(-aa,aa,silhouette);
-float3 colour = lerp(SeatColor,Livery,.60);
-float innerLine = smoothstep(-aa,aa,.034+.055*x-abs(y-mainCenter-.11*x));
-colour = lerp(colour,float3(.95,1.10,.87),innerLine);
-colour = lerp(colour,Livery,step(main,max(slash,feather)));
-return float4(lerp(Ink,colour,interior),outer*smoothstep(0.,.12,x)*(.52+.47*x));
+// U=1 touches the leading blade. Two tapered cuts let the actual deck show
+// between the brush tips; the cuts merge into a single stroke at its head.
+float u = saturate(UV.x);
+float v = UV.y * 2.0 - 1.0;
+float bow = sin(3.14159 * u);
+float width = .70 * pow(u, .70);
+float center = .13 * bow;
+float field = width - abs(v - center);
+float cutA = (.085 * (1.0 - smoothstep(.20, .79, u))) - abs(v - center + .19*u + .09*bow);
+float cutB = (.055 * (1.0 - smoothstep(.10, .52, u))) - abs(v - center - .29*u - .06*bow);
+field = min(field, -min(cutA, (.79-u)*1.5));
+field = min(field, -min(cutB, (.52-u)*1.5));
+float aa = clamp(fwidth(v)*.65, .009, .11);
+float coverage = smoothstep(-aa, aa, field) * smoothstep(.0, .08, u);
+return float4(0., 0., 0., coverage * .98);

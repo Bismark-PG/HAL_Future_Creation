@@ -3,6 +3,7 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "../HALBatarang.h"
+#include "../HALBatarangAbility.h"
 #include "../HALMatchGameMode.h"
 #include "../HALMatchGameState.h"
 #include "../HALPlayerController.h"
@@ -18,6 +19,7 @@
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "Engine/Engine.h"
+#include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
 #include "UnrealClient.h"
 
@@ -50,10 +52,13 @@ namespace
 		const bool bOpenArt = FParse::Param(FCommandLine::Get(),TEXT("HALDartOpenArt"));
 		const bool bCapture = FParse::Param(FCommandLine::Get(),TEXT("HALDartScreens"));
 		bool bFlightShot = false, bPinShot = false, bWarningShot = false, bShockShot = false;
+		bool bHotWingShot = false, bCoolWingShot = false, bFlashShot = false, bCloudTailShot = false;
 		bool bDetailShot = false, bRestoredOverview = false, bFlightDetailShot = false;
+		bool bArtCarsSpaced = false;
+		TWeakObjectPtr<UStaticMeshComponent> FlyingBlade;
+		FVector FlightScale = FVector::ZeroVector;
 		TWeakObjectPtr<ACameraActor> DetailCamera;
 		TWeakObjectPtr<ACameraActor> ArtCamera;
-		FTransform Overview;
 	public:
 		explicit FDartNetworkRun(FAutomationTestBase& T) : Test(T) {}
 		bool Update() override
@@ -85,13 +90,25 @@ namespace
 			{
 				const auto& S=Dart->GetState();
 				const double VisualAge = Dart->ServerTime()-S.PhaseStart;
+				if (!bHost && S.Phase == EHALDartPhase::Flight && !FlyingBlade.IsValid())
+				{
+					auto* Blade = FindObjectFast<UStaticMeshComponent>(Dart,TEXT("ResonanceBlade"));
+					if (Blade && Blade->IsVisible() && Blade->GetStaticMesh())
+					{
+						FlyingBlade = Blade;
+						FlightScale = Blade->GetComponentScale();
+						const double Span = Blade->GetStaticMesh()->GetBounds().BoxExtent.Y * 2. * FlightScale.Y;
+						Test.TestTrue(TEXT("Visible flying blade uses the full configured wingspan and uniform scale"),
+							FMath::IsNearlyEqual(Span,double(S.Config->WingSpan),.01) && FlightScale.Equals(FVector(FlightScale.Y),.001));
+					}
+				}
 				if (bOpenArt && !bHost && !ArtCamera.IsValid())
 				{
 					const FRotator View(-68,S.Yaw+5,0);
 					const FVector Focus=(Local->GetActorLocation()+Dart->FlightPoint(.55f))*.5;
 					auto* Camera=W->SpawnActor<ACameraActor>(Focus-View.Vector()*1700,View);
 					if (!Camera) { Test.AddError(TEXT("Art proof camera missing")); return true; }
-					Camera->GetCameraComponent()->SetFieldOfView(76); Overview=Camera->GetActorTransform(); ArtCamera=Camera; PC->SetViewTarget(Camera);
+					Camera->GetCameraComponent()->SetFieldOfView(76); ArtCamera=Camera; PC->SetViewTarget(Camera);
 				}
 				if (bOpenArt && !bHost && S.Phase==EHALDartPhase::Flight && VisualAge>.12 && !bFlightShot)
 				{
@@ -131,11 +148,20 @@ namespace
 				if (S.Phase==EHALDartPhase::Pinned && IsValid(S.Target))
 				{
 					const double Age=Dart->ServerTime()-S.PhaseStart;
+					if (bOpenArt && !bHost && bCapture && Age>3.7 && Age<4.9)
+					{
+						const float Beat=S.Config->FusePulse(S.Config->FuseSeconds-float(Age));
+						if (!bHotWingShot && Beat>.97f) { FScreenshotRequest::RequestScreenshot(TEXT("Car12_WingGlint.png"),true,false); bHotWingShot=true; }
+						else if (!bCoolWingShot && Beat<.025f) { FScreenshotRequest::RequestScreenshot(TEXT("Car12_WingInk.png"),true,false); bCoolWingShot=true; }
+					}
 					if (!bPinned)
 					{
 						if (ArtCamera.IsValid())
 						{
-							ArtCamera->SetActorTransform(Overview);
+							// A first cast may have missed; frame the actual mark rather than that release.
+							const FRotator View(-72,S.Yaw-12.,0);
+							const FVector Focus = FMath::Lerp(S.Target->GetActorLocation(),Local->GetActorLocation(),.12);
+							ArtCamera->SetActorLocationAndRotation(Focus-View.Vector()*1500,View);
 							ArtCamera->GetCameraComponent()->SetFieldOfView(76);
 						}
 						Test.TestTrue(TEXT("Client owns the dart, host owns the pinned car"),bHost ? (Dart->GetOwner()!=Local && S.Target==Local) : (Dart->GetOwner()==Local && S.Target!=Local));
@@ -147,6 +173,22 @@ namespace
 						S.Target->SetActorRotation(FRotator(0,90,0),ETeleportType::TeleportPhysics);
 						CastChecked<UPrimitiveComponent>(S.Target->GetRootComponent())->SetPhysicsAngularVelocityInRadians(FVector::ZeroVector);
 						S.Target->ForceNetUpdate(); bRotated=true;
+					}
+					if (bHost && bOpenArt && !bArtCarsSpaced && Age>.48)
+					{
+						// Photograph a normal separation: two overlapping cars cannot leave a visible
+						// stretch of deck between the caster's tyres and the edge of the screen.
+						auto* Caster = CastChecked<ATestVehiclePawn>(Dart->GetOwner());
+						const FVector Separation = Caster->GetActorLocation()-S.Target->GetActorLocation();
+						if (Separation.Size2D()<1100.)
+						{
+							const FVector Away = Separation.GetSafeNormal2D(UE_SMALL_NUMBER,-FRotator(0,S.Yaw,0).Vector());
+							const FVector Position = S.Target->GetActorLocation()+Away*1100.;
+							Caster->SetActorLocation(FVector(Position.X,Position.Y,Caster->GetActorLocation().Z),false,nullptr,ETeleportType::TeleportPhysics);
+							CastChecked<UPrimitiveComponent>(Caster->GetRootComponent())->SetPhysicsLinearVelocity(FVector::ZeroVector);
+							Caster->ForceNetUpdate();
+						}
+						bArtCarsSpaced = true;
 					}
 					if (bOpenArt && !bHost && bCapture && !bPinShot && Age>.09 && Age<.6)
 					{
@@ -160,6 +202,23 @@ namespace
 						const auto* Art=FindObjectFast<UStaticMeshComponent>(Dart,TEXT("ResonanceBlade"));
 						const auto* Ribbon=FindObjectFast<UDynamicMeshComponent>(Dart,TEXT("FlightWake"));
 						Test.TestTrue(TEXT("Casting client has a lock and an attached authored mesh; the wake has finished"),Marks.Num()==1 && Art && Art->GetStaticMesh() && Art->IsVisible() && Ribbon && !Ribbon->IsVisible());
+						Test.TestTrue(TEXT("Pin retains the flying mesh and its three-axis scale"),
+							FlyingBlade.IsValid() && Art == FlyingBlade.Get() && Art->GetComponentScale().Equals(FlightScale,.001));
+						TInlineComponentArray<UStaticMeshComponent*> Parts(Dart);
+						int32 IdleClouds=0;
+						for (const auto* Part : Parts)
+						{
+							if (S.Config->BurstCloudMesh && Part->GetStaticMesh()==S.Config->BurstCloudMesh
+								&& !Part->IsVisible() && Part->IsRegistered()) { ++IdleClouds; }
+						}
+						Test.TestEqual(TEXT("All three fire puffs are prepared and hidden while pinned"),IdleClouds,3);
+						if (Marks.Num()==1)
+						{
+							const auto View = CastChecked<UHALBatarangWidget>(Marks[0])->GetPinView();
+							Test.TestTrue(TEXT("Caster can anchor the mark to the visible car and read its live push"),
+								View.VisibleVehicle == S.Target && View.PushDirection.Equals(Dart->PushDirection(),.001));
+							Test.TestTrue(TEXT("Wing beat uses the same fuse as the mesh"),FMath::IsNearlyEqual(View.FusePulse,S.Config->FusePulse(View.RemainingSeconds)));
+						}
 						if (bCapture) { FScreenshotRequest::RequestScreenshot(bOpenArt ? TEXT("Car12_ArtPinned.png") : TEXT("Car12_Pinned.png"),true,false); }
 						Test.TestTrue(TEXT("Client's live indicator uses the rotated local pin"),FVector::DotProduct(Dart->PushDirection(),HALBatarang::PushDirection(S.Side,90))>.97);
 						bRotated=bCheckedVisible=true;
@@ -170,9 +229,9 @@ namespace
 						if (!DetailCamera.IsValid())
 						{
 							const FVector ToTarget = S.Target->GetActorLocation()-Local->GetActorLocation();
-							const FRotator View(-89.5,ToTarget.Rotation().Yaw,0);
-							const FVector Focus = Local->GetActorLocation()-ToTarget.GetSafeNormal2D()*ToTarget.Size2D()*.18;
-							auto* Camera=W->SpawnActor<ACameraActor>(Focus-View.Vector()*ToTarget.Size2D()*2.1,View);
+							const FRotator View(-87.,ToTarget.Rotation().Yaw-90.,0);
+							const FVector Focus = Local->GetActorLocation()-ToTarget.GetSafeNormal2D()*ToTarget.Size2D()*.12;
+							auto* Camera=W->SpawnActor<ACameraActor>(Focus-View.Vector()*ToTarget.Size2D()*1.46,View);
 							if (!Camera) { Test.AddError(TEXT("Edge camera missing")); return true; }
 							Camera->GetCameraComponent()->SetFieldOfView(65);
 							DetailCamera=Camera; PC->SetViewTarget(Camera);
@@ -196,7 +255,7 @@ namespace
 						if (Art)
 						{
 							const FVector Focus=Art->GetComponentLocation();
-							const FVector Eye=Focus-Art->GetForwardVector().GetSafeNormal2D()*135+FVector(0,0,140);
+							const FVector Eye=Focus-Art->GetForwardVector().GetSafeNormal2D()*205+FVector(0,0,195);
 							ArtCamera->SetActorLocationAndRotation(Eye,(Focus-Eye).Rotation());
 							ArtCamera->GetCameraComponent()->SetFieldOfView(49);
 							if (Age>2.80 && !bDetailShot)
@@ -209,7 +268,8 @@ namespace
 					if (bOpenArt && !bHost && bDetailShot && !bRestoredOverview && Age>3.55 && ArtCamera.IsValid())
 					{
 						const FRotator View(-67,S.Yaw-21,0);
-						const FVector Focus=S.Target->GetActorLocation()+Dart->PushDirection()*100;
+						const FVector Focus=FMath::Lerp(S.Target->GetActorLocation(),
+							S.Target->GetActorTransform().TransformPosition(S.LocalAnchor),.65);
 						ArtCamera->SetActorLocationAndRotation(Focus-View.Vector()*1150,View);
 						ArtCamera->GetCameraComponent()->SetFieldOfView(70);
 						bRestoredOverview=true;
@@ -232,18 +292,42 @@ namespace
 					{
 						TInlineComponentArray<UMeshComponent*> Meshes(Dart);
 						for (auto* Mesh : Meshes) { Test.TestFalse(TEXT("Every public dart layer hides in smoke"),Mesh->IsVisible()); }
+						TArray<UUserWidget*> Marks;
+						UWidgetBlueprintLibrary::GetAllWidgetsOfClass(W,Marks,UHALBatarangWidget::StaticClass(),true);
+						const auto View = Marks.Num()==1 ? CastChecked<UHALBatarangWidget>(Marks[0])->GetPinView() : FHALBatarangPinView();
+						Test.TestTrue(TEXT("Smoke preserves the fuse and input without exposing a car or bearing"),
+							View.bPinned && View.bCanDetonate && View.RemainingSeconds>0 && !View.VisibleVehicle && View.PushDirection.IsZero());
 						Test.TestTrue(TEXT("Visible lock and offscreen edge preceded concealed lock"),bCheckedVisible && bCheckedEdge);
 						if (bCapture) { FScreenshotRequest::RequestScreenshot(TEXT("Car12_Smoke.png"),true,false); }
 						Local->RequestPrimarySkill(); bPressedAgain=true;
 					}
+				}
+				if (bOpenArt && !bHost && bCapture && !bFlashShot && S.Phase==EHALDartPhase::Burst
+					&& VisualAge>.035 && VisualAge<.13 && !FScreenshotRequest::IsScreenshotRequested())
+				{
+					FScreenshotRequest::RequestScreenshot(TEXT("Car12_ArtFireCore.png"),true,false);
+					bFlashShot=true;
 				}
 				if (bOpenArt && !bHost && !bShockShot && S.Phase==EHALDartPhase::Burst && VisualAge>.13)
 				{
 					const auto* Stamp=FindObjectFast<UDynamicMeshComponent>(Dart,TEXT("DartWings"));
 					Test.TestTrue(TEXT("Directional open-air shock front is visible"),Stamp && Stamp->IsVisible()
 						&& FVector::DotProduct(Stamp->GetForwardVector(),S.BurstDirection)>.99);
+					TInlineComponentArray<UStaticMeshComponent*> Parts(Dart);
+					int32 VisiblePuffs=0;
+					for (const auto* Part : Parts)
+					{
+						if (S.Config->BurstCloudMesh && Part->GetStaticMesh()==S.Config->BurstCloudMesh && Part->IsVisible()
+							&& Part->Bounds.BoxExtent.Z>8) { ++VisiblePuffs; }
+					}
+					Test.TestTrue(TEXT("Burst opens three raised fire puffs on the client"),VisiblePuffs==3);
 					if (bCapture) { FScreenshotRequest::RequestScreenshot(TEXT("Car12_ArtShock.png"),true,false); }
 					bShockShot=true;
+				}
+				if (bOpenArt && !bHost && bCapture && !bCloudTailShot && S.Phase==EHALDartPhase::Burst && VisualAge>.30)
+				{
+					FScreenshotRequest::RequestScreenshot(TEXT("Car12_ArtSmokeTail.png"),true,false);
+					bCloudTailShot=true;
 				}
 				if (S.Phase==EHALDartPhase::Burst && !bBurst)
 				{

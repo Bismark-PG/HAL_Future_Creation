@@ -1,5 +1,6 @@
 """Build Car12's presentation assets with the editor. Run after CreateBatarangAssets."""
 from pathlib import Path
+import runpy
 import unreal as u
 
 FX = '/Game/Assets/FX/Batarang'
@@ -19,13 +20,43 @@ def save(asset):
         raise RuntimeError('Could not save ' + asset.get_path_name())
 
 
+def connect_black_metal(material, shader, colour, exposure):
+    """Use scene reflections for the facets and a small exposure-stable lift on the bevels."""
+    prop = u.MaterialProperty
+    material.set_editor_property('shading_model', u.MaterialShadingModel.MSM_DEFAULT_LIT)
+    # The top-facing Car12 paint samples use sRGB #242425 on its shared colour atlas.
+    ink = next(node for node in EDIT.get_inputs_for_material_expression(material, shader)
+               if isinstance(node, u.MaterialExpressionVectorParameter)
+               and str(node.get_editor_property('parameter_name')) == 'Ink')
+    ink.set_editor_property('default_value', u.LinearColor(.01764, .01764, .01850, 1))
+    rough = EDIT.create_material_expression(material, u.MaterialExpressionComponentMask, 355, 180)
+    for channel in 'rgb':
+        rough.set_editor_property(channel, False)
+    rough.set_editor_property('a', True)
+    metal = EDIT.create_material_expression(material, u.MaterialExpressionScalarParameter, 355, 280)
+    metal.set_editor_property('parameter_name', 'BladeMetallic')
+    metal.set_editor_property('default_value', .90)
+    lift = EDIT.create_material_expression(material, u.MaterialExpressionMultiply, 555, -160)
+    lift.set_editor_property('const_b', .10)
+    if not all((EDIT.connect_material_property(colour, '', prop.MP_BASE_COLOR),
+                EDIT.connect_material_expressions(shader, '', rough, ''),
+                EDIT.connect_material_property(rough, '', prop.MP_ROUGHNESS),
+                EDIT.connect_material_property(metal, '', prop.MP_METALLIC),
+                EDIT.connect_material_expressions(colour, '', lift, 'A'),
+                EDIT.connect_material_expressions(lift, '', exposure,
+                                                 EDIT.get_material_expression_input_names(exposure)[0]))):
+        raise RuntimeError('Could not connect the black metal finish')
+
+
 def surface(kind, phase_params, translucent):
     name = 'M_Car12_' + kind
     material = load(FX + '/' + name)
     code = (SOURCE / (kind + '.hlsl')).read_text(encoding='utf-8')
     marker = 'Car12 ' + kind
     if material:
-        rgb = EDIT.get_material_property_input_node(material, u.MaterialProperty.MP_EMISSIVE_COLOR)
+        rgb = EDIT.get_material_property_input_node(material, u.MaterialProperty.MP_BASE_COLOR) if kind == 'Blade' else None
+        if not rgb:
+            rgb = EDIT.get_material_property_input_node(material, u.MaterialProperty.MP_EMISSIVE_COLOR)
         if isinstance(rgb, u.MaterialExpressionEyeAdaptationInverse):
             rgb = next((pin for pin in EDIT.get_inputs_for_material_expression(material, rgb)
                         if isinstance(pin, u.MaterialExpressionComponentMask)), None)
@@ -80,7 +111,9 @@ def surface(kind, phase_params, translucent):
         material.set_editor_property('enable_responsive_aa', True)
         changed = True
     colour_output = EDIT.get_material_property_input_node(material, u.MaterialProperty.MP_EMISSIVE_COLOR)
-    if not isinstance(colour_output, u.MaterialExpressionEyeAdaptationInverse):
+    if isinstance(colour_output, u.MaterialExpressionEyeAdaptationInverse):
+        exposure = colour_output
+    else:
         # Keep ink, silver and enamel distinct when the night arena opens up its exposure.
         exposure = EDIT.create_material_expression(material, u.MaterialExpressionEyeAdaptationInverse, 565, 0)
         light_pin = EDIT.get_material_expression_input_names(exposure)[0]
@@ -88,6 +121,10 @@ def surface(kind, phase_params, translucent):
             raise RuntimeError('Missing exposure colour input on ' + name)
         if not EDIT.connect_material_property(exposure, '', u.MaterialProperty.MP_EMISSIVE_COLOR):
             raise RuntimeError('Missing emissive output on ' + name)
+        changed = True
+    if kind == 'Blade' and not EDIT.get_material_property_input_node(material, u.MaterialProperty.MP_BASE_COLOR):
+        colour = EDIT.get_inputs_for_material_expression(material, exposure)[0]
+        connect_black_metal(material, shader, colour, exposure)
         changed = True
     if changed:
         shader.set_editor_property('code', code)
@@ -184,8 +221,15 @@ def main():
     blade = sculpt(surface('Blade', {'Signal': .7}, False))
     wake = surface('Wake', {}, True)
     resonance = surface('Resonance', {'Burst': 1., 'Phase': .34, 'Signal': .85}, True)
-    changed = False
-    for name, value in [('blade_mesh',blade), ('wake_material',wake), ('resonance_material',resonance)]:
+    changed = runpy.run_path(str(SOURCE / 'BakePinProfiles.py'))['update_profiles'](config)
+    cloud = load('/Game/Assets/FX/SpecialBalls/Meteor/SM_Meteor_ImpactVolume')
+    if not cloud:
+        raise RuntimeError('Missing the shared sculpted burst puff')
+    # The original 240 cm wave was saved explicitly on some copies of the skill.
+    if not config.get_editor_property('burst_cloud_mesh') and config.get_editor_property('burst_reach') == 240.:
+        config.set_editor_property('burst_reach', 145.)
+        changed = True
+    for name, value in [('blade_mesh',blade), ('wake_material',wake), ('resonance_material',resonance), ('burst_cloud_mesh',cloud)]:
         if not config.get_editor_property(name):
             config.set_editor_property(name,value)
             changed = True

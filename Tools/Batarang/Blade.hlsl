@@ -1,13 +1,13 @@
-// Each face of the authored mesh occupies one palette column in UV0.
-// Keep the ivory leading bevel readable regardless of a seat's identity colour.
+// UV0 selects the authored facets. RGB supplies the metal base and A is roughness.
 int panel = (int)floor(UV.x * 10.0);
-float3 graphite = float3(.04,.062,.082);
-float3 pearl = float3(.84,.94,.88);
-float3 paint = Ink;
-if (panel == 1) paint = graphite;
-if (panel == 2) paint = float3(.15,.22,.25);
-if (panel == 3) paint = pearl;
-if (panel == 4) paint = Livery;
-if (panel == 5) paint = lerp(SeatColor,pearl,.14) * (.85 + .68*Signal);
-if (panel == 6) paint = lerp(pearl,float3(1.3,1.45,1.28),saturate(Signal));
-return float4(paint,1);
+float3 coat = Ink;
+float3 steel = float3(.55, .57, .58);
+float3 base = coat * .42;
+float roughness = .39;
+if (panel == 1) { base = coat; roughness = .32; }
+if (panel == 2) { base = coat * 2.3; roughness = .25; }
+if (panel == 3) { base = steel; roughness = .20; } // narrow polished leading bevel
+if (panel == 4) { base = lerp(coat, steel, .11); roughness = .28; }
+if (panel == 5) { base = lerp(coat, steel, .18 + .22*saturate(Signal)); roughness = .21; }
+if (panel == 6) { base = steel * (.46 + .50*saturate(Signal)); roughness = .17; }
+return float4(base, roughness);

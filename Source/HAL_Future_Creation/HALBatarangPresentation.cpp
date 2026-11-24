@@ -1,18 +1,21 @@
 #include "HALBatarang.h"
 #include "Components/DynamicMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
 #include "DynamicMesh/DynamicMesh3.h"
 #include "DynamicMesh/DynamicMeshAttributeSet.h"
 #include "HALBallComicFXSettings.h"
 #include "HALBatarangAbility.h"
 #include "HALBatarangWidget.h"
-#include "HALPlayerIdentitySettings.h"
 #include "HALSmokeScreenView.h"
 #include "HALVehiclePresentationComponent.h"
+#include "HALVehiclePresentationConfig.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Sound/SoundBase.h"
 #include "TestVehiclePawn.h"
+#include "VehicleDefinition.h"
 
 void AHALBatarang::BuildGeometry(bool bBurst)
 {
@@ -46,7 +49,7 @@ void AHALBatarang::BuildGeometry(bool bBurst)
 	}
 	else
 	{
-		// Swept crescent wings, graphite facets, silver cutting edges and a seat-colour stripe.
+		// Graphite facets and a narrow steel inlay for the procedural blade.
 		for (const int32 Sign : {-1,1})
 		{
 			auto P = [&](double X,double Y,double Z) { return Span*FVector(X,Y*Sign,Z); };
@@ -60,7 +63,7 @@ void AHALBatarang::BuildGeometry(bool bBurst)
 	}
 	if (!bBuiltGeometry)
 	{
-		const FLinearColor Colors[] = {FLinearColor(.055f,.075f,.12f),FLinearColor(.52f,.67f,.70f),FLinearColor(.78f,1.f,.12f)};
+		const FLinearColor Colors[] = {FLinearColor(.008f,.009f,.012f),FLinearColor(.09f,.10f,.11f),FLinearColor(.32f,.34f,.36f)};
 		for (int32 Slot=0; Slot<3; ++Slot)
 		{
 			auto* MID = UMaterialInstanceDynamic::Create(State.Config->DartMaterial,this);
@@ -74,36 +77,76 @@ void AHALBatarang::BuildGeometry(bool bBurst)
 	bBuiltGeometry = true;
 	bBuiltBurst = bBurst;
 }
+void AHALBatarang::BindPinToBody(const FTransform& Frame)
+{
+	const auto* Look = State.Target->FindComponentByClass<UHALVehiclePresentationComponent>();
+	if (!Look) { return; }
+	FHALVehicleFXTargetSnapshot Snapshot;
+	Look->CaptureStatusFXTargets(Snapshot);
+	if (Snapshot.Targets.IsEmpty() || Snapshot.Targets[0].Id != TEXT("Body")) { return; }
+	const FVector Normal = Frame.TransformVectorNoScale(State.LocalNormal);
+	const FVector Up = Frame.GetUnitAxis(EAxis::Z);
+	const auto& Body = Snapshot.Targets[0];
+	const auto Hull = State.Target->GetRootComponent()->CalcBounds(FTransform::Identity);
+	const FVector Portion = (State.LocalAnchor-Hull.Origin)/Hull.BoxExtent.ComponentMax(FVector(1));
+	const FVector Guess = Body.VehicleBounds.GetCenter() + Portion.BoundToBox(FVector(-1),FVector(1))*Body.VehicleBounds.GetExtent();
+	const FVector MeshGuess = Body.MeshToWorld.InverseTransformPosition(Snapshot.VehicleToWorld.TransformPosition(Guess));
+	const auto* Profile = State.Config->PinProfiles.FindByPredicate([&Body](const FHALBatarangPinProfile& P)
+	{
+		return P.Mesh.Get() == Body.MeshAsset.Get() && P.Radii.Num() >= 4;
+	});
+	const FVector Extent = Body.LocalBounds.GetExtent().ComponentMax(FVector(1));
+	FVector Center = Body.LocalBounds.GetCenter();
+	Center.Z -= .16*Extent.Z;
+	if (Profile) { Center = Profile->Center; }
+	FVector Outward = (MeshGuess-Center).GetSafeNormal2D();
+	if (Outward.IsNearlyZero()) { Outward = Body.MeshToWorld.InverseTransformVectorNoScale(Normal).GetSafeNormal2D(UE_SMALL_NUMBER,FVector::ForwardVector); }
+	// An unbaked/custom mesh still has a rounded waist. Production cars use a cut of their rendered triangles.
+	double Radius = .92/FMath::Sqrt(FMath::Square(Outward.X/Extent.X)+FMath::Square(Outward.Y/Extent.Y));
+	if (Profile)
+	{
+		const int32 Count = Profile->Radii.Num();
+		const double Angle = FMath::Atan2(Outward.Y,Outward.X);
+		const double Sample = (Angle < 0 ? Angle + UE_TWO_PI : Angle)*Count/UE_TWO_PI;
+		const int32 Floor = FMath::FloorToInt(Sample);
+		Radius = FMath::Lerp(Profile->Radii[Floor%Count],Profile->Radii[(Floor+1)%Count],Sample-Floor);
+	}
+	PinnedMesh = Body.Mesh;
+	MeshAnchor = Center + Outward*Radius;
+	MeshNormal = Outward;
+	MeshUp = Body.MeshToWorld.InverseTransformVectorNoScale(Up);
+	PinBone = NAME_None;
+	const auto* Definition = State.Target->GetVehicleDefinition();
+	if (const auto* Skel = Cast<USkeletalMeshComponent>(Body.Mesh.Get()); Skel && Definition && Definition->Presentation)
+	{
+		const FName Chassis = Definition->Presentation->ChassisBone;
+		const int32 Index = Skel->GetBoneIndex(Chassis);
+		if (Index != INDEX_NONE)
+		{
+			const FTransform Ref(Skel->GetSkeletalMeshAsset()->GetComposedRefPoseMatrix(Index));
+			MeshAnchor = Ref.InverseTransformPosition(MeshAnchor);
+			MeshNormal = Ref.InverseTransformVectorNoScale(MeshNormal);
+			MeshUp = Ref.InverseTransformVectorNoScale(MeshUp);
+			PinBone = Chassis;
+		}
+	}
+}
+
 FTransform AHALBatarang::PinTransform()
 {
 	const FTransform Frame = State.Target->GetActorTransform();
 	FVector Point = Frame.TransformPosition(State.LocalAnchor);
 	FVector Normal = Frame.TransformVectorNoScale(State.LocalNormal);
-	if (!PinnedMesh.IsValid())
-	{
-		if (const auto* Look = State.Target->FindComponentByClass<UHALVehiclePresentationComponent>())
-		{
-			FHALVehicleFXTargetSnapshot Snapshot;
-			Look->CaptureStatusFXTargets(Snapshot);
-			if (!Snapshot.Targets.IsEmpty())
-			{
-				const auto& Body = Snapshot.Targets[0];
-				const auto Hull = State.Target->GetRootComponent()->CalcBounds(FTransform::Identity);
-				const FVector Portion = (State.LocalAnchor-Hull.Origin)/Hull.BoxExtent.ComponentMax(FVector(1));
-				const FBox& Silhouette = Body.VehicleBounds;
-				const FVector RootAnchor = Silhouette.GetCenter()+Portion.BoundToBox(FVector(-1),FVector(1))*Silhouette.GetExtent()*.98;
-				PinnedMesh = Body.Mesh;
-				MeshAnchor = Body.MeshToWorld.InverseTransformPosition(Frame.TransformPosition(RootAnchor));
-				MeshNormal = Body.MeshToWorld.InverseTransformVectorNoScale(Normal);
-			}
-		}
-	}
+	FVector Up = Frame.GetUnitAxis(EAxis::Z);
+	if (!PinnedMesh.IsValid()) { BindPinToBody(Frame); }
 	if (const auto* Mesh = PinnedMesh.Get())
 	{
-		Point = Mesh->GetComponentTransform().TransformPosition(MeshAnchor);
-		Normal = Mesh->GetComponentTransform().TransformVectorNoScale(MeshNormal);
+		const FTransform Pose = PinBone.IsNone() ? Mesh->GetComponentTransform() : Mesh->GetSocketTransform(PinBone);
+		Point = Pose.TransformPosition(MeshAnchor);
+		Normal = Pose.TransformVectorNoScale(MeshNormal);
+		Up = Pose.TransformVectorNoScale(MeshUp);
 	}
-	return FTransform((-Normal).Rotation(),Point);
+	return FTransform(FRotationMatrix::MakeFromXZ(-Normal,Up).ToQuat(),Point);
 }
 
 void AHALBatarang::Present(double Now)
@@ -116,7 +159,8 @@ void AHALBatarang::Present(double Now)
 	const bool bOwnerView = PC && PC->IsLocalController() && PC->GetLocalPlayer() && PC->GetPawn() == Car;
 	if (bPinned && bOwnerView && !OwnerView)
 	{
-		OwnerView = CreateWidget<UHALBatarangWidget>(PC,UHALBatarangWidget::StaticClass());
+		const auto WidgetClass = State.Config->PinWidgetClass ? State.Config->PinWidgetClass.Get() : UHALBatarangWidget::StaticClass();
+		OwnerView = CreateWidget<UHALBatarangWidget>(PC,WidgetClass);
 		if (OwnerView)
 		{
 			OwnerView->Dart = this;
@@ -139,15 +183,32 @@ void AHALBatarang::Present(double Now)
 		Shape->SetVisibility(false);
 		if (Blade) { Blade->SetVisibility(false); }
 		if (Wake) { Wake->SetVisibility(false); }
+		for (const auto& Cloud : BurstClouds) { Cloud->SetVisibility(false); }
 		return;
 	}
-	const FTransform Pin = bPinned ? PinTransform() : FTransform::Identity;
+	FTransform Pin = FTransform::Identity;
+	// A late observer can first receive Burst. Reconstruct the shell offset in the target's
+	// current pose, then apply it to the published pre-impact position and direction.
+	if (bPinned || (bBurst && !bHasBurstContactOffset))
+	{
+		Pin = PinTransform();
+		const FVector HullPoint = State.Target->GetActorTransform().TransformPosition(State.LocalAnchor);
+		BurstContactOffset = PushDirection().Rotation().UnrotateVector(Pin.GetLocation()-HullPoint);
+		bHasBurstContactOffset = true;
+	}
+	// Start preparing the hidden fire materials while the fuse is running.
+	if (bPinned && BurstClouds.IsEmpty()) { PrepareBurstClouds(); }
 	if (State.Config->BladeMesh)
 	{
-		FLinearColor SeatColor(.74f,.98f,.12f);
-		UHALPlayerIdentitySettings::ResolvePlayerColor(GetWorld(),Car,INDEX_NONE,SeatColor);
 		if (!bArtReady) { PrepareArt(); }
-		PresentArt(Age,Pin,SeatColor);
+		PresentArt(Age,Pin);
+		return;
+	}
+	if (bBurst && State.Config->BurstCloudMesh)
+	{
+		const FVector Origin = State.BurstPoint+State.BurstDirection.Rotation().RotateVector(BurstContactOffset);
+		Shape->SetVisibility(false);
+		PresentBurstClouds(Origin,FMath::Clamp(Age/float(HALBatarang::BurstSeconds),0.f,1.f));
 		return;
 	}
 	Shape->SetVisibility(true);
@@ -155,7 +216,8 @@ void AHALBatarang::Present(double Now)
 	if (bBurst)
 	{
 		const float T = FMath::Clamp(Age/float(HALBatarang::BurstSeconds),0.f,1.f);
-		Shape->SetWorldLocationAndRotation(State.BurstPoint+FVector(0,0,6),State.BurstDirection.Rotation());
+		const FVector Origin = State.BurstPoint+State.BurstDirection.Rotation().RotateVector(BurstContactOffset);
+		Shape->SetWorldLocationAndRotation(Origin+FVector(0,0,6),State.BurstDirection.Rotation());
 		Shape->SetWorldScale3D(FVector(.25+2.1*FMath::Sqrt(T)));
 		if (Accent) { Accent->SetScalarParameterValue(TEXT("Brightness"),2.5f*(1-T)); }
 		Shape->SetVisibility(T<.96f);
@@ -163,13 +225,11 @@ void AHALBatarang::Present(double Now)
 	}
 	if (bPinned)
 	{
-		Shape->SetWorldLocationAndRotation(Pin.GetLocation()-Pin.GetUnitAxis(EAxis::X)*State.Config->WingSpan*.14,Pin.GetRotation());
+		const double TipOffset = State.Config->WingSpan*(State.Config->PinDepthPercent*.01-.23);
+		Shape->SetWorldLocationAndRotation(Pin.GetLocation()+Pin.GetUnitAxis(EAxis::X)*TipOffset,Pin.GetRotation());
 		if (Accent)
 		{
-			FLinearColor Tint(.78f,1.f,.12f);
-			UHALPlayerIdentitySettings::ResolvePlayerColor(GetWorld(),Car,INDEX_NONE,Tint);
-			Accent->SetVectorParameterValue(TEXT("Tint"),Tint);
-			Accent->SetScalarParameterValue(TEXT("Brightness"),1.2f+.8f*FMath::Sin(Age*11.f));
+			Accent->SetScalarParameterValue(TEXT("Brightness"),.65f+1.35f*State.Config->FusePulse(State.Config->FuseSeconds-Age));
 		}
 		return;
 	}
