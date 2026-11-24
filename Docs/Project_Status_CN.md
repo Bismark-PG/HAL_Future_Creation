@@ -1,6 +1,8 @@
 # HAL Future Creation：项目状态与接续入口
 
-**2026-11-24 場地物件成果同步入口。** 用戶要求先提交推送目前已完成內容：保留既有本機合併歷史與資產，本輪包含打滑調試貼地修正、柱子只用Box及沉底關閉／升回恢復碰撞、獨立文字高度、團隊自行保存的生成器BP／Match配置與相關回歸／文件。單排老虎機目前僅方案與示意，尚未實作；下一環節見[圖示演出方案與示意圖](Combat/Arena_Effect_Generator_CN_v0.1.md#下一環節單排老虎機圖示演出方案確認尚未實作)。同步前檢查發現origin/main另有8筆車輛／技能／字型更新，先保存本機再正常合併，不覆寫遠端歷史。各功能編譯／測試證據與限制見下列實際記錄；整合驗證及推送結果另記本節。
+**2026-11-24 場地物件成果已推送。** 用戶要求先提交推送目前已完成內容：保留既有本機合併歷史與資產，本輪包含打滑調試貼地修正、柱子只用Box及沉底關閉／升回恢復碰撞、獨立文字高度、團隊自行保存的生成器BP／Match配置與相關回歸／文件。單排老虎機目前僅方案與示意，尚未實作；下一環節見[圖示演出方案與示意圖](Combat/Arena_Effect_Generator_CN_v0.1.md#下一環節單排老虎機圖示演出方案確認尚未實作)。已保存為`af9f877`，再正常合併origin/main的8筆車輛／技能／字型更新（遠端`dda1ace`）成`f7ad03f`；僅Project_Status插入區段衝突，保留雙方記錄，程式／Unreal資產無衝突。`git push origin main`已成功，遠端由`dda1ace`快轉至`f7ad03f`，包含此前`291f654`／`84a748b`保存與整合歷史，未強制推送。後續附加提交只更新本同步記錄。
+
+本輪整合檢查：git diff --check通過；嘗試統一入口`BuildAndLaunch.cmd -NoLaunch -NoPopup`被正在執行的Editor36672／LiveCoding37004占用前置檢查阻止(exit1，未進入C++編譯，未終止用戶程序)。故**合併後未完成新的編譯／自動化／畫面驗證**，下列各功能先前通過記錄僅適用當時版本；團隊遠端Car12測試也是其原版本證據。下一入口先保存關閉Editor／Live Coding，經統一入口編譯整合版，再跑MovementAreas＋ArenaGenerator及需要的團隊測試；演出實作另行開始。證據`Saved/GitSync/20261124/PushArena`，圖示方案及示意已進Git，Saved診斷／編譯產物不納入版本庫。
 
 **2026-11-24 柱子獨立文字高度：程式、編譯與既有5項回歸通過，畫面待確認。** 新增Settings→Presentation→Text Height Offset，預設0、範圍±10000局部cm，正值上移、負值下移，Actor Scale會影響世界距離。沿用原本Box頂部+12cm基準，只移文字，不改碰撞／模型／效果位置；Construction、BeginPlay與Settings複製使用同一欄位。無新Tick／RPC／BP修改。本機main/84a748b、UE5.8.2-56702186，統一入口**Editor R2成功(exit0，45.57秒／9actions)**，含既有其他檔案數值轉型警告；**ArenaGenerator Native R1 5/5**，0測試警告／失敗／未執行／進行中。R1因Editor／Live Coding占用前置停止，用戶保存關閉後R2通過。保存關閉後3/3份Match／生成器BP／打滑BP雜湊保持，git diff --check通過；保留用戶Map與前輪改動，未編輯BP／地圖、未提交／Push。純文字配置未新增自動化用例，未新跑雙端／Game Target／全量／Cook或實際畫面；下一入口重開Editor選柱子調Text Height Offset，確認預覽及遊戲高度。詳見[文字高度](Combat/Arena_Effect_Generator_CN_v0.1.md#2026-11-24-獨立文字高度偏移)，證據`Saved/ArenaGenerator/20261124/TextHeight`，構建`Saved/BuildTool/BuildAndLaunch_20261124_163103_780_8b6d12`。
 
