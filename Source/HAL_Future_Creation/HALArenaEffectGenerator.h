@@ -11,6 +11,7 @@ class UBoxComponent;
 class UDynamicMeshComponent;
 class UTextRenderComponent;
 class UStaticMeshComponent;
+class UPrimitiveComponent;
 
 UENUM(BlueprintType)
 enum class EHALArenaEffect : uint8 { None, SlipperyArea, BlackHole, ElectricField };
@@ -42,9 +43,11 @@ struct HAL_FUTURE_CREATION_API FHALArenaGeneratorConfig
 	/** Added to Base Effect Offset. Initial Z aligns MVPB_Match's 0 cm electric field with its -190 cm pillar. */
 	UPROPERTY(EditAnywhere, Category="Placement", meta=(Units="cm")) FVector ElectricFieldOffset = FVector(0,0,190);
 	UPROPERTY(EditAnywhere, Category="Pillar", meta=(ClampMin="1", ClampMax="2000", Units="cm")) FVector PillarHalfExtent = FVector(40,40,100);
-	/** Placeholder is display-only by default; enable explicitly if the pillar should block vehicles/balls. */
-	UPROPERTY(EditAnywhere, Category="Pillar") bool bSolidPillar = false;
-	/** Animate the two authored Static Mesh components; collision and the generator origin stay fixed. */
+	/** The Box is the pillar's only collider; visual meshes never block vehicles or balls. */
+	UPROPERTY(EditAnywhere, Category="Pillar") bool bSolidPillar = true;
+	/** Local Z offset from the default text position above the Box. Positive raises text; Actor scale applies. */
+	UPROPERTY(EditAnywhere, Category="Presentation", meta=(ClampMin="-10000", ClampMax="10000", Units="cm")) float TextHeightOffset = 0.f;
+	/** Animate two visual-only meshes; the Box switches off underground and returns when fully raised. */
 	UPROPERTY(EditAnywhere, Category="Mesh Animation") bool bAnimateMeshes = true;
 	/** World-space downward travel, independent of the pillar's authored scale. */
 	UPROPERTY(EditAnywhere, Category="Mesh Animation", meta=(ClampMin="0", ClampMax="10000", Units="cm", EditCondition="bAnimateMeshes")) float MeshSinkDepth = 600.f;
@@ -122,7 +125,9 @@ private:
 	void UpdateMeshMotion();
 	void ClearMeshMotion();
 	float MeshMotionAlpha() const;
-	/** Render-only copies leave authored mesh collision, attachment and transforms untouched. */
+	void UpdatePillarCollision();
+	void ClearPillarCollision();
+	/** Render-only copies leave authored attachments/transforms fixed; collision is managed separately. */
 	struct FMeshMotionSource
 	{
 		TWeakObjectPtr<UStaticMeshComponent> Source;

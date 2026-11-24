@@ -25,6 +25,7 @@ namespace
 		bool bNamed=false,bSpawned=false,bReadySent=false,bDoneSent=false;
 		uint32 Phases[3]={0,0,0}; bool bSawActor[3]={false,false,false},bSawWarning[3]={false,false,false};
 		bool bSawSink[3]={false,false,false},bSawRise[3]={false,false,false};
+		bool bSawCollisionOff[3]={false,false,false},bSawCollisionBack[3]={false,false,false};
 		TWeakObjectPtr<AHALArenaEffectGenerator> Generators[3];
 	public:
 		explicit FGeneratorNetworkProbe(FAutomationTestBase& T):Test(T) {}
@@ -54,6 +55,7 @@ namespace
 				{
 					FHALArenaGeneratorConfig C; C.RandomSeed=GeneratorSeed(static_cast<EHALArenaEffect>(I+1));
 					C.RollSeconds=C.RevealSeconds=C.HintSeconds=.5f; C.SpawnDelaySeconds=1.2f; C.FinishSeconds=.5f;
+					C.bSolidPillar=true;
 					C.EffectOffset=FVector(10,20,80); C.SlipperyAreaOffset=FVector(100,0,-20);
 					C.BlackHoleOffset=FVector(0,200,30); C.ElectricFieldOffset=FVector(-150,-90,120);
 					const FTransform Pose(FVector(0,(I-1)*3000,10000));
@@ -102,12 +104,20 @@ namespace
 						if(Depth>60 && Depth<540) { bSawSink[I]|=bSinking; bSawRise[I]|=S.Stage==EHALArenaGeneratorStage::Finished; }
 					}
 					int32 Copies=0,Sources=0;
+					const bool bStableBelow=S.Stage==EHALArenaGeneratorStage::Active || (S.Stage==EHALArenaGeneratorStage::Finished && Age<.4);
+					const bool bStableAbove=S.Stage!=EHALArenaGeneratorStage::Active && S.Stage!=EHALArenaGeneratorStage::Finished;
+					if(bStableBelow) { bSawCollisionOff[I]=true; }
+					if(bStableAbove && S.Cycle>=2 && bSawCollisionOff[I]) { bSawCollisionBack[I]=true; }
 					for(auto* Component:Components)
 					{
+						if(auto* Primitive=Cast<UPrimitiveComponent>(Component); Primitive && (bStableBelow || bStableAbove)
+							&& Component->GetFName()==TEXT("PillarBody"))
+						{ Test.TestTrue(TEXT("Both peers disable the underground box and restore it for the next cycle"),Primitive->GetCollisionEnabled()==(bStableBelow?ECollisionEnabled::NoCollision:ECollisionEnabled::QueryAndPhysics)); }
 						if(auto* Mesh=Cast<UStaticMeshComponent>(Component))
 						{
-							if(Mesh->GetAttachParent()==Motion) { ++Copies; Test.TestTrue(TEXT("Animated copies have no collision"),Mesh->GetCollisionEnabled()==ECollisionEnabled::NoCollision); }
-							else { ++Sources; Test.TestFalse(TEXT("Authored collider rendering stays hidden"),Mesh->IsVisible()); }
+							Test.TestTrue(TEXT("All original and animated meshes stay visual only on both peers"),Mesh->GetCollisionEnabled()==ECollisionEnabled::NoCollision && !Mesh->GetGenerateOverlapEvents() && !Mesh->IsSimulatingPhysics());
+							if(Mesh->GetAttachParent()==Motion) { ++Copies; }
+							else { ++Sources; Test.TestFalse(TEXT("Authored mesh rendering stays hidden"),Mesh->IsVisible()); }
 						}
 					}
 					if(!Test.TestTrue(FString::Printf(TEXT("Exactly two authored meshes and two visual copies on both peers (sources=%d copies=%d)"),Sources,Copies),Copies==2 && Sources==2)) { return true; }
@@ -142,7 +152,7 @@ namespace
 			if(!bHost && Waiting==3 && !bReadySent) { PC->SetName(TEXT("GenClientReady")); bReadySent=true; }
 			if(bHost && bSpawned && Match->GetMatchPhase()!=EHALMatchPhase::Playing && Other->GetPlayerState()->GetPlayerName()==TEXT("GenClientReady")) { PC->HALStartMatch(); }
 			bool bComplete=true;
-			for(int32 I=0;I<3;++I) { bComplete&=Generators[I].IsValid() && Generators[I]->GetGeneratorState().Cycle>=2 && bSawActor[I] && bSawWarning[I] && bSawSink[I] && bSawRise[I] && (Phases[I]&0x7f)==0x7f; }
+			for(int32 I=0;I<3;++I) { bComplete&=Generators[I].IsValid() && Generators[I]->GetGeneratorState().Cycle>=2 && bSawActor[I] && bSawWarning[I] && bSawSink[I] && bSawRise[I] && bSawCollisionOff[I] && bSawCollisionBack[I] && (Phases[I]&0x7f)==0x7f; }
 			if(!bComplete) { return false; }
 			if(!bHost && !bDoneSent) { PC->SetName(TEXT("GenClientDone")); bDoneSent=true; }
 			if(bHost && Other->GetPlayerState()->GetPlayerName()!=TEXT("GenClientDone")) { return false; }
@@ -151,6 +161,7 @@ namespace
 				Test.TestTrue(TEXT("Waiting, rolling, reveal, hint, delay, active and finished all replicated"),(Phases[I]&0x7f)==0x7f);
 				Test.TestTrue(TEXT("Visible warning ring and actual selected effect replicated"),bSawWarning[I]&&bSawActor[I]);
 				Test.TestTrue(TEXT("Both peers observed intermediate sinking and rising poses"),bSawSink[I]&&bSawRise[I]);
+				Test.TestTrue(TEXT("Both peers observed collision disable and restoration"),bSawCollisionOff[I]&&bSawCollisionBack[I]);
 				if(bHost) { Generators[I]->Destroy(); }
 			}
 			Test.AddInfo(FString::Printf(TEXT("Generator three-effect network Host=%d Phases=%x/%x/%x"),bHost,Phases[0],Phases[1],Phases[2]));

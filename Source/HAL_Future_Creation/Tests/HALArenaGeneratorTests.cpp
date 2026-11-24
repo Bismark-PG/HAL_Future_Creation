@@ -30,7 +30,9 @@ struct FHALArenaGeneratorTestAccess
 	{ G->State.Stage=Stage; G->State.StartedAt=G->ServerNow()-Age; G->State.Duration=Duration; G->RefreshPresentation(); }
 	static void Motion(AHALArenaEffectGenerator* G) { G->UpdateMeshMotion(); }
 	static void ClearMotion(AHALArenaEffectGenerator* G) { G->ClearMeshMotion(); }
-	static USceneComponent* Body(const AHALArenaEffectGenerator* G) { return G->PillarBody; }
+	static UPrimitiveComponent* Body(const AHALArenaEffectGenerator* G) { return G->PillarBody; }
+	static void CollisionStage(AHALArenaEffectGenerator* G,EHALArenaGeneratorStage Stage)
+	{ G->State.Stage=Stage; G->UpdatePillarCollision(); }
 	static USceneComponent* Text(const AHALArenaEffectGenerator* G) { return G->StageText; }
 	static USceneComponent* Ring(const AHALArenaEffectGenerator* G) { return G->HintRing; }
 };
@@ -221,7 +223,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALArenaGeneratorMeshMotionTest,"HAL.FutureCre
 bool FHALArenaGeneratorMeshMotionTest::RunTest(const FString& Parameters)
 {
 	FGeneratorWorld F; FHALArenaGeneratorConfig C;
-	C.RevealSeconds=1; C.HintSeconds=1; C.SpawnDelaySeconds=2; C.MeshRotationDegrees=180;
+	C.RevealSeconds=1; C.HintSeconds=1; C.SpawnDelaySeconds=2; C.MeshRotationDegrees=180; C.bSolidPillar=true;
 	auto* Cube=LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube"));
 	if(!TestNotNull(TEXT("Fixture geometry"),Cube)) { return false; }
 	const FTransform Pose(FRotator(0,30,0),FVector(100,200,10000),FVector(3.5,2,1.5));
@@ -235,7 +237,7 @@ bool FHALArenaGeneratorMeshMotionTest::RunTest(const FString& Parameters)
 			auto* M=NewObject<UStaticMeshComponent>(G); G->AddInstanceComponent(M); M->SetupAttachment(G->GetRootComponent());
 			M->SetStaticMesh(Cube); M->SetMobility(EComponentMobility::Movable);
 			M->SetRelativeTransform(FTransform(FRotator(0,20*I,0),FVector(25*I,10,40+80*I),FVector(.2,.3,.4)));
-			M->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics); M->SetGenerateOverlapEvents(true);
+			M->SetCollisionEnabled(I==0?ECollisionEnabled::QueryOnly:ECollisionEnabled::QueryAndPhysics); M->SetGenerateOverlapEvents(true);
 			M->RegisterComponent(); Originals.Add(M);
 		}
 		G->FinishSpawning(Pose); return G;
@@ -250,8 +252,8 @@ bool FHALArenaGeneratorMeshMotionTest::RunTest(const FString& Parameters)
 	for(int32 I=0;I<2;++I)
 	{
 		auto* Source=Originals[I]; OriginalPoses.Add(Source->GetComponentTransform());
-		TestFalse(TEXT("Source render is hidden while its collider stays in place"),Source->IsVisible());
-		TestTrue(TEXT("Original collision and overlaps are preserved"),Source->GetCollisionEnabled()==ECollisionEnabled::QueryAndPhysics && Source->GetGenerateOverlapEvents());
+		TestFalse(TEXT("Source render is hidden while the animated copy is shown"),Source->IsVisible());
+		TestTrue(TEXT("Authored meshes are visual only even when authored with collision"),Source->GetCollisionEnabled()==ECollisionEnabled::NoCollision && !Source->GetGenerateOverlapEvents() && !Source->IsSimulatingPhysics());
 		if(Copies.IsValidIndex(I))
 		{
 			auto* Copy=Cast<UStaticMeshComponent>(Copies[I]);
@@ -272,31 +274,68 @@ bool FHALArenaGeneratorMeshMotionTest::RunTest(const FString& Parameters)
 	const auto Text=FHALArenaGeneratorTestAccess::Text(G)->GetComponentTransform();
 	const auto Ring=FHALArenaGeneratorTestAccess::Ring(G)->GetComponentTransform();
 	const auto Center=G->GetGeneratorState().EffectCenter;
+	const auto BlocksPath=[&]()
+	{
+		FCollisionObjectQueryParams Objects; Objects.AddObjectTypesToQuery(ECC_WorldStatic); Objects.AddObjectTypesToQuery(ECC_WorldDynamic);
+		FHitResult Hit; const FVector Middle=Pose.GetLocation()+FVector(0,0,150);
+		return F.World->LineTraceSingleByObjectType(Hit,Middle-FVector(1000,0,0),Middle+FVector(1000,0,0),Objects) && Hit.GetActor()==G;
+	};
+	TestTrue(TEXT("Raised and sinking pillar blocks the physical path"),BlocksPath());
 	FHALArenaGeneratorTestAccess::MotionStage(G,EHALArenaGeneratorStage::Active,100);
 	TestTrue(TEXT("Active keeps meshes fully lowered"),Root->GetComponentLocation().Equals(Pose.GetLocation()-FVector(0,0,600),.001));
 	TestTrue(TEXT("Motion never relocates the actor or gameplay field"),G->GetActorTransform().Equals(Pose,.001) && G->GetGeneratorState().EffectCenter==Center);
 	TestTrue(TEXT("Pillar collider and stage text remain fixed"),FHALArenaGeneratorTestAccess::Body(G)->GetComponentTransform().Equals(Body,.001) && FHALArenaGeneratorTestAccess::Text(G)->GetComponentTransform().Equals(Text,.001));
 	TestTrue(TEXT("Warning position is not dragged underground"),FHALArenaGeneratorTestAccess::Ring(G)->GetComponentTransform().Equals(Ring,.001));
-	for(int32 I=0;I<2;++I) { TestTrue(TEXT("Original mesh colliders do not rotate or sink"),Originals[I]->GetComponentTransform().Equals(OriginalPoses[I],.001)); }
+	for(int32 I=0;I<2;++I) { TestTrue(TEXT("Original mesh transforms do not rotate or sink"),Originals[I]->GetComponentTransform().Equals(OriginalPoses[I],.001)); }
+	TestTrue(TEXT("Underground disables the box while visual meshes stay noncolliding"),FHALArenaGeneratorTestAccess::Body(G)->GetCollisionEnabled()==ECollisionEnabled::NoCollision
+		&& Originals[0]->GetCollisionEnabled()==ECollisionEnabled::NoCollision && Originals[1]->GetCollisionEnabled()==ECollisionEnabled::NoCollision);
+	TestFalse(TEXT("Vehicles and balls have an unobstructed path while the pillar is underground"),BlocksPath());
 	FHALArenaGeneratorTestAccess::MotionStage(G,EHALArenaGeneratorStage::Finished,.5,1);
 	TestTrue(TEXT("Finished smoothly raises the meshes"),Root->GetComponentLocation().Equals(Pose.GetLocation()-FVector(0,0,300),.001));
+	TestFalse(TEXT("Collision stays off throughout rising"),BlocksPath());
+	FHALArenaGeneratorTestAccess::MotionStage(G,EHALArenaGeneratorStage::Finished,1,1);
+	TestTrue(TEXT("Collision returns only after the meshes are fully raised"),BlocksPath());
+	TestTrue(TEXT("Only the box returns to blocking after rising"),FHALArenaGeneratorTestAccess::Body(G)->GetCollisionEnabled()==ECollisionEnabled::QueryAndPhysics
+		&& Originals[0]->GetCollisionEnabled()==ECollisionEnabled::NoCollision && Originals[1]->GetCollisionEnabled()==ECollisionEnabled::NoCollision);
+	FHALArenaGeneratorTestAccess::MotionStage(G,EHALArenaGeneratorStage::Active,0);
 	FHALArenaGeneratorTestAccess::MotionStage(G,EHALArenaGeneratorStage::Finished,0,0);
 	TestTrue(TEXT("Zero finish time restores immediately without dividing by zero"),Root->GetComponentTransform().Equals(Pose,.001));
+	TestTrue(TEXT("Zero finish time also restores collision immediately"),BlocksPath());
 	for(const auto Stage : {EHALArenaGeneratorStage::Rolling,EHALArenaGeneratorStage::Waiting,EHALArenaGeneratorStage::Disabled})
 	{
+		FHALArenaGeneratorTestAccess::MotionStage(G,EHALArenaGeneratorStage::Active,0);
 		FHALArenaGeneratorTestAccess::MotionStage(G,Stage,0);
 		TestTrue(TEXT("Next cycle or cancellation restores authored pose"),Root->GetComponentTransform().Equals(Pose,.001));
+		TestTrue(TEXT("Next cycle or cancellation restores collision"),BlocksPath());
 	}
 	FHALArenaGeneratorTestAccess::ClearMotion(G);
 	TestNull(TEXT("Presentation copies are cleaned up"),FHALArenaGeneratorTestAccess::MotionRoot(G));
 	Owned.Reset(); G->GetComponents(Owned); TestEqual(TEXT("Cleanup removes only the two owned copies"),Owned.Num(),2);
 	for(int32 I=0;I<2;++I) { TestTrue(TEXT("Cleanup restores source rendering"),Originals[I]->IsVisible() && !Originals[I]->bHiddenInGame && Originals[I]->CastShadow); }
+	FHALArenaGeneratorTestAccess::CollisionStage(G,EHALArenaGeneratorStage::Active);
+	TestFalse(TEXT("Authority collision switching does not depend on a visual pivot"),BlocksPath());
+	FHALArenaGeneratorTestAccess::CollisionStage(G,EHALArenaGeneratorStage::Rolling);
+	TestTrue(TEXT("Rootless authority also restores collision"),BlocksPath());
 	G->Destroy(); Originals.Reset();
 	auto* Disabled=Spawn(false,2);
 	TestNull(TEXT("Animation can be disabled"),FHALArenaGeneratorTestAccess::MotionRoot(Disabled));
+	FHALArenaGeneratorTestAccess::MotionStage(Disabled,EHALArenaGeneratorStage::Active,0);
+	TestTrue(TEXT("Disabling animation keeps only the box collision"),Originals[0]->GetCollisionEnabled()==ECollisionEnabled::NoCollision && FHALArenaGeneratorTestAccess::Body(Disabled)->GetCollisionEnabled()==ECollisionEnabled::QueryAndPhysics);
 	TestTrue(TEXT("Disabled animation does not hide the authored meshes"),Originals[0]->IsVisible()); Disabled->Destroy(); Originals.Reset();
 	auto* Extra=Spawn(true,3);
 	TestNull(TEXT("Do not animate an ambiguous set of extra mesh decorations"),FHALArenaGeneratorTestAccess::MotionRoot(Extra)); Extra->Destroy(); Originals.Reset();
+	C.MeshSinkDepth=0; auto* NoSink=Spawn(true,2);
+	FHALArenaGeneratorTestAccess::MotionStage(NoSink,EHALArenaGeneratorStage::Active,0);
+	TestTrue(TEXT("Zero-depth rotation keeps only the box collision"),Originals[0]->GetCollisionEnabled()==ECollisionEnabled::NoCollision && FHALArenaGeneratorTestAccess::Body(NoSink)->GetCollisionEnabled()==ECollisionEnabled::QueryAndPhysics);
+	NoSink->Destroy(); Originals.Reset(); C.MeshSinkDepth=600;
+	C.bSolidPillar=false; auto* Nonblocking=Spawn(true,2);
+	for(const auto Stage : {EHALArenaGeneratorStage::Rolling,EHALArenaGeneratorStage::Active,EHALArenaGeneratorStage::Finished})
+	{
+		FHALArenaGeneratorTestAccess::MotionStage(Nonblocking,Stage,1,1);
+		TestTrue(TEXT("Solid Pillar opt-out keeps both box and meshes noncolliding"),FHALArenaGeneratorTestAccess::Body(Nonblocking)->GetCollisionEnabled()==ECollisionEnabled::NoCollision
+			&& Originals[0]->GetCollisionEnabled()==ECollisionEnabled::NoCollision && Originals[1]->GetCollisionEnabled()==ECollisionEnabled::NoCollision);
+	}
+	Nonblocking->Destroy(); Originals.Reset(); C.bSolidPillar=true;
 	auto* Late=Spawn(true,0);
 	for(int32 I=0;I<2;++I)
 	{

@@ -94,6 +94,8 @@ bool FHALArenaGeneratorConfig::Validate(FString& Error) const
 		|| !Offset(EffectOffset) || !Offset(SlipperyAreaOffset) || !Offset(BlackHoleOffset) || !Offset(ElectricFieldOffset) || PillarHalfExtent.ContainsNaN()
 		|| PillarHalfExtent.GetMin() < 1 || PillarHalfExtent.GetMax() > 2000)
 	{ Error = TEXT("Invalid timing, effect offset or pillar extent."); return false; }
+	if (!FMath::IsFinite(TextHeightOffset) || FMath::Abs(TextHeightOffset) > 10000)
+	{ Error = TEXT("Text height offset must be within -10000 to 10000 cm."); return false; }
 	if (!FMath::IsFinite(MeshSinkDepth) || MeshSinkDepth < 0 || MeshSinkDepth > 10000
 		|| !FMath::IsFinite(MeshRotationDegrees) || FMath::Abs(MeshRotationDegrees) > 7200)
 	{ Error = TEXT("Invalid mesh sink depth or rotation."); return false; }
@@ -154,7 +156,8 @@ void AHALArenaEffectGenerator::RefreshGeometry()
 	PillarVisual->SetRelativeLocation(FVector(0,0,Extent.Z));
 	PillarVisual->SetMaterial(0,UMaterial::GetDefaultMaterial(MD_Surface));
 	HintRing->SetMaterial(0,UMaterial::GetDefaultMaterial(MD_Surface));
-	StageText->SetRelativeLocation(FVector(0,0,Extent.Z*2+12));
+	const float TextOffset = FMath::IsFinite(Settings.TextHeightOffset) ? FMath::Clamp(Settings.TextHeightOffset,-10000.f,10000.f) : 0.f;
+	StageText->SetRelativeLocation(FVector(0,0,Extent.Z*2+12+TextOffset));
 	BuiltRingRadius = -1;
 }
 void AHALArenaEffectGenerator::BeginPlay()
@@ -170,6 +173,7 @@ void AHALArenaEffectGenerator::BeginPlay()
 		}
 		Random.Initialize(Settings.RandomSeed != 0 ? Settings.RandomSeed : FMath::Rand());
 	}
+	UpdatePillarCollision();
 	InitializeMeshMotion();
 	UpdateGenerator();
 	if (bEnding || IsActorBeingDestroyed()) { return; }
@@ -285,6 +289,8 @@ float AHALArenaEffectGenerator::GetStageRemainingSeconds() const
 }
 void AHALArenaEffectGenerator::RefreshPresentation()
 {
+	// Runs on authority (including dedicated servers) and peers, independent of render-only copies.
+	if (bReady) { UpdatePillarCollision(); }
 	RefreshMeshMotion();
 	const bool bWarning = State.Stage == EHALArenaGeneratorStage::Hint || State.Stage == EHALArenaGeneratorStage::Delay;
 	HintRing->SetVisibility(bWarning && State.WarningRadius > 0);
@@ -336,6 +342,30 @@ void AHALArenaEffectGenerator::RefreshPresentation()
 		bPresented=true; PresentedStage=State.Stage; PresentedCycle=State.Cycle;
 		if (GetNetMode()!=NM_DedicatedServer) { OnGeneratorStageChanged(State.Stage,State.Effect,State.Cycle); }
 	}
+}
+
+void AHALArenaEffectGenerator::UpdatePillarCollision()
+{
+	// Only PillarBody blocks gameplay. Authored meshes and animation copies are visual only.
+	TInlineComponentArray<UStaticMeshComponent*> Meshes; GetComponents(Meshes);
+	bool bTwoMeshes = Meshes.Num()==2;
+	for (auto* Mesh : Meshes)
+	{
+		bTwoMeshes &= Mesh->GetStaticMesh()!=nullptr;
+		if (Mesh->IsSimulatingPhysics()) { Mesh->SetSimulatePhysics(false); }
+		if (Mesh->GetCollisionEnabled()!=ECollisionEnabled::NoCollision) { Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision); }
+		if (Mesh->GetGenerateOverlapEvents()) { Mesh->SetGenerateOverlapEvents(false); }
+	}
+	const bool bCanSink = bTwoMeshes || MeshMotionSources.Num()==2;
+	const bool bUnderground = bCanSink && Settings.bAnimateMeshes && Settings.MeshSinkDepth>0 && (State.Stage==EHALArenaGeneratorStage::Active
+		|| (State.Stage==EHALArenaGeneratorStage::Finished && GetStageRemainingSeconds()>0));
+	const auto Mode=Settings.bSolidPillar && !bUnderground ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision;
+	if (PillarBody->GetCollisionEnabled()!=Mode) { PillarBody->SetCollisionEnabled(Mode); }
+}
+
+void AHALArenaEffectGenerator::ClearPillarCollision()
+{
+	PillarBody->SetCollisionEnabled(Settings.bSolidPillar?ECollisionEnabled::QueryAndPhysics:ECollisionEnabled::NoCollision);
 }
 
 void AHALArenaEffectGenerator::InitializeMeshMotion()
@@ -441,6 +471,7 @@ void AHALArenaEffectGenerator::EndPlay(const EEndPlayReason::Type Reason)
 {
 	bEnding=true; GetWorldTimerManager().ClearTimer(UpdateTimer); RemoveEffect();
 	ClearMeshMotion();
+	ClearPillarCollision();
 	HintRing->SetVisibility(false); StageText->SetVisibility(false);
 	Super::EndPlay(Reason);
 }

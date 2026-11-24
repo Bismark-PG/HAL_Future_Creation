@@ -1,5 +1,31 @@
 # 場地效果柱子生成器
 
+## 下一環節：單排老虎機圖示演出（方案確認，尚未實作）
+
+用戶確認將現有文字／倒數替換為柱子上方的單排橫向圖示列，在打滑／黑洞／電場三種Icon中抽選。中央選中Icon保持正常1.0倍大小，兩側未選中縮小（建議初始0.65倍，可調）並降低亮度；輪播移動時平滑插值大小，減速後鎖定權威選中結果。鎖定後顯示提示與生成延遲的統一倒數／進度條，到期才生成效果。沿用現有柱子旋轉下沉／升回，面板留在上方；Text Height Offset預計套用面板高度。結果、時序與生成繼續由現有伺服器State管理，C++實作演出，BP僅配置三張圖示與外觀，不在演出重新抽玩法結果。預計參數為正常尺寸、未選中縮放、間距、輪播速度、面板高度。具體圖示、樣式與節奏仍待實作／驗收。
+
+![單排抽選外觀示意，非實際遊戲畫面](Art/ArenaGenerator/SingleRowSlot_Concept.png)
+
+示意圖由內建圖片工具產生，僅作設計參考，不是正式Icon或已接入的遊戲資產。提示詞摘要：明亮未來體育場、淺藍發光柱子、單排橫向三效果圖示、中央正常大小與兩側弱化、黑洞選中框、下方倒數／進度條，以及快速輪播→減速鎖定→倒數啟動三階段示意。用戶本次要求先提交推送目前成果，尚未授權在本次同步中開始演出實作。
+
+## 2026-11-24 獨立文字高度偏移
+
+新增`Settings → Presentation → Text Height Offset`，預設0、範圍-10000～10000局部cm。文字相對Z為`Pillar Half Extent.Z × 2 + 12 + Text Height Offset`；正值往上、負值往下，Actor縮放會影響實際世界距離。只調文字，不改Box大小／位置、模型動畫或效果生成位置。選場景柱子調整該欄位即可預覽；也可由團隊在BP Class Defaults設定，Compile／Save後供未覆寫的實例共用。進入遊戲與設定複製時沿用此值，不再需要手動移動StageText。預設0保留原本位置，沒有新增Tick／RPC／BP修改。
+
+本機main/84a748b、UE5.8.2-56702186，統一入口`BuildAndLaunch.cmd -NoLaunch -NoPopup` **Editor R2成功(exit0，45.57秒／9actions)**，含既有其他檔案數值轉型警告；**既有ArenaGenerator Native R1 5/5通過**，0測試警告／失敗／未執行／進行中。R1構建被Editor／Live Coding占用前置檢查阻止，用戶保存關閉後R2解除；未終止用戶程序。以用戶保存關閉後為基準，3/3份Match／生成器BP／打滑BP雜湊保持，git diff --check通過，保留用戶場景及前輪改動，未編輯BP／地圖、未提交／Push。純文字配置調整，未新增自動化用例，未新跑雙端／Game Target／全量／Cook或實際文字畫面，不沿用前輪雙端結果作本輪證據。下一步重開Editor選柱子，依需求調Text Height Offset，確認編輯預覽及進入遊戲後高度。證據`Saved/ArenaGenerator/20261124/TextHeight`（Build_Editor_R2、Native_R1、ProtectedAfterUserSave／ProtectedAfterTests）；構建詳情`Saved/BuildTool/BuildAndLaunch_20261124_163103_780_8b6d12`。
+
+## 2026-11-24 沉底取消碰撞（取代舊版始終固定碰撞規則）
+
+依用戶最終規格，柱子只使用原生`PillarBody` Box Collider；所有Static Mesh（兩個原模型及動畫顯示副本）在遊戲中一律NoCollision、無Overlap、無物理模擬，不再恢復模型作者原先的碰撞。`Solid Pillar`原生預設改為true，Box尺寸由`Pillar Half Extent`設定；舊BP／場景若明確覆寫false仍尊重該值，需由團隊手動勾選。
+
+啟用兩模型下沉且Sink Depth>0時，進入Active（模型已沉底、效果生成）關閉Box；Finished升回途中保持關閉，完全升回後恢復QueryAndPhysics。Finish Seconds=0即時恢復；等待／停用／取消／下一輪與EndPlay按Solid Pillar恢復。關閉Animate Meshes、Sink Depth=0或沒有有效兩模型下沉時，Box保持Solid Pillar配置。Solid Pillar=false則全程無碰撞。只變更運行時碰撞，不搬動原Actor／原模型，也不改生成中心／Offset／三效果流程；碰撞更新獨立於MeshMotionRoot，沿用複製State，在主機／客戶端及無顯示副本的權威端運行，沒有新Tick／RPC／玩家操作修改。支援模型晚組裝。
+
+已擴充`TwoMeshVisualMotion`：實際水平射線在柱子升起／下沉中被Box阻擋、沉底與升回中不被阻擋、升回完成後再阻擋；驗證原模型即使作者配置QueryOnly／QueryAndPhysics也保持純顯示、零收尾／取消／無視覺根、關動畫／零下沉及Solid Pillar=false。雙端三效果循環驗證Box沉底關閉與下一輪恢復、所有模型全程無碰撞。
+
+最終Box-only版於UE5.8.2-56702186完成驗證：統一入口`BuildAndLaunch.cmd -NoLaunch -NoPopup` **Editor R5成功(exit0，44.93秒／9actions)**，包含既有HALSkillTestDummyWidget／HALTornado數值轉型警告；**Native R2 12/12**（MovementAreas 7＋ArenaGenerator 5），**Network R2主機／客戶端各1/1**，測試報告均0警告／失敗／未執行／進行中。唯讀讀回Native CDO、BP CDO、MVPB_Match柱子均Solid Pillar=true，場景實例有兩個Static Mesh、Animate Meshes=true。3/3份Match／生成器BP／打滑BP雜湊保持，git diff --check通過。本輪不修改BP／地圖，保留此前打滑圈貼地修正與用戶場景改動，未提交／Push。未新跑獨立Game Target／全量／Cook／真人駕車畫面；無視覺根測試不等於實際Dedicated實機驗收。下一步重開Editor在Match確認：柱子升起時擋車、沉底後可通過、完全升回後再擋車，模型斜面不參與碰撞。
+
+證據`Saved/ArenaGenerator/20261124/LoweredCollision`（Build_Editor_R5、Native_R2、Network_R2、SolidPillarDefaults.json、ProtectedBeforeTests／ProtectedAfterTests），構建詳情`Saved/BuildTool/BuildAndLaunch_20261124_161628_622_e9fd57`。此前R1雙端結果屬用戶澄清前的中間版，不作最終驗證。
+
 ## 2026-11-19 兩個Mesh的旋轉下沉與升回
 
 用戶要求抽選結果確定後旋轉下沉，並明確限定只有新增的兩個Mesh視覺；效果結束後升回，接下一輪。新增Settings → Mesh Animation：`Animate Meshes`預設開、`Mesh Sink Depth`預設600世界cm、`Mesh Rotation Degrees`預設360度（負值反轉）。從Revealing開始，跨Reveal＋Hint＋Spawn Delay平滑旋轉下沉；Active保持最下方；Finished在Finish Seconds內沿原路升回，Rolling／Waiting／Disabled恢復原姿。Finish Seconds=0即時復位，沒有新增或延長玩法階段。曲線用smoothstep，運行中不累積旋轉誤差。
@@ -60,7 +86,8 @@ Actor原點、PillarBody、StageText、HintRing、揭曉時固定的EffectCenter
 | Black Hole Offset | (0,0,190)cm | 對齊MVPB_Match黑洞Z=0（柱底Z=-190） |
 | Electric Field Offset | (0,0,190)cm | 對齊MVPB_Match電擊球Z=0（柱底Z=-190） |
 | Pillar Half Extent | (40,40,100)cm | 柱子總大小為80×80×200cm，Actor原點為底部中心 |
-| Solid Pillar | false | Box預設只展示；開啟後才阻擋車輛／球 |
+| Solid Pillar | true | 僅Box阻擋車輛／球；沉底至完全升回前關閉；Static Mesh全程無碰撞 |
+| Text Height Offset | 0cm | Presentation分類；相對原文字位置的局部Z偏移，正上負下，Actor縮放會影響世界距離 |
 | Wait For Match Start | true | 比賽地圖等待 Playing |
 | Random Seed | 0 | 0每次新建隨機序列；非0用來重現抽選序列 |
 
