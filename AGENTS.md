@@ -226,7 +226,12 @@ Enhanced Input → FVehicleInputCmd → VehicleMovement 消费
 - 不用 Blueprint Tick 驱动核心物理、伤害、Buff 或网络规则。
 - 不为方便临时调用而过度暴露 `BlueprintCallable`；优先使用语义明确的接口和只读数据。
 - 蓝图不得成为唯一的规则来源；核心规则必须能从 C++ 与配置中追踪。
-- 当任务涉及蓝图资产或 Blueprint Event Graph 的编辑时，代码代理不得直接修改蓝图；应向团队提供清晰、可执行的 Unreal Editor 操作步骤，由团队成员手动完成并验证。
+- 代码代理可以自行修改蓝图资产（含 Class Defaults、组件和 Blueprint Event Graph），但必须遵守：
+  - 只能通过正在运行的 Unreal Editor 提供的接口修改（例如 Monolith MCP、编辑器 Python 或 Editor Utility），不得直接改写 `.uasset`／`.umap` 的二进制内容。
+  - 修改前先读取该蓝图的现有内容；工作区里已有未提交改动的蓝图，要先向用户确认再改。
+  - 修改后必须编译并保存蓝图，确认没有编译错误，并尽可能用自动化测试或 PIE 验证。
+  - 交付时向团队列出改了哪个蓝图、哪些属性或节点、新旧值，以及验证结果。
+  - 以上不改变本节其他限制：蓝图仍只承担轻量配置与表现连接，核心规则留在 C++。
 
 可调参数优先通过 `UPROPERTY(EditDefaultsOnly)`、配置结构或 Data Asset 暴露。避免魔法数、硬编码资产路径和关卡 Actor 名称依赖。
 

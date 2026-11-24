@@ -13,6 +13,8 @@
 #include "../HALGameplayTags.h"
 #include "../TestVehiclePawn.h"
 #include "Components/BoxComponent.h"
+#include "DynamicMesh/DynamicMesh3.h"
+#include "Materials/MaterialInterface.h"
 #include "Components/LineBatchComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -370,6 +372,47 @@ bool FHALSlipperyGroundDebugTest::RunTest(const FString& Parameters)
 	Area->Tick(0);
 	TestEqual(TEXT("Expired area submits no mesh"), Batch->BatchedMeshes.Num(), 0);
 #endif
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSlipperyAreaSurfaceTest, "HAL.FutureCreation.MovementAreas.ExpandingGroundSurface",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALSlipperyAreaSurfaceTest::RunTest(const FString& Parameters)
+{
+	auto* Material = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Assets/FX/Materials/MI_SlipperyTrail_Graffiti.MI_SlipperyTrail_Graffiti"));
+	if (!TestNotNull(TEXT("Trail material loads read-only"), Material)) { return false; }
+	FAreaTestWorld F;
+	auto* Floor = F.World->SpawnActor<AActor>();
+	auto* Body = NewObject<UBoxComponent>(Floor);
+	Floor->AddInstanceComponent(Body); Floor->SetRootComponent(Body);
+	Body->SetBoxExtent(FVector(2000,2000,10));
+	Body->SetCollisionProfileName(TEXT("BlockAll"));
+	Body->SetWorldLocation(FVector(0,0,-10)); Body->RegisterComponent();
+	auto* Area = F.World->SpawnActor<AHALExpandingSlipperyArea>(FVector(0,0,100), FRotator::ZeroRotator);
+	Area->DispatchBeginPlay();
+	Area->Tick(0);
+	TestNull(TEXT("No material draws no surface"), Area->GroundSurface.Get());
+	Area->Presentation.GroundMaterial = Material;
+	Area->Presentation.PaintEdge.bEnabled = false;
+	const auto Extent = [&]() { return Area->GroundSurface->GetMesh()->GetBounds().Extents(); };
+	Area->Tick(0);
+	if (!TestNotNull(TEXT("Material creates the ground surface"), Area->GroundSurface.Get())) { return false; }
+	TestTrue(TEXT("Surface starts at the gameplay seed"), Extent().X <= 1.01 && Area->GroundSurface->IsVisible());
+	TestTrue(TEXT("Surface sits on the floor, not at the volume center"),
+		FMath::IsNearlyEqual(Area->GroundSurface->GetComponentLocation().Z, 0., .01));
+	Area->Settings.ExpansionSeconds = 0;
+	Area->Tick(0);
+	TestTrue(TEXT("Full surface matches gameplay radius"), FMath::IsNearlyEqual(Extent().X, 500., .5));
+	TestTrue(TEXT("Surface stays above the floor"), Area->GroundSurface->GetMesh()->GetBounds().Min.Z >= Area->Presentation.GroundLift - .01);
+	Area->Settings.DurationSeconds = 0;
+	Area->Tick(0);
+	TestTrue(TEXT("Dissolve keeps the surface after gameplay ends"), Area->GroundSurface->IsVisible());
+	Area->Presentation.DissolveSeconds = 0;
+	Area->Tick(0);
+	TestFalse(TEXT("Surface hides after the dissolve"), Area->GroundSurface->IsVisible());
+	Area->Presentation.DissolveSeconds = 1;
+	Area->UpdateArea();
+	TestTrue(TEXT("Expired gameplay with a dissolve keeps the actor"), Area->bGameplayFinished && !Area->IsActorBeingDestroyed());
+	TestEqual(TEXT("Expired gameplay affects nobody"), Area->Occupants.Num(), 0);
 	return true;
 }
 #endif

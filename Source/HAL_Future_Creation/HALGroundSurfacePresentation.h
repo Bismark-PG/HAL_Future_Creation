@@ -68,6 +68,10 @@ namespace HALGroundSurface
 	HAL_FUTURE_CREATION_API UE::Geometry::FDynamicMesh3 BuildRibbon(TConstArrayView<FHALGroundSurfacePoint> Points,
 		const FVector& Origin, float GroundLift, float TextureTileSize, const FHALGroundSurfaceDeformation& Deformation,
 		const FHALGroundSurfacePaintEdge& PaintEdge = FHALGroundSurfacePaintEdge());
+	/** Same vertex contract as BuildRibbon for a flat circular area: world-XY radius, projected onto one ground plane. */
+	HAL_FUTURE_CREATION_API UE::Geometry::FDynamicMesh3 BuildDisc(const FHALGroundSurfacePoint& Center, const FVector& Origin,
+		float GroundLift, float TextureTileSize, const FHALGroundSurfaceDeformation& Deformation,
+		const FHALGroundSurfacePaintEdge& PaintEdge = FHALGroundSurfacePaintEdge());
 }
 
 /** Per-area material state and WPO bounds, reusable by ground-effect actors. */
