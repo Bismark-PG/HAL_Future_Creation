@@ -7,8 +7,8 @@
 
 UHALPlayerIdentitySettings::UHALPlayerIdentitySettings()
 {
-	// sRGB #EA1E8C, #FFE13F, #17CFA6, #1FA8FF.
-	SeatColors = { FLinearColor(.8228f, .0130f, .2623f), FLinearColor(1.f, .75f, .05f), FLinearColor(.0086f, .6240f, .3813f), FLinearColor(.0137f, .3916f, 1.f) };
+	// sRGB #EA1E8C, #FFB01F, #17CFA6, #1FA8FF.
+	SeatColors = { FLinearColor(.8228f, .0130f, .2623f), FLinearColor(1.f, .4341f, .0137f), FLinearColor(.0086f, .6240f, .3813f), FLinearColor(.0137f, .3916f, 1.f) };
 }
 
 FLinearColor UHALPlayerIdentitySettings::SeatColorFrom(TConstArrayView<FLinearColor> Colors, const FLinearColor& Fallback, int32 SeatIndex)

@@ -20,7 +20,7 @@ class HAL_FUTURE_CREATION_API UHALPlayerIdentitySettings : public UDeveloperSett
 	GENERATED_BODY()
 public:
 	UHALPlayerIdentitySettings();
-	/** Linear colours by seat, seat 1 first: pink, yellow, teal, blue. Four seats; a shorter or longer list is used as it is, wrapping round. */
+	/** Linear colours by seat, seat 1 first: pink, amber, teal, sky blue. Four seats; a shorter or longer list is used as it is, wrapping round. */
 	UPROPERTY(Config, EditAnywhere, Category="Player Identity") TArray<FLinearColor> SeatColors;
 	/** Used when the list is empty or holds an unusable colour. */
 	UPROPERTY(Config, EditAnywhere, Category="Player Identity") FLinearColor FallbackColor = FLinearColor(0.98f, 0.62f, 0.12f, 1.f);
