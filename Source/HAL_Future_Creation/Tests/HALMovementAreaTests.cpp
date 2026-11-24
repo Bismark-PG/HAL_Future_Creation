@@ -363,6 +363,28 @@ bool FHALSlipperyGroundDebugTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Hold is blue"), Batch->BatchedMeshes[0].Color.B == 255 && Batch->BatchedMeshes[0].Color.R == 0);
 	TestTrue(TEXT("Full mesh matches gameplay radius"), FMath::IsNearlyEqual(
 		FVector::Dist2D(Batch->BatchedMeshes[0].MeshVerts[0], Batch->BatchedMeshes[0].MeshVerts[1]), 500., .01));
+	// A sloped collider on the spawning pillar used to become the debug circle's ground plane.
+	auto* Pillar=F.World->SpawnActor<AActor>();
+	auto* SlopedBody=NewObject<UBoxComponent>(Pillar);
+	Pillar->AddInstanceComponent(SlopedBody); Pillar->SetRootComponent(SlopedBody);
+	SlopedBody->SetBoxExtent(FVector(100,100,15)); SlopedBody->SetCollisionProfileName(TEXT("BlockAll"));
+	SlopedBody->SetWorldLocationAndRotation(FVector(0,0,100),FRotator(25,0,0)); SlopedBody->RegisterComponent();
+	FCollisionObjectQueryParams Objects; Objects.AddObjectTypesToQuery(ECC_WorldStatic); Objects.AddObjectTypesToQuery(ECC_WorldDynamic);
+	FHitResult LegacyHit;
+	F.World->LineTraceSingleByObjectType(LegacyHit,FVector(0,0,300),FVector(0,0,-100),Objects);
+	TestTrue(TEXT("Reproduction: a ground probe that includes the pillar hits its sloped collider"),LegacyHit.GetActor()==Pillar && LegacyHit.ImpactNormal.Z<.99);
+	const auto FieldPose=Area->GetActorTransform(); const auto PillarPose=Pillar->GetActorTransform();
+	Area->SetOwner(Pillar); Batch->Flush(); Area->Tick(0);
+	if(!TestEqual(TEXT("Owned field still emits its ground mesh"),Batch->BatchedMeshes.Num(),1)) { return false; }
+	for(const auto& Vertex:Batch->BatchedMeshes[0].MeshVerts)
+	{ TestTrue(TEXT("Pillar slope cannot tilt or elevate the circle above the real flat floor"),FMath::IsNearlyEqual(Vertex.Z,3.,.01)); }
+	TestTrue(TEXT("Ground visualization does not move the field or its owner"),Area->GetActorTransform().Equals(FieldPose) && Pillar->GetActorTransform().Equals(PillarPose));
+	SlopedBody->SetWorldLocation(FVector(3000,0,100));
+	Body->SetWorldRotation(FRotator(10,0,0)); Batch->Flush(); Area->Tick(0);
+	if(!TestEqual(TEXT("Real sloped floor remains supported"),Batch->BatchedMeshes.Num(),1)) { return false; }
+	const auto& SlopeMesh=Batch->BatchedMeshes[0];
+	TestTrue(TEXT("Actual terrain slope is still followed"),FMath::Abs(SlopeMesh.MeshVerts[17].Z-SlopeMesh.MeshVerts[1].Z)>50.);
+	TestTrue(TEXT("Slope does not distort world-XY gameplay radius"),FMath::IsNearlyEqual(FVector::Dist2D(SlopeMesh.MeshVerts[0],SlopeMesh.MeshVerts[1]),500.,.01));
 	Batch->Flush();
 	Area->bDebugDraw = false;
 	Area->Tick(0);

@@ -105,6 +105,7 @@ private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALVehicleStabilityTestAccess;
 	friend struct FHALWaterCannonTestAccess;
+	friend struct FHALBatarangTestAccess;
 	friend struct FHALBattleTopTestAccess;
 	friend struct FHALBullChargeTestAccess;
 	friend struct FHALSideShiftTestAccess;

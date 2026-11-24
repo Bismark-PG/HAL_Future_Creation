@@ -141,6 +141,8 @@ bool AHALExpandingSlipperyArea::FindGround(FVector& Center, FVector& Normal) con
 	Objects.AddObjectTypesToQuery(ECC_WorldDynamic);
 	FCollisionQueryParams Query(SCENE_QUERY_STAT(SlipperyAreaDebugGround), false, this);
 	if (GetInstigator()) { Query.AddIgnoredActor(GetInstigator()); }
+	// A generator's stationary mesh collision is not the floor beneath its spawned field.
+	if (GetOwner()) { Query.AddIgnoredActor(GetOwner()); }
 	TArray<FHitResult> Hits;
 	GetWorld()->LineTraceMultiByObjectType(Hits, Center + FVector::UpVector * Settings.HalfHeight,
 		Center - FVector::UpVector * Settings.HalfHeight, Objects, Query);

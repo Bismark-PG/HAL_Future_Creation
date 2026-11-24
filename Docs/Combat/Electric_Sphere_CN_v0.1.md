@@ -1,5 +1,26 @@
 # 球形電擊區域：三階段生命週期
 
+## 2026-11-19：Begin 擴張階段獨立回彈（最新規則）
+
+用戶確認「擴張／持續／消滅」就是既有 Begin／Loop／Over，沒有新增階段。
+
+- **Begin（擴張）現在可觸發接觸效果**，取代原「預告不電擊」規則；使用 Sphere Config → Begin Bounce Back 中的 Begin Bounce Back Distance／Seconds，預設 **500cm／0.5s**，可調距離1～1000cm、時間0.05～2s。
+- **Loop（持續）**仍使用 Electric Wall → Config → Bounce Back Distance／Seconds，各電球BP自行保存，普通電牆數值保持。
+- **Over（消滅）**不新增接觸效果。Begin／Loop使用相同眩暈與shocked規則、不扣血，已施加的狀態按原時間自然結束。
+- 伺服器結算與客戶端回彈預測共用同一按階段取參數的入口；Begin到Loop不清空接觸鎖、不額外重彈。判斷用複製的開始時間及伺服器遊戲時鐘，邊界當下即取Loop／Over規則。
+- 此次沿用原固定球形碰撞範圍，沒有新增碰撞半徑漸增規則，也沒有修改Niagara擴張動畫。Begin的較強回彈作用於現有完整球形範圍。方向仍反向進入移動、靜止時向球外推。
+
+### Editor 調整
+
+開啟既有 BP_ElectricSphereGimmick → Class Defaults → Electric Sphere → Sphere Config → Begin Bounce Back，調整兩個新欄位，Compile／Save。Loop仍在繼承的Electric Wall → Config調整；不用改Electric Wall BP。Begin Seconds依原動畫時間設定，若為0則直接進Loop，不會用Begin回彈。原Begin紅／Loop藍／Over紅的Draw Debug保持。
+
+既有BP與四份其他團隊資產變更保持，代理不編輯保存資產。本輪本機引擎仍為UE5.8.2-56702186，與狀態文件其他設備的5.8.3分開記錄。本輪 Editor／Game Target 編譯均成功；完整原生 **255/255**（253乾淨通過、2項既有測試警告，0失敗／未執行）。已驗證Begin接觸、獨立參數、Begin→Loop不重彈、Loop返回普通參數、Over停用、高速完整穿越及非法參數拒絕。
+
+新增 Begin 雙端專項、原 Loop 球體專項及電牆回歸共六份報告，Host／Client各 **1/1**，全部0測試警告／失敗／未執行。Begin夾具刻意設30遊戲秒以穩定覆蓋階段，日誌確認兩車皆取 **640cm／0.6s**；Loop與電牆皆取原 **100cm／0.3s**，每組兩次接觸、HP100、眩暈／shocked正常結束。本機Listen Server、Host出站80ms注入、NullRHI，人工擺位／速度注入，不能代替正式地圖真人手感、Niagara畫面、階段交界延遲組合／四機／Cook驗收。
+
+證據位於 `Saved/ElectricSphere/20261119/`：Editor_R1.log、Game_R1.log、Native_R1/index.json、Begin_R1／Loop_R1／Wall_R1 各角色 index.json 與日誌。構建另保留原相機／警車／龍捲風等既有數值轉型及Editor材質API警告，沒有修改這些模組。專用測試進程已結束，未提交／Push；下方原189項／雙端是歷史證據。
+
+
 2026-11-10，接續 `main/e12a1d9`（起始工作區乾淨）。本機引擎 UE 5.8.2-56702186，其他設備的 5.8.3 驗證不視為本輪結果。
 
 ## 規則與預設

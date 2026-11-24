@@ -1,5 +1,15 @@
 # 可生成的扩散打滑区域
 
+## 2026-11-24 柱子模型造成調試圓盤傾斜
+
+用戶在Match柱子加回兩個Static Mesh後，回報圓形範圍像斜放的盤子。已保存場景的唯讀取樣確認兩個模型仍掛GeneratorBase、Actor旋轉為0、兩模型都開QueryAndPhysics且不模擬物理；生成中心由位置＋世界Offset計算，生成器仍以Identity旋轉／單位Scale產生獨立打滑Actor。這次針對`DrawGroundDebug`的貼地射線：原本掃WorldStatic／WorldDynamic，只排除打滑Actor與Instigator，未排除Owner生成柱。柱子新增的固定碰撞可被選成地面，圓盤就依其斜面法線顯示，與車輛判定的世界XY圓柱不同。
+
+修正僅在調試貼地Query加入忽略Owner，保留真實地板／斜坡取樣，不移動生成位置、不改打滑／高度／碰撞／動畫規則。沿用`MovementAreas.DebugGroundMeshCheckboxAndColors`加入可重現的25度柱子Box與平地：未排除柱子的對照射線應先撞柱子斜面，修正後整圈所有頂點應貼平地Z=3；再旋轉真正地板10度，確認仍跟隨地板斜度、世界XY半徑維持500cm，Area與Owner姿態保持。
+
+本輪`main/84a748b`、UE **5.8.2-56702186**。統一入口`BuildAndLaunch.cmd -NoLaunch -NoPopup`最終Editor R2編譯成功(exit0，38.95秒／9actions)；首輪僅因Editor／Live Coding占用被前置檢查阻止，未停止用戶程序，用戶保存關閉後重試成功。Native R1 **12/12、0警告／失敗／未執行／進行中**，為MovementAreas 7項＋ArenaGenerator 5項。新增對照射線確實先撞25度柱子斜面；修正後全部圓盤頂點貼平地Z=3，真正10度斜坡與世界XY半徑500cm均通過，原位置與動畫回歸亦通過。只改`HALExpandingSlipperyArea.cpp`調試Query與既有測試，未改BP／地圖／配置／車操作；用戶保存關閉後的**3/3份Match／生成器BP／打滑BP雜湊保持**，保留本輪起始既有Match修改。未提交／Push；未新跑Game Target、全量、新雙端或真人畫面，不沿用11/19或遠端報告。下一步重開Editor，在加了兩模型的柱子生成打滑區時檢查圓盤是否貼齊地板。
+
+證據`Saved/ExpandingSlipperyArea/20261124/GeneratorGround`（Build_Editor_R1／R2、Native_R1／log、ProtectedBeforeTests／AfterTests），詳細構建`Saved/BuildTool/BuildAndLaunch_20261124_153607_298_b61faa`。唯讀場景取樣及初版Python射線無命中回傳None的診斷留在`Saved/GitSync/20261124/InspectTilt*`；該失敗查詢不作實際場景射線命中證據，重現結論來自上述原生幾何測試。
+
 ## 2026-11-17 Match 无效果的高度诊断
 
 用户报告柱子生成与关卡预放两种圆形区域均无效果。本轮只读检查，未修改 C++、BP、地图或配置：`main/793f619`，UE5.8.2-56702186，保留全部用户未提交资产。读取保存 BP：Expansion=2s、Hold=5s、Radius=1000cm、HalfHeight=200cm、Grip=0.3、Debug=true；Match 预放区域 Z=-80，实例 Hold=50s；柱子已由用户移动至 Z=-200（此前校准记录的 -190 不再代表当前位置）。

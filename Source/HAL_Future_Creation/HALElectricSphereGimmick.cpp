@@ -12,7 +12,9 @@
 bool FHALElectricSphereConfig::Validate() const
 {
 	return FMath::IsFinite(Radius) && Radius >= 1 && FMath::IsFinite(BeginSeconds) && BeginSeconds >= 0
-		&& FMath::IsFinite(LoopSeconds) && LoopSeconds >= .01f && FMath::IsFinite(OverSeconds) && OverSeconds >= 0;
+		&& FMath::IsFinite(LoopSeconds) && LoopSeconds >= .01f && FMath::IsFinite(OverSeconds) && OverSeconds >= 0
+		&& FMath::IsFinite(BeginBounceBackDistance) && BeginBounceBackDistance>=1 && BeginBounceBackDistance<=1000
+		&& FMath::IsFinite(BeginBounceBackSeconds) && BeginBounceBackSeconds>=.05f && BeginBounceBackSeconds<=2;
 }
 EHALElectricSphereStage FHALElectricSphereConfig::StageAt(double Age) const
 {
@@ -41,12 +43,22 @@ void AHALElectricSphereGimmick::UpdateGeometry()
 	}
 }
 UPrimitiveComponent* AHALElectricSphereGimmick::GetContactSurface() const { return SphereField; }
-bool AHALElectricSphereGimmick::IsContactActive() const
+EHALElectricSphereStage AHALElectricSphereGimmick::GetContactStage() const
 {
-	if (StartedAt<0 || !SphereConfig.Validate() || Stage!=EHALElectricSphereStage::Loop || !GetWorld()) { return false; }
+	if (!GetWorld() || StartedAt<0) { return EHALElectricSphereStage::Over; }
 	const auto* GS=GetWorld()->GetGameState();
 	const double Now=HasAuthority() || !GS ? GetWorld()->GetTimeSeconds() : GS->GetServerWorldTimeSeconds();
-	return SphereConfig.StageAt(Now-StartedAt)==EHALElectricSphereStage::Loop;
+	return SphereConfig.StageAt(Now-StartedAt);
+}
+bool AHALElectricSphereGimmick::IsContactActive() const
+{
+	return StartedAt>=0 && SphereConfig.Validate() && GetContactStage()!=EHALElectricSphereStage::Over;
+}
+void AHALElectricSphereGimmick::GetBounceBackParameters(float& Distance, float& Seconds) const
+{
+	if (GetContactStage()==EHALElectricSphereStage::Begin)
+	{ Distance=SphereConfig.BeginBounceBackDistance; Seconds=SphereConfig.BeginBounceBackSeconds; }
+	else { Super::GetBounceBackParameters(Distance,Seconds); }
 }
 FVector AHALElectricSphereGimmick::GetPushDirection(UPrimitiveComponent*,const FVector& Current,const FVector& Previous,const FVector& Velocity) const
 {
