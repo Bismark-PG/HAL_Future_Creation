@@ -15,7 +15,9 @@
 **2026-11-24 本機已保存、Pull及合併完成；兩份衝突資產依用戶選擇採遠端新版。** Unreal保存成功、無剩餘未保存地圖／內容，已正常結束測試並關閉Editor。原main=`fb3c635`的403份本機改動完整保存於本地分支`codex/save-before-pull-20261124`、提交`291f654`；main已從遠端快轉49提交至`dce04b6`（Car_11資產），再合併本機備份。`Content/Maps/MVPB_Match.umap`與`Content/Blueprints/MapMechanic/BP_HALBlackHole.uasset`均採`dce04b6`版本，原本機版本仍在備份分支；選遠端地圖表示本機原場景的柱子模型／位置設定不會自動搬入。程式碼保留遠端新增接口與本機電球／柱子邏輯，Project_Status保留兩邊記錄；399份不與遠端重疊的本機檔案逐Git blob核對全部保持，無未解衝突。`BuildAndLaunch.cmd -NoLaunch -NoPopup`對相同整合程式**編譯成功(exit0)**，145.82秒／51actions，包含既有數值轉型警告；未執行新自動化或畫面驗收，不沿用遠端或11/19結果冒充本次。合併保存於本地main，未Push。證據`Saved/GitSync/20261124`（EditorSave、LocalCheckpoint、Pull／Merge、IndexAudit、BuildAfterMerge），構建詳細`Saved/BuildTool/BuildAndLaunch_20261124_150249_529_404933`。下一入口：重開Editor檢查遠端Match／黑洞FX與保留的本機功能；若要搬回本機場景配置，從備份分支另行比對，不直接覆蓋新版地圖。
 **2026-11-24 · Car12 震荡钉镖已接入车辆。** 本机从 `main@4c50248` 接续。Car12 有独立技能 DA、原生 GA、双翼飞镖材质和挂镖双音。首次主技能输入消耗 100 能量，沿车头大回旋出镖。对手挂镖后再次按键可引爆，5 秒后会自动引爆。UE 读回正式车辆攻击力 25、动作倍率 0.4、自然回满 20 秒。伤害和 Medium / Long 推力经 Combat Resolver 结算，底盘箭头随目标当前朝向转动。施放者有屏边翼标和连线，烟幕中收起定位。`SingleVehicleTest` 可直接选 Car12，`Fred_TestScene` 使用另一份车型名单。参见[技能配置与试车说明](Combat/Car12_Batarang_CN.md)。
 
-**Car12 本机验证**　UE 5.8.2 Editor 增量编译通过，项目默认启动配置下玩法自动化 285/285 通过，其中两项既有换车用例带警告。本机两个独立游戏进程验证了客户端对主机车挂镖、目标转向后方向更新、烟内手动引爆和两端 HP 100→90，主机和客户端各 1/1 通过。已检查屏内、屏边、烟幕三张客户端实拍。四机混战时的提示可读性与锁定音量待团队试玩。试车从 `SingleVehicleTest → Apply selected vehicle → OPPONENT CAR` 进入。[参数、测试条件与报告位置](Combat/Car12_Batarang_CN.md)
+**2026-11-24 · Car12 震荡钉镖初版正式视觉已接入。** 从 `main@5c4a6f7a` 接续，团队初试反馈技能功能正常。回旋出镖有独立双翼模型和沿实际弧线收尖的双道尾迹。挂镖后车壳上露出镖翼，镖芯节拍和编号下的五格刻度提示引爆时机。爆发的两道波纹朝实际水平推力方向展开。目标进入 Car08 烟幕时，施放者仍可引爆，世界光纹和 HUD 定位同步收起。美术参数在 `DA_Ability_Car12_Batarang → Presentation`。从 `SingleVehicleTest` 选择 Car12 和一辆对手车即可试用。[夜场客户端实拍](Combat/Art/Car12/Car12_Resonance.webp) · [参数与试车说明](Combat/Car12_Batarang_CN.md)
+
+**Car12 本轮验证**　UE 5.8.2 Editor 增量构建通过，项目默认配置下玩法自动化 285/285 通过，两项既有换车用例带警告。独立 Listen Server 和客户端在正式夜场测了到期引爆，在测试图测了烟内手动引爆。两种场景的主机、客户端均通过，两端 HP 都从 100 降到 90。已实拍回旋尾迹、中镖面、倒计时、屏边、烟内和定向震荡波。四台实机混战时翼标与其他技能同屏的可读性仍待团队试玩。[验证记录与报告位置](Combat/Car12_Batarang_CN.md#本轮视觉验证)
 
 **2026-11-24 主线接续 · `a5e3f66`**
 
