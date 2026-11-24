@@ -22,6 +22,30 @@
 - **自然消散。** 寿命耗尽时有清晰的退场特效，能看出剩余能量已耗尽。自然消散不造成伤害或冲击。
 - **触发消耗。** 由球型的命中特效承接球体退场。生成、自然消散和命中应当一眼可区分。主机和客户端依据同一次服务器事件呈现结果。
 
+## 正式赛场的特殊球生成盘
+
+`MVPB_Match` 的中圈两侧各有一个六孔盘。在 World Outliner 展开 **Gimmick → Special Ball Pads** 找到 `SpecialBallPad_NE` 和 `SpecialBallPad_SW`。青色待机灯在投放前变色，爆炸球为橙金色向心脉冲，黑洞球为紫色旋纹，陨石球为红橙色断续流光。球从六孔中心出现，随后播放球型自带的生成特效，可以直接争抢。
+
+全场共用 **Content → Data → Balls → DA_Arena_SpecialBallSupply**。修改后重新开一局即可试玩。
+
+| 参数 | 首版值 | 调整效果 |
+| --- | --- | --- |
+| First Drop Seconds | 15 秒 | 从比赛进入 Playing 到首次出球，含预告时间 |
+| Drop Interval | 25 秒 | 全场两次成功投放之间的间隔。两盘轮流优先，同一轮只投一颗 |
+| Warning Seconds | 1.5 秒 | 提前亮灯并向盘心汇聚。首轮默认在开赛后 13.5 秒亮灯 |
+| Blocked Grace | 2 秒 | 盘心被占时最多等待多久，每 0.25 秒复查一次 |
+| Ball Pool | Explosive、Black Hole、Meteor | 三种球每组各出一次，顺序随机。只保留一种即可定向测试 |
+| Spawn Clearance | 8 cm | 球底相对实际行车面的初始间隙。球心高度另加该球型的实际碰撞半径 |
+| Pad Diameter / Pad Thickness | 350 / 3 cm | 六孔盘的可见大小和厚度 |
+
+预告前，优先盘被车辆、球或实体障碍占用时，服务器可以选另一个空盘。亮灯后位置锁定，若车辆驶入，会在原盘等它离开；持续占用则跳过本轮，待投球型留给下一轮。等待开赛和结算期间停发，下一局重新计时、洗牌。
+
+**场上特殊球数量没有硬上限。** 玩家把球带离盘心后，后续仍能继续投放。想让多球同场更常见，可以缩短共享 DA 的 `Drop Interval`，或在对应球型 DA 延长 `Free Life Seconds`。持球、正式飞行继续沿用各球自己的暂停计时规则。
+
+**增设点位。** 在关卡复制已有生成盘，或从 Place Actors 拖入 **HAL Special Ball Pad**。把 Actor 原点对齐实际行车面，在 Details 设置 `Rotation Order` 指定轮转顺序。当地板装饰比碰撞面高时，填入 `Deck Finish Offset`，正式图两处均为 3.75 cm。机关只参与显示，车轮、球和射线都使用原场地碰撞。模型和三种材质实例位于 `/Game/Assets/ArenaMechanics/SpecialBallPad`，可以独立调色。只有服务器投放，客户端从复制的预告和球体状态显示结果。
+
+**2026-11-24 实测。** UE 5.8.3 的 Development Editor 与 Game 均已编译。连续投放六颗，其中一颗被持有，验证了多球共存、两轮洗牌、盘心阻挡重试、跳过和重新开赛。正式图的两个盘都通过盘心和两侧的地面射线检查，主机车辆横穿空盘期间测得车身高度变化小于 0.01 cm。主机出站模拟 60 ms 延迟，主机与独立客户端均看到东北盘在约第 15 秒生成陨石球、西南盘在约第 40 秒生成爆炸球。以下三帧来自同一客户端机位，依次为待机、盘心预告和球体生成。[游戏内三帧实拍](Art/SpecialBallPad/SupplyPad_InGame.jpg)
+
 ## 陨石球
 
 在 Development 的场地中开车面向空地，打开控制台执行 `HALSpawnMeteorBall`，驶近拾球后按普通发射键。单人空场可测试定点落击，在 `Fred_TestScene` 放一辆活着的 `BP_SkillTestDummy` 可测试追踪。正式球型位于 `/Game/Data/Balls/DA_Ball_Meteor`。

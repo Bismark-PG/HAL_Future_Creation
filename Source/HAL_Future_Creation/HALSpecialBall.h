@@ -93,6 +93,8 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	float RemainingFreeSeconds() const;
 	const UHALSpecialBallDefinition* GetTypeDefinition() const { return Cast<UHALSpecialBallDefinition>(Definition); }
+	/** Also resolves the configured type on a class default object before its first spawn. */
+	const UHALSpecialBallDefinition* GetSpawnDefinition() const { return Definition ? GetTypeDefinition() : DefaultType(); }
 protected:
 	virtual UHALSpecialBallDefinition* DefaultType() const { return nullptr; }
 	virtual bool CanUseBall() const override;

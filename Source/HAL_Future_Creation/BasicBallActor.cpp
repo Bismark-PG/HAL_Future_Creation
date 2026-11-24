@@ -407,7 +407,7 @@ float ABasicBallActor::GetConfiguredSphereRadius() const
 {
 	if (ConfigurationSource == EVehicleConfigurationSource::Definition && Definition)
 	{
-		return Definition->Radius * Definition->Physics.Scale.GetAbsMin();
+		return Definition->GetScaledPhysicsRadius();
 	}
 	return PhysicsRoot->GetScaledSphereRadius();
 }

@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
 #include "Misc/AutomationTest.h"
 #include "../HALMatchBallLifecycle.h"
+#include "../HALSpecialBallPad.h"
 #include "../HALMatchGameState.h"
 #include "../BasicBallActor.h"
 #include "../HALSpecialBallCue.h"
@@ -73,6 +74,103 @@ namespace
 			return Count;
 		}
 	};
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSpecialBallSupplyTest, "HAL.FutureCreation.SpecialBallSupply.SharedClockBlockingAndBag",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALSpecialBallSupplyTest::RunTest(const FString&)
+{
+	FMatchBallWorld F;
+	UWorld* World = F.World;
+	auto* State = World->SpawnActor<AHALMatchGameState>();
+	World->SetGameState(State);
+	F.Block(FVector(0,0,-20), FVector(4000,4000,20));
+	auto* First = World->SpawnActor<AHALSpecialBallPad>(FVector(700,0,0), FRotator::ZeroRotator);
+	auto* Second = World->SpawnActor<AHALSpecialBallPad>(FVector(-700,0,0), FRotator::ZeroRotator);
+	Second->RotationOrder = 1;
+	auto* Supply = State->FindComponentByClass<UHALSpecialBallSupply>();
+	auto* Stock = GetDefault<UHALMatchBallSettings>()->SpecialBallSupply.LoadSynchronous();
+	if (!TestNotNull(TEXT("Formal supply DA loads"), Stock) || !TestNotNull(TEXT("Production mesh"), Stock->PadMesh.Get())) { return false; }
+	auto Balls = [&]()
+	{
+		TArray<AHALSpecialBall*> Found;
+		for (TActorIterator<AHALSpecialBall> It(World); It; ++It) { Found.Add(*It); }
+		return Found;
+	};
+	auto Obstruct = [&](AHALSpecialBallPad* Pad) { return F.Block(Pad->GetActorLocation() + FVector(0,0,95), FVector(99,80,55)); };
+	TestFalse(TEXT("No supply timer in Waiting"), World->GetTimerManager().TimerExists(Supply->Timer));
+	State->SetMatchPhase(EHALMatchPhase::Playing);
+	TestEqual(TEXT("One shared first warning delay"), World->GetTimerManager().GetTimerRemaining(Supply->Timer), Stock->FirstDropSeconds-Stock->WarningSeconds, .01f);
+	// Give this fixture all three types even if a designer narrows the production pool.
+	Supply->Settings = DuplicateObject<UHALSpecialBallSupplyDefinition>(Stock, Supply);
+	Supply->Settings->BallPool = {EHALPadBall::Explosive, EHALPadBall::BlackHole, EHALPadBall::Meteor};
+	TSet<EHALPadBall> InBag;
+	EHALPadBall Previous = EHALPadBall::None;
+	for (int32 Drop = 0; Drop < 6; ++Drop)
+	{
+		Supply->BeginCycle();
+		auto* Pad = Drop % 2 ? Second : First;
+		const EHALPadBall Kind = Pad->GetWarning().Ball;
+		if (!TestTrue(TEXT("Only the next alternating pad announces"), Kind != EHALPadBall::None
+			&& (Drop%2 ? First : Second)->GetWarning().Ball == EHALPadBall::None)) { return false; }
+		if (!(Drop%3)) { InBag.Reset(); }
+		TestTrue(TEXT("No repeat inside bag or across boundary"), !InBag.Contains(Kind) && Kind != Previous);
+		InBag.Add(Kind); Previous = Kind;
+		if (Drop == 0)
+		{
+			auto* CarSizedBlock = Obstruct(Pad);
+			Supply->Deliver();
+			TestTrue(TEXT("Arriving after warning blocks the announced site; no hidden handoff"),
+				Balls().IsEmpty() && First->GetWarning().Ball == Kind && Second->GetWarning().Ball == EHALPadBall::None);
+			CarSizedBlock->Destroy();
+		}
+		Supply->Deliver();
+		const auto Current = Balls();
+		if (!TestEqual(TEXT("Every delivery adds a ball even when several remain alive"), Current.Num(), Drop+1)) { return false; }
+		TestEqual(TEXT("Shared next warning delay after success"), World->GetTimerManager().GetTimerRemaining(Supply->Timer),
+			Stock->DropInterval-Stock->WarningSeconds, .01f);
+		auto* const* NewBall = Current.FindByPredicate([Pad](auto* Ball) { return FVector::Dist2D(Ball->GetActorLocation(), Pad->GetActorLocation()) < 1.; });
+		if (!TestNotNull(TEXT("Ball is at announced center"), NewBall)) { return false; }
+		TestEqual(TEXT("Fresh sphere bottom clears traced floor by configured amount"), (*NewBall)->GetActorLocation().Z,
+			static_cast<double>((*NewBall)->GetPhysicsRoot()->GetScaledSphereRadius() + Stock->SpawnClearance), .1);
+		TestTrue(TEXT("Available Free without changing primary identity"), (*NewBall)->GetBallState() == EBasicBallState::Free && !(*NewBall)->IsPrimaryMatchBall());
+		FVector Center;
+		TestFalse(TEXT("A ball occupying the pad blocks a second spawn there"), Pad->FindSpawnCenter(Supply->SpawnRadius, Stock->SpawnClearance, Center));
+		(*NewBall)->SetActorLocation(FVector(2000, 350.*Drop, 150), false, nullptr, ETeleportType::TeleportPhysics);
+		if (Drop == 0) { TestTrue(TEXT("Carrying an earlier delivery does not stop the next turns"), (*NewBall)->BeginControl(World->SpawnActor<AActor>())); }
+	}
+	auto* BlockA = Obstruct(First);
+	auto* BlockB = Obstruct(Second);
+	Supply->BeginCycle();
+	TestTrue(TEXT("Two occupied pads stay quiet"), !Supply->AnnouncedPad.IsValid());
+	const auto Reserved = Supply->Bag;
+	World->TimeSeconds += Stock->BlockedGrace + 1.f;
+	Supply->Announce();
+	TestTrue(TEXT("Blocked turn consumes no ball or bag entry"), Balls().Num() == 6 && Supply->Bag == Reserved);
+	BlockA->Destroy();
+	Supply->BeginCycle();
+	TestTrue(TEXT("Clear alternate selected before warning"), Supply->AnnouncedPad.Get() == First);
+	BlockB->Destroy();
+	Obstruct(First);
+	World->TimeSeconds += Stock->BlockedGrace + Stock->WarningSeconds + 1.f;
+	Supply->Deliver();
+	TestTrue(TEXT("Persistent obstruction after warning skips without consuming type"), Balls().Num() == 6 && Supply->Bag == Reserved && !Supply->AnnouncedPad.IsValid());
+	Supply->BeginCycle();
+	State->SetMatchPhase(EHALMatchPhase::Finished);
+	TestTrue(TEXT("Round end cancels pending warning, timers and special balls"), First->GetWarning().Ball == EHALPadBall::None
+		&& Second->GetWarning().Ball == EHALPadBall::None && !World->GetTimerManager().TimerExists(Supply->Timer) && Balls().IsEmpty());
+	State->SetMatchPhase(EHALMatchPhase::Playing);
+	TestTrue(TEXT("Next round starts fresh"), Supply->Bag.IsEmpty() && Supply->NextPad == 0 && Supply->LastDelivered == EHALPadBall::None);
+	Supply->Settings = DuplicateObject<UHALSpecialBallSupplyDefinition>(Stock, Supply);
+	Supply->Settings->BallPool = {EHALPadBall::Meteor, EHALPadBall::Meteor};
+	for (int32 Drop=0; Drop<2; ++Drop)
+	{
+		Supply->BeginCycle();
+		if (!TestTrue(TEXT("A single distinct type can repeat, using the free pad"), Second->GetWarning().Ball == EHALPadBall::Meteor && Supply->Bag.Num()==1)) { return false; }
+		Supply->Deliver();
+		for (auto* Ball : Balls()) { Ball->Destroy(); }
+	}
+	return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALMatchBallGroundRollTest, "HAL.FutureCreation.MatchBall.GroundedLaunchRelease",

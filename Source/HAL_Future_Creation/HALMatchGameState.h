@@ -8,6 +8,7 @@
 
 class UHALRoomComponent;
 class UHALMatchBallLifecycle;
+class UHALSpecialBallSupply;
 
 UENUM(BlueprintType)
 enum class EHALMatchPhase : uint8
@@ -39,6 +40,7 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, Category="Room") TObjectPtr<UHALRoomComponent> Room;
 	UPROPERTY(VisibleAnywhere, Category="Match|Ball") TObjectPtr<UHALMatchBallLifecycle> MatchBall;
+	UPROPERTY(VisibleAnywhere, Category="Match|Ball") TObjectPtr<UHALSpecialBallSupply> SpecialBallSupply;
 	UPROPERTY(ReplicatedUsing = OnRep_MatchPhase, BlueprintReadOnly, Category = "Match")
 	EHALMatchPhase MatchPhase = EHALMatchPhase::WaitingForPlayers;
 

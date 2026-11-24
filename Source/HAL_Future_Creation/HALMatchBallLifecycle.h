@@ -12,6 +12,7 @@ class UMaterialInterface;
 class UHALExplosiveBallDefinition;
 class UHALBlackHoleBallDefinition;
 class UHALMeteorBallDefinition;
+class UHALSpecialBallSupplyDefinition;
 
 /** World-space bounds of a circular playing surface. Heights are relative to FloorCenter.Z. */
 USTRUCT()
@@ -46,6 +47,8 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALExplosiveBallDefinition> ExplosiveBallType;
 	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALBlackHoleBallDefinition> BlackHoleBallType;
 	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALMeteorBallDefinition> MeteorBallType;
+	/** Shared by all special-ball pads placed in a match. */
+	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALSpecialBallSupplyDefinition> SpecialBallSupply;
 };
 
 USTRUCT()
