@@ -15,6 +15,17 @@ bool FHALBallComicFXConfig::Validate(FString& Error) const
 		if (!FMath::IsFinite(TrailWidthDiameterFraction) || TrailWidthDiameterFraction <= 0)
 		{ Error = TEXT("Ink trail width fraction must be positive."); return false; }
 	}
+	if (bTrail && !TrailWedgeMaterial.IsNull())
+	{
+		if (TrailWedgeMesh.IsNull()) { Error = TEXT("Triangle trail needs a quad mesh while a material is assigned."); return false; }
+		if (!FMath::IsFinite(TrailWidthDiameterFraction) || TrailWidthDiameterFraction <= 0 || !FMath::IsFinite(TrailWedgeLengthSeconds)
+			|| TrailWedgeLengthSeconds <= 0 || !FMath::IsFinite(TrailWedgeMaxLengthDiameters) || TrailWedgeMaxLengthDiameters <= 0
+			|| !FMath::IsFinite(TrailWedgeMinLengthDiameters) || TrailWedgeMinLengthDiameters < 0
+			|| TrailWedgeMinLengthDiameters > TrailWedgeMaxLengthDiameters || !FMath::IsFinite(TrailWedgeMinSpeed) || TrailWedgeMinSpeed < 0 || !FMath::IsFinite(TrailWedgeStartRadiusFraction)
+			|| TrailWedgeStartRadiusFraction < 0)
+		{ Error = TEXT("Triangle trail width, length time and longest length must be positive; shortest length, speed gate and start offset must not be negative, and shortest must not exceed longest."); return false; }
+		if (TrailWedgeColorParameter.IsNone() || TrailWedgeAspectParameter.IsNone()) { Error = TEXT("Triangle trail parameter names must be set."); return false; }
+	}
 	if (bAim && !AimMaterial.IsNull())
 	{
 		if (AimMesh.IsNull()) { Error = TEXT("Aim arrow needs a quad mesh while a material is assigned."); return false; }
@@ -65,6 +76,9 @@ bool UHALBallComicFXSettings::CollectCookPackages(TArray<FName>& Packages, FStri
 	};
 	if (Comic.bTrail && !Comic.TrailSystem.IsNull()
 		&& !Root(Comic.TrailSystem.ToSoftObjectPath(), Comic.TrailSystem.LoadSynchronous() != nullptr, TEXT("Ball ink trail system"))) { return false; }
+	if (Comic.bTrail && !Comic.TrailWedgeMaterial.IsNull()
+		&& (!Root(Comic.TrailWedgeMaterial.ToSoftObjectPath(), Comic.TrailWedgeMaterial.LoadSynchronous() != nullptr, TEXT("Ball triangle trail material"))
+			|| !Root(Comic.TrailWedgeMesh.ToSoftObjectPath(), Comic.TrailWedgeMesh.LoadSynchronous() != nullptr, TEXT("Ball triangle trail mesh")))) { return false; }
 	if (Comic.bAim && !Comic.AimMaterial.IsNull()
 		&& (!Root(Comic.AimMaterial.ToSoftObjectPath(), Comic.AimMaterial.LoadSynchronous() != nullptr, TEXT("Ball aim arrow material"))
 			|| !Root(Comic.AimMesh.ToSoftObjectPath(), Comic.AimMesh.LoadSynchronous() != nullptr, TEXT("Ball aim arrow mesh")))) { return false; }

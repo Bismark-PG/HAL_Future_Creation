@@ -63,6 +63,36 @@ bool FHALBallComicFXTransitionTest::RunTest(const FString&)
 	T = ResolveTransition(ComicSeen(Shot), ComicState(EBasicBallState::Free, 4));
 	TestTrue(TEXT("The trail stops the moment the ball is harmless"), T.bStopTrail && !T.bStartTrail);
 
+	{
+		// Triangle trail: level quad behind the ball, tip (+Y of the quad) pointing back along the ground velocity.
+		FHALBallComicFXConfig Wedge;
+		FTransform Quad;
+		float Aspect = 0;
+		const FVector Centre(1000, 2000, 160);
+		TestTrue(TEXT("A fast ball has a triangle"), TrailWedgeQuad(Wedge, Centre, 160.f, FVector(1500, 0, 0), Quad, Aspect));
+		const double Width = 320 * Wedge.TrailWidthDiameterFraction, Length = 1500 * Wedge.TrailWedgeLengthSeconds;
+		TestTrue(TEXT("Triangle lies level"), Quad.GetUnitAxis(EAxis::Z).Equals(FVector::UpVector, .001));
+		TestTrue(TEXT("Tip points back the way the ball came"), Quad.GetUnitAxis(EAxis::Y).Equals(-FVector::ForwardVector, .001));
+		TestTrue(TEXT("Triangle is as wide as configured and as long as the speed says"), Quad.GetScale3D().Equals(FVector(Width * .01, Length * .01, 1), .001));
+		TestTrue(TEXT("Base starts behind the ball's centre"), Quad.GetLocation().Equals(Centre - FVector(160 * Wedge.TrailWedgeStartRadiusFraction + .5 * Length, 0, 0), .01));
+		TestEqual(TEXT("Aspect is length over width"), Aspect, float(Length / Width), .001f);
+		TestTrue(TEXT("A very fast ball stops at the longest triangle"), TrailWedgeQuad(Wedge, Centre, 160.f, FVector(0, 90000, 0), Quad, Aspect)
+			&& FMath::IsNearlyEqual(Quad.GetScale3D().Y, 320 * Wedge.TrailWedgeMaxLengthDiameters * .01, .001) && Quad.GetUnitAxis(EAxis::Y).Equals(-FVector::RightVector, .001));
+		TestTrue(TEXT("A falling ball is measured along the ground only"), TrailWedgeQuad(Wedge, Centre, 160.f, FVector(1500, 0, -5000), Quad, Aspect)
+			&& FMath::IsNearlyEqual(Quad.GetScale3D().Y, Length * .01, .001) && Quad.GetUnitAxis(EAxis::Z).Equals(FVector::UpVector, .001));
+		TestTrue(TEXT("A slow shot keeps the shortest triangle"), TrailWedgeQuad(Wedge, Centre, 160.f, FVector(Wedge.TrailWedgeMinSpeed + 10, 0, 0), Quad, Aspect)
+			&& FMath::IsNearlyEqual(Quad.GetScale3D().Y, 320 * Wedge.TrailWedgeMinLengthDiameters * .01, .001));
+		TestFalse(TEXT("A crawling ball has no triangle"), TrailWedgeQuad(Wedge, Centre, 160.f, FVector(Wedge.TrailWedgeMinSpeed * .5, 0, 0), Quad, Aspect));
+		TestFalse(TEXT("A ball dropping straight down has no triangle"), TrailWedgeQuad(Wedge, Centre, 160.f, FVector(0, 0, -3000), Quad, Aspect));
+		TestFalse(TEXT("Non finite velocity is rejected"), TrailWedgeQuad(Wedge, Centre, 160.f, FVector(std::numeric_limits<double>::quiet_NaN(), 0, 0), Quad, Aspect));
+		FString WedgeError;
+		Wedge.TrailWedgeMaterial = FSoftObjectPath(TEXT("/Game/Assets/FX/Materials/MI_FX_BallTrailWedge.MI_FX_BallTrailWedge"));
+		TestFalse(TEXT("A triangle trail needs its quad mesh"), Wedge.Validate(WedgeError));
+		Wedge.TrailWedgeMesh = FSoftObjectPath(TEXT("/Engine/BasicShapes/Plane.Plane"));
+		TestTrue(TEXT("Triangle trail alone is a valid configuration"), Wedge.Validate(WedgeError));
+		Wedge.TrailWedgeLengthSeconds = 0; TestFalse(TEXT("A triangle with no length is rejected"), Wedge.Validate(WedgeError));
+	}
+
 	// One net update can merge Launched(A) -> Free -> Launched(B): the state reads Launched on both sides.
 	T = ResolveTransition(ComicSeen(Shot), ComicState(EBasicBallState::Launched, 7, nullptr, 1));
 	TestTrue(TEXT("A merged relaunch restarts the trail for the new launcher"), T.bStartTrail && T.bStopTrail);

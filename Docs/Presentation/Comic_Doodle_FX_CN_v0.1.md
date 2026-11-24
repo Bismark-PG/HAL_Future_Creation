@@ -8,7 +8,7 @@
 | 代號 | 效果 | 觸發（全部讀已複製狀態） | 落點 |
 |---|---|---|---|
 | S0 | 車對車漫畫火花 | 既有 Impact Burst 事件的 `Sparks` | `NS_VehicleImpactSparks`＋`M_FX_ComicSpark` |
-| P1 | 危險球脈衝環尾跡（2026-11-18 由火焰改版，見 §3） | 球 `Launched` | `UHALBallComicFXComponent`＋`NS_BallInkTrail` |
+| P1 | 危險球三角形尾跡（2026-11-24 起預設，見 §3.0；脈衝環見 §3） | 球 `Launched` | `UHALBallComicFXComponent`＋`NS_BallInkTrail` |
 | P3 | 持球瞄準塗鴉箭頭 | 球 `Controlled`＋`Holder` | `UHALBallComicFXComponent`＋`MI_FX_BallAimArrow` |
 | H1 | 持球環（球上軌道環＋車頂雙環星芒，取代磁力束弧線；見 §4.1） | 球 `Controlled`＋`Holder` | `UHALBallComicFXComponent`＋`MI_FX_BallHoldRing_Ball／_Roof` |
 | P4 | 眩暈漫畫星星 | 車輛 ASC 的 `State.Stun` 標籤 | `UHALVehicleDoodleStatusComponent`＋`MI_FX_DoodleStatus_Stun` |
@@ -95,6 +95,18 @@ P2 出局理由：`ColorMode==Source` 只代表「有身份色的發起者、非
 > **坑**：`duplicate_emitter` 複製出的發射器一顆粒子都不生成（`request_compile` 不重建系統腳本）；臨時加一個發射器再刪掉、強迫整個重編後才正常。
 
 ---
+
+## 3.0 P1 危險球三角形尾跡（2026-11-24，現行預設；脈衝環保留為可選樣式）
+
+> **改版原因**：團隊要求把連續圓環改成「簡單的三角形拖影」。下面 §3 的脈衝環資產、Niagara 系統與程式路徑都保留，只是 `DefaultGame.ini` 不再指定 `TrailSystem`；兩種樣式是兩個獨立欄位，可各自開關或並存。
+
+- 球 `Launched` 時，在球後方放一張**水平**平面（引擎內建 Plane，高度＝球外觀中心），材質 `MI_FX_BallTrailWedge`：發射者身份色的一片三角形、黑墨線、8fps 三姿態線條抖動＋兩姿態尖端伸縮。底邊貼球、尖端指向球來的方向。
+- 方向與長度取球的**地面速度**（`ABasicBallActor::GetVelocity()` 去掉 Z）：長度＝速度 × `TrailWedgeLengthSeconds`(0.3)，夾在 球徑 × `TrailWedgeMinLengthDiameters`(0.8) 與 × `TrailWedgeMaxLengthDiameters`(2.0) 之間；團隊看過 0.4／2.5 後要求縮短，材質 `FX_Opacity` 同時由 1.0 降為 0.7；地面速度低於 `TrailWedgeMinSpeed`(150 cm/s) 時不畫。寬度沿用 `TrailWidthDiameterFraction`(0.75)。
+- 底邊起點在球心後方 球半徑 × `TrailWedgeStartRadiusFraction`(0.9)。第一輪用 0.6 與長度 0.12 s，實機上三角形大半被球蓋住、只露出一個小尖角。
+- 平面非等比拉伸，材質以 `FX_Aspect`（長／寬，C++ 每幀寫入）換算，墨線粗細不隨長度變。開深度測試，球與車會自然遮擋它。
+- 離開 `Launched` 當幀隱藏，沒有殘留。純函式 `HALBallComicFX::TrailWedgeQuad`，有自動化斷言。
+- **技能改拖影的接點**：開始／停止／顏色都在 `UHALBallComicFXComponent::StartTrail` 一處決定，只讀同步的球狀態。尚未做樣式選擇接口；待第一個需要的技能出現時，在發射時擷取的 `AttackSnapshot` 加樣式標記，由這裡選材質。
+- **已驗證**：編譯；無頭全量 280/280；單機 PIE 發射後看到三角形（`Saved/ComicDoodle/HoldRings/PIE12_trail_before_after.png`）。**未驗證**：PIE 截圖時只有約 3.5 fps，發射後第一格沒有三角形，推測是速度晚一幀才讀得到，正常幀率下未確認；反彈轉向、斜向飛行、雙端／多人、Cook 都未看。
 
 ## 3. P1 危險球脈衝環尾跡（2026-11-18 由漫畫火焰改版）
 

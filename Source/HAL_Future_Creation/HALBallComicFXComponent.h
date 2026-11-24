@@ -59,6 +59,10 @@ namespace HALBallComicFX
 	 * rolls), its +V pointing at the middle of the roof as seen on screen. Sized from the car's own width. False on unusable input. */
 	HAL_FUTURE_CREATION_API bool HoldMarkerQuad(const FHALBallComicFXConfig& Config, const FVector& RoofCentre, const FVector& HolderForward,
 		float BodyLengthCm, float BodyWidthCm, const FVector& ViewForward, const FVector& ViewUp, float Scale, FTransform& OutQuad);
+	/** Triangle trail quad: level, behind the ball as drawn, its +Y (the tip) pointing back along the ground velocity. Length follows
+	 * the speed up to a cap; OutAspect is length over width for the material. False when the ball is too slow or the input unusable. */
+	HAL_FUTURE_CREATION_API bool TrailWedgeQuad(const FHALBallComicFXConfig& Config, const FVector& Centre, float DrawnRadiusCm, const FVector& Velocity,
+		FTransform& OutQuad, float& OutAspect);
 	/** Half size in cm of the camera facing ring sprite for a ball drawn with this radius. */
 	HAL_FUTURE_CREATION_API float HoldBallHalfSize(const FHALBallComicFXConfig& Config, float DrawnRadiusCm, float Scale);
 }
@@ -89,6 +93,7 @@ private:
 	FLinearColor ResolveColor(const AActor* Pawn, int32 PlayerId) const;
 	void StartTrail(const FHALBallComicFXConfig& ComicConfig, const FBallRepState& State);
 	void StopTrail(bool bImmediate);
+	void UpdateTrailWedge(const FHALBallComicFXConfig& ComicConfig);
 	void StartAim(const FHALBallComicFXConfig& ComicConfig, const FBallRepState& State);
 	void StopAim();
 	void UpdateAim(const FHALBallComicFXConfig& ComicConfig);
@@ -97,7 +102,7 @@ private:
 	void StopHold(const FHALBallComicFXConfig* ComicConfig, bool bImmediate);
 	void UpdateHold(const FHALBallComicFXConfig& ComicConfig);
 	void HideHold();
-	/** Ticks only while an arrow or a ring is on screen. */
+	/** Ticks only while an arrow, a ring or the triangle trail is on screen. */
 	void RefreshTick();
 	/** Centre and radius of the ball as drawn this frame (the client shows a held ball from a relative sample). */
 	bool ResolveDrawnBall(FVector& OutCentre, float& OutRadius) const;
@@ -107,6 +112,10 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UMaterialInterface> AimMaterial;
 	UPROPERTY(Transient) TObjectPtr<UStaticMesh> AimMesh;
 	UPROPERTY(Transient) TObjectPtr<UNiagaraComponent> TrailComponent;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInterface> TrailWedgeMaterial;
+	UPROPERTY(Transient) TObjectPtr<UStaticMesh> TrailWedgeMesh;
+	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> TrailWedgeComponent;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> TrailWedgeInstance;
 	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> AimComponent;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> AimInstance;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInterface> HoldBallMaterial;
@@ -126,5 +135,6 @@ private:
 	float AimSeconds = 0;
 	bool bReady = false;
 	bool bTrailActive = false;
+	bool bTrailWedgeActive = false;
 	bool bAimActive = false;
 };

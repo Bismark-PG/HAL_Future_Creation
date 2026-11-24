@@ -5,6 +5,8 @@ Creates or rebuilds, in this order (every asset below is fully owned by this scr
   2. /Game/Assets/FX/Materials/MI_FX_BallAimArrow   instance referenced by UHALBallComicFXSettings (0 overrides)
   3. /Game/Assets/FX/Materials/M_FX_BallPulseRing   parent of the launched-ball pulse rings
   4. /Game/Assets/FX/Materials/MI_FX_BallPulseRing  the only sprite renderer of NS_BallInkTrail (0 overrides)
+  4a. /Game/Assets/FX/Materials/M_FX_BallTrailWedge   parent of the launched-ball triangle trail
+  4b. /Game/Assets/FX/Materials/MI_FX_BallTrailWedge  instance referenced by UHALBallComicFXSettings (0 overrides)
   5. /Game/Assets/FX/Materials/M_FX_DoodleStatus    parent
   6. /Game/Assets/FX/Materials/MI_FX_DoodleStatus_Stun       circling stars, referenced by UHALVehicleDoodleStatusSettings
   7. /Game/Assets/FX/Materials/MI_FX_DoodleStatus_LowHealth  sweat drops (only override: FX_Kind = 1)
@@ -102,6 +104,37 @@ PULSE = {
         ('FX_InkColor', 'InkColor', BLACK, '03 Color'),
     ),
     'driven': (),
+}
+
+# Triangle trail of the launched ball: one level quad behind the ball, stretched along its travel by C++.
+# The default trail since 2026-11-24; the pulse rings above stay authored as an alternative style.
+WEDGE = {
+    'marker': 'HAL Ball Trail Wedge v1 (flat inked triangle)',
+    'material': '/Game/Assets/FX/Materials/M_FX_BallTrailWedge',
+    'instance': '/Game/Assets/FX/Materials/MI_FX_BallTrailWedge',
+    'hlsl': 'Tools/ComicDoodle/BallTrailWedge.hlsl',
+    'usage': None,
+    # A level quad at the ball's height: the ball and the cars cut it like any other object.
+    'disable_depth_test': False,
+    'sources': ('UV', 'Time'),
+    'scalars': (
+        ('FX_Aspect', 'Aspect', 2.0, 0.05, 20.0, '00 Driven By Runtime'),  # quad length over width
+        ('FX_Fps', 'Fps', 8.0, 1.0, 24.0, '01 Motion'),                   # drawings per second
+        ('FX_BoilAmount', 'BoilAmount', 0.03, 0.0, 0.2, '01 Motion'),     # line wobble, half widths
+        ('FX_TipFlicker', 'TipFlicker', 0.88, 0.5, 1.0, '01 Motion'),     # triangle length on every other drawing
+        ('FX_BaseWidth', 'BaseWidth', 0.8, 0.05, 1.0, '02 Shape'),        # half width of the base, quad half widths
+        ('FX_InkWidth', 'InkWidth', 0.1, 0.0, 0.4, '03 Ink'),
+        ('FX_ShadowOffset', 'ShadowOffset', 0.05, 0.0, 0.3, '03 Ink'),
+        ('FX_ShadowAngle', 'ShadowAngle', 45.0, -180.0, 180.0, '03 Ink'),  # side of the heavy ink, degrees in UV space
+        ('FX_ColorLift', 'ColorLift', 0.0, 0.0, 1.0, '04 Color'),
+        ('FX_FillGain', 'FillGain', 1.05, 0.0, 8.0, '04 Color'),
+        ('FX_Opacity', 'Opacity', 0.7, 0.0, 1.0, '04 Color'),                 # team asked for a see-through trail
+    ),
+    'vectors': (
+        ('FX_Color', 'Color', unreal.LinearColor(0.98, 0.62, 0.12, 1.0), '00 Driven By Runtime'),
+        ('FX_InkColor', 'InkColor', BLACK, '04 Color'),
+    ),
+    'driven': ('FX_Color', 'FX_Aspect'),
 }
 
 STATUS = {
@@ -322,10 +355,10 @@ def build(spec):
     return built
 
 
-# Optional section filter: pass section names (ARROW PULSE STATUS HOLD) after the script path to rebuild only
+# Optional section filter: pass section names (ARROW PULSE WEDGE STATUS HOLD) after the script path to rebuild only
 # those, e.g. "CreateComicDoodleAssets.py PULSE". No arguments rebuilds everything. A filtered run writes its
 # report to ComicDoodle_Authoring_<SECTIONS>.json so it never overwrites the full run's report.
-SECTIONS = {'ARROW': ARROW, 'PULSE': PULSE, 'STATUS': STATUS, 'HOLD': HOLD}
+SECTIONS = {'ARROW': ARROW, 'PULSE': PULSE, 'WEDGE': WEDGE, 'STATUS': STATUS, 'HOLD': HOLD}
 SELECTED = [name.upper() for name in sys.argv[1:]]
 UNKNOWN = [name for name in SELECTED if name not in SECTIONS]
 if UNKNOWN:

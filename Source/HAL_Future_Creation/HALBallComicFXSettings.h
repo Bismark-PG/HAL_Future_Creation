@@ -18,13 +18,33 @@ struct HAL_FUTURE_CREATION_API FHALBallComicFXConfig
 
 	/** Ink trail behind a Launched ball, painted in the launcher's colour. Free and Controlled balls never trail. */
 	UPROPERTY(EditAnywhere, Category="Ink Trail") bool bTrail = true;
-	/** World space ribbon system. None keeps the trail off. */
+	/** Triangle trail: unlit translucent material drawn on Trail Wedge Mesh, a level quad behind the ball stretched along its
+	 * travel. None keeps the triangle off. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail") TSoftObjectPtr<UMaterialInterface> TrailWedgeMaterial;
+	/** 100 cm quad in its local XY plane, U along X and V along Y (the engine Plane). */
+	UPROPERTY(EditAnywhere, Category="Ink Trail") TSoftObjectPtr<UStaticMesh> TrailWedgeMesh;
+	/** Triangle length is the distance the ball covers in this time, so a faster shot draws a longer triangle. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="0.01", ClampMax="1", Units="s")) float TrailWedgeLengthSeconds = .3f;
+	/** Shortest triangle, in diameters of the ball as drawn: a slow shot still shows which way it is going. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="0", ClampMax="10")) float TrailWedgeMinLengthDiameters = .8f;
+	/** Longest triangle, in diameters of the ball as drawn. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="0.2", ClampMax="10")) float TrailWedgeMaxLengthDiameters = 2.f;
+	/** Below this ground speed the triangle is hidden: a crawling ball has no direction worth drawing. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="0", ClampMax="5000", Units="cm/s")) float TrailWedgeMinSpeed = 150;
+	/** Where the base starts behind the ball's centre, as a share of the drawn radius. Below 1 the ball covers the base
+	 * (first PIE pass at 0.6 left only the tip showing). */
+	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="0", ClampMax="2")) float TrailWedgeStartRadiusFraction = .9f;
+	/** Vector parameter that receives the launcher's colour. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail") FName TrailWedgeColorParameter = TEXT("FX_Color");
+	/** Scalar parameter that receives quad length over width, so the ink keeps one thickness at any length. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail") FName TrailWedgeAspectParameter = TEXT("FX_Aspect");
+	/** Alternative particle trail (the pulse rings). None keeps it off; it can run together with the triangle. */
 	UPROPERTY(EditAnywhere, Category="Ink Trail") TSoftObjectPtr<UNiagaraSystem> TrailSystem;
 	/** LinearColor User parameter that receives the launcher's colour. */
 	UPROPERTY(EditAnywhere, Category="Ink Trail") FName TrailColorParameter = TEXT("User.TrailColor");
 	/** Float User parameter that receives the ribbon width in cm. */
 	UPROPERTY(EditAnywhere, Category="Ink Trail") FName TrailWidthParameter = TEXT("User.TrailWidth");
-	/** Ribbon width at the ball as a share of the diameter of the ball as drawn (its visual mesh, never smaller than the physics sphere). */
+	/** Trail width at the ball (triangle base, particle width) as a share of the diameter of the ball as drawn (its visual mesh, never smaller than the physics sphere). */
 	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="0.1", ClampMax="3")) float TrailWidthDiameterFraction = .75f;
 	/** True removes the whole trail on the frame the ball stops being dangerous; false lets the tail play out. */
 	UPROPERTY(EditAnywhere, Category="Ink Trail") bool bCutTrailImmediately = true;
