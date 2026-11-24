@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "TestVehiclePawn.h"
+#include "HALBatarang.h"
+#include "HALBatarangAbility.h"
 #include "Net/UnrealNetwork.h"
 #include "VehicleRecoveryComponent.h"
 #include "HALImpactReceiverComponent.h"
@@ -271,6 +273,7 @@ void ATestVehiclePawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME_CONDITION(ATestVehiclePawn, bReplicatedElectricBounceActive, COND_SimulatedOnly);
+	DOREPLIFETIME_CONDITION(ATestVehiclePawn, ActiveBatarang, COND_OwnerOnly);
 }
 
 void ATestVehiclePawn::GatherCurrentMovement()
@@ -883,7 +886,33 @@ bool ATestVehiclePawn::DispatchAbilityInput(const FVehicleInputCmd& Request)
 	const auto* State=GetPlayerState<AHALPlayerState>();
 	if(!ASC||!State||!State->AreVehicleAbilitiesReady(this)) { return false; }
 	if(SideShift->UsesPrimary()) { return SideShift->Request(Request.Steering,Request.bHandbrake); }
+	if (UHALBatarangAbility::ConfigFor(this))
+	{
+		if (ActiveBatarang && ActiveBatarang->GetState().Phase != EHALDartPhase::Pinned) { return false; }
+		const int8 Mirror = Request.Steering < -.15f ? -1 : 1;
+		if (HasAuthority()) { ServerBatarangInput_Implementation(Mirror,ActiveBatarang != nullptr,ActiveBatarang); }
+		else { ServerBatarangInput(Mirror,ActiveBatarang != nullptr,ActiveBatarang); }
+		return true;
+	}
 	return ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary);
+}
+
+void ATestVehiclePawn::ServerBatarangInput_Implementation(int8 Mirror, bool bDetonate, AHALBatarang* ExpectedDart)
+{
+	if (Mirror != -1 && Mirror != 1) { return; }
+	auto* ASC = Cast<UHALAbilitySystemComponent>(GetAbilitySystemComponent());
+	const auto* PS = GetPlayerState<AHALPlayerState>();
+	if (!ASC || !PS || !PS->AreVehicleAbilitiesReady(this) || !UHALBatarangAbility::ConfigFor(this)) { return; }
+	if (bDetonate)
+	{
+		if (IsValid(ActiveBatarang) && ActiveBatarang == ExpectedDart) { ActiveBatarang->RequestDetonation(); }
+		return;
+	}
+	if (!ActiveBatarang)
+	{
+		TGuardValue<int8> ReleaseSide(BatarangThrowMirror,Mirror);
+		ASC->TryActivateAbilityInput(HALGameplayTags::Input_Ability_Primary);
+	}
 }
 
 void ATestVehiclePawn::OnPrimarySkillStarted(const FInputActionValue& Value)

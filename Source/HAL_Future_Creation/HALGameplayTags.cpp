@@ -16,6 +16,8 @@ namespace HALGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_PursuitProtected,"State.Vehicle.PursuitProtected","Blocks Car06 arrest only; never blocks ordinary Stun.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Tornado,"Ability.Vehicle.Tornado","Car05 moving tornado primary ability.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_WaterCannon,"Ability.Vehicle.WaterCannon","Car09 sustained forward water jet.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Batarang,"Ability.Vehicle.Batarang","Car12 remote or timed shock dart.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_Batarang,"Combat.Source.Batarang","Detonation of a pinned shock dart.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_WaterCannon,"Combat.Source.WaterCannon","Water jet damage and directional impact.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Cooldown_Tornado,"Cooldown.Vehicle.Tornado","Tornado cooldown from successful activation.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Source_Tornado,"Combat.Source.Tornado","Independent tornado impact, no direct damage.");
