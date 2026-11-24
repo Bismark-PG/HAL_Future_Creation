@@ -24,12 +24,14 @@
 
 ## 陨石球
 
-在 Development 的场地中开车面向空地，打开控制台执行 `HALSpawnMeteorBall`，驶近拾球后按普通发射键。单人测试可在 `Fred_TestScene` 放一辆活着的 `BP_SkillTestDummy` 当对手。正式球型位于 `/Game/Data/Balls/DA_Ball_Meteor`。
+在 Development 的场地中开车面向空地，打开控制台执行 `HALSpawnMeteorBall`，驶近拾球后按普通发射键。单人空场可测试定点落击，在 `Fred_TestScene` 放一辆活着的 `BP_SkillTestDummy` 可测试追踪。正式球型位于 `/Game/Data/Balls/DA_Ball_Meteor`。
 
 | 时机 | 场上看到的表现与判定 |
 | --- | --- |
 | 生成、争夺 | 发亮的碎岩向中心聚成一颗带熔岩裂纹的球。显示直径、物理直径均为 2 m。持球暂停自由寿命，易手沿用剩余时间。 |
-| 正式发射 | 球从原处竖直升空。服务器从有有效地面位置的存活对手中等概率选一辆，随后移除可争抢、可碰撞的球体。没有合格对手时保留球，可以稍后再发。 |
+| 有合格对手时发射 | 球从原处竖直升空。服务器从有有效地面位置的存活对手中等概率选一辆，随后移除可争抢、可碰撞的球体。 |
+| 无合格对手时发射 | 服务器沿发射瞬间的车头方向选择固定地面落点，默认车前 12 米。球升空时即显示地面预警圈，随后按同样节奏下坠。转向、驶离或新对手入场都不会移动落点。 |
+| 朝场外或缺少地面 | 沿同一方向尝试更近的场内地面，落点与发射时的车身至少相隔一个爆炸半径。前方空间不足时，球当场播放消散并释放持球位，无伤害或冲击。 |
 | 追踪 | 被选车辆上方显示 B 款三瓣锁环，中心陨石固定，三片外环随追踪进度向内收。目标在此期间被淘汰或离场，陨石沿用最后的有效地面位置。 |
 | 下坠 | 车顶锁环退场，地上出现固定大小的伤害边界，环内的暗影逐渐扩大。陨石拖着火焰和烟从上方落下。锁定后，目标可以开出范围，其他车辆也可能驶入。 |
 | 落地 | 以落点为圆心结算一次伤害和向外的冲击，范围包括发射者。三股橙金焰云从爆心向外鼓起，一道贴地音爆沿钢板扩至预警边界，余烟随后上浮消散。各车沿用现有减伤、抗冲击规则。 |
@@ -42,6 +44,7 @@
 | `Meteor → Tracking Seconds` | 1.6 s | 三瓣环从张开到收拢的时间，也是落点还能跟车移动的时间。 |
 | `Meteor → Fall Seconds` | 1.0 s | 落点固定后至命中的躲避窗口，阴影、烟焰与陨石共同使用。 |
 | `Meteor → Damage Radius` | 500 cm 半径 | 地面外圈和实际伤害取同一个半径。车身碰撞体触及范围即可受击。 |
+| `Meteor → Untargeted Distance` | 1200 cm | 无合格对手时，从发射车辆中心沿车头水平朝向量出的首选距离，可填 100–10000 cm。有效距离还会为爆炸半径和车身留出空间。发射后自行驶入预警圈仍会受击。 |
 | `Gameplay → Damage → Vehicle Hit Damage` | 25 HP | 正式资产使用固定伤害。 |
 | `Gameplay → Impact → Tier / Push Preset` | Heavy / Standard | 分别控制冲击档位和横向推开距离。 |
 | `Meteor → Tracking Marker → Marker Size / Marker Closed Scale / Marker Lift` | 96 / 0.78 / 38 | 图标展开时为 96 × 96 个屏幕逻辑单位。追踪结束时外环收至约 75，中心陨石大小固定。第三项控制车顶标识上方的间距。 |
@@ -62,6 +65,18 @@
 美术资产在 `/Game/Assets/FX/SpecialBalls/Meteor`。原生控件会绘制 `Marker Core` 与 `Marker Jaws` 两层纹理。若团队改做 Widget Blueprint，可以在 `Marker Widget Class` 引用派生自 `HALMeteorMarkerWidget` 的控件，读取 `Ball Type`、`Tracking Progress` 或响应 `Receive Tracking Progress`。进度由同一次服务器发射的起始时间计算。
 
 四人联机回归入口为 `Tools/TestGameFlowLoop.ps1 -Profile Exhibition -VerifyMeteorBall`。第一局验证锁定、实际落地伤害与主球共存，第二局验证自然到期。
+
+<a id="meteor-untargeted"></a>
+
+**11 月 24 日空场发射复测。** 在 `MVPB_Match` 单人测试模式使用正常拾球和发射按键。正对空地时，预警圈从起飞起可见，实测落点距车约 12.0 米，随后完成下坠和爆炸。贴边朝外发射时球无伤害消散，同一辆车随即成功拾取常驻主球。两次发射后车辆均为 100 HP。首选距离在 `DA_Ball_Meteor → Meteor → Untargeted Distance` 调节。
+
+特殊球自动化 9 项通过。三个新增用例覆盖空地、前方地面较短和无法安全落击，并验证后来驶入预警圈的车辆可受到一次正常伤害。另在本机一主三客、主机出站模拟 80 ms 延迟下复测原有追踪，目标从 100 降至 75 HP，第二局自由到期，主球两局均在场。单车实测和联机报告在 `Saved/MeteorBall/NoTarget_20261124/{Solo.json,SpecialBall/index.json,Network/Summary.json}`。
+
+为验证打包所用代码，还单独构建了 Win64 Development 游戏目标。构建命令及结果记录在 `Saved/MeteorBall/NoTarget_20261124/Game.log`。
+
+```powershell
+& 'D:/Program Files/Epic Games/UE_5.8/Engine/Build/BatchFiles/Build.bat' HAL_Future_Creation Win64 Development '-Project=D:/HAL_Future_Creation/HAL_Future_Creation.uproject' -WaitMutex -NoHotReload -NoLiveCoding '-Log=D:/HAL_Future_Creation/Saved/MeteorBall/NoTarget_20261124/Game.log'
+```
 
 下坠烟团留在陨石经过的位置，在那里翻卷、膨胀、飘散。岩体绕斜轴自转，迎风面两侧有细亮风痕向上掠过。要让烟留久一点，先调 `Smoke Lifetime`。若尾端已经达到可见长度，再增大 `Trail Length`。这次实拍中，岩体在约 0.1 秒里下降了 1.52 m，同一团烟在这段时间上浮了 0.18 m。[下坠实拍动图](Art/MeteorBall/MeteorBall_Descent.webp) · [落地爆炸选型草图](Art/MeteorBall/ImpactConcepts/README.md)
 

@@ -21,6 +21,8 @@ public:
 	UPROPERTY(EditAnywhere, Category="Meteor", meta=(ClampMin=".15", ClampMax="15", Units="s")) float TrackingSeconds = 1.6f;
 	UPROPERTY(EditAnywhere, Category="Meteor", meta=(ClampMin=".2", ClampMax="8", Units="s")) float FallSeconds = 1.f;
 	UPROPERTY(EditAnywhere, Category="Meteor", meta=(ClampMin="50", ClampMax="5000", Units="cm")) float DamageRadius = 500.f;
+	/** Preferred distance ahead of the launcher for a fixed ground strike when no opponent can be tracked. */
+	UPROPERTY(EditAnywhere, Category="Meteor", meta=(ClampMin="100", ClampMax="10000", Units="cm")) float UntargetedDistance = 1200.f;
 	/** Vertical travel shown on takeoff and descent, measured above the local surface. */
 	UPROPERTY(EditAnywhere, Category="Meteor|Flight FX", meta=(ClampMin="500", ClampMax="20000", Units="cm")) float SkyHeight = 6000.f;
 	UPROPERTY(EditAnywhere, Category="Meteor|Flight FX", meta=(ClampMin=".08", ClampMax="2", Units="s")) float RiseSeconds = .38f;
@@ -104,6 +106,8 @@ struct FHALMeteorStrikeState
 	UPROPERTY() TObjectPtr<ATestVehiclePawn> Target;
 	UPROPERTY() FVector_NetQuantize10 LaunchPoint = FVector::ZeroVector;
 	UPROPERTY() FVector_NetQuantize10 Ground = FVector::ZeroVector;
+	/** Announces a fixed aim point at launch, independently of target replication or later target loss. */
+	UPROPERTY() bool bGroundTargeted = false;
 	UPROPERTY() double Started = 0.;
 	UPROPERTY() EHALMeteorPhase Phase = EHALMeteorPhase::Tracking;
 };
@@ -115,7 +119,8 @@ class HAL_FUTURE_CREATION_API AHALMeteorStrike : public AActor
 	GENERATED_BODY()
 public:
 	AHALMeteorStrike();
-	static bool Start(AHALMeteorBall& Ball, AActor& Launcher, const FHALAttackSourceSnapshot& Attack, UHALMeteorBallDefinition& Type);
+	static bool Start(AHALMeteorBall& Ball, const FHALAttackSourceSnapshot& Attack, UHALMeteorBallDefinition& Type,
+		ATestVehiclePawn* Target, const FVector& Ground);
 	const FHALMeteorStrikeState& GetStrikeState() const { return State; }
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;

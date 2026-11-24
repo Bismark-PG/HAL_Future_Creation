@@ -206,8 +206,9 @@ void AHALMeteorStrike::DrawFlight(double Age)
 	}
 
 	const FVector Ground(State.Ground);
-	GroundFX->SetVisibility(bFalling || (bImpact && After < 1.f));
-	if (!bTracking)
+	const bool bGroundWarning = bFalling || (bTracking && State.bGroundTargeted);
+	GroundFX->SetVisibility(bGroundWarning || (bImpact && After < 1.f));
+	if (bGroundWarning || bImpact)
 	{
 		GroundFX->SetWorldLocation(Ground + FVector::UpVector*3.);
 		if (bImpact && ImpactGroundMID)

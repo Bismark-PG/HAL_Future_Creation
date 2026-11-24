@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-24，已修复陨石球在场内没有有效对手时一直占着持球位的问题。** 单人发射时，服务器沿当时的车头朝向选择固定落点，默认 12 米。地面预警圈从发射时就可见。场边会收短距离，前方没有安全地面时球无伤害消散。正式比赛图的单车驾驶实测中，预警圈中心距车约 12.0 米，贴边朝外发射后可重新拾取主球。有对手时优先追踪，追踪中失去目标仍落在其最后有效地面位置。UE 5.8.3 的 Editor 与独立 Win64 Development 游戏目标均编译通过。特殊球自动化 9/9 通过，本机一主三客完成追踪命中及自然消散两局，四端零测试警告。[球型调参与复测记录](Combat/Special_Ball_Base_CN.md#meteor-untargeted)
+
 **2026-11-23，正式比赛图 `MVPB_Match` 南侧看台已试装第 3 项暖金舞台追光，四项夜场氛围方案已留档。** 一片软边光从前排围巾、旗帜扫到后方横幅，默认 12 秒一轮。在 `MPC_ArenaNight_StandSweep` 可调强度、周期、宽度和光色。RTX 5070 Ti、1080p 共采 27,261 帧，贴边、看台近景与全场俯视的整帧 GPU 配对中位差依次为 −0.039、−0.015、+0.009 ms。正式图独立重载通过，Windows 地图 Cook 零错误、零警告。南侧观感待团队确认，学校设备的四人帧耗待测。母星地面涂装、赛事联动灯带和巡场摄影机已记录为候选。[南侧实拍动图](Presentation/Images/MVPB_Match_SouthStandSweep_20261123.webp) · [四项方案、调参与性能记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-ambience-ideas)
 
 **2026-11-23，正式比赛图 `MVPB_Match` 的八段看台前五排已加入错峰身体摇摆。** 在共用材质实例 `MI_ArenaNight_SouthCrowd_Motion → Body Sway` 可调节单侧摆角和往返周期，默认上限 5°、周期 2.5 秒。八段共 40 个活动座排逐排实拍均测到面部侧移，腰部和第六排参照区的像素差均为零。西侧同框拍到相邻小组同时朝相反方向摆动。RTX 5070 Ti 在 1080p 下采集 26,801 帧，贴边驾驶、前排近景及全场俯视的整帧 GPU 配对中位差分别为 +0.026、+0.011、−0.003 ms。Windows 正式图 Cook 零错误、零警告。学校设备的四人混战帧耗待实测。[摇摆近景与贴边实拍](Presentation/Images/MVPB_Match_CrowdSway_20261123.webp) · [调参与本机性能记录](Presentation/ArenaFloor_SatinMetal_CN.md#arena-crowd-sway)

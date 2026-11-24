@@ -25,10 +25,9 @@ bool IsMeteorOpponent(const ATestVehiclePawn* Vehicle)
 	return Life != EHALRoundLife::Eliminated && Life != EHALRoundLife::Forfeited;
 }
 
-bool MeteorGround(const ATestVehiclePawn& Vehicle, FVector& Ground)
+bool MeteorGroundAt(const AActor& Reference, const FVector& Position, FVector& Ground)
 {
-	UWorld* World = Vehicle.GetWorld();
-	const FVector Position = Vehicle.GetActorLocation();
+	UWorld* World = Reference.GetWorld();
 	const FString Map = UWorld::RemovePIEPrefix(World->GetOutermost()->GetName());
 	const auto* Arena = GetDefault<UHALMatchBallSettings>()->Arenas.FindByPredicate([&Map](const FHALMatchBallArena& Item)
 	{ return Item.MatchMap.ToSoftObjectPath().GetLongPackageName() == Map; });
@@ -38,16 +37,58 @@ bool MeteorGround(const ATestVehiclePawn& Vehicle, FVector& Ground)
 	Surfaces.AddObjectTypesToQuery(ECC_WorldDynamic);
 	TArray<FHitResult> Hits;
 	World->LineTraceMultiByObjectType(Hits, Position + FVector::UpVector * 10., Position - FVector::UpVector * 20000.,
-		Surfaces, FCollisionQueryParams(SCENE_QUERY_STAT(MeteorGround), false, &Vehicle));
+		Surfaces, FCollisionQueryParams(SCENE_QUERY_STAT(MeteorGround), false, &Reference));
 	for (const auto& Hit : Hits)
 	{
 		const auto* Body = Hit.GetComponent();
 		if (Body && !Hit.bStartPenetrating && Hit.ImpactNormal.Z >= .55 && Body->IsPhysicsCollisionEnabled()
-			&& !Body->IsSimulatingPhysics() && Body->GetCollisionResponseToChannel(ECC_PhysicsBody) == ECR_Block)
+			&& !Body->IsSimulatingPhysics() && Body->GetCollisionResponseToChannel(ECC_PhysicsBody) == ECR_Block
+			&& (!Arena || Arena->Contains(Hit.ImpactPoint)))
 		{
 			Ground = Hit.ImpactPoint;
 			return true;
 		}
+	}
+	return false;
+}
+
+bool MeteorGround(const ATestVehiclePawn& Vehicle, FVector& Ground)
+{
+	return MeteorGroundAt(Vehicle, Vehicle.GetActorLocation(), Ground);
+}
+
+ATestVehiclePawn* ChooseMeteorOpponent(const AActor& Launcher, const FHALAttackSourceSnapshot& Attack, FVector& Ground)
+{
+	// Reservoir sampling gives every eligible opponent the same chance.
+	ATestVehiclePawn* Chosen = nullptr;
+	int32 Count = 0;
+	for (TActorIterator<ATestVehiclePawn> It(Launcher.GetWorld()); It; ++It)
+	{
+		if (*It == &Launcher || !IsMeteorOpponent(*It)) { continue; }
+		const auto* Player = It->GetPlayerState();
+		if (Player && Attack.InstigatorPlayerId != INDEX_NONE && Player->GetPlayerId() == Attack.InstigatorPlayerId) { continue; }
+		FVector CandidateGround;
+		if (MeteorGround(**It, CandidateGround) && FMath::RandHelper(++Count) == 0)
+		{
+			Chosen = *It;
+			Ground = CandidateGround;
+		}
+	}
+	return Chosen;
+}
+
+bool FindUntargetedGround(const AActor& Launcher, const UHALMeteorBallDefinition& Type, FVector& Ground)
+{
+	const FVector Origin = Launcher.GetActorLocation();
+	const FVector Forward = FRotator(0., Launcher.GetActorRotation().Yaw, 0.).Vector();
+	// Keep a stationary launcher's chassis outside the blast, even when the arena edge shortens the shot.
+	const float Nearest = Type.DamageRadius + Launcher.GetSimpleCollisionRadius() + 1.f;
+	const float Preferred = FMath::Max(Type.UntargetedDistance, Nearest);
+	constexpr int32 Intervals = 4;
+	for (int32 Step = 0; Step <= Intervals; ++Step)
+	{
+		const float Distance = FMath::Lerp(Preferred, Nearest, float(Step) / Intervals);
+		if (MeteorGroundAt(Launcher, Origin + Forward * Distance, Ground)) { return true; }
 	}
 	return false;
 }
@@ -58,6 +99,7 @@ bool UHALMeteorBallDefinition::Validate(FString& Error) const
 	if (!Super::Validate(Error)) { return false; }
 	if (!FMath::IsWithinInclusive(TrackingSeconds,.15f,15.f) || !FMath::IsWithinInclusive(FallSeconds,.2f,8.f)
 		|| !FMath::IsWithinInclusive(DamageRadius,50.f,5000.f) || !FMath::IsWithinInclusive(SkyHeight,500.f,20000.f)
+		|| !FMath::IsWithinInclusive(UntargetedDistance,100.f,10000.f)
 		|| !FMath::IsWithinInclusive(RiseSeconds,.08f,2.f) || !FMath::IsWithinInclusive(FallingRockRadius,15.f,600.f)
 		|| !FMath::IsWithinInclusive(TrailLength,0.f,8.f) || !FMath::IsWithinInclusive(MarkerSize,16.f,160.f)
 		|| !FMath::IsWithinInclusive(SmokeLifetime,.08f,1.f) || !FMath::IsWithinInclusive(SmokeSpread,0.f,4.f)
@@ -87,33 +129,26 @@ UHALSpecialBallDefinition* AHALMeteorBall::DefaultType() const
 bool AHALMeteorBall::DeliverLaunch(const FHALAttackSourceSnapshot& Attack, AActor* Launcher, const FVector&, const AActor*)
 {
 	auto* Type = Cast<UHALMeteorBallDefinition>(Definition);
-	if (!Type || !IsValid(Launcher) || bConsumed || !AHALMeteorStrike::Start(*this, *Launcher, Attack, *Type)) { return false; }
+	if (!HasAuthority() || GetNetMode() == NM_Client || !Type || !IsValid(Launcher) || bConsumed) { return false; }
+	FVector Ground;
+	ATestVehiclePawn* Target = ChooseMeteorOpponent(*Launcher, Attack, Ground);
+	if (!Target && !FindUntargetedGround(*Launcher, *Type, Ground))
+	{
+		UE_LOG(LogHALMeteorBall, Log, TEXT("Untargeted shot dispersed: no safe ground ahead of %s"), *Launcher->GetName());
+		Expire();
+		return true;
+	}
+	if (!AHALMeteorStrike::Start(*this, Attack, *Type, Target, Ground)) { return false; }
 	bConsumed = true;
 	SetActorEnableCollision(false);
 	Destroy();
 	return true;
 }
 
-bool AHALMeteorStrike::Start(AHALMeteorBall& Ball, AActor& Launcher, const FHALAttackSourceSnapshot& Attack, UHALMeteorBallDefinition& Type)
+bool AHALMeteorStrike::Start(AHALMeteorBall& Ball, const FHALAttackSourceSnapshot& Attack, UHALMeteorBallDefinition& Type,
+	ATestVehiclePawn* Target, const FVector& Ground)
 {
 	if (!Ball.HasAuthority() || Ball.GetNetMode() == NM_Client) { return false; }
-	// Reservoir sampling makes each eligible opponent equally likely, independent of actor order.
-	ATestVehiclePawn* Chosen = nullptr;
-	FVector Ground = FVector::ZeroVector;
-	int32 Count = 0;
-	for (TActorIterator<ATestVehiclePawn> It(Ball.GetWorld()); It; ++It)
-	{
-		if (*It == &Launcher || !IsMeteorOpponent(*It)) { continue; }
-		const auto* Player = It->GetPlayerState();
-		if (Player && Attack.InstigatorPlayerId != INDEX_NONE && Player->GetPlayerId() == Attack.InstigatorPlayerId) { continue; }
-		FVector CandidateGround;
-		if (MeteorGround(**It, CandidateGround) && FMath::RandHelper(++Count) == 0)
-		{
-			Chosen = *It;
-			Ground = CandidateGround;
-		}
-	}
-	if (!Chosen) { return false; }
 	const FTransform Transform(Ball.GetActorLocation());
 	auto* Strike = Ball.GetWorld()->SpawnActorDeferred<AHALMeteorStrike>(StaticClass(), Transform, nullptr, nullptr,
 		ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
@@ -123,13 +158,15 @@ bool AHALMeteorStrike::Start(AHALMeteorBall& Ball, AActor& Launcher, const FHALA
 	Snapshot.bCanHitInstigator = true;
 	if (!Strike->Action.Begin(*Strike, Snapshot)) { Strike->Destroy(); return false; }
 	Strike->State.Type = &Type;
-	Strike->State.Target = Chosen;
+	Strike->State.Target = Target;
+	Strike->State.bGroundTargeted = Target == nullptr;
 	Strike->State.LaunchPoint = Transform.GetLocation();
 	Strike->State.Started = Strike->ServerNow();
 	Strike->State.Ground = Strike->LastGround = Ground;
 	Strike->FinishSpawning(Transform);
 	UE_LOG(LogHALMeteorBall, Log, TEXT("Launched %s instigator=%s target=%s tracking=%.2f fall=%.2f radius=%.0f"),
-		*Strike->GetName(), *Launcher.GetName(), *Chosen->GetName(), Type.TrackingSeconds, Type.FallSeconds, Type.DamageRadius);
+		*Strike->GetName(), *GetNameSafe(Attack.InstigatorActor.Get()), Target ? *Target->GetName() : TEXT("FixedGround"),
+		Type.TrackingSeconds, Type.FallSeconds, Type.DamageRadius);
 	return true;
 }
 
@@ -142,17 +179,20 @@ double AHALMeteorStrike::ServerNow() const
 void AHALMeteorStrike::BeginPlay()
 {
 	Super::BeginPlay();
-	if (HasAuthority() && State.Type && State.Target)
+	if (HasAuthority() && State.Type)
 	{
 		if (auto* Match = GetWorld()->GetGameState<AHALMatchGameState>())
 		{ Match->OnMatchPhaseChanged.AddUniqueDynamic(this, &ThisClass::OnMatchPhase); }
-		TargetAbilitySystem = State.Target->FindComponentByClass<UVehicleHealthComponent>()->GetBoundAbilitySystem();
-		if (TargetAbilitySystem.IsValid())
+		if (IsValid(State.Target))
 		{
-			TargetHealthHandle = TargetAbilitySystem->GetGameplayAttributeValueChangeDelegate(UHALHealthAttributeSet::GetCurrentHPAttribute())
-				.AddUObject(this, &ThisClass::OnTargetHealth);
+			TargetAbilitySystem = State.Target->FindComponentByClass<UVehicleHealthComponent>()->GetBoundAbilitySystem();
+			if (TargetAbilitySystem.IsValid())
+			{
+				TargetHealthHandle = TargetAbilitySystem->GetGameplayAttributeValueChangeDelegate(UHALHealthAttributeSet::GetCurrentHPAttribute())
+					.AddUObject(this, &ThisClass::OnTargetHealth);
+			}
+			GetWorldTimerManager().SetTimer(SampleTimer, this, &ThisClass::SampleTarget, .04f, true);
 		}
-		GetWorldTimerManager().SetTimer(SampleTimer, this, &ThisClass::SampleTarget, .04f, true);
 		GetWorldTimerManager().SetTimer(PhaseTimer, this, &ThisClass::LockGround, State.Type->TrackingSeconds);
 		ForceNetUpdate();
 	}
