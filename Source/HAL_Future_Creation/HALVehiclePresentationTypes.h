@@ -244,6 +244,9 @@ namespace HALVehiclePresentation
 	inline constexpr uint8 BurstColorNone = 0, BurstColorSource = 1, BurstColorSourceAndTarget = 2;
 	/** A car's identity colour is its tire mark colour, and only when that colour is really shown on its marks. */
 	HAL_FUTURE_CREATION_API bool VehicleIdentityColor(const FHALTireSkidConfig& TireSkid, FLinearColor& OutColor);
+	/** Colour pushed to a new tire skid mark: the driver's identity colour when there is a player behind the car, the
+	 * car's own Mark Color otherwise (an undriven test car). Mark Color's alpha keeps scaling the opacity either way. */
+	HAL_FUTURE_CREATION_API FLinearColor TireSkidMarkColor(const FHALTireSkidConfig& TireSkid, bool bHasPlayerColor, const FLinearColor& PlayerColor);
 	/** Direct car contact shows both cars; an attributed hit such as a launched ball shows only the car behind it. */
 	/** Sparks belong to car on car contact only. Strength 0..1 picks a whole count between the configured ends. */
 	HAL_FUTURE_CREATION_API uint8 BurstSparkCount(const FHALImpactBurstConfig& Config, float Strength, bool bDirectVehicleContact);

@@ -1,5 +1,6 @@
 #include "HALRoomComponent.h"
 #include "HALRoomConfig.h"
+#include "HALPlayerIdentitySettings.h"
 #include "HALMatchGameState.h"
 #include "HALVehicleCatalog.h"
 #include "HALPlayerController.h"
@@ -64,8 +65,7 @@ EHALRoomResult UHALRoomComponent::AddMember(AHALPlayerController* PC)
 	for (const auto& P : Data.Members) { if (P && P->GetRoomData().Seat >= 0 && P->GetRoomData().Seat < 4) { Used[P->GetRoomData().Seat] = true; } }
 	int32 Seat = 0; while (Seat < 4 && Used[Seat]) { ++Seat; }
 	if (Seat == 4) { return EHALRoomResult::Full; }
-	static const FLinearColor Colors[] = { FLinearColor(1,.25f,.08f),FLinearColor(.1f,.9f,.3f),FLinearColor(1,.75f,.05f),FLinearColor(.85f,.1f,.65f) };
-	FHALRoomPlayerData Player; Player.PlayerKey=FGuid::NewGuid(); Player.Seat = Seat; Player.Number = Seat+1; Player.Color = Colors[Seat];
+	FHALRoomPlayerData Player; Player.PlayerKey=FGuid::NewGuid(); Player.Seat = Seat; Player.Number = Seat+1; Player.Color = UHALPlayerIdentitySettings::SeatColor(Seat);
 	Player.Phase = EHALRoomPlayerPhase::Selecting; Player.SelectionRevision = 1;
 	PS->SetRoomData(Player); Data.Members.Add(PS); if (!Data.Host) { Data.Host = PS; }
 	Publish(); return EHALRoomResult::Accepted;

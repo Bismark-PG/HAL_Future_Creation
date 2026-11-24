@@ -80,7 +80,7 @@ protected:
 	 * Arc tint. The ribbon material keeps a thin white-hot spine whatever this is, so the
 	 * colour is read from the halo around it: push saturation here, not brightness.
 	 */
-	UPROPERTY(EditDefaultsOnly, Category="Shocked|Hero Arcs") FLinearColor ArcColor = FLinearColor(0.22f, 0.52f, 1.f, 1.f);
+	UPROPERTY(EditDefaultsOnly, Category="Shocked|Hero Arcs") FLinearColor ArcColor = FLinearColor(0.887f, 0.09f, 1.f, 1.f);
 	/**
 	 * On release the arc withdraws from its tail instead of dimming as a whole, which reads
 	 * as the current draining away rather than someone turning a dimmer down.
@@ -99,7 +99,7 @@ protected:
 
 	/** Off by default: the pool of light it throws on the arena floor costs more readability than it buys. */
 	UPROPERTY(EditDefaultsOnly, Category="Shocked|Light") bool bEnableLight = false;
-	UPROPERTY(EditDefaultsOnly, Category="Shocked|Light") FLinearColor LightColor = FLinearColor(0.55f, 0.88f, 1.f, 1.f);
+	UPROPERTY(EditDefaultsOnly, Category="Shocked|Light") FLinearColor LightColor = FLinearColor(0.93f, 0.55f, 1.f, 1.f);
 	UPROPERTY(EditDefaultsOnly, Category="Shocked|Light", meta=(Units="Candela", ClampMin="0", ClampMax="200000")) float LightPeakIntensity = 2200.f;
 	UPROPERTY(EditDefaultsOnly, Category="Shocked|Light", meta=(Units="cm", ClampMin="50", ClampMax="5000")) float LightRadiusCm = 280.f;
 	UPROPERTY(EditDefaultsOnly, Category="Shocked|Light", meta=(Units="cm")) FVector LightOffsetCm = FVector(0.f, 0.f, 40.f);

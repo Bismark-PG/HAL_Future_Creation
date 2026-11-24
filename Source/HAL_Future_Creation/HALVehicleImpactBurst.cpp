@@ -50,6 +50,13 @@ FLinearColor HALVehiclePresentation::BurstEdgeColor(const FHALImpactBurstConfig&
 	}
 }
 
+FLinearColor HALVehiclePresentation::TireSkidMarkColor(const FHALTireSkidConfig& TireSkid, bool bHasPlayerColor, const FLinearColor& PlayerColor)
+{
+	if (!bHasPlayerColor || !FMath::IsFinite(PlayerColor.R) || !FMath::IsFinite(PlayerColor.G) || !FMath::IsFinite(PlayerColor.B)
+		|| PlayerColor.GetMin() < 0) { return TireSkid.MarkColor; }
+	return FLinearColor(PlayerColor.R, PlayerColor.G, PlayerColor.B, TireSkid.MarkColor.A);
+}
+
 bool HALVehiclePresentation::VehicleIdentityColor(const FHALTireSkidConfig& TireSkid, FLinearColor& OutColor)
 {
 	const FLinearColor& Mark = TireSkid.MarkColor;

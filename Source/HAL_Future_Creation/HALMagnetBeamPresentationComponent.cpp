@@ -1,6 +1,6 @@
 #include "HALMagnetBeamPresentationComponent.h"
 #include "HALBallPresentationComponent.h"
-#include "HALPlayerState.h"
+#include "HALPlayerIdentitySettings.h"
 #include "HALVehiclePresentationComponent.h"
 #include "GameFramework/GameStateBase.h"
 
@@ -63,14 +63,6 @@ UHALMagnetBeamPresentationComponent::UHALMagnetBeamPresentationComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 	PrimaryComponentTick.TickGroup = TG_PostPhysics;
-	// Four placeholder planet colours, none of them blue: blue already means "being shocked"
-	// on a vehicle, and a second blue state would be unreadable in a melee.
-	HolderPalette = {
-		FLinearColor(0.98f, 0.62f, 0.12f, 1.f),
-		FLinearColor(0.11f, 0.78f, 0.52f, 1.f),
-		FLinearColor(0.92f, 0.28f, 0.52f, 1.f),
-		FLinearColor(0.58f, 0.45f, 0.95f, 1.f)
-	};
 }
 
 void UHALMagnetBeamPresentationComponent::BeginPlay()
@@ -217,22 +209,14 @@ FLinearColor UHALMagnetBeamPresentationComponent::ResolveHolderColor(const AActo
 
 FLinearColor UHALMagnetBeamPresentationComponent::ResolveIdentityColor(const AActor* Actor, int32 PlayerId) const
 {
-	const APawn* Pawn = Cast<APawn>(Actor);
-	const APlayerState* State = Pawn ? Pawn->GetPlayerState() : nullptr;
-	const AGameStateBase* GameState = GetWorld() ? GetWorld()->GetGameState() : nullptr;
-	if (!State && PlayerId != INDEX_NONE && GameState)
-	{
-		for (const APlayerState* Candidate : GameState->PlayerArray)
-		{ if (Candidate && Candidate->GetPlayerId() == PlayerId) { State = Candidate; break; } }
-	}
-	if (const auto* RoomPlayer = Cast<AHALPlayerState>(State); RoomPlayer && RoomPlayer->GetRoomData().Seat != INDEX_NONE)
-	{ return RoomPlayer->GetRoomData().Color; }
-	if (State && State->GetPlayerId() >= 0 && !HolderPalette.IsEmpty()) { return HolderPalette[State->GetPlayerId() % HolderPalette.Num()]; }
+	// One table for every layer that says whose something is: see UHALPlayerIdentitySettings.
+	FLinearColor Player;
+	if (UHALPlayerIdentitySettings::ResolvePlayerColor(GetWorld(), Actor, PlayerId, Player)) { return Player; }
 	// No player behind it (a test dummy): fall back to the colour its own tire marks already use.
 	FLinearColor Mark;
 	if (const auto* Presentation = Actor ? Actor->FindComponentByClass<UHALVehiclePresentationComponent>() : nullptr;
 		Presentation && Presentation->GetIdentityColor(Mark)) { return Mark; }
-	return FallbackColor;
+	return GetDefault<UHALPlayerIdentitySettings>()->FallbackColor;
 }
 
 bool UHALMagnetBeamPresentationComponent::ResolveAnchors(FVector& OutRoof, FVector& OutBall,

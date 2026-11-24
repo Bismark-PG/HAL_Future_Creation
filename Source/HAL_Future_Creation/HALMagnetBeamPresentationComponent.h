@@ -104,16 +104,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Magnet Beam|Tension", meta=(ClampMin="1", ClampMax="4"))
 	float MaximumTensionGain = 1.8f;
 
-	/**
-	 * Per-holder colours, indexed by PlayerId. A narrow stand-in: the project has no player
-	 * colour system yet, and when one arrives this is the single place that has to change.
-	 * An empty palette falls back to FallbackColor.
-	 */
-	UPROPERTY(EditDefaultsOnly, Category="Magnet Beam|Colour")
-	TArray<FLinearColor> HolderPalette;
-	/** Deliberately not blue: blue already means "being shocked" on a vehicle. */
-	UPROPERTY(EditDefaultsOnly, Category="Magnet Beam|Colour")
-	FLinearColor FallbackColor = FLinearColor(0.98f, 0.62f, 0.12f, 1.f);
 
 	/** Ball shell pulse. Same colour and same phase as the beam, because synchronised
 	 *  blinking is what ties the ball to one specific vehicle at camera distance. */

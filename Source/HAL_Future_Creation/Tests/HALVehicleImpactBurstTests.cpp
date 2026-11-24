@@ -1,5 +1,6 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
+#include "../HALPlayerIdentitySettings.h"
 #include "../HALVehiclePresentationTypes.h"
 #include "../HALImpactBurstSettings.h"
 #include "../HALVehiclePresentationConfig.h"
@@ -65,6 +66,22 @@ bool FHALImpactBurstShapeTest::RunTest(const FString&)
 	TestEqual(TEXT("Mark opacity does not leak into the identity colour"), Identity, FLinearColor(.8f, .1f, .3f, 1.f));
 	Skid.MarkColor.R = std::numeric_limits<float>::quiet_NaN();
 	TestFalse(TEXT("A broken mark colour is not an identity"), VehicleIdentityColor(Skid, Identity));
+	{
+		// Tire marks follow the driver; an undriven car keeps its own Mark Color.
+		FHALTireSkidConfig Marks; Marks.MarkColor = FLinearColor(.8f, .1f, .3f, .5f);
+		const FLinearColor Driver(.1f, .9f, .3f, 1.f);
+		TestEqual(TEXT("A driven car leaves marks in the driver's colour at the car's mark opacity"), TireSkidMarkColor(Marks, true, Driver), FLinearColor(.1f, .9f, .3f, .5f));
+		TestEqual(TEXT("An undriven car keeps its own mark colour"), TireSkidMarkColor(Marks, false, Driver), Marks.MarkColor);
+		TestEqual(TEXT("A broken driver colour falls back to the car's"), TireSkidMarkColor(Marks, true, FLinearColor(std::numeric_limits<float>::quiet_NaN(), 0, 0, 1)), Marks.MarkColor);
+		const FLinearColor Table[] = { FLinearColor(1, 0, 0, .2f), FLinearColor(0, 1, 0), FLinearColor(0, -1, 0) };
+		const FLinearColor Spare(.5f, .5f, .5f, 1.f);
+		TestEqual(TEXT("Seat colours are opaque"), UHALPlayerIdentitySettings::SeatColorFrom(Table, Spare, 0), FLinearColor(1, 0, 0, 1));
+		TestEqual(TEXT("Seat colours wrap round the table"), UHALPlayerIdentitySettings::SeatColorFrom(Table, Spare, 4), FLinearColor(0, 1, 0, 1));
+		TestEqual(TEXT("An unusable seat colour gives the fallback"), UHALPlayerIdentitySettings::SeatColorFrom(Table, Spare, 2), Spare);
+		TestEqual(TEXT("No seat gives the fallback"), UHALPlayerIdentitySettings::SeatColorFrom(Table, Spare, INDEX_NONE), Spare);
+		TestEqual(TEXT("An empty table gives the fallback"), UHALPlayerIdentitySettings::SeatColorFrom(TConstArrayView<FLinearColor>(), Spare, 0), Spare);
+		TestEqual(TEXT("The project table has four seats"), GetDefault<UHALPlayerIdentitySettings>()->SeatColors.Num(), 4);
+	}
 	TestEqual(TEXT("Car on car contact shows both cars"), int32(BurstColorMode(Config, true, true)), int32(BurstColorSourceAndTarget));
 	TestEqual(TEXT("An attributed hit shows only the car behind it"), int32(BurstColorMode(Config, true, false)), int32(BurstColorSource));
 	TestEqual(TEXT("A source without a colour stays plain"), int32(BurstColorMode(Config, false, true)), int32(BurstColorNone));

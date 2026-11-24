@@ -1,6 +1,7 @@
 #include "HALVehiclePresentationComponent.h"
 #include "HALVehiclePresentationConfig.h"
 #include "HALAbilitySystemComponent.h"
+#include "HALPlayerIdentitySettings.h"
 #include "HALSideShiftComponent.h"
 #include "ArcadeVehicleMovementComponent.h"
 #include "TestVehiclePawn.h"
@@ -192,7 +193,13 @@ void UHALVehiclePresentationComponent::UpdateTireSkids(const FVector& Velocity, 
 					Component->SetCustomTimeDilation(PlayRate);
 					if (!Settings.SurfaceNormalParameter.IsNone()) { Component->SetVariableVec3(Settings.SurfaceNormalParameter, Support.Normal); }
 					// Constant for the life of the component, so it is pushed once here rather than every frame.
-					if (!Settings.ColorParameter.IsNone()) { Component->SetVariableLinearColor(Settings.ColorParameter, Settings.MarkColor); }
+					if (!Settings.ColorParameter.IsNone())
+					{
+						// The marks belong to the driver, not to the car model: two players in the same car leave different colours.
+						FLinearColor PlayerColor;
+						const bool bHasPlayerColor = UHALPlayerIdentitySettings::ResolvePlayerColor(GetWorld(), GetOwner(), INDEX_NONE, PlayerColor);
+						Component->SetVariableLinearColor(Settings.ColorParameter, HALVehiclePresentation::TireSkidMarkColor(Settings, bHasPlayerColor, PlayerColor));
+					}
 					Component->Activate(true);
 				}
 			}

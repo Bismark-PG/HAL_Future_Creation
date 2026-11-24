@@ -47,8 +47,10 @@ struct HAL_FUTURE_CREATION_API FHALShockVisualSettings
 	/**
 	 * Arc tint. The ribbon material keeps a thin white-hot spine whatever this is, so the
 	 * colour is read from the halo around it: push saturation here, not brightness.
+	 * Shiso purple (sRGB #8E2E96 at full brightness) since 2026-11-24: blue became a player identity colour.
+	 * The electric wall arcs (NS_ElectricArc) and the electric sphere nova (NS_LightningNova User.Color) use the same value.
 	 */
-	UPROPERTY(EditAnywhere, Category="Hero Arcs") FLinearColor ArcColor = FLinearColor(0.22f, 0.52f, 1.f, 1.f);
+	UPROPERTY(EditAnywhere, Category="Hero Arcs") FLinearColor ArcColor = FLinearColor(0.887f, 0.09f, 1.f, 1.f);
 	/**
 	 * On release the arc withdraws from its tail instead of dimming as a whole, which reads
 	 * as the current draining away rather than someone turning a dimmer down.
@@ -62,7 +64,7 @@ struct HAL_FUTURE_CREATION_API FHALShockVisualSettings
 
 	/** Off by default: the pool of light it throws on the arena floor costs more readability than it buys. */
 	UPROPERTY(EditAnywhere, Category="Light") bool bEnableLight = false;
-	UPROPERTY(EditAnywhere, Category="Light") FLinearColor LightColor = FLinearColor(0.55f, 0.88f, 1.f, 1.f);
+	UPROPERTY(EditAnywhere, Category="Light") FLinearColor LightColor = FLinearColor(0.93f, 0.55f, 1.f, 1.f);
 	UPROPERTY(EditAnywhere, Category="Light", meta=(Units="Candela", ClampMin="0", ClampMax="200000")) float LightPeakIntensity = 2200.f;
 	UPROPERTY(EditAnywhere, Category="Light", meta=(Units="cm", ClampMin="50", ClampMax="5000")) float LightRadiusCm = 280.f;
 	UPROPERTY(EditAnywhere, Category="Light", meta=(Units="cm")) FVector LightOffsetCm = FVector(0.f, 0.f, 40.f);
