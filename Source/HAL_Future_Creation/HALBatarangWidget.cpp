@@ -1,5 +1,7 @@
 #include "HALBatarangWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
+#include "Fonts/FontMeasure.h"
+#include "Framework/Application/SlateApplication.h"
 #include "GameFramework/GameStateBase.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALBatarang.h"
@@ -45,12 +47,26 @@ int32 UHALBatarangWidget::NativePaint(const FPaintArgs& Args,const FGeometry& G,
 	{
 		FSlateDrawElement::MakeLines(E,Base+2,G.ToPaintGeometry(),Points,ESlateDrawEffect::None,Color,true,Thickness);
 	};
+	auto Plate = [&](FVector2D At,FVector2D Extent,const FLinearColor& Color)
+	{
+		FSlateDrawElement::MakeBox(E,Base+1,G.ToPaintGeometry(Extent,FSlateLayoutTransform(At)),
+			FCoreStyle::Get().GetBrush("WhiteBrush"),ESlateDrawEffect::None,Color);
+	};
+	const FLinearColor Ink(.012f,.021f,.035f,.93f);
+	const auto Metrics = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+	auto Readout = [&](const FString& Message, const FLinearColor& Accent)
+	{
+		const FVector2D Extent = Metrics->Measure(Message,FCoreStyle::GetDefaultFontStyle("Bold",14));
+		const FVector2D At((Size.X-Extent.X)*.5,Size.Y*.82);
+		Plate(At-FVector2D(10,3),Extent+FVector2D(20,6),Ink);
+		Line({At-FVector2D(7,1),At+FVector2D(-7,Extent.Y+1)},Accent,2.f);
+		Text(At,Message,FLinearColor::White,14);
+	};
 	const FString Prompt = Shot->IsManualInputOpen() ? TEXT("可引爆")
 		: (UHALAbilitySystemComponent::IsActorStunned(PC->GetPawn()) ? TEXT("眩晕中") : TEXT("暂不可引爆"));
-	const FVector2D Hud(Size.X*.5-85,Size.Y*.82);
 	if (!IsValid(S.Target) || UHALSmokeScreenView::ShouldHideWorldTarget(S.Target))
 	{
-		Text(Hud,FString(TEXT("已挂镖 · "))+Prompt,FLinearColor::White,14);
+		Readout(FString(TEXT("已挂镖 · "))+Prompt,FLinearColor(.69f,.77f,.70f));
 		return Base+4;
 	}
 	const auto* PS = S.Target->GetPlayerState<AHALPlayerState>();
@@ -86,8 +102,8 @@ int32 UHALBatarangWidget::NativePaint(const FPaintArgs& Args,const FGeometry& G,
 	static const TCHAR* Sides[] = {TEXT("前侧"),TEXT("后侧"),TEXT("左侧"),TEXT("右侧")};
 	const int32 Dir = (FMath::RoundToInt(FMath::Atan2(Bearing.Y,Bearing.X)/(UE_PI*.25))+8)%8;
 	const float Age = FMath::Max(0.f,float(Shot->ServerTime()-S.PhaseStart));
-	Text(Hud,FString::Printf(TEXT("%s %s · %s中镖 · %s  %.1f"),*Label,Compass[Dir],Sides[int32(S.Side)],*Prompt,
-		FMath::Max(0.f,S.Config->FuseSeconds-Age)),FLinearColor::White,14);
+	const float Remaining = FMath::Max(0.f,S.Config->FuseSeconds-Age);
+	Readout(FString::Printf(TEXT("%s %s · %s中镖 · %s  %.1f"),*Label,Compass[Dir],Sides[int32(S.Side)],*Prompt,Remaining),Tint);
 
 	// Switch before the target's label or wings fall outside the frame, even if the car centre is still projected.
 	const FVector2D Inset(FMath::Max(44.,Size.X*.04),FMath::Max(62.,Size.Y*.065));
@@ -130,20 +146,34 @@ int32 UHALBatarangWidget::NativePaint(const FPaintArgs& Args,const FGeometry& G,
 		for (int32 I=0; I<10 && Clearance+8 < (Marker-Own).Size(); ++I)
 		{
 			const double A = I*.1, B = (I+(Age<.35f?.58:1.))*.1;
-			FLinearColor Ink = Tint; Ink.A = Age<.35f ? .6f : .15f+.18f*I/9.f;
-			Line({FMath::Lerp(Start,Marker,A),FMath::Lerp(Start,Marker,B)},Ink,Age<.35f?2.f:1.3f);
+			FLinearColor Trace = Tint; Trace.A = Age<.35f ? .6f : .15f+.18f*I/9.f;
+			Line({FMath::Lerp(Start,Marker,A),FMath::Lerp(Start,Marker,B)},Trace,Age<.35f?2.f:1.3f);
 		}
 	}
-	const FVector2D WingCenter = bOnScreen ? Marker-FVector2D(0,35) : Marker;
-	const double Spread = 11 + 19*(1.-FMath::Clamp(Age/.35f,0.f,1.f));
+	const FVector2D WingCenter = bOnScreen ? Marker-FVector2D(0,39) : Marker;
+	const FVector2D LabelSize = Metrics->Measure(Label,FCoreStyle::GetDefaultFontStyle("Bold",14));
+	const double HalfPlate = FMath::Max(16.,LabelSize.X*.5+5.);
+	Plate(WingCenter-FVector2D(HalfPlate,11),FVector2D(2*HalfPlate,22),Ink);
+	const double Spread = HalfPlate+1 + 17*(1.-FMath::Clamp(Age/.35f,0.f,1.f));
 	for (const int32 Sign : {-1,1})
 	{
 		const FVector2D P = WingCenter+FVector2D(Sign*Spread,0);
-		const TArray<FVector2D> Points = {P+FVector2D(Sign*18,-8),P+FVector2D(Sign*9,4),P+FVector2D(Sign*5,1),P};
-		Line(Points,FLinearColor(.025f,.035f,.045f,.88f),4.5f);
-		Line(Points,Tint,2.6f);
+		const TArray<FVector2D> Wing = {P+FVector2D(Sign*19,-8),P+FVector2D(Sign*11,3),
+			P+FVector2D(Sign*9,0),P+FVector2D(Sign*5,5),P+FVector2D(0,3)};
+		Line(Wing,Ink,6.f);
+		Line(Wing,Tint,3.f);
 	}
-	Text(WingCenter+FVector2D(-11,-22),Label,Tint,13);
+	Text(WingCenter-.5*LabelSize,Label,FLinearColor::White,14);
+	// The cuts under the tab empty continuously from right to left during the fuse.
+	const float Charge = Remaining/S.Config->FuseSeconds;
+	for (int32 Tick=0; Tick<5; ++Tick)
+	{
+		const FVector2D Start = WingCenter+FVector2D(-HalfPlate+(2*HalfPlate/5)*Tick,11);
+		const double Cell = 2*HalfPlate/5-1.5;
+		const float Lit = FMath::Clamp(Charge*5-Tick,0.f,1.f);
+		Line({Start,Start+FVector2D(Cell,0)},Ink,3.f);
+		if (Lit > 0) { Line({Start,Start+FVector2D(Cell*Lit,0)},Tint,2.f); }
+	}
 	if (bOnScreen)
 	{
 		const auto Hull = S.Target->GetRootComponent()->CalcBounds(FTransform::Identity);

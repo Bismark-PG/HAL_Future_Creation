@@ -16,6 +16,7 @@
 #include "../VehicleHealthComponent.h"
 #include "Components/BoxComponent.h"
 #include "Engine/Engine.h"
+#include "Engine/StaticMesh.h"
 
 struct FHALBatarangTestAccess
 {
@@ -62,7 +63,12 @@ bool FHALDartCombatTest::RunTest(const FString&)
 	if (!Def || !TestEqual(TEXT("Exactly one production grant"),Def->Abilities.Grants.Num(),1)) { return false; }
 	auto* Config = Cast<UHALBatarangConfig>(Def->Abilities.Grants[0].SkillConfig);
 	if (!TestNotNull(TEXT("Production dart DA"),Config)) { return false; }
-	TestTrue(TEXT("Rules and both artist-editable assets exist"),Config->HasValidRules() && Config->DartMaterial && Config->PinSignal);
+	TestTrue(TEXT("Production tuning and capture signal"),Config->HasValidRules() && Config->PinSignal);
+	if (!TestNotNull(TEXT("Production sculpted blade"),Config->BladeMesh.Get())) { return false; }
+	TestTrue(TEXT("Authored blade has a finish and measurable wingspan"),Config->BladeMesh->GetMaterial(0)
+		&& Config->BladeMesh->GetBounds().BoxExtent.Y > UE_SMALL_NUMBER);
+	TestTrue(TEXT("Production wake and resonance are independently assigned"),Config->WakeMaterial && Config->ResonanceMaterial
+		&& Config->WakeMaterial!=Config->ResonanceMaterial && Config->WakeSeconds>0);
 	TestEqual(TEXT("Five seconds from actual pin"),Config->FuseSeconds,5.f);
 	TestEqual(TEXT("Ten damage at this car's base attack"),Config->DamageMultiplier*Def->Combat.AttackPower,10.f,.001f);
 	const auto Init = UWorld::InitializationValues().AllowAudioPlayback(false).RequiresHitProxies(false).CreatePhysicsScene(true)

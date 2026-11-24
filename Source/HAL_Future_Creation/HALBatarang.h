@@ -10,6 +10,7 @@ class UHALBatarangWidget;
 class UDynamicMeshComponent;
 class UMaterialInstanceDynamic;
 class UMeshComponent;
+class UStaticMeshComponent;
 
 UENUM()
 enum class EHALDartPhase : uint8 { Flight, Pinned, Burst };
@@ -36,6 +37,7 @@ struct FHALBatarangState
 
 namespace HALBatarang
 {
+	inline constexpr double BurstSeconds = .45;
 	FVector Arc(float Fraction, float Reach, float Width, int8 Mirror);
 	EHALDartSide HitSide(FVector RelativeToCenter, FVector Extent, FVector OutwardNormal);
 	FVector PushDirection(EHALDartSide Side, double TargetYaw);
@@ -68,12 +70,24 @@ private:
 	bool Detonate();
 	void Present(double Now);
 	void BuildGeometry(bool bBurst);
+	void PrepareArt();
+	void PresentArt(float Age, const FTransform& Pin, const FLinearColor& SeatColor);
+	void UpdateWake(float Age);
+	FTransform PinTransform();
 	UPROPERTY() TObjectPtr<UDynamicMeshComponent> Shape;
+	UPROPERTY() TObjectPtr<UStaticMeshComponent> Blade;
+	UPROPERTY() TObjectPtr<UDynamicMeshComponent> Wake;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> BladeInk;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> WakeInk;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> CueInk;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> Accent;
 	UPROPERTY(Transient) TObjectPtr<UHALBatarangWidget> OwnerView;
 	bool bBuiltGeometry = false;
 	bool bBuiltBurst = false;
 	bool bPlayedPin = false;
+	bool bArtReady = false;
+	bool bPinWasConcealed = false;
+	bool bBurstConcealed = false;
 	TWeakObjectPtr<UMeshComponent> PinnedMesh;
 	FVector MeshAnchor = FVector::ZeroVector;
 	FVector MeshNormal = FVector::ForwardVector;

@@ -21,8 +21,8 @@ bool UHALBatarangConfig::HasValidRules() const
 #if WITH_EDITOR
 EDataValidationResult UHALBatarangConfig::IsDataValid(FDataValidationContext& Context) const
 {
-	if (HasValidRules() && DartMaterial && PinSignal) { return EDataValidationResult::Valid; }
-	Context.AddError(FText::FromString(TEXT("Check batarang tuning, the wing material and the capture signal.")));
+	if (HasValidRules() && (BladeMesh || DartMaterial) && PinSignal) { return EDataValidationResult::Valid; }
+	Context.AddError(FText::FromString(TEXT("Check batarang tuning, its blade mesh or fallback wing material, and the capture signal.")));
 	return EDataValidationResult::Invalid;
 }
 #endif

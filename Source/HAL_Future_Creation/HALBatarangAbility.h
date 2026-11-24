@@ -9,6 +9,7 @@ class AHALBatarang;
 class ATestVehiclePawn;
 class UMaterialInterface;
 class USoundBase;
+class UStaticMesh;
 
 UCLASS(BlueprintType)
 class HAL_FUTURE_CREATION_API UHALBatarangConfig : public UDataAsset
@@ -29,9 +30,19 @@ public:
 	UPROPERTY(EditAnywhere, Category="Combat") EHALImpactTier ImpactTier = EHALImpactTier::Medium;
 	UPROPERTY(EditAnywhere, Category="Combat") EHALImpactPushPreset PushDistance = EHALImpactPushPreset::Long;
 	UPROPERTY(EditAnywhere, Category="Presentation", meta=(Units="cm", ClampMin="15", ClampMax="150")) float WingSpan = 68.f;
-	/** Two-sided unlit material, with a Tint vector parameter. */
+	/** Legacy procedural wings for configurations without an authored blade. */
 	UPROPERTY(EditAnywhere, Category="Presentation") TObjectPtr<UMaterialInterface> DartMaterial;
 	UPROPERTY(EditAnywhere, Category="Presentation") TObjectPtr<USoundBase> PinSignal;
+	/** Nose along +X, wingspan along Y. Material slot zero accepts SeatColor and Signal. */
+	UPROPERTY(EditAnywhere, Category="Presentation|Art") TObjectPtr<UStaticMesh> BladeMesh;
+	/** Short ribbon along the actual flight path. UV.x is newest at 1. */
+	UPROPERTY(EditAnywhere, Category="Presentation|Art") TObjectPtr<UMaterialInterface> WakeMaterial;
+	/** Depth-tested contact pulse and directional shock front. Local +X points along the push. */
+	UPROPERTY(EditAnywhere, Category="Presentation|Art") TObjectPtr<UMaterialInterface> ResonanceMaterial;
+	/** Seconds of travelled path visible behind the blade. Zero disables the ribbon. */
+	UPROPERTY(EditAnywhere, Category="Presentation|Art", meta=(Units="s", ClampMin="0", ClampMax="0.35")) float WakeSeconds = .14f;
+	/** Visual distance from the pin to the leading shock front. */
+	UPROPERTY(EditAnywhere, Category="Presentation|Art", meta=(Units="cm", ClampMin="80", ClampMax="480")) float BurstReach = 240.f;
 	bool HasValidRules() const;
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;

@@ -15,7 +15,6 @@
 
 namespace
 {
-	constexpr double BurstSeconds = .45;
 	// Five tangent-matched cubics in the horizontal throw frame. Finish behind the original car.
 	const FVector2D ArcPoints[] = {
 		{0,0},{26,0},{44,65},{99,70},{154,75},{184,39},{184,-1},
@@ -169,7 +168,7 @@ void AHALBatarang::Advance(double Now)
 {
 	if (State.Phase == EHALDartPhase::Burst)
 	{
-		if (Now-State.PhaseStart >= BurstSeconds) { Destroy(); }
+		if (Now-State.PhaseStart >= HALBatarang::BurstSeconds) { Destroy(); }
 		return;
 	}
 	if (!ParticipantsReady()) { Destroy(); return; }
