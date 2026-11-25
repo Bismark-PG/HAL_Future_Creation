@@ -10,6 +10,10 @@ class AHALElectricSphereGimmick;
 class UBoxComponent;
 class UDynamicMeshComponent;
 class UTextRenderComponent;
+class UMaterialBillboardComponent;
+class UMaterialInstanceDynamic;
+class UMaterialInterface;
+class UTexture2D;
 class UStaticMeshComponent;
 class UPrimitiveComponent;
 
@@ -45,8 +49,22 @@ struct HAL_FUTURE_CREATION_API FHALArenaGeneratorConfig
 	UPROPERTY(EditAnywhere, Category="Pillar", meta=(ClampMin="1", ClampMax="2000", Units="cm")) FVector PillarHalfExtent = FVector(40,40,100);
 	/** The Box is the pillar's only collider; visual meshes never block vehicles or balls. */
 	UPROPERTY(EditAnywhere, Category="Pillar") bool bSolidPillar = true;
-	/** Local Z offset from the default text position above the Box. Positive raises text; Actor scale applies. */
+	/** Local Z offset of the text / forecast panel above the Box. Positive raises it; Actor scale applies. */
 	UPROPERTY(EditAnywhere, Category="Presentation", meta=(ClampMin="-10000", ClampMax="10000", Units="cm")) float TextHeightOffset = 0.f;
+	/** Camera-facing hologram row above the pillar. Empty keeps the plain debug text. Presentation only. */
+	UPROPERTY(EditAnywhere, Category="Presentation|Forecast") TObjectPtr<UMaterialInterface> ForecastMaterial;
+	/** Optional per-effect icons; empty slots keep the material's own default textures. */
+	UPROPERTY(EditAnywhere, Category="Presentation|Forecast") TObjectPtr<UTexture2D> SlipperyAreaIcon;
+	UPROPERTY(EditAnywhere, Category="Presentation|Forecast") TObjectPtr<UTexture2D> BlackHoleIcon;
+	UPROPERTY(EditAnywhere, Category="Presentation|Forecast") TObjectPtr<UTexture2D> ElectricFieldIcon;
+	/** World-space edge of the selected (centre) icon. Actor scale does not apply. */
+	UPROPERTY(EditAnywhere, Category="Presentation|Forecast", meta=(ClampMin="10", ClampMax="2000", Units="cm")) float ForecastIconSize = 220.f;
+	/** Size of the two unselected side icons relative to the centre icon. */
+	UPROPERTY(EditAnywhere, Category="Presentation|Forecast", meta=(ClampMin="0.1", ClampMax="1")) float ForecastSideScale = .65f;
+	/** World-space distance between neighbouring icon centres. */
+	UPROPERTY(EditAnywhere, Category="Presentation|Forecast", meta=(ClampMin="10", ClampMax="4000", Units="cm")) float ForecastSpacing = 230.f;
+	/** Icons passing the centre per second while rolling; the reveal decelerates from this speed. */
+	UPROPERTY(EditAnywhere, Category="Presentation|Forecast", meta=(ClampMin="0.5", ClampMax="30")) float ForecastRollSpeed = 8.f;
 	/** Animate two visual-only meshes; the Box switches off underground and returns when fully raised. */
 	UPROPERTY(EditAnywhere, Category="Mesh Animation") bool bAnimateMeshes = true;
 	/** World-space downward travel, independent of the pillar's authored scale. */
@@ -74,6 +92,8 @@ struct HAL_FUTURE_CREATION_API FHALArenaGeneratorState
 	UPROPERTY(BlueprintReadOnly) int32 Cycle = 0;
 	UPROPERTY(BlueprintReadOnly) double StartedAt = 0;
 	UPROPERTY(BlueprintReadOnly) float Duration = 0;
+	/** Measured length of this cycle's Rolling stage, so every peer decelerates the row from the same position. */
+	UPROPERTY(BlueprintReadOnly) float RolledSeconds = 0;
 	UPROPERTY(BlueprintReadOnly) FVector EffectCenter = FVector::ZeroVector;
 	UPROPERTY(BlueprintReadOnly) float WarningRadius = 0;
 	UPROPERTY(BlueprintReadOnly) TObjectPtr<AActor> ActiveEffect;
@@ -91,6 +111,11 @@ public:
 	UFUNCTION(BlueprintPure, Category="Arena Generator") EHALArenaEffect GetDisplayedEffect() const;
 	/** -1 for waiting, active effect or disabled; otherwise synchronized remaining phase time. */
 	UFUNCTION(BlueprintPure, Category="Arena Generator") float GetStageRemainingSeconds() const;
+	/** Continuous row position in icons; integer k shows effect 1+(k mod 3) at the centre. Never draws a result. */
+	static double ForecastPosition(const FHALArenaGeneratorConfig& Config, const FHALArenaGeneratorState& InState, double Age);
+	UFUNCTION(BlueprintPure, Category="Arena Generator") float GetForecastPosition() const;
+	/** 1 to 0 across Hint + Delay; -1 outside the countdown. */
+	UFUNCTION(BlueprintPure, Category="Arena Generator") float GetForecastCountdown() const;
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
@@ -101,6 +126,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Arena Generator|Components") TObjectPtr<UDynamicMeshComponent> PillarVisual;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Arena Generator|Components") TObjectPtr<UDynamicMeshComponent> HintRing;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Arena Generator|Components") TObjectPtr<UTextRenderComponent> StageText;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Arena Generator|Components") TObjectPtr<UMaterialBillboardComponent> ForecastPanel;
 	/** Cosmetic only. Late relevance presents the current phase rather than replaying previous phases. */
 	UFUNCTION(BlueprintImplementableEvent, Category="Arena Generator|Presentation")
 	void OnGeneratorStageChanged(EHALArenaGeneratorStage NewStage, EHALArenaEffect SelectedEffect, int32 Cycle);
@@ -126,6 +152,9 @@ private:
 	void ClearMeshMotion();
 	float MeshMotionAlpha() const;
 	void UpdatePillarCollision();
+	FVector2D ForecastPanelSize() const;
+	void RefreshForecast();
+	void UpdateForecast();
 	void ClearPillarCollision();
 	/** Render-only copies leave authored attachments/transforms fixed; collision is managed separately. */
 	struct FMeshMotionSource
@@ -136,6 +165,8 @@ private:
 	TArray<FMeshMotionSource> MeshMotionSources;
 	UPROPERTY(Transient) TObjectPtr<USceneComponent> MeshMotionRoot;
 	FTimerHandle MeshMotionTimer;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> ForecastMID;
+	FTimerHandle ForecastTimer;
 	UPROPERTY(ReplicatedUsing=OnRep_State) FHALArenaGeneratorState State;
 	UPROPERTY(Transient) TObjectPtr<UClass> PendingClass;
 	FRandomStream Random;

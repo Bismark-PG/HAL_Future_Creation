@@ -7,6 +7,8 @@
 #include "../HALMatchGameState.h"
 #include "Components/BoxComponent.h"
 #include "Components/DynamicMeshComponent.h"
+#include "Components/MaterialBillboardComponent.h"
+#include "Materials/Material.h"
 #include "Components/TextRenderComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
@@ -35,6 +37,7 @@ struct FHALArenaGeneratorTestAccess
 	{ G->State.Stage=Stage; G->UpdatePillarCollision(); }
 	static USceneComponent* Text(const AHALArenaEffectGenerator* G) { return G->StageText; }
 	static USceneComponent* Ring(const AHALArenaEffectGenerator* G) { return G->HintRing; }
+	static UMaterialBillboardComponent* Panel(const AHALArenaEffectGenerator* G) { return G->ForecastPanel; }
 };
 namespace
 {
@@ -347,6 +350,88 @@ bool FHALArenaGeneratorMeshMotionTest::RunTest(const FString& Parameters)
 	if(TestNotNull(TEXT("Meshes assembled after BeginPlay also initialize presentation"),LateRoot))
 	{ TestTrue(TEXT("Late assembly immediately uses the current stage pose"),LateRoot->GetComponentLocation().Equals(Pose.GetLocation()-FVector(0,0,506.25),.001)); }
 	Late->Destroy();
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALArenaGeneratorForecastTest,"HAL.FutureCreation.ArenaGenerator.ForecastRow",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALArenaGeneratorForecastTest::RunTest(const FString& Parameters)
+{
+	FString Error; FHALArenaGeneratorConfig Bad;
+	Bad.ForecastSideScale=0; TestFalse(TEXT("Reject vanishing side icons"),Bad.Validate(Error));
+	Bad={}; Bad.ForecastRollSpeed=0; TestFalse(TEXT("Reject a stalled row"),Bad.Validate(Error));
+	Bad={}; Bad.ForecastSpacing=std::numeric_limits<float>::quiet_NaN(); TestFalse(TEXT("Reject nonfinite spacing"),Bad.Validate(Error));
+	Bad={}; Bad.ForecastIconSize=5; TestFalse(TEXT("Reject unreadably small icons"),Bad.Validate(Error));
+	// Pure row motion: continuous with the roll, never backwards, and resting exactly on the authority's result.
+	for(const float Speed : {.5f,8.f,30.f}) for(const float Reveal : {0.f,.6f,1.3f,4.f}) for(const float Rolled : {0.f,.07f,1.5f,1.55f,37.3f})
+	for(const auto Effect : {EHALArenaEffect::SlipperyArea,EHALArenaEffect::BlackHole,EHALArenaEffect::ElectricField})
+	{
+		FHALArenaGeneratorConfig C; C.ForecastRollSpeed=Speed; C.RevealSeconds=Reveal;
+		FHALArenaGeneratorState S; S.Stage=EHALArenaGeneratorStage::Rolling;
+		const double RollEnd=AHALArenaEffectGenerator::ForecastPosition(C,S,Rolled);
+		S.Stage=EHALArenaGeneratorStage::Revealing; S.Effect=Effect; S.RolledSeconds=Rolled;
+		double Previous=AHALArenaEffectGenerator::ForecastPosition(C,S,0); bool bForward=true;
+		if(Reveal>0) { TestTrue(TEXT("Reveal starts where the roll stopped"),FMath::IsNearlyEqual(Previous,RollEnd,1e-4)); }
+		for(int32 I=1;I<=64;++I)
+		{
+			const double Now=AHALArenaEffectGenerator::ForecastPosition(C,S,Reveal*I/64.);
+			bForward&=Now>=Previous-1e-9; Previous=Now;
+		}
+		TestTrue(TEXT("Row never scrolls backwards while decelerating"),bForward);
+		const double Rest=AHALArenaEffectGenerator::ForecastPosition(C,S,Reveal+10);
+		TestTrue(TEXT("Row rests on a whole icon"),FMath::IsNearlyEqual(Rest,FMath::RoundToDouble(Rest),1e-9) && Rest>=RollEnd-1e-4);
+		TestEqual(TEXT("Resting icon is the authority's result"),int32(FMath::RoundToInt64(Rest)%3),int32(Effect)-1);
+		TestTrue(TEXT("Stop lands within one extra lap"),Rest-RollEnd>=.75-1e-4 && Rest-RollEnd<=Speed*Reveal/1.6+3.75+1e-4);
+		if(Speed*Reveal>=10.39)
+		{
+			// Long enough to fit a lap: leaves the roll at its own speed and then only ever slows down.
+			S.Stage=EHALArenaGeneratorStage::Revealing; S.Effect=Effect;
+			const double Step=Reveal/200.; double Last=AHALArenaEffectGenerator::ForecastPosition(C,S,0),LastSpeed=Speed*1.02; bool bSlowing=true;
+			for(int32 I=1;I<=200;++I)
+			{
+				const double Now=AHALArenaEffectGenerator::ForecastPosition(C,S,Step*I),V=(Now-Last)/Step;
+				bSlowing&=V<=LastSpeed+1e-6; LastSpeed=V; Last=Now;
+			}
+			const double First=(AHALArenaEffectGenerator::ForecastPosition(C,S,Reveal*1e-4)-AHALArenaEffectGenerator::ForecastPosition(C,S,0))/(Reveal*1e-4);
+			TestTrue(TEXT("Reel leaves the roll at its own speed"),FMath::IsNearlyEqual(First,double(Speed),Speed*.02));
+			TestTrue(TEXT("Reel only slows down toward the result"),bSlowing);
+		}
+		for(const auto Later : {EHALArenaEffect::None,Effect})
+		for(const auto Stage : {EHALArenaGeneratorStage::Hint,EHALArenaGeneratorStage::Delay,EHALArenaGeneratorStage::Active,EHALArenaGeneratorStage::Finished})
+		{
+			S.Stage=Stage; S.Effect=Later;
+			TestEqual(TEXT("Later stages hold the result or clear with it"),AHALArenaEffectGenerator::ForecastPosition(C,S,.3),Later==Effect ? Rest : 0.);
+		}
+	}
+	FGeneratorWorld F;
+	for(const bool bPanel : {false,true}) for(const auto Choice : {EHALArenaEffect::SlipperyArea,EHALArenaEffect::BlackHole,EHALArenaEffect::ElectricField})
+	{
+		FHALArenaGeneratorConfig C; C.RandomSeed=SeedFor(Choice); C.bAnimateMeshes=false;
+		if(bPanel) { C.ForecastMaterial=UMaterial::GetDefaultMaterial(MD_Surface); }
+		auto* G=F.Spawn(C); if(!TestNotNull(TEXT("Generator spawns"),G)) { return false; }
+		auto* Panel=FHALArenaGeneratorTestAccess::Panel(G); auto* Text=FHALArenaGeneratorTestAccess::Text(G);
+		TestFalse(TEXT("Panel never collides"),Panel->IsCollisionEnabled());
+		TestTrue(TEXT("Rolling shows the row only when a material is configured"),Panel->IsVisible()==bPanel && Text->IsVisible()!=bPanel);
+		TestEqual(TEXT("Row is one camera-facing quad"),Panel->Elements.Num(),bPanel ? 1 : 0);
+		if(bPanel) { TestTrue(TEXT("Quad spans the configured row in world cm"),FMath::IsNearlyEqual(Panel->Elements[0].BaseSizeY*2,C.ForecastSpacing*2+C.ForecastIconSize*1.3f,.01f)
+			&& FMath::IsNearlyEqual(Panel->Elements[0].BaseSizeX*2,C.ForecastIconSize*2.1f,.01f)); }
+		TestEqual(TEXT("No countdown while rolling"),G->GetForecastCountdown(),-1.f);
+		TestTrue(TEXT("Rolling conceals the result"),G->GetGeneratorState().Effect==EHALArenaEffect::None);
+		FHALArenaGeneratorTestAccess::Due(G);
+		TestTrue(TEXT("Reveal records the measured roll"),G->GetGeneratorState().Stage==EHALArenaGeneratorStage::Revealing
+			&& FMath::IsNearlyEqual(G->GetGeneratorState().RolledSeconds,C.RollSeconds+.001f,.01f));
+		FHALArenaGeneratorTestAccess::Due(G);
+		TestTrue(TEXT("Locked row shows the authority's exact choice"),G->GetGeneratorState().Stage==EHALArenaGeneratorStage::Hint && G->GetDisplayedEffect()==Choice);
+		TestTrue(TEXT("Countdown starts full at the lock"),FMath::IsNearlyEqual(G->GetForecastCountdown(),1.f,.01f));
+		FHALArenaGeneratorTestAccess::Due(G);
+		TestTrue(TEXT("Countdown spans hint and delay as one bar"),G->GetGeneratorState().Stage==EHALArenaGeneratorStage::Delay
+			&& FMath::IsNearlyEqual(G->GetForecastCountdown(),C.SpawnDelaySeconds/(C.HintSeconds+C.SpawnDelaySeconds),.01f));
+		TestTrue(TEXT("Row stays up until the effect spawns"),Panel->IsVisible()==bPanel);
+		FHALArenaGeneratorTestAccess::Due(G);
+		TestTrue(TEXT("Row hides once the effect is active"),G->GetGeneratorState().Stage==EHALArenaGeneratorStage::Active && !Panel->IsVisible() && Text->IsVisible()!=bPanel);
+		TestEqual(TEXT("No countdown while active"),G->GetForecastCountdown(),-1.f);
+		G->Destroy();
+		TestFalse(TEXT("Removed pillar leaves no row"),Panel->IsVisible());
+	}
 	return true;
 }
 #endif

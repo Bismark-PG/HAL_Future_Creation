@@ -1,5 +1,9 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-25　場地效果圖示列加入停下前的減速。** 用戶雙開實玩後回饋轉盤選中前要變慢。揭曉階段改為純減速曲線，由滾動速度一路減到停在伺服器結果上；生成器 BP 時序改為滾動 0.8 秒、減速 1.3 秒，鎖定前總長不變，柱子下沉提早 0.7 秒開始。UE 5.8.4 Editor 已編譯，ArenaGenerator 自動化 6/6 通過。新曲線尚未實拍或實玩，雙端測試本次未重跑，手感待確認。[曲線、BP 修改與驗證](Combat/Arena_Effect_Generator_CN_v0.1.md#2026-11-25-圖示列停下前的減速用戶實玩回饋)
+
+**2026-11-25　場地效果柱子的全息圖示列預示已接入。** 柱子上方以面向攝影機的全息看板顯示單排三圖示，中央正常、兩側縮小變暗，輪播減速後鎖定伺服器抽出的結果，倒數條走完才生成效果。UE 5.8.4 Editor 已編譯，ArenaGenerator 自動化 6/6 通過（含新增 `ForecastRow`），同機雙進程網路測試主客各 1/1 通過。生成器 BP 已指定全息材質，重啟 Editor 後在 `Fred_TestScene` PIE 實拍確認外觀與各階段顯隱。依實測玩家攝影機（俯角 80°、FOV 90°、離地約 1670 cm）推算後，BP 的圖示尺寸改為 100 cm、間距 105 cm；單人 PIE 無法進入比賽，比賽中的實際畫面、客戶端畫面與四人實玩均未驗證，需雙人 Listen Server 實玩確認。三張圖示為佔位美術。本機引擎實際為 5.8.4（CL58902052），與先前記錄的 5.8.3 不同，請團隊核對補丁版本。[設定、BP 修改留檔與待辦](Combat/Arena_Effect_Generator_CN_v0.1.md) · [測試圖實拍](Combat/Art/ArenaGenerator/ForecastRow_PIE.jpg)
+
 **2026-11-25　修复定时炸弹挂车引爆只扣血的问题。** 旧版在正式图的主机与客户端均测到 25 HP 伤害、0 cm 后退和 0 cm 上升。修复后车头磁扣与地爆共用球型 DA 的冲击结算。在 `Fred_TestScene` 持球归零后 0.8 秒内，Car07 后退 5.23 米、升高 2.74 米，技能木桩后退 5.30 米、升高 4.32 米。`MVPB_Match` 一主一客、主机出站 80 ms 的实测覆盖换手后挂车引爆和落地范围爆炸。Win64 Development Editor 与 Game 均已编译，相关自动化 30/30 通过。独立打包版在进入地图前以 777006 退出，包内实玩待验证。[规则与本次实测](Combat/Special_Ball_Base_CN.md#timed-bomb-impact)
 
 **2026-11-25　定时炸弹球已作为第四种特殊球接入正式生成盘。** B 款红白磁扣搭配 A 款分段表盘。首次碰车或主动撞车转交都会挤掉接手车的原球，引信只在首次上车时点火。本机 `MVPB_Match` 在 80 ms 模拟延迟下完成双端实车验证。车上归零只扣持有者 25 HP，落地归零时两辆范围内的车各扣 25 HP，未点火的球巡游 20 秒后无伤消散。UE 5.8.3 Editor、Game 已编译，球专项 18/18 通过，Windows 定向 Cook 完成 10 个包。团队四人实玩待确认巡游速度和接力窗口。控制台输入 `HALSpawnTimedBombBall` 可直接试球。[规则、调参与实测](Combat/Special_Ball_Base_CN.md#timed-bomb-concepts) · [客户端磁扣转交回放](Combat/Art/TimedBombBall/Clasp_Handoff.webp)

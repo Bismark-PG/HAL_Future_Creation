@@ -1,6 +1,62 @@
 # 場地效果柱子生成器
 
-## 下一環節：單排老虎機圖示演出（方案確認，尚未實作）
+## 2026-11-25 圖示列停下前的減速（用戶實玩回饋）
+
+用戶以雙開獨立視窗實玩後要求：轉盤即將選中時要有轉速變慢的效果。原先Rolling 1.5秒等速、Revealing只有0.6秒，且舊的Hermite曲線在停點較遠時中途會再加速，減速感不明顯。
+
+改動：
+- `ForecastPosition`的Revealing改為純減速曲線`p = Start + D×(1-(1-s)^n)`，`n = 滾動速度×RevealSeconds÷D`，因此離開Rolling時速度連續，之後只減不增，最後停在權威結果上。停點取「Start＋速度×RevealSeconds÷1.6」以內最後一個對應結果的整數格（n≥1.6，均勻煞車、收尾乾脆）；若距離小於「速度×RevealSeconds÷3.2」（會先急煞再爬行）則再往後一圈。n夾在1.5～4。
+- 結果仍在Rolling結束時才由伺服器抽出，所以減速只能發生在Revealing。速度×RevealSeconds需≥約10.4格（8格／秒時約1.3秒）才放得下一整圈的選擇範圍；更短的Revealing會夾住n，離開Rolling時有小幅速度跳變。
+- `BP_HALArenaEffectGenerator` Class Defaults：`Settings.RollSeconds` 1.5→0.8、`Settings.RevealSeconds` 0.6→1.3（Editor Python修改、編譯並保存）。鎖定前總長維持2.1秒；柱子下沉動畫橫跨Reveal＋Hint＋Delay，因此由3.1秒變為3.8秒、提早0.7秒開始下沉。原生C++預設仍為1.5／0.6。
+
+驗證：UE 5.8.4 Editor增量編譯成功；獨立無頭行程`HAL.FutureCreation.ArenaGenerator` 6/6通過、0警告（`Saved/ArenaGenerator/20261125/Slowdown_Native_R2`）。`ForecastRow`新增1.3秒Reveal案例，並斷言足夠長的Reveal以滾動速度起步（誤差2%內）且200個取樣的速度單調不增。**新曲線未實拍、未實玩**：`Slowdown_PIE_R1`拍的是前一版參數（÷2、n 2～5），當時後段近乎靜止，因而改為現值；雙端Network測試本次未重跑（改動只在純函數與BP時序）。減速手感需用戶／團隊實玩確認。
+
+
+## 2026-11-25 全息圖示列預示（已編譯、自動化與測試圖PIE實拍通過；正式機位待調）
+
+**狀態：UE 5.8.4（CL58902052）Win64 Development Editor經`BuildAndLaunch.cmd -NoLaunch`增量編譯成功（`Saved/BuildTool/BuildAndLaunch_20261125_185019_379_a1b4bd`）。獨立無頭行程`HAL.FutureCreation.ArenaGenerator` 6/6通過、0警告（`Saved/ArenaGenerator/20261125/Forecast_Native_R2`）。同機雙進程`HAL.NetworkSmoke.ArenaGenerator.ThreeEffectLoop`（`MVPB_NetTest?listen`＋127.0.0.1客戶端，測試內建主機出站80ms）Host／Client各1/1通過（`Forecast_Network_R1`）。`BP_HALArenaEffectGenerator`已指定材質；重啟Editor後於`Fred_TestScene` PIE實拍（`Forecast_PIE_R4`）確認橫向三圖示、中央選取框、鎖定換代表色、倒數條、光錐、掃描線，以及效果生成後面板與調試文字皆隱藏。**
+
+![測試圖PIE實拍：滾動、鎖定、倒數、生成後隱藏](Art/ArenaGenerator/ForecastRow_PIE.jpg)
+
+過程留檔：首版編譯與6/6（`Forecast_Native_R1`）後的實拍`Forecast_PIE_R3`發現看板寬高軸對調（引擎Sprite的U對應`BaseSizeY`、V對應`BaseSizeX`）及光錐過淡；已在C++對調、加強材質光錐，並改為配置材質後全程隱藏調試文字，上述結果為修正後的複測。`Forecast_PIE_R1／R2`因工具未生成藍圖柱子而無效。雙端測試為NullRHI，不能代替畫面證據；它不直接斷言圖示列，只證明新增複製欄位後原有三效果循環仍在兩端通過。
+
+用戶確認的外觀：柱子上方一塊面向攝影機的全息投影看板（billboard），單排橫向三圖示（打滑／黑洞／電場），中央1.0倍、兩側縮小並變暗，快速輪播→減速→鎖定在伺服器抽出的結果；鎖定後選取框與中央圖示換成該效果代表色，下方一條倒數條走完Hint＋Delay，歸零才生成效果。看板下半部畫一道收束到柱頂的投影光錐，整體帶掃描線。曾短暫改為「單格老虎機」，用戶看過示意後改回本方案。
+
+實作邊界：
+- 結果、時序、生成仍只由伺服器`State`決定；演出不抽選。`State`新增`RolledSeconds`（本輪Rolling實際長度），各端由同一份`State`＋`Settings`算出相同的列位置，晚加入直接呈現當前階段。
+- `AHALArenaEffectGenerator::ForecastPosition`是純函數：Rolling按`Forecast Roll Speed`等速；Revealing由等速減到0並停在對應結果的整數格，不倒退（曲線已於同日改為純減速，見最上方條目）。`RevealSeconds=0`時直接落在結果。
+- 顯示用一個`UMaterialBillboardComponent`（`ForecastPanel`）單一四邊形；排版、縮放、變暗、選取框、倒數條、光錐、掃描線全在材質`M_ArenaForecast_Hologram`的Custom節點內完成。C++只在面板可見時以60Hz計時器寫`Position／Lock／Progress／LockColor`四個參數，沒有新增Actor Tick或RPC。Dedicated Server不建立演出。
+- 面板在Rolling／Revealing／Hint／Delay顯示，Active／Finished／Waiting／Disabled隱藏。`Forecast Material`留空時完全沿用原本的StageText文字（原生預設即留空，舊BP／實例行為不變）。
+
+新增設定（`Settings → Presentation → Forecast`）：
+
+| 欄位 | 預設／範圍 | 說明 |
+|---|---|---|
+| Forecast Material | 空 | 指定`M_ArenaForecast_Hologram`後啟用圖示列並隱藏文字 |
+| Slippery Area／Black Hole／Electric Field Icon | 空 | 留空用材質內建的佔位圖示；可各自換成正式圖 |
+| Forecast Icon Size | 220cm；10～2000 | 中央圖示邊長，世界cm，不乘Actor Scale |
+| Forecast Side Scale | 0.65；0.1～1 | 兩側圖示相對中央的大小 |
+| Forecast Spacing | 230cm；10～4000 | 相鄰圖示中心距離，世界cm |
+| Forecast Roll Speed | 8格／秒；0.5～30 | Rolling等速，Reveal由此減速 |
+
+面板高度沿用`Text Height Offset`（局部cm，乘Actor Scale）；面板中心再往上抬半個面板高度，使光錐尖端落在柱頂附近。材質另有`SideBrightness`(0.45)、`Glow`(1.6)、`Opacity`(0.92)、`HoloColor`可在材質／材質實例調整。
+
+資產與腳本：`Tools/ArenaGenerator/MakePlaceholderIcons.py`（系統Python＋Pillow，輸出`Tools/ArenaGenerator/Art/*.png`白色線稿佔位圖）；`Tools/ArenaGenerator/CreateForecastAssets.py`（Editor Python，幂等，匯入三張`T_ArenaForecast_*`並重建材質）。2026-11-25已在UE 5.8.4（CL58902052）Editor執行一次，材質編譯成功（Translucent／Unlit／雙面、4個取樣器、PS 308指令）並保存於`/Game/Assets/FX/ArenaGenerator/`。
+
+測試：新增`HAL.FutureCreation.ArenaGenerator.ForecastRow`——設定範圍、列位置的連續性／不倒退／停在權威結果（3種速度×3種Reveal×5種Rolling長度×3效果）、有無材質兩種情況下面板與文字的顯隱、世界尺寸、倒數由1走到0並橫跨Hint＋Delay、Active與移除後隱藏。修正後複跑6/6通過。
+
+藍圖修改留檔：`/Game/Blueprints/MapMechanic/BP_HALArenaEffectGenerator` Class Defaults → `Settings.ForecastMaterial`由`None`改為`/Game/Assets/FX/ArenaGenerator/M_ArenaForecast_Hologram`；經Editor Python修改、編譯並保存，未動Event Graph／組件。修改前工作區無該BP的未提交改動。
+
+正式機位尺寸（2026-11-25，依實測攝影機推算，**未在比賽中實看**）：在`MVPB_Match_Temp` PIE讀到玩家攝影機俯角80°、FOV 90°、離地約1670cm；`MVPB_Match`的柱子現為Scale=1、位置(520,-820,-200)（先前記錄的約3.6倍縮放已不適用），實例已繼承`Forecast Material`。原生預設220／230cm在此機位下面板寬約佔畫面36%，過大。已將`BP_HALArenaEffectGenerator` Class Defaults的`Settings.ForecastIconSize`由220改為100、`Settings.ForecastSpacing`由230改為105（Editor Python修改、編譯並保存），推算面板寬340cm、約佔畫面寬15%，中央圖示約佔4%（1920寬約80px）。原生C++預設仍為220／230。俯角80°時看板幾乎平貼在柱子正上方，會半透明蓋住柱子與周圍約490×300cm地面，光錐尖端不一定對準柱頂。
+
+無法在比賽中實拍的原因：單人PIE不是Listen Server且人數不足，`TryStartMatch`拒絕開始；賽前階段`bWorldInteractions`為false，生成器停在Waiting。三次嘗試（`Forecast_Match_R1～R3`，含`HALStartMatch`與暫時關閉`bWaitForMatchStart`，後者已還原為true且未保存）畫面中都沒有面板，不作證據。
+
+待辦與已知風險：
+1. 只在`Fred_TestScene`以Scale=1的臨時生成柱子、固定機位看過。`MVPB_Match`比賽中的實際畫面（夜場曝光、玩家攝影機、柱子下沉動畫同時進行）未看；BP尺寸為推算值，需雙人Listen Server實玩確認後再調尺寸／`Text Height Offset`。
+2. 客戶端畫面未實拍；兩端圖示列是否同格停下只有純函數測試與複製欄位保證，未以雙端畫面比對。
+3. 佔位圖示非正式美術。面板保留深度測試，可能被高物件遮擋。真人、四人、晚加入／重連、Cook與打包均未測。
+
+## 下一環節：單排老虎機圖示演出（方案確認；實作見上方2026-11-25）
 
 用戶確認將現有文字／倒數替換為柱子上方的單排橫向圖示列，在打滑／黑洞／電場三種Icon中抽選。中央選中Icon保持正常1.0倍大小，兩側未選中縮小（建議初始0.65倍，可調）並降低亮度；輪播移動時平滑插值大小，減速後鎖定權威選中結果。鎖定後顯示提示與生成延遲的統一倒數／進度條，到期才生成效果。沿用現有柱子旋轉下沉／升回，面板留在上方；Text Height Offset預計套用面板高度。結果、時序與生成繼續由現有伺服器State管理，C++實作演出，BP僅配置三張圖示與外觀，不在演出重新抽玩法結果。預計參數為正常尺寸、未選中縮放、間距、輪播速度、面板高度。具體圖示、樣式與節奏仍待實作／驗收。
 

@@ -8,6 +8,7 @@
 #include "HALRoomComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/DynamicMeshComponent.h"
+#include "Components/MaterialBillboardComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/TextRenderComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -15,7 +16,9 @@
 #include "DynamicMesh/DynamicMeshAttributeSet.h"
 #include "DynamicMesh/MeshNormals.h"
 #include "Engine/World.h"
+#include "Engine/Texture2D.h"
 #include "Materials/Material.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
 
@@ -99,6 +102,9 @@ bool FHALArenaGeneratorConfig::Validate(FString& Error) const
 	if (!FMath::IsFinite(MeshSinkDepth) || MeshSinkDepth < 0 || MeshSinkDepth > 10000
 		|| !FMath::IsFinite(MeshRotationDegrees) || FMath::Abs(MeshRotationDegrees) > 7200)
 	{ Error = TEXT("Invalid mesh sink depth or rotation."); return false; }
+	const auto Range = [](float V, float Min, float Max) { return FMath::IsFinite(V) && V >= Min && V <= Max; };
+	if (!Range(ForecastIconSize,10,2000) || !Range(ForecastSideScale,.1f,1) || !Range(ForecastSpacing,10,4000) || !Range(ForecastRollSpeed,.5f,30))
+	{ Error = TEXT("Invalid forecast icon size, side scale, spacing or roll speed."); return false; }
 	for (const auto Effect : {EHALArenaEffect::SlipperyArea,EHALArenaEffect::BlackHole,EHALArenaEffect::ElectricField})
 	{
 		if (!Offset(PlacementOffset(Effect))) { Error = TEXT("Combined effect offset exceeds 10000 cm on an axis."); return false; }
@@ -132,6 +138,9 @@ AHALArenaEffectGenerator::AHALArenaEffectGenerator()
 	StageText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("StageText")); StageText->SetupAttachment(RootComponent);
 	StageText->SetHorizontalAlignment(EHTA_Center); StageText->SetVerticalAlignment(EVRTA_TextCenter);
 	StageText->SetWorldSize(22); StageText->SetRelativeRotation(FRotator(90,0,0));
+	ForecastPanel = CreateDefaultSubobject<UMaterialBillboardComponent>(TEXT("ForecastPanel")); ForecastPanel->SetupAttachment(RootComponent);
+	ForecastPanel->SetCollisionEnabled(ECollisionEnabled::NoCollision); ForecastPanel->SetGenerateOverlapEvents(false);
+	ForecastPanel->SetCastShadow(false); ForecastPanel->SetVisibility(false);
 }
 bool AHALArenaEffectGenerator::ConfigureGenerator(const FHALArenaGeneratorConfig& Config)
 {
@@ -158,6 +167,10 @@ void AHALArenaEffectGenerator::RefreshGeometry()
 	HintRing->SetMaterial(0,UMaterial::GetDefaultMaterial(MD_Surface));
 	const float TextOffset = FMath::IsFinite(Settings.TextHeightOffset) ? FMath::Clamp(Settings.TextHeightOffset,-10000.f,10000.f) : 0.f;
 	StageText->SetRelativeLocation(FVector(0,0,Extent.Z*2+12+TextOffset));
+	// The billboard is sized in world cm, so lift its centre by half its world height above the scaled anchor.
+	const double ScaleZ = FMath::Max(double(KINDA_SMALL_NUMBER),FMath::Abs(GetActorScale3D().Z));
+	ForecastPanel->SetRelativeLocation(FVector(0,0,Extent.Z*2+TextOffset+ForecastPanelSize().Y*.5/ScaleZ));
+	ForecastMID = nullptr;
 	BuiltRingRadius = -1;
 }
 void AHALArenaEffectGenerator::BeginPlay()
@@ -230,6 +243,7 @@ void AHALArenaEffectGenerator::UpdateGenerator()
 				State.Effect = FHALArenaGeneratorConfig::Draw(Random); PendingClass = Settings.EffectClass(State.Effect);
 				State.EffectCenter = GetActorLocation()+Settings.PlacementOffset(State.Effect);
 				State.WarningRadius = Settings.PreviewRadius(State.Effect);
+				State.RolledSeconds = float(FMath::Max(0.,ServerNow()-State.StartedAt));
 				EnterStage(EHALArenaGeneratorStage::Revealing,Settings.RevealSeconds); break;
 			case EHALArenaGeneratorStage::Revealing: EnterStage(EHALArenaGeneratorStage::Hint,Settings.HintSeconds); break;
 			case EHALArenaGeneratorStage::Hint: EnterStage(EHALArenaGeneratorStage::Delay,Settings.SpawnDelaySeconds); break;
@@ -279,8 +293,7 @@ void AHALArenaEffectGenerator::RemoveEffect()
 EHALArenaEffect AHALArenaEffectGenerator::GetDisplayedEffect() const
 {
 	if (State.Stage != EHALArenaGeneratorStage::Rolling) { return State.Effect; }
-	const int32 Index = int32(FMath::FloorToDouble(FMath::Max(0.,ServerNow()-State.StartedAt)/.12))%3;
-	return static_cast<EHALArenaEffect>(1+Index);
+	return static_cast<EHALArenaEffect>(1+int32(FMath::RoundToDouble(GetForecastPosition()))%3);
 }
 float AHALArenaEffectGenerator::GetStageRemainingSeconds() const
 {
@@ -292,6 +305,7 @@ void AHALArenaEffectGenerator::RefreshPresentation()
 	// Runs on authority (including dedicated servers) and peers, independent of render-only copies.
 	if (bReady) { UpdatePillarCollision(); }
 	RefreshMeshMotion();
+	RefreshForecast();
 	const bool bWarning = State.Stage == EHALArenaGeneratorStage::Hint || State.Stage == EHALArenaGeneratorStage::Delay;
 	HintRing->SetVisibility(bWarning && State.WarningRadius > 0);
 	if (bWarning && State.WarningRadius > 0)
@@ -342,6 +356,84 @@ void AHALArenaEffectGenerator::RefreshPresentation()
 		bPresented=true; PresentedStage=State.Stage; PresentedCycle=State.Cycle;
 		if (GetNetMode()!=NM_DedicatedServer) { OnGeneratorStageChanged(State.Stage,State.Effect,State.Cycle); }
 	}
+}
+
+double AHALArenaEffectGenerator::ForecastPosition(const FHALArenaGeneratorConfig& Config, const FHALArenaGeneratorState& InState, double Age)
+{
+	const double Speed = Config.ForecastRollSpeed;
+	if (InState.Stage == EHALArenaGeneratorStage::Rolling) { return FMath::Max(0.,Age)*Speed; }
+	if (InState.Stage == EHALArenaGeneratorStage::Waiting || InState.Stage == EHALArenaGeneratorStage::Disabled || InState.Effect == EHALArenaEffect::None) { return 0; }
+	// The reel only ever slows down: p = Start + D*(1-(1-s)^n) leaves the roll at exactly its speed when n = Tangent/D.
+	// The stop is the last matching icon within Tangent/1.6 (n >= 1.6: steady braking that ends in a crisp click),
+	// pushed a lap on when that would brake too hard and then crawl (n > 3.2). Reveals shorter than ~1.3 s at
+	// 8 icons/s cannot fit a whole lap in that window and clamp n instead, at the cost of a small speed step.
+	const double Start = FMath::Max(0.,double(InState.RolledSeconds))*Speed, Tangent = Speed*FMath::Max(0.f,Config.RevealSeconds);
+	int64 Target = FMath::FloorToInt64(Start+Tangent/1.6+1e-6);
+	Target -= ((Target-(int64(InState.Effect)-1))%3+3)%3;
+	while (double(Target)-Start < FMath::Max(.75,Tangent/3.2)) { Target += 3; }
+	if (InState.Stage != EHALArenaGeneratorStage::Revealing || Config.RevealSeconds <= 0) { return double(Target); }
+	const double Distance = double(Target)-Start, S = FMath::Clamp(Age/Config.RevealSeconds,0.,1.);
+	return Start+Distance*(1.-FMath::Pow(1.-S,FMath::Clamp(Tangent/Distance,1.5,4.)));
+}
+float AHALArenaEffectGenerator::GetForecastPosition() const
+{
+	return float(ForecastPosition(Settings,State,ServerNow()-State.StartedAt));
+}
+float AHALArenaEffectGenerator::GetForecastCountdown() const
+{
+	const bool bHint = State.Stage == EHALArenaGeneratorStage::Hint;
+	if (!bHint && State.Stage != EHALArenaGeneratorStage::Delay) { return -1; }
+	const float Total = Settings.HintSeconds+Settings.SpawnDelaySeconds;
+	return Total > 0 ? FMath::Clamp((GetStageRemainingSeconds()+(bHint ? Settings.SpawnDelaySeconds : 0))/Total,0.f,1.f) : 0;
+}
+FVector2D AHALArenaEffectGenerator::ForecastPanelSize() const
+{
+	// Row of three icons with a margin, plus room below for the countdown bar and the projection beam.
+	const double Icon = FMath::Clamp(FMath::IsFinite(Settings.ForecastIconSize) ? Settings.ForecastIconSize : 220.f,10.f,2000.f);
+	const double Gap = FMath::Clamp(FMath::IsFinite(Settings.ForecastSpacing) ? Settings.ForecastSpacing : 230.f,10.f,4000.f);
+	return FVector2D(Gap*2+Icon*1.3,Icon*2.1);
+}
+void AHALArenaEffectGenerator::RefreshForecast()
+{
+	if (!bReady) { return; }
+	const bool bShown = !bEnding && Settings.ForecastMaterial && !IsNetMode(NM_DedicatedServer)
+		&& (State.Stage == EHALArenaGeneratorStage::Rolling || State.Stage == EHALArenaGeneratorStage::Revealing
+			|| State.Stage == EHALArenaGeneratorStage::Hint || State.Stage == EHALArenaGeneratorStage::Delay);
+	if (bShown && (!ForecastMID || ForecastMID->Parent != Settings.ForecastMaterial))
+	{
+		const FVector2D Size = ForecastPanelSize();
+		ForecastMID = UMaterialInstanceDynamic::Create(Settings.ForecastMaterial,this);
+		ForecastMID->SetVectorParameterValue(TEXT("PanelSize"),FLinearColor(Size.X,Size.Y,0,0));
+		ForecastMID->SetScalarParameterValue(TEXT("IconSize"),Settings.ForecastIconSize);
+		ForecastMID->SetScalarParameterValue(TEXT("Spacing"),Settings.ForecastSpacing);
+		ForecastMID->SetScalarParameterValue(TEXT("SideScale"),Settings.ForecastSideScale);
+		if (Settings.SlipperyAreaIcon) { ForecastMID->SetTextureParameterValue(TEXT("IconSlippery"),Settings.SlipperyAreaIcon); }
+		if (Settings.BlackHoleIcon) { ForecastMID->SetTextureParameterValue(TEXT("IconBlackHole"),Settings.BlackHoleIcon); }
+		if (Settings.ElectricFieldIcon) { ForecastMID->SetTextureParameterValue(TEXT("IconElectric"),Settings.ElectricFieldIcon); }
+		FMaterialSpriteElement Element; Element.Material = ForecastMID;
+		// The engine sprite maps U (our row axis) to BaseSizeY and V to BaseSizeX; verified in PIE.
+		Element.BaseSizeX = Size.Y*.5f; Element.BaseSizeY = Size.X*.5f;
+		ForecastPanel->SetElements({Element});
+	}
+	// The debug text is the fallback only; a configured row replaces it in every stage.
+	ForecastPanel->SetVisibility(bShown); StageText->SetVisibility(!Settings.ForecastMaterial && !bEnding);
+	if (!bShown) { GetWorldTimerManager().ClearTimer(ForecastTimer); return; }
+	UpdateForecast();
+	if (!GetWorldTimerManager().IsTimerActive(ForecastTimer))
+	{
+		FTimerManagerTimerParameters Timer; Timer.bLoop = true; Timer.bMaxOncePerFrame = true;
+		GetWorldTimerManager().SetTimer(ForecastTimer,this,&ThisClass::UpdateForecast,1.f/60,Timer);
+	}
+}
+void AHALArenaEffectGenerator::UpdateForecast()
+{
+	if (!ForecastMID) { return; }
+	// Wrapped so the shader keeps full float precision on long rolls; the three icons repeat exactly.
+	ForecastMID->SetScalarParameterValue(TEXT("Position"),float(FMath::Fmod(double(GetForecastPosition()),3.)));
+	const bool bLocked = State.Stage == EHALArenaGeneratorStage::Hint || State.Stage == EHALArenaGeneratorStage::Delay;
+	ForecastMID->SetScalarParameterValue(TEXT("Lock"),bLocked ? 1.f : 0.f);
+	ForecastMID->SetScalarParameterValue(TEXT("Progress"),GetForecastCountdown());
+	ForecastMID->SetVectorParameterValue(TEXT("LockColor"),FLinearColor(EffectColor(State.Effect)));
 }
 
 void AHALArenaEffectGenerator::UpdatePillarCollision()
@@ -470,7 +562,7 @@ void AHALArenaEffectGenerator::OnRep_State() { RefreshPresentation(); }
 void AHALArenaEffectGenerator::EndPlay(const EEndPlayReason::Type Reason)
 {
 	bEnding=true; GetWorldTimerManager().ClearTimer(UpdateTimer); RemoveEffect();
-	ClearMeshMotion();
+	ClearMeshMotion(); GetWorldTimerManager().ClearTimer(ForecastTimer); ForecastPanel->SetVisibility(false);
 	ClearPillarCollision();
 	HintRing->SetVisibility(false); StageText->SetVisibility(false);
 	Super::EndPlay(Reason);
