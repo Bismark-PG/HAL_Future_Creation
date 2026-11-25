@@ -42,7 +42,19 @@
 
 **场上特殊球数量没有硬上限。** 玩家把球带离盘心后，后续仍能继续投放。想让多球同场更常见，可以缩短共享 DA 的 `Drop Interval`，或在对应球型 DA 延长 `Free Life Seconds`。持球、正式飞行继续沿用各球自己的暂停计时规则。
 
-**增设点位。** 在关卡复制已有生成盘，或从 Place Actors 拖入 **HAL Special Ball Pad**。把 Actor 原点对齐实际行车面，在 Details 设置 `Rotation Order` 指定轮转顺序。当地板装饰比碰撞面高时，填入 `Deck Finish Offset`，正式图两处均为 3.75 cm。机关只参与显示，车轮、球和射线都使用原场地碰撞。模型和三种材质实例位于 `/Game/Assets/ArenaMechanics/SpecialBallPad`，可以独立调色。只有服务器投放，客户端从复制的预告和球体状态显示结果。
+**生成盘可以直接放置。** Outliner 里的 `Open HALSpecial Ball Pad` 指向可直接放进关卡的 C++ Actor。每个盘记录位置、轮转顺序和钢板的装饰高度。GameState 上的供球组件在开赛时收集全场点位，由服务器统一计时并选球，客户端显示同一次亮灯预告。制作同款盘只需布点，修改共享 DA 即可统一调节整场投放。
+
+**在正式图加第三个盘**
+
+1. 打开 `MVPB_Match`，在 **Gimmick → Special Ball Pads** 选中 `SpecialBallPad_SW`，按 **Ctrl+W** 复制，改成便于识别的名字。也可以在 **Place Actors** 搜索 **Special Ball Pad**，将原生类 `HALSpecialBallPad` 拖入关卡。
+2. 将盘心移到空旷位置。Actor 原点放在车辆实际行驶的碰撞面。现有两处内场的世界 **Z 为 −200.274 cm**。同款钢板保留 **Deck Finish Offset = 3.75 cm**，它只抬升可见盘面。若在其他高度布置，把原点重新对齐当地行车面；高度相差超过 8 cm 的点位会被跳过。
+3. 在 Details 把 **Rotation Order** 设为 **2**（东北为 0，西南为 1），保存关卡，重新开一场比赛。新盘会自动进入轮转。默认全场仍每 25 秒投一颗，遇到被占用的盘会按规则选择空位。
+
+如果把第三个盘纳入正式地图基线，同时更新 `HAL.NetworkSmoke.SpecialBallSupply.FormalMatch` 对正式点位数量的断言。目前该回归用例按两盘验收。
+
+2026-11-25 在正式图的临时 PIE 副本放入同类 Actor，设为顺序 2，以原有投放参数、三倍测试时间流速实际开赛。服务器依次在 0、1、2 号盘投出爆炸球、黑洞球、陨石球；客户端在同样三个盘心看到相同球型。这是当次洗牌的结果。记录在本机 `Saved/PrimaryBallA/ThirdPad.json`。
+
+生成盘的六孔模型和三个材质实例位于 `/Game/Assets/ArenaMechanics/SpecialBallPad`。单独拖入网格只会摆放模型，要参加轮转应拖入上述 Actor 类。
 
 **2026-11-24 实测。** UE 5.8.3 的 Development Editor 与 Game 均已编译。连续投放六颗，其中一颗被持有，验证了多球共存、两轮洗牌、盘心阻挡重试、跳过和重新开赛。正式图的两个盘都通过盘心和两侧的地面射线检查，主机车辆横穿空盘期间测得车身高度变化小于 0.01 cm。主机出站模拟 60 ms 延迟，主机与独立客户端均看到东北盘在约第 15 秒生成陨石球、西南盘在约第 40 秒生成爆炸球。以下三帧来自同一客户端机位，依次为待机、盘心预告和球体生成。[游戏内三帧实拍](Art/SpecialBallPad/SupplyPad_InGame.jpg)
 
