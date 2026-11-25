@@ -68,6 +68,7 @@ SourceArt/**/*.tga
 !SourceArt/SlipperyTrail/T_SlipperyTrail_OilSheen_Mask.png
 !SourceArt/SkillIcons/Car03_Car04_Pilot/*.png
 !SourceArt/SkillIcons/Competition/T_Skill_*.png
+!SourceArt/VehiclePortraits/T_Car_??_Icon.png
 
 # Binary Files
 Binaries/*

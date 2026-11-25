@@ -16,11 +16,17 @@
 #include "../HALMovementAreaReceiver.h"
 #include "../HALImpactImmunityEffects.h"
 #include "../HALImpactImmunityAbility.h"
+#include "../HALVehiclePresentationConfig.h"
 #include "../HALGameplayTags.h"
 #include "../CombatResolver.h"
 #include "Engine/Engine.h"
+#include "Engine/SkeletalMesh.h"
 #include "Engine/World.h"
+#include "Engine/Texture2D.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "PreviewScene.h"
+#include "UObject/StructOnScope.h"
 
 namespace
 {
@@ -179,9 +185,36 @@ bool FHALConfiguredRoomAssetsTest::RunTest(const FString&)
 {
 	auto* Catalog = LoadObject<UHALVehicleCatalog>(nullptr,TEXT("/Game/Data/Gameflow/DA_VehicleCatalog_Default.DA_VehicleCatalog_Default"));
 	if (!TestNotNull(TEXT("Team's saved catalog"),Catalog)) { return false; }
-	FString Error; TestTrue(TEXT("Both saved classes have valid migrated definitions"),Catalog->Validate(Error));
-	TestNotNull(TEXT("Car_01 ID resolves"),Catalog->Resolve(TEXT("Car_01"),Error)); TestNotNull(TEXT("Car_02 ID resolves"),Catalog->Resolve(TEXT("Car_02"),Error));
-	// Asset names are not rules; profile intent is checked separately in the handoff record.
+	FString Error;
+	if (!Catalog->Validate(Error)) { AddError(Error); return false; }
+	for (int32 Number = 1; Number <= 12; ++Number)
+	{
+		const FName Id(*FString::Printf(TEXT("Car_%02d"), Number));
+		const auto* Entry = Catalog->Vehicles.FindByPredicate([Id](const FHALVehicleCatalogEntry& Car) { return Car.VehicleId == Id; });
+		TestNotNull(FString::Printf(TEXT("Production roster contains %s"), *Id.ToString()), Entry);
+	}
+	UClass* PreviewClass = LoadClass<AActor>(nullptr, TEXT("/Game/UI/GameFlow/Screens/PreMatchFlow/Preview/BP_VehiclePreview.BP_VehiclePreview_C"));
+	if (!TestNotNull(TEXT("Room preview Blueprint"), PreviewClass)) { return false; }
+	FPreviewScene Scene(FPreviewScene::ConstructionValues().SetCreateDefaultLighting(false));
+	AActor* Preview = Scene.GetWorld()->SpawnActor<AActor>(PreviewClass);
+	if (!TestNotNull(TEXT("Room preview instance"), Preview)) { return false; }
+	auto* Mesh = Preview->FindComponentByClass<USkeletalMeshComponent>();
+	auto* Select = Preview->FindFunction(TEXT("SetPreviewVehicle"));
+	const auto* IdParam = Select ? FindFProperty<FNameProperty>(Select, TEXT("VehicleId")) : nullptr;
+	if (!TestNotNull(TEXT("Preview mesh component"), Mesh) || !TestNotNull(TEXT("Preview accepts vehicle ID"), IdParam)) { return false; }
+	FStructOnScope Args(Select);
+	for (const auto& Entry : Catalog->Vehicles)
+	{
+		const FString Id = Entry.VehicleId.ToString();
+		TestNotNull(Id + TEXT(" portrait"), Entry.Icon.LoadSynchronous());
+		const auto* Definition = Entry.VehicleClass.LoadSynchronous()->GetDefaultObject<ATestVehiclePawn>()->GetVehicleDefinition();
+		const auto* Presentation = Definition->Presentation.Get();
+		if (!TestNotNull(Id + TEXT(" presentation"), Presentation)) { continue; }
+		TestTrue(Id + TEXT(" baked HUD colour"), Entry.bHasHUDDominantColor && Entry.HUDColorSource.Get() == Presentation->Mesh);
+		IdParam->SetPropertyValue_InContainer(Args.GetStructMemory(), Entry.VehicleId);
+		Preview->ProcessEvent(Select, Args.GetStructMemory());
+		TestTrue(Id + TEXT(" shows its driving mesh in the room preview"), Mesh->IsVisible() && Mesh->GetSkeletalMeshAsset() == Presentation->Mesh);
+	}
 	return true;
 }
 #endif

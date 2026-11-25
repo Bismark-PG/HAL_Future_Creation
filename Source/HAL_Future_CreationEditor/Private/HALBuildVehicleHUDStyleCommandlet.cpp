@@ -149,6 +149,8 @@ return float4(rgb,alpha);
 			for (const auto* C : Components) if (C->GetSkeletalMeshAsset() == Mesh && C->GetMaterial(MaterialIndex)) { Material = C->GetMaterial(MaterialIndex); break; }
 			if (!Material) { return false; }
 			FMaterialData Settings; Settings.Material = Material; Settings.PropertySizes.Add(MP_BaseColor, FIntPoint(HUDBakeSize));
+			// Uncovered texels must not vote for the baking module's magenta clear colour.
+			Settings.BackgroundColor = FColor(255, 0, 255, 0);
 			Settings.bPerformBorderSmear = true; Settings.bPerformShrinking = false;
 			FMeshData Geometry; Geometry.MeshDescription = bQuad ? nullptr : Description; Geometry.MaterialIndices.Add(Group.GetValue()); Geometry.PrimitiveData = FPrimitiveData(Mesh); Geometry.TextureCoordinateBox = UVBounds;
 			TArray<FBakeOutput> Output; Baking.BakeMaterials(TArray<FMaterialData*>{&Settings}, TArray<FMeshData*>{&Geometry}, Output);
@@ -169,6 +171,7 @@ return float4(rgb,alpha);
 					// Bake over actual bounds while leaving original shader UVs, including negative/tiled coordinates, unchanged.
 					const FVector2D InBake = (FVector2D(UV.X,UV.Y) - UVBounds.Min) / UVBounds.GetSize();
 					FColor Color = Colors[FMath::Clamp(int32(InBake.Y * Size.Y),0,Size.Y-1)*Size.X + FMath::Clamp(int32(InBake.X * Size.X),0,Size.X-1)];
+					if (Color == Settings.BackgroundColor) { continue; }
 					if (bLinear) { Color = Color.ReinterpretAsLinear().ToFColorSRGB(); } Color.A = 255;
 					Samples.Add({Color, Area / 16});
 				}
@@ -187,21 +190,35 @@ UHALBuildVehicleHUDStyleCommandlet::UHALBuildVehicleHUDStyleCommandlet()
 int32 UHALBuildVehicleHUDStyleCommandlet::Main(const FString& Params)
 {
 	FString CatalogPath, TexturePath, MaterialPath, ArtPath;
-	if (!FParse::Value(*Params,TEXT("Catalog="),CatalogPath) || !FParse::Value(*Params,TEXT("Background="),TexturePath)
-		|| !FParse::Value(*Params,TEXT("Material="),MaterialPath) || !FParse::Value(*Params,TEXT("PNG="),ArtPath))
-	{ UE_LOG(LogTemp, Error, TEXT("Required: -Catalog= -Background= -Material= -PNG=. Add -WriteAssets to persist. RHI rendering is required.")); return 1; }
+	const bool bFillMissing = FParse::Param(*Params, TEXT("FillMissingColors"));
+	if (!FParse::Value(*Params,TEXT("Catalog="),CatalogPath) || (!bFillMissing && (!FParse::Value(*Params,TEXT("Background="),TexturePath)
+		|| !FParse::Value(*Params,TEXT("Material="),MaterialPath) || !FParse::Value(*Params,TEXT("PNG="),ArtPath))))
+	{ UE_LOG(LogTemp, Error, TEXT("Specify -Catalog= with either -FillMissingColors or -Background= -Material= -PNG=. Add -WriteAssets to persist.")); return 1; }
 	if (!FApp::CanEverRender()) { UE_LOG(LogTemp, Error, TEXT("Material baking requires a real RHI; omit -nullrhi and add -AllowCommandletRendering.")); return 2; }
-	auto* Catalog = LoadObject<UHALVehicleCatalog>(nullptr, *CatalogPath); auto* Background = LoadObject<UTexture2D>(nullptr, *TexturePath);
-	if (!Catalog || !Background || Background->Source.GetFormat() != TSF_BGRA8) { return 3; }
+	auto* Catalog = LoadObject<UHALVehicleCatalog>(nullptr, *CatalogPath);
+	if (!Catalog) { return 3; }
+	// Do not publish a partially populated palette if an individual mesh cannot be baked.
+	TArray<FHALVehicleCatalogEntry> Baked = Catalog->Vehicles;
+	for (auto& Entry : Baked)
+	{
+		if (bFillMissing && Entry.bHasHUDDominantColor && !Entry.HUDColorSource.IsNull()) { continue; }
+		if (!HUDBake(Entry)) { return 6; }
+	}
+	const bool bWrite = FParse::Param(*Params, TEXT("WriteAssets"));
+	if (bFillMissing)
+	{
+		if (!bWrite) { return 0; }
+		Catalog->Vehicles = MoveTemp(Baked);
+		return HUDSave(*Catalog) ? 0 : 8;
+	}
+	auto* Background = LoadObject<UTexture2D>(nullptr, *TexturePath);
+	if (!Background || Background->Source.GetFormat() != TSF_BGRA8) { return 3; }
 	TArray64<uint8> Bytes; if (!Background->Source.GetMipData(Bytes,0)) { return 4; }
 	const int64 Index = ((int64(Background->Source.GetSizeY()/2)*Background->Source.GetSizeX()) + Background->Source.GetSizeX()/2)*4;
 	if (Bytes.Num() < Index+4) { return 5; }
 	const FColor Fill(Bytes[Index+2], Bytes[Index+1], Bytes[Index], Bytes[Index+3]);
 	UE_LOG(LogTemp, Display, TEXT("HUD background preserved: RGB=%d/%d/%d alpha=%d/255"), Fill.R,Fill.G,Fill.B,Fill.A);
-	// Bake into an in-memory catalog copy first. No partial cache or texture is saved if any car fails.
-	TArray<FHALVehicleCatalogEntry> Baked = Catalog->Vehicles;
-	for (auto& Entry : Baked) { if (!HUDBake(Entry)) { return 6; } }
-	if (!FParse::Param(*Params,TEXT("WriteAssets"))) { UE_LOG(LogTemp, Display, TEXT("HUD palette dry run passed; no assets saved.")); return 0; }
+	if (!bWrite) { UE_LOG(LogTemp, Display, TEXT("HUD palette dry run passed; no assets saved.")); return 0; }
 	if (!HUDTexture(*Background,Fill,ArtPath)) { return 7; }
 	auto* Material = HUDMaterial(MaterialPath,Fill);
 	if (!Material) { UE_LOG(LogTemp, Error, TEXT("HUD material path must identify a Material, not a material instance or another asset type.")); return 8; }

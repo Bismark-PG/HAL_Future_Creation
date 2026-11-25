@@ -23,7 +23,7 @@
 | 共用 | 通用加速 | `T_Skill_MovementBoost` | `#3B6483` |
 | 共用 | 冲击免疫 | `T_Skill_ImpactImmunity` | `#6D598C` |
 
-**本次确认 Car10 展示钩锁、Car11 展示滑油。** 两辆车当前的车型 DA 都沿用 PlayerState 默认加速。Car01 测试装配为滑油，Car02 测试装配为通用加速，两辆车的 UI 均采用车号占位。正式选车目录目前列有 Car01 至 Car04。
+**本次确认 Car10 展示钩锁、Car11 展示滑油。** 两辆车当前的车型 DA 都沿用 PlayerState 默认加速。Car01 测试装配为滑油，Car02 测试装配为通用加速，两辆车的技能 UI 均采用车号占位。正式选车目录现已收录 Car01 至 Car12。[车辆目录和旋转预览配置](../Networking/RoomView_Vehicle_Skill_Card_CN.md#维护选车目录和旋转预览)
 
 ## UI 使用
 

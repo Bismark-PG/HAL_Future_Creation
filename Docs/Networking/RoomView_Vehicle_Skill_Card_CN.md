@@ -22,9 +22,24 @@
 | `Spectating`、`Can Cycle Spectator`、`Spectated Number` | 自己是否在观战、能否切换目标、正在看的玩家 P 编号。0 表示当前无目标车辆。 |
 | `Seats`、`Vehicles` | `Seats` 是四个玩家座位，供参与者列表使用。`Vehicles` 是可选车型的展示条目，含 ID、车名、车辆简介、车辆图标和静态预览图。 |
 
+## 维护选车目录和旋转预览
+
+开发房间和展览房间共用 `/Game/Data/Gameflow/DA_VehicleCatalog_Default`。正式目录现有 `Car_01` 至 `Car_12`，左右按钮按 `Vehicles` 数组顺序循环。确认时，服务器通过该行的 `VehicleClass` 生成可驾驶车辆。
+
+| 位置 | 以 Car03 为例 |
+|---|---|
+| `DA_VehicleCatalog_Default → Vehicles` | ID 填 `Car_03`，显示名填 `Car03`，车辆类选 `BP_VehiclePawn_Car_03`，`Icon` 选 `T_Car_03_Icon`。当前条目的 `Description` 和 `PreviewImage` 均留空，静态预览回退到车图。 |
+| `BP_VehiclePreview → Class Defaults → Vehicle Mesh Map` | 键同样填 `Car_03`，值选车辆 Definition 的 `Presentation → Mesh`，此车为 `SKM_Car_03`。编译并保存预览蓝图。缺少键时，选车标题仍会切换，旋转模型会被隐藏。 |
+
+新增车辆后，可在 Editor 控制台运行以下命令，向正式目录补录缺失的 HUD 主色。自动化 `HAL.FutureCreation.GameFlow.GF2.ConfiguredCatalogAssets` 会实际调用旋转预览，检查显示的模型与驾驶车型一致。
+
+```text
+RunCommandlet HALBuildVehicleHUDStyleCommandlet -Catalog=/Game/Data/Gameflow/DA_VehicleCatalog_Default.DA_VehicleCatalog_Default -FillMissingColors -WriteAssets
+```
+
 ## 给每辆车加主技能卡
 
-**目前能直接填的是车辆资料。** 在 `/Game/Data/Gameflow/DA_VehicleCatalog_Default → Vehicles` 里，车辆 BP 旁边已有 `DisplayName`、`Description`、`Icon` 和 `PreviewImage`。2026-11-25 在 Editor 读回的正式目录含 `Car_01` 至 `Car_04`。技能纹理已可单独使用，按当前选车自动切换技能名、图标和简介仍需独立的展示字段。[目录结构](../../Source/HAL_Future_Creation/HALVehicleCatalog.h) · [车型与技能图标对照](../Presentation/Vehicle_Skill_Icons_CN.md)
+车辆目录的 `Icon` 供选车静态预览和参赛者列表使用。技能纹理已可单独使用，按当前选车自动切换技能名、图标和简介仍需独立的展示字段。[目录结构](../../Source/HAL_Future_Creation/HALVehicleCatalog.h) · [车型与技能图标对照](../Presentation/Vehicle_Skill_Icons_CN.md)
 
 | 谁来做 | 操作 |
 |---|---|
