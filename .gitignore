@@ -67,6 +67,7 @@ SourceArt/**/*.tga
 !SourceArt/ArenaNight/T_ArenaNight_SouthCrowd.png
 !SourceArt/SlipperyTrail/T_SlipperyTrail_OilSheen_Mask.png
 !SourceArt/SkillIcons/Car03_Car04_Pilot/*.png
+!SourceArt/SkillIcons/Competition/T_Skill_*.png
 
 # Binary Files
 Binaries/*
@@ -378,6 +379,7 @@ Plugins/Monolith/
 !Source/HAL_Future_Creation/HALMatchHUDWidget.cpp
 !Docs/Presentation/Match_Countdown_HUD_CN.md
 !Docs/Networking/RoomView_Vehicle_Skill_Card_CN.md
+!Docs/Presentation/Vehicle_Skill_Icons_CN.md
 !Docs/Presentation/Gameplay_Technology_Presentation_CN.md
 !Docs/Combat/Vehicle_Smoke_Screen_Ability_Discussion_CN_v0.1.md
 !Docs/Combat/Car08_Smoke_Screen_CN_v0.1.md

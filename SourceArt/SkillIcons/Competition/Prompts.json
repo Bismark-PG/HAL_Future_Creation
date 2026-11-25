@@ -1,0 +1,63 @@
+{
+  "reference": [
+    "T_Skill_BattleTop.png",
+    "T_Skill_BullCharge.png"
+  ],
+  "reference_use": "The original B presentation sheet supplied the two master silhouettes. The two PNGs above are their reusable project equivalents.",
+  "tool": "Built-in ImageGen",
+  "shared_prompt": "Use case: logo-brand. Produce ONE finished square transparent-background game ability UI icon, following image 1 (style reference: the approved two icons for a futuristic arcade sports game). Make one single opaque vehicle-color flat slanted competition placard with one clipped upper-right corner like the reference and one dominant warm-ivory (#fff5e2) action pictogram. Strong bold agile silhouette, crisp unoutlined solid flat stamped ink, sparse large negative spaces, restrained comic exaggeration, readable at 48 px. No lettering, numbers, logos, captions, presentation board, border, ornamental marks, shadow, glow, gradient, black outline, texture, vehicle illustration, or extra colors. Centered with generous clear transparent margins. Keep entire graphic in frame. The white shape is important and must be clearly separable from the saturated plaque, both flat spot inks. Ignore original reference subjects. ",
+  "skills": {
+    "Tornado": {
+      "draft_plaque": "glacier blue #1483aa",
+      "symbol": "A thick, punchy tornado funnel. Two to three broad asymmetric sweeping ribbon turns curl inward from a broad elliptical open crown to a single bent pointed toe. Powerful winds rotate as one bold recognizable silhouette, big knockout channels, no top handle, no spindle, no cloud bubbles."
+    },
+    "PolicePursuit": {
+      "draft_plaque": "deep police blue #294f9b",
+      "symbol": "A tilted police rotating warning beacon as the single pictogram. Clear convex half-dome on its one broad short base, three bold short rays flaring sideways or upwards, and a single slanted negative highlight. Instantly reads as a siren and pursuit, not a sunrise or bell."
+    },
+    "SideShift": {
+      "draft_plaque": "burnt racing orange #d45618",
+      "symbol": "A lateral lane change or sideways dodge in automotive sport. Wide, fluid S-bend trajectory which enters from bottom left, makes one sharp lateral offset to the right and exits at upper right with a distinct wedge arrowhead. One parallel shortened tire sweep with the same two bends closely follows the main stroke. Dramatic sideways displacement and clear lane change. Not two straight forward chevrons. No vehicle."
+    },
+    "SmokeScreen": {
+      "draft_plaque": "burnt copper #ac592e",
+      "symbol": "A low dense horizontal smokescreen billowing behind a racing vehicle outside the frame. One broad bank of three asymmetrical blunt cloud lobes expanding to the right, tail shearing into two tapered strokes to the left. Single bold negative curl under the cloud, no outline, no tiny dots. Friendly athletic silhouette, reads horizontally as smoke."
+    },
+    "WaterCannon": {
+      "draft_plaque": "fire engine vermilion #bd3e36",
+      "symbol": "A narrow continuous high-pressure water jet thrusting on a diagonal from lower left to upper right, opening into a crisp fluid splash crown at the impact end. Two heavy aligned strands that share a broad simple silhouette plus two teardrop droplets near the impact. Strong directional force, no vehicle, no gun, no flame."
+    },
+    "HookThrow": {
+      "draft_plaque": "deep industrial red #92463e",
+      "symbol": "One oversized J shaped industrial grappling hook flung to the right. Two short bold interlocked oblong chain links trail from its eye up-left. Sharpened inward-curved hooked tip and generous negative cutout in the hook bowl. Large, vigorous sports silhouette, crisply distinct from an anchor or fishing lure."
+    },
+    "SlipperyTrail": {
+      "draft_plaque": "deep emerald #227b53",
+      "symbol": "A glossy viscous skid-oil puddle stretched low horizontally with a curved dragged taper leading in from upper-left, one large detached teardrop falling into the puddle and a single open crescent negative cut inside the puddle. Silhouette immediately reads as spilled oil behind a skidding car. No vehicle, no road sign, no arrow, no realistic gradient."
+    },
+    "Batarang": {
+      "draft_plaque": "graphite black #2e3138",
+      "symbol": "A wide thrown metal bat-wing boomerang blade in slanted three-quarter plan view. One integrated strongly angular asymmetrical forged blade silhouette with two long backswept pointed tips, 2 broad scalloped bite cutouts and a pronounced center ridge notch. One short trailing curved slash suggests throw. No head, ears, eyes or comic franchise logo. Blade, not an animal."
+    },
+    "MovementBoost": {
+      "draft_plaque": "steel blue #3b6483",
+      "symbol": "An athletic acceleration emblem. Two tightly spaced, broad right-facing chevrons raked forward with one long horizontal leading-in slot, making an unmistakable straight-line speed boost. Assertive simple shape, avoid a curved lane change, no text, no vehicle."
+    },
+    "ImpactImmunity": {
+      "draft_plaque": "muted slate violet #6d598c",
+      "symbol": "A single compact slanted protective shield with a strong white silhouette and one large dark negative facet. A short rebounding ricochet flashes off its upper-left edge, indicating impact deflection. Broad shapes, only one spark. No crest, crown, lock or text."
+    }
+  },
+  "placeholder_prompt": "Use case: logo-brand. One clean square PNG with transparent margins, a temporary vehicle ability slot icon in the same graphics system as image 1 (style reference). Match the forward-leaning one-chamfer competition placard from the reference. Inside put ONLY the exact two race numerals given below in one very large athletic heavy italic grotesk, ivory #fff5e2. A 0 with a generous counter. Solid thick shapes and good small-size readability. This is a placeholder, the race number is the entire design; no skill pictogram, additional decorative marks, border, captions, outlined type, surface texture, shadows or gradients. Plenty of margin around the entire badge. A clean plain two-ink UI asset.",
+  "placeholders": {
+    "Car01_Placeholder": {
+      "text": "01",
+      "draft_plaque": "teal #04a09b"
+    },
+    "Car02_Placeholder": {
+      "text": "02",
+      "draft_plaque": "vermillion orange #cb4410"
+    }
+  },
+  "production": "Use the respective skill subject after the shared prompt. The final palette was matched against top-view vehicle renders after generation. The finished PNGs contain the final swatches."
+}

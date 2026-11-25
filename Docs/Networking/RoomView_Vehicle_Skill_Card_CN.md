@@ -24,7 +24,7 @@
 
 ## 给每辆车加主技能卡
 
-**目前能直接填的是车辆资料。** 在 `/Game/Data/Gameflow/DA_VehicleCatalog_Default → Vehicles` 里，车辆 BP 旁边已有 `DisplayName`、`Description`、`Icon` 和 `PreviewImage`。本次在 Editor 核对到三项 `Car_01`、`Car_02`、`Car_03`。前两项已配车辆图标，第三项图标为空，三项的车辆简介和静态预览图都为空。独立的技能名、技能图标和技能简介需要补字段。 [目录结构](../../Source/HAL_Future_Creation/HALVehicleCatalog.h)
+**目前能直接填的是车辆资料。** 在 `/Game/Data/Gameflow/DA_VehicleCatalog_Default → Vehicles` 里，车辆 BP 旁边已有 `DisplayName`、`Description`、`Icon` 和 `PreviewImage`。2026-11-25 在 Editor 读回的正式目录含 `Car_01` 至 `Car_04`。技能纹理已可单独使用，按当前选车自动切换技能名、图标和简介仍需独立的展示字段。[目录结构](../../Source/HAL_Future_Creation/HALVehicleCatalog.h) · [车型与技能图标对照](../Presentation/Vehicle_Skill_Icons_CN.md)
 
 | 谁来做 | 操作 |
 |---|---|
