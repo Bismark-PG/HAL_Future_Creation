@@ -64,9 +64,43 @@
 
 炸弹在场上巡游，首次碰车时强制占用持球位并点火。持球期间发射键锁定，持有者可以主动撞车转交炸弹。无论是首次碰车、已点火后重新碰车，还是持球者撞车转交，接手车辆原本带着的球都会掉回地面，炸弹立即上车。引信在换手和掉地时继续走时。
 
-引信归零时，车上的炸弹只对当前持有者造成伤害和冲击。爆心在车头磁扣处，水平冲击从车头指向车身，将持有者向后推。地上的炸弹以球的位置为圆心，对范围内的每辆车造成伤害并向外推，包括仍在范围内的上一任持有者。两种爆炸都遵循车辆的冲击抗性和免疫规则。尚未点火的巡游球耗尽自由寿命时，沿用无伤害的自然消散。
+引信归零时，两种爆炸都使用服务器的实际球心。持球引爆只对当前持有者造成伤害和冲击，水平冲击从车头持球位置指向车身。落地引爆对范围内的每辆车造成伤害并向外推，包括仍在范围内的上一任持有者。两种爆炸都遵循车辆的冲击抗性和免疫规则。尚未点火的巡游球耗尽自由寿命时，沿用无伤害的自然消散。
 
-正式球型是 **B 的红白磁扣配 A 的分段表盘**。生成时，两片磁扣和刻度向内合拢。巡游时能看到球顶满格的表盘和两道短尾迹。点火后指针扫动、亮格逐个熄灭，最后三秒转红并脉动。撞车转交时，磁扣先从原车头张开，划过一段短弧，再在接手车头合拢，扣合点闪一下。车头归零播放局部爆裂。落地归零时，红白冲击环会扩到伤害半径。
+正式外观采用 C 款笼式护壳与 3 号磁扣崩裂。四根带倒角的钢肋包住暗红内胆，球顶保留首轮选定的分段表盘。巡游时表盘满格，点火后指针扫动、亮格逐个熄灭，最后三秒转红脉动。转交时，两半钢笼从原车头张开，划过短弧，再扣到接手车头。
+
+<a id="timed-bomb-appearance"></a>
+
+### 钢笼、引爆与持球位置
+
+引信归零时，球壳沿钢肋和环轨断开。两段弧形钢肋、两枚带底轨的红色磁扣和一截上箍环从各自在球壳上的位置飞出。碎片沿不同高度的短弧翻转，倒角和断面随翻转露出，随后错开收小退场。中央短闪照亮膨起的烟云。挂车引爆集中在车头，落地引爆多一道扩到 `Ground Blast Radius` 的压力波。
+
+三种碎片模型沿用完整球壳的截面、曲率和钢材质。主机和客户端各自按同一个引爆时刻播放，五片均为短时无碰撞模型，伤害与冲击由引爆时的球心结算。
+
+**金属碎片实测（2026-11-25）。** 正式图 `MVPB_Match`、D3D12 一主一客，主机出站模拟延迟 80 ms。挂车与落地两种引爆中，两端都读到五片带同一钢材质的无碰撞模型。地爆时，客户端跟踪的一段钢肋距球心水平距离从 1.65 米增至 2.91 米，随后翻过侧面并缩小。持球引爆只扣接手车 25 HP，地爆时圈内两辆车各扣 25 HP，均有水平击退和上抛。未点火球在 20.10 秒时自然消散。[挂车引爆实拍](Art/TimedBombBall/CageFragments_Mounted.png) · [客户端落地引爆回放](Art/TimedBombBall/CageFragments_Match.webp)
+
+UE 5.8.3 CL58210709 的 Editor 使用 `BuildAndLaunch.cmd -NoLaunch -NoPopup` 编译。独立游戏目标使用 `Build.bat HAL_Future_Creation Win64 Development -Project=D:/HAL_Future_Creation/HAL_Future_Creation.uproject -WaitMutex -NoHotReload -NoLiveCoding -Log=D:/HAL_Future_Creation/Saved/TimedBomb/FragmentsGame.log` 编译通过。球与冲击相关自动化 30/30 通过，三种碎片及对应材质、纹理、球型 DA 共七个资源的 Windows 定向 Cook 为零错误、零警告。记录见 `Saved/TimedBomb/MatchLifeReplayFragments/Result.json`、`Saved/TimedBomb/FragmentsRules/index.json` 和 `Saved/TimedBomb/FragmentsCook.log`。
+
+**C＋3 实机验证。** 在正式图 `MVPB_Match` 的 D3D12 一主一客测试中，主机出站延迟设为 80 ms。转交后，持有者扣 25 HP，服务器在归零后的 0.8 秒内测到后退 5.87 米、上抛 2.97 米。落地引爆时，圈内两辆车各扣 25 HP，两端都观察到水平击退和上抛。稳定持球的 201 个客户端采样中，球壳与通用球心的偏差均小于 0.01 cm。另一次无人碰球时，20.10 秒后自然消散。回放取自客户端实际渲染帧，0.73 秒引爆按游戏时间播放，首尾稍作停留。[巡游实拍](Art/TimedBombBall/Cage_Match.png) · [落地引爆回放](Art/TimedBombBall/ClaspSnap_Match.webp)
+
+UE 5.8.3 CL58210709 的 Win64 Development Editor 与 Game 已编译。球和冲击相关自动化通过 30/30，九个球型与美术资源的 Windows 定向 Cook 为零错误、零警告。本次报告为 `Saved/TimedBomb/MatchLifeReplay/Result.json`、`CageRules/index.json` 和 `CageCook.log`（后两项也在 `Saved/TimedBomb/`）。烟云源图来自内置 ImageGen，游戏导入时缩至 512 像素。[RGBA 源图](../../Tools/SpecialBall/Art/T_TimedBomb_ClaspSmoke.png) · [绘制提示](Art/TimedBombBall/AppearancePrompts.txt)
+
+旧球型把红色球形碰撞体显示在游戏中，又从车身碰撞外沿另算球壳的位置。现在 `DA_Ball_TimedBomb` 的 `Physics → Hidden In Game` 已勾选，`Presentation → Controlled → Enabled` 已开启。物理约束使用车辆的 `BallControlPoint`，球壳和表盘继承通用球网格的位置，客户端同时使用持球插值。磁扣的独立位移只发生在交接动作中。巡游专用尾迹已移除。
+
+以下六张是本轮比稿留档。最终选用第三行的球壳和爆炸。球壳图右下角给出缩小后的辨识效果，爆炸分镜从左到右展示起爆、膨胀和消散。
+
+| 球壳方向 | 爆炸方向 |
+| --- | --- |
+| [A · 重装磁扣](Art/TimedBombBall/Body_A_ClaspArmor.png)　石墨色厚夹爪框住琥珀表盘，黄色短杠提示危险。 | [1 · 撕裂闪爆](Art/TimedBombBall/Burst_1_Shear.png)　三道短促的亮色笔锋切开红黑烟团。 |
+| [B · 热裂外壳](Art/TimedBombBall/Body_B_ThermalShell.png)　一条橙红热缝穿过暗壳，磁扣位于两侧。 | [2 · 闷燃烟冠](Art/TimedBombBall/Burst_2_SmokeCrown.png)　火光先贴地闪过，再从下面照亮鼓起的厚烟。 |
+| [C · 笼式护壳](Art/TimedBombBall/Body_C_Cage.png)　宽钢肋之间露出暗红内胆。 | [3 · 磁扣崩裂](Art/TimedBombBall/Burst_3_ClaspSnap.png)　两道扣形剪影向外弹开，烟云从中间涌出。 |
+
+六款图使用同一块夜场钢板作背景。[绘制提示](Art/TimedBombBall/AppearancePrompts.txt)
+
+上一版在 `Fred_TestScene` 中单测过通用持球位置。Car07 和 Car12 静止持球时，球壳中心与通用球心重合，两车各自的球心距离车头持球点均小于 0.01 cm。[旧版 Car12 持球实拍](Art/TimedBombBall/Clasp_Car12_CommonHold.png)
+
+在 `MVPB_Match` 的 D3D12 一主一客实测中，主机出站模拟延迟为 80 ms。两端在巡游、转交和稳定持球阶段测得的球壳中心偏差均为 0.000 cm（保留三位小数），表盘中心的水平偏差同样为零。客户端持球段采样 195 帧。转交后的持有者扣 25 HP，服务器记录向后 5.89 米、上抛 2.97 米。地爆命中两车各一次，未点火球在 20.13 秒时自然消散。原始数据为 `Saved/TimedBomb/AppearanceMatch.json`。
+
+本次 UE 5.8.3 CL58210709 的 Editor 构建使用 `BuildAndLaunch.cmd -NoLaunch -NoPopup`。为验证独立游戏代码，另运行 `Build.bat HAL_Future_Creation Win64 Development -Project=D:/HAL_Future_Creation/HAL_Future_Creation.uproject -WaitMutex -NoHotReload -NoLiveCoding -Log=D:/HAL_Future_Creation/Saved/TimedBomb/AppearanceGame.log`。两个目标均通过，球与冲击相关自动化通过 30/30。报告位于 `Saved/TimedBomb/AppearanceRules/index.json`。
 
 在 Development 场景中，把车头朝向一块空地，在控制台输入 `HALSpawnTimedBombBall` 即可试球。正式比赛由现有生成盘从四种特殊球中轮换投放。
 
@@ -78,11 +112,14 @@
 | `Return Lock Seconds`、`Clasp Travel Seconds`、`Jaw Opening` | 0.7 秒、0.42 秒、0.32 倍球半径 | 两车分开且锁定时间结束后才允许回传。后两项调整松扣到合扣的时长、单侧开口幅度。 |
 | `Gameplay → Damage → Vehicle Hit Damage`、`Ground Blast Radius` | 25 HP、500 cm | 两种爆炸共用基础伤害。地爆半径按车辆碰撞体判定，只影响落地引爆。 |
 | `Gameplay → Impact → Tier`、`Push Preset` | Heavy、Standard | 两种爆炸共用冲击档位和水平推力预设。档位决定基础平推与上抛，推力预设只调整水平分量。 |
-| `Core Color`、`Current Color`、`Pole Tip Color`、`Corona Color`、`Glow` | 石墨、红、象牙白、琥珀 | 调整壳体、磁扣、表盘和脉冲配色。`Arrival Seconds`、`Expiration Seconds`、`Impact Seconds` 分别控制三段演出的时长。 |
+| `Cage → Cage Steel Color`、`Inner Core Radius Ratio` | 枪灰钢、0.77 | 钢肋的主色；内胆半径占物理球半径的比例，可调 0.52 至 0.88。 |
+| `Core Color`、`Current Color`、`Pole Tip Color`、`Corona Color`、`Glow` | 暗红内胆、红扣、暖色扣尖高光、琥珀表盘 | 调整内胆、扣件、表盘与引爆闪芯。`Arrival Seconds`、`Expiration Seconds`、`Impact Seconds` 分别控制对应演出的时长。 |
+| `Detonation → Appearance → Clasp Burst Reach`、`Clasp Smoke Size` | 0.62、0.54 | 分别控制碎片飞散的基准距离和烟云的半宽，单位为本次演出半径的倍数。落地伤害范围由 `Ground Blast Radius` 决定。 |
+| `Detonation → Appearance → Rib / Lock / Collar Fragment Mesh` | 钢肋、磁扣、上箍环 | 替换对应零件。模型按参考球半径 50 cm 制作，枢轴在该截金属上，运行时按实际球径缩放。色彩共用 `Cage Steel Color`、`Current Color` 和 `Pole Tip Color`。 |
 
 强制替换适用于主球和特殊球，也适用于另一颗已点火的炸弹。被换下的炸弹落地后继续走自己的引信。眩晕按通用规则掉球。服务器把伤害记给最后一次主动转交成功的车辆。从未转交过的炸弹由场地结算。
 
-在正式图的双端实测中，第一辆车先持主球，第二辆车先持爆炸球。定时炸弹从侧面碰上第一辆车并顶掉主球，按发射键后仍挂在车头。持有者踩油门撞上第二辆车，磁扣张开，跨到对方车头合拢。接手车的爆炸球掉地。主机出站模拟 80 ms 延迟复测时，双方读到同一个引信截止时间。持球引爆后，两车血量为 100、75。下一轮通过眩晕落球，地爆后血量为 75、50。两次引爆的网格在两端都实际出现。[巡游实拍](Art/TimedBombBall/Clasp_Patrol.jpg) · [磁扣换手慢看](Art/TimedBombBall/Clasp_Handoff.webp) · [地面引爆实拍](Art/TimedBombBall/Clasp_GroundBurst.jpg)
+首版在正式图的双端实测中，第一辆车先持主球，第二辆车先持爆炸球。定时炸弹从侧面碰上第一辆车并顶掉主球，按发射键后仍挂在车头。持有者踩油门撞上第二辆车，磁扣张开，跨到对方车头合拢。接手车的爆炸球掉地。主机出站模拟 80 ms 延迟复测时，双方读到同一个引信截止时间。持球引爆后，两车血量为 100、75。下一轮通过眩晕落球，地爆后血量为 75、50。两次引爆的网格在两端都实际出现。[首版巡游](Art/TimedBombBall/Clasp_Patrol.jpg) · [首版磁扣换手](Art/TimedBombBall/Clasp_Handoff.webp) · [地面引爆实拍](Art/TimedBombBall/Clasp_GroundBurst.jpg)
 
 无人碰球的一轮中，两端都看到了生成。20 秒自由寿命结束后，在投放后 20.09 秒观察到两端的消散演出，两车血量均保持原值。测试时把车辆停在球的巡游路线外，使用正式 DA 的速度、墙面碰撞与寿命。
 

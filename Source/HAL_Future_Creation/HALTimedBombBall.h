@@ -28,8 +28,21 @@ public:
 	UPROPERTY(EditAnywhere, Category="Dial") FLinearColor PoleTipColor = FLinearColor(.98f,.83f,.59f);
 	UPROPERTY(EditAnywhere, Category="Dial") TObjectPtr<UStaticMesh> JawMesh;
 	UPROPERTY(EditAnywhere, Category="Dial") TObjectPtr<UStaticMesh> DialMesh;
-	UPROPERTY(EditAnywhere, Category="Patrol|Appearance") TObjectPtr<UMaterialInterface> PatrolWakeMaterial;
+	/** Radius of the visible inner body relative to the physical ball radius. */
+	UPROPERTY(EditAnywhere, Category="Cage", meta=(ClampMin=".52", ClampMax=".88")) float InnerCoreRadiusRatio = .77f;
+	UPROPERTY(EditAnywhere, Category="Cage") FLinearColor CageSteelColor = FLinearColor(.19f,.175f,.20f);
+	/** Painted ignition, smoke and ground pressure front. Empty uses the ball's common cue material. */
+	UPROPERTY(EditAnywhere, Category="Detonation|Appearance") TObjectPtr<UMaterialInterface> ClaspBurstMaterial;
+	/** Pieces of the 50 cm reference cage, pivoted on their own metal. They share the intact cage's finish. */
+	UPROPERTY(EditAnywhere, Category="Detonation|Appearance") TObjectPtr<UStaticMesh> RibFragmentMesh;
+	UPROPERTY(EditAnywhere, Category="Detonation|Appearance") TObjectPtr<UStaticMesh> LockFragmentMesh;
+	UPROPERTY(EditAnywhere, Category="Detonation|Appearance") TObjectPtr<UStaticMesh> CollarFragmentMesh;
+	/** Reference outward reach of the debris, as a fraction of the cue radius. */
+	UPROPERTY(EditAnywhere, Category="Detonation|Appearance", meta=(ClampMin=".3", ClampMax=".78")) float ClaspBurstReach = .62f;
+	/** Peak half-width of the central smoke as a fraction of the cue radius. */
+	UPROPERTY(EditAnywhere, Category="Detonation|Appearance", meta=(ClampMin=".25", ClampMax=".75")) float ClaspSmokeSize = .54f;
 	virtual bool Validate(FString& Error) const override;
+	UMaterialInstanceDynamic* MakeCageMaterial(UObject* Outer) const;
 };
 
 USTRUCT()
@@ -80,9 +93,8 @@ private:
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> LeftJaw;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> RightJaw;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Dial;
-	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Wake;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> JawMID;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> DialMID;
-	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> WakeMID;
 	FHALAttackSourceSnapshot Credit;
 	TMap<TWeakObjectPtr<AActor>, double> ContactLocks;
 	FVector Heading = FVector::ForwardVector;

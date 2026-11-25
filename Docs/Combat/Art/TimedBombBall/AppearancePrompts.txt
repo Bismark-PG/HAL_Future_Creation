@@ -1,0 +1,33 @@
+定时炸弹球 · 外壳与爆炸分镜
+
+每组共用提示后接对应款式的说明。
+
+外壳
+
+Use case: stylized-concept. A production shape study for the magnetic-tag countdown ball in a playful, tense futuristic bumper-car arena game. Single clean 4:3 landscape illustration; same cool slate-blue brushed hex-tile arena and soft key light in every study. Main view is an almost overhead game camera, tilted 20 degrees from vertical, object occupies 65% of canvas. In lower right add one small thumbnail at actual gameplay scale on the same ground, without text. The item is a compact round ball as wide as roughly two thirds of a bumper-car chassis. Preserve the existing unmistakable TOP dial literally: a circular black face, twelve broad amber trapezoidal countdown sectors with narrow black gaps, dark central hub and ONE red pointer, face horizontal, central, face diameter just over half the ball. Give the sphere two opposite, readable magnetic clasp halves for the car handoff. Three-tone anime/cel shaded 3D, broad controlled facets, satin metal edges, near-black plum shadows, restrained hot coral warning accents, strong arcade silhouette legible at 64px. Dramatic but feasible low-detail game mesh. No full equator stripe, candy gloss, cute mascot, toy capsule seam, face, physical fuse or real weapons. No trail, no text, no UI, no labels or watermark.
+
+Body_A_ClaspArmor.png
+A — clamp armor: two hulking graphite horseshoe jaws nearly surround the body, with squared beveled teeth and two dark gaps visible from overhead. Asymmetrical oxblood enamel cheek plates, a pair of short diagonal amber caution slashes on ONE jaw only. Heaviest, most compact armored silhouette. Large calm matte surfaces, readable separation between fixed face and clamp jaws.
+
+Body_B_ThermalShell.png
+B — ember fault: a continuous low charcoal ceramic sphere made of five large irregular interlocking slab shapes; a SINGLE dramatic diagonal branching hot orange fault glows diffusely from under the surface without crossing the dial. Side clasps are distinct dark red bracket-shaped end caps. A dark ball that feels a moment away from venting. No claw teeth or external cage. Broad static silhouette, tension comes from the asymmetry of the internal glow.
+
+Body_C_Cage.png
+C — open rib cage: four very broad arched gunmetal longitudinal hoops stand proud of a recessed dark crimson spherical core. Deep open windows, clean clear negative space and hard rim highlights distinguish the sculptural cage in the top-down view. Two opposing hoops terminate in blunt red magnetic clasp tips. The intact circular amber dial sits flush in a simple dark top collar. Strong black-copper rhythm, very sparse light.
+
+爆炸
+
+Use case: stylized-concept. A finished three-keyframe animation concept strip for a fictional timed-ball burst in a top-down futuristic bumper-car arena. Wide landscape horizontal three-frame filmstrip. In each of three equally sized panels the same unobtrusive charcoal hexagonal metal floor from the near-vertical GAME camera, the same muted gray bumper nose entering a little from the bottom for scale, and a compact impact centered slightly in front of it. Frame 1 sudden ignition, frame 2 forceful expansion, frame 3 breaking and dissipating. Same camera and center across frames, first flash tiny, middle largest, last cloud thinning into the air. Keep the expanding mass of overlapping volumetric smoke with three coherent soft-edged value steps and lit upper surfaces. Graphic extravagant hand-inked sports-game cel shading, thick broad forms, sparing sharp accents. The silhouette must read clearly at gameplay size while the vehicle remains readable; clean core and an honest finite radius, nothing overshooting the perimeter. White-hot accent, burnt orange, crimson, charcoal and muted plum. No festive confetti, emoji sparkles, pastel clouds, perfect UI circles, continuous bright rings, letters, numbers, captions, watermarks, debris realism, or realistic violence.
+
+Burst_1_Shear.png
+Direction 1 — shattered flash. A very short ivory hot center snaps into three broad offset angular brush cuts, then an outward LOW charcoal-and-deep-carmine smoke wall under those cuts. The middle frame has staggered stepped contours, heavy angular speed ink and almost no individual sparks. As the cuts burn off, the soft heavy smoke lobes swell once and break apart. Design a radial footprint with just a little graphic diagonal emphasis, not a directional attack arrow.
+
+Burst_2_SmokeCrown.png
+Direction 2 — smoke crown. A thin hot horizontal slit squeezes open into a weighty low three-dimensional crown of overlapping soot-black and aubergine smoke banks with a molten red-orange throat. Three or four large unequal lobes roll up and out, shadows pool under the crown, ember light appears only in the gaps underneath. Near the ground a softly edged asymmetric dust lip supplies width. Third frame the central column opens into airy scalloped fragments. No graphic spikes or scattered sparks.
+
+Burst_3_ClaspSnap.png
+Direction 3 — magnetic snap. Two opposed flattened almost-black ink brackets mirror the item's open magnetic jaws and snap outward from a short white slit. Their edges flare crimson in two blunt angular pressure crests of different lengths, around a compact smoky graphite core. Sparse broad diagonal afterimages rather than electricity or little circular arcs. By frame 3 the crests have broken up and disappeared, a softly rolling three-tone smoke plume remains. Exaggerated comic print registration on the pressure silhouette.
+
+Production texture — Tools/SpecialBall/Art/T_TimedBomb_ClaspSmoke.png
+Built-in ImageGen, transparent RGBA. Edit target: Burst_3_ClaspSnap.png.
+Use case: background-extraction. Source is a storyboard for a fictional vehicle sports videogame. From the middle panel, isolate and redraw ONLY the central billowing cloud as a production-ready 1024x1024 RGBA particle texture on genuinely transparent background, with a clean 8% clear border on all sides. One broad asymmetric cluster of about five overlapping voluminous smoke lobes, seen from slightly above. Capture the rounded clumps with torn and swept shadow edges, broad wine-red, reddish charcoal and plum shadow, copper/coral inner faces and small warm cream-orange highlights on the upper-facing lobes. Hand-painted soft cel shading, three-tone anime game VFX, broad graphic shapes readable when tiny. Remove all metal clasps, all speed strokes, the central star flash, HUD, ground, car, text, border, reference frame; those will be added separately at runtime. Avoid detached sparks and large ambient glow. All visible pixels belong to smoke; transparent outside. Center the entire plume. Not a contact sheet.

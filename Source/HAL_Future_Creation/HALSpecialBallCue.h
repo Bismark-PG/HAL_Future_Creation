@@ -4,6 +4,7 @@
 #include "HALSpecialBallCue.generated.h"
 
 class UDynamicMeshComponent;
+class UStaticMeshComponent;
 
 USTRUCT()
 struct FHALSpecialBallCueState
@@ -34,12 +35,16 @@ private:
 		float Radius, const FVector& Normal, double Started, bool bReplicate);
 	UFUNCTION() void OnRep_State();
 	void PrepareWave();
+	void PrepareClaspBurst(const class UHALTimedBombBallDefinition& Type);
+	void UpdateCageFragments(float Progress, const UHALTimedBombBallDefinition& Type);
 	void PrepareEruption(const UHALExplosiveBallDefinition& Type);
 	void Draw(float Progress);
 	UPROPERTY(ReplicatedUsing=OnRep_State) FHALSpecialBallCueState State;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UDynamicMeshComponent> Ribbons;
 	UPROPERTY(Transient) TObjectPtr<UDynamicMeshComponent> Eruption;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> EruptionMID;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> ClaspBurstMID;
+	UPROPERTY(Transient) TArray<TObjectPtr<UStaticMeshComponent>> CageFragments;
 	struct FWaveRing
 	{
 		TArray<FVector> Points;

@@ -10,6 +10,7 @@
 #include "VehicleRecoveryComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "GameFramework/PlayerState.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Net/UnrealNetwork.h"
@@ -21,16 +22,6 @@
 
 namespace
 {
-	FVector BumperCenter(const AActor& Car, float Radius)
-	{
-		const auto* Body = CastChecked<UPrimitiveComponent>(Car.GetRootComponent());
-		const FVector Forward = Car.GetActorForwardVector().GetSafeNormal2D(UE_SMALL_NUMBER, FVector::ForwardVector);
-		FVector Front;
-		const FVector Outside = Car.GetActorLocation() + Forward * (Body->Bounds.SphereRadius + Radius);
-		if (Body->GetClosestPointOnCollision(Outside, Front) < 0.f) { Front = Car.GetActorLocation() + Forward * Body->Bounds.BoxExtent.GetAbsMax(); }
-		return Front + Forward * (.78f * Radius) + FVector::UpVector * (.18f * Radius);
-	}
-
 	bool Separated(AActor& A, AActor& B)
 	{
 		auto* First = Cast<UPrimitiveComponent>(A.GetRootComponent());
@@ -50,7 +41,9 @@ bool UHALTimedBombBallDefinition::Validate(FString& Error) const
 		|| !FMath::IsWithinInclusive(PatrolTurnRate,0.f,180.f) || !FMath::IsWithinInclusive(MinimumRamSpeed,1.f,5000.f)
 		|| !FMath::IsWithinInclusive(MinimumClosingSpeed,1.f,5000.f) || !FMath::IsWithinInclusive(ReturnLockSeconds,0.f,5.f)
 		|| !FMath::IsWithinInclusive(ClaspTravelSeconds,.12f,1.5f) || !FMath::IsWithinInclusive(JawOpening,.05f,.8f)
-		|| !FMath::IsWithinInclusive(DialSegments,4,24) || !JawMesh || !DialMesh || !PatrolWakeMaterial || Gameplay.Impact.Version != EHALImpactVersion::TieredV1)
+		|| !FMath::IsWithinInclusive(ClaspBurstReach,.3f,.78f) || !FMath::IsWithinInclusive(ClaspSmokeSize,.25f,.75f)
+		|| !FMath::IsWithinInclusive(InnerCoreRadiusRatio,.52f,.88f)
+		|| !FMath::IsWithinInclusive(DialSegments,4,24) || !JawMesh || !DialMesh || Gameplay.Impact.Version != EHALImpactVersion::TieredV1)
 	{ Error = TEXT("Invalid timed-ball fuse, patrol, transfer, dial meshes or impact settings."); return false; }
 	return true;
 }
@@ -60,8 +53,10 @@ AHALTimedBombBall::AHALTimedBombBall()
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PostPhysics;
 	Assembly = CreateDefaultSubobject<USceneComponent>(TEXT("ClaspAssembly"));
-	Assembly->SetupAttachment(PhysicsRoot);
-	Assembly->SetAbsolute(true, true, true);
+	// Inherit the common ball center, including the client's relative-pose interpolation.
+	// The dial stays upright and the clasp size is set from the collision radius.
+	Assembly->SetupAttachment(VisualMesh);
+	Assembly->SetAbsolute(false, true, true);
 	auto Part = [this](const TCHAR* Name)
 	{
 		auto* Mesh = CreateDefaultSubobject<UStaticMeshComponent>(Name);
@@ -75,13 +70,23 @@ AHALTimedBombBall::AHALTimedBombBall()
 	LeftJaw = Part(TEXT("LeftMagnet"));
 	RightJaw = Part(TEXT("RightMagnet"));
 	Dial = Part(TEXT("CountdownDial"));
-	Wake = Part(TEXT("PatrolStrokes"));
-	Wake->SetCastShadow(false);
 }
 
 UHALSpecialBallDefinition* AHALTimedBombBall::DefaultType() const
 {
 	return GetDefault<UHALMatchBallSettings>()->TimedBombBallType.LoadSynchronous();
+}
+
+UMaterialInstanceDynamic* UHALTimedBombBallDefinition::MakeCageMaterial(UObject* Outer) const
+{
+	auto* Material = JawMesh ? UMaterialInstanceDynamic::Create(JawMesh->GetMaterial(0), Outer) : nullptr;
+	if (Material)
+	{
+		Material->SetVectorParameterValue(TEXT("CageSteelColor"), CageSteelColor);
+		Material->SetVectorParameterValue(TEXT("CurrentColor"), CurrentColor);
+		Material->SetVectorParameterValue(TEXT("PoleTipColor"), PoleTipColor);
+	}
+	return Material;
 }
 
 void AHALTimedBombBall::BeginPlay()
@@ -104,34 +109,23 @@ void AHALTimedBombBall::BeginPlay()
 		}
 	}
 	if (GetNetMode() == NM_DedicatedServer) { SetActorTickEnabled(false); return; }
-	// Keep the replicated root and its ordinary interpolation as the free-ball position source.
+	// The stock mesh supplies the pose. Its children draw the shell, jaws and dial.
 	VisualMesh->SetHiddenInGame(true);
 	Shell->SetStaticMesh(VisualMesh->GetStaticMesh());
 	Shell->SetMaterial(0, VisualMesh->GetMaterial(0));
-	Shell->SetRelativeScale3D(FVector(.81,.81,.76));
+	Shell->SetRelativeScale3D(FVector(1.,1.,.975)*Type()->InnerCoreRadiusRatio);
 	LeftJaw->SetStaticMesh(Type()->JawMesh);
 	RightJaw->SetStaticMesh(Type()->JawMesh);
 	RightJaw->SetRelativeRotation(FRotator(0,180,0));
-	auto* PaintMID = LeftJaw->CreateDynamicMaterialInstance(0);
-	if (PaintMID)
+	JawMID = Type()->MakeCageMaterial(this);
+	if (JawMID)
 	{
-		PaintMID->SetVectorParameterValue(TEXT("CurrentColor"),Type()->CurrentColor);
-		PaintMID->SetVectorParameterValue(TEXT("PoleTipColor"),Type()->PoleTipColor);
-		RightJaw->SetMaterial(0, PaintMID);
+		LeftJaw->SetMaterial(0, JawMID);
+		RightJaw->SetMaterial(0, JawMID);
 	}
 	Dial->SetStaticMesh(Type()->DialMesh);
 	Dial->SetRelativeScale3D(FVector(.65,.65,1));
 	Dial->SetRelativeLocation(FVector(0,0,35));
-	Wake->SetStaticMesh(Type()->DialMesh);
-	Wake->SetMaterial(0,Type()->PatrolWakeMaterial);
-	if (Type()->PatrolWakeMaterial)
-	{
-		WakeMID = Wake->CreateDynamicMaterialInstance(0);
-		WakeMID->SetVectorParameterValue(TEXT("LampColor"),Type()->CoronaColor);
-		WakeMID->SetScalarParameterValue(TEXT("FlowSpeed"),Type()->SurfaceFlowSpeed);
-	}
-	Wake->SetRelativeScale3D(FVector(1.55,1.15,1));
-	Wake->SetRelativeLocation(FVector(-53,0,-38));
 	DialMID = Dial->CreateDynamicMaterialInstance(0);
 	if (DialMID)
 	{
@@ -194,9 +188,10 @@ bool AHALTimedBombBall::TryMount(ATestVehiclePawn& Target, AActor* Passer)
 	{
 		if (Displaced->ResolveDueFuse() && (!Target.CanReceiveSkillEffects() || bConsumed)) { return false; }
 	}
-	const float Radius = PhysicsRoot->GetScaledSphereRadius();
-	const FVector Start = Passer ? BumperCenter(*Passer,Radius) : GetActorLocation();
-	if (!Receiver || (Passer && !Previous) || !Receiver->MountContactBomb(*this, Previous)) { return false; }
+	const FVector Start = GetActorLocation();
+	FTransform HoldTarget;
+	if (!Receiver || (Passer && !Previous) || !Receiver->GetControlTargetWorldTransform(HoldTarget)
+		|| !Receiver->MountContactBomb(*this, Previous)) { return false; }
 	const double Now = ServerNow();
 	if (FuseEnd < 0.)
 	{
@@ -217,8 +212,9 @@ bool AHALTimedBombBall::TryMount(ATestVehiclePawn& Target, AActor* Passer)
 	Transfer.FromCar = Passer;
 	Transfer.To = &Target;
 	CommitContactHolder(Target);
-	PhysicsRoot->SetWorldLocation(BumperCenter(Target,Radius),false,nullptr,ETeleportType::TeleportPhysics);
-	PhysicsRoot->SetPhysicsLinearVelocity(Target.GetVelocity());
+	PhysicsRoot->SetWorldLocation(HoldTarget.GetLocation(),false,nullptr,ETeleportType::TeleportPhysics);
+	const auto* Chassis = CastChecked<UPrimitiveComponent>(Target.GetRootComponent());
+	PhysicsRoot->SetPhysicsLinearVelocity(Chassis->GetPhysicsLinearVelocityAtPoint(HoldTarget.GetLocation()));
 	UE_LOG(LogTemp,Display,TEXT("TimedBall mount %s from=%s to=%s fuseEnd=%.3f"),*GetName(),*GetNameSafe(Passer),*Target.GetName(),FuseEnd);
 	return true;
 }
@@ -287,11 +283,7 @@ bool AHALTimedBombBall::ResolveDueFuse()
 
 bool AHALTimedBombBall::ReleaseFromControl(AActor* ExpectedHolder, float Lock)
 {
-	if (HasAuthority() && ExpectedHolder && GetControlledBy() == ExpectedHolder)
-	{
-		if (bConsumed || ResolveDueFuse()) { return false; }
-		PhysicsRoot->SetWorldLocation(BumperCenter(*ExpectedHolder,PhysicsRoot->GetScaledSphereRadius()),false,nullptr,ETeleportType::TeleportPhysics);
-	}
+	if (HasAuthority() && ExpectedHolder && GetControlledBy() == ExpectedHolder && (bConsumed || ResolveDueFuse())) { return false; }
 	return Super::ReleaseFromControl(ExpectedHolder,Lock);
 }
 
@@ -306,7 +298,7 @@ void AHALTimedBombBall::Detonate()
 	if (!HasAuthority() || bConsumed || FuseEnd < 0.) { return; }
 	bConsumed = true;
 	AActor* Car = GetControlledBy();
-	const FVector Center = IsValid(Car) ? BumperCenter(*Car,PhysicsRoot->GetScaledSphereRadius()) : GetActorLocation();
+	const FVector Center = GetActorLocation();
 	Credit.SourceActor = this;
 	Credit.SourceTag = HALGameplayTags::Combat_Source_Ball;
 	Credit.FixedDamage = Type()->Gameplay.Damage.VehicleHitDamage;
@@ -314,8 +306,11 @@ void AHALTimedBombBall::Detonate()
 	Credit.bCanHitInstigator = true;
 	FHALCombatAction Action;
 	// Publish the cue before damage can finish the match and retire the ball.
+	const float Facing = IsValid(Car) ? Car->GetActorRotation().Yaw :
+		GetVelocity().GetSafeNormal2D(UE_SMALL_NUMBER, Heading).Rotation().Yaw;
+	const FVector JawAxis = FRotator(0.,Facing,0.).RotateVector(FVector::RightVector);
 	PlayCue(Car ? EHALBallCue::MountedImpact : EHALBallCue::Impact,Center,
-		Car ? PhysicsRoot->GetScaledSphereRadius() * Type()->CoronaSize : Type()->GroundBlastRadius);
+		Car ? PhysicsRoot->GetScaledSphereRadius() * Type()->CoronaSize : Type()->GroundBlastRadius, JawAxis);
 	if (Action.Begin(*this,Credit))
 	{
 		const FHALBlastArea Blast{Center, Type()->GroundBlastRadius};
@@ -350,31 +345,27 @@ void AHALTimedBombBall::Paint()
 	AActor* Car = GetControlledBy();
 	const float Travel = Car && Transfer.To == Car ? FMath::Clamp((Now-Transfer.Started)/Type()->ClaspTravelSeconds,0.,1.) : 1.f;
 	const float Jaw = Travel < .23f ? FMath::SmoothStep(0.f,.23f,Travel) : 1.f-FMath::SmoothStep(.68f,1.f,Travel);
-	FVector Center = VisualMesh->GetComponentLocation();
-	float Yaw = GetVelocity().SizeSquared2D() > 100.f ? GetVelocity().Rotation().Yaw : Assembly->GetComponentRotation().Yaw;
-	if (Car)
+	const float Yaw = Car ? Car->GetActorRotation().Yaw
+		: (GetVelocity().SizeSquared2D() > 100.f ? GetVelocity().Rotation().Yaw : Assembly->GetComponentRotation().Yaw);
+	Assembly->SetRelativeTransform(FTransform(FRotator(0,Yaw,0),FVector::ZeroVector,FVector(Radius/50.f)));
+	FVector JawOffset = FVector::ZeroVector;
+	if (Car && Travel < .83f)
 	{
 		const float Transit = FMath::SmoothStep(.17f,.83f,Travel);
-		const FVector Start = IsValid(Transfer.FromCar) && Transit < 1.f ? BumperCenter(*Transfer.FromCar,Radius) : FVector(Transfer.From);
-		Center = FMath::Lerp(Start,BumperCenter(*Car,Radius),Transit);
-		Center.Z += Radius * .38f * FMath::Sin(UE_PI*Transit);
-		Yaw = Car->GetActorRotation().Yaw;
+		FVector Start = Transfer.From;
+		FTransform OldHold;
+		const UBallControlComponent* Previous = IsValid(Transfer.FromCar) ? Transfer.FromCar->FindComponentByClass<UBallControlComponent>() : nullptr;
+		if (Previous && Previous->GetControlTargetWorldTransform(OldHold)) { Start = OldHold.GetLocation(); }
+		JawOffset = Assembly->GetComponentTransform().InverseTransformPosition(Start) * (1.f-Transit);
+		JawOffset.Z += 19.f * FMath::Sin(UE_PI*Transit);
 	}
-	Assembly->SetWorldTransform(FTransform(FRotator(0,Yaw,0),Center,FVector(Radius/50.f)));
-	const float Spread = 50.f * (Car ? Type()->JawOpening * Jaw : .045f + .022f*FMath::Sin(Now*5.));
-	LeftJaw->SetRelativeLocation(FVector(0,Spread,0));
-	RightJaw->SetRelativeLocation(FVector(0,-Spread,0));
-	if (WakeMID)
+	const float Spread = 50.f * (Car ? Type()->JawOpening * Jaw : .012f + .009f*FMath::Sin(Now*5.));
+	LeftJaw->SetRelativeLocation(JawOffset + FVector(0,Spread,0));
+	RightJaw->SetRelativeLocation(JawOffset - FVector(0,Spread,0));
+	if (JawMID)
 	{
-		const bool bSnap = Car && Travel > .68f && Travel < 1.f;
-		Wake->SetVisibility(bSnap || (!Armed && !Car && GetVelocity().SizeSquared2D() > 100.));
-		if (Wake->IsVisible())
-		{
-			const float Flash = bSnap ? FMath::Sin(UE_PI*(Travel-.68f)/.32f) : 0.f;
-			WakeMID->SetScalarParameterValue(TEXT("Snap"),Flash);
-			Wake->SetRelativeLocation(bSnap ? FVector(-38,0,18) : FVector(-53,0,-38));
-			Wake->SetRelativeScale3D(bSnap ? FVector(.8,.8,1) : FVector(1.55,1.15,1));
-		}
+		const float Snap = Travel > .68f && Travel < 1.f ? FMath::Sin(UE_PI * (Travel-.68f)/.32f) : 0.f;
+		JawMID->SetVectorParameterValue(TEXT("PoleTipColor"),Type()->PoleTipColor * (1.f+Snap));
 	}
 	if (DialMID)
 	{

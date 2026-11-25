@@ -5,11 +5,13 @@
 #include "HALTimedBombBall.h"
 #include "HALMatchBallLifecycle.h"
 #include "Components/DynamicMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "DynamicMesh/DynamicMesh3.h"
 #include "DynamicMesh/DynamicMeshAttributeSet.h"
 #include "DynamicMesh/DynamicMeshOverlay.h"
 #include "GameFramework/GameStateBase.h"
 #include "Engine/World.h"
+#include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Net/UnrealNetwork.h"
 #include "NiagaraComponent.h"
@@ -19,6 +21,25 @@ using UE::Geometry::FDynamicMesh3;
 
 namespace
 {
+enum class ECagePiece : uint8 { Rib, Lock, Collar };
+
+struct FCagePieceFlight
+{
+	ECagePiece Piece;
+	float ShellYaw, ExitYaw, Reach, Lift, SpinDegrees, End;
+	FVector SpinAxis;
+};
+
+// Angles on the intact shell match the two meridians and pole shoes. Ejection
+// diverges after the break. Each peer samples the same arc at the cue's age.
+const FCagePieceFlight CageFlights[] = {
+	{ECagePiece::Rib,     24,   8, 1.24f, .76f,  205, .94f, FVector(.30,.82,.41)},
+	{ECagePiece::Rib,    204, 218, 1.17f, .94f, -164, .89f, FVector(.76,.21,.57)},
+	{ECagePiece::Lock,    90,  79, 1.31f, .59f, -193, .83f, FVector(.62,.68,.20)},
+	{ECagePiece::Lock,   270, 286, 1.12f, .74f,  237, .91f, FVector(.28,.79,.55)},
+	{ECagePiece::Collar, 148, 149, 1.04f, 1.08f, 276, .80f, FVector(.71,.35,.60)}
+};
+
 double BallCueTime(const UWorld& World)
 {
 	const auto* State = World.GetGameState();
@@ -54,8 +75,7 @@ struct FCoronaMesh
 	}
 };
 
-// The four red and ivory pole pieces gather at spawn, fall apart on expiry and fly out
-// with the dial ticks on detonation. The broad ring marks only the damaging ground pulse.
+// Common magnetic arrival and expiry. Older ball definitions also use this fallback for hits.
 void DrawClaspCue(FCoronaMesh& Out, const UHALTimedBombBallDefinition& Type, EHALBallCue Kind, float T, float R)
 {
 	const bool Blast = Kind == EHALBallCue::Impact || Kind == EHALBallCue::MountedImpact;
@@ -209,6 +229,11 @@ void AHALSpecialBallCue::OnRep_State()
 		}
 	}
 	Ribbons->SetMaterial(0, State.Type->CueMaterial);
+	if (State.Kind == EHALBallCue::Impact || State.Kind == EHALBallCue::MountedImpact)
+	{
+		const auto* Clasp = Cast<UHALTimedBombBallDefinition>(State.Type.Get());
+		if (Clasp && Clasp->ClaspBurstMaterial) { PrepareClaspBurst(*Clasp); }
+	}
 	if (State.Kind == EHALBallCue::Impact && !State.Type->IsA<UHALTimedBombBallDefinition>())
 	{
 		PrepareWave();
@@ -217,6 +242,102 @@ void AHALSpecialBallCue::OnRep_State()
 	}
 	SetActorTickEnabled(true);
 	Tick(0);
+}
+
+void AHALSpecialBallCue::PrepareClaspBurst(const UHALTimedBombBallDefinition& Type)
+{
+	ClaspBurstMID = UMaterialInstanceDynamic::Create(Type.ClaspBurstMaterial, this);
+	if (!ClaspBurstMID) { return; }
+	ClaspBurstMID->SetScalarParameterValue(TEXT("GroundPulse"), State.Kind == EHALBallCue::Impact ? 1.f : 0.f);
+	ClaspBurstMID->SetScalarParameterValue(TEXT("SmokeSize"), Type.ClaspSmokeSize);
+	ClaspBurstMID->SetScalarParameterValue(TEXT("Glow"), Type.Glow);
+	Ribbons->SetMaterial(0, ClaspBurstMID);
+
+	// Both peers use the actual opening axis at detonation. The center lifts off the
+	// surface while the outer pressure front stays flat and at the gameplay radius.
+	const FVector Side = FVector(State.SurfaceNormal).GetSafeNormal2D(UE_SMALL_NUMBER, FVector::RightVector);
+	const FVector Across = FVector::CrossProduct(FVector::UpVector, Side);
+	FDynamicMesh3 Sheet;
+	Sheet.EnableAttributes();
+	auto* UV = Sheet.Attributes()->PrimaryUV();
+	auto* Normals = Sheet.Attributes()->PrimaryNormals();
+	constexpr int32 Steps = 10;
+	for (int32 J = 0; J <= Steps; ++J)
+	{
+		for (int32 I = 0; I <= Steps; ++I)
+		{
+			const float X = 2.f*I/Steps-1.f, Y = 2.f*J/Steps-1.f;
+			const float Crown = 1.f - FMath::SmoothStep(0.f, .72f, FMath::Sqrt(X*X+Y*Y));
+			Sheet.AppendVertex((X*Side + Y*Across + FVector::UpVector*(.16f*Crown))*State.Radius);
+			UV->AppendElement(FVector2f(float(I)/Steps,float(J)/Steps));
+			Normals->AppendElement(FVector3f::UnitZ());
+		}
+	}
+	for (int32 J = 0; J < Steps; ++J)
+	{
+		for (int32 I = 0; I < Steps; ++I)
+		{
+			const int32 A = J*(Steps+1)+I, B = A+Steps+1;
+			for (const UE::Geometry::FIndex3i& Face : {UE::Geometry::FIndex3i(A,B,A+1), UE::Geometry::FIndex3i(A+1,B,B+1)})
+			{
+				const int32 Index = Sheet.AppendTriangle(Face);
+				UV->SetTriangle(Index,Face);
+				Normals->SetTriangle(Index,Face);
+			}
+		}
+	}
+	Ribbons->SetMesh(MoveTemp(Sheet));
+
+	UStaticMesh* const Shapes[] = { Type.RibFragmentMesh.Get(), Type.LockFragmentMesh.Get(), Type.CollarFragmentMesh.Get() };
+	auto* Metal = Type.MakeCageMaterial(this);
+	for (const FCagePieceFlight& Flight : CageFlights)
+	{
+		auto* Shape = Shapes[static_cast<uint8>(Flight.Piece)];
+		UStaticMeshComponent* Piece = nullptr;
+		if (Shape)
+		{
+			Piece = NewObject<UStaticMeshComponent>(this);
+			Piece->SetMobility(EComponentMobility::Movable);
+			Piece->SetupAttachment(Ribbons);
+			Piece->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Piece->SetGenerateOverlapEvents(false);
+			Piece->SetCanEverAffectNavigation(false);
+			Piece->SetCastShadow(false);
+			Piece->SetStaticMesh(Shape);
+			if (Metal) { Piece->SetMaterial(0, Metal); }
+			Piece->RegisterComponent();
+		}
+		CageFragments.Add(Piece);
+	}
+}
+
+void AHALSpecialBallCue::UpdateCageFragments(float Progress, const UHALTimedBombBallDefinition& Type)
+{
+	const float BallRadius = State.Kind == EHALBallCue::MountedImpact
+		? State.Radius / Type.CoronaSize : Type.GetScaledPhysicsRadius();
+	const float MeshScale = BallRadius / 50.f;
+	const FVector Side = FVector(State.SurfaceNormal).GetSafeNormal2D(UE_SMALL_NUMBER, FVector::RightVector);
+	const float Facing = Side.Rotation().Yaw - 90.f;
+	// Meshes are centered on the metal they came from, in the same 50 cm frame as JawMesh.
+	static const FVector Mounts[] = { FVector(46.3,0,7.5), FVector(47,0,-4), FVector(30.3,0,34) };
+	for (int32 Index = 0; Index < CageFragments.Num(); ++Index)
+	{
+		auto* Piece = CageFragments[Index].Get();
+		if (!Piece || !Piece->IsVisible()) { continue; }
+		const FCagePieceFlight& Flight = CageFlights[Index];
+		const float T = FMath::Min(Progress / Flight.End, 1.f);
+		if (T >= 1.f) { Piece->SetVisibility(false); continue; }
+		const FQuat MountRotation(FVector::UpVector, FMath::DegreesToRadians(Facing + Flight.ShellYaw));
+		const FVector Start = MountRotation.RotateVector(Mounts[static_cast<uint8>(Flight.Piece)]) * MeshScale;
+		const FVector Direction = FRotator(0, Facing + Flight.ExitYaw, 0).Vector();
+		const float Reach = FMath::Max(float(Start.Size2D()), State.Radius * Type.ClaspBurstReach * Flight.Reach);
+		const float Out = 1.f - FMath::Square(1.f-T);
+		FVector Position = FMath::Lerp(Start, Direction * Reach, Out);
+		Position.Z = FMath::Lerp(Start.Z, -.68*BallRadius, T) + BallRadius * Flight.Lift * 4.f*T*(1.f-T);
+		const FQuat Tumble(Flight.SpinAxis.GetSafeNormal(), FMath::DegreesToRadians(Flight.SpinDegrees * T * (1.18f-.18f*T)));
+		const float Scale = MeshScale * (1.f-FMath::SmoothStep(.64f, 1.f, T));
+		Piece->SetRelativeTransform(FTransform(MountRotation*Tumble, Position, FVector(Scale)));
+	}
 }
 
 void AHALSpecialBallCue::PrepareWave()
@@ -271,6 +392,12 @@ void AHALSpecialBallCue::Tick(float DeltaSeconds)
 	const float T = Elapsed / (State.Kind == EHALBallCue::Impact ? State.Type->ImpactSeconds : Duration);
 	if (EruptionMID) { EruptionMID->SetScalarParameterValue(TEXT("Progress"), T); }
 	if (T >= 1.f) { Ribbons->SetVisibility(false, false); return; }
+	if (ClaspBurstMID)
+	{
+		ClaspBurstMID->SetScalarParameterValue(TEXT("Progress"), T);
+		UpdateCageFragments(T, *CastChecked<UHALTimedBombBallDefinition>(State.Type.Get()));
+		return;
+	}
 	Draw(T);
 }
 

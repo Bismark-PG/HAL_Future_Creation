@@ -7,7 +7,13 @@ import unreal as u
 
 lagged = '-ClaspLag' in u.SystemLibrary.get_command_line()
 check_expiry = '-ClaspExpiry' in u.SystemLibrary.get_command_line()
+record_burst = '-ClaspReplay' in u.SystemLibrary.get_command_line()
+replay_bins = 22
 view_name = 'MatchLife' if check_expiry else ('MatchLag' if lagged else 'Match')
+if record_burst:
+    view_name += 'Replay'
+if '-CageFragmentQA' in u.SystemLibrary.get_command_line().split():
+    view_name += 'Fragments'
 out = Path(u.Paths.convert_relative_path_to_full(u.Paths.project_saved_dir())) / 'TimedBomb' / view_name
 out.mkdir(parents=True, exist_ok=True)
 level = u.get_editor_subsystem(u.LevelEditorSubsystem)
@@ -31,6 +37,7 @@ result = {'phase': [], 'jaw_spread_cm': {'server':[], 'client':[]}}
 impact_origins = {}
 cameras = []
 capture_actor = render_target = None
+replay_targets, recorded_images = [], {}
 
 
 def now():
@@ -118,7 +125,15 @@ def make_peer_capture():
     global capture_actor,render_target
     capture_actor=game.get_all_actors_of_class_with_tag(client,u.SceneCapture2D,'ClaspQAImage')[0]
     component=capture_actor.get_component_by_class(u.SceneCaptureComponent2D)
-    render_target=u.RenderingLibrary.create_render_target2d(client,960,640,u.TextureRenderTargetFormat.RTF_RGBA8)
+    def display_target():
+        target=u.RenderingLibrary.create_render_target2d(client,960,640,u.TextureRenderTargetFormat.RTF_RGBA8)
+        target.set_editor_property('target_gamma',2.2)
+        return target
+    render_target=display_target()
+    if record_burst:
+        # One per timed frame, three named poses and the pre-blast comparison.
+        replay_targets.extend(u.RenderingLibrary.create_render_target2d(client,960,640,u.TextureRenderTargetFormat.RTF_RGBA8)
+                              for _ in range(replay_bins+4))
     component.set_editor_property('capture_source',u.SceneCaptureSource.SCS_FINAL_COLOR_LDR)
     component.set_editor_property('texture_target',render_target)
     component.set_editor_property('capture_on_movement',False)
@@ -130,9 +145,82 @@ def visible_clasp_effect(world,near=None):
         if near is not None and (cue.get_actor_location()-near).length()>350.: continue
         mesh=cue.get_component_by_class(u.DynamicMeshComponent)
         mat=mesh.get_material(0) if mesh else None
-        if mat and 'TimedBomb_Pulse' in mat.get_name() and mesh.get_dynamic_mesh().get_triangle_count()>0:
+        if mat and mesh.is_visible() and 'TimedBomb_Pulse' in mat.get_name() and mesh.get_dynamic_mesh().get_triangle_count()>0:
             return True
     return False
+
+
+def burst_progress(world,ground):
+    for cue in all_of(world,u.HALSpecialBallCue):
+        mesh = cue.get_component_by_class(u.DynamicMeshComponent)
+        mat = mesh.get_material(0) if mesh and mesh.is_visible() else None
+        if not isinstance(mat,u.MaterialInstanceDynamic): continue
+        if mat.get_editor_property('parent').get_name() != 'M_TimedBomb_ClaspBurst': continue
+        if (mat.get_scalar_parameter_value('GroundPulse')>.5) != ground: continue
+        assert mesh.get_dynamic_mesh().get_triangle_count()>0
+        progress = mat.get_scalar_parameter_value('Progress')
+        mode,side = ('ground' if ground else 'mounted'), ('server' if world==server else 'client')
+        poses = result.setdefault('cage_fragments',{}).setdefault(mode,{}).setdefault(side,{})
+        for label,threshold in (('break',.12),('tumble',.40),('retire',.75)):
+            if label in poses or progress<threshold: continue
+            parts = sorted(cue.get_components_by_class(u.StaticMeshComponent),key=lambda c:c.get_name())
+            shapes = [c.static_mesh.get_name() for c in parts]
+            assert sorted(shapes)==sorted(['SM_TimedBomb_RibFragment']*2+['SM_TimedBomb_LockFragment']*2+
+                                          ['SM_TimedBomb_CollarFragment']), shapes
+            metal = parts[0].get_material(0)
+            assert isinstance(metal,u.MaterialInstanceDynamic) and metal.get_editor_property('parent').get_name()=='M_TimedBomb_CageSteel'
+            assert all(c.get_material(0)==metal and c.get_collision_enabled()==u.CollisionEnabled.NO_COLLISION
+                       and not c.is_simulating_physics() for c in parts)
+            rib = parts[shapes.index('SM_TimedBomb_RibFragment')]
+            loc,axis = rib.get_editor_property('relative_location'), rib.get_up_vector()
+            poses[label] = {'t':round(progress,3),'xy_cm':round((loc.x**2+loc.y**2)**.5,1),
+                            'z_cm':round(loc.z,1),'up':[round(v,3) for v in (axis.x,axis.y,axis.z)],
+                            'scale':round(rib.get_world_scale().x,3)}
+            break
+        return progress
+    return None
+
+
+def check_fragment_flight(mode):
+    for side in ('server','client'):
+        poses = result['cage_fragments'][mode][side]
+        first,peak,last = [poses[k] for k in ('break','tumble','retire')]
+        assert peak['xy_cm']>first['xy_cm']+5. and peak['z_cm']>0., (mode,side,poses)
+        assert sum((a-b)**2 for a,b in zip(peak['up'],first['up']))>.05, (mode,side,poses)
+        assert last['scale']<.90*peak['scale'], (mode,side,poses)
+
+
+def store_replay_frame(names):
+    # Copy pixels on the GPU. The capture keeps its original render target and therefore
+    # its exposure history throughout the whole shot. Read back after the play test.
+    target = replay_targets.pop()
+    canvas,size,ctx = u.RenderingLibrary.begin_draw_canvas_to_render_target(client,target)
+    canvas.draw_texture(render_target,u.Vector2D(),size,u.Vector2D(),u.Vector2D(1,1),
+                        u.LinearColor(1.,1.,1.,1.),u.BlendMode.BLEND_OPAQUE,0.,u.Vector2D())
+    u.RenderingLibrary.end_draw_canvas_to_render_target(client,ctx)
+    recorded_images.update((name,target) for name in names)
+
+
+def capture_burst(name,ground):
+    host,remote = (burst_progress(w,ground) for w in (server,client))
+    if remote is None: return False
+    stages = result.setdefault('burst_frames',{}).setdefault(name,{})
+    shots = []
+    if record_burst and ground:
+        frames = result.setdefault('replay_frames',{})
+        frame_name = 'GroundFrame%02d'%int(remote*replay_bins)
+        if frame_name not in frames:
+            shots.append(frame_name)
+            frames[frame_name] = remote
+    for label,threshold in (('Snap',.09),('Peak',.28),('Smoke',.63)):
+        if host is not None and remote>=threshold and label not in stages:
+            shots.append(name if label=='Peak' else name+label)
+            stages[label] = {'server':round(host,3),'client':round(remote,3)}
+    if shots and record_burst and ground:
+        store_replay_frame(shots)
+    else:
+        for shot in shots: capture(shot)
+    return 'Peak' in stages
 
 
 def frame(point, offset, fov):
@@ -150,14 +238,41 @@ def bomb_on_peer():
 
 
 def jaw_gap(ball):
-    jaw = next(c for c in ball.get_components_by_class(u.StaticMeshComponent) if c.get_name()=='LeftMagnet')
-    return abs(jaw.get_editor_property('relative_location').y)
+    meshes = {c.get_name(): c for c in ball.get_components_by_class(u.StaticMeshComponent)}
+    left = meshes['LeftMagnet'].get_editor_property('relative_location')
+    right = meshes['RightMagnet'].get_editor_property('relative_location')
+    return abs(left.y-right.y)*.5
+
+
+def check_clasp_center(ball, side, phase):
+    parts = {c.get_name(): c for c in ball.get_components_by_class(u.SceneComponent)}
+    stock, shell, dial = parts['VisualMesh'], parts['GraphiteCore'], parts['CountdownDial']
+    assert 'PatrolStrokes' not in parts and ball.root_component.get_editor_property('hidden_in_game')
+    assert shell.is_visible() and dial.is_visible() and not shell.get_editor_property('hidden_in_game')
+    assert all(parts[k].static_mesh.get_name()=='SM_TimedBomb_CageHalf' for k in ('LeftMagnet','RightMagnet'))
+    assert shell.get_material(0).get_editor_property('parent').get_name()=='M_TimedBomb_EmberCore'
+    center = stock.get_world_location()
+    shell_error = (shell.get_world_location()-center).length()
+    dial_offset = dial.get_world_location()-center
+    dial_xy_error = (dial_offset.x**2+dial_offset.y**2)**.5
+    assert shell_error < .1 and dial_xy_error < .1 and dial_offset.z > 0., (side, phase, shell_error, dial_offset)
+    readings = result.setdefault('clasp_center', {}).setdefault(phase, {}).setdefault(side, {
+        'samples': 0, 'max_shell_error_cm': 0., 'max_dial_xy_error_cm': 0., 'client_relative_frames': 0})
+    readings['samples'] += 1
+    readings['max_shell_error_cm'] = max(readings['max_shell_error_cm'], round(shell_error, 3))
+    readings['max_dial_xy_error_cm'] = max(readings['max_dial_xy_error_cm'], round(dial_xy_error, 3))
+    if side=='server':
+        assert (center-ball.root_component.get_world_location()).length() < .1
+    elif stock.get_editor_property('absolute_location'):
+        readings['client_relative_frames'] += 1
 
 
 def finish(error=None):
     result['complete'] = error is None
     result['error'] = error
     if error: u.log_error(error)
+    for name,target in recorded_images.items():
+        u.RenderingLibrary.export_render_target(client,target,str(out),name+'.png')
     (out/'Result.json').write_text(json.dumps(result,indent=2))
     u.unregister_slate_post_tick_callback(handle)
     if level.is_in_play_in_editor(): level.editor_request_end_play()
@@ -220,10 +335,18 @@ def tick(_):
         if stage=='patrol':
             frame(bomb.get_actor_location(),vec(-80,-480,700),43.)
             if age<.9: return
+            peers = [b for b in all_of(client,u.HALTimedBombBall) if b.get_fuse_deadline()<0.]
+            if not peers: return
+            peer = min(peers,key=lambda b:(b.get_actor_location()-bomb.get_actor_location()).length())
+            if (peer.get_actor_location()-bomb.get_actor_location()).length()>250.: return
+            check_clasp_center(bomb,'server','patrol')
+            check_clasp_center(peer,'client','patrol')
             distance=(bomb.get_actor_location()-origin).length()
             assert distance>110. and bomb.get_fuse_deadline()<0., distance
             result['patrol_cm']=distance
             capture('Patrol')
+            if record_burst:
+                cmd(client,'Shot -nosuffix filename="'+str(out/'PatrolViewport.png')+'"')
             advance('patrol_photo')
             return
         if stage=='patrol_photo' and age>.18:
@@ -236,7 +359,9 @@ def tick(_):
             deadline=bomb.get_fuse_deadline()
             peer=bomb_on_peer()
             if not peer or psid(peer.get_controlled_by())!=psid(car): return
-            gameplay = bomb.get_editor_property('definition').get_editor_property('gameplay')
+            definition = bomb.get_editor_property('definition')
+            result['impact_seconds'] = definition.get_editor_property('impact_seconds')
+            gameplay = definition.get_editor_property('gameplay')
             impact = gameplay.get_editor_property('impact')
             result['impact_config'] = {'tier': str(impact.get_editor_property('tier')),
                                        'push_preset': str(impact.get_editor_property('push_preset')),
@@ -267,8 +392,10 @@ def tick(_):
                 samples.append([round(x,2) for x in (age,p.x,p.y,p.z,q.x,q.y,q.z,v.x,v.y,car.get_actor_rotation().yaw)])
             peer=bomb_on_peer()
             if bomb.get_controlled_by()==other:
+                check_clasp_center(bomb,'server','handoff')
                 result['jaw_spread_cm']['server'].append(jaw_gap(bomb))
             if peer and psid(peer.get_controlled_by())==psid(other):
+                check_clasp_center(peer,'client','handoff')
                 if transfer_seen is None: transfer_seen=now()
                 result['jaw_spread_cm']['client'].append(jaw_gap(peer))
                 age_on_peer=now()-transfer_seen
@@ -291,23 +418,27 @@ def tick(_):
         if stage=='mounted_fuse':
             if now()<deadline:
                 assert bomb.get_controlled_by()==other, 'Clasp detached before the mounted fuse expired'
+                check_clasp_center(bomb,'server','held')
+                peer=bomb_on_peer()
+                if peer: check_clasp_center(peer,'client','held')
                 nose = other.get_actor_forward_vector()
+                origin = bomb.get_actor_location()
                 backwards = vec(-nose.x,-nose.y,0.)
                 blast_directions[psid(other)] = backwards / backwards.length()
             sample_blast_motion('mounted', blast_directions)
-            frame(other.get_actor_location()+other.get_actor_forward_vector()*130.,vec(-80,-390,880),50.)
+            frame(origin,vec(-80,-390,880),50.)
             if now()>deadline-1.4 and 'urgent_view' not in result:
                 capture('Urgent')
                 result['urgent_view']=True
-            if now()>deadline+.11 and not shot_blast:
-                if not all(visible_clasp_effect(w) for w in (server,client)): return
-                capture('MountedBurst')
+            if now()>=deadline and capture_burst('MountedBurst',False):
                 result['mounted_cue_on_both']=True
                 shot_blast=True
             expected=first_hp.copy()
             expected[str(psid(other))]-=result['impact_config']['damage']
             if now()<deadline+.8 or not shot_blast or healths(server)!=expected or healths(client)!=expected: return
+            assert result['clasp_center']['held']['client']['client_relative_frames'] > 0, 'Client never used the shared held-ball visual'
             check_blast_motion('mounted', 1)
+            check_fragment_flight('mounted')
             result['mounted_hp']=[healths(server),healths(client)]
             for side,samples in result['jaw_spread_cm'].items():
                 assert max(samples)>4. and samples[-1]<1., (side,samples)
@@ -340,15 +471,20 @@ def tick(_):
             if now()<deadline:
                 assert not bomb.get_controlled_by(), 'Car captured the bomb before the ground fuse expired'
             sample_blast_motion('ground', blast_directions)
-            frame(lane+vec(0,0,70),vec(-70,-360,1750),56.)
-            if now()>deadline+.16 and not shot_blast:
-                if not all(visible_clasp_effect(w) for w in (server,client)): return
-                capture('GroundBurst')
+            frame(lane+vec(0,0,70),vec(-70,-360,1570),52.)
+            if record_burst and -.20<now()-deadline<0. and 'ground_before' not in result:
+                capture('GroundBefore')
+                store_replay_frame(['GroundBeforeCopy'])
+                result['ground_before'] = now()-deadline
+            if now()>=deadline and capture_burst('GroundBurst',True):
                 result['ground_cue_on_both']=True
                 shot_blast=True
             expected={pid:hp-result['impact_config']['damage'] for pid,hp in second_hp.items()}
             if now()<deadline+.8 or not shot_blast or healths(server)!=expected or healths(client)!=expected: return
+            if record_burst:
+                capture('GroundAfter')
             check_blast_motion('ground', 2)
+            check_fragment_flight('ground')
             result['ground_hp']=[healths(server),healths(client)]
             advance('screens')
             return
