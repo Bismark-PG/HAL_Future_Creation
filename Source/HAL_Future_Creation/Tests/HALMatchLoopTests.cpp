@@ -5,6 +5,7 @@
 #include "../HALPracticeRoomGameMode.h"
 #include "../HALMatchGameState.h"
 #include "../HALMatchHUDWidget.h"
+#include "../HALPracticeRoomWidget.h"
 #include "../HALPlayerController.h"
 #include "../HALPlayerState.h"
 #include "../HALAbilitySystemComponent.h"
@@ -97,14 +98,15 @@ bool FHALMatchRulesTest::RunTest(const FString&)
 	TestTrue(TEXT("Equal absolute HP shared despite different MaxHP"),D.Players[0].bWinner && D.Players[1].bWinner && !D.Players[2].bWinner);
 	TestEqual(TEXT("Duplicate result cannot rerun"),HALRoundMatch::Decide(D,true),EHALMatchEndReason::None);
 	D.bComplete=false; for (auto& P:D.Players) { P.Life=EHALRoundLife::Eliminated; P.HP=0; }
-	TestEqual(TEXT("All last players out together is a draw"),HALRoundMatch::Decide(D,false),EHALMatchEndReason::NoSurvivors);
-	TestFalse(TEXT("Draw clears former winner flags"),D.Players.ContainsByPredicate([](const auto& P){return P.bWinner;}));
+	TestEqual(TEXT("All last players out together share victory"),HALRoundMatch::Decide(D,false),EHALMatchEndReason::SharedVictory);
+	TestFalse(TEXT("Every final-batch player is a winner"),D.Players.ContainsByPredicate([](const auto& P){return !P.bWinner || P.FinalRank!=1;}));
 	return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALMatchBatchTest,"HAL.FutureCreation.GameFlow.GF7.BatchDeathsAndImmutableResults",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FHALMatchBatchTest::RunTest(const FString&)
 {
 	FMatchWorld F; TestTrue(TEXT("Real round initialized"),F.R->GetData().Match.bActive && F.R->GetData().Match.Players.Num()==4);
+	TestTrue(TEXT("Ranked snapshot is absent before completion"),F.R->GetData().Match.RankedPlayers.IsEmpty());
 	TestEqual(TEXT("Missing travel context rejects manual return"),F.Mode->ReturnActiveRoundToRoom(),EHALRoomResult::InvalidConfiguration);
 	TestFalse(TEXT("Failed manual return does not poison the active match"),F.R->GetData().Match.bComplete);
 	F.HP(0,0); F.HP(1,0); TestEqual(TEXT("No decision inside attribute callback"),F.R->GetData().Phase,EHALRoomPhase::Playing);
@@ -116,7 +118,17 @@ bool FHALMatchBatchTest::RunTest(const FString&)
 	TestEqual(TEXT("Two survivors continue"),F.R->GetData().Phase,EHALRoomPhase::Playing);
 	TestTrue(TEXT("Survivor controls permitted"),HALGameFlow::Permissions(F.W,F.PCs[2]->GetPawn()).bDrive);
 	F.HP(2,0); F.HP(3,0); FHALMatchLoopTestAccess::Evaluate(F.Mode);
-	TestEqual(TEXT("Simultaneous final batch has no spurious winner"),F.R->GetData().Match.Reason,EHALMatchEndReason::NoSurvivors);
+	TestEqual(TEXT("Simultaneous final batch shares victory"),F.R->GetData().Match.Reason,EHALMatchEndReason::SharedVictory);
+	const auto& Ranked=F.R->GetData().Match.RankedPlayers;
+	TestEqual(TEXT("All four identities retained in result"),Ranked.Num(),4);
+	for (int32 I=0;I<4;++I)
+	{
+		TestEqual(TEXT("Later eliminated pair ranks first"),Ranked[I].Number,I<2?I+3:I-1);
+		TestEqual(TEXT("Competition ranks skip the shared places"),Ranked[I].FinalRank,I<2?1:3);
+		TestEqual(TEXT("Only the final pair wins"),Ranked[I].bWinner,I<2);
+		TestEqual(TEXT("Batch comes from the authoritative poll"),Ranked[I].EliminationBatch,I<2?2:1);
+		TestEqual(TEXT("Winning never resurrects a dead driver"),Ranked[I].HP,0.f);
+	}
 	TestEqual(TEXT("Results entered"),F.R->GetData().Phase,EHALRoomPhase::Results);
 	TestFalse(TEXT("Results block world hit interactions"),HALGameFlow::Permissions(F.W).bWorldInteractions);
 	const auto Result=F.R->GetData().Match; F.HP(0,100); FHALMatchLoopTestAccess::Evaluate(F.Mode);
@@ -152,6 +164,17 @@ bool FHALMatchCutoffTest::RunTest(const FString&)
 	TestEqual(TEXT("Solo development does not immediately win"),Solo.R->GetData().Phase,EHALRoomPhase::Playing);
 	FHALMatchLoopTestAccess::Expire(Solo.Mode); FHALMatchLoopTestAccess::Evaluate(Solo.Mode);
 	TestEqual(TEXT("Solo can still test timed result"),Solo.R->GetData().Match.Reason,EHALMatchEndReason::TimeExpired);
+	TestTrue(TEXT("Solo fixture is explicitly marked and wins at timeout"),Solo.R->GetData().Match.bSinglePlayerTest && Solo.R->GetData().Match.Players[0].bWinner);
+	FMatchWorld DeadSolo(1); DeadSolo.HP(0,0); FHALMatchLoopTestAccess::Evaluate(DeadSolo.Mode);
+	const auto& Dead=DeadSolo.R->GetData().Match;
+	TestEqual(TEXT("Dead solo fixture still completes"),Dead.Reason,EHALMatchEndReason::SoloTest);
+	TestTrue(TEXT("Dead solo fixture is displayed as the winner"),Dead.bComplete && Dead.RankedPlayers.Num()==1 && Dead.Players[0].bWinner && Dead.Players[0].FinalRank==1);
+	TestEqual(TEXT("Solo win does not rewrite frozen death HP"),Dead.Players[0].HP,0.f);
+	TestEqual(TEXT("Solo win does not rewrite life state"),Dead.Players[0].Life,EHALRoundLife::Eliminated);
+	auto* Summary=NewObject<UHALPracticeRoomWidget>(DeadSolo.PCs[0]);
+	const FString ResultText=Summary->GetRoomView().ResultSummary.ToString();
+	TestTrue(TEXT("Common summary names the dead solo winner"),ResultText.Contains(TEXT("WINNER")) && ResultText.Contains(TEXT("TOP 1")));
+	TestFalse(TEXT("Common summary does not mislabel the dead winner"),ResultText.Contains(TEXT("OUT")) || ResultText.Contains(TEXT("DRAW")));
 	return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALMatchForfeitTest,"HAL.FutureCreation.GameFlow.GF7.ForfeitAndHostElimination",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
@@ -166,6 +189,42 @@ bool FHALMatchForfeitTest::RunTest(const FString&)
 	F.HP(1,0); FHALMatchLoopTestAccess::Evaluate(F.Mode);
 	TestEqual(TEXT("One survivor ends round"),F.R->GetData().Match.Reason,EHALMatchEndReason::LastSurvivor);
 	TestTrue(TEXT("Only surviving fourth player wins"),F.R->GetData().Match.Players[3].bWinner);
+	const auto& Ranks=F.R->GetData().Match.RankedPlayers;
+	TestEqual(TEXT("Forfeit result includes all original participants"),Ranks.Num(),4);
+	TestEqual(TEXT("Quitter remains last behind eliminated players"),Ranks.Last().Number,3);
+	TestEqual(TEXT("Quitter rank is fourth"),Ranks.Last().FinalRank,4);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALCompetitionRankTest,"HAL.FutureCreation.GameFlow.GF7.CompetitionRanks",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALCompetitionRankTest::RunTest(const FString&)
+{
+	FHALRoundMatchData D; D.bActive=true;
+	for (int32 I=0;I<4;++I)
+	{
+		auto& P=D.Players.AddDefaulted_GetRef(); P.Number=4-I; P.PlayerKey=FGuid::NewGuid(); P.MaxHP=100;
+		P.Life=I==0?EHALRoundLife::Eliminated:EHALRoundLife::Alive;
+		P.HP=P.Number<=2?80:P.Number==3?20:0; P.EliminationBatch=I==0?1:0;
+	}
+	HALRoundMatch::Decide(D,true);
+	for (int32 I=0;I<4;++I)
+	{
+		const auto& P=D.RankedPlayers[I];
+		TestEqual(TEXT("Equal HP has stable display order"),P.Number,I+1);
+		TestEqual(TEXT("Shared first place uses 1,1,3,4"),P.FinalRank,I<2?1:I+1);
+		TestEqual(TEXT("Both highest HP players win"),P.bWinner,I<2);
+		TestEqual(TEXT("Original participant order is preserved"),D.Players[I].Number,4-I);
+	}
+	const auto Frozen=D; HALRoundMatch::Decide(D,false);
+	TestTrue(TEXT("Repeated decisions leave ranked snapshot immutable"),FHALRoundMatchData::StaticStruct()->CompareScriptStruct(&Frozen,&D,0));
+
+	D=FHALRoundMatchData(); D.bActive=true;
+	for (int32 I=0;I<3;++I)
+	{ auto& P=D.Players.AddDefaulted_GetRef(); P.Number=I+1; P.Life=EHALRoundLife::Alive; P.HP=I==0?100.f:I==1?99.9995f:99.9989f; }
+	HALRoundMatch::Decide(D,true);
+	TestEqual(TEXT("HP tolerance shares the highest place"),D.RankedPlayers[1].FinalRank,1);
+	TestEqual(TEXT("Tolerance groups use the group leader, not a transitive near-equal chain"),D.RankedPlayers[2].FinalRank,3);
+	TestFalse(TEXT("Player outside the highest HP tolerance does not win"),D.RankedPlayers[2].bWinner);
 	return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALMatchHUDDeadlineTest,"HAL.FutureCreation.GameFlow.GF7.MatchHUDServerDeadline",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)

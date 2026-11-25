@@ -171,10 +171,20 @@ namespace
 				if (Contract)
 				{ auto* Custom=Cast<UHALContractRoomWidget>(Screen); if (!Custom || !Custom->LastWasResults || Custom->LastMatch.RoundId!=D.RoundId) { return false; }
 					Test->TestTrue(TEXT("Designer event receives structured result without native layout"),Screen->UsesDesignerLayout() && Custom->LastMatch.bComplete); }
-				const auto Expected=Four?EHALMatchEndReason::TimeExpired:D.RoundId==1?EHALMatchEndReason::LastSurvivor:D.RoundId==2?EHALMatchEndReason::TimeExpired:EHALMatchEndReason::NoSurvivors;
+				const auto Expected=Four?EHALMatchEndReason::TimeExpired:D.RoundId==1?EHALMatchEndReason::LastSurvivor:D.RoundId==2?EHALMatchEndReason::TimeExpired:EHALMatchEndReason::SharedVictory;
 				Test->TestEqual(TEXT("Expected authoritative end reason"),D.Match.Reason,Expected);
 				int32 Winners=0; for (const auto& P:D.Match.Players) { if (P.bWinner) { ++Winners; } }
-				Test->TestEqual(TEXT("Correct winner count and shared victory/draw"),Winners,Four?2:D.RoundId==1?1:D.RoundId==2?2:0);
+				Test->TestEqual(TEXT("Correct winner count including shared final deaths"),Winners,Four?2:D.RoundId==1?1:2);
+				Test->TestEqual(TEXT("Full ranked snapshot replicates with the result"),D.Match.RankedPlayers.Num(),D.Match.Players.Num());
+				int32 RankedWinners=0,PreviousRank=0;
+				for (const auto& P:D.Match.RankedPlayers)
+				{
+					const auto* Original=D.Match.Find(P.PlayerKey);
+					Test->TestTrue(TEXT("Ranked identity matches immutable participant data"),Original && Original->Number==P.Number && Original->FinalRank==P.FinalRank && Original->bWinner==P.bWinner && Original->HP==P.HP && Original->EliminationBatch==P.EliminationBatch);
+					Test->TestTrue(TEXT("Received ranks are complete and ordered"),P.FinalRank>0 && P.FinalRank>=PreviousRank);
+					PreviousRank=P.FinalRank; RankedWinners+=P.bWinner;
+				}
+				Test->TestEqual(TEXT("Ranked snapshot carries every shared winner"),RankedWinners,Winners);
 				Test->TestFalse(TEXT("Results prohibit damage"),HALGameFlow::Permissions(W,PC->GetPawn()).bDamage);
 				Test->TestFalse(TEXT("Results cannot cycle spectator"),View.bCanCycleSpectator);
 				if (!Host) { Test->TestFalse(TEXT("Client cannot finish host's results screen early"),View.bCanReturnToRoom); }

@@ -37,6 +37,7 @@ void AHALPracticeRoomGameMode::BeginMatchRules()
 	ActiveMatch.Players.Sort([](const auto& A,const auto& B){ return A.Number<B.Number; });
 	if (ActiveMatch.Players.IsEmpty() || ActiveMatch.Players.Num()!=R->GetData().LockedRoster.Num())
 	{ StopMatchRules(); StartRoundTravel(true,TEXT("Could not prepare every driver. Please confirm again.")); return; }
+	ActiveMatch.bSinglePlayerTest=R->GetData().Rules.Profile==EHALRoomProfile::Development && ActiveMatch.Players.Num()==1;
 	R->SetMatchData(ActiveMatch);
 	GetWorldTimerManager().SetTimer(MatchPollTimer,this,&ThisClass::PollMatchRules,.1f,true);
 	UE_LOG(LogTemp,Display,TEXT("GF7 match started Round=%lld Players=%d Deadline=%.3f"),ActiveMatch.RoundId,ActiveMatch.Players.Num(),ActiveMatch.EndServerTime);
@@ -74,17 +75,20 @@ void AHALPracticeRoomGameMode::PollMatchRules()
 	if (R->GetData().Phase!=EHALRoomPhase::Playing) { return; }
 	TGuardValue<bool> Guard(bEvaluatingMatch,true);
 	TArray<TWeakObjectPtr<ATestVehiclePawn>> Retiring;
+	int32 DeathBatch=0;
 	for (auto& P:ActiveMatch.Players)
 	{
 		if (P.Life!=EHALRoundLife::Alive) { continue; }
 		const auto* W=MatchWatches.FindByPredicate([&P](const auto& V){ return V.Key==P.PlayerKey; });
 		auto* PS=W?W->Player.Get():nullptr; auto* Pawn=W?W->Pawn.Get():nullptr;
 		if (P.HP>0 && PS && Pawn && PS->GetPawn()==Pawn && Pawn->IsConfigurationValid()) { continue; }
+		if (!DeathBatch) { DeathBatch=++ActiveMatch.LastEliminationBatch; }
+		P.EliminationBatch=DeathBatch;
 		P.Life=EHALRoundLife::Eliminated;
 		if (PS)
 		{ auto I=PS->GetRoomData(); I.RoundLife=P.Life; I.ReadyAvatar=nullptr; PS->SetRoomData(I); }
 		if (Pawn) { Retiring.Add(Pawn); }
-		UE_LOG(LogTemp,Display,TEXT("GF7 eliminated Round=%lld P%d HP=%.3f"),ActiveMatch.RoundId,P.Number,P.HP);
+		UE_LOG(LogTemp,Display,TEXT("GF7 eliminated Round=%lld P%d HP=%.3f Batch=%d"),ActiveMatch.RoundId,P.Number,P.HP,P.EliminationBatch);
 	}
 	const auto Reason=HALRoundMatch::Decide(ActiveMatch,Now>=ActiveMatch.EndServerTime);
 	if (Reason!=EHALMatchEndReason::None) { ActiveMatch.ReturnServerTime=Now+ActiveMatch.Rules.ResultsSeconds; }
@@ -94,6 +98,8 @@ void AHALPracticeRoomGameMode::PollMatchRules()
 	{
 		R->AdvanceRound(uint32(ActiveMatch.RoundId),EHALRoomPhase::Results); S->SetMatchPhase(EHALMatchPhase::Finished);
 		FString Winners; for (const auto& P:ActiveMatch.Players) { if (P.bWinner) { Winners+=FString::Printf(TEXT("P%d "),P.Number); } }
+		for (const auto& P:ActiveMatch.RankedPlayers)
+		{ UE_LOG(LogTemp,Display,TEXT("GF7 rank Round=%lld Rank=%d P%d HP=%.3f Life=%d Winner=%d Batch=%d"),ActiveMatch.RoundId,P.FinalRank,P.Number,P.HP,int32(P.Life),P.bWinner,P.EliminationBatch); }
 		UE_LOG(LogTemp,Display,TEXT("GF7 results Round=%lld Reason=%d Winners=%s Return=%.3f"),ActiveMatch.RoundId,int32(Reason),*Winners,ActiveMatch.ReturnServerTime);
 	}
 	// Do not destroy actors inside the GAS modifier/collision callback which was still using them.
@@ -110,7 +116,8 @@ void AHALPracticeRoomGameMode::ForfeitMatchPlayer(AHALPlayerState* PS)
 	if (ActiveMatch.bComplete) { return; }
 	auto* P=ActiveMatch.Players.FindByPredicate([PS](const auto& E){ return E.PlayerKey==PS->GetRoomData().PlayerKey; });
 	if (P && P->Life==EHALRoundLife::Alive)
-	{ P->Life=EHALRoundLife::Forfeited; auto I=PS->GetRoomData(); I.RoundLife=P->Life; PS->SetRoomData(I);
+	{ P->Life=EHALRoundLife::Forfeited; P->EliminationBatch=++ActiveMatch.LastEliminationBatch;
+		auto I=PS->GetRoomData(); I.RoundLife=P->Life; PS->SetRoomData(I);
 		UE_LOG(LogTemp,Display,TEXT("GF7 forfeited Round=%lld P%d"),ActiveMatch.RoundId,P->Number); ScheduleMatchEvaluation(); }
 }
 void AHALPracticeRoomGameMode::StopMatchRules()

@@ -12,12 +12,39 @@ bool FHALMatchRules::Validate(FString& Error) const
 EHALMatchEndReason HALRoundMatch::Decide(FHALRoundMatchData& D,bool Expired)
 {
 	if (!D.bActive || D.bComplete || D.Players.IsEmpty()) { return EHALMatchEndReason::None; }
-	int32 Alive=0; float Best=-1;
-	for (const auto& P:D.Players) { if (P.Life==EHALRoundLife::Alive) { ++Alive; Best=FMath::Max(Best,P.HP); } }
-	const auto Reason=Alive==0?EHALMatchEndReason::NoSurvivors:Expired?EHALMatchEndReason::TimeExpired
+	int32 Alive=0; bool HasEliminated=false;
+	for (const auto& P:D.Players) { Alive+=P.Life==EHALRoundLife::Alive; HasEliminated|=P.Life==EHALRoundLife::Eliminated; }
+	const bool Solo=D.bSinglePlayerTest && D.Players.Num()==1;
+	const auto Reason=Alive==0?(Solo?EHALMatchEndReason::SoloTest:HasEliminated?EHALMatchEndReason::SharedVictory:EHALMatchEndReason::Aborted):Expired?EHALMatchEndReason::TimeExpired
 		:(Alive==1 && D.Players.Num()>1)?EHALMatchEndReason::LastSurvivor:EHALMatchEndReason::None;
 	if (Reason==EHALMatchEndReason::None) { return Reason; }
-	for (auto& P:D.Players)
-	{ P.bWinner=P.Life==EHALRoundLife::Alive && (Reason==EHALMatchEndReason::LastSurvivor || FMath::IsNearlyEqual(P.HP,Best,.001f)); }
+	const auto Category=[](const FHALRoundParticipant& P)
+	{ return P.Life==EHALRoundLife::Alive?0:P.Life==EHALRoundLife::Eliminated?1:P.Life==EHALRoundLife::Forfeited?2:3; };
+	TArray<int32> Order; Order.Reserve(D.Players.Num());
+	for (int32 I=0;I<D.Players.Num();++I) { Order.Add(I); }
+	Order.Sort([&](int32 A,int32 B)
+	{
+		const auto& X=D.Players[A]; const auto& Y=D.Players[B];
+		const int32 CX=Category(X),CY=Category(Y);
+		if (CX!=CY) { return CX<CY; }
+		// Keep the comparator strict; HP tolerance is applied against each group's leader below.
+		if (CX==0 && X.HP!=Y.HP) { return X.HP>Y.HP; }
+		if (CX!=0 && X.EliminationBatch!=Y.EliminationBatch) { return X.EliminationBatch>Y.EliminationBatch; }
+		return X.Number!=Y.Number?X.Number<Y.Number:A<B;
+	});
+	D.RankedPlayers.Reset(D.Players.Num()); int32 Leader=0;
+	for (int32 I=0;I<Order.Num();++I)
+	{
+		auto& P=D.Players[Order[I]]; const auto& L=D.Players[Order[Leader]];
+		const bool Same=Category(P)==Category(L) && (P.Life==EHALRoundLife::Alive
+			?FMath::IsNearlyEqual(P.HP,L.HP,.001f):P.EliminationBatch==L.EliminationBatch);
+		if (!Same) { Leader=I; }
+		P.FinalRank=Leader+1;
+		P.bWinner=Solo || (P.FinalRank==1 && (P.Life==EHALRoundLife::Alive
+			|| (Reason==EHALMatchEndReason::SharedVictory && P.Life==EHALRoundLife::Eliminated)));
+		D.RankedPlayers.Add(P);
+	}
+	D.RankedPlayers.Sort([](const auto& A,const auto& B)
+	{ return A.FinalRank!=B.FinalRank?A.FinalRank<B.FinalRank:A.Number<B.Number; });
 	D.Reason=Reason; D.bComplete=true; return Reason;
 }

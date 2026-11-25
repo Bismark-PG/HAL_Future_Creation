@@ -173,6 +173,12 @@ void UHALNetworkGameInstance::ShowPracticeRoom(APlayerController* PC)
 	UClass* Desired=ResolveRoomScreen(PC);
 	if (!VisibleWidget || VisibleWidget->GetClass()!=Desired || VisibleWidget->GetWorld()!=PC->GetWorld() || VisibleWidget->GetOwningPlayer()!=PC)
 	{ ReplaceVisibleWidget(CreateWidget<UHALPracticeRoomWidget>(PC,Desired)); }
+	else if (!VisibleWidget->IsInViewport())
+	{
+		// Seamless travel may remove the viewport slot while retaining this local widget/controller.
+		VisibleWidget->AddToViewport();
+		UE_LOG(LogHALNetworkMenu,Display,TEXT("Reattached Room widget after travel: %s Mounted=%d"),*GetNameSafe(VisibleWidget),VisibleWidget->IsInViewport());
+	}
 	if (auto* Screen=Cast<UHALPracticeRoomWidget>(VisibleWidget)) { Screen->RefreshFromRoomState(); }
 }
 bool UHALNetworkGameInstance::RoomOwnsMatchHUD(const APlayerController* PC) const

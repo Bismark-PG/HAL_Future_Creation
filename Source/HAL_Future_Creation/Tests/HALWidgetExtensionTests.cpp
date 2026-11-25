@@ -13,6 +13,17 @@
 #include "Engine/GameViewportClient.h"
 #include "Engine/World.h"
 #include "Widgets/SOverlay.h"
+#include "TimerManager.h"
+#if WITH_EDITOR
+#include "Slate/WidgetRenderer.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "ImageUtils.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "RenderingThread.h"
+#include "RHI.h"
+#endif
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALTravelLoadingRoutingTest,"HAL.FutureCreation.GameFlow.UIIntegration.TravelLoadingRouting",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FHALTravelLoadingRoutingTest::RunTest(const FString&)
@@ -108,6 +119,14 @@ bool FHALLoadingPartsTest::RunTest(const FString&)
 	TestEqual(TEXT("Map section keeps its Designer text"),MapText->GetText().ToString(),FString(TEXT("MY MAP LOADING")));
 	V.LoadedPlayers=3; Screen->PrepareView(V); Screen->FinishView();
 	TestEqual(TEXT("Repeated Room views update player counts"),Detail->GetText().ToString(),FString(TEXT("PLAYERS LOADED  3 / 4")));
+	V.Phase=EHALRoomPhase::Results; V.bShowResults=true; Screen->PrepareView(V); Screen->FinishView();
+	TestEqual(TEXT("Results transition reuses generic loading"),Map->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+	TestEqual(TEXT("Results transition hides match-start player counts"),Players->GetVisibility(),ESlateVisibility::Collapsed);
+	TestTrue(TEXT("Results transition clears stale loading counts"),Detail->GetText().IsEmpty());
+	TestEqual(TEXT("Generic loading keeps Designer artwork/text"),MapText->GetText().ToString(),FString(TEXT("MY MAP LOADING")));
+	V.Phase=EHALRoomPhase::Loading; V.bShowResults=false; Screen->PrepareView(V); Screen->FinishView();
+	TestEqual(TEXT("Next match restores player loading"),Players->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+	TestEqual(TEXT("Next match restores normal count text"),Detail->GetText().ToString(),FString(TEXT("PLAYERS LOADED  3 / 4")));
 	Screen->Panel=EHALGameFlowPanel::Countdown; Map->SetVisibility(ESlateVisibility::Hidden); Players->SetVisibility(ESlateVisibility::Visible); Screen->FinishView();
 	TestEqual(TEXT("Other panels preserve their own visibility"),Map->GetVisibility(),ESlateVisibility::Hidden);
 	Screen->Panel=EHALGameFlowPanel::Loading; Players->Rename(TEXT("LegacyPlayersPanel"),Tree); Screen->FinishView();
@@ -448,6 +467,130 @@ bool FHALRoomResultsOnlyTest::RunTest(const FString&)
 		TestEqual(TEXT("Legacy-only Room content is never masked"),Chrome->GetVisibility(),ESlateVisibility::Visible);
 	}
 	FHALRoomScreenTestAccess::Clear(Root);
+	return true;
+}
+
+namespace
+{
+	class FHALResultsBlueprintProbe : public IAutomationLatentCommand
+	{
+		FAutomationTestBase* Test;
+		UHALNetworkGameInstance* GI=nullptr;
+		UWorld* World=nullptr;
+		UHALGameFlowScreenWidget* Flow=nullptr;
+		UWidgetSwitcher* Switcher=nullptr;
+		UWidget* Loading=nullptr;
+		UWidget* Results=nullptr;
+		TSharedPtr<SWidget> Slate;
+		FHALRoomView View;
+		int32 Stage=0;
+		void Deliver()
+		{ Flow->PrepareView(View); IHALRoomScreenInterface::Execute_ApplyView(Flow,View); Flow->FinishView(); }
+		void Active(bool Value)
+		{ Flow->UpdateActive(Value); IHALRoomScreenInterface::Execute_SetScreenActive(Flow,Value); }
+		UTextBlock* RowText(int32 Index,const TCHAR* Name)
+		{
+			auto* Page=Cast<UUserWidget>(Results);
+			auto* Row=Page?Cast<UUserWidget>(Page->GetWidgetFromName(FName(*FString::Printf(TEXT("Row_Top%d"),Index+1)))):nullptr;
+			return Row?Cast<UTextBlock>(Row->GetWidgetFromName(Name)):nullptr;
+		}
+		void Capture(const TCHAR* Name)
+		{
+#if WITH_EDITOR
+			if (!FParse::Param(FCommandLine::Get(),TEXT("HALResultsRender")) || GUsingNullRHI) { return; }
+			FWidgetRenderer Renderer(true);
+			auto* Target=Renderer.DrawWidget(Slate.ToSharedRef(),FVector2D(1920,1080));
+			FlushRenderingCommands(); TArray<FColor> Pixels;
+			if (!Test->TestTrue(TEXT("Actual Blueprint renders to a readable texture"),Target && Target->GameThread_GetRenderTargetResource()->ReadPixels(Pixels))) { return; }
+			for (auto& Pixel:Pixels) { Pixel.A=255; }
+			TArray64<uint8> PNG; FImageUtils::PNGCompressImageArray(1920,1080,TArrayView64<const FColor>(Pixels.GetData(),Pixels.Num()),PNG);
+			const FString Path=FPaths::ProjectDir()/TEXT("Saved/ResultsRanking/20261125/")+Name;
+			Test->TestTrue(TEXT("Rendered Blueprint evidence saved"),FFileHelper::SaveArrayToFile(PNG,*Path));
+#endif
+		}
+	public:
+		explicit FHALResultsBlueprintProbe(FAutomationTestBase* InTest):Test(InTest)
+		{
+			GI=NewObject<UHALNetworkGameInstance>(GEngine); GI->AddToRoot(); GI->InitializeStandalone(); World=GI->GetWorld();
+			auto* Class=LoadClass<UHALGameFlowScreenWidget>(nullptr,TEXT("/Game/UI/GameFlow/Screens/MatchFlow/WBP_GF_MatchFlow.WBP_GF_MatchFlow_C"));
+			if (!Test->TestNotNull(TEXT("Existing MatchFlow Blueprint loads"),Class)) { return; }
+			Flow=CreateWidget<UHALGameFlowScreenWidget>(GI,Class); Flow->AddToRoot(); Slate=Flow->TakeWidget();
+			Switcher=Cast<UWidgetSwitcher>(Flow->GetWidgetFromName(TEXT("MatchPageSwitcher")));
+			Loading=Flow->GetWidgetFromName(TEXT("LoadingWidget")); Results=Flow->GetWidgetFromName(TEXT("ResultsWidget"));
+			Test->TestTrue(TEXT("Uses existing Loading and Results instances"),Switcher && Loading && Results);
+			View.bRoomAvailable=true; View.Phase=EHALRoomPhase::Results; View.bShowResults=true; View.RoundId=51;
+			View.Match.bActive=true; View.Match.RoundId=51;
+			for (int32 I=0;I<4;++I)
+			{
+				auto& P=View.Match.Players.AddDefaulted_GetRef(); P.Number=I+1; P.PlayerName=FString::Printf(TEXT("PLAYER %d"),I+1);
+				P.Life=I<3?EHALRoundLife::Alive:EHALRoundLife::Eliminated; P.HP=I<2?80:I==2?25:0; P.MaxHP=100; P.EliminationBatch=I==3?1:0;
+			}
+			HALRoundMatch::Decide(View.Match,true);
+			if (!World->GetTimerManager().HasBeenTickedThisFrame()) { World->GetTimerManager().Tick(0.f); }
+			Active(true); Deliver();
+			if (Switcher) { Test->TestTrue(TEXT("Complete snapshot first shows Loading"),Switcher->GetActiveWidget()==Loading); }
+			Capture(TEXT("Loading.png"));
+		}
+		virtual ~FHALResultsBlueprintProbe()
+		{
+			if (Flow) { Active(false); Flow->RemoveFromRoot(); } Slate.Reset();
+			if (GI) { GI->Shutdown(); }
+			if (World) { World->DestroyWorld(false); GEngine->DestroyWorldContext(World); }
+			if (GI) { GI->RemoveFromRoot(); }
+		}
+		virtual bool Update() override
+		{
+			if (!Flow || !Switcher || !Loading || !Results) { return true; }
+			if (World->GetTimerManager().HasBeenTickedThisFrame()) { return false; }
+			switch (Stage++)
+			{
+			case 0:
+				World->GetTimerManager().Tick(.1f); Deliver();
+				Test->TestTrue(TEXT("Duplicate View keeps the existing transition"),Switcher->GetActiveWidget()==Loading); return false;
+			case 1:
+				World->GetTimerManager().Tick(.19f);
+				Test->TestTrue(TEXT("Loading remains visible before 0.3 seconds"),Switcher->GetActiveWidget()==Loading); return false;
+			case 2:
+				World->GetTimerManager().Tick(.03f);
+				Test->TestTrue(TEXT("Results appears after 0.3 seconds without restarting on repeat View"),Switcher->GetActiveWidget()==Results);
+				for (int32 I=0;I<4;++I)
+				{
+					auto* Rank=RowText(I,TEXT("Text_Rank")); auto* Status=RowText(I,TEXT("Text_Status"));
+					Test->TestTrue(TEXT("Each existing row displays its snapshot rank"),Rank && Rank->GetText().ToString().Replace(TEXT(" "),TEXT(""))==FString::Printf(TEXT("TOP%d"),I<2?1:I+1));
+					Test->TestTrue(TEXT("Both first-place rows show WINNER"),Status && Status->GetText().ToString().Contains(TEXT("WINNER"))==(I<2));
+				}
+				Capture(TEXT("SharedWinners.png")); Deliver();
+				Test->TestTrue(TEXT("Finished transition does not replay on repeat View"),Switcher->GetActiveWidget()==Results);
+				View.RoundId=52; View.Match.RoundId=52; Deliver();
+				Test->TestTrue(TEXT("New round gets its own transition"),Switcher->GetActiveWidget()==Loading); return false;
+			case 3:
+				World->GetTimerManager().Tick(.1f); View.Phase=EHALRoomPhase::Open; View.bShowResults=false; Deliver(); return false;
+			case 4:
+				World->GetTimerManager().Tick(.31f);
+				Test->TestTrue(TEXT("Leaving Results cancels its pending callback"),Switcher->GetActiveWidget()!=Results);
+				View.Phase=EHALRoomPhase::Results; View.bShowResults=true; View.RoundId=53; View.Match.RoundId=53; Deliver(); Active(false); return false;
+			case 5:
+				World->GetTimerManager().Tick(.31f);
+				Test->TestTrue(TEXT("Deactivation cancels pending Results activation"),Switcher->GetActiveWidget()!=Results);
+				View.RoundId=54; View.Match=FHALRoundMatchData(); View.Match.RoundId=54; View.Match.bActive=true; View.Match.bSinglePlayerTest=true;
+				{ auto& P=View.Match.Players.AddDefaulted_GetRef(); P.Number=1; P.PlayerName=TEXT("SOLO TEST"); P.Life=EHALRoundLife::Eliminated; P.EliminationBatch=1; P.MaxHP=100; }
+				HALRoundMatch::Decide(View.Match,false); Active(true); Deliver(); return false;
+			case 6:
+				World->GetTimerManager().Tick(.31f);
+				Test->TestTrue(TEXT("Next solo round reaches Results"),Switcher->GetActiveWidget()==Results);
+				Test->TestTrue(TEXT("Dead solo winner is shown as WINNER"),RowText(0,TEXT("Text_Status")) && RowText(0,TEXT("Text_Status"))->GetText().ToString().Contains(TEXT("WINNER")));
+				for (int32 I=1;I<4;++I)
+				{ Test->TestTrue(TEXT("Unused rows clear previous round ranks"),RowText(I,TEXT("Text_Rank")) && !RowText(I,TEXT("Text_Rank"))->GetText().ToString().Contains(TEXT("TOP"))); }
+				Capture(TEXT("SoloWinner.png")); return true;
+			default: return true;
+			}
+		}
+	};
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALResultsBlueprintTest,"HAL.FutureCreation.GameFlow.UIIntegration.ResultsRankingBlueprints",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALResultsBlueprintTest::RunTest(const FString&)
+{
+	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FHALResultsBlueprintProbe>(this));
 	return true;
 }
 #endif

@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-25　排名结算与 Results 显示已接通。** 服务器在比赛结束时冻结排名快照，Results 按真实名次更新四行。唯一存活者获胜；超时按剩余 HP 排名，最高 HP 同分或最后同批归零可产生多个 WINNER，其他同批淘汰者也可并列名次。单人 Development 测试局结束时无论存活或死亡均为 WINNER，后期关闭此特例。复用 MatchFlow Loading 独占显示 0.3 秒后切换 Results；重复刷新不重播，返房或跨局取消旧过渡。修复客户端旅行后 Room 界面未重新挂载的问题，保留 Host 手动返房。施工时 Editor 编译、自动化及双端三局验证通过；拉取后未复测，四机／手柄待验收。[规则、蓝图接线与详细留档](Presentation/Match_Countdown_HUD_CN.md#results-ranking-implementation-20261125)
+
 **2026-11-25　方案 B 车辆技能图标已入库。** Car03 至 Car12 各有一张专属技能图，Car01、02 采用独立车号占位，另有通用加速和冲击免疫，共 14 张。已确认 Car10 对应钩锁、Car11 对应滑油，两车现有玩法 DA 仍授予默认加速。正式选车 Catalog 读回为 Car01 至 Car04。UE 5.8.3 Win64 Development Editor 增量构建成功，独立 Editor 进程读回全部纹理，深浅背景的 32、48、64 像素离屏绘制共 84 组，Windows 定向 Cook 14/14、0 错误 0 警告。待 UI 接入主界面、选车页并实测。[车型与资产对照](Presentation/Vehicle_Skill_Icons_CN.md) · [整套预览](Presentation/Images/VehicleSkillIcons_B.png)
 
 **2026-11-25　閃電新星三階段重做已撤回，只留兩項清理，並更正一條舊結論。** 同日曾依提案重做三階段（墨線邊界、Begin 衝擊環、Loop 倒數、藍圖加推兩個參數），用戶隨後決定取消；Niagara 與藍圖已還原，新材質已刪，造型與收光暈那一輪結束時相同。保留的清理：`MI_FX_NovaShell` 的霧高度參數照藍圖實際半徑 1000 cm 重算（`VeilGroundZ` −0.065、`VeilFadeZ` +0.255，剪影邊緣因此略亮），以及移除沒人讀寫的 `User.Intensity`，契約測試改為四項。原本要一起清的兩個 `ScaleMeshSize` 模組沒有清：重開 Editor 做停用／啟用對照後證實它們會改變 Begin 的畫面，留檔 12.12 節「曲線是死的」的結論有誤，已更正。對照同時查出 Begin 開頭約 0.5 秒內地面環仍會短暫超出碰撞半徑，未處理。UE 5.8.4 Editor 已編譯，ElectricSphere 與 ElectricWall 自動化 12/12 通過；提交前全量 `HAL.FutureCreation` 291 項 0 失敗（289 通過，其中 2 項為既有的換車警告），報告在 `Saved/ElectricSphere/20261125/PrePush_Full`。PIE 實機畫面未驗證。[清理、更正與未處理項](Presentation/MVPB_LightningNova_FX_Authoring_CN_v0.1.md#1220-清理兩項更正一項三階段重做已撤回2026-11-25)

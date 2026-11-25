@@ -5,7 +5,7 @@
 UENUM(BlueprintType)
 enum class EHALRoundLife : uint8 { None, Alive, Eliminated, Forfeited };
 UENUM(BlueprintType)
-enum class EHALMatchEndReason : uint8 { None, LastSurvivor, TimeExpired, NoSurvivors, Aborted };
+enum class EHALMatchEndReason : uint8 { None, LastSurvivor, TimeExpired, NoSurvivors, Aborted, SharedVictory, SoloTest };
 
 USTRUCT(BlueprintType)
 struct HAL_FUTURE_CREATION_API FHALMatchRules
@@ -33,6 +33,10 @@ struct HAL_FUTURE_CREATION_API FHALRoundParticipant
 	UPROPERTY(BlueprintReadOnly, Category="Match") float HP=0;
 	UPROPERTY(BlueprintReadOnly, Category="Match") float MaxHP=0;
 	UPROPERTY(BlueprintReadOnly, Category="Match") bool bWinner=false;
+	/** Server evaluation batch when eliminated/forfeited; zero while still alive. */
+	UPROPERTY(BlueprintReadOnly, Category="Match") int32 EliminationBatch=0;
+	/** Competition rank (1,1,3...), assigned once when the result is frozen. Zero before results. */
+	UPROPERTY(BlueprintReadOnly, Category="Match") int32 FinalRank=0;
 };
 
 USTRUCT(BlueprintType)
@@ -41,12 +45,17 @@ struct HAL_FUTURE_CREATION_API FHALRoundMatchData
 	GENERATED_BODY()
 	UPROPERTY(BlueprintReadOnly, Category="Match") bool bActive=false;
 	UPROPERTY(BlueprintReadOnly, Category="Match") bool bComplete=false;
+	/** Temporary Development-only, one-driver fixture. Remove its entry point before release. */
+	UPROPERTY(BlueprintReadOnly, Category="Match") bool bSinglePlayerTest=false;
+	UPROPERTY(BlueprintReadOnly, Category="Match") int32 LastEliminationBatch=0;
 	UPROPERTY(BlueprintReadOnly, Category="Match") int64 RoundId=0;
 	UPROPERTY(BlueprintReadOnly, Category="Match") double EndServerTime=0;
 	UPROPERTY(BlueprintReadOnly, Category="Match") double ReturnServerTime=0;
 	UPROPERTY(BlueprintReadOnly, Category="Match") EHALMatchEndReason Reason=EHALMatchEndReason::None;
 	UPROPERTY(BlueprintReadOnly, Category="Match") FHALMatchRules Rules;
 	UPROPERTY(BlueprintReadOnly, Category="Match") TArray<FHALRoundParticipant> Players;
+	/** Frozen display order; Players keeps the original identity/seat order. */
+	UPROPERTY(BlueprintReadOnly, Category="Match") TArray<FHALRoundParticipant> RankedPlayers;
 	const FHALRoundParticipant* Find(FGuid Key) const { return Players.FindByPredicate([Key](const auto& P){ return P.PlayerKey==Key; }); }
 };
 

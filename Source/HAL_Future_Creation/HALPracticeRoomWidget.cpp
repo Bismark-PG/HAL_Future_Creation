@@ -159,14 +159,16 @@ FText UHALPracticeRoomWidget::MatchResultText() const
 	const auto& Match=R->GetData().Match;
 	if (Match.Reason==EHALMatchEndReason::Aborted) { return FText::FromString(TEXT("MATCH CANCELLED")); }
 	FString Winners,Rows; int32 Count=0;
-	for (const auto& P:Match.Players)
+	for (const auto& P:Match.RankedPlayers.IsEmpty()?Match.Players:Match.RankedPlayers)
 	{
 		if (P.bWinner) { if (Count++) { Winners+=TEXT(" / "); } Winners+=FString::Printf(TEXT("P%d"),P.Number); }
-		const TCHAR* State=P.Life==EHALRoundLife::Forfeited?TEXT("LEFT"):P.Life==EHALRoundLife::Eliminated?TEXT("OUT"):P.bWinner?TEXT("WINNER"):TEXT("SURVIVED");
-		Rows+=FString::Printf(TEXT("\nP%d  %s  |  %.1f / %.1f HP  |  %s"),P.Number,*P.PlayerName.Left(24),P.HP,P.MaxHP,State);
+		const TCHAR* State=P.bWinner?TEXT("WINNER"):P.Life==EHALRoundLife::Forfeited?TEXT("LEFT"):P.Life==EHALRoundLife::Eliminated?TEXT("OUT"):TEXT("SURVIVED");
+		Rows+=FString::Printf(TEXT("\nTOP %d  P%d  %s  |  %.1f / %.1f HP  |  %s"),P.FinalRank,P.Number,*P.PlayerName.Left(24),P.HP,P.MaxHP,State);
 	}
-	const TCHAR* Why=Match.Reason==EHALMatchEndReason::TimeExpired?TEXT("TIME UP"):Match.Reason==EHALMatchEndReason::NoSurvivors?TEXT("NO SURVIVORS"):TEXT("LAST DRIVER STANDING");
-	return FText::FromString((Count?FString(Count>1?TEXT("WINNERS: "):TEXT("WINNER: "))+Winners:FString(TEXT("DRAW")))+TEXT("\n")+Why+TEXT("\n")+Rows);
+	const TCHAR* Why=Match.Reason==EHALMatchEndReason::TimeExpired?TEXT("TIME UP")
+		:Match.Reason==EHALMatchEndReason::SoloTest?TEXT("TEST MATCH COMPLETE")
+		:Match.Reason==EHALMatchEndReason::SharedVictory || Match.Reason==EHALMatchEndReason::NoSurvivors?TEXT("SHARED VICTORY"):TEXT("LAST DRIVER STANDING");
+	return FText::FromString((Count?FString(Count>1?TEXT("WINNERS: "):TEXT("WINNER: "))+Winners:FString(TEXT("MATCH RESULTS")))+TEXT("\n")+Why+TEXT("\n")+Rows);
 }
 FText UHALPracticeRoomWidget::DrivingText() const
 {

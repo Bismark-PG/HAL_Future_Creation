@@ -1,5 +1,7 @@
 # 正式比赛倒计时 HUD
 
+**最新实现（2026-11-25，本机验证通过）**：已实现完整排名与并列 WINNER、单人测试结束必胜，以及 MatchFlow 现有 Loading 独占 0.3 秒后切 Results。Editor 编译通过，原生／实际 WBP 自动化 19/19、有 RHI 离屏检查 1/1；80 ms 注入的双端三局复测主客各 1/1，通过最小重新挂载分支修复了客户端旅行后 Room 脱离视口的问题。实际改动 13 个现有文件，保留团队布局、Loading 和 ResultRow。详见[实施、蓝图差异和证据](#results-ranking-implementation-20261125)；[施工前方案](#results-ranking-transition-20261125)作为历史保留。四机真人混战尚待团队验收。
+
 2026-11-16；起点 main / 821034f；引擎 UE 5.8.3-58210709。
 
 ## 当前范围
@@ -258,3 +260,105 @@ Editor GUI／PIE／有渲染客户端与真人联机验收未执行，Game Targe
 使用本轮 R2 正式 DLL 的 UIIntegration **9/9 成功**，报告 Saved/UIIntegration/LoadingPartsTests_20261122/index.json；独立进程的 MatchHUDServerDeadline **1/1 成功**，报告 Saved/UIIntegration/LoadingPartsStandalone_20261122/index.json。合计 **10/10 成功，0 测试事件警告／错误／失败／未运行**，两进程退出 0，逐项核对 JSON；均为本轮新报告，不复用前节 9/9。原生夹具没有加载或保存用户 WBP，不能作为实际资产接线与渲染画面通过的证据。
 
 本轮保护快照包括 24 份 UI 资产及用户已修改的 BP_MVPB_NetworkGameInstance，共 **25 份 SHA-256 开工后全同**，清单 Saved/UIIntegration/LoadingPartsAssets_20261122.json；未编辑任何资产、PreMatchFlow 或配置，不新增工程文件，git diff --check 通过，未提交／推送。未打开 Editor GUI、未单独构建 Game Target；实际布局和 PIE／多人画面待团队完成，既有 Client Results 视口观察问题未在此扩大修复。
+
+<a id="results-ranking-transition-20261125"></a>
+
+## 2026-11-25：胜者规则、单人测试特例与 Results 前 0.3 秒过渡
+
+本节为用户授权施工前确认的规则和最小范围估计，覆盖此前关于“无胜者”的建议。接续基线为本机 `main/abaa591`、UE 5.8.3-58210709。当时仅留档，随后用户授权按方案施工并再次明确允许修改、编译保存 MatchFlow 和 Results；实际完成程度及新验证以[实施记录](#results-ranking-implementation-20261125)为准。
+
+### 用户已确认的行为
+
+1. 正常多人比赛不提供“无胜者”结算。时间尚未结束而只剩一名玩家存活时，该玩家获胜；时间结束仍有多名玩家存活时，按存活玩家剩余绝对 HP 排名，HP 更多者获胜，最高 HP 相同者并列第一且全部显示 WINNER。若截止时只剩一人，该玩家仍为胜者。
+2. 开局只有一名参赛玩家的模式是临时单人测试模式；在该局结束时，无论该玩家存活还是死亡，都显示其为胜者。该测试模式／入口后期关闭，不作为正式多人规则。实现时按服务器开局锁定人数及现有 Development 配置识别，不能把正常多人局只剩一名玩家的状态误认成单人测试模式。本条不额外规定单人死亡后是否继续等待计时截止。
+3. 结算过渡复用 `WBP_GF_MatchFlow` 中现有的 `WBP_GF_Loading` 实例，独占显示 0.3 秒，然后切到 `WBP_GF_Results`。这里不使用 GameInstance 的地图转场实例，也不创建新的 Loading WBP。
+4. 服务器先完成排名和不可变结果快照，随后沿现有复制／View 链路下发。各端收到完整结果后本地显示上述过渡；0.3 秒不作为服务器继续计算、延迟判胜或等待所有客户端确认的时间。规则阶段保持 Playing → Results，界面内部为 MatchHUD → Loading（0.3 秒）→ Results。
+5. Results 只接收和展示快照；Host 手动 Return 路径继续复用。任何过渡中的返房、离开、销毁或跨局都应取消旧回调，重复 View 不重复启动该局过渡。
+6. 多人同时归零允许并列名次，包括并列第二、第三或第一。若最后一批仍存活玩家同时归零而结束比赛，该批玩家并列第一并共同显示 WINNER，可有 2、3 或 4 名 WINNER；更早淘汰者不因最终都为 0 HP 而一并成为胜者。比赛中途某批玩家同时归零但仍有其他存活者时，该批玩家并列相应的非第一名，不提前结束比赛或授予 WINNER。
+
+### 并列显示的最小实现约定
+
+- 同一名次允许多条结果行；按排序列表的位置分配四个控件，行内文字读取 FinalRank，不能按 FinalRank 作为控件下标，否则并列玩家会互相覆盖。
+- 本方案采用标准竞赛名次编号：两人并列第一时为 1、1、3、4，两人并列第二时为 1、2、2、4；这是本方案的显示编号约定。相同名次内可按已有 Number 稳定排列，Number 不作为打破并列的胜负条件。
+- 时间结束 HP 比较沿用现有绝对 HP 与最高值的相等容差口径；淘汰并列由服务器同一评估批次记录判断，不根据客户端收到通知的先后排序。
+- 行状态与共用结果摘要都应优先展示 bWinner；即使 Life 为 Eliminated，最终同批归零的并列胜者仍显示 WINNER。单人测试死亡后获胜也适用此优先级。不会为了产生胜者而复活玩家或改写冻结 HP。
+
+### 最小修改估计
+
+更新后的最低范围为 **12 个现有文件：5 个生产 C++、2 个 WBP、3 个测试 C++、2 个文档**。前提是 `ResultRow.SetResultData` 可以复用，且短过渡计时保持为 MatchFlow 的轻量本地表现逻辑；若行接口需要补充，预计再改 1 个 WBP，合计 13 个。相比前一轮 11 个文件，多计入 HALPracticeRoomWidget.cpp：当前共用结果摘要先把 Eliminated 玩家标成 OUT，再判断 bWinner，会误标同时归零的共同胜者及死亡单人测试胜者，需要一并修正。此处是文件范围估计，不代表已经施工。
+
+| 类别 | 文件 | 预计改动 |
+|---|---|---|
+| 生产 C++ | Source/HAL_Future_Creation/HALRoundMatchTypes.h | 增加最终名次、淘汰批次、单人测试标识与排序结果快照等必要字段；保留原 Players 顺序。若区分同时结束的结算原因，兼容扩展现有枚举，不重排旧值。 |
+| 生产 C++ | Source/HAL_Future_Creation/HALRoundMatchTypes.cpp | 在现有 Decide 路径计算完整排名，支持最高 HP 同分与最后同批归零的并列胜者；实现单人测试结束必胜；正常结算不再产出无胜者结果。 |
+| 生产 C++ | Source/HAL_Future_Creation/HALPracticeRoomMatch.cpp | 按开局配置识别单人测试，记录淘汰／退出批次，首次发布完整结果前计算并冻结快照，每局重新初始化。 |
+| 生产 C++ | Source/HAL_Future_Creation/HALGameFlowWidgets.cpp | Loading 在 Results 过渡期间隐藏开赛人数显示，复用通用 Loading 视觉；保留开赛地图／人数显示。 |
+| 生产 C++ | Source/HAL_Future_Creation/HALPracticeRoomWidget.cpp | MatchResultText 优先展示胜者身份，正确汇总多个 WINNER，并调整同时结束等结果文案，避免将已淘汰的共同胜者或死亡测试胜者标成 OUT。 |
+| WBP | Content/UI/GameFlow/Screens/MatchFlow/WBP_GF_MatchFlow.uasset | 在现有 ApplyView／ShowFlowScreen 路径加入按局一次的 0.3 秒本地表现定时器、阶段检查和取消处理。 |
+| WBP | Content/UI/GameFlow/Screens/MatchFlow/WBP_GF_Results.uasset | 从完整排序结果快照更新四行，名次与玩家编号分开，清空未参赛行。 |
+| 测试 C++ | Source/HAL_Future_Creation/Tests/HALMatchLoopTests.cpp | 更新旧无胜者断言，覆盖 HP 并列、最后同批共同胜者、中途同批非胜者、单人存活和死亡、排名冻结及跨局清理。 |
+| 测试 C++ | Source/HAL_Future_Creation/Tests/HALMatchLoopNetworkTests.cpp | 更新旧全灭无胜者场景，验证主客端完整排名、多个胜者及冻结快照一致。 |
+| 测试 C++ | Source/HAL_Future_Creation/Tests/HALWidgetExtensionTests.cpp | 扩展结算用途 Loading 与正常 Loading 的显示恢复、共用结果摘要 WINNER 优先级验证；实际 WBP 计时、独占显示及跨局取消另做有渲染主客端验证。 |
+| 文档 | Docs/Presentation/Match_Countdown_HUD_CN.md | 保存当前规则、临时单人模式关闭事项、施工与验证记录。 |
+| 文档 | Docs/Project_Status_CN.md | 更新接续入口、完成程度、验证证据和未定边界。 |
+
+按需扩展的行控件为 `Content/UI/GameFlow/Components/WBP_GF_ResultRow.uasset`。最低方案不新建文件、管理类、RPC 或比赛阶段；沿用 Room.Data.Match 复制、View.Match、ShowFlowScreen、现有 Results 独占显示及 Return 路径。历史枚举／兼容分支的清理不作为本次最低范围的前提，不通过重排旧枚举值改变已保存资产含义。
+
+### 施工前差异与估计边界（历史，后续实施覆盖）
+
+- 当前 `HALRoundMatch::Decide()` 仍在全部淘汰时输出无胜者，现有原生／联机测试也要求该行为；单人死亡局当前也不满足“结束必胜”，共用摘要还会把死亡胜者标成 OUT。这些是本次计划要修改的旧行为，不能把当前代码或历史测试描述成已经符合新规则。
+- 原最高 HP 同分、最后多名玩家同批归零的决胜问题已由本次用户指令解决：允许并列第一和多个 WINNER，不再作为待定项。中途同批淘汰可并列第二或第三。
+- 不同淘汰批次之间的完整名次及退赛排序沿用此前的方案建议，尚未被本次并列指令单独定稿；不能将建议擅自标成用户已确认的正式规则。
+- 最低文件数量按在上述现有结算入口内完成决胜与排名估算。若后续规则要求改造伤害执行或增加网络确认，应重新评估范围。
+- 本轮只完成规则留档与范围估算。施工前复核 Blueprint 实际接口；当前 Loading、Results 有用户未提交修改，ResultRow 为未跟踪资产，保留这些内容。后续编辑已有改动 Blueprint 时按当前 AGENTS.md 第 8.3 节先确认具体改动，再通过运行中的 Editor 修改、编译和保存。
+
+<a id="results-ranking-implementation-20261125"></a>
+
+## 2026-11-25：排名快照与 0.3 秒过渡实施完成
+
+本轮从 `main/abaa591` 接续。开工已有团队修改的 Loading、Results、两份方案文档及未跟踪的 ResultRow。用户批准按方案施工，并在读取现有图表后明确允许修改、编译保存 MatchFlow 和 Results。所有 WBP 修改均通过运行中的 Unreal Editor Python／BlueprintGraphEditor API 完成，没有直接改写 uasset 二进制。
+
+### 已实现的规则与数据链路
+
+- FHALRoundParticipant 增加 EliminationBatch、FinalRank；FHALRoundMatchData 增加 LastEliminationBatch、bSinglePlayerTest、RankedPlayers。服务器同一次评估中归零的玩家记录相同淘汰批次；退赛单独记录并排在正常存活／淘汰者之后。
+- 正常胜负继续在 HALRoundMatch::Decide 判断：唯一存活者获胜；超时按存活者绝对 HP 排名，沿用 0.001 HP 的同分容差；最后同批淘汰者共同获胜，更早淘汰者不因此获胜。排名采用 1、1、3、4 等竞赛编号，后淘汰者在前，相同名次内以玩家编号稳定显示。比较器先严格排序，容差按组首比较，避免将非传递的近似相等直接作为排序比较器。
+- 单人特例仅在服务器开局确认为 Development 且锁定人数为 1 时启用。存活的单人不在开局立即获胜，仍可等到时间结束；死亡时沿原测试结束路径结算为 WINNER，保持 HP=0、Life=Eliminated，不复活或改血。后期必须关闭此临时单人测试入口／特例。
+- SharedVictory、SoloTest 原因追加在旧枚举末尾，保留旧序号。正常完成不再生成旧的无胜者结果；全部退出且无正常参赛结果的异常情形使用已有 Aborted 取消语义，不向退赛者授予胜者。
+- 原 Players 保持开局身份／座位顺序；只在首次完成结算时生成 RankedPlayers，并在发布 Results 前随同结果一次性冻结。原有 Room.Data.Match 复制、View.Match 转发、结束后阻止伤害／输入及 Host 手动 Return 路径继续复用。
+- 共用 MatchResultText 优先检查 bWinner，支持多个 WINNER；死亡的共同胜者／单人测试胜者不会再被摘要标成 OUT。
+
+### 两份 WBP 的实际差异
+
+| 资产 | 修改前 | 修改后 |
+|---|---|---|
+| WBP_GF_Results | 既有四行循环读取 Match.Players；SetResultData 的 Rank 输入默认 0。 | 保留原循环、Is Valid Index、SetResultData、ClearResultData；将两处数组数据源改为 RankedPlayers，并连接 Participant.FinalRank → Rank。布局和行控件接口不变。 |
+| WBP_GF_MatchFlow | Results 阶段立即 ShowFlowScreen(ResultsWidget)。 | Results 首次到达时显示现有 LoadingWidget，单次非循环定时 0.3 秒，再显示现有 ResultsWidget；重复 View 不重新计时，同局完成后不重播。 |
+
+MatchFlow 新增本地表现用 ResultTransitionRound、ResultTransitionPending、ResultTransitionTimer，以及 ApplyResultsTransition、FinishResultsTransition、CancelResultsTransition、ResetResultsTransitionForView 辅助函数。结束回调检查当前阶段、局号和完成快照；非 Results、SetScreenActive(false)、Destruct 取消挂起回调。继续调用原 ShowFlowScreen 处理 View 转发、激活与焦点。界面计时不控制服务器何时结束／结算比赛，不添加 Tick 或 RPC。
+
+Loading 在 Results 过渡时复用原 MapLoadingPanel，隐藏开赛人数部分；普通地图／人数用途及团队的现有文字、美术保持。当前通用部分的团队文案仍为 MAP LOADING，未修改 Loading 资产。ResultRow 已包含名称、车型、图标、胜者优先级与清空逻辑，本轮直接复用；图标 Match Size=false，未改尺寸或字体。
+
+两份资产均编译、保存成功，并在独立 Editor 进程中重新加载编译、检查连线。以开工磁盘版本为基线，30 份 UI 资产仅 MatchFlow、Results 两份变化；其余 28 份（包括团队已改 Loading、未跟踪 ResultRow）SHA-256 一致。报告为本机 Saved/ResultsRanking/20261125/{BeforeAssets.json,BlueprintBefore.json,BlueprintAfter.json,BlueprintVerification.json}。
+
+### 联机复测带出的最小挂载修复
+
+首轮同机双端三局：Host 1/1 成功，Client 0/1 失败。客户端已收到 Results、拥有当前世界 Room 对象，但 Visible=0，复现了 2026-11-21 的旧视口观察问题，首轮不记为通过。
+
+定位到 HALNetworkGameInstance::ShowPracticeRoom：同类、同世界、同拥有者时直接复用 VisibleWidget，没有检查其视口插槽是否被旅行清理。增加唯一分支：控件仍可复用但 !IsInViewport 时 AddToViewport，再沿用现有 RefreshFromRoomState。未新增页面、管理器、计时器、RPC 或 Room Blueprint 改动。客户端复测出现 Mounted=1，三个 Results 均 Visible=1，第二、第三局及返房继续通过。
+
+因此最终修改 **13 个现有文件：6 个生产 C++、2 个 WBP、3 个测试 C++、2 个文档**。相比施工前最低估计仅多计入 HALNetworkGameInstance.cpp；ResultRow 无需修改，没有新建交付文件。
+
+### 本次编译、自动化与画面证据
+
+- 统一入口均为 `BuildAndLaunch.cmd -NoLaunch -NoPopup`，UE 5.8.3-58210709，HAL_Future_CreationEditor／Win64／Development，保留 -WaitMutex -NoHotReload -NoLiveCoding。首轮完整增量 24/24 成功；最后包含挂载修复的增量 5/5 成功，100.41 秒、退出 0，记录 Saved/BuildTool/BuildAndLaunch_20261125_230223_532_4b98d8/Result.json。未改文件的既有 C4305 数值转换警告保留，不描述为整个构建零警告。
+- 最终 DLL 的 HAL.FutureCreation.GameFlow.GF7＋UIIntegration：**19/19 成功，0 测试警告、0 失败／未运行／进行中**。报告 Saved/ResultsRanking/20261125/NativeR2/index.json。覆盖纯规则排名、真实四人内存局的同批淘汰、HP 容差、单人存活／死亡、摘要 WINNER、退赛、冻结、现有 Return、加载与页面生命周期。
+- 新增 ResultsRankingBlueprints 用例加载实际 MatchFlow／Results／ResultRow，验证 0.29 秒仍显示 Loading、0.32 秒显示 Results，重复 View 不重启；离开 Results 和停用容器会取消回调；下一局单人死亡为 WINNER，旧四行其余位置被清空。上述时间为可控游戏定时器推进边界，不宣称显示器精确刷新到毫秒。
+- 同一实际 WBP 用例在有 RHI 离屏渲染下另跑 **1/1 成功、0 测试警告**，报告 Saved/ResultsRanking/20261125/NativeRender/index.json。实拍 Loading.png、SharedWinners.png、SoloWinner.png 已检查，分别显示独立加载页、TOP 1／1／3／4 与两个 WINNER、死亡单人 TOP 1／WINNER。此夹具没有注入 Vehicles 目录，图标为原行控件的白色占位、车型为破折号，不当作真实车型图标加载验证；不等同完整多人比赛渲染。
+- 80 ms PktLag 注入的真实 Listen Server／Client 三局最终复测：**Host 1/1、Client 1/1 成功，均 0 测试警告／失败／未运行／进行中，进程退出 0**。三局分别为唯一存活者、时间结束 HP 并列、最后同批归零共同获胜；比较 RankedPlayers 与原身份快照、顺序／名次／胜者、权限、超出旧期限后的 Host 手动 Return 和下一局。日志确认双方 PktLag=80，这是模拟注入值，不是实测 RTT。最终报告 Saved/ResultsRanking/20261125/NetworkR2/{Summary.json,Host/index.json,Client/index.json}；NetworkR1 保留首轮失败证据，未削弱既有视口断言。
+- 首次图表脚本在保存前遇到接口覆写不生成 Parent 节点的 API 差异，修正后才编译保存；失败日志 Wire_R1_Failed.log 保留。客户端／主机和 Editor 测试进程均已结束。Saved 下脚本和报告是本机测试留档，不是运行时或跨设备交付依赖。
+
+### 团队接续与限制
+
+本轮未提交或推送。保留团队的 Loading 修改和未跟踪 ResultRow；后续正常提交时需一并纳入团队打算交付的资产。未单独构建 Game Target、Cook 或打包，未做本次四台实机／真实碰撞手感／手柄验收。
+
+下一步团队以同一引擎补丁版本在四台机器连跑两局，观察每端 0.3 秒过渡、并列结果、真实玩家名与车型图标、Host Return 后重新开赛及本地菜单焦点。临时单人测试模式的后期关闭事项继续保留。

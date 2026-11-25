@@ -18,8 +18,9 @@ namespace HALFlowDisplay
 {
 	void Text(UUserWidget* Owner,FName Name,const FString& Value)
 	{ if (auto* W=Cast<UTextBlock>(Owner->GetWidgetFromName(Name))) { W->SetText(FText::FromString(Value)); } }
-	void LoadingParts(UUserWidget* Owner,bool bPlayersAvailable)
+	void LoadingParts(UUserWidget* Owner,const FHALRoomView& View)
 	{
+		const bool bPlayersAvailable=View.bRoomAvailable && !View.bShowResults && View.Phase!=EHALRoomPhase::Results;
 		auto* Map=Owner->GetWidgetFromName(TEXT("MapLoadingPanel"));
 		auto* Players=Owner->GetWidgetFromName(TEXT("PlayersLoadingPanel"));
 		// Both optional containers opt in together; existing Loading layouts keep their visibility.
@@ -62,7 +63,7 @@ void UHALGameFlowScreenWidget::NativeConstruct()
 {
 	Super::NativeConstruct(); BindActions();
 	if (!bMatchFlowContainer && UsesPanelPresentation() && Panel==EHALGameFlowPanel::Loading)
-	{ HALFlowDisplay::LoadingParts(this,LatestView.bRoomAvailable); }
+	{ HALFlowDisplay::LoadingParts(this,LatestView); }
 	if (bMatchFlowContainer && WidgetTree)
 	{
 		// Inactive HUDs must not run their standalone refresh before the first Room view.
@@ -151,7 +152,7 @@ void UHALGameFlowScreenWidget::FinishView()
 {
 	if (bMatchFlowContainer || !UsesPanelPresentation()) { return; }
 	using namespace HALFlowDisplay;
-	if (Panel==EHALGameFlowPanel::Loading) { LoadingParts(this,LatestView.bRoomAvailable); }
+	if (Panel==EHALGameFlowPanel::Loading) { LoadingParts(this,LatestView); }
 	for (const auto& Pair:Actions)
 	{
 		if (auto* Button=Cast<UButton>(GetWidgetFromName(Pair.Key)))
@@ -167,7 +168,9 @@ void UHALGameFlowScreenWidget::FinishView()
 	switch (Panel)
 	{
 	case EHALGameFlowPanel::LocalMenu: Title=TEXT("MENU"); Detail=TEXT("The match continues while this menu is open."); break;
-	case EHALGameFlowPanel::Loading: Title=TEXT("PREPARING MATCH"); Detail=FString::Printf(TEXT("PLAYERS LOADED  %d / %d"),LatestView.LoadedPlayers,LatestView.ExpectedPlayers); break;
+	case EHALGameFlowPanel::Loading:
+		if (LatestView.bShowResults || LatestView.Phase==EHALRoomPhase::Results) { Title=TEXT("FINALIZING RESULTS"); }
+		else { Title=TEXT("PREPARING MATCH"); Detail=FString::Printf(TEXT("PLAYERS LOADED  %d / %d"),LatestView.LoadedPlayers,LatestView.ExpectedPlayers); } break;
 	case EHALGameFlowPanel::Countdown: Title=FString::FromInt(FMath::CeilToInt(FMath::Max(0.f,LatestView.CountdownRemaining))); Detail=TEXT("GET READY"); break;
 	case EHALGameFlowPanel::Spectator: Title=TEXT("SPECTATING"); Detail=LatestView.SpectatedNumber>0?FString::Printf(TEXT("PLAYER %d"),LatestView.SpectatedNumber):TEXT("ARENA VIEW"); break;
 	case EHALGameFlowPanel::Results:
