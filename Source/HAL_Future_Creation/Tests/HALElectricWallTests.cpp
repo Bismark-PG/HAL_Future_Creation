@@ -360,7 +360,7 @@ namespace HALNovaFX
 	static const TCHAR* BlueprintPath=TEXT("/Game/Blueprints/MapMechanic/BP_ElectricSphereGimmick.BP_ElectricSphereGimmick_C");
 	static const TCHAR* SystemPath=TEXT("/Game/Assets/FX/NS_LightningNova.NS_LightningNova");
 	/** The presentation contract the sphere pushes. NS_LightningNova must declare every one of these. */
-	static const TCHAR* Contract[]={TEXT("User.Phase"),TEXT("User.PhaseElapsed"),TEXT("User.Radius"),TEXT("User.Intensity"),TEXT("User.Color")};
+	static const TCHAR* Contract[]={TEXT("User.Phase"),TEXT("User.PhaseElapsed"),TEXT("User.Radius"),TEXT("User.Color")};
 	/** Reads a declared float or int user parameter. False when the name is absent or not a scalar. */
 	static bool ReadScalar(const FNiagaraParameterStore& Store,const TCHAR* Name,double& Out)
 	{
@@ -410,9 +410,9 @@ bool FHALElectricSphereNovaFXContractTest::RunTest(const FString& Parameters)
 
 	// Fixture self-check: an identical push must be observable here, or the assertions below are
 	// measuring the test world rather than the Blueprint.
-	Comp->SetVariableFloat(FName(TEXT("User.Intensity")),7.f);
+	Comp->SetVariableFloat(FName(TEXT("User.PhaseElapsed")),7.f);
 	double RoundTrip=0;
-	TestTrue(TEXT("Fixture observes a direct push"),HALNovaFX::ReadScalar(Comp->GetOverrideParameters(),TEXT("User.Intensity"),RoundTrip));
+	TestTrue(TEXT("Fixture observes a direct push"),HALNovaFX::ReadScalar(Comp->GetOverrideParameters(),TEXT("User.PhaseElapsed"),RoundTrip));
 	TestEqual(TEXT("Direct push lands immediately"),RoundTrip,7.);
 
 	// The pushed VALUES are deliberately not asserted here. This fixture cannot drive the Blueprint

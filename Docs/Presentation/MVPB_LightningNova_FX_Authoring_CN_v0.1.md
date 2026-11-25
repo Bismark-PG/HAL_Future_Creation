@@ -860,6 +860,9 @@ float az  = clamp(0.735 + 0.21 * t01 + (h1 - 0.5) * 0.14, 0.60, 0.96);
 
 #### 本輪最重要的發現：**`ScaleMeshSize` 的曲線是死的**
 
+> ⚠️ **2026-11-25 更正：這個結論是錯的。** 重開 Editor 後停用／啟用對照，`GroundRing` 與 `CoreSphere`
+> 的 `ScaleMeshSize` 都會改變 Begin 的畫面。證據見第 12.20 節第 2 點。以下文字保留原樣作為紀錄。
+
 查「核心為什麼放不大」時發現的，**比造型本身重要，而且推翻了 12.10 節的一個結論**。
 
 **證據**（都在同一個取樣點 Loop `2 / 1.3`、同一組相機設定下拍的）：
@@ -1453,3 +1456,166 @@ band = band * band;
 | `MI_FX_NovaShell` | `FillGlow` | 0.15（未改，12.16 節留的待決項） |
 | `MI_FX_NovaRing`（新） | `RingWidth` | **0.06** |
 | `MI_FX_NovaRing`（新） | `RingRadius` | 0.8（未改） |
+
+> 上表 `MI_FX_NovaRing` 兩列已被 12.19 節取代。
+
+---
+
+### 12.19 把地面環的外圍光暈收進碰撞半徑（2026-11-25）
+
+團隊回饋：「最外圍有一層光暈，想讓它收進實際的碰撞範圍，不然可能會誤判。」
+
+#### 來源
+
+碰撞是 `SphereField`，半徑固定為 `SphereConfig.Radius`，Begin 與 Loop 都是同一個值，
+`OnStageChanged` 推給 `User.Radius` 的也是它。殼層 `FieldShell` 用引擎 Sphere（半徑 50）×
+`User.Radius × 0.02`，剪影正好等於碰撞半徑。
+
+超出去的是 `GroundRing`。它用引擎 Plane（半邊長 50）× `User.Radius × 0.025`，
+**平面半邊長是 1.25 倍碰撞半徑**。`M_FX_NovaRing` 在這塊平面上畫兩樣東西：
+
+| 項 | 位置（改前） |
+|---|---|
+| 環帶 `band` | 中心 `RingRadius 0.8` = 1.0×R，半寬 `RingWidth 0.06` = ±0.075×R，外緣到 **1.075×R** |
+| 底光 `inner * 0.12` | 鋪滿整塊平面，到 `outer` 淡出為止，也就是 **1.2–1.25×R** |
+
+那層外圍光暈就是底光，加上環帶的外半邊。
+
+#### 改動
+
+| 位置 | 參數 | 舊 | 新 |
+|---|---|---|---|
+| `GroundRing` / `InitializeParticle` / `Mesh Uniform Scale` 的 `B` | `User.Radius ×` | 0.025 | **0.02** |
+| `MI_FX_NovaRing` | `RingRadius` | 0.8 | **0.95** |
+| `MI_FX_NovaRing` | `RingWidth` | 0.06 | **0.075** |
+
+平面半邊長縮到正好等於碰撞半徑後，材質既有的 `outer = 1 - smoothstep(0.96, 1.0, r)`
+會在碰撞半徑處把環帶與底光一起收掉。環帶峰值落在 0.95×R，世界寬度與改前相同
+（0.06 × 1.25 = 0.075 × 1.0）。母材質 `M_FX_NovaRing` 沒有動，
+共用它的 `MI_FX_BlackHolePulseRing` 不受影響。
+
+> `GroundRing` 的平面在球心高度（沒有 Position Offset），不是貼在地板上。
+> 球心高度正是碰撞球最寬的那一圈，所以環帶對齊的是碰撞的最大半徑。
+
+#### 量測（正俯視、512×512、`User.Radius` 暫設 110、殼層剪影 123px = R）
+
+各半徑環帶的最大通道中位數：
+
+| r ÷ R | Loop 改前 | Loop 改後 | Begin 0.6 改後 |
+|---|---|---|---|
+| 0.95 | 235 | 252 | 247 |
+| 1.00 | 251 | 134 | 234 |
+| 1.04 | 195 | 21 | 21 |
+| 1.06 | 123 | 13 | 5 |
+| 1.10 | 114 | 7 | 2 |
+| 1.20 | 113 | 3 | 1 |
+
+1.06–1.22×R 那圈平頂光暈（約 114）已消失；1.04×R 以外剩下的是 bloom 與零星火花。
+截圖在 `Saved/Screenshots/Monolith/20261125_NovaHalo_*.png`。
+
+#### 仍會短暫超出半徑的兩樣東西（本輪沒有動）
+
+- **Begin 的殼層彈出**：`FieldShell` 縮放曲線是 0 → 1.08 → 1.0（12.4 節）。
+  Begin 0.5 秒取樣時 1.02–1.04×R 仍有約 100 的霧，約 0.2 秒後回到 1.0。
+  碰撞在 Begin 一開始就是滿半徑，所以這段是視覺比碰撞大、而且前半段視覺比碰撞小。
+- **`Sparks`**：仍有零星火花飛到半徑外（12.15 節量過是幾個離散亮點，判定不處理）。
+
+#### 本輪驗證與狀態
+
+**已驗證**：`Mesh Uniform Scale` 的 `B` 讀回 `0.02`；`MI_FX_NovaRing` 讀回兩個 override；
+重開 Editor 後才拍上表的改後數字（同一個 Editor 內平面尺寸不會更新，改完當下拍到的是
+舊尺寸配新環半徑，環反而跑到 1.19×R）；`validate_system` `valid: true`，警告仍是既有七筆；
+`User.Radius` 400 / `Phase` 0 / `PhaseElapsed` 0 已還原並讀回，`list_dirty_packages` 為 0。
+
+**未驗證**：PIE 實際畫面與 −60° 遊戲俯角；Over 段未重拍（`GroundRing` 在 Over 不生成）；
+本輪未跑自動化測試（未改 C++，參數契約的五個名稱與型別讀回不變）；雙端、效能、Cook。
+
+---
+
+### 12.20 清理兩項、更正一項；三階段重做已撤回（2026-11-25）
+
+同一天曾依提案把三階段整個重做（墨線邊界材質 `M_FX_NovaBoundary`、Begin 衝擊環、Loop 倒數環、
+Over 0.3 秒收束，並在藍圖加推 `User.PhaseTime`／`User.PhaseDuration`）。團隊隨後
+**決定取消，只保留原本列的三項清理**。其中一項查證後不成立（見下方第 2 點），實際保留兩項。
+重做的資產沒有提交過，現在工作區裡也不存在：
+
+- `NS_LightningNova` 與 `BP_ElectricSphereGimmick` 以 `git checkout HEAD` 還原，再重做 12.19 的平面係數與本節的清理。
+- `M_FX_NovaBoundary`、`MI_FX_NovaBoundary`、`Tools/LightningNova/NovaBoundary.hlsl` 已刪除。
+- `MI_FX_NovaShell` 的 `FilamentInner`、`CoreGlow` 改回 0.12、0.22。
+
+造型、三階段曲線、藍圖接線因此與 12.19 節結束時相同。
+
+#### 三項清理的結果
+
+**1. 霧的高度淡出參數照實際半徑重算。** `BP_ElectricSphereGimmick` 的 Class Defaults 是
+**半徑 1000 cm**（另有 Loop 20 秒、Begin 回彈 1000 cm），12.16 節的值是照半徑 400 算的。
+用同一條公式 `z_local = (h_world − 球心高度) / Radius` 重算：
+
+| `MI_FX_NovaShell` | 舊（半徑 400） | 新（半徑 1000） |
+|---|---|---|
+| `VeilGroundZ` | −0.16 | **−0.065** |
+| `VeilFadeZ` | +0.19 | **+0.255** |
+
+**球心離地 65 cm 是沿用 12.16 節的假設值**，生成器把電球放在世界 Z=0，實際地板高度沒有核對。
+這一項會動到畫面：霧的上緣由球心上方 190 cm（半徑 1000 時）移到 255 cm，球心高度那一圈的霧
+由約 57% 變成約 90%。正俯視預覽裡量得到：Loop 在 1.0×R 處 134 → 171，Begin 在 1.04×R 處 21 → 61，
+1.1×R 以外不變（2 與 7）。也就是剪影邊緣比 12.19 結束時亮一些。
+
+**2. `GroundRing` 與 `CoreSphere` 的 `ScaleMeshSize`：沒有清，因為它們其實有作用。**
+12.12 節的結論「這兩條縮放曲線是死的」**是錯的**，本節更正。證據是同一個取樣點
+（Begin 0.6 秒、重開 Editor 後拍）停用與啟用這兩個模組的對照：
+
+| r ÷ R | 兩個模組啟用 | 兩個模組停用 |
+|---|---|---|
+| 0.1 | 242 | 251 |
+| 0.3 | **147** | **241** |
+| 0.9 | 158 | 225 |
+| 1.0 | **236** | **127** |
+
+停用後 Begin 的核心由小蓄力球變成滿尺寸（0.3×R 處 147 → 241），地面環也往內縮了約 5%
+（1.0×R 處 236 → 127）。Loop 兩者相同，因為兩條曲線在 Loop 都是 1.0。
+12.12 節當時是在同一個 Editor 內改曲線後直接拍預覽，而那一節自己也記了改動不重開拍不到，
+推測就是因此誤判。**兩個模組現在維持啟用，與 HEAD 相同。**
+
+連帶更正兩件事：
+- 12.12 節說「`CoreSphere` Over 段的 0.95 爆閃從來沒發生過」不成立，這條曲線是活的。
+- `GroundRing` 的曲線在 Begin 有 `10.5: 1.06` 的彈出。12.19 把環帶中心放在 0.95×R，
+  彈出瞬間環帶中心約在 1.007×R、外緣約 1.06×R，**Begin 開頭約 0.5 秒內地面環會短暫超出碰撞半徑**。
+  12.19 的量測取樣在 0.6 秒，剛好錯過。這項本輪沒有處理。
+
+> **要拿掉 Niagara 模組時用停用，不要用 `remove_module`。** 重做那一輪第一次是直接移除，
+> 後面 `Color` 模組裡綁到 `User.Phase` 的 Map Get 節點來源腳位因此斷線，編譯報
+> `Parameter Maps must be created via an Input Node`。`CoreSphere` 重新綁一次就好，
+> `GroundRing` 修不回來，只能放棄未存檔的改動重來。
+
+**3. 移除 `User.Intensity`。** 9.1 節的缺口結案：沒有 emitter 讀它，也沒有藍圖節點推它。
+`HALNovaFX::Contract`（`HALElectricWallTests.cpp`）同步改為四項：
+`User.Phase`、`User.PhaseElapsed`、`User.Radius`、`User.Color`；夾具自檢原本推 `User.Intensity`，
+改推 `User.PhaseElapsed`。第 2 節表格裡的 `User.Intensity` 一列自此作廢。
+
+#### 本輪驗證
+
+**編譯與自動化**：本機引擎 UE 5.8.4，`BuildAndLaunch.cmd -NoPopup` 增量編譯成功。
+`HAL.FutureCreation.ElectricSphere` + `HAL.FutureCreation.ElectricWall` 以另開的
+`UnrealEditor-Cmd.exe … -nullrhi` 行程跑，**12/12 通過，0 警告／失敗／未執行**，報告在
+`Saved/ElectricSphere/20261125/NovaCleanup_R1`（`reportCreatedOn` 為 UTC `2026.11.25-10.56.47`）。
+這次測試是在兩個 `ScaleMeshSize` 模組仍停用時跑的；之後只把它們重新啟用，契約與藍圖沒有再動，
+啟用狀態不在測試涵蓋範圍內，**沒有重跑**。
+
+**資產**：`validate_system` `valid: true`，警告仍是既有七筆；User 參數讀回四項，
+`ChargeMotes` 啟用，七個 emitter 的啟用狀態與 HEAD 相同；藍圖內搜尋 `User.` 只有原本四個推送節點。
+`MI_FX_NovaShell` 讀回 `FilamentInner` 0.12、`CoreGlow` 0.22、`VeilGroundZ` −0.065、`VeilFadeZ` 0.255。
+
+**離屏畫面**（重開 Editor 後，正俯視、512×512、`User.Radius` 暫設 110）：Begin 0.6 秒與 Loop 1.3 秒
+的徑向剖面與 12.19 結束時相同，差異只有上面第 1 點列出的剪影邊緣亮度。
+`User.Radius` 400 / `Phase` 0 / `PhaseElapsed` 0 已還原，`list_dirty_packages` 為 0。
+
+**未驗證**：PIE 實際畫面；霧高度在真實地板高度下是否正確；Over 段未重拍；雙端、效能、Cook。
+
+#### 提案裡指出、這次沒有處理的落差（留給之後決定）
+
+- Begin 在 2026-11-19 之後會撞人，而且回彈最強，特效仍是「沒有電弧的預告」。
+- 藍圖把階段時間夾在 2 秒，20 秒的 Loop 有 18 秒畫面不變，看不出還剩多久。
+- 半徑 1000 時核心與放射細絲蓋住的範圍是以公尺計。
+- Over 時電場已關，仍有發光的球縮小 1 秒。
+- `Sparks` 仍會飛出碰撞半徑。
