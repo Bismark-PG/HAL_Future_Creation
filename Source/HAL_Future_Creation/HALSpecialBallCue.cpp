@@ -2,6 +2,7 @@
 #include "HALBombActor.h"
 #include "HALBlackHoleBall.h"
 #include "HALMeteorBall.h"
+#include "HALTimedBombBall.h"
 #include "HALMatchBallLifecycle.h"
 #include "Components/DynamicMeshComponent.h"
 #include "DynamicMesh/DynamicMesh3.h"
@@ -52,6 +53,74 @@ struct FCoronaMesh
 		}
 	}
 };
+
+// The four red and ivory pole pieces gather at spawn, fall apart on expiry and fly out
+// with the dial ticks on detonation. The broad ring marks only the damaging ground pulse.
+void DrawClaspCue(FCoronaMesh& Out, const UHALTimedBombBallDefinition& Type, EHALBallCue Kind, float T, float R)
+{
+	const bool Blast = Kind == EHALBallCue::Impact || Kind == EHALBallCue::MountedImpact;
+	const bool Arrival = Kind == EHALBallCue::Arrival;
+	const float Ease = 1.f-FMath::Pow(1.f-T,3.f);
+	const float Fade = 1.f-FMath::SmoothStep(.52f,1.f,T);
+	auto Color = [&](FLinearColor C, float Alpha)
+	{
+		C *= Type.Glow;
+		C.A = FMath::Clamp(Alpha*Fade,0.f,1.f);
+		return C;
+	};
+	auto Point = [](float Angle, float Radius, float Height)
+	{
+		return FVector(FMath::Cos(Angle)*Radius,FMath::Sin(Angle)*Radius,Height);
+	};
+	auto Arc = [&](float Begin, float End, float Radius, float Width, float Height, const FLinearColor& C, int32 Steps)
+	{
+		for (int32 I=0; I<Steps; ++I)
+		{
+			const float A=FMath::Lerp(Begin,End,float(I)/Steps), B=FMath::Lerp(Begin,End,float(I+1)/Steps);
+			Out.Quad(Point(A,Radius-Width,Height),Point(B,Radius-Width,Height),Point(B,Radius,Height),Point(A,Radius,Height),C);
+		}
+	};
+	const float Reach = Blast ? R*Ease : R*(Arrival ? FMath::Lerp(Type.CoronaSize,.75f,Ease) : 1.f+.60f*Ease);
+	if (Kind == EHALBallCue::Impact)
+	{
+		Arc(0,UE_TWO_PI,Reach,Reach*.065f*(1.f-.64f*T),0,Color(Type.CurrentColor,.93f),64);
+		Arc(0,UE_TWO_PI,Reach*.98f,Reach*.014f,1,Color(Type.PoleTipColor,.9f),64);
+	}
+	for (int32 I=0; I<Type.DialSegments; ++I)
+	{
+		const float A=UE_TWO_PI*I/Type.DialSegments + (Blast ? 0.f : (Arrival ? -.5f : .5f)*Ease);
+		const float Size = Kind == EHALBallCue::Impact ? .93f : 1.f;
+		Arc(A-.036f,A+.036f,Reach*Size,Reach*(I%3==0 ? .15f : .09f),R*.05f,
+			Color(I%3==0 ? Type.PoleTipColor : Type.CoronaColor,.92f),2);
+	}
+	for (int32 I=0; I<4; ++I)
+	{
+		const float A = I*UE_HALF_PI + (Arrival ? 1.f-Ease : Ease)*.52f;
+		const float Radius = Reach*(Blast ? .72f : .96f);
+		const float Height = R*(Blast ? .20f*FMath::Sin(UE_PI*T) : .18f*(1.f-T));
+		Arc(A-.42f,A+.42f,Radius,Radius*.14f,Height,Color(Type.CurrentColor,1.f),10);
+		Arc(A+.27f,A+.42f,Radius,Radius*.14f,Height+1.f,Color(Type.PoleTipColor,1.f),3);
+	}
+	if (!Blast) { return; }
+	// Small faceted puffs swell outward and rise, then lose opacity before the last frame.
+	for (int32 I=0; I<7; ++I)
+	{
+		const float Angle=I*2.4f;
+		const FVector Center=Point(Angle,R*(I ? .24f*Ease : 0.f),R*(.07f+.16f*T));
+		const float Size=R*(I ? .16f+.025f*(I%3) : .23f)*FMath::SmoothStep(0.f,.35f,T);
+		auto Lobe=[&](int32 Slice,int32 Layer)
+		{
+			const float Lat=-UE_HALF_PI+UE_PI*Layer/5.f;
+			return Center+Point(Slice*UE_TWO_PI/10.f+Angle,Size*FMath::Cos(Lat),Size*FMath::Sin(Lat));
+		};
+		for (int32 J=0; J<5; ++J)
+		{
+			const FLinearColor Band=J<2 ? Type.CurrentColor*.5f : (J<4 ? Type.CoronaColor : Type.PoleTipColor);
+			for (int32 K=0; K<10; ++K)
+			{ Out.Quad(Lobe(K,J),Lobe(K+1,J),Lobe(K+1,J+1),Lobe(K,J+1),Color(Band,.98f)); }
+		}
+	}
+}
 }
 
 AHALSpecialBallCue::AHALSpecialBallCue()
@@ -73,13 +142,13 @@ void AHALSpecialBallCue::Spawn(UWorld& World, EHALBallCue Kind, UHALSpecialBallD
 {
 	if (!Type || World.GetNetMode() == NM_Client) { return; }
 	const double Started = BallCueTime(World);
-	if (Kind == EHALBallCue::Impact && World.GetNetMode() != NM_Standalone && World.GetGameState())
+	const bool bExplosion = Kind == EHALBallCue::Impact || Kind == EHALBallCue::MountedImpact;
+	if (bExplosion && World.GetNetMode() != NM_Standalone && World.GetGameState()
+		&& (Type->IsA<UHALExplosiveBallDefinition>() || Type->IsA<UHALTimedBombBallDefinition>()))
 	{
-		auto* MatchBalls = World.GetGameState()->FindComponentByClass<UHALMatchBallLifecycle>();
-		auto* Solar = Cast<UHALExplosiveBallDefinition>(Type);
-		if (MatchBalls && Solar)
+		if (auto* MatchBalls = World.GetGameState()->FindComponentByClass<UHALMatchBallLifecycle>())
 		{
-			MatchBalls->MulticastExplosiveImpact(Solar, Origin, Radius, Normal, Started);
+			MatchBalls->MulticastBallImpact(Type, Kind, Origin, Radius, Normal, Started);
 			return;
 		}
 	}
@@ -140,7 +209,7 @@ void AHALSpecialBallCue::OnRep_State()
 		}
 	}
 	Ribbons->SetMaterial(0, State.Type->CueMaterial);
-	if (State.Kind == EHALBallCue::Impact)
+	if (State.Kind == EHALBallCue::Impact && !State.Type->IsA<UHALTimedBombBallDefinition>())
 	{
 		PrepareWave();
 		const auto* Solar = Cast<UHALExplosiveBallDefinition>(State.Type.Get());
@@ -210,6 +279,12 @@ void AHALSpecialBallCue::Draw(float T)
 	FCoronaMesh Corona;
 	const auto& Type = *State.Type;
 	const float Radius = State.Radius;
+	if (const auto* Clasp = Cast<UHALTimedBombBallDefinition>(&Type))
+	{
+		DrawClaspCue(Corona,*Clasp,State.Kind,T,Radius);
+		Ribbons->SetMesh(MoveTemp(Corona.Mesh));
+		return;
+	}
 	const float Envelope = FMath::Min(1.f, (1.f - T) * 4.f);
 	const auto Tint = [&](const FLinearColor& Color, float Brightness, float Opacity)
 	{

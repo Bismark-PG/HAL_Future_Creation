@@ -249,7 +249,12 @@ FHALCombatHitResult FHALBlastArea::Resolve(AActor& Source, FHALCombatAction& Act
 	const float Distance = Body->GetClosestPointOnCollision(Origin, Closest);
 	if (Distance < 0 || Distance > Radius) { return Rejected; }
 	if (CoverStart && OpenFraction(*Source.GetWorld(), *CoverStart, Closest) < 1.f) { return Rejected; }
-	FVector Direction = (Target->GetActorLocation() - Origin).GetSafeNormal2D();
+	return HitBody(Source, Action, *Body, Closest);
+}
+
+FHALCombatHitResult FHALBlastArea::HitBody(AActor& Source, FHALCombatAction& Action, UPrimitiveComponent& Body, const FVector& HitPoint) const
+{
+	FVector Direction = (Body.GetOwner()->GetActorLocation() - Origin).GetSafeNormal2D();
 	if (Direction.IsNearlyZero()) { Direction = FallbackDirection; }
 	FHALCombatHitRequest Request;
 	Request.AttackId = Action.GetSnapshot().AttackId;
@@ -258,9 +263,9 @@ FHALCombatHitResult FHALBlastArea::Resolve(AActor& Source, FHALCombatAction& Act
 	Request.Impact.Tier = Action.GetSnapshot().Impact.Tier;
 	Request.Impact.PushPreset = Action.GetSnapshot().Impact.PushPreset;
 	Request.Hit.SourceActor = &Source;
-	Request.Hit.TargetActor = Target;
-	Request.Hit.TargetPhysicsBody = Body;
-	Request.Hit.ImpactPoint = Closest;
+	Request.Hit.TargetActor = Body.GetOwner();
+	Request.Hit.TargetPhysicsBody = &Body;
+	Request.Hit.ImpactPoint = HitPoint;
 	Request.Hit.ImpactNormal = -Direction;
 	return FCombatResolver::ResolveCombatHit(Action, Request);
 }

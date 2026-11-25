@@ -118,6 +118,8 @@ protected:
 	bool bDrawAcquisitionDebug = false;
 
 private:
+	friend class AHALTimedBombBall;
+	bool MountContactBomb(class AHALTimedBombBall& Bomb, UBallControlComponent* Previous);
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALBullChargeTestAccess;
 	friend struct FHALSideShiftTestAccess;

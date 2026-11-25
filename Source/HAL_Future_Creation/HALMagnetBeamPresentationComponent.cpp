@@ -84,6 +84,7 @@ void UHALMagnetBeamPresentationComponent::EndPlay(const EEndPlayReason::Type Rea
 
 void UHALMagnetBeamPresentationComponent::SyncToBallState(EBasicBallState State, AActor* Holder)
 {
+	if (Ball.IsValid() && !Ball->AllowsNormalLaunch()) { return; }
 	// Headless, null RHI and automation never build the effect, but the phase bookkeeping
 	// still has to stay consistent so diagnostics and tests behave the same everywhere.
 	const EBasicBallState Previous = bSynced ? LastSeenState : EBasicBallState::Free;

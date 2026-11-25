@@ -4,6 +4,7 @@
 #include "HALSpecialBall.h"
 #include "HALBlackHoleBall.h"
 #include "HALMeteorBall.h"
+#include "HALTimedBombBall.h"
 #include "HALImpactAttributeSet.h"
 #include "HALImpactReceiverComponent.h"
 #include "HALImpactImmunityEffects.h"
@@ -424,6 +425,11 @@ void AHALPlayerController::HALSpawnMeteorBall()
 	RequestDebugBall(EHALDebugBallType::Meteor);
 }
 
+void AHALPlayerController::HALSpawnTimedBombBall()
+{
+	RequestDebugBall(EHALDebugBallType::TimedBomb);
+}
+
 void AHALPlayerController::RequestDebugBall(EHALDebugBallType Type)
 {
 #if !UE_BUILD_SHIPPING
@@ -476,6 +482,7 @@ void AHALPlayerController::ServerSpawnDebugBall_Implementation(EHALDebugBallType
 		case EHALDebugBallType::Explosive: BallClass = AHALExplosiveBall::StaticClass(); break;
 		case EHALDebugBallType::BlackHole: BallClass = AHALBlackHoleBall::StaticClass(); break;
 		case EHALDebugBallType::Meteor: BallClass = AHALMeteorBall::StaticClass(); break;
+		case EHALDebugBallType::TimedBomb: BallClass = AHALTimedBombBall::StaticClass(); break;
 		default: return;
 		}
 		const FVector Forward = Vehicle->GetActorForwardVector().GetSafeNormal2D();
@@ -515,6 +522,7 @@ void AHALPlayerController::ServerSpawnDebugBall_Implementation(EHALDebugBallType
 	if (Type == EHALDebugBallType::Explosive) { Message.ReplaceInline(TEXT("HALSpawnBall"), TEXT("HALSpawnExplosiveBall")); }
 	else if (Type == EHALDebugBallType::BlackHole) { Message.ReplaceInline(TEXT("HALSpawnBall"), TEXT("HALSpawnBlackHoleBall")); }
 	else if (Type == EHALDebugBallType::Meteor) { Message.ReplaceInline(TEXT("HALSpawnBall"), TEXT("HALSpawnMeteorBall")); }
+	else if (Type == EHALDebugBallType::TimedBomb) { Message.ReplaceInline(TEXT("HALSpawnBall"), TEXT("HALSpawnTimedBombBall")); }
 	UE_LOG(LogTemp, Display, TEXT("%s"), *Message);
 	ClientDebugBallResult(Message, Ball != nullptr);
 #endif

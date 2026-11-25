@@ -5,6 +5,8 @@
 #include "../HALSpecialBall.h"
 #include "../HALBlackHoleBall.h"
 #include "../HALMeteorBall.h"
+#include "../HALTimedBombBall.h"
+#include "../BallControlComponent.h"
 #include "../HALSkillTestDummy.h"
 #include "../HALHealthAttributeSet.h"
 #include "../HALSpecialBallCue.h"
@@ -14,6 +16,7 @@
 #include "../HALAbilitySystemComponent.h"
 #include "../HALGameplayTags.h"
 #include "../HALImpactAttributeSet.h"
+#include "../HALImpactReceiverComponent.h"
 #include "../HALCombatAttributeSet.h"
 #include "../PassiveTestVehicle.h"
 #include "../VehicleDefinition.h"
@@ -273,11 +276,14 @@ bool FHALExplosiveBallTest::RunTest(const FString&)
 	{ bCurtainFirst |= It->GetCueState().Kind == EHALBallCue::Impact && It->GetActorLocation().Equals(Curtain.ImpactPoint, 1.f); }
 	TestTrue(TEXT("Powered curtain wins over later solid contact in the same step"), bCurtainFirst);
 	Field->Destroy();
-	auto* Inactive = F.World->SpawnActor<AHALElectricSphereGimmick>(FVector(0, 4500, 0), FRotator::ZeroRotator);
-	Inactive->DispatchBeginPlay();
+	auto* ElectricSphere = F.World->SpawnActor<AHALElectricSphereGimmick>(FVector(0, 4500, 0), FRotator::ZeroRotator);
+	ElectricSphere->DispatchBeginPlay();
 	auto* Third = SpawnBall(FVector(0, 4000, 100));
-	TestTrue(TEXT("Dormant field test shot"), Third->BeginControl(Shooter) && Third->LaunchFromControl(Shooter,Shooter,FVector(0, 15000, 0)));
-	TestFalse(TEXT("Warning-stage electric sphere does not trigger"), Third->FindFieldHit(Third->GetActorLocation(), FVector(0, 4900, 100), Curtain));
+	TestTrue(TEXT("Electric sphere test shot"), Third->BeginControl(Shooter) && Third->LaunchFromControl(Shooter,Shooter,FVector(0, 15000, 0)));
+	TestTrue(TEXT("Expanding energized sphere triggers a launched contact ball"), Third->FindFieldHit(Third->GetActorLocation(), FVector(0, 4900, 100), Curtain));
+	const auto& SphereTiming = ElectricSphere->GetSphereConfig();
+	F.World->TimeSeconds += SphereTiming.BeginSeconds + SphereTiming.LoopSeconds + .01f;
+	TestFalse(TEXT("Spent electric sphere does not trigger"), Third->FindFieldHit(Third->GetActorLocation(), FVector(0, 4900, 100), Curtain));
 	// The actual Fred wall callback reported its contact 16 cm inside the blocking box.
 	FHitResult WallHit(Wall, Box, FVector(246, 0, 110), -FVector::ForwardVector);
 	Third->ResolveLaunchedContact(Wall, Box, FVector::ZeroVector, WallHit);
@@ -399,6 +405,91 @@ AHALSkillTestDummy* AddMeteorTestOpponent(UWorld& World, const FVector& At)
 	Dummy->PreInitializeComponents(); Dummy->InitializeComponents(); Dummy->PostInitializeComponents(); Dummy->DispatchBeginPlay();
 	return Dummy;
 }
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALTimedBombRulesTest, "HAL.FutureCreation.SpecialBall.TimedBomb.ContactClockAndVictims",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALTimedBombRulesTest::RunTest(const FString&)
+{
+	FBombWorld F;
+	const auto* Type = GetDefault<UHALMatchBallSettings>()->TimedBombBallType.LoadSynchronous();
+	FString Error;
+	if (!TestTrue(TEXT("Production clasp, dial, and timer validate"),Type && Type->Validate(Error))) { AddError(Error); return false; }
+	auto* A = AddMeteorTestOpponent(*F.World,FVector(0,0,120));
+	auto* B = AddMeteorTestOpponent(*F.World,FVector(350,0,120));
+	auto* C = AddMeteorTestOpponent(*F.World,FVector(350,340,120));
+	auto* Far = F.Target(FVector(4500,0,120));
+	if (!A || !B || !C) { return false; }
+	auto HP = [](AActor* Car) { return Car->FindComponentByClass<UVehicleHealthComponent>()->GetCurrentHP(); };
+	auto Spawn = [&]()
+	{
+		auto* Ball = F.World->SpawnActor<AHALTimedBombBall>(FVector(-750,0,120),FRotator::ZeroRotator);
+		Ball->PreInitializeComponents(); Ball->DispatchBeginPlay(); return Ball;
+	};
+	auto* Ball = Spawn();
+	auto* Other = Spawn();
+	const float Full=HP(A), FarFull=HP(Far), Damage=Type->Gameplay.Damage.VehicleHitDamage;
+	TestTrue(TEXT("No automatic pickup or launch, no fuse while patrolling"),!Ball->CanBeControlledBy(A) && !Ball->BeginControl(A)
+		&& !Ball->AllowsNormalLaunch() && Ball->GetFuseDeadline()<0);
+	auto* Root = CastChecked<UPrimitiveComponent>(A->GetRootComponent());
+	Ball->OnContact(Ball->GetPhysicsRoot(),A,Root,FVector::ZeroVector,FHitResult(A,Root,A->GetActorLocation(),FVector::RightVector));
+	if (!TestEqual(TEXT("Any-side chassis contact ignites and occupies slot"),Ball->GetControlledBy(),static_cast<AActor*>(A))) { return false; }
+	const double Deadline=Ball->GetFuseDeadline();
+	FVector Recoil(1,1,1);
+	TestFalse(TEXT("Fire button rejected"),A->FindComponentByClass<UBallControlComponent>()->LaunchHeldBall(Recoil));
+	TestTrue(TEXT("No shot or recoil"),Recoil.IsZero() && !Ball->LaunchFromControl(A,A,FVector(2000,0,0)));
+	Ball->OnRam(*A,*B,FVector::ZeroVector,FVector::ZeroVector);
+	TestEqual(TEXT("Standing contact cannot pass"),Ball->GetControlledBy(),static_cast<AActor*>(A));
+	F.World->TimeSeconds += .35;
+	if (!TestTrue(TEXT("First pickup also forcibly replaces an occupied slot"),Other->TryMount(*A,nullptr)
+		&& Ball->GetBallState()==EBasicBallState::Free && Other->GetControlledBy()==A)) { return false; }
+	TestEqual(TEXT("Ejected armed ball retains deadline"),Ball->GetFuseDeadline(),Deadline);
+	TestFalse(TEXT("Cannot immediately grab the just-displaced bomb"),Ball->TryMount(*A,nullptr));
+	if (!TestTrue(TEXT("Contact re-pickup then pass onto another armed carrier"),Ball->TryMount(*B,nullptr) && Ball->TryMount(*A,B))) { return false; }
+	TestTrue(TEXT("Other fuse survives forced swap and credit follows active pass"),Other->GetBallState()==EBasicBallState::Free
+		&& Other->GetFuseDeadline()>Deadline && Ball->Credit.InstigatorActor.Get()==B && Ball->ContactLocks.Contains(B));
+	if (!TestTrue(TEXT("Third car can immediately accept"),Ball->TryMount(*C,A))) { return false; }
+	TestEqual(TEXT("All handoffs preserve original clock"),Ball->GetFuseDeadline(),Deadline);
+	TestEqual(TEXT("No damage for multiple tags"),HP(A)+HP(B)+HP(C),Full*3.f);
+	// Exercise an authored non-default response and an AOE too small to reach the chassis from the clasp.
+	auto* MountedType = DuplicateObject<UHALTimedBombBallDefinition>(Type, GetTransientPackage());
+	MountedType->Gameplay.Impact.Tier = EHALImpactTier::Medium;
+	MountedType->Gameplay.Impact.PushPreset = EHALImpactPushPreset::Long;
+	MountedType->GroundBlastRadius = 1.f;
+	Ball->Definition = MountedType;
+	auto Impact = [](AActor* Car) { return Car->FindComponentByClass<UHALImpactReceiverComponent>()->GetLastImpact(); };
+	const FGuid BeforeA = Impact(A).EventId, BeforeB = Impact(B).EventId, BeforeC = Impact(C).EventId, BeforeFar = Impact(Far).EventId;
+	F.World->TimeSeconds = Deadline+.001;
+	C->FindComponentByClass<UBallControlComponent>()->ReleaseForStun();
+	TestTrue(TEXT("At deadline mounted detonation wins over same-tick drop"),Ball->IsActorBeingDestroyed() && !C->FindComponentByClass<UBallControlComponent>()->GetHeldBall());
+	TestTrue(TEXT("Mounted damage is exclusive"),HP(C)==Full-Damage && HP(A)==Full && HP(B)==Full);
+	const FHALImpactSummary MountedHit = Impact(C);
+	TestTrue(TEXT("Mounted blast pushes its holder with the configured tier and distance"),
+		MountedHit.EventId.IsValid() && MountedHit.EventId != BeforeC && MountedHit.EffectiveTier == MountedType->Gameplay.Impact.Tier
+		&& MountedHit.PushPreset == MountedType->Gameplay.Impact.PushPreset && MountedHit.DesiredHorizontalDeltaSpeed > 0.f);
+	TestTrue(TEXT("Nearby previous carriers receive no mounted blast impact"), Impact(A).EventId == BeforeA && Impact(B).EventId == BeforeB);
+	Other->SetActorLocation(FVector(200,100,120),false,nullptr,ETeleportType::TeleportPhysics);
+	F.World->TimeSeconds = Other->GetFuseDeadline()+.001;
+	Other->Patrol();
+	TestTrue(TEXT("Dropped bomb damages all in radius, including former holder"),HP(A)==Full-Damage && HP(B)==Full-Damage && HP(C)==Full-2*Damage && HP(Far)==FarFull);
+	const FHALImpactSummary GroundHit = Impact(A);
+	TestTrue(TEXT("Ground blast sends the ball's impact to every in-range chassis once"),
+		GroundHit.EventId.IsValid() && GroundHit.EventId != MountedHit.EventId && GroundHit.EventId == Impact(B).EventId
+		&& GroundHit.EventId == Impact(C).EventId && GroundHit.SourceTier == Type->Gameplay.Impact.Tier
+		&& GroundHit.PushPreset == Type->Gameplay.Impact.PushPreset && Impact(Far).EventId == BeforeFar);
+	Other->Detonate();
+	int32 Ground=0, Mounted=0;
+	for (TActorIterator<AHALSpecialBallCue> It(F.World); It; ++It)
+	{
+		const auto& Cue=It->GetCueState();
+		if (Cue.Kind==EHALBallCue::Impact) { ++Ground; TestEqual(TEXT("Ground cue matches effective radius"),Cue.Radius,Type->GroundBlastRadius); }
+		Mounted+=Cue.Kind==EHALBallCue::MountedImpact;
+	}
+	TestTrue(TEXT("Each event survives its ball exactly once"),Ground==1 && Mounted==1 && HP(A)==Full-Damage);
+	auto* Idle = Spawn();
+	Idle->Expire();
+	TestTrue(TEXT("Unignited expiration is harmless"),Idle->IsActorBeingDestroyed() && HP(B)==Full-Damage);
+	return true;
 }
 
 IMPLEMENT_COMPLEX_AUTOMATION_TEST(FHALMeteorStrikeTest, "HAL.FutureCreation.SpecialBall.Meteor",

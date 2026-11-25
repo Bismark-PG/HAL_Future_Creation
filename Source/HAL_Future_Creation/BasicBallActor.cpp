@@ -128,6 +128,7 @@ float ABasicBallActor::GetNetPriority(const FVector& ViewPos, const FVector& Vie
 
 bool ABasicBallActor::CanBeControlledBy(const AActor* CandidateVehicle) const
 {
+	if (!AllowsAutomaticPickup()) { return false; }
 	if (!HALGameFlow::Permissions(GetWorld(),Cast<APawn>(CandidateVehicle)).bBallControl) { return false; }
 	if (UHALAbilitySystemComponent::IsActorStunned(CandidateVehicle)) { return false; }
 	if (!HasAuthority() || !CanUseBall() || !bConfigurationValid || !VehicleConfiguration::IsReadyForGameplay(CandidateVehicle)
@@ -187,12 +188,17 @@ bool ABasicBallActor::BeginControl(AActor* NewHolder)
 		return false;
 	}
 
+	CommitContactHolder(*NewHolder);
+	return true;
+}
+
+void ABasicBallActor::CommitContactHolder(AActor& Holder)
+{
 	StopLowSpeedMonitor();
 	FBallRepState Next;
 	Next.State = EBasicBallState::Controlled;
-	Next.Holder = NewHolder;
-	CommitRepState(Next, NewHolder);
-	return true;
+	Next.Holder = &Holder;
+	CommitRepState(Next, &Holder);
 }
 
 bool ABasicBallActor::LaunchFromControl(
@@ -260,7 +266,7 @@ bool ABasicBallActor::DeflectByTornado(AHALTornado& Source, const FVector& Initi
 
 bool ABasicBallActor::CommitLaunch(AActor* NewLauncher, const FVector& InitialVelocity, const AActor* FrameSource)
 {
-	if (!CanUseBall()) { return false; }
+	if (!AllowsNormalLaunch() || !CanUseBall()) { return false; }
 	FHALAttackSourceSnapshot Attack;
 	FHALCollisionImpactRules ImpactRules;
 	if (!GetMutableDefault<UVehicleKnockbackSettings>()->InitializeRules()

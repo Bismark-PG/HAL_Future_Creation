@@ -228,7 +228,7 @@ void AHALSpecialBall::OnAuthorityBallStateChanged(EBasicBallState Previous)
 		Clock.FreeUntil = -1.;
 	}
 	GetWorldTimerManager().ClearTimer(ExpiryTimer);
-	if (GetBallState() == EBasicBallState::Free)
+	if (GetBallState() == EBasicBallState::Free && UsesFreeLife())
 	{
 		Clock.FreeUntil = ServerNow() + Clock.Remaining;
 		GetWorldTimerManager().SetTimer(ExpiryTimer, this, &ThisClass::Expire, FMath::Max(.001f, Clock.Remaining), false);

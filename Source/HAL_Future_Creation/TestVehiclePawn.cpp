@@ -842,6 +842,7 @@ void ATestVehiclePawn::OnLaunchStarted(const FInputActionValue& Value)
 			ObservedBall = *It;
 		}
 	}
+	if (IsValid(ObservedBall) && !ObservedBall->AllowsNormalLaunch()) { return; }
 	Request.ExpectedBallStateSequence = IsValid(ObservedBall)
 		? ObservedBall->GetBallStateSequence() : 0;
 	if (!HasAuthority() && IsLocallyControlled() && IsValid(ObservedBall) && BallControl && VehiclePresentation)

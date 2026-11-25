@@ -14,6 +14,7 @@
 #include "ArcadeVehicleMovementComponent.h"
 #include "BallControlComponent.h"
 #include "BasicBallActor.h"
+#include "HALTimedBombBall.h"
 #include "SpringPunchGimmick.h"
 #include "AbilitySystemGlobals.h"
 #include "Components/PrimitiveComponent.h"
@@ -152,6 +153,7 @@ void UHALImpactReceiverComponent::HandleContact(UPrimitiveComponent* Body, AActo
 	{
 		return;
 	}
+	if (Other->IsA<AHALTimedBombBall>()) { return; } // The ball owns its contact pickup.
 	if (auto* Top = GetOwner()->FindComponentByClass<UHALBattleTopComponent>(); Top && Top->IsActive())
 	{ Top->ObserveContact(*Body, *OtherBody, NormalImpulse, Hit); }
 	if (auto* Charge = GetOwner()->FindComponentByClass<UHALBullChargeComponent>();
@@ -363,7 +365,9 @@ void UHALImpactReceiverComponent::Resolve(const FHALCombatHitRequest& Request, F
 			Result.WallDropThreshold=StabilityRules.WallDropNormalDeltaSpeed;
 			if (UBallControlComponent* BallControl = GetOwner()->FindComponentByClass<UBallControlComponent>(); BallControl && !Result.bWallDropSuppressed)
 			{
-				Summary.bBallDropped = BallControl->ReleaseFromImpact(Direction);
+				const bool bClaspHolds = bPhysical && Cast<AHALTimedBombBall>(BallControl->GetHeldBall())
+					&& (Result.SupportSourceReason == TEXT("StationaryWorld") || (Hit.SourceActor && Hit.SourceActor->FindComponentByClass<UBallControlComponent>()));
+				if (!bClaspHolds) { Summary.bBallDropped = BallControl->ReleaseFromImpact(Direction); }
 			}
 		}
 	}

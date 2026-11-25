@@ -2,6 +2,8 @@
 
 #include "BallControlComponent.h"
 #include "HALWaterCannon.h"
+#include "HALTimedBombBall.h"
+#include "HALSkillTestDummy.h"
 #include "HALBattleTopComponent.h"
 #include "HALBullChargeComponent.h"
 #include "HALGameFlowPermissions.h"
@@ -157,7 +159,7 @@ bool UBallControlComponent::LaunchHeldBallWithVelocity(const FVector& InitialVel
 		Recovery && Recovery->IsExecuting()) { return false; }
 	if (!Owner
 		|| !Owner->HasAuthority()
-		|| !IsValid(HeldBall)
+		|| !IsValid(HeldBall) || !HeldBall->AllowsNormalLaunch()
 		|| !VehicleBody
 		|| HeldBall->GetBallState() != EBasicBallState::Controlled
 		|| HeldBall->GetControlledBy() != Owner)
@@ -200,6 +202,7 @@ FVector UBallControlComponent::CalculateRecoilDeltaVelocity() const
 
 void UBallControlComponent::HandleVehicleCollision(const FVector& NormalImpulse, const FHitResult& Hit)
 {
+	if (Cast<AHALTimedBombBall>(HeldBall)) { return; }
 	FHALCollisionImpactRules Rules;
 	if (GetDefault<UVehicleKnockbackSettings>()->GetCollisionImpactRules(Rules)
 		&& Rules.Version == EHALImpactVersion::TieredV1) { return; }
@@ -237,6 +240,8 @@ void UBallControlComponent::ReleaseForStun()
 
 void UBallControlComponent::EvaluateBallControl()
 {
+	// The skill dummy cannot acquire or shoot, but it can be tagged with a contact bomb.
+	if (const auto* Dummy = Cast<AHALSkillTestDummy>(GetOwner()); Dummy && Cast<AHALTimedBombBall>(HeldBall) && Dummy->CanReceiveSkillEffects()) { return; }
 	if (!HALGameFlow::Permissions(GetWorld(),Cast<APawn>(GetOwner())).bBallControl)
 	{ if (GetOwner()->HasAuthority()) { ReleaseHeldBall(FVector::ZeroVector,false,TEXT("PhaseControlDisabled")); } return; }
 	if (UHALAbilitySystemComponent::IsActorStunned(GetOwner())) { return; }
@@ -385,6 +390,27 @@ bool UBallControlComponent::AcquireBall(ABasicBallActor* Candidate)
 		HeldBall = nullptr;
 		return false;
 	}
+	return true;
+}
+
+bool UBallControlComponent::MountContactBomb(AHALTimedBombBall& Bomb, UBallControlComponent* Previous)
+{
+	if (!GetOwner()->HasAuthority() || !VehicleBody || !VehicleBody->IsSimulatingPhysics() || !ControlPoint || !BallConstraint
+		|| HeldBall == &Bomb || (Previous && Previous->HeldBall != &Bomb)) { return false; }
+	ABasicBallActor* Displaced = HeldBall;
+	ReleaseConstraint();
+	ConfigureConstraint(&Bomb);
+	if (!bConstraintActive)
+	{
+		if (IsValid(Displaced)) { ConfigureConstraint(Displaced); }
+		return false;
+	}
+	if (Previous) { Previous->ReleaseConstraint(); Previous->HeldBall = nullptr; }
+	if (IsValid(Displaced) && Displaced->ReleaseFromControl(GetOwner(), DropReacquireLockDuration))
+	{
+		Displaced->AddReleaseImpulse(VehicleBody->GetRightVector() * DropBallImpulse + FVector::UpVector * DropBallUpwardImpulse);
+	}
+	HeldBall = &Bomb;
 	return true;
 }
 

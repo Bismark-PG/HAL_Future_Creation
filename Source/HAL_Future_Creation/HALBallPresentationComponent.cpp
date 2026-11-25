@@ -28,7 +28,8 @@ namespace
 }
 
 /** No UObject/GT transform access in this callback. Both poses are from the same solved step. */
-class FHALBallPoseCapture : public Chaos::TSimCallbackObject<Chaos::FSimCallbackNoInput,FBallPoseOutput,Chaos::ESimCallbackOptions::PostSolve>
+class FHALBallPoseCapture : public Chaos::TSimCallbackObject<Chaos::FSimCallbackNoInput,FBallPoseOutput,
+	Chaos::ESimCallbackOptions::PostSolve | Chaos::ESimCallbackOptions::ParticleUnregister>
 {
 public:
 	TAtomic<bool> bActive{false};
@@ -37,6 +38,15 @@ public:
 	// Chaos calls PreSimulate for registered simulation callbacks even when the
 	// only requested extension hook is PostSolve. The base implementation asserts.
 	virtual void OnPreSimulate_Internal() override {}
+	virtual void OnParticleUnregistered_Internal(TArray<TTuple<Chaos::FUniqueIdx, Chaos::FSingleParticlePhysicsProxy*>>& Removed) override
+	{
+		if (!bActive.Load()) { return; }
+		for (const auto& Particle : Removed)
+		{
+			const auto* RemovedProxy = Particle.Get<1>();
+			if (RemovedProxy == BallProxy || RemovedProxy == HolderProxy) { bActive.Store(false); return; }
+		}
+	}
 	virtual void OnPostSolve_Internal() override
 	{
 		if (!bActive.Load() || !BallProxy || !HolderProxy) { return; }
@@ -117,9 +127,10 @@ void UHALBallPresentationComponent::StopCapture()
 {
 	if (Capture)
 	{
-		// Revoke first: the solver may retain callbacks after removal. Drain in-flight
-		// work before an exiting holder/ball can remove its physics body.
-		Capture->bActive.Store(false); CaptureSolver->WaitOnPendingTasks_External();
+		// A contact can release a ball inside Chaos EndFrame. Waiting for that task here
+		// deadlocks the game thread. Chaos retires the callback in solver order and the
+		// particle-unregister hook revokes reads before either physics proxy is deleted.
+		Capture->bActive.Store(false);
 		CaptureSolver->UnregisterAndFreeSimCallbackObject_External(Capture);
 		Capture=nullptr; CaptureSolver=nullptr;
 	}

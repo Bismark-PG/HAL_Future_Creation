@@ -111,6 +111,8 @@ public:
 	void SetPrimaryCameraTarget(bool bPrimary) { SetPrimaryMatchBall(bPrimary); }
 
 	bool CanBeControlledBy(const AActor* CandidateVehicle) const;
+	virtual bool AllowsNormalLaunch() const { return true; }
+	virtual bool AllowsAutomaticPickup() const { return true; }
 	bool BeginControl(AActor* NewHolder);
 	bool LaunchFromControl(AActor* ExpectedHolder, AActor* NewLauncher, const FVector& InitialVelocity);
 	bool LaunchFreeFromBattleTop(AActor* NewLauncher, const FVector& InitialVelocity);
@@ -118,12 +120,15 @@ public:
 	/** Narrow authority capability: only the tornado's current accepted contact may call this. */
 	bool DeflectByTornado(AHALTornado& Source, const FVector& InitialVelocity);
 	bool LaunchFromWaterCannon(class AHALWaterCannon& Source, const FVector& Velocity);
-	bool ReleaseFromControl(AActor* ExpectedHolder, float ReacquireLockDuration);
+	virtual bool ReleaseFromControl(AActor* ExpectedHolder, float ReacquireLockDuration);
 	void AddReleaseImpulse(const FVector& Impulse);
 	/** Server cleanup before a vehicle Pawn is destroyed; preserves a launched ball's stable PlayerId. */
-	bool HandleVehicleExit(const AActor* LeavingVehicle);
+	virtual bool HandleVehicleExit(const AActor* LeavingVehicle);
 
 protected:
+	// Contact-carried balls change holder directly after both vehicle slots are ready.
+	void CommitContactHolder(AActor& Holder);
+	bool PassesPickupLocks(const AActor* CandidateVehicle) const;
 	/** Marks the permanent match ball and camera focus. Keep this property name for existing maps. */
 	UPROPERTY(EditInstanceOnly, Replicated, Category="Ball|Camera") bool bPrimaryCameraTarget = false;
 	UPROPERTY(EditAnywhere, Category = "Ball|Configuration")
@@ -207,7 +212,6 @@ private:
 
 	void CommitRepState(const FBallRepState& NewState, const AActor* PhysicsFrameSource);
 	bool CommitLaunch(AActor* NewLauncher, const FVector& InitialVelocity, const AActor* FrameSource);
-	bool PassesPickupLocks(const AActor* CandidateVehicle) const;
 	void ApplyReplicatedPresentation();
 	void StopControlledPresentation();
 	void StartLowSpeedMonitor();

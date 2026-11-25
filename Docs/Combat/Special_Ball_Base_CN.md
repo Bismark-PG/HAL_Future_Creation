@@ -2,7 +2,7 @@
 
 ## 所有球型共用的规则（已确认）
 
-特殊球可以和唯一常驻主球同时上场。每辆车仍只带一颗球。每颗特殊球可以易手、多次发射，最多触发一次球型效果。主球保留自己的回场和相机规则，特殊球消耗、出界或结束本局后由场地回收。下一颗由投放规则决定。[比赛主球生命周期](../Networking/Match_Primary_Ball_Lifecycle_CN.md)
+特殊球可以和唯一常驻主球同时上场。每辆车仍只带一颗球，每颗特殊球最多触发一次终结效果。下表是可发射球型的基础规则。定时炸弹球通过接触点火和撞车易手，点火后使用独立引信。主球保留自己的回场和相机规则，特殊球消耗、出界或结束本局后由场地回收。[比赛主球生命周期](../Networking/Match_Primary_Ball_Lifecycle_CN.md) · [定时炸弹球](#timed-bomb-concepts)
 
 | 球的状态 | 剩余寿命 | 争夺与攻击 |
 | --- | --- | --- |
@@ -24,7 +24,7 @@
 
 ## 正式赛场的特殊球生成盘
 
-`MVPB_Match` 的中圈两侧各有一个六孔盘。在 World Outliner 展开 **Gimmick → Special Ball Pads** 找到 `SpecialBallPad_NE` 和 `SpecialBallPad_SW`。青色待机灯在投放前变色，爆炸球为橙金色向心脉冲，黑洞球为紫色旋纹，陨石球为红橙色断续流光。球从六孔中心出现，随后播放球型自带的生成特效，可以直接争抢。
+`MVPB_Match` 的中圈两侧各有一个六孔盘。在 World Outliner 展开 **Gimmick → Special Ball Pads** 找到 `SpecialBallPad_NE` 和 `SpecialBallPad_SW`。青色待机灯在投放前变色，爆炸球为橙金色向心脉冲，黑洞球为紫色旋纹，陨石球为红橙色断续流光，定时炸弹球为红色双弧和琥珀刻度。球从六孔中心出现并播放自己的生成特效。
 
 全场共用 **Content → Data → Balls → DA_Arena_SpecialBallSupply**。修改后重新开一局即可试玩。
 
@@ -34,9 +34,9 @@
 | Drop Interval | 25 秒 | 全场两次成功投放之间的间隔。两盘轮流优先，同一轮只投一颗 |
 | Warning Seconds | 1.5 秒 | 提前亮灯并向盘心汇聚。首轮默认在开赛后 13.5 秒亮灯 |
 | Blocked Grace | 2 秒 | 盘心被占时最多等待多久，每 0.25 秒复查一次 |
-| Ball Pool | Explosive、Black Hole、Meteor | 三种球每组各出一次，顺序随机。只保留一种即可定向测试 |
+| Ball Pool | Explosive、Black Hole、Meteor、Timed Bomb | 每组四种各出一次，顺序随机。只保留一种即可定向测试 |
 | Spawn Clearance | 8 cm | 球底相对实际行车面的初始间隙。球心高度另加该球型的实际碰撞半径 |
-| Pad Diameter / Pad Thickness | 350 / 3 cm | 六孔盘的可见大小和厚度 |
+| Pad Diameter / Pad Thickness | 500 / 3 cm（当前正式 DA） | 六孔盘的可见大小和厚度 |
 
 预告前，优先盘被车辆、球或实体障碍占用时，服务器可以选另一个空盘。亮灯后位置锁定，若车辆驶入，会在原盘等它离开；持续占用则跳过本轮，待投球型留给下一轮。等待开赛和结算期间停发，下一局重新计时、洗牌。
 
@@ -57,6 +57,66 @@
 生成盘的六孔模型和三个材质实例位于 `/Game/Assets/ArenaMechanics/SpecialBallPad`。单独拖入网格只会摆放模型，要参加轮转应拖入上述 Actor 类。
 
 **2026-11-24 实测。** UE 5.8.3 的 Development Editor 与 Game 均已编译。连续投放六颗，其中一颗被持有，验证了多球共存、两轮洗牌、盘心阻挡重试、跳过和重新开赛。正式图的两个盘都通过盘心和两侧的地面射线检查，主机车辆横穿空盘期间测得车身高度变化小于 0.01 cm。主机出站模拟 60 ms 延迟，主机与独立客户端均看到东北盘在约第 15 秒生成陨石球、西南盘在约第 40 秒生成爆炸球。以下三帧来自同一客户端机位，依次为待机、盘心预告和球体生成。[游戏内三帧实拍](Art/SpecialBallPad/SupplyPad_InGame.jpg)
+
+<a id="timed-bomb-concepts"></a>
+
+## 定时炸弹球 · 磁扣与分段表盘（2026-11-25）
+
+炸弹在场上巡游，首次碰车时强制占用持球位并点火。持球期间发射键锁定，持有者可以主动撞车转交炸弹。无论是首次碰车、已点火后重新碰车，还是持球者撞车转交，接手车辆原本带着的球都会掉回地面，炸弹立即上车。引信在换手和掉地时继续走时。
+
+引信归零时，车上的炸弹只对当前持有者造成伤害和冲击。爆心在车头磁扣处，水平冲击从车头指向车身，将持有者向后推。地上的炸弹以球的位置为圆心，对范围内的每辆车造成伤害并向外推，包括仍在范围内的上一任持有者。两种爆炸都遵循车辆的冲击抗性和免疫规则。尚未点火的巡游球耗尽自由寿命时，沿用无伤害的自然消散。
+
+正式球型是 **B 的红白磁扣配 A 的分段表盘**。生成时，两片磁扣和刻度向内合拢。巡游时能看到球顶满格的表盘和两道短尾迹。点火后指针扫动、亮格逐个熄灭，最后三秒转红并脉动。撞车转交时，磁扣先从原车头张开，划过一段短弧，再在接手车头合拢，扣合点闪一下。车头归零播放局部爆裂。落地归零时，红白冲击环会扩到伤害半径。
+
+在 Development 场景中，把车头朝向一块空地，在控制台输入 `HALSpawnTimedBombBall` 即可试球。正式比赛由现有生成盘从四种特殊球中轮换投放。
+
+| 在 `/Game/Data/Balls/DA_Ball_TimedBomb` 中调什么 | 初始值 | 手感或画面 |
+| --- | --- | --- |
+| `Free Life Seconds`、`Patrol Speed`、`Patrol Turn Rate` | 20 秒、650 cm/s、26°/s | 未点火时的巡游寿命、前进速度和摆向幅度。碰到实体墙会转向。 |
+| `Fuse Seconds`、`Urgent Seconds`、`Dial Segments` | 8 秒、3 秒、12 格 | 从首次上车开始计时，最后阶段改变表盘颜色和脉动。 |
+| `Minimum Ram Speed`、`Minimum Closing Speed` | 220、140 cm/s | 持有者须有驾驶输入，沿目标方向有足够速度，且正追近对方。贴车停着或被别人撞不构成主动转交。 |
+| `Return Lock Seconds`、`Clasp Travel Seconds`、`Jaw Opening` | 0.7 秒、0.42 秒、0.32 倍球半径 | 两车分开且锁定时间结束后才允许回传。后两项调整松扣到合扣的时长、单侧开口幅度。 |
+| `Gameplay → Damage → Vehicle Hit Damage`、`Ground Blast Radius` | 25 HP、500 cm | 两种爆炸共用基础伤害。地爆半径按车辆碰撞体判定，只影响落地引爆。 |
+| `Gameplay → Impact → Tier`、`Push Preset` | Heavy、Standard | 两种爆炸共用冲击档位和水平推力预设。档位决定基础平推与上抛，推力预设只调整水平分量。 |
+| `Core Color`、`Current Color`、`Pole Tip Color`、`Corona Color`、`Glow` | 石墨、红、象牙白、琥珀 | 调整壳体、磁扣、表盘和脉冲配色。`Arrival Seconds`、`Expiration Seconds`、`Impact Seconds` 分别控制三段演出的时长。 |
+
+强制替换适用于主球和特殊球，也适用于另一颗已点火的炸弹。被换下的炸弹落地后继续走自己的引信。眩晕按通用规则掉球。服务器把伤害记给最后一次主动转交成功的车辆。从未转交过的炸弹由场地结算。
+
+在正式图的双端实测中，第一辆车先持主球，第二辆车先持爆炸球。定时炸弹从侧面碰上第一辆车并顶掉主球，按发射键后仍挂在车头。持有者踩油门撞上第二辆车，磁扣张开，跨到对方车头合拢。接手车的爆炸球掉地。主机出站模拟 80 ms 延迟复测时，双方读到同一个引信截止时间。持球引爆后，两车血量为 100、75。下一轮通过眩晕落球，地爆后血量为 75、50。两次引爆的网格在两端都实际出现。[巡游实拍](Art/TimedBombBall/Clasp_Patrol.jpg) · [磁扣换手慢看](Art/TimedBombBall/Clasp_Handoff.webp) · [地面引爆实拍](Art/TimedBombBall/Clasp_GroundBurst.jpg)
+
+无人碰球的一轮中，两端都看到了生成。20 秒自由寿命结束后，在投放后 20.09 秒观察到两端的消散演出，两车血量均保持原值。测试时把车辆停在球的巡游路线外，使用正式 DA 的速度、墙面碰撞与寿命。
+
+验证环境为 UE 5.8.3 CL58210709。Win64 Development Editor 与独立 Game 已构建，球相关自动化 18/18 通过，10 个正式资源包的 Windows 定向 Cook 为零错误、零警告。原球换下时的物理线程等待已修复，独立主机和客户端在 80 ms 延迟下也各自通过了既有的主球持球漂移与发射测试。本机报告位于 `Saved/TimedBomb/`，正式图复测脚本为 `Tools/SpecialBall/VerifyTimedBombMatch.py`。添加 `-ClaspLag` 可开启 80 ms 出站延迟，`-ClaspExpiry` 增测 20 秒未点火巡游。四人实机的接力手感待团队试玩。
+
+<a id="timed-bomb-impact"></a>
+
+### 挂车引爆的冲击修复与实测
+
+旧版会在引爆时读到 `Heavy / Standard`，但给持有者的单体命中请求只启用了伤害。正式图复现时实际扣了 25 HP，主机和客户端在引爆后 0.8 秒内测得的向后位移与上升高度都是 0 cm。此前的双端用例只检查血量和爆炸画面，因此能在这个问题存在时通过。
+
+挂车命中现在与地爆共用同一段伤害与冲击结算。自动化用另一组 `Medium / Long` 和 1 cm 地爆半径检验挂车命中，确认档位和推力预设按 DA 生效，挂车命中只作用于当前持有者。使用正式 DA 的物理复测结果如下。距离取车辆碰撞体在归零后 0.8 秒采样窗内，沿受力方向及竖直方向的最大位移。
+
+| 场景 | 实测对象 | 水平位移 | 上升高度 |
+| --- | --- | ---: | ---: |
+| Fred 测试场，自持引爆 | Car07 | 向后 5.23 米 | 2.74 米 |
+| Fred 测试场，自持引爆 | 技能木桩 | 向后 5.30 米 | 4.32 米 |
+| 正式图，转交后持球引爆 | 接手车，主机／客户端 | 向后 5.84／6.61 米 | 2.97／2.97 米 |
+| 正式图，眩晕掉球后地爆 | 爆心两侧的车辆，主机 | 向外 6.13／5.65 米 | 2.97／2.83 米 |
+
+正式图在主机出站 80 ms 延迟下运行，客户端也观测到地爆两车向外分开。两端的血量变化一致，每辆受影响车辆只扣 25 HP。项目统一入口的本次 Editor 构建记录为 `Saved/BuildTool/BuildAndLaunch_20261125_152228_427_60b928/Result.json`。为独立验证游戏代码，另在 Win64 Development 构建 Game Target。命令为 `Build.bat HAL_Future_Creation Win64 Development -Project=D:/HAL_Future_Creation/HAL_Future_Creation.uproject -WaitMutex -NoHotReload -NoLiveCoding -Log=D:/HAL_Future_Creation/Saved/TimedBomb/ImpactGame.log`。球、爆炸和物理冲击相关自动化 30/30 通过。本机记录在 `Saved/TimedBomb/` 下的 `ImpactBeforeMotion.json`、`FredImpact.json`、`ImpactMatchMotion.json` 和 `ImpactRules/index.json`。
+
+以上位移来自 PIE。额外生成的独立 Development 包在进入地图前以 `777006 / CrashDuringStaticInit` 退出，打包版实玩验证待补。
+
+以下保留四款概念图，便于和实机对照。
+
+| 概念 | 俯视时的辨认方式 |
+| --- | --- |
+| [A · 赛道秒表](Art/TimedBombBall/A_Chronograph.png) | 粗红指针扫过琥珀色刻度。爆炸时，表盘刻度在地面展开一圈。 |
+| [B · 磁吸扣球](Art/TimedBombBall/B_MagneticClasp.png) | 两片红白磁扣合到车头。两扣之间的灯格逐格熄灭，接触点短闪一次。 |
+| [C · 翻牌计时球](Art/TimedBombBall/C_FlipScore.png) | 黄壳上的大号翻牌直接显示秒数。地面归零时，几片方形计分牌随圆形冲击波翻起。 |
+| [D · 倒数河豚](Art/TimedBombBall/D_Puffer.png) | 星际吉祥物鼓起脸颊、眯紧眼睛，颊灯转红。归零时，圆鼓的烟团从地面亮圈中央绽开。 |
+
+四款均采用三档柔和卡渲和同类夜场钢板。[完整绘制提示](Art/TimedBombBall/Prompts.md)
 
 ## 陨石球
 

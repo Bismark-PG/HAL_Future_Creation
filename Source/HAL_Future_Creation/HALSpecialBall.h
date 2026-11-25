@@ -9,9 +9,6 @@
 
 class UMaterialInstanceDynamic;
 
-UENUM()
-enum class EHALBallCue : uint8 { Arrival, Expiration, Impact };
-
 /** Ordinary Chaos, control and presentation settings are inherited and live in this same asset. */
 UCLASS(BlueprintType)
 class HAL_FUTURE_CREATION_API UHALSpecialBallDefinition : public UBallDefinition
@@ -98,6 +95,9 @@ public:
 protected:
 	virtual UHALSpecialBallDefinition* DefaultType() const { return nullptr; }
 	virtual bool CanUseBall() const override;
+	virtual bool UsesFreeLife() const { return true; }
+	bool HasStarted() const { return Clock.bStarted; }
+	double ServerNow() const;
 	virtual void OnAuthorityBallStateChanged(EBasicBallState Previous) override;
 	virtual void OnAcceptedVehicleHit() override;
 	void Expire();
@@ -110,7 +110,6 @@ private:
 	UFUNCTION() void OnMatchPhaseChanged(EHALMatchPhase Phase);
 	UFUNCTION() void OnRep_Clock();
 	void UpdateStaging();
-	double ServerNow() const;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> Surface;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> BodyCorona;
 	/** A deferred server spawn may select a saved DA different from the native class default. */

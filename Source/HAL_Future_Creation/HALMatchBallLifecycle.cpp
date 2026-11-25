@@ -45,12 +45,12 @@ UHALMatchBallLifecycle::UHALMatchBallLifecycle()
 	SetIsReplicatedByDefault(true);
 }
 
-void UHALMatchBallLifecycle::MulticastExplosiveImpact_Implementation(UHALExplosiveBallDefinition* Type, FVector_NetQuantize10 Origin,
+void UHALMatchBallLifecycle::MulticastBallImpact_Implementation(UHALSpecialBallDefinition* Type, EHALBallCue Kind, FVector_NetQuantize10 Origin,
 	float Radius, FVector_NetQuantizeNormal Normal, double ServerStarted)
 {
 	if (Type && GetWorld() && GetNetMode() != NM_DedicatedServer)
 	{
-		AHALSpecialBallCue::CreateCue(*GetWorld(), EHALBallCue::Impact, Type, Origin, Radius, Normal, ServerStarted, false);
+		AHALSpecialBallCue::CreateCue(*GetWorld(), Kind, Type, Origin, Radius, Normal, ServerStarted, false);
 	}
 }
 

@@ -24,10 +24,32 @@ def wire(source, pin, target, name):
         raise RuntimeError('Could not connect ' + name)
 
 
+def add_clasp_warning(mat):
+    shader = EDIT.get_material_property_input_node(mat, u.MaterialProperty.MP_EMISSIVE_COLOR)
+    code = shader.get_editor_property('code') if isinstance(shader,u.MaterialExpressionCustom) else ''
+    if 'Kind > 3.5' in code:
+        return
+    marker = 'float focus ='
+    if marker not in code:
+        raise RuntimeError('Cannot locate the six-port warning in ' + mat.get_path_name())
+    # Preserve the other three authored pad signals when upgrading an existing material.
+    insert = """if (Kind > 3.5) {
+    float tick = smoothstep(.28,.78,cos(12.*a));
+    float clasp = smoothstep(.16,.40,abs(sin(a))) * (1.-smoothstep(.065,.16,abs(r-.6+.23*t)));
+    tint = lerp(float3(.91,.026,.07),float3(1.,.60,.16),tick*ring);
+    light = .84*clasp+.68*ring*tick;
+}
+"""
+    shader.set_editor_property('code',code.replace(marker,insert+marker,1))
+    EDIT.recompile_material(mat)
+    save(mat)
+
+
 def pad_material():
     name = 'M_SpecialBallPad'
     old = load(FOLDER + '/' + name)
     if old:
+        add_clasp_warning(old)
         return old
     mat = TOOLS.create_asset(name, FOLDER, u.Material, u.MaterialFactoryNew())
 
@@ -98,8 +120,7 @@ return idle*(1.-gain) + gain*tint*(Lens*(.78+.58*ring+focus) + outer*(light+focu
     for key, source in bindings:
         wire(source, '', shader, key)
     output(shader, u.MaterialProperty.MP_EMISSIVE_COLOR)
-    EDIT.recompile_material(mat)
-    save(mat)
+    add_clasp_warning(mat)
     return mat
 
 
@@ -166,12 +187,13 @@ def install_sites(mesh):
         raise RuntimeError('Failed to save ' + LEVEL)
 
 
-ASSETS.make_directory(FOLDER)
-master = pad_material()
-deck = make_mesh([
-    finish(master, 'Housing', (.055,.12,.16), .68, .35, 0.),
-    finish(master, 'Lenses', (.08,.19,.22), .21, .25, 1.),
-    finish(master, 'Steel', (.23,.29,.33), .83, .28, 0.)])
-make_da(deck)
-install_sites(deck)
-u.log('Special ball supply assets and production pad sites ready.')
+if __name__ == '__main__':
+    ASSETS.make_directory(FOLDER)
+    master = pad_material()
+    deck = make_mesh([
+        finish(master, 'Housing', (.055,.12,.16), .68, .35, 0.),
+        finish(master, 'Lenses', (.08,.19,.22), .21, .25, 1.),
+        finish(master, 'Steel', (.23,.29,.33), .83, .28, 0.)])
+    make_da(deck)
+    install_sites(deck)
+    u.log('Special ball supply assets and production pad sites ready.')

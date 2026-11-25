@@ -12,7 +12,12 @@ class UMaterialInterface;
 class UHALExplosiveBallDefinition;
 class UHALBlackHoleBallDefinition;
 class UHALMeteorBallDefinition;
+class UHALTimedBombBallDefinition;
+class UHALSpecialBallDefinition;
 class UHALSpecialBallSupplyDefinition;
+
+UENUM()
+enum class EHALBallCue : uint8 { Arrival, Expiration, Impact, MountedImpact };
 
 /** World-space bounds of a circular playing surface. Heights are relative to FloorCenter.Z. */
 USTRUCT()
@@ -47,6 +52,7 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALExplosiveBallDefinition> ExplosiveBallType;
 	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALBlackHoleBallDefinition> BlackHoleBallType;
 	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALMeteorBallDefinition> MeteorBallType;
+	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALTimedBombBallDefinition> TimedBombBallType;
 	/** Shared by all special-ball pads placed in a match. */
 	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALSpecialBallSupplyDefinition> SpecialBallSupply;
 };
@@ -73,7 +79,7 @@ public:
 	bool IsReturnAnnounced() const { return ReturnCue.bVisible; }
 	const FVector& GetReturnGround() const { return ReturnCue.Ground; }
 	/** An infrequent confirmed hit, delivered over the already-open GameState channel. */
-	UFUNCTION(NetMulticast, Reliable) void MulticastExplosiveImpact(UHALExplosiveBallDefinition* Type, FVector_NetQuantize10 Origin,
+	UFUNCTION(NetMulticast, Reliable) void MulticastBallImpact(UHALSpecialBallDefinition* Type, EHALBallCue Kind, FVector_NetQuantize10 Origin,
 		float Radius, FVector_NetQuantizeNormal Normal, double ServerStarted);
 
 private:

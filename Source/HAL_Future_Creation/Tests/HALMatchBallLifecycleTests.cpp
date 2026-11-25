@@ -101,19 +101,21 @@ bool FHALSpecialBallSupplyTest::RunTest(const FString&)
 	TestFalse(TEXT("No supply timer in Waiting"), World->GetTimerManager().TimerExists(Supply->Timer));
 	State->SetMatchPhase(EHALMatchPhase::Playing);
 	TestEqual(TEXT("One shared first warning delay"), World->GetTimerManager().GetTimerRemaining(Supply->Timer), Stock->FirstDropSeconds-Stock->WarningSeconds, .01f);
-	// Give this fixture all three types even if a designer narrows the production pool.
+	// Exercise two complete bags even if a designer narrows the production pool.
 	Supply->Settings = DuplicateObject<UHALSpecialBallSupplyDefinition>(Stock, Supply);
-	Supply->Settings->BallPool = {EHALPadBall::Explosive, EHALPadBall::BlackHole, EHALPadBall::Meteor};
+	Supply->Settings->BallPool = {EHALPadBall::Explosive, EHALPadBall::BlackHole, EHALPadBall::Meteor, EHALPadBall::TimedBomb};
+	const int32 BagSize = Supply->Settings->BallPool.Num();
+	bool bCarried = false;
 	TSet<EHALPadBall> InBag;
 	EHALPadBall Previous = EHALPadBall::None;
-	for (int32 Drop = 0; Drop < 6; ++Drop)
+	for (int32 Drop = 0; Drop < 2*BagSize; ++Drop)
 	{
 		Supply->BeginCycle();
 		auto* Pad = Drop % 2 ? Second : First;
 		const EHALPadBall Kind = Pad->GetWarning().Ball;
 		if (!TestTrue(TEXT("Only the next alternating pad announces"), Kind != EHALPadBall::None
 			&& (Drop%2 ? First : Second)->GetWarning().Ball == EHALPadBall::None)) { return false; }
-		if (!(Drop%3)) { InBag.Reset(); }
+		if (!(Drop%BagSize)) { InBag.Reset(); }
 		TestTrue(TEXT("No repeat inside bag or across boundary"), !InBag.Contains(Kind) && Kind != Previous);
 		InBag.Add(Kind); Previous = Kind;
 		if (Drop == 0)
@@ -137,7 +139,8 @@ bool FHALSpecialBallSupplyTest::RunTest(const FString&)
 		FVector Center;
 		TestFalse(TEXT("A ball occupying the pad blocks a second spawn there"), Pad->FindSpawnCenter(Supply->SpawnRadius, Stock->SpawnClearance, Center));
 		(*NewBall)->SetActorLocation(FVector(2000, 350.*Drop, 150), false, nullptr, ETeleportType::TeleportPhysics);
-		if (Drop == 0) { TestTrue(TEXT("Carrying an earlier delivery does not stop the next turns"), (*NewBall)->BeginControl(World->SpawnActor<AActor>())); }
+		if (!bCarried && (*NewBall)->AllowsAutomaticPickup())
+		{ bCarried = (*NewBall)->BeginControl(World->SpawnActor<AActor>()); TestTrue(TEXT("Carrying an earlier delivery does not stop the next turns"), bCarried); }
 	}
 	auto* BlockA = Obstruct(First);
 	auto* BlockB = Obstruct(Second);
@@ -146,7 +149,7 @@ bool FHALSpecialBallSupplyTest::RunTest(const FString&)
 	const auto Reserved = Supply->Bag;
 	World->TimeSeconds += Stock->BlockedGrace + 1.f;
 	Supply->Announce();
-	TestTrue(TEXT("Blocked turn consumes no ball or bag entry"), Balls().Num() == 6 && Supply->Bag == Reserved);
+	TestTrue(TEXT("Blocked turn consumes no ball or bag entry"), Balls().Num() == 2*BagSize && Supply->Bag == Reserved);
 	BlockA->Destroy();
 	Supply->BeginCycle();
 	TestTrue(TEXT("Clear alternate selected before warning"), Supply->AnnouncedPad.Get() == First);
@@ -154,7 +157,7 @@ bool FHALSpecialBallSupplyTest::RunTest(const FString&)
 	Obstruct(First);
 	World->TimeSeconds += Stock->BlockedGrace + Stock->WarningSeconds + 1.f;
 	Supply->Deliver();
-	TestTrue(TEXT("Persistent obstruction after warning skips without consuming type"), Balls().Num() == 6 && Supply->Bag == Reserved && !Supply->AnnouncedPad.IsValid());
+	TestTrue(TEXT("Persistent obstruction after warning skips without consuming type"), Balls().Num() == 2*BagSize && Supply->Bag == Reserved && !Supply->AnnouncedPad.IsValid());
 	Supply->BeginCycle();
 	State->SetMatchPhase(EHALMatchPhase::Finished);
 	TestTrue(TEXT("Round end cancels pending warning, timers and special balls"), First->GetWarning().Ball == EHALPadBall::None

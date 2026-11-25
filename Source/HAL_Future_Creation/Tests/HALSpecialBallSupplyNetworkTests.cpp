@@ -5,6 +5,7 @@
 #include "../HALSpecialBallPad.h"
 #include "../HALBlackHoleBall.h"
 #include "../HALMeteorBall.h"
+#include "../HALTimedBombBall.h"
 #include "../HALPlayerController.h"
 #include "../TestVehiclePawn.h"
 #include "Camera/CameraActor.h"
@@ -143,10 +144,12 @@ namespace
 		for (TActorIterator<AHALSpecialBall> It(W); It; ++It)
 		{
 			if (Deliveries.Contains(It->GetFName())) { continue; }
-			const EHALPadBall Actual = It->IsA<AHALBlackHoleBall>() ? EHALPadBall::BlackHole : It->IsA<AHALMeteorBall>() ? EHALPadBall::Meteor : EHALPadBall::Explosive;
+			const EHALPadBall Actual = It->IsA<AHALTimedBombBall>() ? EHALPadBall::TimedBomb :
+				It->IsA<AHALBlackHoleBall>() ? EHALPadBall::BlackHole : It->IsA<AHALMeteorBall>() ? EHALPadBall::Meteor : EHALPadBall::Explosive;
 			if (!Test.TestTrue(TEXT("Free replicated ball matches the warned type and pad"),
 				Site.IsValid() && Actual == Announced && It->GetBallState()==EBasicBallState::Free && !It->IsPrimaryMatchBall()
-				&& FVector::Dist2D(It->GetActorLocation(),Site->GetActorLocation())<15.)) { return true; }
+				&& FVector::Dist2D(It->GetActorLocation(),Site->GetActorLocation()) <
+					(Actual == EHALPadBall::TimedBomb ? 15.f + CastChecked<UHALTimedBombBallDefinition>(It->GetTypeDefinition())->PatrolSpeed * .35f : 15.f))) { return true; }
 			Deliveries.Add(It->GetFName());
 			Test.AddInfo(FString::Printf(TEXT("Drop %d saw %s at pad %d, %.2f seconds since Playing."),Deliveries.Num(),*It->GetClass()->GetName(),Site->RotationOrder,Clock-Start));
 			if (bPhotos && Deliveries.Num()==1) { DeliveryPhotoAt = Clock+.28; }

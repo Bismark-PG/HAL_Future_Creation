@@ -5,6 +5,7 @@
 #include "HALCombatTypes.h"
 #include "HALBombActor.generated.h"
 
+class UPrimitiveComponent;
 class USphereComponent;
 class UStaticMeshComponent;
 class UTextRenderComponent;
@@ -19,6 +20,8 @@ struct HAL_FUTURE_CREATION_API FHALBlastArea
 	TOptional<FVector> CoverStart;
 	void Apply(AActor& Source, FHALCombatAction& Action) const;
 	FHALCombatHitResult Resolve(AActor& Source, FHALCombatAction& Action, AActor* Target) const;
+	/** Resolve a blast against an already selected chassis, including a bomb attached directly to it. */
+	FHALCombatHitResult HitBody(AActor& Source, FHALCombatAction& Action, UPrimitiveComponent& Body, const FVector& HitPoint) const;
 	static float OpenFraction(UWorld& World, const FVector& Start, const FVector& End);
 };
 

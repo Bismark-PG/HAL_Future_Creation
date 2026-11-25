@@ -317,6 +317,12 @@ Production texture source for an arcade sci-fi sport videogame. A transparent RG
 
 夜场地灯的两个材质实例继承原有地板实例。可以在正式图里独立调灯，同时沿用地板的拉丝、拼缝和灯壳细节。
 
+<a id="car01-night-exposure"></a>
+
+**Car01 中场车漆曝光诊断（2026-11-25）。** 在正式图的等待阶段，按玩家截图近似还原 Car01 的车位和朝向，固定驾驶镜头对照。主光从 1.35 降到 0.945 lux 后，直方图测得的平均场景亮度从 −5.02 降至 −5.50 EV100，自动曝光几乎补回了这次调整。锁定测光再做相同切换，粉色和青色车漆才明显压暗。固定曝光时，分别关闭天光或全部局部灯，两块车漆采样的各通道变化最多为 1 个 8 位色阶。这组结论适用于截图中的中场车位。[同镜头实拍](Images/MVPB_Match_Car01_Exposure_20261125.jpg)
+
+**仅调车漆的试调值。** 多款车型共用车身材质 `/Game/Assets/Materials/Color`。在 Car01 的车身材质槽单独覆盖实例，将 `BaseColorMapWeight` 从 1.00 调到 0.80，将 `EmissiveColorMapWeight` 从 0.06 调到 0.02。比赛自动曝光下，同一粉色区域的 sRGB 从 (255, 157, 225) 变为 (255, 132, 211)，青色区域从 (160, 236, 228) 变为 (134, 227, 216)。旁边钢板各通道相差最多 2 个色阶。这组参数仅用于 PIE 对照。原始截图和 5 × 5 像素中位数留在本机 `Saved/Car01LightProbe/Confirmed/` 和 `Saved/Car01LightProbe/Measured.json`。
+
 **实拍与回归。** UE 5.8.3、D3D12 SM6 下，从磁盘重载正式地图，用同一辆车和主球拍摄了中场驾驶、近中场、全场、看台和外沿驾驶五个机位。成像亮度按截图的 0～255 取值，驾驶画面中央区域的中位数从 111 降到 74（约 33%）。普通地灯附近从 219 降到 156，中场灯附近从 214 降到 169。看台座席区域的平均 sRGB 从 (75, 114, 161) 变为 (126, 82, 78)。两次捕获中，五个机位、车辆和球的记录坐标均一致。原图和采样位置在 `Saved/ArenaNightRace/{Before,After,measurements.json}`。
 
 逐项复核了正式图的 151 个 Actor、网格和碰撞配置。Windows 地图 Cook 零错误、零警告，产物含正式图和五份夜场材质。Exhibition 本机一主三客完成首局返房并再次开赛，四端均通过且零测试警告。重载记录、Cook 和四端报告在 `Saved/ArenaNightRace/{reload.json,Cook.log,Network}`。四台实机显示器上的暗部和多人技能同屏观感待团队实测。

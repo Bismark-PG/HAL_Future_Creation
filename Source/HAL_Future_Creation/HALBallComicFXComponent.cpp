@@ -238,7 +238,7 @@ FLinearColor UHALBallComicFXComponent::ResolveColor(const AActor* Pawn, int32 Pl
 void UHALBallComicFXComponent::SyncToBallState(const FBallRepState& State)
 {
 	const FHALBallComicFXConfig* ComicConfig = GetComicConfig();
-	if (!ComicConfig || !Ball.IsValid()) { return; }
+	if (!ComicConfig || !Ball.IsValid() || !Ball->AllowsNormalLaunch()) { return; }
 	const FHALBallComicFXTransition Transition = HALBallComicFX::ResolveTransition(Seen, State);
 	Seen.bValid = true;
 	Seen.State = State.State;

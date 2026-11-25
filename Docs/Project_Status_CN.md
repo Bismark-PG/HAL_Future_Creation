@@ -1,5 +1,11 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-25　修复定时炸弹挂车引爆只扣血的问题。** 旧版在正式图的主机与客户端均测到 25 HP 伤害、0 cm 后退和 0 cm 上升。修复后车头磁扣与地爆共用球型 DA 的冲击结算。在 `Fred_TestScene` 持球归零后 0.8 秒内，Car07 后退 5.23 米、升高 2.74 米，技能木桩后退 5.30 米、升高 4.32 米。`MVPB_Match` 一主一客、主机出站 80 ms 的实测覆盖换手后挂车引爆和落地范围爆炸。Win64 Development Editor 与 Game 均已编译，相关自动化 30/30 通过。独立打包版在进入地图前以 777006 退出，包内实玩待验证。[规则与本次实测](Combat/Special_Ball_Base_CN.md#timed-bomb-impact)
+
+**2026-11-25　定时炸弹球已作为第四种特殊球接入正式生成盘。** B 款红白磁扣搭配 A 款分段表盘。首次碰车或主动撞车转交都会挤掉接手车的原球，引信只在首次上车时点火。本机 `MVPB_Match` 在 80 ms 模拟延迟下完成双端实车验证。车上归零只扣持有者 25 HP，落地归零时两辆范围内的车各扣 25 HP，未点火的球巡游 20 秒后无伤消散。UE 5.8.3 Editor、Game 已编译，球专项 18/18 通过，Windows 定向 Cook 完成 10 个包。团队四人实玩待确认巡游速度和接力窗口。控制台输入 `HALSpawnTimedBombBall` 可直接试球。[规则、调参与实测](Combat/Special_Ball_Base_CN.md#timed-bomb-concepts) · [客户端磁扣转交回放](Combat/Art/TimedBombBall/Clasp_Handoff.webp)
+
+**2026-11-25　Car01 中场车漆发白已定位。** UE 5.8.3 正式图同机位对照表明，主光照亮车顶，夜场自动曝光补回了主光降幅，车身颜色贴图还贡献少量自发光。已用 Car01 单车临时材质验证可单独压低车漆亮度，供美术决定是否采用。[同机位实拍、测光与车漆参数](Presentation/ArenaFloor_SatinMetal_CN.md#car01-night-exposure)
+
 **2026-11-25　A 款轨道仪联赛球已用于正式比赛。** 象牙白球壳、钴蓝轨道、黄铜包边和青绿星徽随球滚动。预放和回场主球的外观与碰撞直径均为 230 cm，比三种特殊球大 15%。修复了旧占位外观 320 cm、碰撞 100 cm 的偏差，并将正式图开球高度与回场高度对齐。UE 5.8.3 正式图 PIE 的球壳顶点、六向射线、切线内外各 2 cm 及落地间隙均复测通过。主客各 1/1 通过两局回场和平射滚地，练习房双端实车持球约 15.4 m。Windows 定向 Cook 完成 5 个包。临时第三盘也已双端实测，0、1、2 号盘依次成功出球。下一步由团队实测四人争球时的大小与手感。[球材质、尺寸与回归](Networking/Match_Primary_Ball_Lifecycle_CN.md#a-款轨道仪联赛球2026-11-25) · [正式图实拍](Combat/Art/PrimaryBall/Orbital_InMatch.jpg) · [添加第三个特殊球生成盘](Combat/Special_Ball_Base_CN.md#正式赛场的特殊球生成盘)
 
 **2026-11-24　正式比赛图已放置两个特殊球生成盘。** `MVPB_Match` 东北、西南两盘共用一份投放 DA，默认 15 秒首发、提前 1.5 秒预告、全场每 25 秒一颗。三种球轮流洗牌，场上数量没有硬上限。正式六孔模型副本和三个材质实例已独立保存，盘体关闭碰撞，并按钢板浮雕抬高表现层。UE 5.8.3 Win64 Development Editor、Game 均通过编译。阻挡、六球共存、比赛主球等专项 3/3 通过。正式图双端实车过盘及连续两次投放通过，另跑四进程 Exhibition 两局往返和主球回场，四端各 1/1 通过。下一步由团队实玩评估两侧争夺路线和投放密度。[调参与规则](Combat/Special_Ball_Base_CN.md#正式赛场的特殊球生成盘) · [正式图实拍](Combat/Art/SpecialBallPad/SupplyPad_InGame.jpg)

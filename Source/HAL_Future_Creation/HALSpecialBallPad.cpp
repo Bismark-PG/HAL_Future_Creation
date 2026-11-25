@@ -5,6 +5,7 @@
 #include "HALMatchBallLifecycle.h"
 #include "HALMatchGameState.h"
 #include "HALMeteorBall.h"
+#include "HALTimedBombBall.h"
 #include "Algo/RandomShuffle.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -24,6 +25,7 @@ namespace
 		case EHALPadBall::Explosive: return AHALExplosiveBall::StaticClass();
 		case EHALPadBall::BlackHole: return AHALBlackHoleBall::StaticClass();
 		case EHALPadBall::Meteor: return AHALMeteorBall::StaticClass();
+		case EHALPadBall::TimedBomb: return AHALTimedBombBall::StaticClass();
 		default: return nullptr;
 		}
 	}
