@@ -60,6 +60,7 @@ void AHALPlayerController::PollRoundReadiness()
 		BoundRoom=R; R->OnRoomChanged.AddUniqueDynamic(this,&ThisClass::RefreshRoomUI);
 	}
 	RefreshRoomUI();
+	if (auto* GI=GetGameInstance<UHALNetworkGameInstance>(); GI && !GI->UpdateMatchResources(this)) { return; }
 	if (R->GetData().Phase!=EHALRoomPhase::Loading) { return; }
 	auto* PS=GetPlayerState<AHALPlayerState>(); auto* Vehicle=Cast<ATestVehiclePawn>(GetPawn());
 	if (!PS || !Vehicle) { return; }

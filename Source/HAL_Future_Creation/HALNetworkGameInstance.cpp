@@ -37,6 +37,7 @@ void UHALNetworkGameInstance::Init()
 
 void UHALNetworkGameInstance::Shutdown()
 {
+	ResetMatchResources();
 	FinishConnection(); EndTravelPresentation();
 	if (GEngine)
 	{
@@ -52,6 +53,7 @@ void UHALNetworkGameInstance::LoadComplete(const float LoadTime, const FString& 
 	Super::LoadComplete(LoadTime, MapName);
 	if (!EntryMapPath.IsEmpty() && MapName.EndsWith(FPackageName::GetShortName(EntryMapPath)))
 	{
+		ResetMatchResources();
 		bPracticeRoomActive = false; bReturningToEntry = false;
 		PracticeMapPath.Reset();
 		PendingRoundTravel={};
@@ -169,7 +171,8 @@ void UHALNetworkGameInstance::ShowPracticeRoom(APlayerController* PC)
 	bPracticeRoomActive = true;
 	if (const auto* State=PC->GetWorld()->GetGameState<AHALMatchGameState>(); State && State->GetRoom()->GetData().Phase==EHALRoomPhase::Open)
 	{ PracticeMapPath=UWorld::RemovePIEPrefix(PC->GetWorld()->GetOutermost()->GetName()); }
-	FinishConnection(); EndTravelPresentation();
+	FinishConnection();
+	if (!bMatchResourcesActive || bMatchResourcesReady) { EndTravelPresentation(); }
 	UClass* Desired=ResolveRoomScreen(PC);
 	if (!VisibleWidget || VisibleWidget->GetClass()!=Desired || VisibleWidget->GetWorld()!=PC->GetWorld() || VisibleWidget->GetOwningPlayer()!=PC)
 	{ ReplaceVisibleWidget(CreateWidget<UHALPracticeRoomWidget>(PC,Desired)); }
@@ -190,6 +193,7 @@ void UHALNetworkGameInstance::ReturnToEntry(const FText& Reason)
 {
 	if (bReturningToEntry || !GetWorld()) { return; }
 	SetConnectionMessage(Reason.ToString()); bReturningToEntry = true;
+	ResetMatchResources();
 	FinishConnection(); EndTravelPresentation(); bPracticeRoomActive=false;
 	PracticeMapPath.Reset();
 	PendingRoundTravel={};

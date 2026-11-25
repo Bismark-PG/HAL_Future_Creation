@@ -4,6 +4,9 @@
 #include "UObject/UnrealType.h"
 #include "../HALMatchHUDWidget.h"
 #include "../HALVehicleCatalog.h"
+#include "../TestVehiclePawn.h"
+#include "Engine/Texture2D.h"
+#include "UObject/StrongObjectPtr.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
@@ -24,6 +27,135 @@
 #include "RenderingThread.h"
 #include "RHI.h"
 #endif
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALMatchTextureLeaseTest,"HAL.FutureCreation.GameFlow.UIIntegration.MatchTextureLease",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALMatchTextureLeaseTest::RunTest(const FString&)
+{
+	TStrongObjectPtr<UHALNetworkGameInstance> First(NewObject<UHALNetworkGameInstance>()),Second(NewObject<UHALNetworkGameInstance>());
+	TStrongObjectPtr<UTexture2D> Texture(UTexture2D::CreateTransient(4,4));
+	Texture->bForceMiplevelsToBeResident=false; Texture->bIgnoreStreamingMipBias=false;
+	const TArray<UObject*> Roots{Texture.Get()};
+	FHALWidgetExtensionTestAccess::CollectResources(First.Get(),Roots);
+	FHALWidgetExtensionTestAccess::CollectResources(First.Get(),Roots);
+	TestEqual(TEXT("Repeated views do not acquire duplicate texture leases"),FHALWidgetExtensionTestAccess::ResidentCount(First.Get()),1);
+	FHALWidgetExtensionTestAccess::CollectResources(Second.Get(),Roots);
+	TestTrue(TEXT("Match textures are held at full requested resolution"),bool(Texture->bForceMiplevelsToBeResident)&&bool(Texture->bIgnoreStreamingMipBias));
+	FHALWidgetExtensionTestAccess::ResetResources(First.Get());
+	TestTrue(TEXT("One PIE world cannot release another world's texture"),bool(Texture->bForceMiplevelsToBeResident));
+	FHALWidgetExtensionTestAccess::ResetResources(Second.Get());
+	TestFalse(TEXT("Leaving the last Results restores prior residency"),bool(Texture->bForceMiplevelsToBeResident));
+	TestFalse(TEXT("Leaving the last Results restores the mip bias policy"),bool(Texture->bIgnoreStreamingMipBias));
+	Texture->bForceMiplevelsToBeResident=true;
+	FHALWidgetExtensionTestAccess::CollectResources(First.Get(),Roots); FHALWidgetExtensionTestAccess::ResetResources(First.Get());
+	TestTrue(TEXT("An existing force-resident flag is preserved"),bool(Texture->bForceMiplevelsToBeResident));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALMatchPreloadRosterTest,"HAL.FutureCreation.GameFlow.UIIntegration.MatchPreloadRosterScope",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALMatchPreloadRosterTest::RunTest(const FString&)
+{
+	auto* GI=NewObject<UHALNetworkGameInstance>(GEngine); GI->InitializeStandalone(); auto* World=GI->GetWorld();
+	auto* Catalog=NewObject<UHALVehicleCatalog>(GI);
+	FHALVehicleCatalogEntry Selected; Selected.VehicleId=TEXT("Selected"); Selected.VehicleClass=ATestVehiclePawn::StaticClass();
+	Selected.Icon=TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Engine/EngineResources/WhiteSquareTexture.WhiteSquareTexture")));
+	Selected.PreviewImage=TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Game/NotNeededInMatch.SelectionPreview")));
+	FHALVehicleCatalogEntry Unselected=Selected; Unselected.VehicleId=TEXT("Unselected");
+	Unselected.Icon=TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Game/NotNeededInMatch.UnselectedIcon")));
+	FHALVehicleCatalogEntry Fallback=Selected; Fallback.VehicleId=TEXT("Fallback"); Fallback.Icon.Reset();
+	Fallback.PreviewImage=TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Engine/EngineResources/DefaultTexture.DefaultTexture")));
+	Catalog->Vehicles={Selected,Unselected,Fallback};
+	FHALWidgetExtensionTestAccess::StartResourceFixture(GI,{});
+	FHALWidgetExtensionTestAccess::SetResourceRoster(GI,Catalog,{Selected.VehicleId,Fallback.VehicleId});
+	TestFalse(TEXT("Roster resources must finish loading before ready"),GI->UpdateMatchResources(nullptr));
+	const auto& Paths=FHALWidgetExtensionTestAccess::ResourcePaths(GI);
+	TestTrue(TEXT("The participant's HUD icon is preloaded"),Paths.Contains(Selected.Icon.ToSoftObjectPath()));
+	TestFalse(TEXT("PreMatch preview artwork is not preloaded"),Paths.Contains(Selected.PreviewImage.ToSoftObjectPath()));
+	TestFalse(TEXT("Unselected vehicle artwork is not preloaded"),Paths.Contains(Unselected.Icon.ToSoftObjectPath()));
+	TestTrue(TEXT("A preview used as the participant's actual Match HUD icon is preloaded"),Paths.Contains(Fallback.PreviewImage.ToSoftObjectPath()));
+	FHALWidgetExtensionTestAccess::ResetResources(GI);
+	FHALWidgetExtensionTestAccess::StartResourceFixture(GI,{});
+	FHALWidgetExtensionTestAccess::SetResourceRoster(GI,Catalog,{FName(TEXT("Missing"))});
+	AddExpectedError(TEXT("Match preload failed: Missing round vehicle"),EAutomationExpectedErrorFlags::Contains,1);
+	TestFalse(TEXT("Missing selected resources keep the barrier closed"),GI->UpdateMatchResources(nullptr));
+	TestFalse(TEXT("Missing selected resources expose a diagnostic"),FHALWidgetExtensionTestAccess::ResourceError(GI).IsEmpty());
+	GI->Shutdown(); World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
+	return true;
+}
+
+namespace
+{
+	class FHALMatchLoadingResourceProbe : public IAutomationLatentCommand
+	{
+		FAutomationTestBase* Test;
+		TStrongObjectPtr<UHALNetworkGameInstance> GI{NewObject<UHALNetworkGameInstance>(GEngine)};
+		UWorld* World=nullptr;
+		FWorldContext* Context=nullptr;
+		TStrongObjectPtr<UGameViewportClient> Viewport;
+		TSharedPtr<SOverlay> Overlay;
+		int32 Round=0;
+		bool Waiting=false;
+		double Deadline=FPlatformTime::Seconds()+45;
+	public:
+		explicit FHALMatchLoadingResourceProbe(FAutomationTestBase* InTest):Test(InTest)
+		{
+			GI->InitializeStandalone(); World=GI->GetWorld(); Context=GI->GetWorldContext();
+			Viewport.Reset(NewObject<UGameViewportClient>(GEngine)); Overlay=SNew(SOverlay);
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+			Viewport->SetViewportOverlayWidget(nullptr,Overlay.ToSharedRef());
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+			FHALWidgetExtensionTestAccess::ConfigureTravel(GI.Get(),UHALGameFlowScreenWidget::StaticClass(),TEXT("/Game/Maps/FixturePractice"));
+		}
+		~FHALMatchLoadingResourceProbe()
+		{
+			GI->Shutdown(); Context->GameViewport=nullptr; World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
+		}
+		virtual bool Update() override
+		{
+			if (!Waiting)
+			{
+				Context->GameViewport=Viewport.Get();
+				GI->BeginTravelPresentation(true);
+				FHALWidgetExtensionTestAccess::StartResourceFixture(GI.Get(),{
+					FSoftObjectPath(TEXT("/Game/UI/GameFlow/Screens/MatchFlow/WBP_GF_MatchFlow.WBP_GF_MatchFlow_C"))});
+				Test->TestFalse(TEXT("The new round starts behind Map Loading"),GI->UpdateMatchResources(nullptr));
+				Test->TestNotNull(TEXT("Map Loading stays mounted during the real asset request"),FHALWidgetExtensionTestAccess::TravelWidget(GI.Get()));
+				Waiting=true;
+			}
+			const bool Ready=GI->UpdateMatchResources(nullptr);
+			if (!FHALWidgetExtensionTestAccess::ResourceError(GI.Get()).IsEmpty())
+			{ Test->AddError(FHALWidgetExtensionTestAccess::ResourceError(GI.Get())); return true; }
+			if (Ready)
+			{
+				Test->TestNull(TEXT("Only completed resources release Map Loading"),FHALWidgetExtensionTestAccess::TravelWidget(GI.Get()));
+				Test->TestEqual(TEXT("No stale loading overlay remains"),Overlay->GetChildren()->Num(),0);
+				Test->TestTrue(TEXT("Results retains the local resource lease"),FHALWidgetExtensionTestAccess::ResourcesActive(GI.Get()));
+				auto* Background=FindObject<UTexture2D>(nullptr,TEXT("/Game/UI/UI_Textures/T_Countdown_BG.T_Countdown_BG"));
+				Test->TestNotNull(TEXT("MatchFlow reaches the actual Countdown background without a separate preload root"),Background);
+				Test->TestTrue(TEXT("Actual Countdown artwork is resident"),Background && FHALWidgetExtensionTestAccess::HasResidentTexture(GI.Get(),Background));
+				Test->AddInfo(FString::Printf(TEXT("Round %d prepared %d texture resources"),Round+1,FHALWidgetExtensionTestAccess::ResidentCount(GI.Get())));
+				GI->HideTravelWidgets(TEXT("/Game/Maps/FixturePractice"),true);
+				Test->TestFalse(TEXT("Returning to PreMatch ends resource preloading"),FHALWidgetExtensionTestAccess::ResourcesActive(GI.Get()));
+				Test->TestEqual(TEXT("Returning restores all owned residency requests"),FHALWidgetExtensionTestAccess::ResidentCount(GI.Get()),0);
+				FHALWidgetExtensionTestAccess::EndTravel(GI.Get()); Waiting=false;
+				if (++Round==2)
+				{
+					FHALWidgetExtensionTestAccess::StartResourceFixture(GI.Get(),{FSoftObjectPath(TEXT("/Engine/EngineResources/WhiteSquareTexture.WhiteSquareTexture"))});
+					GI->UpdateMatchResources(nullptr); FHALWidgetExtensionTestAccess::ResetResources(GI.Get());
+					Test->TestTrue(TEXT("A cancelled request cannot hold the next flow closed"),GI->UpdateMatchResources(nullptr));
+					return true;
+				}
+			}
+			if (FPlatformTime::Seconds()>Deadline) { Test->AddError(TEXT("Match resource loading fixture timed out")); return true; }
+			return false;
+		}
+	};
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALMatchLoadingResourcesTest,"HAL.FutureCreation.GameFlow.UIIntegration.MatchLoadingResources",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALMatchLoadingResourcesTest::RunTest(const FString&)
+{
+	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FHALMatchLoadingResourceProbe>(this)); return true;
+}
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALTravelLoadingRoutingTest,"HAL.FutureCreation.GameFlow.UIIntegration.TravelLoadingRouting",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FHALTravelLoadingRoutingTest::RunTest(const FString&)
@@ -103,6 +235,9 @@ bool FHALLoadingPartsTest::RunTest(const FString&)
 	auto* Root=Tree->ConstructWidget<UVerticalBox>(); Tree->RootWidget=Root;
 	auto* Map=Tree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),TEXT("MapLoadingPanel")); Root->AddChild(Map);
 	auto* Players=Tree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),TEXT("PlayersLoadingPanel")); Root->AddChild(Players);
+	auto* Result=Tree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),TEXT("ResultLoadingPanel")); Root->AddChild(Result);
+	auto* ResultText=Tree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(),TEXT("ResultLoadingText")); Result->AddChild(ResultText);
+	ResultText->SetText(FText::FromString(TEXT("MY RESULT LOADING")));
 	auto* MapText=Tree->ConstructWidget<UTextBlock>(); Map->AddChild(MapText); MapText->SetText(FText::FromString(TEXT("MY MAP LOADING")));
 	auto* Title=Tree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(),TEXT("TitleText")); Players->AddChild(Title);
 	auto* Detail=Tree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(),TEXT("DetailText")); Players->AddChild(Detail);
@@ -110,22 +245,33 @@ bool FHALLoadingPartsTest::RunTest(const FString&)
 	TSharedPtr<SWidget> Slate=Screen->TakeWidget();
 	TestEqual(TEXT("Before a Room view only map loading is shown"),Map->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
 	TestEqual(TEXT("Map travel hides the player-count section"),Players->GetVisibility(),ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Map travel hides the result-loading section"),Result->GetVisibility(),ESlateVisibility::Collapsed);
 	TestTrue(TEXT("Map travel does not fabricate player counts"),Detail->GetText().IsEmpty());
 	FHALRoomView V; V.bRoomAvailable=true; V.Phase=EHALRoomPhase::Loading; V.LoadedPlayers=1; V.ExpectedPlayers=4;
 	Screen->PrepareView(V); IHALRoomScreenInterface::Execute_ApplyView(Screen,V); Screen->FinishView();
 	TestEqual(TEXT("Room data hides map loading"),Map->GetVisibility(),ESlateVisibility::Collapsed);
 	TestEqual(TEXT("Room data shows the player-count section"),Players->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+	TestEqual(TEXT("Match start hides the result-loading section"),Result->GetVisibility(),ESlateVisibility::Collapsed);
 	TestEqual(TEXT("Player counts still use the Room snapshot"),Detail->GetText().ToString(),FString(TEXT("PLAYERS LOADED  1 / 4")));
 	TestEqual(TEXT("Map section keeps its Designer text"),MapText->GetText().ToString(),FString(TEXT("MY MAP LOADING")));
 	V.LoadedPlayers=3; Screen->PrepareView(V); Screen->FinishView();
 	TestEqual(TEXT("Repeated Room views update player counts"),Detail->GetText().ToString(),FString(TEXT("PLAYERS LOADED  3 / 4")));
-	V.Phase=EHALRoomPhase::Results; V.bShowResults=true; Screen->PrepareView(V); Screen->FinishView();
-	TestEqual(TEXT("Results transition reuses generic loading"),Map->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+	V.Phase=EHALRoomPhase::Results; V.bShowResults=false; Screen->PrepareView(V); Screen->FinishView();
+	TestEqual(TEXT("Results phase shows the dedicated loading section"),Result->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+	TestEqual(TEXT("Results transition hides map loading"),Map->GetVisibility(),ESlateVisibility::Collapsed);
 	TestEqual(TEXT("Results transition hides match-start player counts"),Players->GetVisibility(),ESlateVisibility::Collapsed);
 	TestTrue(TEXT("Results transition clears stale loading counts"),Detail->GetText().IsEmpty());
 	TestEqual(TEXT("Generic loading keeps Designer artwork/text"),MapText->GetText().ToString(),FString(TEXT("MY MAP LOADING")));
+	TestEqual(TEXT("Result loading keeps its Designer text"),ResultText->GetText().ToString(),FString(TEXT("MY RESULT LOADING")));
+	V.Phase=EHALRoomPhase::Loading; V.bShowResults=true; Screen->PrepareView(V); Screen->FinishView();
+	TestEqual(TEXT("Results hint also selects the dedicated section"),Result->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+	TestEqual(TEXT("Results hint overrides match-start counts"),Players->GetVisibility(),ESlateVisibility::Collapsed);
+	Result->SetVisibility(ESlateVisibility::Collapsed); Result->Rename(TEXT("LegacyResultPanel"),Tree); Screen->FinishView();
+	TestEqual(TEXT("Legacy loading without a result section still shows the map section"),Map->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+	Result->Rename(TEXT("ResultLoadingPanel"),Tree);
 	V.Phase=EHALRoomPhase::Loading; V.bShowResults=false; Screen->PrepareView(V); Screen->FinishView();
 	TestEqual(TEXT("Next match restores player loading"),Players->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+	TestEqual(TEXT("Next match hides result loading"),Result->GetVisibility(),ESlateVisibility::Collapsed);
 	TestEqual(TEXT("Next match restores normal count text"),Detail->GetText().ToString(),FString(TEXT("PLAYERS LOADED  3 / 4")));
 	Screen->Panel=EHALGameFlowPanel::Countdown; Map->SetVisibility(ESlateVisibility::Hidden); Players->SetVisibility(ESlateVisibility::Visible); Screen->FinishView();
 	TestEqual(TEXT("Other panels preserve their own visibility"),Map->GetVisibility(),ESlateVisibility::Hidden);
@@ -134,6 +280,7 @@ bool FHALLoadingPartsTest::RunTest(const FString&)
 	Players->Rename(TEXT("PlayersLoadingPanel"),Tree); V.bRoomAvailable=false; Screen->PrepareView(V); Screen->FinishView();
 	TestEqual(TEXT("Unavailable Room hides stale player counts"),Players->GetVisibility(),ESlateVisibility::Collapsed);
 	TestEqual(TEXT("Unavailable Room restores the map section"),Map->GetVisibility(),ESlateVisibility::SelfHitTestInvisible);
+	TestEqual(TEXT("Unavailable Room hides the result section"),Result->GetVisibility(),ESlateVisibility::Collapsed);
 	Slate.Reset(); GI->Shutdown(); World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
 	return true;
 }
@@ -529,6 +676,14 @@ namespace
 			if (!World->GetTimerManager().HasBeenTickedThisFrame()) { World->GetTimerManager().Tick(0.f); }
 			Active(true); Deliver();
 			if (Switcher) { Test->TestTrue(TEXT("Complete snapshot first shows Loading"),Switcher->GetActiveWidget()==Loading); }
+			if (auto* LoadingScreen=Cast<UUserWidget>(Loading))
+			{
+				auto* ResultPanel=LoadingScreen->GetWidgetFromName(TEXT("ResultLoadingPanel"));
+				auto* MapPanel=LoadingScreen->GetWidgetFromName(TEXT("MapLoadingPanel"));
+				auto* PlayersPanel=LoadingScreen->GetWidgetFromName(TEXT("PlayersLoadingPanel"));
+				Test->TestTrue(TEXT("Actual Loading shows its dedicated result panel"),ResultPanel && ResultPanel->GetVisibility()==ESlateVisibility::SelfHitTestInvisible);
+				Test->TestTrue(TEXT("Actual result transition hides map and player loading"),MapPanel && PlayersPanel && MapPanel->GetVisibility()==ESlateVisibility::Collapsed && PlayersPanel->GetVisibility()==ESlateVisibility::Collapsed);
+			}
 			Capture(TEXT("Loading.png"));
 		}
 		virtual ~FHALResultsBlueprintProbe()

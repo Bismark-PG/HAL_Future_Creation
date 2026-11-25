@@ -1,5 +1,129 @@
 # 正式比赛倒计时 HUD
 
+<a id="results-loading-panel-20261126"></a>
+
+## 2026-11-26：Results 前仅显示专用 Loading 文案（代码／蓝图已修改，C++ 待构建）
+
+用户批准最小方案：保留 MatchFlow 现有 Match → Loading（0.3 秒）→ Results，过渡 Loading 只显示 ResultLoadingPanel 中的 ResultLoadingText，地图与开赛人数两部分折叠。基线仍为 main/9e55a7f，实际引擎 UE 5.8.3 CL58210709；保留前轮资源预载和 Countdown DetailText 清理。
+
+### 本轮实际修改
+
+| 文件 | 改动 |
+|---|---|
+| Source/HAL_Future_Creation/HALGameFlowWidgets.cpp | 仅扩展 HALFlowDisplay::LoadingParts：结果阶段或 bShowResults 提示时显示可选 ResultLoadingPanel，折叠 MapLoadingPanel／PlayersLoadingPanel；地图加载与开赛等待时折叠结果部分。没有结果 Panel 的旧布局继续使用原 Map 面板回退。C++ 不查找／写入 ResultLoadingText。 |
+| Content/UI/GameFlow/Screens/MatchFlow/WBP_GF_Loading.uasset | 只把已有 ResultLoadingPanel.Visibility 从 SelfHitTestInvisible 改为 Collapsed，作为默认状态；通过当前正在运行的 Editor Python 接口修改、编译并保存。 |
+| Source/HAL_Future_Creation/Tests/HALWidgetExtensionTests.cpp | 扩展已有 LoadingParts 断言，覆盖三种显示、Results 阶段／提示、旧布局回退、下一局恢复和 Designer 文案保留；实际 ResultsRankingBlueprints 夹具补充专用 Panel 显示与地图／人数折叠检查。断言已写入，未编译／运行。 |
+| 本文、Docs/Project_Status_CN.md | 记录实际资产差异、验证和编译限制。 |
+
+Editor 只读检查确认：WBP_GF_Loading 开工时没有未提交或未保存修改；CanvasPanel_14 下已有 MapLoadingPanel、PlayersLoadingPanel、ResultLoadingPanel 三个同级 Overlay。ResultLoadingPanel 内原本就只有 ResultLoadingText，文字 **WAITING FOR RESULT**，因此没有新增或移动控件，没有改文案、字体、动画或 Event Graph。公共 Img_Background 保留，阶段内的地图／人数文字由对应 Panel 隐藏。现有 0.3 秒计时、MatchFlow／Results 蓝图、资源预载及服务器阶段均未修改。
+
+### 已完成验证与明确限制
+
+- 当前运行 Editor 中该 WBP **编译／保存成功**；独立 UnrealEditor-Cmd Python 进程从磁盘重新加载，检查控件树、所有已有文字／显隐，确认只发生上述默认 Visibility 差异，蓝图再次编译成功、0 编译错误，退出 **0**。此检查仅验证保存后的布局资产，不验证新 C++ 显隐逻辑。首轮读回因 Python 命令行脚本路径反斜线转义失败，已用正斜线路径重跑成功，失败日志保留。
+- 56 份 UI／GameInstance 资产 SHA256 保护清单中，**仅 WBP_GF_Loading 变化，其余 55/55 保持**；包括用户 Countdown 与背景纹理。git diff --check 通过。
+- 统一入口 `BuildAndLaunch.cmd -NoLaunch -NoPopup` 被占用检查阻止，退出 **1**，检测到 UnrealEditor PID **17872**、LiveCodingConsole PID **5324**，未进入 C++ 编译。用户明确选择继续保持 Editor 打开，因此未终止用户进程、未用 Live Coding 或另一个 Editor 构建入口绕过。
+- **本轮 C++ 编译、新增断言、完整 UIIntegration、PIE／双端画面均未验证。当前 Editor 仍运行上轮 DLL，新分流要在下一次完整构建后生效。** 上方／下方此前 13/13 等通过记录属于上一轮，不代表本次断言通过。
+
+本机证据：`Saved/ResultLoading/20261126/{BeforeAssets.json,LoadingBefore.json,LoadingEdit.json,LoadingVerified.json,LoadingReloaded.json,ReadBack_R2.log}`；脚本、备份和报告均仅在 Saved，不是产品依赖。未提交／推送。
+
+下一入口：用户保存关闭 Editor／Live Coding 后，执行统一入口增量构建，再运行 `HAL.FutureCreation.GameFlow.UIIntegration`。用实际 MatchFlow 检查 Results 前显示 WAITING FOR RESULT、地图／人数文字隐藏、0.3 秒后切结果；下一局 Map Loading 与玩家人数显示恢复，旧布局回退保持。原生夹具不能替代实际画面验收。
+
+<a id="match-resource-scope-revision-20261126"></a>
+
+## 2026-11-26：Match 专属资源预载（已实施，复用既有 GameInstance）
+
+本节取代下方已撤回的独立类／全局开关方案。用户保存并关闭 Editor 后实施；基线 `main / origin/main = 9e55a7f`，实际引擎 **UE 5.8.3 CL58210709**。本次预载覆盖 **Map Loading 后的人数 Loading、Countdown、正式比赛／观战、参赛车辆与技能、球／机关表现、Results**。PreMatchFlow 的入口、选车、练习及独立预览不加入预载，也不修改其资产。
+
+### 实际行为与复用
+
+1. 既有 Practice → Match 的 PreClientTravel 开始本局异步资源请求，同时复用 GameInstance 的 Map Loading 遮罩。引擎照常加载目标地图；加载完成后先不撤遮罩。
+2. 复用 Controller 每 0.1 秒的 PollRoundReadiness：等待资源包、目标地图当前子关卡／World Partition 请求、普通 Texture2D 初始化及可用的最高常规 Mip 就绪。所有纹理请求并行推进，不用固定等待时间冒充加载完成。
+3. 本地完成才撤 Map Loading，交给现有玩家人数 Loading，并允许原有 ServerRoundLoaded 上报；服务器仍等所有参与端就绪，再进入 Countdown → Playing。没有新增 RPC、Tick 或比赛阶段。
+4. GameInstance 持有本局资源强引用、纹理常驻／忽略流式 Mip Bias 请求，直到 Results 结束后的返房旅行、离开／失败恢复或 Shutdown。退出时撤销自己的请求并恢复原有标志；同进程多个 PIE GameInstance 对共享纹理的请求按计数释放。
+5. 必需资源缺失时记录具体路径／车型错误，保持 Map Loading，不上报就绪；恢复仍使用原有 LoadTimeoutSeconds（默认 45 秒）及旅行失败路径。
+
+资源根只取已配置 Room 模板中的 **bMatchFlowContainer 子容器**、既有转场 Loading、本局成员的 PlayerState 类／参赛车型和 HUD 图片、目标地图 Actor／组件，以及现有球与表现配置。沿这些根读取已加载的硬引用、蓝图 CDO／组件模板／WidgetTree 和脚本中的资产引用；没有 Asset Registry 全目录扫描，也没有以整个 GameInstance、Room 或全部 Catalog 作为递归根。Catalog 只用于查本局 VehicleId；未参赛车型和纯预览不加载。**若某参赛车型没有 Icon，现有 Match HUD 会使用 PreviewImage，因此仅这一实际用于比赛的备用图片会被纳入。** HUDColorSource 仅用于已烘焙颜色元数据判断，不为此加载源模型。
+
+### 实际文件范围
+
+| 既有文件 | 本轮改动与必要性 | 复用点 |
+|---|---|---|
+| Source/HAL_Future_Creation/HALNetworkGameInstance.h | 本局资源列表、异步句柄、引用／纹理常驻状态及窄 C++ 就绪接口；跨图与 Results 期间必须有持有者 | 既有 GameInstance 生命周期；不增加 Blueprint API |
+| Source/HAL_Future_Creation/HALNetworkPresentation.cpp | 开始／收集／检查／释放本局资源，保持 Map Loading 到就绪 | HideTravelWidgets、BeginTravelPresentation、Engine AssetManager／StreamableHandle／纹理 API |
+| Source/HAL_Future_Creation/HALNetworkGameInstance.cpp | 地图完成后按资源状态交接遮罩，离开及 Shutdown 清理 | ShowPracticeRoom、ReturnToEntry、LoadComplete、Shutdown |
+| Source/HAL_Future_Creation/HALPlayerControllerRound.cpp | 既有轮询增加一处就绪检查，不满足时不发原有就绪 RPC | RoundReadyTimer、ServerRoundLoaded 和全员屏障 |
+| Source/HAL_Future_Creation/Tests/HALWidgetExtensionTestAccess.h | 测试读取／配置本局资源状态 | 既有 friend 访问器 |
+| Source/HAL_Future_Creation/Tests/HALWidgetExtensionTests.cpp | 新增 3 项资源生命周期／范围／常驻测试 | 原有 UIIntegration 夹具；从实际 MatchFlow 验证 Countdown 背景可达 |
+| 本文、Docs/Project_Status_CN.md | 实施、证据与边界 | 既有交接文档 |
+
+**本次预载：4 个既有生产文件、2 个既有测试文件、2 个既有文档；0 个新生产源码文件、0 个独立类、0 个模块依赖。** 必要扩展是本局资源的持有、检查与释放；已有 Loading 显示和全员屏障不能替代这些状态，因此把它们放入已有跨图生命周期，而不另建管理器。
+
+上一版未提交的 HALMatchResourcePreloader.h/.cpp 已删除。以下 **5 份文件保持 origin/main**：Config/DefaultEngine.ini、HALPlayerController.cpp/.h、HAL_Future_Creation.Build.cs、Tests/HALRoundTravelTests.cpp。HALPlayerControllerRound.cpp 撤回旧版后仅重做上述一处接入。PreMatchFlow 资产与云端无差异；此前授权的 DetailText 清理仍在 HALGameFlowWidgets.cpp、Editor/HALGameFlowUIMigration.cpp，另计。用户已修改的 Countdown、新建的 T_Countdown_BG 均保留；本轮未通过 Editor 修改、编译或保存任何资产。
+
+### 本轮验证证据
+
+- 统一入口 `BuildAndLaunch.cmd -NoLaunch -NoPopup`：最终 Editor R6 **成功，exit 0，4 actions，UBT 20.04 秒／调用 20.39 秒**；证据 `Saved/BuildTool/BuildAndLaunch_20261126_041938_528_5cd5e9`。R2 曾因 const API 调用失败、R5 曾因迭代器标志名失败，均已修正；其他轮次及日志保留。关联文件重编仍有既有数值转换／弃用警告。
+- 最终 NativeR3 **UIIntegration 13/13，0 警告／失败／未运行**：含原有界面回归及新增的纹理共享持有／恢复、仅参赛车型和 HUD 回退图、缺失车型不放行、Map Loading 持续／交接、取消及第二局。从真实 MatchFlow 类出发即可找到并持有 T_Countdown_BG，没有把它另列为测试预载根。首轮测试夹具的 viewport 生命周期问题已修复；NativeR1 的 12/13 失败报告保留。
+- Game Target R1 **成功，exit 0，18 actions，UBT 275.43 秒**；为验证 WITH_EDITOR=0 下的运行时依赖，额外直接构建 `HAL_Future_Creation Win64 Development`，没有另建 Editor 编译入口。完整命令：`& 'D:\Program Files\Epic Games\UE_5.8\Engine\Build\BatchFiles\Build.bat' HAL_Future_Creation Win64 Development '-Project=D:\UE Project\HAL_Future_Creation\HAL_Future_Creation.uproject' -WaitMutex -NoHotReload -NoLiveCoding '-Log=D:\UE Project\HAL_Future_Creation\Saved\MatchPreload\20261126\GameBuildR1.log'`。未进行 Game 二进制启动或打包验证。
+- NativeGF4_R1 **3/3，0 警告／失败／未运行**，保留原有旅行配置、身份／重复上报、全员屏障与倒计时测试。最终 RHI_UI_R2 **D3D12 1/1，0 警告／失败／未运行**：从 MatchFlow 发现实际 Countdown 背景，两局均通过纹理初始化／Mip 检查并完成遮罩交接（3 张纹理，RenderChecks=1）。
+- 最终 **NetworkRHI_R2 主客各 1/1、exit 0，零测试警告／失败／未运行／进行中**，连续两局经过 Map Loading、Countdown、Playing、技能检查、Results／返房，再退出入口。两端每局 25 个显式根、68 张纹理（RenderChecks=1），日志中两端 ready 均早于服务器 all loaded 和 Playing；第 1 局主机／客户端约 6.80／5.48 秒、第 2 局约 6.34／4.50 秒，从发起预载到本地 ready，包含旅行和资源检查，不代表纯 IO 耗时。客户端保留既有 2 秒就绪延迟，断言与 180／240 秒截止不变。为适配本机双进程 iGPU，采用 D3D12 离屏 640×360、ScreenPercentage 50、ViewDistance／Shadow／PostProcess／Effects 质量 0，并关闭动态 GI／反射方法；没有修改 TextureQuality 或项目配置。本结果证明该环境下的加载屏障与往返，不作为默认画质性能或真人视觉验收。
+- 中间版 NetworkNullR1：主客各 **1/1**，连续两局身份／技能／往返通过；各端每局 25 个显式根、66 张纹理，资源 ready 后才出现 GF4 all loaded／Playing。NullRHI 不检查渲染资源；最终版本已由上面的 NetworkRHI_R2 复测。
+- 中间版 RHI_UI_R1：D3D12 单项 **1/1**，两局 Texture2D 初始化／Mip 检查通过（RenderChecks=1）。NetworkRHI_R1 在 1280×720 双进程时客户端等待 ≥10 FPS 达 117 秒，主机完成第一局后达到原有 180 秒测试截止，脚本随后 240 秒超时清理自己的进程；主机报告失败，不能作为双端通过证据。未放宽断言／超时，最终结果以上述降低离屏渲染负担的 NetworkRHI_R2 为准。
+
+本轮证据目录为 `Saved/MatchPreload/20261126`（不纳入 Git）。资产保护清单为 BeforeAssets.json，交付核对 56/56 份 UI／GameInstance 资产 SHA256 保持，云端保留文件与 PreMatchFlow 差异为空，git diff --check 通过。未提交或推送。
+
+复测入口：统一编译后，在 Automation 中运行 `HAL.FutureCreation.GameFlow.UIIntegration` 和 `HAL.FutureCreation.GameFlow.GF4`。原有双端 NullRHI 入口是 `Tools/TestGameFlowLoop.ps1 -Profile Development -EngineRoot 'D:\Program Files\Epic Games\UE_5.8' -Port <空闲端口> -ReportDirectory <新的绝对目录>`。本轮 D3D12 复用同一脚本逻辑，仅在 Saved 中生成启动副本：将 `-nullrhi` 替换为 `-RenderOffscreen -d3d12 -windowed -ResX=640 -ResY=360`，在双方原 ExecCmds 的 Automation 前加入 `sg.ViewDistanceQuality 0,sg.ShadowQuality 0,sg.PostProcessQuality 0,sg.EffectsQuality 0,r.DynamicGlobalIlluminationMethod 0,r.ReflectionMethod 0,r.ScreenPercentage 50`，其余测试与退出／清理逻辑保持。Saved 启动器不属于交付源码。
+
+### 验收边界与下一入口
+
+包加载和普通 Texture2D 的常规 Mip 就绪，**不等于 Shader／PSO、Niagara 模拟、Nanite／虚拟纹理所有分页均已预热**。目标 World 当前已经请求的流式单元被等待，未来尚未请求的分区不因此全量载入。以后代码拼出的新路径仍须接入现有配置根；Cook 剔除的分辨率无法恢复。保持本局纹理到 Results 会增加显存，真实设备仍需记录加载时间和峰值；本轮不更改全局 r.TextureStreaming。
+
+团队下一步：从 NetEntry 一主一客冷启动，检查 Map Loading → 人数 Loading → 3、2、1 的首次背景与放大动画、技能／特殊球首次使用、观战、Results 长时间停留、手动返房和第二局；检查较慢客户端与缺失资源的超时恢复。四机真人、目标设备画面／显存、Cook／打包与 PSO／虚拟几何专项均须分别验收，不能把离屏自动化写成人工画面通过。
+
+<a id="match-resource-loading-20261126"></a>
+
+## 2026-11-26：Loading 等待比赛资源的第一版（历史，已全部撤回）
+
+**本节仅保留撤回前的实现和验证历史；当前状态以上方修正版范围为准，下面的独立类、全局纹理开关及配套代码已不存在。**
+
+用户确认 Countdown 背景只有首次出现模糊，随后变清晰，并要求资源未准备好时继续显示 Loading，避免进入比赛后才看到美术资源逐渐清晰。接续 `main/9e55a7f`；保留此前 DetailText 清理、团队已修改的 Countdown 及新建的 T_Countdown_BG。本轮不编辑或保存任何蓝图／纹理／地图。
+
+### 已撤回的实现（历史）
+
+- `Config/DefaultEngine.ini` 在 RendererSettings 设置 `r.TextureStreaming=False`，关闭整个项目的普通贴图 Mip 流式加载；需要重新启动进程。按平台 LOD／Cook 设置加载完整可用分辨率，不会恢复已经被 Cook 剔除的分辨率。
+- 新增窄本地对象 `UHALMatchResourcePreloader`，使用现有 Controller 的 0.1 秒就绪轮询，不新增 Tick、比赛阶段、RPC、插件或新的服务器规则。
+- `PrepareRoundResources` 先等待当前子关卡／World Partition 请求及可见性变更完成；以当前地图、已加载的持久化子关卡、Controller／Pawn／GameInstance 类和车型目录为根，补入现有 MatchBall、BallComicFX、ImpactBurst、VehicleDoodleStatus 和 VehicleStatusFX 配置中的表现资源。
+- 使用 Asset Registry 的 Game 依赖闭包收集运行时硬／软引用，异步加载非地图资产。跳过未参与当前加载的其它地图和 EditorOnly 依赖；不是预载整个 Content 目录。配置缺失、Cook／注册表中缺失或加载失败时，不上报就绪并输出一次具体资源错误，随后沿用服务器现有 LoadTimeoutSeconds 返房恢复。
+- 加载完成后保持资产强引用和加载句柄到旅行／退出；等待后续包加载、Editor 中尚未完成的资产构建、相关 Texture2D 的资源初始化及 RHI 线程命令栅栏，再调用原有 ServerRoundLoaded。LoadToken 改变、PreClientTravel 和 EndPlay 清理旧请求及本地缓存，下一局重新准备。
+- 服务器继续通过原有 AllClientsLoaded → Countdown → Playing 路径判定；一端资源未就绪，全员继续 Loading。加载超时仍包含从发起旅行以来的总时间，没有用固定延迟假装加载完成。
+- Runtime 模块增加标准引擎 AssetRegistry／RenderCore 依赖，Editor 专用 RHI 测试依赖保留。新增 `GF4.ResourcePreloadLifecycle` 和 `GF4.ResourcePreloadMissingPackage`，覆盖实际纹理加载、重置／重入与缺失包不放行；当前仅写入测试源码。
+
+### 本轮证据与限制
+
+实际引擎 UE **5.8.3 CL58210709**。统一入口 `BuildAndLaunch.cmd -NoLaunch -NoPopup` 被前置占用检查阻止，检测到 UnrealEditor PID **47000** 和 LiveCodingConsole PID **26948**，退出 **1**，未进入 C++ 编译。用户明确选择「暂时保持 Editor 打开」，因此未再尝试构建或终止这些进程。已经核对新增使用的 AssetRegistry、StreamableHandle、Texture2D、WorldPartition 和 RenderCommandFence API 声明，`git diff --check` 通过；静态核对不能替代 UHT、编译／链接和运行测试。
+
+**本次未完成 Editor／Game 编译、自动化、Cook、冷启动视觉、双端或显存验证。当前正在运行的 Editor 尚未加载新代码与配置，不得将本记录写作实测通过。** 全分辨率常驻及预载目录内车型会增加显存和加载耗时，是否适合学校设备必须测量。
+
+这个屏障覆盖已保存资产的运行时依赖及上述现有 Config 根。以后由代码临时拼出的路径、未登记在依赖中的新资源需要补到根集合；未进入加载范围的未来 World Partition 单元不属于「整个世界已全部载入」。RHI 栅栏确认初始化命令顺序完成，**不等于**全部 Shader／PSO、Niagara 模拟、Nanite／虚拟纹理分页和所有首帧渲染缓存都已预热；不能据此承诺「任何美术资源都绝无加载过程」。普通贴图流式加载问题应与这些独立机制分别验收。
+
+### 接续验证入口
+
+1. 用户保存并关闭 Editor／Live Coding 后，执行 `BuildAndLaunch.cmd -NoLaunch -NoPopup`，先解决实际 UHT／编译／链接结果，再用同一入口启动 Editor，确认控制台 `r.TextureStreaming` 为 **0**。
+2. 执行现有自动化前缀 `HAL.FutureCreation.GameFlow.GF4` 与 `HAL.FutureCreation.GameFlow.UIIntegration`。NullRHI 结果只能证明包加载／流程，不能证明图片第一次显示清晰；真实 RHI 需另验。
+3. 用正式地图一主一客冷启动。日志应先出现各端 `Match resources loading`、`Match resources ready`，再出现服务器 `GF4 all loaded` 和 `GF4 Playing`。重点测试较慢客户端、Countdown 背景首次出现、技能／特殊球首次使用、手动返房与第二局。
+4. 在目标设备记录加载时间和显存峰值，执行 Windows Cook／打包后的依赖检查；缺失资源或无法完成加载应停留 Loading 后恢复返房，不得提前放行。另列 Nanite／虚拟纹理／PSO 的检查，未测项目保持待验收。
+
+<a id="countdown-detailtext-removal-20261126"></a>
+
+## 2026-11-26：移除 Countdown 对 DetailText 的依赖
+
+从 `main/9e55a7f` 接续，用户要求删除 Countdown 页中控制 DetailText 的全部 C++ 内容，再由用户删除 UI 组件。开工时 WBP_GF_Countdown 已有用户未提交改动，本轮不编辑、编译或保存任何 WBP。
+
+- `HALGameFlowWidgets.cpp`：Countdown 分支不再生成 GET READY 文案；`FinishView` 在 Countdown 下只写入 TitleText，跳过 DetailText 的控件查找及文本更新。TitleText 的向上取整、View 数据链、服务器起止时间及其它页面的 DetailText 行为保持。
+- `HALGameFlowUIMigration.cpp`：旧 UI 生成工具的 Countdown 定义不再提供副标题，不再生成／设置 DetailText，也不再将其作为 Countdown 的必要控件；其它页面继续使用原有副标题。
+- 代码已修改；本机实际引擎为 UE **5.8.3-58210709**。执行统一入口 `BuildAndLaunch.cmd -NoLaunch -NoPopup`：沙箱首轮停在 Build.bat 临时锁阶段，已停止该次尝试；随后沙箱外重试被前置检查阻止，检测到 UnrealEditor PID 16120 与 LiveCodingConsole PID 22860，退出 1，未进入 C++ 编译，未关闭用户进程。
+- 上述是清理发生时的验证限制；接续本次资源预载施工，Editor R6 与 Game Target 均已成功编译，UIIntegration 13/13 通过。未由代理编辑／保存 WBP，数字放大与实际布局仍由团队在 UI 删除 DetailText 后编译保存并检查，另确认 Loading 人数文字正常。
+
 **最新实现（2026-11-25，本机验证通过）**：已实现完整排名与并列 WINNER、单人测试结束必胜，以及 MatchFlow 现有 Loading 独占 0.3 秒后切 Results。Editor 编译通过，原生／实际 WBP 自动化 19/19、有 RHI 离屏检查 1/1；80 ms 注入的双端三局复测主客各 1/1，通过最小重新挂载分支修复了客户端旅行后 Room 脱离视口的问题。实际改动 13 个现有文件，保留团队布局、Loading 和 ResultRow。详见[实施、蓝图差异和证据](#results-ranking-implementation-20261125)；[施工前方案](#results-ranking-transition-20261125)作为历史保留。四机真人混战尚待团队验收。
 
 2026-11-16；起点 main / 821034f；引擎 UE 5.8.3-58210709。

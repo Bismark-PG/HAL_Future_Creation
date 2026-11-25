@@ -23,10 +23,13 @@ namespace HALFlowDisplay
 		const bool bPlayersAvailable=View.bRoomAvailable && !View.bShowResults && View.Phase!=EHALRoomPhase::Results;
 		auto* Map=Owner->GetWidgetFromName(TEXT("MapLoadingPanel"));
 		auto* Players=Owner->GetWidgetFromName(TEXT("PlayersLoadingPanel"));
+		auto* Result=Owner->GetWidgetFromName(TEXT("ResultLoadingPanel"));
 		// Both optional containers opt in together; existing Loading layouts keep their visibility.
 		if (!Map || !Players) { return; }
-		Map->SetVisibility(bPlayersAvailable?ESlateVisibility::Collapsed:ESlateVisibility::SelfHitTestInvisible);
+		const bool bResultAvailable=Result && (View.bShowResults || View.Phase==EHALRoomPhase::Results);
+		Map->SetVisibility(bPlayersAvailable || bResultAvailable?ESlateVisibility::Collapsed:ESlateVisibility::SelfHitTestInvisible);
 		Players->SetVisibility(bPlayersAvailable?ESlateVisibility::SelfHitTestInvisible:ESlateVisibility::Collapsed);
+		if (Result) { Result->SetVisibility(bResultAvailable?ESlateVisibility::SelfHitTestInvisible:ESlateVisibility::Collapsed); }
 	}
 	bool Allowed(EHALGameFlowUIAction Action,const FHALRoomView& V)
 	{
@@ -171,7 +174,7 @@ void UHALGameFlowScreenWidget::FinishView()
 	case EHALGameFlowPanel::Loading:
 		if (LatestView.bShowResults || LatestView.Phase==EHALRoomPhase::Results) { Title=TEXT("FINALIZING RESULTS"); }
 		else { Title=TEXT("PREPARING MATCH"); Detail=FString::Printf(TEXT("PLAYERS LOADED  %d / %d"),LatestView.LoadedPlayers,LatestView.ExpectedPlayers); } break;
-	case EHALGameFlowPanel::Countdown: Title=FString::FromInt(FMath::CeilToInt(FMath::Max(0.f,LatestView.CountdownRemaining))); Detail=TEXT("GET READY"); break;
+	case EHALGameFlowPanel::Countdown: Title=FString::FromInt(FMath::CeilToInt(FMath::Max(0.f,LatestView.CountdownRemaining))); break;
 	case EHALGameFlowPanel::Spectator: Title=TEXT("SPECTATING"); Detail=LatestView.SpectatedNumber>0?FString::Printf(TEXT("PLAYER %d"),LatestView.SpectatedNumber):TEXT("ARENA VIEW"); break;
 	case EHALGameFlowPanel::Results:
 		Title=TEXT("MATCH RESULTS"); Detail=LatestView.ResultSummary.ToString();
@@ -181,7 +184,11 @@ void UHALGameFlowScreenWidget::FinishView()
 	case EHALGameFlowPanel::Transition: Title=TEXT("PLEASE WAIT"); Detail=LatestView.Status.ToString(); break;
 	default: break;
 	}
-	if (!Title.IsEmpty()) { Text(this,TEXT("TitleText"),Title); Text(this,TEXT("DetailText"),Detail); }
+	if (!Title.IsEmpty())
+	{
+		Text(this,TEXT("TitleText"),Title);
+		if (Panel!=EHALGameFlowPanel::Countdown) { Text(this,TEXT("DetailText"),Detail); }
+	}
 	if (WidgetTree)
 	{ WidgetTree->ForEachWidget([&](UWidget* W)
 		{ if (auto* Participants=Cast<UHALGameFlowParticipantsWidget>(W)) { Participants->ApplyRoomView(LatestView); }

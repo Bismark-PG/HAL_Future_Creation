@@ -39,7 +39,7 @@ namespace HALUIAuthoring
 	const FScreenDefinition MissingScreens[] = {
 		{TEXT("WBP_GF_LocalMenu"), EHALGameFlowPanel::LocalMenu, TEXT("MENU"), TEXT("The match continues while this menu is open.")},
 		{TEXT("WBP_GF_Loading"), EHALGameFlowPanel::Loading, TEXT("PREPARING MATCH"), TEXT("PLAYERS LOADED  0 / 0")},
-		{TEXT("WBP_GF_Countdown"), EHALGameFlowPanel::Countdown, TEXT("3"), TEXT("GET READY")},
+		{TEXT("WBP_GF_Countdown"), EHALGameFlowPanel::Countdown, TEXT("3"), nullptr},
 		{TEXT("WBP_GF_SpectatorHUD"), EHALGameFlowPanel::Spectator, TEXT("SPECTATING"), TEXT("ARENA VIEW")},
 		{TEXT("WBP_GF_Results"), EHALGameFlowPanel::Results, TEXT("MATCH RESULTS"), TEXT("Waiting for the final results.")},
 		{TEXT("WBP_GF_Transition"), EHALGameFlowPanel::Transition, TEXT("PLEASE WAIT"), TEXT("Synchronizing room state...")}
@@ -110,8 +110,8 @@ namespace HALUIAuthoring
 		Content->AddChildToVerticalBox(LineHeight)->SetPadding(FMargin(0, 0, 0, 16.f));
 		const bool bCountdown = Definition.Panel == EHALGameFlowPanel::Countdown;
 		auto* Title = AddText(TEXT("TitleText"), Definition.Title, bCountdown ? 104 : 36, FLinearColor::White, 10.f);
-		auto* Detail = AddText(TEXT("DetailText"), Definition.Detail, 18, Muted, 12.f);
-		if (bCountdown) { Title->SetJustification(ETextJustify::Center); Detail->SetJustification(ETextJustify::Center); }
+		if (bCountdown) { Title->SetJustification(ETextJustify::Center); }
+		else { AddText(TEXT("DetailText"), Definition.Detail, 18, Muted, 12.f); }
 		AddText(TEXT("StatusText"), TEXT(""), 12, Muted, 8.f);
 
 		TArray<UButton*> Buttons;
@@ -203,7 +203,8 @@ namespace HALUIAuthoring
 			const auto* Defaults = BP && BP->GeneratedClass ? Cast<UHALGameFlowScreenWidget>(BP->GeneratedClass->GetDefaultObject()) : nullptr;
 			bool bValid = BP && BP->ParentClass == UHALGameFlowScreenWidget::StaticClass() && BP->Status == BS_UpToDate
 				&& BP->WidgetTree && Defaults && Defaults->Panel == Definition.Panel && (!bCreated || bSaved)
-				&& BP->WidgetTree->FindWidget<UTextBlock>(TEXT("TitleText")) && BP->WidgetTree->FindWidget<UTextBlock>(TEXT("DetailText"))
+				&& BP->WidgetTree->FindWidget<UTextBlock>(TEXT("TitleText"))
+				&& (Definition.Panel == EHALGameFlowPanel::Countdown || BP->WidgetTree->FindWidget<UTextBlock>(TEXT("DetailText")))
 				&& BP->WidgetTree->FindWidget<UTextBlock>(TEXT("StatusText"));
 			const auto ExpectedActions = ScreenActions(Definition.Panel);
 			if (Defaults && BP && BP->WidgetTree)

@@ -49,6 +49,8 @@ public:
 	bool RoomOwnsMatchHUD(const APlayerController* LocalController) const;
 	void ReturnToEntry(const FText& Reason);
 	void HideTravelWidgets(const FString& DestinationURL,bool bSeamless);
+	/** Local presentation barrier. Inactive outside an actual practice-to-match travel. */
+	bool UpdateMatchResources(APlayerController* LocalController);
 	/** Server GameMode's one-shot map handoff; not a replicated rule store. */
 	void StoreRoundTravel(const FHALRoundTravel& Value) { PendingRoundTravel=Value; }
 	bool TakeRoundTravel(const FString& Map, FHALRoundTravel& Out);
@@ -92,6 +94,20 @@ private:
 	void OpenEntryAfterDisconnect();
 	void EndTravelPresentation();
 	void FinishConnection();
+	void BeginMatchResources(const FString& DestinationURL);
+	void ResetMatchResources();
+	void AddMatchResourcePath(const FSoftObjectPath& Path);
+	void CollectMatchResources(const TArray<UObject*>& Roots);
+	void FailMatchResources(const FString& Reason);
+	bool bMatchResourcesActive=false, bMatchResourcesReady=false, bMatchWorldCollected=false, bMatchRosterCollected=false;
+	FString MatchResourceMap, MatchResourceError;
+	FSoftObjectPath MatchCatalogPath;
+	TArray<FName> MatchVehicleIds;
+	TArray<FSoftObjectPath> MatchResourcePaths, MatchPendingPaths, MatchLoadingPaths;
+	TSharedPtr<struct FStreamableHandle> MatchResourceLoad;
+	TSet<TWeakObjectPtr<UObject>> MatchResourceVisited;
+	UPROPERTY(Transient) TArray<TObjectPtr<UObject>> MatchResourceAssets;
+	UPROPERTY(Transient) TArray<TObjectPtr<class UTexture2D>> MatchResidentTextures;
 	bool bPracticeRoomActive = false, bReturningToEntry = false;
 	bool bConnecting=false;
 	FString LastHostAddress=TEXT("127.0.0.1");
