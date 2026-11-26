@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-26　PlayerStatus 仅 Host 显示已修复，本机双端三局复测通过。** NativeDestruct 清除目录／预览缓存时同步重置 CatalogPath、ImagePath，使同一 Room 在旅行后重新挂载时重新加载相同资源。生产修改仅 HALPracticeRoomPresentation.cpp 两行（注释＋路径重置），没有改蓝图／头文件／GameInstance。UE 5.8.3 统一 Editor 增量构建成功（5 actions，63.16 秒），UIIntegration 13/13、正式蓝图 GameMode 三局规则主客各 1/1 通过，测试均零警告／失败。另采样并校验双方三局实际玩家行：目录有效、Player 01／02 和车型图标正确、100%／50% 血条对应快照，未参赛两行隐藏，返房后预览恢复；两端 PktLag=80。56/56 UI／Network 资产哈希保持。先前构建被 Editor／Live Coding 占用阻止，用户保存关闭后才编译与复测；未停止用户进程。本轮未提交／推送，Game Target／Cook／打包和四台真人画面未复测。[根因、修改与本次证据](Presentation/Match_Countdown_HUD_CN.md#playerstatus-client-catalog-20261126)
+
 **2026-11-26　Car03–12 的选车图标与旋转预览已修复。** 十张复拍图已重新导入原纹理，独立读回与源图逐像素一致。正式目录为这十辆车开启选车时的完整纹理流送。Car01、02 图标的 SHA-256 与原件一致，两辆车沿用原预览设置。UE 5.8.3 的正式选车页已逐辆验证旋转、贴花及切换，43 组车型与贴图组合均载入完整分辨率，进入练习后已释放请求。Editor、独立 Win64 Game 均已编译，目录与房间 UI 自动化 14/14 通过。[调节入口、根因与选车实拍](Networking/RoomView_Vehicle_Skill_Card_CN.md#vehicle-portrait-clarity)
 
 **2026-11-26　定时炸弹球的生成盘出场特效已接入正式赛场。** 核对东北、西南两个生成盘共用的四球池，已有一项 `Timed Bomb`。新增六孔汇光、琥珀分段刻度与球壳钢笼合扣，可在 `DA_Ball_TimedBomb` 调节。修复远侧盘短时出场表现可能在客户端漏播的问题。UE 5.8.3 CL58210709 的 Editor、Game 均已编译，球与生成器相关自动化 30/30 通过，三个资产定向 Cook 零错误、零警告。正式图一主一客、主机出站模拟 80 ms 的完整四球轮转通过，另在两盘逐一复测合扣与退场；四机实玩待验收。[调参、验证记录与客户端实拍](Combat/Special_Ball_Base_CN.md#timed-bomb-pad-arrival)

@@ -486,3 +486,45 @@ Loading 在 Results 过渡时复用原 MapLoadingPanel，隐藏开赛人数部�
 本轮未提交或推送。保留团队的 Loading 修改和未跟踪 ResultRow；后续正常提交时需一并纳入团队打算交付的资产。未单独构建 Game Target、Cook 或打包，未做本次四台实机／真实碰撞手感／手柄验收。
 
 下一步团队以同一引擎补丁版本在四台机器连跑两局，观察每端 0.3 秒过渡、并列结果、真实玩家名与车型图标、Host Return 后重新开赛及本地菜单焦点。临时单人测试模式的后期关闭事项继续保留。
+
+<a id="playerstatus-client-catalog-20261126"></a>
+## 2026-11-26：PlayerStatus 仅 Host 显示的诊断与最小修复
+
+诊断起点为干净 `main/45c7de6`，本机 UE 5.8.3-58210709。通过 Unreal Python 只读导出实际 MatchHUD、MatchFlow、PlayerStatusRow 和 Room，再以正式 BP_MVPB_PracticeRoomGameMode 运行本机 Listen Server／Client 三局并采样实际 Widget。下列先保留修复前诊断；该阶段没有保存或修改蓝图、修改生产源码或新编译。用户随后授权的最小修复与本次新验证见本节末尾。
+
+### 已观察到的直接原因
+
+- 每局 Playing 时双方 `Match.Players.Num()` 都是 2，实际 WBP_GF_MatchHUD 均为 HitTestInvisible，因此玩家数据已到客户端、HUD 本体也已创建。
+- Host 的 Room／MatchHUD `LoadedCatalog` 有效，PlayerRow01／02 为 Visible，未参赛两行为 Collapsed。
+- Client 的 Room／MatchHUD `LoadedCatalog` 为 null，四行全部 Collapsed；同一客户端 Room 实例在旅行前 Locked 时目录有效，旅行后的 Loading／Countdown／Playing 均为空。
+- 实际 `RefreshPlayers` 先把四行设为 Collapsed，再经 `Is Valid(LoadedCatalog)` 才执行 Players 遍历和 SetPlayerData。图标目录的缺失因此阻断整行编号／HP／图标显示。没有发现 Host／Authority 条件限制该刷新链。
+
+### 源码中的缓存恢复缺口
+
+`HALPracticeRoomPresentation.cpp:95` 的 NativeDestruct 会取消目录／图片加载并清空 LoadedCatalog、LoadedPreview，但保留 CatalogPath、ImagePath。客户端无缝旅行后，同一 Room 可能重新 AddToViewport；NativeConstruct 虽再次 RefreshPresentation，但该函数第 48 行只在路径变化时启动目录加载。路径相同而缓存已清空时不再加载，后续定时刷新仍走相同路径，空目录持续传给 HUD。图片路径缓存存在同类生命周期缺口。
+
+诊断确定应在 C++ 中恢复重构／重挂载后的目录和图片缓存，避免只依赖路径改变。玩家编号和 HP 是否需要摆脱图标目录门槛可作为独立表现改进；本次授权只实施缓存生命周期修复，保留蓝图现有刷新链。
+
+### 修复前诊断证据
+
+- 当前只读导出与采样目录：`Saved/MatchHUD/Review_20261126_Client`。BlueprintCurrent.json 和四份 T3D 为本次实际资产接线；四份蓝图导出前后及最终运行后 SHA-256 均保持。
+- 第一轮动态探针误用 Python 类名 WidgetBlueprintLibrary，读取失败；改为引擎声明的 ScriptName WidgetLibrary 后，R2 成功采样。第一轮规则测试通过不作为玩家行证据。
+- R2 使用正式蓝图 GameMode，`HAL.NetworkSmoke.GameFlow.GF7.ThreeRoundMatch` 主客各 1/1 通过，报告 `R2/{HostReport,ClientReport}/index.json`，两个专用进程退出 0。此测试覆盖三局规则／结果／返房，**没有验证 PlayerStatus 行显隐，故通过与本缺陷并不矛盾**。
+- R2/Client.log 的 1525 行显示 Room_C_1 在旅行前 LoadedCatalog 有效，1579／1585／1588 行显示同实例旅行后为空且 Playing 已有 2 名玩家；1777／1965 行显示第二、第三局仍复现。R2/Host.log 的 1603 行为首局 Host 两行正常的对应样本。探针按状态变化记录，未保存游戏状态或写回资产。
+- 诊断阶段为 NullRHI 运行时属性检查，没有渲染截图、四台实机、Game Target／Cook／打包或修复后验收。所有诊断进程已结束；Saved 脚本和日志只作本机证据，不作为交付依赖。
+
+### 已实施的最小修复
+
+用户授权后，只在 `HALPracticeRoomPresentation.cpp:102` 的 NativeDestruct 缓存清理后增加一条说明注释及 `CatalogPath.Reset(); ImagePath.Reset();`。路径与资源同时失效，下一次 NativeConstruct／RefreshPresentation 会重新请求同一路径的目录和图片。现有加载句柄取消、异步回调、Room 视图分发和 HUD 刷新逻辑保持。
+
+最终交付仅一个生产 C++ 文件及本说明、Project_Status 两份文档。不改头文件、MatchHUD／MatchFlow／PlayerStatusRow／Room 蓝图、GameInstance 或资产引用，不新增生产 Tick、RPC、类或依赖。保留此前诊断的两份未提交文档改动，未提交／推送。
+
+### 修复后的本次验证
+
+- 统一入口 `BuildAndLaunch.cmd -NoLaunch -NoPopup`，UE 5.8.3 CL58210709，HAL_Future_CreationEditor／Win64／Development，包含 `-WaitMutex -NoHotReload -NoLiveCoding`。沙盒内首次尝试停在构建锁阶段，已停止；沙盒外首次尝试因 UnrealEditor 3076／LiveCodingConsole 40632 占用而退出 1，未编译、未停止用户进程。用户保存关闭后正式增量构建 **5 actions、63.16 秒、退出 0**，记录 `Saved/BuildTool/BuildAndLaunch_20261126_171054_478_0cd5cd/Result.json`。包含既有其他文件 C4305 数值转换警告，不描述为整个构建零警告。
+- 新 DLL 的 `HAL.FutureCreation.GameFlow.UIIntegration` **13/13 成功、0 测试警告／失败／未运行／进行中**，进程退出 0。报告 `Saved/MatchHUD/Fix_20261126/Native/Report/index.json`。
+- 正式 BP_MVPB_PracticeRoomGameMode 的本机 Listen Server／Client 连续三局：既有 `HAL.NetworkSmoke.GameFlow.GF7.ThreeRoundMatch` **Host 1/1、Client 1/1 成功，均 0 测试警告／失败／未运行／进行中、进程退出 0**。保留唯一胜者、HP 并列、同批归零、Host Return 与下一局的原测试断言。两端日志确认 PktLag=80，是模拟注入值，不是实测 RTT。
+- 在同一运行中另以只读 Python 探针采样实际 Room、MatchHUD 和四个玩家行，并通过外部断言确认：**双方第 1／2／3 局均有目录有效且 HUD 已展开的完整正确样本**；Player 01／02 正确，HP 百分比与该 HUD 的玩家快照一致，覆盖 1.0／0.5；两行车型图标资源有效，未参赛 03／04 两行保持 Collapsed。双方返房后的 Room 预览也恢复。未放宽蓝图目录门槛或向 UI 注入替代数据。
+- 报告、命令、专用进程 ID、日志、匹配样本和校验结果在 `Saved/MatchHUD/Fix_20261126/{Summary.json,Host,Client}`；三局玩家行证据在 Summary 的 network.Host／Client.matched_samples。采样脚本没有编译或保存蓝图，不作为交付依赖；所有专用测试进程已退出。
+- `Content/UI` 与 `Content/Blueprints/Network` 共 **56/56 份资产 SHA-256 保持**，前后清单 BeforeAssets.json／AfterAssets.json，git diff --check 通过。
+- 本次仍为 NullRHI 属性／生命周期验证，未做渲染截图或四台真人画面验收，未单独构建 Game Target、Cook 或打包。团队下一步在正常画面下确认客户端实际布局、图标、受伤血条及返房再开赛；原未完成的其他 UI／玩法验收保持原状态。

@@ -99,6 +99,8 @@ void UHALPracticeRoomWidget::NativeDestruct()
 	if (FSlateApplication::IsInitialized()) { FSlateApplication::Get().OnApplicationActivationStateChanged().RemoveAll(this); }
 	if (CatalogLoad) { CatalogLoad->CancelHandle(); } if (ImageLoad) { ImageLoad->CancelHandle(); }
 	CatalogLoad.Reset(); ImageLoad.Reset(); LoadedCatalog=nullptr; LoadedPreview=nullptr;
+	// A retained Room must reload the same resources when reconstructed after travel.
+	CatalogPath.Reset(); ImagePath.Reset();
 	bHasPublishedView=false; PublishedView={};
 	PreviewBrush.SetResourceObject(nullptr); ResetMenuControls(); Super::NativeDestruct();
 }
