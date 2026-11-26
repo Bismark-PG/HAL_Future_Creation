@@ -41,6 +41,8 @@ private:
 	bool IsRoomChild(const UUserWidget* Child) const;
 	void ApplyRoomPresentation(const FHALRoomView& View);
 	void DeliverRoomView(const FHALRoomView& View);
+	void UpdateSelectionPreviewDetail(const FHALRoomView& View);
+	void SetFullDetailPreviewMesh(class USkeletalMeshComponent* Mesh);
 	void HideResultsSiblings();
 	void RestoreResultsSiblings();
 	void ClearRoomScreens();
@@ -48,6 +50,7 @@ private:
 	UPROPERTY(Transient) TMap<EHALRoomScreen, TObjectPtr<UUserWidget>> RoomScreens;
 	UPROPERTY(Transient) TObjectPtr<UUserWidget> LocalMenuScreen;
 	UPROPERTY(Transient) TObjectPtr<UUserWidget> ActiveRoomScreen;
+	TWeakObjectPtr<class USkeletalMeshComponent> FullDetailPreviewMesh;
 	UPROPERTY(Transient) TObjectPtr<class UHALGameFlowScreenWidget> MatchFlowScreen;
 	UPROPERTY(Transient) TMap<TObjectPtr<UWidget>,ESlateVisibility> ResultsHiddenSiblings;
 	FHALRoomPresentation Presentation;

@@ -192,6 +192,7 @@ bool FHALConfiguredRoomAssetsTest::RunTest(const FString&)
 		const FName Id(*FString::Printf(TEXT("Car_%02d"), Number));
 		const auto* Entry = Catalog->Vehicles.FindByPredicate([Id](const FHALVehicleCatalogEntry& Car) { return Car.VehicleId == Id; });
 		TestNotNull(FString::Printf(TEXT("Production roster contains %s"), *Id.ToString()), Entry);
+		if (Entry) { TestEqual(Id.ToString()+TEXT(" full-detail rotating selection preview"),Entry->bFullDetailSelectionPreview,Number>=3); }
 	}
 	UClass* PreviewClass = LoadClass<AActor>(nullptr, TEXT("/Game/UI/GameFlow/Screens/PreMatchFlow/Preview/BP_VehiclePreview.BP_VehiclePreview_C"));
 	if (!TestNotNull(TEXT("Room preview Blueprint"), PreviewClass)) { return false; }

@@ -13,7 +13,10 @@
 #include "TestVehiclePawn.h"
 #include "Engine/World.h"
 #include "Components/PanelWidget.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetSwitcher.h"
+#include "ContentStreaming.h"
+#include "UObject/UnrealType.h"
 
 namespace
 {
@@ -122,6 +125,42 @@ void UHALPracticeRoomWidget::DeliverRoomView(const FHALRoomView& View)
 {
 	// Let the existing Blueprint decide its visibility afresh, then apply the exclusive MatchFlow mask.
 	RestoreResultsSiblings(); ReceiveRoomView(View); ApplyRoomPresentation(View);
+	UpdateSelectionPreviewDetail(View);
+}
+void UHALPracticeRoomWidget::UpdateSelectionPreviewDetail(const FHALRoomView& View)
+{
+	USkeletalMeshComponent* Mesh=nullptr;
+	if (View.LoadedCatalog && ResolvePresentation(View).Screen==EHALRoomScreen::Selection)
+	{
+		const auto* Entry=View.LoadedCatalog->Vehicles.FindByPredicate(
+			[&View](const FHALVehicleCatalogEntry& Vehicle){ return Vehicle.VehicleId==View.SelectedVehicleId; });
+		if (Entry && Entry->bFullDetailSelectionPreview)
+		{
+			// The designer room owns its preview in the selection child and applies the mesh in ReceiveRoomView.
+			UWidget* Selection=RoomScreens.FindRef(EHALRoomScreen::Selection).Get();
+			if (!Selection) { Selection=GetWidgetFromName(TEXT("VehicleSelectionWidget")); }
+			const auto* Property=Selection ? FindFProperty<FObjectPropertyBase>(Selection->GetClass(),TEXT("PreviewActor")) : nullptr;
+			const auto* Preview=Property ? Cast<AActor>(Property->GetObjectPropertyValue_InContainer(Selection)) : nullptr;
+			if (IsValid(Preview)) { Mesh=Preview->FindComponentByClass<USkeletalMeshComponent>(); }
+		}
+	}
+	SetFullDetailPreviewMesh(Mesh);
+}
+void UHALPracticeRoomWidget::SetFullDetailPreviewMesh(USkeletalMeshComponent* Mesh)
+{
+	if (FullDetailPreviewMesh.Get()==Mesh) { return; }
+	if (auto* Previous=FullDetailPreviewMesh.Get())
+	{
+		Previous->bForceMipStreaming=false;
+		if (Previous->IsRegistered()) { IStreamingManager::Get().NotifyPrimitiveUpdated(Previous); }
+	}
+	FullDetailPreviewMesh.Reset();
+	if (Mesh && !Mesh->bForceMipStreaming)
+	{
+		Mesh->bForceMipStreaming=true;
+		if (Mesh->IsRegistered()) { IStreamingManager::Get().NotifyPrimitiveUpdated(Mesh); }
+		FullDetailPreviewMesh=Mesh;
+	}
 }
 void UHALPracticeRoomWidget::RestoreResultsSiblings()
 {
@@ -258,6 +297,7 @@ void UHALPracticeRoomWidget::ApplyRoomPresentation(const FHALRoomView& View)
 }
 void UHALPracticeRoomWidget::ClearRoomScreens()
 {
+	SetFullDetailPreviewMesh(nullptr);
 	RestoreResultsSiblings();
 	if (ActiveRoomScreen)
 	{ if (auto* Native=Cast<UHALGameFlowScreenWidget>(ActiveRoomScreen)) { Native->UpdateActive(false); }

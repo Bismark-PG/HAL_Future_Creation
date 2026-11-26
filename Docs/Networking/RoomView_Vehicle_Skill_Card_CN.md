@@ -37,6 +37,29 @@
 RunCommandlet HALBuildVehicleHUDStyleCommandlet -Catalog=/Game/Data/Gameflow/DA_VehicleCatalog_Default.DA_VehicleCatalog_Default -FillMissingColors -WriteAssets
 ```
 
+<a id="vehicle-portrait-clarity"></a>
+
+### 选车图与旋转模型的清晰度
+
+正式选车页中央的旋转模型来自 `BP_VehiclePreview` 的场景捕获。原生静态选车视图使用目录里的 `PreviewImage`，留空时显示 `Icon`。两者都能显示同一辆车，清晰度要分别验收。
+
+| 车型 | 在同机位复拍时查到的原因 |
+|---|---|
+| Car03、04、05、06、08、11 | 原拍摄时，`T_Decals` 或 `T_Decals_2` 的 2048 × 2048 图集仅载入 64 × 64。单独载入完整贴花即可还原 Car06 的 `POLICE`、引擎盖 `72` 和 Car04 的 `04`。 |
+| Car07、09、10、12 | 这四辆使用的 `T_Decals_3` 或 `_4` 当时已经是完整的 2560 × 2560。共用车身纹理 `Textures1`、轮胎颜色和轮胎法线在原拍摄中仅载入 64 × 64，完整尺寸均为 1024 × 1024。 |
+
+**静态图。** 复拍时只给离屏拍摄进程加 `-NoTextureStreaming`，载入车辆材质并预拍一帧，用 `ListTextures -CSV` 核对实载尺寸后，按原机位输出 1254 × 1254。十张 PNG 已重新导入原有同名纹理。另开 UE 进程从正式资产导出，十张 RGBA 与复拍源图逐像素一致。Car01、02 的纹理包 SHA-256 与替换前一致。[车门和车号的原尺寸对照](../Presentation/Images/VehiclePortrait_Decal_Comparison.png)
+
+**旋转模型。** 在 `DA_VehicleCatalog_Default → Vehicles → Display → Preview` 勾选 `Full Detail Selection Preview`。正式目录只给 Car03–12 开启。离屏摄影棚远离玩家相机，默认流送曾让 Car06 的 2048 × 2048 贴花在旋转时只载入 64 × 64。房间更新所选车型后，现在只为当前预览网格申请完整贴图。切回 Car01、02、确认进入练习或关闭房间时，UE 恢复按距离管理该组件。
+
+**实测。** 2026-11-26 在 UE 5.8.3、D3D12、默认纹理流送下进入 `MVPB_PracticeRoom`，用正式选车按钮轮选 12 辆车。每辆车都正常旋转。Car03–12 的 43 组车型与材质贴图组合实载尺寸均达到纹理上限。再次从 Car12 切到 Car01、02，再选 Car03 确认进入练习，预览的流送开关均按预期切换。目录与房间 UI 自动化共 14 项通过。[选车界面实拍](../Presentation/Images/VehiclePortrait_Selection_Verified.png)
+
+Editor 通过工程统一入口 `BuildAndLaunch.cmd -NoLaunch -NoPopup` 增量构建。另编译独立 Win64 Development Game，确认选车逻辑可以在游戏目标链接。上述画面取自 Editor 的 PIE。独立目标的完整构建命令如下。
+
+```powershell
+& 'D:/Program Files/Epic Games/UE_5.8/Engine/Build/BatchFiles/Build.bat' HAL_Future_Creation Win64 Development '-Project=D:/HAL_Future_Creation/HAL_Future_Creation.uproject' -WaitMutex -NoHotReload -NoLiveCoding '-Log=D:/HAL_Future_Creation/Saved/VehiclePortraitClarity/Release/GameUBT.log'
+```
+
 ## 给每辆车加主技能卡
 
 车辆目录的 `Icon` 供选车静态预览和参赛者列表使用。技能纹理已可单独使用，按当前选车自动切换技能名、图标和简介仍需独立的展示字段。[目录结构](../../Source/HAL_Future_Creation/HALVehicleCatalog.h) · [车型与技能图标对照](../Presentation/Vehicle_Skill_Icons_CN.md)

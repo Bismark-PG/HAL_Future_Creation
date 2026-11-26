@@ -1,5 +1,7 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-26　Car03–12 的选车图标与旋转预览已修复。** 十张复拍图已重新导入原纹理，独立读回与源图逐像素一致。正式目录为这十辆车开启选车时的完整纹理流送。Car01、02 图标的 SHA-256 与原件一致，两辆车沿用原预览设置。UE 5.8.3 的正式选车页已逐辆验证旋转、贴花及切换，43 组车型与贴图组合均载入完整分辨率，进入练习后已释放请求。Editor、独立 Win64 Game 均已编译，目录与房间 UI 自动化 14/14 通过。[调节入口、根因与选车实拍](Networking/RoomView_Vehicle_Skill_Card_CN.md#vehicle-portrait-clarity)
+
 **2026-11-26　定时炸弹球的生成盘出场特效已接入正式赛场。** 核对东北、西南两个生成盘共用的四球池，已有一项 `Timed Bomb`。新增六孔汇光、琥珀分段刻度与球壳钢笼合扣，可在 `DA_Ball_TimedBomb` 调节。修复远侧盘短时出场表现可能在客户端漏播的问题。UE 5.8.3 CL58210709 的 Editor、Game 均已编译，球与生成器相关自动化 30/30 通过，三个资产定向 Cook 零错误、零警告。正式图一主一客、主机出站模拟 80 ms 的完整四球轮转通过，另在两盘逐一复测合扣与退场；四机实玩待验收。[调参、验证记录与客户端实拍](Combat/Special_Ball_Base_CN.md#timed-bomb-pad-arrival)
 
 **2026-11-26　Results 前专用 Loading 已修改；C++ 待关闭 Editor 后构建。** 仅扩展现有 LoadingParts，结果阶段／bShowResults 时显示 ResultLoadingPanel，折叠地图与玩家人数部分；保留原有 0.3 秒过渡和缺少新 Panel 的旧布局回退。实际 WBP 已有三块同级 Panel，ResultLoadingText 原文为 WAITING FOR RESULT；仅通过运行中 Editor 把结果 Panel 默认 Visibility 从 SelfHitTestInvisible 改为 Collapsed，编译保存成功，独立进程磁盘读回／蓝图编译通过，0 编译错误。扩展现有 LoadingParts 与实际 WBP 夹具断言，尚未运行。56 份受保护资产仅 Loading 改变，其余 55 份保持，未动 MatchFlow／Results、资源预载或服务器规则。统一构建入口因 Editor／Live Coding 占用退出 1，用户选择保持打开；本轮未编译 C++，当前 Editor 仍是上轮 DLL，未将此前测试结果冒充复测。下一步关闭后统一增量构建并运行 UIIntegration，再验收实际结算与下一局。[改动、资产差异及验证边界](Presentation/Match_Countdown_HUD_CN.md#results-loading-panel-20261126)

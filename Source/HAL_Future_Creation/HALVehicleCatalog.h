@@ -18,6 +18,8 @@ struct HAL_FUTURE_CREATION_API FHALVehicleCatalogEntry
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Display") TSoftObjectPtr<UTexture2D> Icon;
 	/** Optional static selection artwork, loaded locally. Never spawns a preview Pawn. Icon is the fallback. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Display") TSoftObjectPtr<UTexture2D> PreviewImage;
+	/** Request full texture detail on this vehicle's rotating selection preview while it is visible. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Display|Preview") bool bFullDetailSelectionPreview = false;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Display", meta=(MultiLine=true)) FText Description;
 	/** Editor-baked, surface-area-weighted LOD0 Base Color. Rebuild after changing the mesh/materials. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Display|HUD") FLinearColor HUDDominantColor = FLinearColor::White;
