@@ -1,5 +1,9 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-26　场地黑洞与打滑区偏亮已定位。** 正式图固定曝光实拍中，关闭主光后，黑洞亮纹和绿色油面亮度基本一致，周围钢板明显变暗。两个机关都从材质自发光输出颜色。黑洞的 Debug Draw 还叠加紫色圆盘与箭头，关闭后旋臂之间的区域从 173 降至 138（0～255 色阶）。本轮为运行时诊断。[对照实拍与机关调参入口](Presentation/ArenaFloor_SatinMetal_CN.md#hazard-brightness-20261126)
+
+**2026-11-26　正式比赛图已移除最外围两圈赛道。** `MVPB_Match` 的行车面和球出界半径由 82.5 m 调到 70 m，面积约减 28%。八段看台、青色护网和看台灯效已内收。UE 5.8.3 完成全周碰撞检测、实车擦边和主球反弹。本机双端正式比赛验证主球进入原外环后 1.62 秒回场。四项球回归通过，Windows 地图 Cook 成功，保留一条已有的 `WAITING` 文本警告。四人实战节奏待试玩。[场地尺寸、实拍与验证记录](Presentation/ArenaFloor_SatinMetal_CN.md#compact-rim-20261126)
+
 **2026-11-26　PlayerStatus 仅 Host 显示已修复，本机双端三局复测通过。** NativeDestruct 清除目录／预览缓存时同步重置 CatalogPath、ImagePath，使同一 Room 在旅行后重新挂载时重新加载相同资源。生产修改仅 HALPracticeRoomPresentation.cpp 两行（注释＋路径重置），没有改蓝图／头文件／GameInstance。UE 5.8.3 统一 Editor 增量构建成功（5 actions，63.16 秒），UIIntegration 13/13、正式蓝图 GameMode 三局规则主客各 1/1 通过，测试均零警告／失败。另采样并校验双方三局实际玩家行：目录有效、Player 01／02 和车型图标正确、100%／50% 血条对应快照，未参赛两行隐藏，返房后预览恢复；两端 PktLag=80。56/56 UI／Network 资产哈希保持。先前构建被 Editor／Live Coding 占用阻止，用户保存关闭后才编译与复测；未停止用户进程。本轮未提交／推送，Game Target／Cook／打包和四台真人画面未复测。[根因、修改与本次证据](Presentation/Match_Countdown_HUD_CN.md#playerstatus-client-catalog-20261126)
 
 **2026-11-26　Car03–12 的选车图标与旋转预览已修复。** 十张复拍图已重新导入原纹理，独立读回与源图逐像素一致。正式目录为这十辆车开启选车时的完整纹理流送。Car01、02 图标的 SHA-256 与原件一致，两辆车沿用原预览设置。UE 5.8.3 的正式选车页已逐辆验证旋转、贴花及切换，43 组车型与贴图组合均载入完整分辨率，进入练习后已释放请求。Editor、独立 Win64 Game 均已编译，目录与房间 UI 自动化 14/14 通过。[调节入口、根因与选车实拍](Networking/RoomView_Vehicle_Skill_Card_CN.md#vehicle-portrait-clarity)

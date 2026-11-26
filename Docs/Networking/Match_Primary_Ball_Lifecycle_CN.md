@@ -117,7 +117,7 @@ Editor 使用统一入口 `BuildAndLaunch.cmd -NoLaunch -NoPopup`。为验证可
 | --- | --- | --- |
 | Match Map / Primary Ball Class | `MVPB_Match` / `BP_BasicBall` | 配对比赛地图和补球用的普通球蓝图。球的物理、尺寸和外观沿用这份蓝图的球 DA。 |
 | Floor Center | `(-58.74, 173.81, -200.27) cm` | 填实际行车面的中心，Z 用地板碰撞的表面高度。 |
-| Playable Radius | `8250 cm` | 从场心到圆形外界的水平距离。 |
+| Playable Radius | `7000 cm` | 从场心到正式图行车面外缘的水平距离。物理护网贴着钢板、略靠内侧。[正式图边界实测](../Presentation/ArenaFloor_SatinMetal_CN.md#compact-rim-20261126) |
 | Fall Depth | `300 cm` | 球心允许低于地板的距离。 |
 | Outside Grace Seconds | `0.35 s` | 允许球自然弹回的时间，可调 0～5 秒。服务器每 0.15 秒检查一次。 |
 | Return Warning Seconds | `1.0 s` | 落点显示到放球之间的最短时间，可调 0.25～5 秒。 |

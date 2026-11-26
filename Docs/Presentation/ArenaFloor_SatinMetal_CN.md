@@ -2,6 +2,24 @@
 
 正式比赛图 `/Game/Maps/MVPB_Match` 已采用六边形拉丝钢板、整边防滑条、外圈灯带和九盏嵌地灯。中场的第十盏灯嵌在与行车面齐平的金属圆盘中央。正式图与临时图 `MVPB_Match_Temp` 共用可见地板和灯壳网格，正式图独立配置行车面、外环钢板和夜场灯光。[观众身体摇摆](#arena-crowd-sway) · [前五排欢呼与后仰角度](#arena-five-row-crowd) · [八段闪光与烟花](#arena-full-cheers) · [八段星际观众](#arena-full-crowd) · [外环与南侧看台](#arena-night-rim) · [行车碰撞](#arena-flat-drive-surface) · [比赛图灯光](#arena-match-lighting) · [六边形钢板与地灯调参](#arena-deck-inset-lights)
 
+<a id="compact-rim-20261126"></a>
+
+## 2026-11-26 正式比赛场缩短外围赛道
+
+正式图移除了最外围两圈金属板所在的场景实例 `base_circle_inflatable_006_1373`。保留的金属环 `005` 以原尺寸接到青色护网，内场六边形板和中场盘也沿用原尺寸。八段看台、看台支架、八盏聚光灯和八组观众特效一起向场心收拢。四个出生位、场内机关、两座特殊球生成器和十盏地灯沿用原落点。[同镜头全场对照与场边实拍](Images/MVPB_Match_CompactRim_20261126.jpg)
+
+| 正式图边界 | 缩场后实测 |
+|---|---|
+| 行车面与出界 | `Floor` 的实例半径从 82.5 m 调到 70 m，名义面积减少 28.0%。顶面仍在世界 Z −200.274 cm。正式图的 `HAL Match Ball → Arenas → Playable Radius` 为 7000 cm。 |
+| 可见护网与侧碰撞 | 两者共用 `Path`。以盘心重新对中后，离地 8 cm 处的内壁半径为 68.59～69.38 m。行车面延伸到护网下方，承托车和球。 |
+| 看台 | 周边结构实例的 XY 尺寸取原来的 85.3%，高度沿用原值。灯和烟花回到各自座区，八盏聚光灯的俯角跟随新的照射距离调整。 |
+
+UE 5.8.3 从磁盘重载后逐项比对，原 161 个 Actor 现有 160 个，保留的 160 个 Actor 的标识一致。在 400 个方位、三个高度用简单和复杂射线共检测护网 2,400 次，全部命中 `Path`。边缘内侧 3,200 次检测均命中水平行车面，外侧 2,400 次检测均越过了行车面。
+
+实车持续顶网后，又沿东侧与东北侧看台的接缝完整驶过。115 cm 半径的主球在网面和分段接缝处各反弹一次。另在正式 Listen Server 比赛里将主球置于距场心 75 m、离地 6.5 m 处，服务器判定出界，1.62 秒后主客两端都只看到同一颗回场主球。
+
+主球与特殊球的四项边界回归通过。Windows 地图 Cook 成功，沿用 11 月 25 日已出现的 `WAITING` 文本本地化警告。原始采样见 `Saved/MatchArenaContraction/` 的 `FinalAudit.json`、`AfterProbes.json`、`AfterPlay.json`、`LiveRimHost.json` 和 `LiveRimClient.json`。四人实战的交战密度和绕行空间待试玩。
+
 <a id="arena-ambience-ideas"></a>
 
 ## 夜场氛围方案清单
@@ -261,7 +279,7 @@ Production texture source for an arcade sci-fi sport videogame. A transparent RG
 
 ## 2026-11-19 正式图全场平整圆形碰撞
 
-在正式图的 World Outliner 选择 `Floor`，其 Static Mesh 为 `/Game/Assets/Meshes/ArenaDeck/SM_ArenaDeck_FlatDriveSurface`。圆盘半径 82.50 m、厚 1 m，顶面位于世界 Z −200.274 cm。整盘只有一个 256 边的简单凸包，简单查询和复杂查询都使用它。环纹、中央盘和十个灯壳由原有的可见网格表现，`Path` 的侧壁负责挡车和球。临时图继续使用原行车面。
+在正式图的 World Outliner 选择 `Floor`，其 Static Mesh 为 `/Game/Assets/Meshes/ArenaDeck/SM_ArenaDeck_FlatDriveSurface`。11 月 19 日建立的圆盘半径为 82.50 m、厚 1 m，顶面位于世界 Z −200.274 cm。整盘只有一个 256 边的简单凸包，简单查询和复杂查询都使用它。环纹、中央盘和十个灯壳由原有的可见网格表现，`Path` 的侧壁负责挡车和球。11 月 26 日正式图将该实例的半径调至 70 m。[当前正式图边界](#compact-rim-20261126)
 
 在本机 UE 5.8.2 中从磁盘重新加载正式图，核对了 151 个 Actor 的身份、变换、网格、材质、碰撞和灯光属性，唯一一处差异是 `Floor` 的网格引用。
 
@@ -316,6 +334,18 @@ Production texture source for an arcade sci-fi sport videogame. A transparent RG
 | 看台灯面、条幅底纹与座席配色 | Content Browser → `/Game/Assets/Materials/ArenaNight/` | `M_ArenaNight_Grandstand` 的 `Palette Mix` 控制原座席图案与暖色的混合，当前 0.86。`MI_ArenaNight_StandLenses` 和 `MI_ArenaNight_StandRibbon` 分别控制灯面和条带。灯面发光 1.60，条带 0.12。 |
 
 夜场地灯的两个材质实例继承原有地板实例。可以在正式图里独立调灯，同时沿用地板的拉丝、拼缝和灯壳细节。
+
+<a id="hazard-brightness-20261126"></a>
+
+**黑洞与打滑区的夜场亮度（2026-11-26）。** 正式图中的两个机关都使用 Unlit 材质，颜色接入 Emissive Color。主光为 1.35 lux，比赛曝光补偿为 −0.4 EV。在 UE 5.8.3 的正式比赛地图分别冻结两个机关展开后的同一帧，使用各机位的实测曝光（黑洞 −4.19 EV100，打滑区 −3.94 EV100）切换主光、Bloom 和机关自身的显示。下列数值是截图区域在 0～255 色阶上的平均亮度。[同机位实拍对照](Images/MVPB_Match_HazardBrightness_20261126.jpg)
+
+| 采样区域 | 原画面 | 关闭主光 | 关闭 Bloom | 仅调整机关 |
+|---|---:|---:|---:|---|
+| 黑洞的亮纹和核心亮边 | 245 | 245 | 244 | 关闭调试绘制后为 245 |
+| 黑洞旋臂之间的紫色区域 | 173 | 167 | 163 | 关闭调试绘制后降至 138，能透出更多地板纹理 |
+| 打滑区盘内 | 240 | 240 | 238 | 仅把材质实例的 `ColorGain` 从 0.6 降至 0.3 后为 227 |
+
+黑洞蓝图 `BP_HALBlackHole` 的类默认值和地图实例均开启 `Black Hole → Debug → Debug Draw`，会叠画带透明度的整块圆盘、同心线和八支箭头。正式特效的旋臂由 `MI_FX_BlackHoleField.ArmBoost`（1.8）调节，外边线用 `EdgeBoost`（3），中心亮边用 `MI_FX_BlackHoleCore.RimBoost`（3）。打滑区的调试绘制已关闭，其专用实例 `MI_SlipperyArea_Graffiti` 使用 `ToonMidColor`、`ToonLitColor` 和 `ColorGain` 控制油面配色。夜场曝光会影响这些颜色的最终显示，关闭主光时两个机位周围的钢板平均亮度分别从 64 降到 12 和 17。以上开关和材质试调仅用于运行时对照。原始采样存于 `Saved/ArenaHazardLightCheck/Measured.json`。
 
 <a id="car01-night-exposure"></a>
 
