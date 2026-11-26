@@ -8,6 +8,7 @@ class ABasicBallActor;
 class UHALMovementBoostEffect;
 class AHALBombActor;
 class AHALExpandingSlipperyArea;
+class AHALExpandingHealingArea;
 
 /** Development helpers reference authored content; they never replace its tuned values. */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "HAL Debug"))
@@ -17,6 +18,9 @@ class HAL_FUTURE_CREATION_API UHALDebugSettings : public UDeveloperSettings
 
 public:
 	UHALDebugSettings();
+	/** Development-only native or authored healing area; authority chooses class and position. */
+	UPROPERTY(Config, EditAnywhere, Category="Healing Area") TSoftClassPtr<AHALExpandingHealingArea> DefaultHealingAreaClass;
+	UPROPERTY(Config, EditAnywhere, Category="Healing Area", meta=(ClampMin="0", ClampMax="5000", Units="cm")) float HealingAreaForwardDistance = 350.f;
 	/** Authority-selected native area or authored Blueprint child; its defaults are preserved. */
 	UPROPERTY(Config, EditAnywhere, Category="Slippery Area") TSoftClassPtr<AHALExpandingSlipperyArea> DefaultSlipperyAreaClass;
 	UPROPERTY(Config, EditAnywhere, Category="Slippery Area", meta=(ClampMin="0", ClampMax="5000", Units="cm")) float SlipperyAreaForwardDistance = 350.f;

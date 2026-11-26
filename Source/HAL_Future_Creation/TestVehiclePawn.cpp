@@ -20,6 +20,7 @@
 #include "HALPursuitTargetComponent.h"
 #include "HALMovementEffectBridge.h"
 #include "HALMovementAreaReceiver.h"
+#include "HALHealingAreaReceiver.h"
 #include "HALVehiclePresentationComponent.h"
 #include "HALVehicleStatusFXSubsystem.h"
 #include "HALVehicleStatusFXComponent.h"
@@ -127,6 +128,7 @@ ATestVehiclePawn::ATestVehiclePawn()
 	HookThrow = CreateDefaultSubobject<UHALHookComponent>(TEXT("HookThrow"));
 	PursuitTarget = CreateDefaultSubobject<UHALPursuitTargetComponent>(TEXT("PursuitTarget"));
 	MovementAreaReceiver = CreateDefaultSubobject<UHALMovementAreaReceiver>(TEXT("MovementAreaReceiver"));
+	HealingAreaReceiver = CreateDefaultSubobject<UHALHealingAreaReceiver>(TEXT("HealingAreaReceiver"));
 
 	BallControlPoint = CreateDefaultSubobject<USceneComponent>(TEXT("BallControlPoint"));
 	BallControlPoint->SetupAttachment(CollisionRoot);
@@ -322,6 +324,7 @@ void ATestVehiclePawn::BindVehicleAbilitySystem(UHALAbilitySystemComponent* ASC,
 	DoodleStatus->Bind(ASC, Health);
 	MovementEffectBridge->Bind(ASC, MovementOwnerId);
 	MovementAreaReceiver->Bind(ASC);
+	HealingAreaReceiver->Bind(ASC);
 	if (HasAuthority() && bConfigurationValid)
 	{
 		ASC->InitializeCombat(RuntimeCombatConfig);
@@ -350,6 +353,7 @@ void ATestVehiclePawn::UninitializeAbilitySystem()
 	DoodleStatus->Unbind();
 	StatusFXPresentation->Unbind();
 	MovementAreaReceiver->Unbind();
+	HealingAreaReceiver->Unbind();
 	MovementEffectBridge->Unbind();
 	UHALAbilitySystemComponent* ASC = Health->GetBoundAbilitySystem();
 	Health->UnbindFromAbilitySystem();
@@ -423,6 +427,7 @@ void ATestVehiclePawn::RetireForVehicleTransition()
 	BallControl->PrepareForOwnerExit();
 	for (TActorIterator<ABasicBallActor> It(GetWorld()); It; ++It) { It->HandleVehicleExit(this); }
 	VehicleRecovery->CancelForOwnerExit(); MovementAreaReceiver->ClearForOwnerExit();
+	HealingAreaReceiver->ClearForOwnerExit();
 	UninitializeAbilitySystem(); ArcadeMovement->SetHistoryInputBlocked(true); ResetInputCommand();
 	GetWorldTimerManager().ClearTimer(InputSendTimerHandle); GetWorldTimerManager().ClearTimer(RemoteInputTimeoutHandle);
 	RemoveDefaultInputContext(); DynamicCamera->ResetCamera(EHALCameraResetReason::OwnerExit);

@@ -94,6 +94,8 @@ public:
 	UFUNCTION(Exec) void HALSpawnBomb();
 	/** Development only: spawn the server-configured slippery area in front of this vehicle. */
 	UFUNCTION(Exec) void HALSpawnSlipperyArea();
+	/** Development only: server-configured expanding healing area in front of the owned vehicle. */
+	UFUNCTION(Exec) void HALSpawnHealingArea();
 	/** Development only: request the server-configured movement boost on this controller's own Avatar. */
 	UFUNCTION(Exec)
 	void HALMovementBoost();
@@ -133,6 +135,8 @@ private:
 	EHALRoomResult LastRoomResult = EHALRoomResult::Inactive;
 	UFUNCTION(Server, Reliable) void ServerSpawnDebugBomb();
 	UFUNCTION(Server, Reliable) void ServerSpawnDebugSlipperyArea();
+	UFUNCTION(Server, Reliable) void ServerSpawnDebugHealingArea();
+	UFUNCTION(Client, Reliable) void ClientDebugHealingAreaResult(const FString& Message, bool bSuccess);
 	UFUNCTION(Client, Reliable) void ClientDebugSlipperyAreaResult(const FString& Message, bool bSuccess);
 	UFUNCTION(Client, Reliable) void ClientDebugBombResult(const FString& Message, bool bSuccess);
 	UPROPERTY(Transient)

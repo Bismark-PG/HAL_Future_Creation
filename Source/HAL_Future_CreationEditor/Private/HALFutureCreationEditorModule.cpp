@@ -3,6 +3,10 @@
 #include "SHALVehicleCollisionGenerator.h"
 #include "SHALVehicleAlignment.h"
 #include "HALVehicleInputDetails.h"
+#include "HALHealingAreaGizmoVisualizer.h"
+#include "HALHealingAreaGizmoComponent.h"
+#include "Editor/UnrealEdEngine.h"
+#include "UnrealEdGlobals.h"
 #include "PropertyEditorModule.h"
 #include "TestVehiclePawn.h"
 #include "VehicleAssetGenerator/HALVehicleAssetGenerator.h"
@@ -18,6 +22,13 @@ public:
 	virtual void StartupModule() override
 	{
 		if (IsRunningCommandlet() || IsRunningGame()) { return; }
+		if (GUnrealEd)
+		{
+			auto Visualizer = MakeHALHealingAreaGizmoVisualizer();
+			GUnrealEd->RegisterComponentVisualizer(UHALHealingAreaGizmoComponent::StaticClass()->GetFName(), Visualizer);
+			Visualizer->OnRegister();
+			bRegisteredHealingGizmo = true;
+		}
 		auto& PropertyEditor = FModuleManager::LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
 		PropertyEditor.RegisterCustomClassLayout(ATestVehiclePawn::StaticClass()->GetFName(),
 			FOnGetDetailCustomizationInstance::CreateStatic(&FHALVehicleInputDetails::MakeInstance));
@@ -45,6 +56,8 @@ public:
 	}
 	virtual void ShutdownModule() override
 	{
+		if (bRegisteredHealingGizmo && GUnrealEd)
+		{ GUnrealEd->UnregisterComponentVisualizer(UHALHealingAreaGizmoComponent::StaticClass()->GetFName()); }
 		if (!bRegisteredUI) { return; }
 		if (auto* PropertyEditor = FModuleManager::GetModulePtr<FPropertyEditorModule>(TEXT("PropertyEditor")))
 		{
@@ -59,6 +72,7 @@ public:
 	}
 private:
 	bool bRegisteredUI = false;
+	bool bRegisteredHealingGizmo = false;
 	void RegisterMenus()
 	{
 		FToolMenuOwnerScoped Owner(this);
