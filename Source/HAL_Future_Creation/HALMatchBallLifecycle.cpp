@@ -45,7 +45,7 @@ UHALMatchBallLifecycle::UHALMatchBallLifecycle()
 	SetIsReplicatedByDefault(true);
 }
 
-void UHALMatchBallLifecycle::MulticastBallImpact_Implementation(UHALSpecialBallDefinition* Type, EHALBallCue Kind, FVector_NetQuantize10 Origin,
+void UHALMatchBallLifecycle::MulticastBallCue_Implementation(UHALSpecialBallDefinition* Type, EHALBallCue Kind, FVector_NetQuantize10 Origin,
 	float Radius, FVector_NetQuantizeNormal Normal, double ServerStarted)
 {
 	if (Type && GetWorld() && GetNetMode() != NM_DedicatedServer)

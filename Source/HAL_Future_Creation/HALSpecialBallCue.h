@@ -35,6 +35,7 @@ private:
 		float Radius, const FVector& Normal, double Started, bool bReplicate);
 	UFUNCTION() void OnRep_State();
 	void PrepareWave();
+	void PrepareClaspArrival(const class UHALTimedBombBallDefinition& Type);
 	void PrepareClaspBurst(const class UHALTimedBombBallDefinition& Type);
 	void UpdateCageFragments(float Progress, const UHALTimedBombBallDefinition& Type);
 	void PrepareEruption(const UHALExplosiveBallDefinition& Type);
@@ -43,7 +44,7 @@ private:
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UDynamicMeshComponent> Ribbons;
 	UPROPERTY(Transient) TObjectPtr<UDynamicMeshComponent> Eruption;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> EruptionMID;
-	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> ClaspBurstMID;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> ClaspCueMID;
 	UPROPERTY(Transient) TArray<TObjectPtr<UStaticMeshComponent>> CageFragments;
 	struct FWaveRing
 	{

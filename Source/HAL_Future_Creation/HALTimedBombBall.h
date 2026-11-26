@@ -31,6 +31,10 @@ public:
 	/** Radius of the visible inner body relative to the physical ball radius. */
 	UPROPERTY(EditAnywhere, Category="Cage", meta=(ClampMin=".52", ClampMax=".88")) float InnerCoreRadiusRatio = .77f;
 	UPROPERTY(EditAnywhere, Category="Cage") FLinearColor CageSteelColor = FLinearColor(.19f,.175f,.20f);
+	/** Clock and magnetic pole projection at the spawn site. An empty slot uses the common arrival pulse. */
+	UPROPERTY(EditAnywhere, Category="Arrival|Appearance") TObjectPtr<UMaterialInterface> ClaspArrivalMaterial;
+	/** How far each half of the visible cage starts open, in ball radii. Closes during Arrival Seconds. */
+	UPROPERTY(EditAnywhere, Category="Arrival|Appearance", meta=(ClampMin="0", ClampMax="1")) float ArrivalJawOpening = .60f;
 	/** Painted ignition, smoke and ground pressure front. Empty uses the ball's common cue material. */
 	UPROPERTY(EditAnywhere, Category="Detonation|Appearance") TObjectPtr<UMaterialInterface> ClaspBurstMaterial;
 	/** Pieces of the 50 cm reference cage, pivoted on their own metal. They share the intact cage's finish. */

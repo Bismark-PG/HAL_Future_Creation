@@ -487,6 +487,14 @@ bool FHALTimedBombRulesTest::RunTest(const FString&)
 	}
 	TestTrue(TEXT("Each event survives its ball exactly once"),Ground==1 && Mounted==1 && HP(A)==Full-Damage);
 	auto* Idle = Spawn();
+	if (!TestNotNull(TEXT("Production bomb has its own magnetic arrival material"), Type->ClaspArrivalMaterial.Get())) { return false; }
+	const float Opening = Idle->LeftJaw->GetRelativeLocation().Y - Idle->RightJaw->GetRelativeLocation().Y;
+	F.World->TimeSeconds += Type->ArrivalSeconds;
+	Idle->Paint();
+	const float Seated = Idle->LeftJaw->GetRelativeLocation().Y - Idle->RightJaw->GetRelativeLocation().Y;
+	TestTrue(TEXT("Arrival starts with the configured extra clearance and seats the patrol cage"),
+		FMath::IsNearlyEqual(Opening-Seated, 100.f*Type->ArrivalJawOpening, 2.f));
+	TestTrue(TEXT("Completing assembly leaves the ball free and its fuse unlit"), Idle->GetBallState()==EBasicBallState::Free && Idle->GetFuseDeadline()<0.);
 	Idle->Expire();
 	TestTrue(TEXT("Unignited expiration is harmless"),Idle->IsActorBeingDestroyed() && HP(B)==Full-Damage);
 	return true;

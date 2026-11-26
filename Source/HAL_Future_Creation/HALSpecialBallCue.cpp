@@ -75,7 +75,7 @@ struct FCoronaMesh
 	}
 };
 
-// Common magnetic arrival and expiry. Older ball definitions also use this fallback for hits.
+// Common magnetic expiry, also used by definitions without a dedicated arrival or burst.
 void DrawClaspCue(FCoronaMesh& Out, const UHALTimedBombBallDefinition& Type, EHALBallCue Kind, float T, float R)
 {
 	const bool Blast = Kind == EHALBallCue::Impact || Kind == EHALBallCue::MountedImpact;
@@ -163,12 +163,14 @@ void AHALSpecialBallCue::Spawn(UWorld& World, EHALBallCue Kind, UHALSpecialBallD
 	if (!Type || World.GetNetMode() == NM_Client) { return; }
 	const double Started = BallCueTime(World);
 	const bool bExplosion = Kind == EHALBallCue::Impact || Kind == EHALBallCue::MountedImpact;
-	if (bExplosion && World.GetNetMode() != NM_Standalone && World.GetGameState()
-		&& (Type->IsA<UHALExplosiveBallDefinition>() || Type->IsA<UHALTimedBombBallDefinition>()))
+	const bool bTimedBomb = Type->IsA<UHALTimedBombBallDefinition>();
+	const bool bBroadcast = (bTimedBomb && Kind == EHALBallCue::Arrival)
+		|| (bExplosion && (bTimedBomb || Type->IsA<UHALExplosiveBallDefinition>()));
+	if (bBroadcast && World.GetNetMode() != NM_Standalone && World.GetGameState())
 	{
 		if (auto* MatchBalls = World.GetGameState()->FindComponentByClass<UHALMatchBallLifecycle>())
 		{
-			MatchBalls->MulticastBallImpact(Type, Kind, Origin, Radius, Normal, Started);
+			MatchBalls->MulticastBallCue(Type, Kind, Origin, Radius, Normal, Started);
 			return;
 		}
 	}
@@ -229,10 +231,13 @@ void AHALSpecialBallCue::OnRep_State()
 		}
 	}
 	Ribbons->SetMaterial(0, State.Type->CueMaterial);
-	if (State.Kind == EHALBallCue::Impact || State.Kind == EHALBallCue::MountedImpact)
+	if (const auto* Clasp = Cast<UHALTimedBombBallDefinition>(State.Type.Get()))
 	{
-		const auto* Clasp = Cast<UHALTimedBombBallDefinition>(State.Type.Get());
-		if (Clasp && Clasp->ClaspBurstMaterial) { PrepareClaspBurst(*Clasp); }
+		if (State.Kind == EHALBallCue::Arrival && Clasp->ClaspArrivalMaterial) { PrepareClaspArrival(*Clasp); }
+		else if ((State.Kind == EHALBallCue::Impact || State.Kind == EHALBallCue::MountedImpact) && Clasp->ClaspBurstMaterial)
+		{
+			PrepareClaspBurst(*Clasp);
+		}
 	}
 	if (State.Kind == EHALBallCue::Impact && !State.Type->IsA<UHALTimedBombBallDefinition>())
 	{
@@ -244,14 +249,32 @@ void AHALSpecialBallCue::OnRep_State()
 	Tick(0);
 }
 
+void AHALSpecialBallCue::PrepareClaspArrival(const UHALTimedBombBallDefinition& Type)
+{
+	ClaspCueMID = Ribbons->CreateDynamicMaterialInstance(0, Type.ClaspArrivalMaterial);
+	if (!ClaspCueMID) { return; }
+	ClaspCueMID->SetScalarParameterValue(TEXT("Segments"), Type.DialSegments);
+	ClaspCueMID->SetScalarParameterValue(TEXT("Glow"), Type.Glow);
+	ClaspCueMID->SetVectorParameterValue(TEXT("Steel"), Type.CageSteelColor);
+	ClaspCueMID->SetVectorParameterValue(TEXT("Pole"), Type.CurrentColor);
+	ClaspCueMID->SetVectorParameterValue(TEXT("Lamp"), Type.CoronaColor);
+	ClaspCueMID->SetVectorParameterValue(TEXT("Tip"), Type.PoleTipColor);
+	// Keep the projection above the raised deck finish while the real cage travels away with the ball.
+	const float HalfWidth = State.Radius * Type.CoronaSize;
+	const float Z = -.64f * State.Radius;
+	FCoronaMesh Plate;
+	Plate.Quad(FVector(-HalfWidth,-HalfWidth,Z), FVector(HalfWidth,-HalfWidth,Z),
+		FVector(HalfWidth,HalfWidth,Z), FVector(-HalfWidth,HalfWidth,Z), FLinearColor::White);
+	Ribbons->SetMesh(MoveTemp(Plate.Mesh));
+}
+
 void AHALSpecialBallCue::PrepareClaspBurst(const UHALTimedBombBallDefinition& Type)
 {
-	ClaspBurstMID = UMaterialInstanceDynamic::Create(Type.ClaspBurstMaterial, this);
-	if (!ClaspBurstMID) { return; }
-	ClaspBurstMID->SetScalarParameterValue(TEXT("GroundPulse"), State.Kind == EHALBallCue::Impact ? 1.f : 0.f);
-	ClaspBurstMID->SetScalarParameterValue(TEXT("SmokeSize"), Type.ClaspSmokeSize);
-	ClaspBurstMID->SetScalarParameterValue(TEXT("Glow"), Type.Glow);
-	Ribbons->SetMaterial(0, ClaspBurstMID);
+	ClaspCueMID = Ribbons->CreateDynamicMaterialInstance(0, Type.ClaspBurstMaterial);
+	if (!ClaspCueMID) { return; }
+	ClaspCueMID->SetScalarParameterValue(TEXT("GroundPulse"), State.Kind == EHALBallCue::Impact ? 1.f : 0.f);
+	ClaspCueMID->SetScalarParameterValue(TEXT("SmokeSize"), Type.ClaspSmokeSize);
+	ClaspCueMID->SetScalarParameterValue(TEXT("Glow"), Type.Glow);
 
 	// Both peers use the actual opening axis at detonation. The center lifts off the
 	// surface while the outer pressure front stays flat and at the gameplay radius.
@@ -392,10 +415,10 @@ void AHALSpecialBallCue::Tick(float DeltaSeconds)
 	const float T = Elapsed / (State.Kind == EHALBallCue::Impact ? State.Type->ImpactSeconds : Duration);
 	if (EruptionMID) { EruptionMID->SetScalarParameterValue(TEXT("Progress"), T); }
 	if (T >= 1.f) { Ribbons->SetVisibility(false, false); return; }
-	if (ClaspBurstMID)
+	if (ClaspCueMID)
 	{
-		ClaspBurstMID->SetScalarParameterValue(TEXT("Progress"), T);
-		UpdateCageFragments(T, *CastChecked<UHALTimedBombBallDefinition>(State.Type.Get()));
+		ClaspCueMID->SetScalarParameterValue(TEXT("Progress"), T);
+		if (!CageFragments.IsEmpty()) { UpdateCageFragments(T, *CastChecked<UHALTimedBombBallDefinition>(State.Type.Get())); }
 		return;
 	}
 	Draw(T);

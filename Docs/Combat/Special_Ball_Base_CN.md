@@ -68,6 +68,25 @@
 
 正式外观采用 C 款笼式护壳与 3 号磁扣崩裂。四根带倒角的钢肋包住暗红内胆，球顶保留首轮选定的分段表盘。巡游时表盘满格，点火后指针扫动、亮格逐个熄灭，最后三秒转红脉动。转交时，两半钢笼从原车头张开，划过短弧，再扣到接手车头。
 
+<a id="timed-bomb-pad-arrival"></a>
+
+### 从正式生成盘出场
+
+`DA_Arena_SpecialBallSupply → Ball Pool` 中的 `Timed Bomb` 对应定时炸弹球，`Explosive` 对应暗太阳爆炸球。东北、西南两盘共用这个池，每组随机投放四种各一颗。
+
+轮到定时炸弹时，盘面先亮红色双弧。出球瞬间，六道短光向盘心汇聚，琥珀刻度依次点满。球已经开始巡游，两半钢笼在行进中合扣，表盘短亮一次。刻度全亮表示装配完成，第一次碰到车辆后才开始走引信。
+
+| 在 `DA_Ball_TimedBomb` 中调整 | 正式值 | 用途 |
+| --- | --- | --- |
+| `Effects → Arrival Seconds` | 0.58 秒 | 同时缩放盘面投影和球壳合扣的播放时间 |
+| `Arrival → Appearance → Arrival Jaw Opening` | 0.60 | 出场时每半片钢笼额外张开多少个球半径。设为 0 可只看盘面投影 |
+| `Effects → Corona Size` | 2.6 | 投影大小，单位为球半径。此项也影响自然消散等沿用 Corona Size 的表现 |
+| `Arrival → Appearance → Clasp Arrival Material` | `M_TimedBomb_ClaspArrival` | 出场投影材质。投影沿用球型 DA 的钢色、磁极红、灯色和表盘格数 |
+
+**2026-11-26 正式赛场实测。** 首次联机测试中，远侧盘投放的球有时在短动画结束后才出现在客户端。现由 GameState 广播定时炸弹的出场时刻，并在新球建立网络通道和出场期间提高同步优先级。在 `MVPB_Match` 的 D3D12 一主一客 PIE 中，主机出站模拟 80 ms 延迟，使用正式四球池完整投放一轮。两端依次收到陨石、暗太阳、定时炸弹和黑洞。定时炸弹在东北盘出现时，主机为第 65.10 秒，客户端为第 65.18 秒。另用临时单球池逐盘复测，东北与西南两盘的生成动画在主客两端均只播放一次，钢笼合拢后投影淡出，引信仍未点燃。[正式四球轮转中的客户端实拍](Art/TimedBombBall/ClaspArrival_Match.webp)
+
+UE 5.8.3 CL58210709 的 Win64 Development Editor 与 Game 均已编译，相关自动化 30/30 通过。球型 DA、生成池 DA 和新材质的 Windows 定向 Cook 为 3/3，零错误、零警告。双端记录位于 `Saved/TimedBomb/PadArrivalVerified/Result.json` 和 `Saved/TimedBomb/PadArrivalBoth/Result.json`，规则回归位于 `Saved/TimedBomb/ArrivalFinalRules/index.json`。
+
 <a id="timed-bomb-appearance"></a>
 
 ### 钢笼、引爆与持球位置

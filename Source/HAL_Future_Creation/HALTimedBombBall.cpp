@@ -42,6 +42,7 @@ bool UHALTimedBombBallDefinition::Validate(FString& Error) const
 		|| !FMath::IsWithinInclusive(MinimumClosingSpeed,1.f,5000.f) || !FMath::IsWithinInclusive(ReturnLockSeconds,0.f,5.f)
 		|| !FMath::IsWithinInclusive(ClaspTravelSeconds,.12f,1.5f) || !FMath::IsWithinInclusive(JawOpening,.05f,.8f)
 		|| !FMath::IsWithinInclusive(ClaspBurstReach,.3f,.78f) || !FMath::IsWithinInclusive(ClaspSmokeSize,.25f,.75f)
+		|| !FMath::IsWithinInclusive(ArrivalJawOpening,0.f,1.f)
 		|| !FMath::IsWithinInclusive(InnerCoreRadiusRatio,.52f,.88f)
 		|| !FMath::IsWithinInclusive(DialSegments,4,24) || !JawMesh || !DialMesh || Gameplay.Impact.Version != EHALImpactVersion::TieredV1)
 	{ Error = TEXT("Invalid timed-ball fuse, patrol, transfer, dial meshes or impact settings."); return false; }
@@ -343,6 +344,18 @@ void AHALTimedBombBall::Paint()
 	const float Phase = Type()->FuseSeconds - Left + 1.5f*Type()->UrgentSeconds*Urgency*Urgency;
 	const float Beat = FMath::Pow(.5f+.5f*FMath::Cos(UE_TWO_PI*Phase),4.f);
 	AActor* Car = GetControlledBy();
+	float ArrivalOpening = 0.f, SeatFlash = 0.f;
+	if (!Armed && !Car && Type()->ClaspArrivalMaterial)
+	{
+		// The free clock runs continuously until first contact. Peers joining later skip the assembly.
+		const float Age = Type()->FreeLifeSeconds - RemainingFreeSeconds();
+		if (Age < Type()->ArrivalSeconds)
+		{
+			const float T = Age / Type()->ArrivalSeconds;
+			ArrivalOpening = Type()->ArrivalJawOpening * (1.f-FMath::SmoothStep(.07f,.57f,T));
+			SeatFlash = FMath::SmoothStep(.48f,.57f,T) * (1.f-FMath::SmoothStep(.57f,.83f,T));
+		}
+	}
 	const float Travel = Car && Transfer.To == Car ? FMath::Clamp((Now-Transfer.Started)/Type()->ClaspTravelSeconds,0.,1.) : 1.f;
 	const float Jaw = Travel < .23f ? FMath::SmoothStep(0.f,.23f,Travel) : 1.f-FMath::SmoothStep(.68f,1.f,Travel);
 	const float Yaw = Car ? Car->GetActorRotation().Yaw
@@ -359,13 +372,13 @@ void AHALTimedBombBall::Paint()
 		JawOffset = Assembly->GetComponentTransform().InverseTransformPosition(Start) * (1.f-Transit);
 		JawOffset.Z += 19.f * FMath::Sin(UE_PI*Transit);
 	}
-	const float Spread = 50.f * (Car ? Type()->JawOpening * Jaw : .012f + .009f*FMath::Sin(Now*5.));
+	const float Spread = 50.f * (Car ? Type()->JawOpening * Jaw : ArrivalOpening + .012f + .009f*FMath::Sin(Now*5.));
 	LeftJaw->SetRelativeLocation(JawOffset + FVector(0,Spread,0));
 	RightJaw->SetRelativeLocation(JawOffset - FVector(0,Spread,0));
 	if (JawMID)
 	{
 		const float Snap = Travel > .68f && Travel < 1.f ? FMath::Sin(UE_PI * (Travel-.68f)/.32f) : 0.f;
-		JawMID->SetVectorParameterValue(TEXT("PoleTipColor"),Type()->PoleTipColor * (1.f+Snap));
+		JawMID->SetVectorParameterValue(TEXT("PoleTipColor"),Type()->PoleTipColor * (1.f+Snap+SeatFlash));
 	}
 	if (DialMID)
 	{
@@ -373,7 +386,7 @@ void AHALTimedBombBall::Paint()
 		DialMID->SetScalarParameterValue(TEXT("Urgency"),Urgency);
 		const bool bExpiring = !Armed && RemainingFreeSeconds() < Type()->WarningSeconds;
 		const float IdlePulse = bExpiring ? .45f+.4f*FMath::Sin(Now*9.) : .24f+.16f*FMath::Sin(Now*4.);
-		DialMID->SetScalarParameterValue(TEXT("Beat"),Armed ? Beat : IdlePulse);
+		DialMID->SetScalarParameterValue(TEXT("Beat"),Armed ? Beat : FMath::Max(IdlePulse,SeatFlash));
 	}
 }
 

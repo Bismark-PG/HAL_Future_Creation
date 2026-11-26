@@ -42,7 +42,8 @@ def material(name, inputs, code, translucent=False):
     old = existing(FX + '/' + name)
     flags = u.SystemLibrary.get_command_line().split()
     refresh = (name in ('M_TimedBomb_ClaspBurst','M_TimedBomb_CageSteel','M_TimedBomb_EmberCore') and '-RefreshClaspArt' in flags
-               or name == 'M_TimedBomb_ClaspBurst' and '-RefreshCageBurst' in flags)
+               or name == 'M_TimedBomb_ClaspBurst' and '-RefreshCageBurst' in flags
+               or name == 'M_TimedBomb_ClaspArrival' and '-RefreshClaspArrival' in flags)
     if old and not refresh:
         protect_painted_colors(old)
         return old
@@ -295,6 +296,9 @@ col=lerp(col,float3(.79,.63,.43),1.-smoothstep(.083,.112,r));
 return float4(col,1);
 """)
 jaw, dial = cage_mesh(steel,'CageHalf'), dial_mesh(face)
+arrival = material('M_TimedBomb_ClaspArrival',[('UV',None),('Progress',.28),('Segments',12.),('Glow',1.6),
+                   ('Steel',(.19,.175,.20)),('Pole',red),('Lamp',amber),('Tip',ivory)],
+                   (source_dir/'TimedBombClaspArrival.hlsl').read_text(encoding='utf-8'),translucent=True)
 burst = material('M_TimedBomb_ClaspBurst',[('UV',None),('Paint',smoke_texture()),('Progress',.3),
                  ('GroundPulse',0.),('SmokeSize',.54),('Glow',1.6)],
                  (source_dir/'TimedBombClaspBurst.hlsl').read_text(encoding='utf-8'),translucent=True)
@@ -342,6 +346,9 @@ if not ball.get_editor_property('cue_material') or ball.get_editor_property('cue
     changed = True
 if not ball.get_editor_property('clasp_burst_material'):
     ball.set_editor_property('clasp_burst_material',burst)
+    changed = True
+if not ball.get_editor_property('clasp_arrival_material'):
+    ball.set_editor_property('clasp_arrival_material',arrival)
     changed = True
 if ball.get_editor_property('jaw_mesh') == existing(FX+'/SM_TimedBomb_Pole'):
     ball.set_editor_property('jaw_mesh',jaw)

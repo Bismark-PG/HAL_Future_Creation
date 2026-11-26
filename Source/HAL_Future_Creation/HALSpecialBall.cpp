@@ -180,6 +180,19 @@ double AHALSpecialBall::ServerNow() const
 	return State ? State->GetServerWorldTimeSeconds() : GetWorld()->GetTimeSeconds();
 }
 
+float AHALSpecialBall::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, AActor* Viewer,
+	AActor* ViewTarget, UActorChannel* Channel, float Time, bool bLowBandwidth)
+{
+	const float Priority = Super::GetNetPriority(ViewPos, ViewDir, Viewer, ViewTarget, Channel, Time, bLowBandwidth);
+	// An offscreen pad still needs to deliver the actual ball before its short presentation ends.
+	// Use per-connection waiting time, as for a carried ball, then resume the ordinary free-ball priority.
+	if (!Channel || GetWorld()->GetTimeSeconds() < ArrivalPriorityUntil)
+	{
+		return FMath::Max(Priority, 4.f * NetPriority * Time);
+	}
+	return Priority;
+}
+
 void AHALSpecialBall::CheckArena()
 {
 	if (bConsumed) { return; }
@@ -199,6 +212,7 @@ void AHALSpecialBall::CheckArena()
 	{
 		Clock.Remaining = GetTypeDefinition()->FreeLifeSeconds;
 		Clock.bStarted = true;
+		ArrivalPriorityUntil = GetWorld()->GetTimeSeconds() + GetTypeDefinition()->ArrivalSeconds;
 		OnAuthorityBallStateChanged(GetBallState());
 		PlayCue(EHALBallCue::Arrival, GetActorLocation(), PhysicsRoot->GetScaledSphereRadius());
 	}

@@ -78,8 +78,8 @@ public:
 	void SetPlaying(bool bPlaying);
 	bool IsReturnAnnounced() const { return ReturnCue.bVisible; }
 	const FVector& GetReturnGround() const { return ReturnCue.Ground; }
-	/** An infrequent confirmed hit, delivered over the already-open GameState channel. */
-	UFUNCTION(NetMulticast, Reliable) void MulticastBallImpact(UHALSpecialBallDefinition* Type, EHALBallCue Kind, FVector_NetQuantize10 Origin,
+	/** A confirmed, short-lived arrival or hit played once over the already-open GameState channel. */
+	UFUNCTION(NetMulticast, Reliable) void MulticastBallCue(UHALSpecialBallDefinition* Type, EHALBallCue Kind, FVector_NetQuantize10 Origin,
 		float Radius, FVector_NetQuantizeNormal Normal, double ServerStarted);
 
 private:

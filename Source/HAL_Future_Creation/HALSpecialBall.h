@@ -87,6 +87,8 @@ public:
 	virtual void PostNetInit() override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(EEndPlayReason::Type Reason) override;
+	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, AActor* Viewer,
+		AActor* ViewTarget, UActorChannel* Channel, float Time, bool bLowBandwidth) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	float RemainingFreeSeconds() const;
 	const UHALSpecialBallDefinition* GetTypeDefinition() const { return Cast<UHALSpecialBallDefinition>(Definition); }
@@ -121,6 +123,7 @@ private:
 	bool bStaged = false;
 	bool bSpawnGravity = false;
 	double OutsideSince = -1.;
+	double ArrivalPriorityUntil = -1.;
 	FTimerHandle ExpiryTimer, ArenaTimer;
 };
 
