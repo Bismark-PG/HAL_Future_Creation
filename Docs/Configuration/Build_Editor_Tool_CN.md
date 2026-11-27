@@ -1,5 +1,23 @@
 # 编译、重新构建并启动 Editor 工具
 
+## 2026-11-27：收起重复的浮点警告
+
+默认在终端和 Console.log 收起 MSVC `warning C4305`（double 转 float）及其后缩进的源码／光标上下文，以一行英语摘要报告收起的数量。原始 `UnrealBuildTool.log`／`ProjectFiles.log` 继续保留完整诊断；编译器本身仍照常产生警告，未添加禁用警告的编译选项，也未更改 P0 的 UBT 参数或缓存规则。
+
+```powershell
+# 默认收起 C4305，成功后不打开 Editor
+.\BuildAndLaunch.cmd -NoLaunch
+
+# 需要查看全部警告时
+.\BuildAndLaunch.cmd -NoLaunch -ShowAllWarnings
+```
+
+`-ShowAllWarnings` 由根 CMD 和两个现有 PowerShell 转发入口支持，只控制启动器的显示，不传给 UBT。其它警告（例如 C4996）、UHT 错误、编译错误、链接错误及失败码保持可见。匹配仅针对 `warning C4305`，不会隐藏 `error C4305`；若本次原生构建失败，会把已经收起的警告和上下文重新显示，避免遮住 warning-as-error 的失败原因。原生 stderr 按普通文本显示，避免 Windows PowerShell5.1 将其包装成 NativeCommandError 误导为脚本错误；成功与否仍以原生退出码判定。
+
+本轮从 `main/a58bb32` 接续，保留工作区已有 InputHints 源码／资产和表现文档改动。启动器假引擎／进程检查 **25/25 通过**，包含原有 21 项及默认过滤、完整显示、失败重放、UHT／升级为错误的 C4305／链接错误保留；同时断言原始 UBT 日志未改变。报告为本机 `Saved/BuildTool/LauncherIntegration_092da657563a459988b63de4431dfc54/Results.json`。
+
+另外用已有真实日志 `BuildAndLaunch_20261127_151312_445_b0c0e5/UnrealBuildTool.log` 回放当前显示函数：默认收起全部 **53 条 C4305**，C4996 仍显示，启用 ShowAllWarnings 后 53 条全部恢复；报告为 `Saved/BuildTool/WarningFilterReview_20261127_f9555ad8/Result.json`。这是日志回放，不是新的 Unreal 编译。本轮未修改玩法源码／蓝图／Target／Build.cs、未触发真实重编或启动 Editor；git diff --check 通过。此功能减少显示噪声，不判断所有警告是否会造成运行时 bug。
+
 ## 2026-11-22：构建显示统一为英语
 
 按用户要求，BuildAndLaunch.cmd 自有的构建结果、耗时、动作数、未知统计、工程／文件检查错误及错误对话框标题均使用英语。结果示例为 `Build result: Up to date (no compilation needed)`；其余分类为 `Incremental build completed`、`Explicit rebuild completed`、`Build failed` 和 `Build succeeded (action statistics unknown)`。统计标签为 `Build invocation time`、`UBT time`、`Build actions`，时间单位为 `seconds`，缺失统计显示 `Unknown`。JSON 字段与取值、构建参数及行为不变；底层工具自行输出的诊断和路径按原样保留。

@@ -2,7 +2,8 @@
 [CmdletBinding()]
 param(
     [string]$EngineRoot,
-    [switch]$CheckOnly
+    [switch]$CheckOnly,
+    [switch]$ShowAllWarnings
 )
 
 $launcher = Join-Path (Split-Path -Parent $PSScriptRoot) 'BuildAndLaunch.cmd'
@@ -10,5 +11,6 @@ if (-not (Test-Path -LiteralPath $launcher -PathType Leaf)) { Write-Error "Missi
 $launcherArguments = @('-NoLaunch')
 if ($EngineRoot) { $launcherArguments += @('-EngineRoot', $EngineRoot) }
 if ($CheckOnly) { $launcherArguments += '-CheckOnly' }
+if ($ShowAllWarnings) { $launcherArguments += '-ShowAllWarnings' }
 & $launcher @launcherArguments
 exit $LASTEXITCODE

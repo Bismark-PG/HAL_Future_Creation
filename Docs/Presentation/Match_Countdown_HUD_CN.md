@@ -528,3 +528,45 @@ Loading 在 Results 过渡时复用原 MapLoadingPanel，隐藏开赛人数部�
 - 报告、命令、专用进程 ID、日志、匹配样本和校验结果在 `Saved/MatchHUD/Fix_20261126/{Summary.json,Host,Client}`；三局玩家行证据在 Summary 的 network.Host／Client.matched_samples。采样脚本没有编译或保存蓝图，不作为交付依赖；所有专用测试进程已退出。
 - `Content/UI` 与 `Content/Blueprints/Network` 共 **56/56 份资产 SHA-256 保持**，前后清单 BeforeAssets.json／AfterAssets.json，git diff --check 通过。
 - 本次仍为 NullRHI 属性／生命周期验证，未做渲染截图或四台真人画面验收，未单独构建 Game Target、Cook 或打包。团队下一步在正常画面下确认客户端实际布局、图标、受伤血条及返房再开赛；原未完成的其他 UI／玩法验收保持原状态。
+
+<a id="input-hints-20261127"></a>
+## 2026-11-27：键鼠／Xbox 操作提示 C++ 支持
+
+### 本次范围与职责
+
+从本机 `main/a58bb32`、UE 5.8.3 CL58210709 接续。团队已创建未提交的 `Content/UI/GameFlow/Components/WBP_InputHints.uasset` 与键盘占位贴图；本轮只实现并编译 C++，保留这些资产原样。
+
+- 新增 `UHALInputHintSubsystem`（LocalPlayerSubsystem）：每个本地玩家独立记录最近有效输入，跨旅行保留，通过原生事件通知变化。所有标准游戏手柄暂统一使用 Xbox 图标，不识别其他厂商外观。
+- 新增 `UHALInputHintsWidget`：PreMatchFlow 与 MatchFlow 可以分别持有同一 WBP 类的不同实例，共享该玩家状态。构建时立即同步、隐藏时仍更新、销毁时解除订阅；显示面板为 `HitTestInvisible`，另一面板为 `Collapsed`，不取得输入焦点。
+- 输入预处理器在 UMG／GameOnly 路由前观察事件，所有处理函数均返回 `false`。仅观察属于本地玩家且焦点／鼠标命中路径位于活动游戏视口中的事件，不消费确认、返回、驾驶等原输入。
+- 非重复的键盘／鼠标按钮／滚轮、有效鼠标位移选择键鼠；手柄按钮、有效摇杆／扳机动作选择 Xbox。模拟轴具有激活／释放滞回：同方向持续按住不会在键鼠操作后立即抢回提示，释放后再次推动或反向推动才重新选择 Xbox。
+- 使用已有 Slate／UMG 依赖，未启用新插件、修改输入映射、增加服务器复制或 RPC。无新增逐帧轮询；IInputProcessor 必需的 Tick 为空。
+
+### 团队接入与调参
+
+1. 打开 Editor，在 `WBP_InputHints` 的 Class Settings 将 Parent Class 改为 `HALInputHintsWidget`。
+2. Designer 保留 `KeyboardPanel`、`XboxPanel` 两个 Panel Widget，名称大小写一致并勾选 Is Variable。C++ 使用 `BindWidget`，缺少任意面板时蓝图编译会提示。当前只读检查确认二者均为 HorizontalBox，前者 Visible、后者 Collapsed；Python 未能读取 Is Variable 标记，仍需团队在 Designer 确认。
+3. 编译并保存 WBP，在目标 PreMatchFlow／MatchFlow 页面中嵌入控件，由宿主提供 Owning Local Player。无需 Event Tick、输入监听、手动设备切换接线或单独 AddToViewport。
+4. `Input Hints > Preview > Preview Input Device` 只影响 Designer 预览；运行时使用输入服务。没有本地玩家时回退键鼠布局。
+5. 图标、文字和布局仍由 Designer 配置。同一 WBP 类的不同实例具有相同默认内容；需要不同内容时可制作轻量 Designer 派生布局。当前不包含运行时 HintContext、改键后自动更新提示、长按进度或动态生成操作列表。
+
+可按需在 DefaultGame.ini 覆盖（本次未修改配置）：
+
+```ini
+[/Script/HAL_Future_Creation.HALInputHintSubsystem]
+AnalogActivationThreshold=0.25
+AnalogReleaseThreshold=0.15
+MinimumMouseMovement=2.0
+```
+
+前两项为归一化模拟轴幅值（0～1），释放阈值应小于激活阈值；鼠标阈值单位为每次事件的 Slate 屏幕像素。初始显示键鼠；连接手柄本身不切换。手柄拔出后的主动回退未纳入本版，下一次键鼠操作会正常选择键鼠。日志类别 `LogHALInputHints` 仅在 Verbose 等级输出设备变化。
+
+### 本次验证与限制
+
+- 统一 `BuildAndLaunch.cmd -NoLaunch -NoPopup`，Editor／Win64／Development，保持 `-WaitMutex -NoHotReload -NoLiveCoding`。最终增量构建 **17 actions，501.56 秒，退出 0**；记录 `Saved/BuildTool/BuildAndLaunch_20261127_151312_445_b0c0e5/Result.json`。包含既有其他玩法与测试文件的 C4305／C4996 警告，新文件无编译警告。首次沙箱构建停在构建锁阶段后已停止；首次沙箱外构建因 UHT 不接受 `px` 单位标记失败，改为明确显示名称后才成功，失败日志保留。
+- 新 DLL、NullRHI、独立测试进程：`HAL.FutureCreation.GameFlow.InputHints` **3/3 成功**，覆盖信号过滤（含持续按住、滞回、反向拨杆、重复按键／鼠标微动）、本地玩家状态隔离、PreMatch／Match 双实例同步、隐藏恢复、重建和销毁解绑。报告 `Saved/InputHints/20261127/InputHints/index.json`。
+- 同一 DLL 的既有 `HAL.FutureCreation.GameFlow.UIIntegration` **13/13 成功**，报告 `Saved/InputHints/20261127/UIIntegration/index.json`。两组均 **0 测试警告／错误／失败／未运行／进行中，进程退出 0**，两个进程串行运行。
+- Editor Python 只读检查 R3 退出 0，确认两个新原生类可加载、占位 WBP 父类仍为 UserWidget、两套面板名称／类型及默认显隐符合约定。没有重设父类、编译或保存蓝图。报告 `Saved/InputHints/20261127/PlaceholderInspection.json`；R1 路径转义、R2 未暴露的 ParentClass 属性读取失败，均不作为成功证据。
+- `Content/UI` **100/100 份资产 SHA-256 保持**（包含用户新建占位 WBP、键盘图标与现有 Xbox 素材），清单为同目录 UIHashesBefore.json／UIHashesAfter.json；git diff --check 通过。
+- 本轮自动化是 C++ 状态与控件生命周期夹具，未把用户 WBP 改父类或挂到真实页面；真实 Slate 输入路由、UIOnly／GameOnly 下的键鼠／手柄实际操作、PIE／真人联机、Game Target、Cook 和打包未验收。团队下一步按上段接入，在两种输入模式下确认首次按键仍执行原操作、摇杆静止不闪换、返房／重建后状态正确、主客端各自独立。
+- 最终改动为四个生产 `.h/.cpp`、一个测试 `.cpp` 与本说明／Project_Status。未提交或推送；构建、两组测试及只读检查进程均已结束。

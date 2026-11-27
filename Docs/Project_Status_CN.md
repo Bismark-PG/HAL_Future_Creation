@@ -1,5 +1,9 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-27　键鼠／Xbox 输入提示 C++ 已完成，MatchHUD 已嵌入占位 WBP。** 拉取前 UE 5.8.3 Editor 编译、InputHints 3/3 和 UIIntegration 13/13 通过；拉取后尚未复编。下一步验收实际输入切换与独立窗口图标清晰度，DPI 原因尚未确认。[接入与验证](Presentation/Match_Countdown_HUD_CN.md#input-hints-20261127)
+
+**2026-11-27　构建工具默认汇总 C4305 警告。** 支持 `-ShowAllWarnings`，完整 UBT 日志保留；脚本夹具 25/25 通过，未另做 Unreal 编译。[用法与验证](Configuration/Build_Editor_Tool_CN.md#2026-11-27收起重复的浮点警告)
+
 **2026-11-27 火箭拳出拳期間取消玩家車輛實體碰撞，球維持原碰撞。** 用戶確認僅Extending用Sweep／統一Combat擊退，收拳／待機恢復車輛阻擋。新增SpringPunchExtension物件通道（GameTraceChannel1，預設Block），玩家車在PostInitialize設Ignore；拳頭按主機階段／Client既有時程切換物件通道，保留球PhysicsBody阻擋及補推。無新Tick／RPC／複製欄位或保存資產修改。main/b75ef7f、UE5.8.2-56702186，統一Editor入口最終成功，原生2/2及雙端主客各1/1最終報告均0測試警告／失敗／未運行／進行中。雙端驗證逐階段碰撞篩選、兩車各25傷害／Medium及球阻擋／推動。首輪原生缺少初始化及與原生並行時雙端超時均保留，後者未證實根因，單獨原條件重跑通過；不能寫成所有執行皆成功。證據Saved/SpringPunch/20261127，最終編譯BuildAndLaunch_20261127_161644_296_7c2e88。NullRHI／Host出站80ms注入，不代表真人畫面／實測RTT；Game Target／全量／Cook／四機未重跑。下一步重開Editor確認出拳／收拳交界、持球與免疫手感，兩端同步Config；未提交／Push。見[規則、實作與驗證](Combat/MVPB_SpringPunch_Combat_Handoff_CN_v0.1.md#2026-11-27-出拳期間只取消玩家車輛實體碰撞)。
 
 **2026-11-27 帶電球增加藍色文字提示：程式、兩Target及4項回歸通過，實際畫面待確認。** 自動顯示`CHARGED +10`（實際加傷值），隨本機可見球位置／鏡頭，尺寸取可見半徑；持有／再發射保留帶電時繼續顯示，消耗即隱藏、退場回收。Project Settings→Game→Ball Comic FX→Comic→Electric Charge可調開關、色彩、字高比例0.4及畫面上移比例1.4；無須BP／美術接線。沿用既有表現Tick，沒有新增玩法Tick／Timer或複製欄位，Dedicated／NullRHI不建立文字。見[提示與調參](Combat/MVPB_Electric_Wall_CN_v0.1.md#2026-11-27-帶電球可見提示)。
