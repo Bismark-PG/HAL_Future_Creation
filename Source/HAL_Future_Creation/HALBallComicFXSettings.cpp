@@ -22,10 +22,22 @@ bool FHALBallComicFXConfig::Validate(FString& Error) const
 			|| TrailWedgeLengthSeconds <= 0 || !FMath::IsFinite(TrailWedgeMaxLengthDiameters) || TrailWedgeMaxLengthDiameters <= 0
 			|| !FMath::IsFinite(TrailWedgeMinLengthDiameters) || TrailWedgeMinLengthDiameters < 0
 			|| TrailWedgeMinLengthDiameters > TrailWedgeMaxLengthDiameters || !FMath::IsFinite(TrailWedgeMinSpeed) || TrailWedgeMinSpeed < 0 || !FMath::IsFinite(TrailWedgeStartRadiusFraction)
-			|| TrailWedgeStartRadiusFraction < 0)
+			|| TrailWedgeStartRadiusFraction < 0 || !FMath::IsFinite(TrailWedgeLeadRadiusFraction) || TrailWedgeLeadRadiusFraction < 0)
 		{ Error = TEXT("Triangle trail width, length time and longest length must be positive; shortest length, speed gate and start offset must not be negative, and shortest must not exceed longest."); return false; }
 		if (TrailWedgeColorParameter.IsNone() || TrailWedgeAspectParameter.IsNone()) { Error = TEXT("Triangle trail parameter names must be set."); return false; }
 	}
+	if (bTrail && !TrailShellMaterial.IsNull())
+	{
+		if (TrailShellMesh.IsNull()) { Error = TEXT("Flame shell needs a sphere mesh while a material is assigned."); return false; }
+		if (!FMath::IsFinite(TrailShellFrontRadii) || TrailShellFrontRadii <= 1 || !FMath::IsFinite(TrailShellBackRadii) || TrailShellBackRadii <= 1
+			|| !FMath::IsFinite(TrailShellSideRadii) || TrailShellSideRadii <= 1 || !FMath::IsFinite(TrailWedgeMinSpeed) || TrailWedgeMinSpeed < 0)
+		{ Error = TEXT("Flame shell front, back and side sizes must be larger than the ball (above one radius)."); return false; }
+		if (TrailWedgeColorParameter.IsNone()) { Error = TEXT("Flame shell colour parameter name must be set."); return false; }
+	}
+	if (bTrail && (!TrailWedgeMaterial.IsNull() || !TrailShellMaterial.IsNull())
+		&& (!FMath::IsFinite(TrailFadeSeconds) || TrailFadeSeconds < 0 || !FMath::IsFinite(TrailLengthBlendSpeed) || TrailLengthBlendSpeed < 0
+			|| !FMath::IsFinite(TrailBounceAngleDegrees) || TrailBounceAngleDegrees <= 0 || TrailBounceAngleDegrees > 180 || TrailGhostMax < 1))
+	{ Error = TEXT("Trail dissolve time and length blend speed must not be negative, the bounce angle must be within (0, 180] degrees and at least one left-behind trail must be allowed."); return false; }
 	if (bAim && !AimMaterial.IsNull())
 	{
 		if (AimMesh.IsNull()) { Error = TEXT("Aim arrow needs a quad mesh while a material is assigned."); return false; }
@@ -79,6 +91,9 @@ bool UHALBallComicFXSettings::CollectCookPackages(TArray<FName>& Packages, FStri
 	if (Comic.bTrail && !Comic.TrailWedgeMaterial.IsNull()
 		&& (!Root(Comic.TrailWedgeMaterial.ToSoftObjectPath(), Comic.TrailWedgeMaterial.LoadSynchronous() != nullptr, TEXT("Ball triangle trail material"))
 			|| !Root(Comic.TrailWedgeMesh.ToSoftObjectPath(), Comic.TrailWedgeMesh.LoadSynchronous() != nullptr, TEXT("Ball triangle trail mesh")))) { return false; }
+	if (Comic.bTrail && !Comic.TrailShellMaterial.IsNull()
+		&& (!Root(Comic.TrailShellMaterial.ToSoftObjectPath(), Comic.TrailShellMaterial.LoadSynchronous() != nullptr, TEXT("Ball flame shell material"))
+			|| !Root(Comic.TrailShellMesh.ToSoftObjectPath(), Comic.TrailShellMesh.LoadSynchronous() != nullptr, TEXT("Ball flame shell mesh")))) { return false; }
 	if (Comic.bAim && !Comic.AimMaterial.IsNull()
 		&& (!Root(Comic.AimMaterial.ToSoftObjectPath(), Comic.AimMaterial.LoadSynchronous() != nullptr, TEXT("Ball aim arrow material"))
 			|| !Root(Comic.AimMesh.ToSoftObjectPath(), Comic.AimMesh.LoadSynchronous() != nullptr, TEXT("Ball aim arrow mesh")))) { return false; }

@@ -33,6 +33,22 @@ struct FHALBallComicFXTransition
 	bool bStopAim = false;
 };
 
+/** A piece of trail no longer attached to the ball. */
+struct FHALBallTrailGhost
+{
+	/** Old leg of a bounce: world point of the bounce and the unit direction back along the old leg. */
+	FVector Point = FVector::ZeroVector;
+	FVector Back = FVector::ZeroVector;
+	/** Path distance from the latest bounce point back to this leg's start (legs between them). */
+	double PathStartCm = 0;
+	/** Dissolve clock; a duration of zero means no dissolve is running. */
+	float Age = 0;
+	float Duration = 0;
+	/** True while the piece is a leg of the live trail's path, placed every frame; false while it dissolves or is free. */
+	bool bPath = false;
+	bool IsFree() const { return !bPath && Duration <= 0; }
+};
+
 /** Hold rings timeline: popping in and held, or shrinking away after the ball left the holder. */
 enum class EHALBallHoldRingPhase : uint8 { Off, Shown, Leaving };
 
@@ -60,9 +76,29 @@ namespace HALBallComicFX
 	HAL_FUTURE_CREATION_API bool HoldMarkerQuad(const FHALBallComicFXConfig& Config, const FVector& RoofCentre, const FVector& HolderForward,
 		float BodyLengthCm, float BodyWidthCm, const FVector& ViewForward, const FVector& ViewUp, float Scale, FTransform& OutQuad);
 	/** Triangle trail quad: level, behind the ball as drawn, its +Y (the tip) pointing back along the ground velocity. Length follows
-	 * the speed up to a cap; OutAspect is length over width for the material. False when the ball is too slow or the input unusable. */
+	 * the speed up to a cap; OutAspect is length over width for the material. With a lead the quad also reaches ahead of the
+	 * ball. OutBall, when given, is the ball on the quad in half widths (X centre from the front edge, Y radius).
+	 * A LengthLimitCm of zero or more caps the trail behind the ball (how far it has travelled since launch or a bounce).
+	 * A LengthOverrideCm of zero or more replaces the length the speed would give (the component blends it over time).
+	 * False when the ball is too slow or the input unusable. */
 	HAL_FUTURE_CREATION_API bool TrailWedgeQuad(const FHALBallComicFXConfig& Config, const FVector& Centre, float DrawnRadiusCm, const FVector& Velocity,
-		FTransform& OutQuad, float& OutAspect);
+		FTransform& OutQuad, float& OutAspect, FVector2f* OutBall = nullptr, double LengthLimitCm = -1., double LengthOverrideCm = -1.);
+	/** Whole length of the trail behind a ball at this speed (the clamp TrailWedgeQuad applies). Negative when the ball is too slow or the input unusable. */
+	HAL_FUTURE_CREATION_API double TrailLength(const FHALBallComicFXConfig& Config, float DrawnRadiusCm, const FVector& Velocity);
+	/** Quad of an old leg of a bounced trail: starts at the bounce Point, runs along BackDirection (unit), and shows the trail
+	 * from StartCm behind the ball (along the path) to its end at TotalLengthCm. OutPath is (start, whole length) in half widths
+	 * for the material. False once the ball has travelled the leg away (nothing left) or the input is unusable. */
+	HAL_FUTURE_CREATION_API bool TrailPathSegmentQuad(const FHALBallComicFXConfig& Config, const FVector& Point, const FVector& BackDirection, float DrawnRadiusCm,
+		double StartCm, double TotalLengthCm, FTransform& OutQuad, float& OutAspect, FVector2f& OutPath);
+	/** True when a ball that was travelling along PreviousDirection (unit, on the ground) now travels more than the configured
+	 * angle away from it: it bounced, and the trail it had belongs to the old path. */
+	HAL_FUTURE_CREATION_API bool IsTrailBounce(const FHALBallComicFXConfig& Config, const FVector& PreviousDirection, const FVector& Velocity);
+	/** Dissolve value of something left behind: 1 when just left, 0 once Duration has passed. */
+	HAL_FUTURE_CREATION_API float TrailFade(float AgeSeconds, float DurationSeconds);
+	/** Flame shell pose: an ellipsoid (unit mesh: 100 cm sphere) whose +X is the ground travel, reaching the configured radii
+	 * ahead of, behind and across the ball as drawn. False when the ball is too slow (same gate as the trail quad) or the input unusable. */
+	HAL_FUTURE_CREATION_API bool TrailShellTransform(const FHALBallComicFXConfig& Config, const FVector& Centre, float DrawnRadiusCm, const FVector& Velocity,
+		FTransform& OutShell);
 	/** Half size in cm of the camera facing ring sprite for a ball drawn with this radius. */
 	HAL_FUTURE_CREATION_API float HoldBallHalfSize(const FHALBallComicFXConfig& Config, float DrawnRadiusCm, float Scale);
 }
@@ -93,7 +129,19 @@ private:
 	FLinearColor ResolveColor(const AActor* Pawn, int32 PlayerId) const;
 	void StartTrail(const FHALBallComicFXConfig& ComicConfig, const FBallRepState& State);
 	void StopTrail(bool bImmediate);
-	void UpdateTrailWedge(const FHALBallComicFXConfig& ComicConfig);
+	void UpdateTrailWedge(const FHALBallComicFXConfig& ComicConfig, float DeltaTime = 0);
+	/** Leaves a copy of the live trail quad where it is, dissolving over Seconds. */
+	void SpawnTrailGhost(const FHALBallComicFXConfig& ComicConfig, float Seconds);
+	/** A free piece, a new one while there is room, else the oldest. INDEX_NONE when none can be made. */
+	int32 AcquireTrailGhost(const FHALBallComicFXConfig& ComicConfig);
+	/** Old legs stop following the path: they dissolve over Seconds where they are, or vanish at once for zero. */
+	void ReleaseTrailPath(float Seconds);
+	void UpdateTrailPath(const FHALBallComicFXConfig& ComicConfig, float DrawnRadius, double PathRunCm);
+	/** Freezes the flame shell where it is and dissolves it over Seconds. */
+	void BeginShellFade(const FHALBallComicFXConfig& ComicConfig, float Seconds);
+	void UpdateTrailFades(const FHALBallComicFXConfig& ComicConfig, float DeltaTime);
+	/** Shared setup of the trail's world placed meshes (quad, shell): never follows the spinning ball, never collides. */
+	UStaticMeshComponent* CreateTrailMesh(USceneComponent* Root, UStaticMesh* Mesh);
 	void StartAim(const FHALBallComicFXConfig& ComicConfig, const FBallRepState& State);
 	void StopAim();
 	void UpdateAim(const FHALBallComicFXConfig& ComicConfig);
@@ -116,6 +164,12 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UStaticMesh> TrailWedgeMesh;
 	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> TrailWedgeComponent;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> TrailWedgeInstance;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInterface> TrailShellMaterial;
+	UPROPERTY(Transient) TObjectPtr<UStaticMesh> TrailShellMesh;
+	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> TrailShellComponent;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> TrailShellInstance;
+	UPROPERTY(Transient) TArray<TObjectPtr<UStaticMeshComponent>> TrailGhostComponents;
+	UPROPERTY(Transient) TArray<TObjectPtr<UMaterialInstanceDynamic>> TrailGhostInstances;
 	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> AimComponent;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> AimInstance;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInterface> HoldBallMaterial;
@@ -136,5 +190,23 @@ private:
 	bool bReady = false;
 	bool bTrailActive = false;
 	bool bTrailWedgeActive = false;
+	/** One entry per ghost component. */
+	TArray<FHALBallTrailGhost> TrailGhosts;
+	FVector2f TrailQuadPath = FVector2f::ZeroVector;
+	/** Whole trail length, blended toward what the speed gives. */
+	double TrailLengthCm = 0;
+	bool bTrailLengthValid = false;
+	FLinearColor TrailColour = FLinearColor::White;
+	/** Ground direction of the last frame, to tell a bounce. */
+	FVector TrailDirection = FVector::ZeroVector;
+	FVector2f TrailQuadBall = FVector2f::ZeroVector;
+	/** Ground distance since launch or the last bounce: the live trail is never longer than the path it belongs to. */
+	double TrailRunCm = 0;
+	float TrailQuadAspect = 1;
+	float ShellFadeAge = 0;
+	float ShellFadeDuration = 0;
+	bool bTrailHasDirection = false;
+	bool bShellFading = false;
+	bool bTrailGhosts = false;
 	bool bAimActive = false;
 };

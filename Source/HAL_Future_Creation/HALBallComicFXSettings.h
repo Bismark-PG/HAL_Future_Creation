@@ -35,6 +35,25 @@ struct HAL_FUTURE_CREATION_API FHALBallComicFXConfig
 	 * base edge is always buried in it: the material draws the base a little way into the quad, and at 0.9 that edge
 	 * stood clear of the ball whenever the shot went up the screen. The ball itself hides what lies inside it. */
 	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="0", ClampMax="2")) float TrailWedgeStartRadiusFraction = .35f;
+	/** How far the quad also reaches ahead of the ball's centre, in drawn radii, so a material can wrap the front of the ball
+	 * (the comet trail's bow glow). The quad grows by the same amount, the trail behind keeps its length. Zero keeps the quad
+	 * behind the ball (the triangle). */
+	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="0", ClampMax="4")) float TrailWedgeLeadRadiusFraction = 0;
+	/** Vector parameter that receives where the ball sits on the quad, in quad half widths: R = distance of the ball's centre
+	 * from the quad's front edge (V = 0) along the travel, G = drawn ball radius. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail") FName TrailWedgeBallParameter = TEXT("FX_Ball");
+	/** Flame shell: unlit translucent material drawn on Trail Shell Mesh, an ellipsoid round the launched ball with its long
+	 * axis along the travel, so the flame wraps the ball in height as well as on the ground. Receives the launcher's colour
+	 * through Trail Wedge Color Parameter. None keeps the shell off. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail") TSoftObjectPtr<UMaterialInterface> TrailShellMaterial;
+	/** Sphere of 100 cm diameter centred on its origin (the engine Sphere). */
+	UPROPERTY(EditAnywhere, Category="Ink Trail") TSoftObjectPtr<UStaticMesh> TrailShellMesh;
+	/** Shell tip ahead of the ball's centre, in radii of the ball as drawn. Above one, or the ball pokes through. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="1.01", ClampMax="4")) float TrailShellFrontRadii = 1.3f;
+	/** Shell end behind the ball's centre, in drawn radii: the teardrop that hands over to the flat trail. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="1.01", ClampMax="8")) float TrailShellBackRadii = 2.6f;
+	/** Shell half thickness across the travel (sideways and in height), in drawn radii. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="1.01", ClampMax="4")) float TrailShellSideRadii = 1.4f;
 	/** Vector parameter that receives the launcher's colour. */
 	UPROPERTY(EditAnywhere, Category="Ink Trail") FName TrailWedgeColorParameter = TEXT("FX_Color");
 	/** Scalar parameter that receives quad length over width, so the ink keeps one thickness at any length. */
@@ -47,6 +66,23 @@ struct HAL_FUTURE_CREATION_API FHALBallComicFXConfig
 	UPROPERTY(EditAnywhere, Category="Ink Trail") FName TrailWidthParameter = TEXT("User.TrailWidth");
 	/** Trail width at the ball (triangle base, particle width) as a share of the diameter of the ball as drawn (its visual mesh, never smaller than the physics sphere). */
 	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="0.1", ClampMax="3")) float TrailWidthDiameterFraction = .75f;
+	/** How long the trail quad and the flame shell take to dissolve where they were left when the trail stops (the ball
+	 * stopped being dangerous or slowed under the speed gate). Only used while Cut Trail Immediately is off. Zero cuts at once. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="0", ClampMax="2", Units="s")) float TrailFadeSeconds = .3f;
+	/** Scalar parameter that receives the dissolve: 1 while the trail is live, falling to 0 as it is left behind. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail") FName TrailWedgeFadeParameter = TEXT("FX_Fade");
+	/** A launched ball whose ground travel turns by more than this between two frames has bounced. The trail is one path
+	 * that bends there: the part already drawn stays along the old leg, joined to the new leg at the bounce point, and is
+	 * used up from its far end as the ball travels on. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="1", ClampMax="180", Units="deg")) float TrailBounceAngleDegrees = 20;
+	/** How fast the trail's length follows the ball's speed, per second. A wall takes speed at once; without this the whole
+	 * trail would snap shorter on the frame of the bounce. Zero follows at once. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="0", ClampMax="60")) float TrailLengthBlendSpeed = 6;
+	/** Vector parameter that receives where a quad sits on the trail's path, in quad half widths: R = path distance behind
+	 * the ball at the quad's front edge (0 for the leg the ball is on), G = whole length of the trail. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail") FName TrailWedgePathParameter = TEXT("FX_Path");
+	/** Most left-behind pieces (old legs of a bounce, dissolving trails) one ball shows at once; the oldest is reused beyond that. */
+	UPROPERTY(EditAnywhere, Category="Ink Trail", meta=(ClampMin="1", ClampMax="8")) int32 TrailGhostMax = 4;
 	/** True removes the whole trail on the frame the ball stops being dangerous; false lets the tail play out. */
 	UPROPERTY(EditAnywhere, Category="Ink Trail") bool bCutTrailImmediately = true;
 

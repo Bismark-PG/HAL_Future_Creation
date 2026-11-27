@@ -82,7 +82,7 @@ bool HALBallComicFX::HoldMarkerQuad(const FHALBallComicFXConfig& Config, const F
 }
 
 bool HALBallComicFX::TrailWedgeQuad(const FHALBallComicFXConfig& Config, const FVector& Centre, float DrawnRadiusCm, const FVector& Velocity,
-	FTransform& OutQuad, float& OutAspect)
+	FTransform& OutQuad, float& OutAspect, FVector2f* OutBall, double LengthLimitCm, double LengthOverrideCm)
 {
 	if (Centre.ContainsNaN() || Velocity.ContainsNaN() || !FMath::IsFinite(DrawnRadiusCm) || DrawnRadiusCm <= 0) { return false; }
 	// The quad lies level: only the travel along the ground gives it a direction.
@@ -91,14 +91,81 @@ bool HALBallComicFX::TrailWedgeQuad(const FHALBallComicFXConfig& Config, const F
 	if (Speed <= KINDA_SMALL_NUMBER || Speed < Config.TrailWedgeMinSpeed) { return false; }
 	const double Diameter = 2. * DrawnRadiusCm;
 	const double Width = Diameter * Config.TrailWidthDiameterFraction;
-	const double Length = FMath::Clamp(Speed * Config.TrailWedgeLengthSeconds, Diameter * Config.TrailWedgeMinLengthDiameters,
+	double Length = FMath::Clamp(Speed * Config.TrailWedgeLengthSeconds, Diameter * Config.TrailWedgeMinLengthDiameters,
 		FMath::Max(Diameter * Config.TrailWedgeMaxLengthDiameters, Diameter * Config.TrailWedgeMinLengthDiameters));
-	if (Width <= KINDA_SMALL_NUMBER || Length <= KINDA_SMALL_NUMBER) { return false; }
+	if (LengthOverrideCm >= 0.) { Length = LengthOverrideCm; }
+	if (LengthLimitCm >= 0.) { Length = FMath::Min(Length, LengthLimitCm); }
+	// Under a centimetre there is nothing to draw yet (the first frame after a launch or a bounce).
+	if (Width <= KINDA_SMALL_NUMBER || Length < 1.) { return false; }
 	const FVector Back = -Ground / Speed;
+	// The lead reaches ahead of the ball and lengthens the quad by as much, so the trail behind keeps its length.
+	const double Lead = DrawnRadiusCm * FMath::Max(Config.TrailWedgeLeadRadiusFraction, 0.f);
+	const double Front = DrawnRadiusCm * Config.TrailWedgeStartRadiusFraction - Lead;
+	const double QuadLength = Length + Lead;
 	// The quad mesh is 100 cm square with U along its X and V along its Y; the material draws base at V = 0, tip at V = 1.
 	OutQuad = FTransform(FMatrix(Back ^ FVector::UpVector, Back, FVector::UpVector, FVector::ZeroVector).ToQuat(),
-		Centre + Back * (DrawnRadiusCm * Config.TrailWedgeStartRadiusFraction + .5 * Length), FVector(Width * .01, Length * .01, 1.));
+		Centre + Back * (Front + .5 * QuadLength), FVector(Width * .01, QuadLength * .01, 1.));
+	OutAspect = float(QuadLength / Width);
+	if (OutBall) { *OutBall = FVector2f(float(-Front / (.5 * Width)), float(DrawnRadiusCm / (.5 * Width))); }
+	return true;
+}
+
+double HALBallComicFX::TrailLength(const FHALBallComicFXConfig& Config, float DrawnRadiusCm, const FVector& Velocity)
+{
+	if (Velocity.ContainsNaN() || !FMath::IsFinite(DrawnRadiusCm) || DrawnRadiusCm <= 0) { return -1.; }
+	const double Speed = FVector(Velocity.X, Velocity.Y, 0.).Size();
+	if (Speed <= KINDA_SMALL_NUMBER || Speed < Config.TrailWedgeMinSpeed) { return -1.; }
+	const double Diameter = 2. * DrawnRadiusCm;
+	return FMath::Clamp(Speed * Config.TrailWedgeLengthSeconds, Diameter * Config.TrailWedgeMinLengthDiameters,
+		FMath::Max(Diameter * Config.TrailWedgeMaxLengthDiameters, Diameter * Config.TrailWedgeMinLengthDiameters));
+}
+
+bool HALBallComicFX::TrailPathSegmentQuad(const FHALBallComicFXConfig& Config, const FVector& Point, const FVector& BackDirection, float DrawnRadiusCm,
+	double StartCm, double TotalLengthCm, FTransform& OutQuad, float& OutAspect, FVector2f& OutPath)
+{
+	if (Point.ContainsNaN() || BackDirection.ContainsNaN() || !FMath::IsFinite(DrawnRadiusCm) || DrawnRadiusCm <= 0 || !FMath::IsFinite(StartCm)
+		|| !FMath::IsFinite(TotalLengthCm) || StartCm < 0) { return false; }
+	const FVector Flat(BackDirection.X, BackDirection.Y, 0.);
+	const double Width = 2. * DrawnRadiusCm * Config.TrailWidthDiameterFraction;
+	const double Length = TotalLengthCm - StartCm;
+	if (Flat.IsNearlyZero() || Width <= KINDA_SMALL_NUMBER || Length < 1.) { return false; }
+	const FVector Back = Flat.GetUnsafeNormal();
+	OutQuad = FTransform(FMatrix(Back ^ FVector::UpVector, Back, FVector::UpVector, FVector::ZeroVector).ToQuat(),
+		Point + Back * (.5 * Length), FVector(Width * .01, Length * .01, 1.));
 	OutAspect = float(Length / Width);
+	OutPath = FVector2f(float(StartCm / (.5 * Width)), float(TotalLengthCm / (.5 * Width)));
+	return true;
+}
+
+bool HALBallComicFX::IsTrailBounce(const FHALBallComicFXConfig& Config, const FVector& PreviousDirection, const FVector& Velocity)
+{
+	if (PreviousDirection.ContainsNaN() || Velocity.ContainsNaN()) { return false; }
+	const FVector Before(PreviousDirection.X, PreviousDirection.Y, 0.);
+	const FVector Now(Velocity.X, Velocity.Y, 0.);
+	if (Before.IsNearlyZero() || Now.IsNearlyZero()) { return false; }
+	return (Before.GetUnsafeNormal() | Now.GetUnsafeNormal()) < FMath::Cos(FMath::DegreesToRadians(FMath::Clamp(Config.TrailBounceAngleDegrees, 1.f, 180.f)));
+}
+
+float HALBallComicFX::TrailFade(float AgeSeconds, float DurationSeconds)
+{
+	if (!FMath::IsFinite(AgeSeconds) || !FMath::IsFinite(DurationSeconds) || DurationSeconds <= 0) { return 0.f; }
+	return FMath::Clamp(1.f - AgeSeconds / DurationSeconds, 0.f, 1.f);
+}
+
+bool HALBallComicFX::TrailShellTransform(const FHALBallComicFXConfig& Config, const FVector& Centre, float DrawnRadiusCm, const FVector& Velocity,
+	FTransform& OutShell)
+{
+	if (Centre.ContainsNaN() || Velocity.ContainsNaN() || !FMath::IsFinite(DrawnRadiusCm) || DrawnRadiusCm <= 0) { return false; }
+	const FVector Ground(Velocity.X, Velocity.Y, 0.);
+	const double Speed = Ground.Size();
+	if (Speed <= KINDA_SMALL_NUMBER || Speed < Config.TrailWedgeMinSpeed) { return false; }
+	const double Front = DrawnRadiusCm * Config.TrailShellFrontRadii, Back = DrawnRadiusCm * Config.TrailShellBackRadii;
+	const double Side = DrawnRadiusCm * Config.TrailShellSideRadii;
+	if (Front <= 0 || Back <= 0 || Side <= 0) { return false; }
+	const FVector Forward = Ground / Speed;
+	// The mesh is a 100 cm sphere: scale is each full axis over 100. The centre sits between the two tips.
+	OutShell = FTransform(FMatrix(Forward, FVector::UpVector ^ Forward, FVector::UpVector, FVector::ZeroVector).ToQuat(),
+		Centre + Forward * (.5 * (Front - Back)), FVector((Front + Back) * .01, Side * .02, Side * .02));
 	return true;
 }
 
@@ -198,6 +265,11 @@ void UHALBallComicFXComponent::BeginPlay()
 		TrailWedgeMaterial = Settings.TrailWedgeMaterial.LoadSynchronous();
 		TrailWedgeMesh = Settings.TrailWedgeMesh.LoadSynchronous();
 	}
+	if (Settings.bTrail && !Settings.TrailShellMaterial.IsNull())
+	{
+		TrailShellMaterial = Settings.TrailShellMaterial.LoadSynchronous();
+		TrailShellMesh = Settings.TrailShellMesh.LoadSynchronous();
+	}
 	if (Settings.bAim && !Settings.AimMaterial.IsNull())
 	{
 		AimMaterial = Settings.AimMaterial.LoadSynchronous();
@@ -270,37 +342,42 @@ void UHALBallComicFXComponent::StartTrail(const FHALBallComicFXConfig& ComicConf
 	USphereComponent* Root = Ball.IsValid() ? Ball->GetPhysicsRoot() : nullptr;
 	if (!Root) { return; }
 	const FLinearColor Colour = ResolveColor(State.LastLauncherPawn, State.LastLauncherPlayerId);
+	TrailColour = Colour;
+	TrailRunCm = 0;
+	bTrailHasDirection = false;
+	bTrailLengthValid = false;
+	ReleaseTrailPath(0.f);
 	if (IsValid(TrailWedgeMaterial) && IsValid(TrailWedgeMesh))
 	{
 		if (!IsValid(TrailWedgeComponent))
 		{
-			TrailWedgeComponent = NewObject<UStaticMeshComponent>(GetOwner());
-			if (TrailWedgeComponent)
-			{
-				TrailWedgeComponent->SetupAttachment(Root);
-				// Placed in world space every frame from the ball's velocity, never from the spinning ball.
-				TrailWedgeComponent->SetUsingAbsoluteLocation(true);
-				TrailWedgeComponent->SetUsingAbsoluteRotation(true);
-				TrailWedgeComponent->SetUsingAbsoluteScale(true);
-				TrailWedgeComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-				TrailWedgeComponent->SetGenerateOverlapEvents(false);
-				TrailWedgeComponent->SetCastShadow(false);
-				TrailWedgeComponent->bReceivesDecals = false;
-				TrailWedgeComponent->SetCanEverAffectNavigation(false);
-				TrailWedgeComponent->SetStaticMesh(TrailWedgeMesh);
-				TrailWedgeComponent->SetVisibility(false);
-				TrailWedgeComponent->RegisterComponent();
-				TrailWedgeInstance = TrailWedgeComponent->CreateDynamicMaterialInstance(0, TrailWedgeMaterial);
-			}
+			TrailWedgeComponent = CreateTrailMesh(Root, TrailWedgeMesh);
+			if (TrailWedgeComponent) { TrailWedgeInstance = TrailWedgeComponent->CreateDynamicMaterialInstance(0, TrailWedgeMaterial); }
 		}
 		if (IsValid(TrailWedgeInstance))
 		{
 			TrailWedgeInstance->SetVectorParameterValue(ComicConfig.TrailWedgeColorParameter, Colour);
 			bTrailWedgeActive = true;
-			bTrailActive = true;
-			RefreshTick();
-			UpdateTrailWedge(ComicConfig);
 		}
+	}
+	if (IsValid(TrailShellMaterial) && IsValid(TrailShellMesh))
+	{
+		if (!IsValid(TrailShellComponent))
+		{
+			TrailShellComponent = CreateTrailMesh(Root, TrailShellMesh);
+			if (TrailShellComponent) { TrailShellInstance = TrailShellComponent->CreateDynamicMaterialInstance(0, TrailShellMaterial); }
+		}
+		if (IsValid(TrailShellInstance))
+		{
+			TrailShellInstance->SetVectorParameterValue(ComicConfig.TrailWedgeColorParameter, Colour);
+			bTrailWedgeActive = true;
+		}
+	}
+	if (bTrailWedgeActive)
+	{
+		bTrailActive = true;
+		RefreshTick();
+		UpdateTrailWedge(ComicConfig);
 	}
 	if (!IsValid(TrailSystem) || !GetWorld() || !GetWorld()->FXSystem.IsValid()) { return; }
 	if (!IsValid(TrailComponent))
@@ -321,6 +398,26 @@ void UHALBallComicFXComponent::StartTrail(const FHALBallComicFXConfig& ComicConf
 	bTrailActive = true;
 }
 
+UStaticMeshComponent* UHALBallComicFXComponent::CreateTrailMesh(USceneComponent* Root, UStaticMesh* Mesh)
+{
+	UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(GetOwner());
+	if (!Component) { return nullptr; }
+	Component->SetupAttachment(Root);
+	// Placed in world space every frame from the ball's velocity, never from the spinning ball.
+	Component->SetUsingAbsoluteLocation(true);
+	Component->SetUsingAbsoluteRotation(true);
+	Component->SetUsingAbsoluteScale(true);
+	Component->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Component->SetGenerateOverlapEvents(false);
+	Component->SetCastShadow(false);
+	Component->bReceivesDecals = false;
+	Component->SetCanEverAffectNavigation(false);
+	Component->SetStaticMesh(Mesh);
+	Component->SetVisibility(false);
+	Component->RegisterComponent();
+	return Component;
+}
+
 void UHALBallComicFXComponent::StopTrail(bool bImmediate)
 {
 	if (IsValid(TrailComponent))
@@ -328,29 +425,273 @@ void UHALBallComicFXComponent::StopTrail(bool bImmediate)
 		// A trail that outlives the Launched state would keep calling a harmless ball dangerous.
 		if (bImmediate) { TrailComponent->DeactivateImmediate(); } else { TrailComponent->Deactivate(); }
 	}
-	// The triangle has no tail to play out: it goes with the state.
+	// The live trail goes with the state. Unless it is cut, a copy stays where it was and dissolves: it no longer follows
+	// the ball, so it marks where the shot ended instead of calling a harmless ball dangerous.
+	const FHALBallComicFXConfig* ComicConfig = GetComicConfig();
+	const float FadeSeconds = !bImmediate && ComicConfig ? ComicConfig->TrailFadeSeconds : 0.f;
+	if (FadeSeconds > 0)
+	{
+		SpawnTrailGhost(*ComicConfig, FadeSeconds);
+		BeginShellFade(*ComicConfig, FadeSeconds);
+	}
+	else if (IsValid(TrailShellComponent))
+	{
+		TrailShellComponent->SetVisibility(false);
+		bShellFading = false;
+	}
+	ReleaseTrailPath(FadeSeconds);
 	if (IsValid(TrailWedgeComponent)) { TrailWedgeComponent->SetVisibility(false); }
 	bTrailWedgeActive = false;
 	bTrailActive = false;
 	RefreshTick();
 }
 
-void UHALBallComicFXComponent::UpdateTrailWedge(const FHALBallComicFXConfig& ComicConfig)
+int32 UHALBallComicFXComponent::AcquireTrailGhost(const FHALBallComicFXConfig& ComicConfig)
 {
-	if (!IsValid(TrailWedgeComponent) || !IsValid(TrailWedgeInstance) || !Ball.IsValid()) { return; }
+	USceneComponent* Root = Ball.IsValid() ? Ball->GetRootComponent() : nullptr;
+	if (!Root || !IsValid(TrailWedgeMaterial) || !IsValid(TrailWedgeMesh)) { return INDEX_NONE; }
+	for (int32 Index = 0; Index < TrailGhosts.Num(); ++Index)
+	{
+		if (TrailGhosts[Index].IsFree()) { return Index; }
+	}
+	if (TrailGhostComponents.Num() < FMath::Max(ComicConfig.TrailGhostMax, 1))
+	{
+		UStaticMeshComponent* Component = CreateTrailMesh(Root, TrailWedgeMesh);
+		UMaterialInstanceDynamic* Instance = Component ? Component->CreateDynamicMaterialInstance(0, TrailWedgeMaterial) : nullptr;
+		if (!Instance) { return INDEX_NONE; }
+		TrailGhostComponents.Add(Component);
+		TrailGhostInstances.Add(Instance);
+		return TrailGhosts.AddDefaulted();
+	}
+	// All busy: the piece nearest its end goes. A dissolving piece always goes before a leg of the live path.
+	int32 Oldest = INDEX_NONE;
+	double OldestScore = -1.;
+	for (int32 Index = 0; Index < TrailGhosts.Num(); ++Index)
+	{
+		const FHALBallTrailGhost& Ghost = TrailGhosts[Index];
+		const double Score = Ghost.bPath ? Ghost.PathStartCm * 1.e-6 : 1. + double(Ghost.Age / FMath::Max(Ghost.Duration, KINDA_SMALL_NUMBER));
+		if (Score > OldestScore) { OldestScore = Score; Oldest = Index; }
+	}
+	if (TrailGhosts.IsValidIndex(Oldest)) { TrailGhosts[Oldest] = FHALBallTrailGhost(); }
+	return Oldest;
+}
+
+void UHALBallComicFXComponent::SpawnTrailGhost(const FHALBallComicFXConfig& ComicConfig, float Seconds)
+{
+	if (Seconds <= 0 || !IsValid(TrailWedgeComponent) || !TrailWedgeComponent->IsVisible()) { return; }
+	const int32 Slot = AcquireTrailGhost(ComicConfig);
+	if (!TrailGhosts.IsValidIndex(Slot) || !IsValid(TrailGhostComponents[Slot]) || !IsValid(TrailGhostInstances[Slot])) { return; }
+	UMaterialInstanceDynamic* Instance = TrailGhostInstances[Slot];
+	TrailGhostComponents[Slot]->SetWorldTransform(TrailWedgeComponent->GetComponentTransform());
+	Instance->SetVectorParameterValue(ComicConfig.TrailWedgeColorParameter, TrailColour);
+	Instance->SetScalarParameterValue(ComicConfig.TrailWedgeAspectParameter, TrailQuadAspect);
+	if (!ComicConfig.TrailWedgeBallParameter.IsNone())
+	{
+		Instance->SetVectorParameterValue(ComicConfig.TrailWedgeBallParameter, FLinearColor(TrailQuadBall.X, TrailQuadBall.Y, 0.f, 0.f));
+	}
+	if (!ComicConfig.TrailWedgePathParameter.IsNone())
+	{
+		Instance->SetVectorParameterValue(ComicConfig.TrailWedgePathParameter, FLinearColor(TrailQuadPath.X, TrailQuadPath.Y, 0.f, 0.f));
+	}
+	if (!ComicConfig.TrailWedgeFadeParameter.IsNone()) { Instance->SetScalarParameterValue(ComicConfig.TrailWedgeFadeParameter, 1.f); }
+	TrailGhostComponents[Slot]->SetVisibility(true);
+	TrailGhosts[Slot].Age = 0;
+	TrailGhosts[Slot].Duration = Seconds;
+	bTrailGhosts = true;
+}
+
+void UHALBallComicFXComponent::ReleaseTrailPath(float Seconds)
+{
+	for (int32 Index = 0; Index < TrailGhosts.Num(); ++Index)
+	{
+		FHALBallTrailGhost& Ghost = TrailGhosts[Index];
+		if (!Ghost.bPath) { continue; }
+		Ghost.bPath = false;
+		const bool bShown = IsValid(TrailGhostComponents[Index]) && TrailGhostComponents[Index]->IsVisible();
+		if (Seconds > 0 && bShown)
+		{
+			Ghost.Age = 0;
+			Ghost.Duration = Seconds;
+			bTrailGhosts = true;
+		}
+		else
+		{
+			Ghost.Duration = 0;
+			if (IsValid(TrailGhostComponents[Index])) { TrailGhostComponents[Index]->SetVisibility(false); }
+		}
+	}
+}
+
+void UHALBallComicFXComponent::UpdateTrailPath(const FHALBallComicFXConfig& ComicConfig, float DrawnRadius, double PathRunCm)
+{
+	for (int32 Index = 0; Index < TrailGhosts.Num(); ++Index)
+	{
+		FHALBallTrailGhost& Ghost = TrailGhosts[Index];
+		if (!Ghost.bPath) { continue; }
+		UStaticMeshComponent* Component = TrailGhostComponents[Index];
+		UMaterialInstanceDynamic* Instance = TrailGhostInstances[Index];
+		FTransform Quad;
+		float Aspect = 1;
+		FVector2f Path = FVector2f::ZeroVector;
+		if (!IsValid(Component) || !IsValid(Instance) || !HALBallComicFX::TrailPathSegmentQuad(ComicConfig, Ghost.Point, Ghost.Back, DrawnRadius,
+			PathRunCm + Ghost.PathStartCm, TrailLengthCm, Quad, Aspect, Path))
+		{
+			// The ball has travelled this leg away.
+			Ghost = FHALBallTrailGhost();
+			if (IsValid(Component)) { Component->SetVisibility(false); }
+			continue;
+		}
+		Component->SetWorldTransform(Quad);
+		Instance->SetVectorParameterValue(ComicConfig.TrailWedgeColorParameter, TrailColour);
+		Instance->SetScalarParameterValue(ComicConfig.TrailWedgeAspectParameter, Aspect);
+		if (!ComicConfig.TrailWedgeBallParameter.IsNone()) { Instance->SetVectorParameterValue(ComicConfig.TrailWedgeBallParameter, FLinearColor(0.f, 0.f, 0.f, 0.f)); }
+		if (!ComicConfig.TrailWedgePathParameter.IsNone()) { Instance->SetVectorParameterValue(ComicConfig.TrailWedgePathParameter, FLinearColor(Path.X, Path.Y, 0.f, 0.f)); }
+		if (!ComicConfig.TrailWedgeFadeParameter.IsNone()) { Instance->SetScalarParameterValue(ComicConfig.TrailWedgeFadeParameter, 1.f); }
+		Component->SetVisibility(true);
+	}
+}
+
+void UHALBallComicFXComponent::BeginShellFade(const FHALBallComicFXConfig& ComicConfig, float Seconds)
+{
+	if (!IsValid(TrailShellComponent) || !IsValid(TrailShellInstance) || !TrailShellComponent->IsVisible() || bShellFading) { return; }
+	if (Seconds <= 0 || ComicConfig.TrailWedgeFadeParameter.IsNone())
+	{
+		TrailShellComponent->SetVisibility(false);
+		return;
+	}
+	bShellFading = true;
+	ShellFadeAge = 0;
+	ShellFadeDuration = Seconds;
+}
+
+void UHALBallComicFXComponent::UpdateTrailFades(const FHALBallComicFXConfig& ComicConfig, float DeltaTime)
+{
+	bTrailGhosts = false;
+	for (int32 Index = 0; Index < TrailGhosts.Num(); ++Index)
+	{
+		FHALBallTrailGhost& Ghost = TrailGhosts[Index];
+		if (Ghost.bPath || Ghost.Duration <= 0) { continue; }
+		Ghost.Age += DeltaTime;
+		const float Fade = HALBallComicFX::TrailFade(Ghost.Age, Ghost.Duration);
+		if (Fade <= 0 || !IsValid(TrailGhostComponents[Index]) || !IsValid(TrailGhostInstances[Index]) || ComicConfig.TrailWedgeFadeParameter.IsNone())
+		{
+			if (IsValid(TrailGhostComponents[Index])) { TrailGhostComponents[Index]->SetVisibility(false); }
+			Ghost = FHALBallTrailGhost();
+			continue;
+		}
+		TrailGhostInstances[Index]->SetScalarParameterValue(ComicConfig.TrailWedgeFadeParameter, Fade);
+		bTrailGhosts = true;
+	}
+	if (bShellFading)
+	{
+		ShellFadeAge += DeltaTime;
+		const float Fade = HALBallComicFX::TrailFade(ShellFadeAge, ShellFadeDuration);
+		if (Fade <= 0 || !IsValid(TrailShellComponent) || !IsValid(TrailShellInstance))
+		{
+			if (IsValid(TrailShellComponent)) { TrailShellComponent->SetVisibility(false); }
+			bShellFading = false;
+		}
+		else { TrailShellInstance->SetScalarParameterValue(ComicConfig.TrailWedgeFadeParameter, Fade); }
+	}
+}
+
+void UHALBallComicFXComponent::UpdateTrailWedge(const FHALBallComicFXConfig& ComicConfig, float DeltaTime)
+{
+	if (!Ball.IsValid()) { return; }
 	FVector DrawnCentre;
 	float DrawnRadius = 0;
+	const bool bDrawn = ResolveDrawnBall(DrawnCentre, DrawnRadius);
+	const FVector Velocity = Ball->GetVelocity();
+	const bool bQuad = IsValid(TrailWedgeComponent) && IsValid(TrailWedgeInstance);
+	// A bounce: the trail is one path that bends here. What is drawn so far becomes an old leg that starts at this point;
+	// the leg the ball is on starts again from nothing and the two always meet at the bounce point.
+	if (bTrailHasDirection && HALBallComicFX::IsTrailBounce(ComicConfig, TrailDirection, Velocity))
+	{
+		for (FHALBallTrailGhost& Ghost : TrailGhosts)
+		{
+			if (Ghost.bPath) { Ghost.PathStartCm += TrailRunCm; }
+		}
+		const int32 Slot = bQuad && bDrawn ? AcquireTrailGhost(ComicConfig) : INDEX_NONE;
+		if (TrailGhosts.IsValidIndex(Slot))
+		{
+			TrailGhosts[Slot].bPath = true;
+			TrailGhosts[Slot].Point = DrawnCentre;
+			TrailGhosts[Slot].Back = -TrailDirection;
+			TrailGhosts[Slot].PathStartCm = 0;
+		}
+		TrailRunCm = 0;
+	}
+	const FVector Ground(Velocity.X, Velocity.Y, 0.);
+	if (!Velocity.ContainsNaN() && !Ground.IsNearlyZero())
+	{
+		TrailDirection = Ground.GetUnsafeNormal();
+		bTrailHasDirection = true;
+		TrailRunCm += Ground.Size() * FMath::Max(DeltaTime, 0.f);
+	}
+	if (IsValid(TrailShellComponent) && IsValid(TrailShellInstance))
+	{
+		FTransform Shell;
+		if (bDrawn && HALBallComicFX::TrailShellTransform(ComicConfig, DrawnCentre, DrawnRadius, Velocity, Shell))
+		{
+			TrailShellComponent->SetWorldTransform(Shell);
+			// Back from a dissolve (a relaunch, or the ball sped up again): whole once more.
+			if (bShellFading || !TrailShellComponent->IsVisible())
+			{
+				bShellFading = false;
+				if (!ComicConfig.TrailWedgeFadeParameter.IsNone()) { TrailShellInstance->SetScalarParameterValue(ComicConfig.TrailWedgeFadeParameter, 1.f); }
+			}
+			TrailShellComponent->SetVisibility(true);
+		}
+		// Too slow to have a direction: it dissolves where it is, rather than pointing somewhere arbitrary.
+		else { BeginShellFade(ComicConfig, ComicConfig.bCutTrailImmediately ? 0.f : ComicConfig.TrailFadeSeconds); }
+	}
+	if (!bQuad) { return; }
+	// The whole trail's length follows the speed over a moment, so a wall that takes speed does not snap the trail shorter.
+	const double TargetLength = bDrawn ? HALBallComicFX::TrailLength(ComicConfig, DrawnRadius, Velocity) : -1.;
+	if (TargetLength >= 0.)
+	{
+		TrailLengthCm = bTrailLengthValid && ComicConfig.TrailLengthBlendSpeed > 0
+			? FMath::FInterpTo(TrailLengthCm, TargetLength, FMath::Max(DeltaTime, 0.f), ComicConfig.TrailLengthBlendSpeed) : TargetLength;
+		bTrailLengthValid = true;
+	}
+	// The leg the ball is on ends exactly at the bounce point (the quad starts a little behind the ball's centre).
+	const double PathRunCm = FMath::Max(TrailRunCm - double(DrawnRadius) * ComicConfig.TrailWedgeStartRadiusFraction, 0.);
 	FTransform Quad;
 	float Aspect = 1;
-	const bool bPlaced = ResolveDrawnBall(DrawnCentre, DrawnRadius)
-		&& HALBallComicFX::TrailWedgeQuad(ComicConfig, DrawnCentre, DrawnRadius, Ball->GetVelocity(), Quad, Aspect);
-	if (bPlaced)
+	FVector2f BallOnQuad = FVector2f::ZeroVector;
+	if (TargetLength >= 0. && HALBallComicFX::TrailWedgeQuad(ComicConfig, DrawnCentre, DrawnRadius, Velocity, Quad, Aspect, &BallOnQuad, PathRunCm, TrailLengthCm))
 	{
+		const double HalfWidth = double(DrawnRadius) * ComicConfig.TrailWidthDiameterFraction;
 		TrailWedgeComponent->SetWorldTransform(Quad);
 		TrailWedgeInstance->SetScalarParameterValue(ComicConfig.TrailWedgeAspectParameter, Aspect);
+		if (!ComicConfig.TrailWedgeBallParameter.IsNone())
+		{
+			TrailWedgeInstance->SetVectorParameterValue(ComicConfig.TrailWedgeBallParameter, FLinearColor(BallOnQuad.X, BallOnQuad.Y, 0.f, 0.f));
+		}
+		TrailQuadAspect = Aspect;
+		TrailQuadBall = BallOnQuad;
+		TrailQuadPath = FVector2f(0.f, HalfWidth > KINDA_SMALL_NUMBER ? float(TrailLengthCm / HalfWidth) : 0.f);
+		if (!ComicConfig.TrailWedgePathParameter.IsNone())
+		{
+			TrailWedgeInstance->SetVectorParameterValue(ComicConfig.TrailWedgePathParameter, FLinearColor(TrailQuadPath.X, TrailQuadPath.Y, 0.f, 0.f));
+		}
+		TrailWedgeComponent->SetVisibility(true);
 	}
-	// Too slow to have a direction: nothing, rather than a triangle pointing somewhere arbitrary.
-	TrailWedgeComponent->SetVisibility(bPlaced);
+	else if (TargetLength >= 0.)
+	{
+		// Fast enough, but nothing of this leg to draw yet (the frame of a launch or a bounce).
+		TrailWedgeComponent->SetVisibility(false);
+	}
+	else
+	{
+		// Too slow to have a direction: nothing live, rather than a trail pointing somewhere arbitrary. What was drawn dissolves in place.
+		const float FadeSeconds = ComicConfig.bCutTrailImmediately ? 0.f : ComicConfig.TrailFadeSeconds;
+		SpawnTrailGhost(ComicConfig, FadeSeconds);
+		ReleaseTrailPath(FadeSeconds);
+		TrailWedgeComponent->SetVisibility(false);
+		return;
+	}
+	UpdateTrailPath(ComicConfig, DrawnRadius, PathRunCm);
 }
 
 void UHALBallComicFXComponent::StartAim(const FHALBallComicFXConfig& ComicConfig, const FBallRepState& State)
@@ -395,7 +736,7 @@ void UHALBallComicFXComponent::StopAim()
 
 void UHALBallComicFXComponent::RefreshTick()
 {
-	SetComponentTickEnabled(bAimActive || bTrailWedgeActive || HoldPhase != EHALBallHoldRingPhase::Off);
+	SetComponentTickEnabled(bAimActive || bTrailWedgeActive || bTrailGhosts || bShellFading || HoldPhase != EHALBallHoldRingPhase::Off);
 }
 
 void UHALBallComicFXComponent::StartHold(const FHALBallComicFXConfig& ComicConfig, const FBallRepState& State)
@@ -559,7 +900,8 @@ void UHALBallComicFXComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	Super::TickComponent(DeltaTime, TickType, TickFunction);
 	const FHALBallComicFXConfig* ComicConfig = GetComicConfig();
 	if (!ComicConfig) { SetComponentTickEnabled(false); return; }
-	if (bTrailWedgeActive) { UpdateTrailWedge(*ComicConfig); }
+	if (bTrailWedgeActive) { UpdateTrailWedge(*ComicConfig, DeltaTime); }
+	if (bTrailGhosts || bShellFading) { UpdateTrailFades(*ComicConfig, DeltaTime); }
 	if (bAimActive)
 	{
 		AimSeconds += DeltaTime;

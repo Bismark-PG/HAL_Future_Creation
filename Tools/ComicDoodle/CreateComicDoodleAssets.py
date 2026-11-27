@@ -6,7 +6,11 @@ Creates or rebuilds, in this order (every asset below is fully owned by this scr
   3. /Game/Assets/FX/Materials/M_FX_BallPulseRing   parent of the launched-ball pulse rings
   4. /Game/Assets/FX/Materials/MI_FX_BallPulseRing  the only sprite renderer of NS_BallInkTrail (0 overrides)
   4a. /Game/Assets/FX/Materials/M_FX_BallTrailWedge   parent of the launched-ball triangle trail
-  4b. /Game/Assets/FX/Materials/MI_FX_BallTrailWedge  instance referenced by UHALBallComicFXSettings (0 overrides)
+  4b. /Game/Assets/FX/Materials/MI_FX_BallTrailWedge  triangle trail instance (alternative style, 0 overrides)
+  4c. /Game/Assets/FX/Materials/M_FX_BallTrailComet   parent of the launched-ball comet trail
+  4d. /Game/Assets/FX/Materials/MI_FX_BallTrailComet  instance referenced by UHALBallComicFXSettings (0 overrides)
+  4e. /Game/Assets/FX/Materials/M_FX_BallFlameShell   parent of the 3D flame wrap round the launched ball
+  4f. /Game/Assets/FX/Materials/MI_FX_BallFlameShell  instance referenced by UHALBallComicFXSettings (0 overrides)
   5. /Game/Assets/FX/Materials/M_FX_DoodleStatus    parent
   6. /Game/Assets/FX/Materials/MI_FX_DoodleStatus_Stun       circling stars, referenced by UHALVehicleDoodleStatusSettings
   7. /Game/Assets/FX/Materials/MI_FX_DoodleStatus_LowHealth  sweat drops (only override: FX_Kind = 1)
@@ -107,7 +111,7 @@ PULSE = {
 }
 
 # Triangle trail of the launched ball: one level quad behind the ball, stretched along its travel by C++.
-# The default trail since 2026-11-24; the pulse rings above stay authored as an alternative style.
+# The default trail from 2026-11-24 to 2026-11-27 (replaced by COMET); stays authored as an alternative style.
 WEDGE = {
     'marker': 'HAL Ball Trail Wedge v1 (flat inked triangle)',
     'material': '/Game/Assets/FX/Materials/M_FX_BallTrailWedge',
@@ -135,6 +139,101 @@ WEDGE = {
         ('FX_InkColor', 'InkColor', BLACK, '04 Color'),
     ),
     'driven': ('FX_Color', 'FX_Aspect'),
+}
+
+# Comet trail of the launched ball: same quad and C++ contract as WEDGE (FX_Color, FX_Aspect, V = 0 at the ball),
+# drawn as an anime fireball streak: white-hot core, launcher colour flame wrapping the front of the ball, broken speed
+# wisps, lightning sparks. Also needs FX_Ball (UHALBallComicFXSettings TrailWedgeBallParameter).
+# The default trail since 2026-11-27; WEDGE stays authored as an alternative style.
+COMET = {
+    'marker': 'HAL Ball Trail Comet v1 (anime fireball streak)',
+    'material': '/Game/Assets/FX/Materials/M_FX_BallTrailComet',
+    'instance': '/Game/Assets/FX/Materials/MI_FX_BallTrailComet',
+    'hlsl': 'Tools/ComicDoodle/BallTrailComet.hlsl',
+    'usage': None,
+    'disable_depth_test': False,
+    'sources': ('UV', 'Time'),
+    'scalars': (
+        ('FX_Aspect', 'Aspect', 4.0, 0.05, 20.0, '00 Driven By Runtime'),  # quad length over width
+        ('FX_Fps', 'Fps', 12.0, 1.0, 30.0, '01 Motion'),                  # spark / wisp redraws per second
+        ('FX_ScrollSpeed', 'ScrollSpeed', 6.0, 0.0, 30.0, '01 Motion'),    # flame streaks sliding to the tail
+        ('FX_BendSpeed', 'BendSpeed', 9.0, 0.0, 30.0, '01 Motion'),
+        ('FX_BendAmount', 'BendAmount', 0.06, 0.0, 0.3, '01 Motion'),      # tail sway, half widths
+        ('FX_BodyLength', 'BodyLength', 0.72, 0.1, 1.0, '02 Body'),       # share of the quad the flame body covers
+        ('FX_HeadWidth', 'HeadWidth', 0.85, 0.1, 0.9, '02 Body'),         # half width at the ball, quad half widths
+        ('FX_CapLength', 'CapLength', 0.5, 0.01, 2.0, '02 Body'),         # rounding of the front without a ball, half widths
+        ('FX_WrapFront', 'WrapFront', 0.25, 0.0, 1.0, '02 Body'),         # flame shell ahead of the ball, ball radii
+        ('FX_WrapRim', 'WrapRim', 0.08, 0.0, 0.5, '02 Body'),             # white rim against the ball's front, ball radii
+        ('FX_TaperPower', 'TaperPower', 0.75, 0.1, 3.0, '02 Body'),       # <1 fat comet, >1 thin spike
+        ('FX_StreakDensity', 'StreakDensity', 4.5, 0.5, 12.0, '02 Body'), # flame tongues across the width
+        ('FX_NoiseAmount', 'NoiseAmount', 1.2, 0.0, 2.0, '02 Body'),      # how torn the flame edge is
+        ('FX_Cooling', 'Cooling', 0.6, 0.0, 1.5, '02 Body'),             # heat lost toward the tail
+        ('FX_EdgeLevel', 'EdgeLevel', 0.04, -0.5, 0.9, '03 Bands'),       # heat at the flame silhouette
+        ('FX_MidLevel', 'MidLevel', 0.42, 0.0, 0.95, '03 Bands'),          # heat of the pale colour band
+        ('FX_CoreLevel', 'CoreLevel', 0.74, 0.0, 1.0, '03 Bands'),        # heat of the white core
+        ('FX_MidLift', 'MidLift', 0.35, 0.0, 1.0, '03 Bands'),            # pale band toward white
+        ('FX_AuraWidth', 'AuraWidth', 0.5, 0.01, 2.0, '04 Aura'),         # glow outside the body, body half widths
+        ('FX_AuraStrength', 'AuraStrength', 0.18, 0.0, 1.0, '04 Aura'),
+        ('FX_WispCount', 'WispCount', 4.0, 0.0, 6.0, '05 Wisps'),
+        ('FX_WispWidth', 'WispWidth', 0.04, 0.0, 0.2, '05 Wisps'),       # half thickness at the root, half widths
+        ('FX_SparkReach', 'SparkReach', 0.35, 0.0, 1.0, '06 Sparks'),      # share of the body the lightning runs along
+        ('FX_SparkSegment', 'SparkSegment', 0.35, 0.05, 2.0, '06 Sparks'),  # zig-zag step, half widths
+        ('FX_SparkJitter', 'SparkJitter', 0.12, 0.0, 0.4, '06 Sparks'),
+        ('FX_SparkWidth', 'SparkWidth', 0.016, 0.0, 0.1, '06 Sparks'),
+        ('FX_SparkChance', 'SparkChance', 0.4, 0.0, 1.0, '06 Sparks'),    # share of drawings on which a side shows its bolt
+        ('FX_FillGain', 'FillGain', 1.05, 0.0, 8.0, '07 Color'),
+        ('FX_CoreGain', 'CoreGain', 1.15, 0.0, 8.0, '07 Color'),            # >1 lets bloom pick the core up
+        ('FX_Opacity', 'Opacity', 0.75, 0.0, 1.0, '07 Color'),
+        ('FX_Fade', 'Fade', 1.0, 0.0, 1.0, '00 Driven By Runtime'),       # 1 live .. 0 dissolved (left-behind trails)
+        ('FX_FadeErode', 'FadeErode', 0.9, 0.0, 2.0, '08 Dissolve'),      # heat taken away by a full dissolve
+    ),
+    'vectors': (
+        ('FX_Color', 'Color', unreal.LinearColor(1.0, 0.18, 0.55, 1.0), '00 Driven By Runtime'),
+        # R ball centre from the front edge, G drawn ball radius, quad half widths; 0 radius = no ball on the quad.
+        ('FX_Ball', 'Ball', unreal.LinearColor(0.0, 0.0, 0.0, 0.0), '00 Driven By Runtime'),
+        # R path distance behind the ball at the quad's front edge, G whole trail length, quad half widths; G = 0: no path.
+        ('FX_Path', 'Path', unreal.LinearColor(0.0, 0.0, 0.0, 0.0), '00 Driven By Runtime'),
+    ),
+    'driven': ('FX_Color', 'FX_Aspect', 'FX_Ball', 'FX_Path', 'FX_Fade'),
+}
+
+# Flame shell of the launched ball: the comet's wrap round the ball itself, drawn on an ellipsoid (engine Sphere placed by
+# C++, HALBallComicFX::TrailShellTransform) so the flame also covers the ball in height. Referenced by
+# UHALBallComicFXSettings.TrailShellMaterial; shares FX_Color with the trail quad.
+SHELL = {
+    'marker': 'HAL Ball Flame Shell v1 (3D flame wrap round the launched ball)',
+    'material': '/Game/Assets/FX/Materials/M_FX_BallFlameShell',
+    'instance': '/Game/Assets/FX/Materials/MI_FX_BallFlameShell',
+    'hlsl': 'Tools/ComicDoodle/BallFlameShell.hlsl',
+    'usage': None,
+    'disable_depth_test': False,
+    # Front faces only: the far half of the shell is behind the ball and would fill the ring solid.
+    'two_sided': False,
+    'sources': ('UV', 'Time', 'Local', 'Fresnel'),
+    'scalars': (
+        # Ball centre on the shell's axis, -1 rear tip .. 1 front tip: (Back - Front) / (Back + Front) of the
+        # TrailShell*Radii settings (2.4 and 1.2 give 0.333).
+        ('FX_BallX', 'BallX', 0.333, -0.9, 0.9, '01 Shape'),
+        ('FX_FrontLevel', 'FrontLevel', 0.5, 0.0, 1.0, '01 Shape'),      # silhouette share left clear at the nose (higher = thinner flame)
+        ('FX_SideLevel', 'SideLevel', 0.4, 0.0, 1.0, '01 Shape'),         # same beside the ball
+        ('FX_BackOpen', 'BackOpen', 0.18, 0.0, 1.0, '01 Shape'),          # how much fuller the flame gets toward the back
+        ('FX_RearFade', 'RearFade', 0.6, 0.01, 2.0, '01 Shape'),          # length of the dissolve at the rear tip, axis units
+        ('FX_NoiseAmount', 'NoiseAmount', 0.35, 0.0, 1.5, '02 Motion'),   # depth of the flame tongues
+        ('FX_TongueStretch', 'TongueStretch', 5.0, 0.0, 20.0, '02 Motion'),  # twist of the tongues along the travel
+        ('FX_ScrollSpeed', 'ScrollSpeed', 14.0, 0.0, 40.0, '02 Motion'),
+        ('FX_CoreBand', 'CoreBand', 0.05, 0.0, 1.0, '03 Bands'),           # width of the white band against the ball
+        ('FX_MidBand', 'MidBand', 0.14, 0.0, 1.0, '03 Bands'),            # where the pale band gives way to the colour
+        ('FX_MidLift', 'MidLift', 0.35, 0.0, 1.0, '03 Bands'),
+        ('FX_FillGain', 'FillGain', 1.05, 0.0, 8.0, '04 Color'),
+        ('FX_CoreGain', 'CoreGain', 1.15, 0.0, 8.0, '04 Color'),
+        ('FX_Opacity', 'Opacity', 0.7, 0.0, 1.0, '04 Color'),
+        ('FX_Fade', 'Fade', 1.0, 0.0, 1.0, '00 Driven By Runtime'),       # 1 live .. 0 dissolved (shell left behind)
+        ('FX_FadeErode', 'FadeErode', 0.7, 0.0, 2.0, '05 Dissolve'),
+    ),
+    'vectors': (
+        ('FX_Color', 'Color', unreal.LinearColor(1.0, 0.18, 0.55, 1.0), '00 Driven By Runtime'),
+    ),
+    'driven': ('FX_Color', 'FX_Fade'),
 }
 
 STATUS = {
@@ -262,7 +361,7 @@ def build(spec):
     material.set_editor_property('material_domain', unreal.MaterialDomain.MD_SURFACE)
     material.set_editor_property('blend_mode', unreal.BlendMode.BLEND_TRANSLUCENT)
     material.set_editor_property('shading_model', unreal.MaterialShadingModel.MSM_UNLIT)
-    material.set_editor_property('two_sided', True)
+    material.set_editor_property('two_sided', spec.get('two_sided', True))
     material.set_editor_property('disable_depth_test', spec['disable_depth_test'])
     if spec['usage']:
         material.set_editor_property(spec['usage'], True)
@@ -283,6 +382,18 @@ def build(spec):
     wire(node(material, unreal.MaterialExpressionTextureCoordinate, -700, -460), custom, 'UV')
     if 'Time' in spec['sources']:
         wire(node(material, unreal.MaterialExpressionTime, -700, -360), custom, 'Time')
+    if 'Local' in spec['sources']:
+        # Position on the unit sphere in the mesh's own space (the engine Sphere has a 50 cm radius).
+        world = node(material, unreal.MaterialExpressionWorldPosition, -1100, -560)
+        local = node(material, unreal.MaterialExpressionTransformPosition, -900, -560,
+                     transform_source_type=unreal.MaterialPositionTransformSource.TRANSFORMPOSSOURCE_WORLD,
+                     transform_type=unreal.MaterialPositionTransformSource.TRANSFORMPOSSOURCE_LOCAL)
+        wire(world, local)
+        wire(local, custom, 'Local')
+    if 'Fresnel' in spec['sources']:
+        # 1 - N.V: 0 facing the camera, 1 on the silhouette.
+        wire(node(material, unreal.MaterialExpressionFresnel, -700, -620, exponent=1.0, base_reflect_fraction=0.0), custom,
+             'Fresnel')
     if 'Color' in spec['sources']:
         particle_color = node(material, unreal.MaterialExpressionParticleColor, -700, -260)
         wire(particle_color, custom, 'Color', 'RGB')
@@ -355,10 +466,10 @@ def build(spec):
     return built
 
 
-# Optional section filter: pass section names (ARROW PULSE WEDGE STATUS HOLD) after the script path to rebuild only
+# Optional section filter: pass section names (ARROW PULSE WEDGE COMET SHELL STATUS HOLD) after the script path to rebuild only
 # those, e.g. "CreateComicDoodleAssets.py PULSE". No arguments rebuilds everything. A filtered run writes its
 # report to ComicDoodle_Authoring_<SECTIONS>.json so it never overwrites the full run's report.
-SECTIONS = {'ARROW': ARROW, 'PULSE': PULSE, 'WEDGE': WEDGE, 'STATUS': STATUS, 'HOLD': HOLD}
+SECTIONS = {'ARROW': ARROW, 'PULSE': PULSE, 'WEDGE': WEDGE, 'COMET': COMET, 'SHELL': SHELL, 'STATUS': STATUS, 'HOLD': HOLD}
 SELECTED = [name.upper() for name in sys.argv[1:]]
 UNKNOWN = [name for name in SELECTED if name not in SECTIONS]
 if UNKNOWN:

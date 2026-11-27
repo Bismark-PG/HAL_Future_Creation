@@ -76,6 +76,95 @@ bool FHALBallComicFXTransitionTest::RunTest(const FString&)
 		TestTrue(TEXT("Triangle is as wide as configured and as long as the speed says"), Quad.GetScale3D().Equals(FVector(Width * .01, Length * .01, 1), .001));
 		TestTrue(TEXT("Base starts behind the ball's centre"), Quad.GetLocation().Equals(Centre - FVector(160 * Wedge.TrailWedgeStartRadiusFraction + .5 * Length, 0, 0), .01));
 		TestEqual(TEXT("Aspect is length over width"), Aspect, float(Length / Width), .001f);
+		{
+			// Comet: the quad also reaches ahead of the ball so the material can wrap its front.
+			FHALBallComicFXConfig Lead = Wedge;
+			Lead.TrailWedgeStartRadiusFraction = 0;
+			Lead.TrailWedgeLeadRadiusFraction = 1.5f;
+			FTransform LeadQuad;
+			float LeadAspect = 0;
+			FVector2f OnQuad;
+			TestTrue(TEXT("A lead quad is placed"), TrailWedgeQuad(Lead, Centre, 160.f, FVector(1500, 0, 0), LeadQuad, LeadAspect, &OnQuad));
+			const double QuadLength = Length + 240;
+			TestTrue(TEXT("Lead lengthens the quad by itself"), FMath::IsNearlyEqual(LeadQuad.GetScale3D().Y, QuadLength * .01, .001));
+			TestTrue(TEXT("Front edge sits ahead of the ball"), LeadQuad.GetLocation().Equals(Centre + FVector(240 - .5 * QuadLength, 0, 0), .01));
+			TestEqual(TEXT("Ball centre on the quad, half widths"), OnQuad.X, float(240 / (.5 * Width)), .001f);
+			TestEqual(TEXT("Ball radius on the quad, half widths"), OnQuad.Y, float(160 / (.5 * Width)), .001f);
+			Lead.TrailWedgeLeadRadiusFraction = -1;
+			Lead.TrailWedgeMaterial = FSoftObjectPath(TEXT("/Game/Assets/FX/Materials/MI_FX_BallTrailComet.MI_FX_BallTrailComet"));
+			Lead.TrailWedgeMesh = FSoftObjectPath(TEXT("/Engine/BasicShapes/Plane.Plane"));
+			FString LeadError;
+			TestFalse(TEXT("A negative lead is rejected"), Lead.Validate(LeadError));
+		}
+		{
+			// Bounce and dissolve: the live trail is no longer than the path it belongs to, a sharp turn is a bounce.
+			FHALBallComicFXConfig Bounce = Wedge;
+			FTransform Limited;
+			float LimitedAspect = 0;
+			TestTrue(TEXT("A trail is capped by the distance travelled"), TrailWedgeQuad(Bounce, Centre, 160.f, FVector(1500, 0, 0), Limited, LimitedAspect, nullptr, 120.)
+				&& FMath::IsNearlyEqual(Limited.GetScale3D().Y, 1.2, .001));
+			TestTrue(TEXT("A generous cap changes nothing"), TrailWedgeQuad(Bounce, Centre, 160.f, FVector(1500, 0, 0), Limited, LimitedAspect, nullptr, 1.e6)
+				&& FMath::IsNearlyEqual(Limited.GetScale3D().Y, Length * .01, .001));
+			TestFalse(TEXT("No trail on the frame of a launch or bounce"), TrailWedgeQuad(Bounce, Centre, 160.f, FVector(1500, 0, 0), Limited, LimitedAspect, nullptr, 0.));
+			Bounce.TrailBounceAngleDegrees = 20;
+			TestFalse(TEXT("A gentle curve is not a bounce"), IsTrailBounce(Bounce, FVector::ForwardVector, FVector(1500, 300, 0)));
+			TestTrue(TEXT("A wall hit is a bounce"), IsTrailBounce(Bounce, FVector::ForwardVector, FVector(-1200, 600, 0)));
+			TestTrue(TEXT("A glancing hit past the angle is a bounce"), IsTrailBounce(Bounce, FVector::ForwardVector, FVector(1000, 500, 0)));
+			TestFalse(TEXT("A hop is not a bounce: only the ground travel counts"), IsTrailBounce(Bounce, FVector::ForwardVector, FVector(1500, 0, 900)));
+			TestFalse(TEXT("A stopped ball has not bounced"), IsTrailBounce(Bounce, FVector::ForwardVector, FVector::ZeroVector));
+			TestFalse(TEXT("No previous direction, no bounce"), IsTrailBounce(Bounce, FVector::ZeroVector, FVector(1500, 0, 0)));
+			{
+				// One path that bends at the bounce: the old leg starts at the bounce point and is used up as the ball travels on.
+				const FVector BouncePoint(3000, 2000, 160);
+				FTransform Leg;
+				float LegAspect = 0;
+				FVector2f LegPath;
+				const double LegWidth = 320 * Bounce.TrailWidthDiameterFraction;
+				TestTrue(TEXT("An old leg is drawn while the trail is longer than the new leg"),
+					TrailPathSegmentQuad(Bounce, BouncePoint, FVector(-1, 0, 0), 160.f, 100., 450., Leg, LegAspect, LegPath));
+				TestTrue(TEXT("The old leg starts at the bounce point and holds what is left of the trail"), Leg.GetLocation().Equals(BouncePoint - FVector(175, 0, 0), .01)
+					&& Leg.GetScale3D().Equals(FVector(LegWidth * .01, 3.5, 1), .001) && Leg.GetUnitAxis(EAxis::Y).Equals(-FVector::ForwardVector, .001));
+				TestEqual(TEXT("The old leg carries on where the new leg stops"), LegPath.X, float(100 / (.5 * LegWidth)), .001f);
+				TestEqual(TEXT("Both legs share the whole trail's length"), LegPath.Y, float(450 / (.5 * LegWidth)), .001f);
+				TestFalse(TEXT("The old leg is gone once the ball has travelled the trail's length"),
+					TrailPathSegmentQuad(Bounce, BouncePoint, FVector(-1, 0, 0), 160.f, 450., 450., Leg, LegAspect, LegPath));
+				TestEqual(TEXT("Trail length follows the speed"), TrailLength(Bounce, 160.f, FVector(1500, 0, 0)), Length, .001);
+				TestTrue(TEXT("A crawling ball has no trail length"), TrailLength(Bounce, 160.f, FVector(Bounce.TrailWedgeMinSpeed * .5, 0, 0)) < 0);
+				FTransform Blended;
+				float BlendedAspect = 0;
+				TestTrue(TEXT("A blended length replaces the speed's length"), TrailWedgeQuad(Bounce, Centre, 160.f, FVector(1500, 0, 0), Blended, BlendedAspect, nullptr, -1., 700.)
+					&& FMath::IsNearlyEqual(Blended.GetScale3D().Y, 7., .001));
+			}
+			TestEqual(TEXT("Just left behind is whole"), TrailFade(0.f, .4f), 1.f, .0001f);
+			TestEqual(TEXT("Half way is half dissolved"), TrailFade(.2f, .4f), .5f, .0001f);
+			TestEqual(TEXT("Past its time it is gone"), TrailFade(1.f, .4f), 0.f, .0001f);
+			TestEqual(TEXT("No duration means gone at once"), TrailFade(0.f, 0.f), 0.f, .0001f);
+			FString BounceError;
+			Bounce.TrailWedgeMaterial = FSoftObjectPath(TEXT("/Game/Assets/FX/Materials/MI_FX_BallTrailComet.MI_FX_BallTrailComet"));
+			Bounce.TrailWedgeMesh = FSoftObjectPath(TEXT("/Engine/BasicShapes/Plane.Plane"));
+			TestTrue(TEXT("Default dissolve settings are valid"), Bounce.Validate(BounceError));
+			Bounce.TrailFadeSeconds = -1; TestFalse(TEXT("A negative dissolve time is rejected"), Bounce.Validate(BounceError));
+		}
+		{
+			// Flame shell: an ellipsoid round the ball, long axis along the ground travel, so the flame wraps the ball in height too.
+			FHALBallComicFXConfig ShellConfig;
+			FTransform Shell;
+			TestTrue(TEXT("A fast ball has a shell"), TrailShellTransform(ShellConfig, Centre, 160.f, FVector(0, 1500, -400), Shell));
+			const double Front = 160 * ShellConfig.TrailShellFrontRadii, Back = 160 * ShellConfig.TrailShellBackRadii, Side = 160 * ShellConfig.TrailShellSideRadii;
+			TestTrue(TEXT("Shell points along the ground travel and stays upright"), Shell.GetUnitAxis(EAxis::X).Equals(FVector::RightVector, .001)
+				&& Shell.GetUnitAxis(EAxis::Z).Equals(FVector::UpVector, .001));
+			TestTrue(TEXT("Shell reaches the configured tips"), Shell.GetLocation().Equals(Centre + FVector(0, .5 * (Front - Back), 0), .01)
+				&& Shell.GetScale3D().Equals(FVector((Front + Back) * .01, Side * .02, Side * .02), .001));
+			TestTrue(TEXT("Shell is as tall as it is wide: it wraps the ball in height"), FMath::IsNearlyEqual(Shell.GetScale3D().Y, Shell.GetScale3D().Z, .0001) && Side > 160);
+			TestFalse(TEXT("A crawling ball has no shell"), TrailShellTransform(ShellConfig, Centre, 160.f, FVector(ShellConfig.TrailWedgeMinSpeed * .5, 0, 0), Shell));
+			TestFalse(TEXT("A ball dropping straight down has no shell"), TrailShellTransform(ShellConfig, Centre, 160.f, FVector(0, 0, -3000), Shell));
+			FString ShellError;
+			ShellConfig.TrailShellMaterial = FSoftObjectPath(TEXT("/Game/Assets/FX/Materials/MI_FX_BallFlameShell.MI_FX_BallFlameShell"));
+			TestFalse(TEXT("A shell needs its sphere mesh"), ShellConfig.Validate(ShellError));
+			ShellConfig.TrailShellMesh = FSoftObjectPath(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+			TestTrue(TEXT("Shell alone is a valid configuration"), ShellConfig.Validate(ShellError));
+			ShellConfig.TrailShellSideRadii = 1; TestFalse(TEXT("A shell no bigger than the ball is rejected"), ShellConfig.Validate(ShellError));
+		}
 		TestTrue(TEXT("A very fast ball stops at the longest triangle"), TrailWedgeQuad(Wedge, Centre, 160.f, FVector(0, 90000, 0), Quad, Aspect)
 			&& FMath::IsNearlyEqual(Quad.GetScale3D().Y, 320 * Wedge.TrailWedgeMaxLengthDiameters * .01, .001) && Quad.GetUnitAxis(EAxis::Y).Equals(-FVector::RightVector, .001));
 		TestTrue(TEXT("A falling ball is measured along the ground only"), TrailWedgeQuad(Wedge, Centre, 160.f, FVector(1500, 0, -5000), Quad, Aspect)

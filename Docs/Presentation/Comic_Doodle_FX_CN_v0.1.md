@@ -8,7 +8,7 @@
 | 代號 | 效果 | 觸發（全部讀已複製狀態） | 落點 |
 |---|---|---|---|
 | S0 | 車對車漫畫火花 | 既有 Impact Burst 事件的 `Sparks` | `NS_VehicleImpactSparks`＋`M_FX_ComicSpark` |
-| P1 | 危險球三角形尾跡（2026-11-24 起預設，見 §3.0；脈衝環見 §3） | 球 `Launched` | `UHALBallComicFXComponent`＋`NS_BallInkTrail` |
+| P1 | 危險球彗星尾跡（2026-11-27 起預設，見 §3.00；三角形見 §3.0、脈衝環見 §3） | 球 `Launched` | `UHALBallComicFXComponent`＋`NS_BallInkTrail` |
 | P3 | 持球瞄準塗鴉箭頭 | 球 `Controlled`＋`Holder` | `UHALBallComicFXComponent`＋`MI_FX_BallAimArrow` |
 | H1 | 持球環（球上軌道環＋車頂雙環星芒，取代磁力束弧線；見 §4.1） | 球 `Controlled`＋`Holder` | `UHALBallComicFXComponent`＋`MI_FX_BallHoldRing_Ball／_Roof` |
 | P4 | 眩暈漫畫星星 | 車輛 ASC 的 `State.Stun` 標籤 | `UHALVehicleDoodleStatusComponent`＋`MI_FX_DoodleStatus_Stun` |
@@ -96,7 +96,48 @@ P2 出局理由：`ColorMode==Source` 只代表「有身份色的發起者、非
 
 ---
 
-## 3.0 P1 危險球三角形尾跡（2026-11-24，現行預設；脈衝環保留為可選樣式）
+## 3.00 P1 危險球彗星尾跡（2026-11-27，現行預設；三角形與脈衝環保留為可選樣式）
+
+> **改版原因**：團隊提供參考圖，要求把拖影改成「彗星火焰」的感覺，之後逐輪回饋：要包住球的前端 → 高度方向也要包住 → 消失太突然要有消散、反彈要留下軌跡、整體太強要收斂 → 反彈時新舊兩段要連成一條。下面 §3.0 的三角形材質與 §3 的脈衝環都保留；`DefaultGame.ini` 的 `TrailWedgeMaterial` 改指定 `MI_FX_BallTrailComet`，並新增指定 `TrailShellMaterial`。
+
+**組成**（都只在球 `Launched` 時出現，顏色取發射者身份色，只有白熱核心固定為白）：
+
+- **拖尾**：沿用三角形的水平平面（引擎 Plane，`HALBallComicFX::TrailWedgeQuad`），材質 `MI_FX_BallTrailComet`（來源 `Tools/ComicDoodle/BallTrailComet.hlsl`）。由內而外是白熱核心、淡色帶、身份色火焰，邊緣是往尾端流動的火舌；主體之後接幾道斷續的細流線；靠球的一段兩側有每秒重畫 12 次的鋸齒閃電。
+- **火焰殼**：一顆沿地面行進方向拉長的橢球（引擎 Sphere，`HALBallComicFX::TrailShellTransform`），材質 `MI_FX_BallFlameShell`（`BallFlameShell.hlsl`，單面）。正對鏡頭處透明所以看得到球，沿輪廓燃燒，由球往外是白熱、淡色、身份色。殼的高度與寬度相同，所以任何鏡頭角度下球的上下左右都被包住。平面無法做到這點：它貼在球心高度，鏡頭一傾斜球的上半部就露出來。
+
+**長度與尺寸**（`DefaultGame.ini`，Project Settings → Ball Comic FX）：
+
+| 設定 | 值 | 說明 |
+|---|---|---|
+| `TrailWedgeLengthSeconds` | 0.5 | 尾巴長度＝地面速度 × 此值 |
+| `TrailWedgeMinLengthDiameters`／`Max` | 1.5／4.0 | 長度上下限（球徑）。實測主球外觀半徑約 115 cm |
+| `TrailWidthDiameterFraction` | 1.4 | 平面寬度（球徑） |
+| `TrailWedgeStartRadiusFraction` | 0.3 | 平面起點在球心後方（球半徑），埋在火焰殼內 |
+| `TrailWedgeLeadRadiusFraction` | 0 | 平面往球前方延伸的量；火焰殼出現前用來畫平面版的前端包覆，現由殼負責 |
+| `TrailShellFrontRadii`／`Back`／`Side` | 1.2／2.4／1.3 | 殼的前端、後端、側邊（球半徑，皆須大於 1） |
+| `TrailFadeSeconds` | 0.3 | 結束時原地消散的時間；需 `bCutTrailImmediately=False`（現值） |
+| `TrailBounceAngleDegrees` | 20 | 一幀內地面行進方向轉超過此角度視為反彈 |
+| `TrailLengthBlendSpeed` | 6 | 尾巴長度跟上球速的快慢（每秒）；牆會瞬間吃掉球速，沒有它整條尾巴會在反彈那一幀突然變短 |
+| `TrailGhostMax` | 4 | 一顆球同時留在場上的離體片段上限（反彈舊段＋消散中的片段） |
+
+**材質由 C++ 寫入的參數**：`FX_Color`（發射時一次）、`FX_Aspect`（平面長寬比）、`FX_Ball`（球在平面上的中心與半徑，單位為平面半寬）、`FX_Path`（R＝此平面前緣在路徑上距球多遠，G＝整條尾巴長度）、`FX_Fade`（1 為現役，消散時降到 0）。其餘亮度、白芯比例、閃電出現率（`FX_SparkChance` 0.4）等都在兩個材質實例上調。
+
+**消散**：離開 `Launched`、或地面速度低於 `TrailWedgeMinSpeed` 時，現役平面複製成一個留在原地的片段，火焰殼也凍結在原地，兩者以 `FX_Fade` 燒掉（核心先熄、火焰變細成流線、最後淡出）。片段不跟著球，所以不會讓已無害的球看起來仍是危險球。同一次更新內重新發射（合併的 `Launched(A)→Launched(B)`）時現役部分仍立即切換。
+
+**反彈**：整條尾巴視為一條在反彈點彎折的路徑。
+
+- 判定純在表現層：`HALBallComicFX::IsTrailBounce` 比較上一幀與這一幀的地面行進方向，客戶端用同步的球速度做同樣的判斷，不新增網路資料、不讀碰撞事件。
+- 球所在的新段是尾巴的「前半截」，長度不超過反彈後實際走過的距離，因此剛好在反彈點切齊；舊段從反彈點沿舊方向畫「後半截」（`HALBallComicFX::TrailPathSegmentQuad`）。材質以 `FX_Path` 把兩段接成同一條：熱度、收窄、火舌與流線都以「沿路徑距球多遠」計算，接點兩側數值相同，接點處不做邊緣淡出。
+- 球繼續前進時新段變長、舊段由最遠端收短，走完一條尾巴的長度後舊段自然消失；舊段不計時淡出。發射瞬間也是同樣由零長出。
+- 歷程：第一版把舊拖尾凍結成獨立殘影並計時燒掉、新拖尾是一顆縮小的完整彗星從零長出，兩段粗細亮度在接點對不上，團隊回報「像斷裂而不是一條連續的反彈軌跡」，故改為現行做法並移除 `TrailBounceGhostSeconds`。
+
+**強度收斂（團隊回報初版太強）**：拖尾 `FX_CoreGain` 2.0→1.15、`FX_FillGain` 1.4→1.05、`FX_Opacity` 0.9→0.75、白芯門檻 `FX_CoreLevel` 0.62→0.74、光暈 `FX_AuraStrength` 0.35→0.18、閃電長度 `FX_SparkReach` 0.6→0.35 並變細；平面寬度 1.8→1.4 球徑、最長 5→4 球徑；火焰殼 `FX_Opacity` 0.9→0.7、側邊 1.6→1.3 球半徑、白熱帶 `FX_CoreBand` 0.1→0.05。
+
+**資產產生**：`Tools/ComicDoodle/CreateComicDoodleAssets.py` 新增 `COMET` 與 `SHELL` 區段（在開著的 Editor 內以區段名執行，或關閉 Editor 後無頭執行）。火焰殼的 `FX_BallX`(0.333) 必須等於 `(Back − Front) ／ (Back + Front)`，改殼的前後尺寸時要一起改並重跑 `SHELL`。
+
+**已驗證**：`BuildAndLaunch.cmd -NoLaunch -NoPopup` 編譯；無頭 `HAL.FutureCreation` 299/299；單機 PIE 慢動作截圖（`Saved/Screenshots/WindowsEditor/comet_*.png`，不入版控）看到火焰殼包住球並接長拖尾、斜撞牆後舊軌跡原地消散、以強制改變球速方向模擬的反彈中舊段接在反彈點並隨球前進收短。**未驗證**：真實撞牆的高速反彈沒有拍到乾淨畫面（測試圖的牆會把球速吃到很低，反彈後很快低於速度門檻）；正常鏡頭與正常幀率下的觀感、連續多次反彈、斜向發射、雙端／多人、Cook 都未看；截圖時測試圖的電球機關（`NS_LightningNova`）曾擋住畫面，後段截圖在 PIE 內暫時隱藏它，未改動關卡。
+
+## 3.0 P1 危險球三角形尾跡（2026-11-24；2026-11-27 起由 §3.00 彗星尾跡取代為預設，保留為可選樣式）
 
 > **改版原因**：團隊要求把連續圓環改成「簡單的三角形拖影」。下面 §3 的脈衝環資產、Niagara 系統與程式路徑都保留，只是 `DefaultGame.ini` 不再指定 `TrailSystem`；兩種樣式是兩個獨立欄位，可各自開關或並存。
 
