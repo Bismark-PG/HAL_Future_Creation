@@ -8,6 +8,10 @@ bool FHALBallComicFXConfig::Validate(FString& Error) const
 {
 	Error.Reset();
 	if (!bEnabled) { return true; }
+	if (bElectricChargeHint && (!FMath::IsFinite(ElectricChargeHintSizeRadiusFraction) || ElectricChargeHintSizeRadiusFraction<.1f
+		|| ElectricChargeHintSizeRadiusFraction>2 || !FMath::IsFinite(ElectricChargeHintLiftRadiusFraction)
+		|| ElectricChargeHintLiftRadiusFraction<0 || ElectricChargeHintLiftRadiusFraction>5))
+	{ Error=TEXT("Electric charge text size must be [.1,2] and screen-up offset [0,5] visible-ball radii."); return false; }
 	if (bTrail && !TrailSystem.IsNull())
 	{
 		if (TrailColorParameter.IsNone() || TrailWidthParameter.IsNone())

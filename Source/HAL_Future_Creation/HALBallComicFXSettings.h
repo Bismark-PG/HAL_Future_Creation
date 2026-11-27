@@ -16,6 +16,14 @@ struct HAL_FUTURE_CREATION_API FHALBallComicFXConfig
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, Category="Ball Comic FX") bool bEnabled = true;
 
+	/** Asset-free on-ball charge label. Uses the drawn ball size, not just the collision sphere. */
+	UPROPERTY(EditAnywhere, Category="Electric Charge") bool bElectricChargeHint = true;
+	UPROPERTY(EditAnywhere, Category="Electric Charge") FColor ElectricChargeHintColor = FColor(40,190,255);
+	/** Text height relative to the visible ball radius. */
+	UPROPERTY(EditAnywhere, Category="Electric Charge", meta=(ClampMin="0.1",ClampMax="2")) float ElectricChargeHintSizeRadiusFraction = .4f;
+	/** Offset up the screen from the drawn ball centre, in visible ball radii. */
+	UPROPERTY(EditAnywhere, Category="Electric Charge", meta=(ClampMin="0",ClampMax="5")) float ElectricChargeHintLiftRadiusFraction = 1.4f;
+
 	/** Ink trail behind a Launched ball, painted in the launcher's colour. Free and Controlled balls never trail. */
 	UPROPERTY(EditAnywhere, Category="Ink Trail") bool bTrail = true;
 	/** Triangle trail: unlit translucent material drawn on Trail Wedge Mesh, a level quad behind the ball stretched along its

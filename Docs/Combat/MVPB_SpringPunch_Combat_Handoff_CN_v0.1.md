@@ -1,5 +1,19 @@
 # 弹簧拳：战斗与联机接入交接注意事项（v0.1）
 
+## 2026-11-27 出拳期間只取消玩家車輛實體碰撞
+
+用戶確認：Extending 期間玩家車輛不與拳頭實體互推，傷害與擊退仍由既有 Sweep → CombatResolver → 物理動作結算，每拳每目標一次；球保留原有實體碰撞與移動拳頭補推。Retracting、Idle、Windup、Cooldown 恢復原車輛阻擋，底座保持原配置。
+
+球與車輛目前都使用 PhysicsBody，因此不能關閉 HitBox 或直接 Ignore PhysicsBody。新增專用物件通道 `SpringPunchExtension`（ECC_GameTraceChannel1，預設 Block）；僅玩家車輛 ATestVehiclePawn 在 PostInitializeComponents 對該通道設 Ignore，兼容已保存的車輛藍圖。拳頭在每次移動前依目前階段切換物件通道：出拳用專用通道，其他階段用原 WorldDynamic。伺服器使用權威階段，客戶端由既有 Cycle／Motion 時間表還原階段，無須等每次邊界通知。HitBox 保持 PhysicsOnly、阻擋 PhysicsBody，球的碰撞通道及攻擊掃描不變。沒有新增 Tick、RPC、複製欄位或藍圖修改。
+
+需要同步 Config 與程式並重開兩端遊戲。專用通道已占用 GameTraceChannel1，後續新增碰撞通道時需保留此用途。被動測試車不屬此次玩家車輛排除範圍。
+
+本機 main/b75ef7f，開工乾淨，UE5.8.2-56702186。統一入口 `BuildAndLaunch.cmd -NoLaunch -NoPopup` 最終增量編譯通過，6 actions／28.81秒，留有其他檔案既有 C4305 警告，見 `Saved/BuildTool/BuildAndLaunch_20261127_161644_296_7c2e88`。原生最終 `Native_R2` 2/2，新增玩家排除／球阻擋／收拳恢復斷言；真實 Listen Server `Network_R3` 主客各1/1，驗證兩份原生／保存BP拳頭逐階段車輛碰撞篩選、雙車各25傷害／Medium、丟棄邊界通知後仍正確運動，以及球被待機拳阻擋與被移動拳推開。三份最終報告均0測試警告／失敗／未運行／進行中，位於 `Saved/SpringPunch/20261127`。NullRHI、60FPS上限、同機Host出站注入80ms，不代表真人畫面或實測RTT。
+
+首輪原生1/2：隔離測試世界未呼叫玩家 PostInitializeComponents，已按正常生命週期補上後重驗；生產設定未因此改動。Network_R1主客各1/1；增加碰撞斷言後與原生並行的Network_R2雙端超時，HP75／Medium與出收拳已觀察到，但尚未進Cooldown；日誌顯示後段幀推進極慢，未證實根因。保留失敗報告，無程式／斷言變更，單獨重跑Network_R3通過。沒有重跑全量、獨立Game Target、Cook或四機；未編輯保存資產、未提交／Push。
+
+團隊畫面驗收請在低速／高速／側向及斜向接觸下確認出拳只結算一次擊退、球仍反彈，並測試車輛停在拳路上時從出拳轉收拳的阻擋恢復、持球脫球及衝擊免疫。兩端須使用相同程式與 Config。
+
 ## 2026-10-29：完整循环同步与丢包验证
 
 团队真人反馈不稳网络下整拳漏播／延迟。上一版只保证当前拳的预告已抵达后可跨边界播放，预告本身缺失仍可能跳过整拳；本轮经用户授权升级为持久`FSpringPunchCycle`复制属性。

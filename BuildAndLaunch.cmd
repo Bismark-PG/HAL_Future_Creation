@@ -21,6 +21,7 @@ param(
     [switch]$NoLaunch,
     [switch]$NoPopup,
     [switch]$Rebuild,
+    [switch]$ShowAllWarnings,
     [switch]$Pause,
     [ValidateRange(0, 30)][int]$LaunchWaitSeconds = 5
 )
@@ -91,12 +92,41 @@ function Find-EditorTarget([string]$Root, [string]$ProjectName, [string]$Request
 function Invoke-UnrealBuild([string]$Entry, [string[]]$Arguments) {
     # PowerShell 5.1 must not turn native stderr warnings into a terminating error.
     $previousPreference = $ErrorActionPreference
+    $suppressed = New-Object 'System.Collections.Generic.List[string]'
+    $suppressedWarningCount = 0
+    $suppressContext = $false
     try {
         $ErrorActionPreference = 'Continue'
         $global:LASTEXITCODE = $null
-        & $Entry @Arguments 2>&1 | Out-Host
+        & $Entry @Arguments 2>&1 | ForEach-Object {
+            # Render native stderr as text, not PowerShell NativeCommandError records.
+            foreach ($line in ([string]$_ -split '\r?\n')) {
+                if (-not $ShowAllWarnings -and $line -match '(?i)^\s*(?:.+\(\d+(?:,\d+)?\)\s*:\s*)?warning\s+C4305\s*:') {
+                    $suppressed.Add($line)
+                    $suppressedWarningCount++
+                    $suppressContext = $true
+                    continue
+                }
+                if ($suppressContext -and $line -match '^\s' -and $line -notmatch '(?i)\b(?:error|warning)\b(?:\s|:)') {
+                    $suppressed.Add($line)
+                    continue
+                }
+                $suppressContext = $false
+                Write-Host $line
+            }
+        }
         if ($null -eq $LASTEXITCODE) { throw 'The Unreal build tool did not return an exit code.' }
-        return [int]$LASTEXITCODE
+        $nativeExitCode = [int]$LASTEXITCODE
+        if ($suppressedWarningCount -gt 0) {
+            if ($nativeExitCode -ne 0) {
+                Write-Host "Build failed; showing $suppressedWarningCount suppressed C4305 warning(s):"
+                foreach ($line in $suppressed) { Write-Host $line }
+            }
+            else {
+                Write-Host "Suppressed $suppressedWarningCount C4305 warning(s). Full diagnostics remain in the UBT log; use -ShowAllWarnings to display them."
+            }
+        }
+        return $nativeExitCode
     }
     finally { $ErrorActionPreference = $previousPreference }
 }

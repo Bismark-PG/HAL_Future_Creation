@@ -12,3 +12,12 @@ class HAL_FUTURE_CREATION_API UHALApplyDamageEffect : public UGameplayEffect
 public:
 	UHALApplyDamageEffect();
 };
+
+/** Charged-ball hit result; retains the common HP modifier and attribution pipeline. */
+UCLASS()
+class HAL_FUTURE_CREATION_API UHALApplyElectrifiedBallDamageEffect : public UHALApplyDamageEffect
+{
+	GENERATED_BODY()
+public:
+	UHALApplyElectrifiedBallDamageEffect();
+};

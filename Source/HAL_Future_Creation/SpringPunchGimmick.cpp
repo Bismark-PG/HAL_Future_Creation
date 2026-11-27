@@ -443,6 +443,12 @@ void ASpringPunchGimmick::AdvanceState()
 
 void ASpringPunchGimmick::MovePunchPivot(const FVector& Location)
 {
+	const ECollisionChannel ObjectType = CurrentState == ESpringPunchState::Extending
+		? ExtensionCollisionChannel : ECC_WorldDynamic;
+	if (HitBox->GetCollisionObjectType() != ObjectType)
+	{
+		HitBox->SetCollisionObjectType(ObjectType);
+	}
 	const FVector Start = HitBox->GetComponentLocation();
 	PunchPivot->SetRelativeLocation(Location);
 	if (!HasAuthority() || GetNetMode() == NM_Client
@@ -501,6 +507,10 @@ void ASpringPunchGimmick::UpdatePunchVisual()
 	}
 	if (GetNetMode() == NM_Client && Phase.Motion.bValid)
 	{
+		const double Elapsed = GetPhaseTime() - Phase.Motion.StartsAt;
+		CurrentState = Elapsed < 0 ? ESpringPunchState::Windup
+			: Elapsed < Phase.Motion.ExtendSeconds ? ESpringPunchState::Extending
+			: ESpringPunchState::Retracting;
 		MovePunchPivot(RetractedRelativeLocation
 			+ FVector(Phase.Motion.EvaluateOffset(GetPhaseTime(), Phase.Distance), 0, 0));
 		return;

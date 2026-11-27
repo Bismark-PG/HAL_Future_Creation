@@ -39,6 +39,7 @@ class UHALImpactReceiverComponent;
 class UHALMovementEffectBridge;
 class UHALAbilitySystemComponent;
 class UHALMovementAreaReceiver;
+class UHALHealingAreaReceiver;
 class UHALVehiclePresentationComponent;
 class UHALVehicleStatusFXComponent;
 class UHALDamageFeedbackComponent;
@@ -202,6 +203,8 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category="Vehicle|Components")
 	TObjectPtr<UHALMovementAreaReceiver> MovementAreaReceiver;
+	UPROPERTY(VisibleAnywhere, Category="Vehicle|Components")
+	TObjectPtr<UHALHealingAreaReceiver> HealingAreaReceiver;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Components")
 	TObjectPtr<USpringArmComponent> CameraBoom;

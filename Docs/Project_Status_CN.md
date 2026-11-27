@@ -1,5 +1,23 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-27　键鼠／Xbox 输入提示 C++ 已完成，MatchHUD 已嵌入占位 WBP。** 拉取前 UE 5.8.3 Editor 编译、InputHints 3/3 和 UIIntegration 13/13 通过；拉取后尚未复编。下一步验收实际输入切换与独立窗口图标清晰度，DPI 原因尚未确认。[接入与验证](Presentation/Match_Countdown_HUD_CN.md#input-hints-20261127)
+
+**2026-11-27　构建工具默认汇总 C4305 警告。** 支持 `-ShowAllWarnings`，完整 UBT 日志保留；脚本夹具 25/25 通过，未另做 Unreal 编译。[用法与验证](Configuration/Build_Editor_Tool_CN.md#2026-11-27收起重复的浮点警告)
+
+**2026-11-27 火箭拳出拳期間取消玩家車輛實體碰撞，球維持原碰撞。** 用戶確認僅Extending用Sweep／統一Combat擊退，收拳／待機恢復車輛阻擋。新增SpringPunchExtension物件通道（GameTraceChannel1，預設Block），玩家車在PostInitialize設Ignore；拳頭按主機階段／Client既有時程切換物件通道，保留球PhysicsBody阻擋及補推。無新Tick／RPC／複製欄位或保存資產修改。main/b75ef7f、UE5.8.2-56702186，統一Editor入口最終成功，原生2/2及雙端主客各1/1最終報告均0測試警告／失敗／未運行／進行中。雙端驗證逐階段碰撞篩選、兩車各25傷害／Medium及球阻擋／推動。首輪原生缺少初始化及與原生並行時雙端超時均保留，後者未證實根因，單獨原條件重跑通過；不能寫成所有執行皆成功。證據Saved/SpringPunch/20261127，最終編譯BuildAndLaunch_20261127_161644_296_7c2e88。NullRHI／Host出站80ms注入，不代表真人畫面／實測RTT；Game Target／全量／Cook／四機未重跑。下一步重開Editor確認出拳／收拳交界、持球與免疫手感，兩端同步Config；未提交／Push。見[規則、實作與驗證](Combat/MVPB_SpringPunch_Combat_Handoff_CN_v0.1.md#2026-11-27-出拳期間只取消玩家車輛實體碰撞)。
+
+**2026-11-27 帶電球增加藍色文字提示：程式、兩Target及4項回歸通過，實際畫面待確認。** 自動顯示`CHARGED +10`（實際加傷值），隨本機可見球位置／鏡頭，尺寸取可見半徑；持有／再發射保留帶電時繼續顯示，消耗即隱藏、退場回收。Project Settings→Game→Ball Comic FX→Comic→Electric Charge可調開關、色彩、字高比例0.4及畫面上移比例1.4；無須BP／美術接線。沿用既有表現Tick，沒有新增玩法Tick／Timer或複製欄位，Dedicated／NullRHI不建立文字。見[提示與調參](Combat/MVPB_Electric_Wall_CN_v0.1.md#2026-11-27-帶電球可見提示)。
+
+本機UE5.8.2，統一Editor入口成功（Saved/BuildTool/BuildAndLaunch_20261127_154911_284_451776），Game獨立目標NoLiveCoding／NoHotReload成功（HintGame_R1.log）。既有ComicDoodle三項＋帶電規則一項4/4，0測試警告／失敗；證據Saved/ElectricBall/20261127/Hint/Native_R1。此次未重跑全量／雙端／D3D畫面／Cook，不將前輪治療區失敗或前輪帶電雙端結果改寫為本次驗收。未編輯保存資產、未提交／Push，保留所有起始改動。下一步團隊開Editor確認球旁字體大小、對比、跟隨與命中消失。
+
+
+**2026-11-27 普通危險球穿電牆帶電：程式、兩Target與雙端專項完成，整合回歸仍有治療區用例失敗。** 接續 `main/69429df`，保留開工前治療區程式／文件、治療BP與Match地圖未提交改動。用戶確認只有普通Launched球可獲一層帶電，下一次有效車輛命中後消耗，重複穿牆不疊加；柱子、電球場與特殊球排除。電牆Config新增開關、額外傷害10HP與眩暈1秒；加傷經共同承傷倍率／免疫及GAS，觸電沿用Stun／shocked。球保持無ASC的可複製載荷，補球既有定時路徑Sweep與命中前補查，無新Tick／Timer；球上外觀提供事件／查詢，未新作美術。見[規則、調參與驗證](Combat/MVPB_Electric_Wall_CN_v0.1.md#2026-11-27-普通球穿電牆帶電最新規則)及[摘要JSON](Combat/Electric_Ball_Verification_20261127.json)。
+
+本機UE5.8.2-56702186，統一Editor入口編譯成功（最終BuildAndLaunch_20261127_153939_802_d4d085），Game_R2獨立目標成功。完整原生306項 **305通過／1失敗**（303乾淨＋2項既有警告）；新增帶電用例通過。失敗為起始治療區的ExpandingVehicleLifecycleAndDebugCommand，單獨重跑仍失敗，未修改或宣稱整合版全過。帶電雙端R3各角色1/1、0測試警告／失敗；實際雙向35傷害、兩球帶電／消耗Mask3、兩車觸電起止均確認。前輪夾具未遷移原生球、以Actor名稱配對客戶端失敗均保留，改用實際BP與複製PlayerId後通過，未放寬斷言。原始證據Saved/ElectricBall/20261127；NullRHI、本機Listen Server及Host出站80ms注入，不代替畫面／四機／Cook。專用測試已退出，使用者已存妥並授權結束原Editor／LiveCoding，未改保存資產／未提交／Push。下一步團隊重開Editor測電牆充電與目標車觸電畫面，治療區失敗另行處理。
+
+
+**2026-11-27 治療區每次回血 Debug Text：程式與回歸已補，編譯／執行仍受環境限制。** 接續 `main/69429df`，實際引擎5.8.2-56702186（不以團隊5.8.3紀錄代替本機驗證）。開啟治療區Debug Draw時，接收元件依自己GE造成的實際CurrentHP正差發一次綠色提示，車中心上方180cm、0.8秒，格式`+5.00 HP (60.00 / 100.00)`；98→100只+2，滿血／手動重設HP／獨立技能回血不發。多區只選一個Debug來源傳Unreliable NetMulticast，各端進HUD DebugTextList；Shipping不發送／繪製，無新Tick／傷害／回血規則。新增真實GAS週期＋HUD文字原生測試、擴充雙端文字檢查，腳本門檻18原生＋主客各1，**尚未執行通過**。本次diff檢查與腳本AST解析通過，統一Editor入口於Engine Build.bat Source前置檢查exit999，未進C++／UHT／連結；沒有PIE／畫面驗收。原有治療BP與Match未提交修改保留，前後SHA256一致，未編輯／保存資產、未提交／Push。下一入口正常終端統一構建後跑`Tools/TestHealingAreas.ps1`，再雙端確認+5／部分治療／滿血／重疊／出區。詳見[行為與接續](Combat/Expanding_Healing_Area_CN_v0.1.md#2026-11-27-每次回血的-debug-text)和[驗證記錄](Combat/Expanding_Healing_Area_Debug_Text_Verification_20261127.json)。
+
 **2026-11-27　Fever Mode 已接入正式比赛。** 末 90 秒，或至少三人开局后剩两人，服务器开启一次 Fever，胜负结算优先。开发与展演共用 `DA_MatchFever`，可分别调机关等待 ×0.75、特殊球间隔 ×0.75、自然回能 ×1.25。车手与观战者都能看到倒计时旁的状态提示。UE 5.8.3 的 Editor、Game 编译通过，自动化 36/36，本机双端三局和四进程车手／观战复测均通过。Windows Cook 零错误，保留既有 `WAITING` 文本警告。下一步由团队试玩三项倍率的组合手感。[调参、主机调试命令及验证记录](Configuration/Match_Fever_CN.md)
 
 **2026-11-26　场地黑洞与打滑区偏亮已定位。** 正式图固定曝光实拍中，关闭主光后，黑洞亮纹和绿色油面亮度基本一致，周围钢板明显变暗。两个机关都从材质自发光输出颜色。黑洞的 Debug Draw 还叠加紫色圆盘与箭头，关闭后旋臂之间的区域从 173 降至 138（0～255 色阶）。本轮为运行时诊断。[对照实拍与机关调参入口](Presentation/ArenaFloor_SatinMetal_CN.md#hazard-brightness-20261126)

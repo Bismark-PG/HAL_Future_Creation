@@ -23,6 +23,7 @@ if defined HAL_LAUNCHER_TEST_LOG_SOURCE if /i "%FixtureArgument:~0,5%"=="-Log=" 
 shift
 goto scanlog
 :build
+if defined HAL_LAUNCHER_TEST_LOG_SOURCE type "%HAL_LAUNCHER_TEST_LOG_SOURCE%"
 echo fixture native stderr 1>&2
 exit /b %HAL_LAUNCHER_TEST_BUILD_EXIT%
 :generate
@@ -45,7 +46,7 @@ $payloadFile = Join-Path $testRoot 'Payload.ps1'
 Write-FixtureFile $payloadFile $payload
 $driver = Join-Path $testRoot 'MockProcessDriver.ps1'
 Write-FixtureFile $driver @'
-param([string]$Payload, [string]$ProjectDirectory, [string]$EngineRoot, [switch]$CheckOnly, [switch]$NoLaunch)
+param([string]$Payload, [string]$ProjectDirectory, [string]$EngineRoot, [switch]$CheckOnly, [switch]$NoLaunch, [switch]$ShowAllWarnings)
 function Get-Process {
     if ($env:HAL_LAUNCHER_TEST_BLOCK) { [pscustomobject]@{ ProcessName = $env:HAL_LAUNCHER_TEST_BLOCK; Id = 99999 } }
 }
@@ -56,7 +57,7 @@ function Start-Process {
     Add-Member -InputObject $handle -MemberType ScriptMethod -Name WaitForExit -Value { param([int]$Milliseconds) return $this.Exited }
     return $handle
 }
-& $Payload -ProjectDirectory $ProjectDirectory -EngineRoot $EngineRoot -CheckOnly:$CheckOnly -NoLaunch:$NoLaunch -NoPopup
+& $Payload -ProjectDirectory $ProjectDirectory -EngineRoot $EngineRoot -CheckOnly:$CheckOnly -NoLaunch:$NoLaunch -ShowAllWarnings:$ShowAllWarnings -NoPopup
 exit $LASTEXITCODE
 '@
 $results = @()
@@ -73,7 +74,8 @@ Using Unreal Build Accelerator local executor to run 0 action(s)
 Total execution time: 1.68 seconds
 '@
 function Run-Case([string]$Name, [int]$ExpectedExit, [string[]]$Options = @(), [string]$Block = '', [switch]$MockLaunch, [switch]$ExistingSolution, [switch]$MissingTarget, [int]$BuildExit = 0, [int]$GenerateExit = 0, [switch]$EarlyExit,
-    [AllowNull()][string]$BuildLog = $incrementalLog, [string]$ExpectedBuildKind = 'Incremental', [Nullable[int]]$ExpectedActions = 3, [Nullable[double]]$ExpectedUbtSeconds = 12.5) {
+    [AllowNull()][string]$BuildLog = $incrementalLog, [string]$ExpectedBuildKind = 'Incremental', [Nullable[int]]$ExpectedActions = 3, [Nullable[double]]$ExpectedUbtSeconds = 12.5,
+    [string[]]$VisibleText = @(), [string[]]$HiddenText = @()) {
     $fixture = Join-Path $testRoot ($Name + ' ' + [char]0x4e2d + [char]0x6587 + ' & space')
     New-Item -ItemType Directory -Path $fixture -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $projectRoot 'BuildAndLaunch.cmd') -Destination (Join-Path $fixture 'BuildAndLaunch.cmd')
@@ -99,6 +101,7 @@ function Run-Case([string]$Name, [int]$ExpectedExit, [string[]]$Options = @(), [
             $driverOptions = @()
             if ($Options -contains '-CheckOnly') { $driverOptions += '-CheckOnly' }
             if ($Options -contains '-NoLaunch') { $driverOptions += '-NoLaunch' }
+            if ($Options -contains '-ShowAllWarnings') { $driverOptions += '-ShowAllWarnings' }
             $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $driver -Payload $payloadFile -ProjectDirectory $fixture -EngineRoot $engine @driverOptions 2>&1 | Out-String
         }
         else {
@@ -111,6 +114,13 @@ function Run-Case([string]$Name, [int]$ExpectedExit, [string[]]$Options = @(), [
     $trace = if (Test-Path -LiteralPath $env:HAL_LAUNCHER_TEST_TRACE) { Get-Content -LiteralPath $env:HAL_LAUNCHER_TEST_TRACE -Raw } else { '' }
     if ($actualExit -ne $ExpectedExit) { throw "$Name : expected $ExpectedExit, got $actualExit`n$output" }
     $isPreflight = $Options -contains '-CheckOnly' -or $Block -or $MissingTarget
+    foreach ($value in $VisibleText) {
+        if ($output -notmatch [regex]::Escape($value)) { throw "$Name : required diagnostic was hidden: $value" }
+    }
+    foreach ($value in $HiddenText) {
+        if ($output -match [regex]::Escape($value)) { throw "$Name : expected hidden diagnostic was displayed: $value" }
+    }
+    if ($output -match 'FullyQualifiedErrorId\s*:\s*NativeCommandError') { throw "$Name : native stderr was formatted as a PowerShell error" }
     if ($isPreflight -and (Test-Path -LiteralPath (Join-Path $fixture 'Saved'))) { throw "$Name : preflight wrote build logs" }
     if ($isPreflight -and $trace) { throw "$Name : preflight invoked a build or launch" }
     if (-not $isPreflight) {
@@ -118,6 +128,10 @@ function Run-Case([string]$Name, [int]$ExpectedExit, [string[]]$Options = @(), [
         if ($reports.Count -ne 1) { throw "$Name : expected one result report" }
         $report = Get-Content -LiteralPath $reports[0].FullName -Raw | ConvertFrom-Json
         if ($report.ExitCode -ne $ExpectedExit) { throw "$Name : report exit code differs" }
+        if ($GenerateExit -eq 0 -and $BuildLog) {
+            $nativeLog = Get-Content -LiteralPath (Join-Path $reports[0].DirectoryName 'UnrealBuildTool.log') -Raw
+            if ($nativeLog.TrimEnd() -ne $BuildLog.TrimEnd()) { throw "$Name : full UBT diagnostics were changed" }
+        }
         if (-not $MockLaunch -and $report.EditorProcessId) { throw "$Name : unexpectedly launched Editor" }
         if ($GenerateExit -ne 0 -and $trace -match 'CustomEditor') { throw "$Name : generation failure continued into build" }
         if ($GenerateExit -eq 0 -and $trace -notmatch 'CustomEditor Win64 Development') { throw "$Name : did not build the selected Editor Target" }
@@ -162,6 +176,31 @@ Run-Case 'UnknownLogFormat' 0 @('-NoLaunch') -BuildLog 'Build completed without 
 Run-Case 'FailedUpToDateLog' 6 -BuildExit 6 -BuildLog $upToDateLog -ExpectedActions 0 -ExpectedUbtSeconds 1.68
 Run-Case 'LaunchEarlyExitAfterUpToDateMock' 1 -MockLaunch -EarlyExit -BuildLog $upToDateLog -ExpectedBuildKind 'UpToDate' -ExpectedActions 0 -ExpectedUbtSeconds 1.68
 Run-Case 'RebuildWithoutStatistics' 0 @('-Rebuild', '-NoLaunch') -BuildLog $null -ExpectedActions $null -ExpectedUbtSeconds $null
+$floatWarningsLog = @'
+Fixture.cpp(12,8): warning C4305: truncation from double to float
+    SUPPRESSED_SOURCE_FRAGMENT
+              ^
+Fixture.cpp(13,8): warning C4305: another floating-point conversion
+    SECOND_SOURCE_FRAGMENT
+              ^
+Fixture.cpp(14,8): warning C4996: KEEP_OTHER_WARNING
+Using Unreal Build Accelerator local executor to run 3 action(s)
+Total execution time: 12.50 seconds
+'@
+Run-Case 'SuppressFloatWarnings' 0 @('-NoLaunch') -BuildLog $floatWarningsLog -VisibleText @('Suppressed 2 C4305 warning(s)', 'KEEP_OTHER_WARNING', 'fixture native stderr') -HiddenText @('warning C4305:', 'SUPPRESSED_SOURCE_FRAGMENT', 'SECOND_SOURCE_FRAGMENT')
+Run-Case 'ShowAllWarnings' 0 @('-NoLaunch', '-ShowAllWarnings') -BuildLog $floatWarningsLog -VisibleText @('warning C4305:', 'SUPPRESSED_SOURCE_FRAGMENT', 'KEEP_OTHER_WARNING') -HiddenText @('Suppressed 2 C4305')
+$failedFloatLog = $floatWarningsLog + [Environment]::NewLine + 'Fixture.cpp(15,1): error C2220: warning treated as error'
+Run-Case 'ReplayWarningsOnFailure' 6 -BuildExit 6 -BuildLog $failedFloatLog -VisibleText @('Build failed; showing 2 suppressed C4305', 'warning C4305:', 'SUPPRESSED_SOURCE_FRAGMENT', 'error C2220:')
+$floatErrorLog = @'
+Fixture.cpp(12,8): warning C4305: expected floating-point warning
+    HIDDEN_UNTIL_FAILURE
+    Fixture.cpp(13,8): error C4305: KEEP_PROMOTED_ERROR
+    LINK : fatal error LNK1104: KEEP_LINK_ERROR
+Fixture.h(40): Error: KEEP_UHT_ERROR FloatProperty
+Using Unreal Build Accelerator local executor to run 3 action(s)
+Total execution time: 12.50 seconds
+'@
+Run-Case 'PreserveRealErrors' 6 -BuildExit 6 -BuildLog $floatErrorLog -VisibleText @('error C4305: KEEP_PROMOTED_ERROR', 'fatal error LNK1104: KEEP_LINK_ERROR', 'Error: KEEP_UHT_ERROR FloatProperty')
 $results | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $testRoot 'Results.json') -Encoding UTF8
 $results | Format-Table -AutoSize
 Write-Host "Fixture reports: $testRoot"
