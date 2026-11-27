@@ -530,6 +530,13 @@ bool FHALSpringPunchCombatTest::RunTest(const FString& Parameters)
 		return FHitResult(Target, Body(Target), Target->GetActorLocation(), FVector::UpVector);
 	};
 	Punch->EnterState(ESpringPunchState::Extending);
+	TestEqual(TEXT("Extending fist uses vehicle-excluded channel"), Punch->HitBox->GetCollisionObjectType(), ASpringPunchGimmick::ExtensionCollisionChannel);
+	auto* PlayerProbe = F.World->SpawnActor<ATestVehiclePawn>();
+	// This isolated world does not route the normal component initialization lifecycle.
+	PlayerProbe->PostInitializeComponents();
+	TestEqual(TEXT("Player vehicle ignores extending fist"), Body(PlayerProbe)->GetCollisionResponseToChannel(ASpringPunchGimmick::ExtensionCollisionChannel), ECR_Ignore);
+	auto* ContactBall = F.World->SpawnActor<ABasicBallActor>();
+	TestEqual(TEXT("Ball still blocks extending fist"), Body(ContactBall)->GetCollisionResponseToChannel(ASpringPunchGimmick::ExtensionCollisionChannel), ECR_Block);
 	const FGuid FirstId = Punch->PunchAction.GetSnapshot().AttackId;
 	const auto First = Punch->ResolvePunchHit(Hit(A));
 	TestTrue(TEXT("Fixed damage and authored impact accepted"), First.bHitAccepted && First.bImpactApplied);
@@ -539,6 +546,8 @@ bool FHALSpringPunchCombatTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Same punch repeated callback rejected"), Punch->ResolvePunchHit(Hit(A)).RejectReason, EHALHitRejectReason::Duplicate);
 	TestTrue(TEXT("Same punch accepts second target"), Punch->ResolvePunchHit(Hit(B)).bHitAccepted);
 	Punch->EnterState(ESpringPunchState::Retracting);
+	TestEqual(TEXT("Returning fist restores normal object channel"), Punch->HitBox->GetCollisionObjectType(), ECC_WorldDynamic);
+	TestEqual(TEXT("Player vehicle blocks returning fist"), Body(PlayerProbe)->GetCollisionResponseToChannel(ECC_WorldDynamic), ECR_Block);
 	TestFalse(TEXT("Retracting cannot deal damage"), Punch->ResolvePunchHit(Hit(A)).bHitAccepted);
 	TestFalse(TEXT("Phase end closes action"), Punch->PunchAction.IsActive());
 	Punch->EnterState(ESpringPunchState::Extending);

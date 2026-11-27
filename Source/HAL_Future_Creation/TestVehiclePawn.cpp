@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "TestVehiclePawn.h"
+#include "SpringPunchGimmick.h"
 #include "HALBatarang.h"
 #include "HALBatarangAbility.h"
 #include "Net/UnrealNetwork.h"
@@ -1001,6 +1002,8 @@ void ATestVehiclePawn::PreInitializeComponents()
 void ATestVehiclePawn::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
+	// Keep ball contact on the fist while extension hits use the combat impulse only.
+	CollisionRoot->SetCollisionResponseToChannel(ASpringPunchGimmick::ExtensionCollisionChannel, ECR_Ignore);
 	const bool bHasSettings = NetworkPhysicsSettings && NetworkPhysicsSettings->SettingsDataAsset
 		&& GetNetMode() != NM_Standalone && !AHALVehicleTestGameMode::IsTestWorld(GetWorld());
 	if (bHasSettings && !UPhysicsSettings::Get()->PhysicsPrediction.bEnablePhysicsPrediction)

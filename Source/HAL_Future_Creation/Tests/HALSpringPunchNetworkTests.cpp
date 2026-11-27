@@ -10,6 +10,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/BoxComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -178,6 +179,17 @@ public:
 		for (TActorIterator<ASpringPunchGimmick> It(World); It; ++It)
 		{
 			if (!Cast<ATestVehiclePawn>(It->GetOwner())) { continue; }
+			const bool bExtending = It->CurrentState == ESpringPunchState::Extending;
+			const auto* VehicleBody = CastChecked<UPrimitiveComponent>(It->GetOwner()->GetRootComponent());
+			const ECollisionChannel ExpectedChannel = bExtending
+				? ASpringPunchGimmick::ExtensionCollisionChannel : ECC_WorldDynamic;
+			if (It->HitBox->GetCollisionObjectType() != ExpectedChannel
+				|| VehicleBody->GetCollisionResponseToChannel(ExpectedChannel) != (bExtending ? ECR_Ignore : ECR_Block)
+				|| It->HitBox->GetCollisionResponseToChannel(ECC_PhysicsBody) != ECR_Block)
+			{
+				Test->AddError(TEXT("Fist must exclude player contact only during extension and retain ball contact"));
+				return true;
+			}
 			++Count;
 			if (bCycleTest && It->Cycle.bValid)
 			{

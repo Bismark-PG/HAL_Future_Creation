@@ -77,6 +77,8 @@ class HAL_FUTURE_CREATION_API ASpringPunchGimmick : public AActor
 	GENERATED_BODY()
 	
 public:	
+	// DefaultEngine.ini registers this channel with Block as its default response.
+	static constexpr ECollisionChannel ExtensionCollisionChannel = ECC_GameTraceChannel1;
 	// このアクターのプロパティに初期値を設定する。
 	ASpringPunchGimmick();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
