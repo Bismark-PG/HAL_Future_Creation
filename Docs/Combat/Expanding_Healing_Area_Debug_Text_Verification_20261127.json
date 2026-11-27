@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-27",
+  "base_commit": "69429df",
+  "engine": "5.8.2-56702186",
+  "feature": "Per-pulse actual healing debug text gated by active area Debug Draw",
+  "behavior": {
+    "amount": "Actual positive CurrentHP delta from receiver-owned healing GE; excludes independent healing and base HP edits",
+    "overlap": "One debug-enabled area broadcaster per pulse",
+    "display": "Green +amount HP (current / max), 180cm above Avatar center, 0.8 seconds",
+    "network": "Authority-only event via Unreliable NetMulticast; local HUD debug list on host/client; no shipping event traffic",
+    "gameplay_changes": false,
+    "new_tick": false
+  },
+  "checks": {
+    "git_diff_check": "passed",
+    "test_runner_powershell_ast": "passed",
+    "build": "Blocked before C++/UHT/linking; Engine Build.bat Source preflight failed with exit 999",
+    "build_entry": "BuildAndLaunch.cmd -NoLaunch -NoPopup",
+    "build_logs": "Saved/BuildTool/BuildAndLaunch_20261127_150419_466_a29cdf",
+    "native": "New real GAS timer / HUD text regression authored, not run; suite minimum now 18",
+    "network": "Existing paired healing test extended to inspect client HUD debug text, not run",
+    "editor_pie_visual": "not run"
+  },
+  "preserved_existing_user_assets": {
+    "Content/Blueprints/MapMechanic/BP_ExpandingHealingArea.uasset": "7A80429DCFE4117B6B3AE2BBB641EF754F9FBD0BD826DDE1D8B48C60E8A9EB37",
+    "Content/Maps/MVPB_Match.umap": "BAEBDEA2E3611862452F85A552D57607C822636062F1E5863F2BC90C64D698C8"
+  },
+  "next": "Use normal team terminal to compile via unified entry, run Tools/TestHealingAreas.ps1, then verify debug text in host/client rendered PIE",
+  "committed_or_pushed": false
+}

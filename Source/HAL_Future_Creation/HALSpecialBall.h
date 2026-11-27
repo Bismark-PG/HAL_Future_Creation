@@ -97,6 +97,7 @@ public:
 protected:
 	virtual UHALSpecialBallDefinition* DefaultType() const { return nullptr; }
 	virtual bool CanUseBall() const override;
+	virtual bool AllowsElectricWallCharge() const override { return false; }
 	virtual bool UsesFreeLife() const { return true; }
 	bool HasStarted() const { return Clock.bStarted; }
 	double ServerNow() const;

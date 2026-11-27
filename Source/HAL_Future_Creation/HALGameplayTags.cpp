@@ -2,6 +2,7 @@
 
 namespace HALGameplayTags
 {
+	UE_DEFINE_GAMEPLAY_TAG(Effect_Ball_Electrified, "Effect.Ball.Electrified");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Healing_Area,"State.Healing.Area","One selected area HoT is active; independent skill healing is separate.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Healing_Area,"Effect.Vehicle.HealingArea","Avatar-scoped periodic healing from aggregated area sources.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Data_Healing_AreaAmount,"Data.Healing.AreaAmount","Positive HP restored per completed healing area period.");

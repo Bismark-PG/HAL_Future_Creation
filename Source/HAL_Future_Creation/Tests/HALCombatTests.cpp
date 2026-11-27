@@ -10,6 +10,9 @@
 #include "../HALGameplayTags.h"
 #include "../PassiveTestVehicle.h"
 #include "../BasicBallActor.h"
+#include "../HALElectricWallGimmick.h"
+#include "../HALElectricSphereGimmick.h"
+#include "../HALSpecialBall.h"
 #include "../VehicleDefinition.h"
 #include "../VehicleHealthComponent.h"
 #include "Components/PrimitiveComponent.h"
@@ -376,4 +379,79 @@ bool FHALCombatConfigurationTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALChargedBallCombatTest,"HAL.FutureCreation.Combat.ElectricWallBallCharge",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALChargedBallCombatTest::RunTest(const FString& Parameters)
+{
+	FHALCombatTestWorld F;
+	auto* Launcher=F.Target(true); auto* Target=F.Target(true);
+	auto* Wall=F.World->SpawnActor<AHALElectricWallGimmick>(); Wall->DispatchBeginPlay();
+	auto* Sphere=F.World->SpawnActor<AHALElectricSphereGimmick>(); Sphere->DispatchBeginPlay();
+	auto* Ball=F.World->SpawnActor<ABasicBallActor>(); Ball->DispatchBeginPlay();
+	TestFalse(TEXT("Free cannot charge"),Ball->TryElectrifyFromWall(*Wall));
+	TestTrue(TEXT("Control ordinary ball"),Ball->BeginControl(Launcher));
+	TestFalse(TEXT("Controlled cannot charge"),Ball->TryElectrifyFromWall(*Wall));
+	TestTrue(TEXT("Launch"),Ball->LaunchFromControl(Launcher,Launcher,FVector(2200,0,0)));
+	TestFalse(TEXT("Sphere never charges"),Ball->TryElectrifyFromWall(*Sphere));
+	auto* Disabled=F.World->SpawnActor<AHALElectricWallGimmick>();
+	FHALElectricWallConfig Off; Off.bChargeLaunchedBalls=false;
+	TestTrue(TEXT("Disable charging independently"),Disabled->Configure(Off)); Disabled->DispatchBeginPlay();
+	TestFalse(TEXT("Disabled wall cannot charge"),Ball->TryElectrifyFromWall(*Disabled));
+	Ball->LastElectricProbePosition=FVector(-500,-300,150);
+	Ball->SetActorLocation(FVector(-500,-300,150),false,nullptr,ETeleportType::TeleportPhysics); Ball->ProbeElectricWalls(Ball->GetActorLocation());
+	Ball->SetActorLocation(FVector(-500,300,150),false,nullptr,ETeleportType::TeleportPhysics); Ball->ProbeElectricWalls(Ball->GetActorLocation());
+	TestFalse(TEXT("Pillar-only crossing cannot charge"),Ball->IsElectrified());
+	Ball->LastElectricProbePosition=FVector(0,-600,150);
+	// Wall origin is at ground center; the field's center is Height/2 above it.
+	Ball->SetActorLocation(FVector(0,-600,150),false,nullptr,ETeleportType::TeleportPhysics);
+	Ball->ProbeElectricWalls(Ball->GetActorLocation()); TestFalse(TEXT("No contact means no charge"),Ball->IsElectrified());
+	Ball->SetActorLocation(FVector(0,600,150),false,nullptr,ETeleportType::TeleportPhysics);
+	Ball->ProbeElectricWalls(Ball->GetActorLocation()); TestTrue(TEXT("Full high-speed crossing charges"),Ball->IsElectrified());
+	TestEqual(TEXT("Charge captures wall bonus"),Ball->GetElectricCharge().BonusDamage,10.f);
+	TestFalse(TEXT("Repeated crossing does not stack"),Ball->TryElectrifyFromWall(*Wall));
+	FHitResult Hit; Hit.ImpactNormal=FVector(-1,0,0);
+	Ball->OnPhysicsRootHit(Ball->GetPhysicsRoot(),Launcher,Cast<UPrimitiveComponent>(Launcher->GetRootComponent()),FVector::ZeroVector,Hit);
+	TestTrue(TEXT("Excluded launcher hit preserves charge"),Ball->IsElectrified());
+	Ball->OnPhysicsRootHit(Ball->GetPhysicsRoot(),Wall,nullptr,FVector::ZeroVector,Hit);
+	TestTrue(TEXT("Environment hit preserves charge"),Ball->IsElectrified());
+	// A spent trajectory can be collected and relaunched; only an accepted vehicle hit spends the charge.
+	Ball->FinishLaunchAsFree(0);
+	TestTrue(TEXT("Free transition preserves charge"),Ball->IsElectrified());
+	TestTrue(TEXT("Charged ball can be held"),Ball->BeginControl(Launcher));
+	TestTrue(TEXT("Charge survives hold"),Ball->IsElectrified());
+	TestTrue(TEXT("Charged ball relaunches"),Ball->LaunchFromControl(Launcher,Launcher,FVector(2200,0,0)));
+	Ball->OnPhysicsRootHit(Ball->GetPhysicsRoot(),Target,Cast<UPrimitiveComponent>(Target->GetRootComponent()),FVector::ZeroVector,Hit);
+	TestEqual(TEXT("25 base plus 10 electric"),GetASC(Target)->GetNumericAttribute(UHALHealthAttributeSet::GetCurrentHPAttribute()),65.f);
+	TestTrue(TEXT("Electric stun"),GetASC(Target)->IsStunned());
+	TestTrue(TEXT("Electric visual marker"),GetASC(Target)->HasMatchingGameplayTag(HALGameplayTags::State_Visual_Shocked));
+	TestFalse(TEXT("Accepted hit spends charge"),Ball->IsElectrified());
+	Ball->OnPhysicsRootHit(Ball->GetPhysicsRoot(),Target,Cast<UPrimitiveComponent>(Target->GetRootComponent()),FVector::ZeroVector,Hit);
+	TestEqual(TEXT("Repeat hit cannot double damage"),GetASC(Target)->GetNumericAttribute(UHALHealthAttributeSet::GetCurrentHPAttribute()),65.f);
+	TestTrue(TEXT("Normal ball consumption maintained"),Ball->GetBallState()==EBasicBallState::Free);
+	ABasicBallActor* Special=GetMutableDefault<AHALExplosiveBall>();
+	TestFalse(TEXT("Special balls opt out"),Special->AllowsElectricWallCharge());
+	auto* CloseTarget=F.Target(true);
+	auto* CloseShot=F.World->SpawnActor<ABasicBallActor>(); CloseShot->DispatchBeginPlay();
+	CloseShot->BeginControl(Launcher); CloseShot->LaunchFromControl(Launcher,Launcher,FVector(0,2200,0));
+	CloseShot->LastElectricProbePosition=FVector(0,-600,150);
+	FHitResult CloseHit; CloseHit.ImpactNormal=FVector(0,-1,0); CloseHit.ImpactPoint=FVector(0,120,150);
+	CloseShot->OnPhysicsRootHit(CloseShot->GetPhysicsRoot(),CloseTarget,Cast<UPrimitiveComponent>(CloseTarget->GetRootComponent()),FVector::ZeroVector,CloseHit);
+	TestEqual(TEXT("Near-wall hit before any timer still gets electric damage"),GetASC(CloseTarget)->GetNumericAttribute(UHALHealthAttributeSet::GetCurrentHPAttribute()),65.f);
+	// Two independent targets exercise the shared damage resistance and immune branches.
+	for (int32 Mode=0;Mode<2;++Mode)
+	{
+		auto* Victim=F.Target(true); auto* ASC=GetASC(Victim);
+		if (Mode==0) { ASC->SetNumericAttributeBase(UHALCombatAttributeSet::GetDamageTakenMultiplierAttribute(),.5f); }
+		else { ASC->AddLooseGameplayTag(HALGameplayTags::State_Combat_DamageImmune); }
+		auto* Shot=F.World->SpawnActor<ABasicBallActor>(); Shot->DispatchBeginPlay();
+		Shot->BeginControl(Launcher); Shot->LaunchFromControl(Launcher,Launcher,FVector(2200,0,0));
+		TestTrue(TEXT("Charge fresh shot"),Shot->TryElectrifyFromWall(*Wall));
+		Shot->OnPhysicsRootHit(Shot->GetPhysicsRoot(),Victim,Cast<UPrimitiveComponent>(Victim->GetRootComponent()),FVector::ZeroVector,Hit);
+		TestEqual(TEXT("Combined damage follows resistance/immunity"),ASC->GetNumericAttribute(UHALHealthAttributeSet::GetCurrentHPAttribute()),Mode==0 ? 82.5f : 100.f);
+		TestFalse(TEXT("Accepted immune/resisted hit consumes charge"),Shot->IsElectrified());
+		TestTrue(TEXT("Damage immunity does not immunize Stun"),ASC->IsStunned());
+	}
+	return true;
+}
 #endif

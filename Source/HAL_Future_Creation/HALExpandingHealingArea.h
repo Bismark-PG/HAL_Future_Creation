@@ -35,6 +35,9 @@ public:
 	bool ConfigureArea(const FHALExpandingHealingAreaConfig& Config);
 	const FHALExpandingHealingAreaConfig& GetAreaConfig() const { return Settings; }
 	UFUNCTION(BlueprintPure, Category="Healing Area") float GetCurrentRadius() const;
+	bool IsDebugDrawEnabled() const { return bDebugDraw; }
+	/** Cosmetic, authority-only notification after this receiver's GE actually restores HP. */
+	void NotifyDebugHealing(AActor* Vehicle, float ActualHealing, float CurrentHP, float MaxHP);
 #if WITH_EDITOR
 	bool ShouldShowEditorGizmo() const { return bShowEditorGizmo; }
 #endif
@@ -45,9 +48,11 @@ public:
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend class FHALHealingAreaLifecycleTest;
+	friend class FHALHealingAreaDebugTextTest;
 #endif
 	double Age() const;
 	void UpdateArea();
+	UFUNCTION(NetMulticast, Unreliable) void MulticastDebugHealing(AActor* Vehicle, float ActualHealing, float CurrentHP, float MaxHP);
 	UPROPERTY(EditAnywhere, Replicated, Category="Healing Area|Debug", meta=(DisplayName="Debug Draw")) bool bDebugDraw = false;
 #if WITH_EDITORONLY_DATA
 	/** Selected-actor maximum cylinder preview, independent of the in-game Debug Draw checkbox. */

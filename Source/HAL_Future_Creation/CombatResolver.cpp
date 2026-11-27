@@ -164,6 +164,8 @@ FHALCombatHitResult FCombatResolver::ResolveCombatHit(FHALCombatAction& Action, 
 	Result.InstigatorPlayerId = Source.InstigatorPlayerId;
 	Result.RejectReason = Action.CheckRequest(Request);
 	if (Result.RejectReason != EHALHitRejectReason::None) { return Result; }
+	if (!Request.ElectricCharge.IsValid() || (Request.ElectricCharge.bActive && !Request.bApplyDamage))
+	{ Result.RejectReason=EHALHitRejectReason::InvalidDamage; return Result; }
 	AActor* Target = Request.Hit.TargetActor;
 	if (Target && !HALGameFlow::Permissions(Target->GetWorld()).bWorldInteractions)
 	{ Result.RejectReason = EHALHitRejectReason::TargetNotReady; return Result; }
@@ -201,6 +203,13 @@ FHALCombatHitResult FCombatResolver::ResolveCombatHit(FHALCombatAction& Action, 
 			Result.RejectReason = EHALHitRejectReason::InvalidDamage;
 			return Result;
 		}
+		if (Request.ElectricCharge.bActive)
+		{
+			if (Health->GetCurrentHP()<=0) { Result.RejectReason=EHALHitRejectReason::TargetNotReady; return Result; }
+			const double Combined=double(Result.RawDamage)+Request.ElectricCharge.BonusDamage;
+			if (!FMath::IsFinite(Combined) || Combined>MAX_flt) { Result.RejectReason=EHALHitRejectReason::InvalidDamage; return Result; }
+			Result.RawDamage=float(Combined);
+		}
 		Result.bDamageImmune = ASC->HasMatchingGameplayTag(HALGameplayTags::State_Combat_DamageImmune);
 		Result.bDamageSuppressedByFlow = !HALGameFlow::Permissions(Target->GetWorld(),TargetPawn).bDamage;
 		const double Resolved = Result.bDamageImmune || Result.bDamageSuppressedByFlow ? 0.0
@@ -220,12 +229,13 @@ FHALCombatHitResult FCombatResolver::ResolveCombatHit(FHALCombatAction& Action, 
 			StableContext->InstigatorPlayerId = Source.InstigatorPlayerId;
 			StableContext->SourceTag = Source.SourceTag;
 			StableContext->EffectTags = Source.EffectTags;
+			if (Request.ElectricCharge.bActive) { StableContext->EffectTags.AddTag(HALGameplayTags::Effect_Ball_Electrified); }
 			AActor* Instigator = Source.InstigatorPlayerState.IsValid()
 				? static_cast<AActor*>(Source.InstigatorPlayerState.Get()) : Source.InstigatorActor.Get();
 			StableContext->AddInstigator(Instigator, Source.SourceActor.Get());
 			StableContext->AddSourceObject(Source.SourceActor.Get());
 			FGameplayEffectContextHandle Context(StableContext);
-			DamageSpec = ASC->MakeOutgoingSpec(UHALApplyDamageEffect::StaticClass(), 1.0f, Context);
+			DamageSpec = ASC->MakeOutgoingSpec(Request.ElectricCharge.bActive ? UHALApplyElectrifiedBallDamageEffect::StaticClass() : UHALApplyDamageEffect::StaticClass(), 1.0f, Context);
 			if (!DamageSpec.IsValid())
 			{
 				Result.RejectReason = EHALHitRejectReason::EffectUnavailable;
@@ -245,6 +255,10 @@ FHALCombatHitResult FCombatResolver::ResolveCombatHit(FHALCombatAction& Action, 
 		if(Result.ActualHPRemoved>0&&IsValid(Target))
 		{ if(auto* Feedback=Target->FindComponentByClass<UHALDamageFeedbackComponent>()) { Feedback->NotifyResolvedDamage(Source.AttackId,Request.PulseSequence,Result.ActualHPRemoved); } }
 	}
+
+	if (Request.ElectricCharge.bActive && !Result.bDamageSuppressedByFlow && IsValid(Target)
+		&& Health && Health->GetCurrentHP()>0 && ASC->GetAvatarActor()==Target && ASC->ApplyStun(Request.ElectricCharge.StunSeconds,Source.SourceActor.Get()))
+	{ ASC->MarkShockedForCurrentStun(Source.SourceActor.Get()); }
 
 	// This branch never reads HP, damage amount or damage immunity.
 	FVehicleHitContext Hit = Request.Hit;

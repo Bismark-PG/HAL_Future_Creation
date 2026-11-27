@@ -16,6 +16,7 @@ class UHALBallPresentationComponent;
 class UHALMagnetBeamPresentationComponent;
 class UHALBallComicFXComponent;
 class AHALTornado;
+class AHALElectricWallGimmick;
 
 class UBallDefinition;
 
@@ -101,6 +102,10 @@ public:
 	FBallRepState GetBallRepState() const { return RepState; }
 	uint32 GetBallStateSequence() const { return RepState.StateSequence; }
 
+	/** Authority-only, ordinary Launched balls, accepted wall query; no ASC is added to the ball. */
+	bool TryElectrifyFromWall(const AHALElectricWallGimmick& Wall);
+	UFUNCTION(BlueprintPure, Category="Ball|Electric") bool IsElectrified() const { return ElectricCharge.bActive; }
+	UFUNCTION(BlueprintPure, Category="Ball|Electric") FHALBallElectricCharge GetElectricCharge() const { return ElectricCharge; }
 	USphereComponent* GetPhysicsRoot() const { return PhysicsRoot; }
 	/** Radius of a fresh actor of this authored class, including the configured physics scale. */
 	float GetConfiguredSphereRadius() const;
@@ -144,6 +149,9 @@ protected:
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual bool CanUseBall() const { return true; }
+	virtual bool AllowsElectricWallCharge() const { return true; }
+	/** Pure presentation; called on authority and when the charge snapshot replicates. */
+	UFUNCTION(BlueprintImplementableEvent, Category="Ball|Electric") void OnElectricChargeChanged(bool bCharged);
 	/** Called once after a formal shot has captured its source. False keeps the ball with its current holder. */
 	virtual bool DeliverLaunch(const FHALAttackSourceSnapshot& Attack, AActor* Launcher, const FVector& Velocity, const AActor* FrameSource);
 	virtual void OnAuthorityBallStateChanged(EBasicBallState Previous) {}
@@ -205,6 +213,7 @@ private:
 	friend class FControlledBallProxyPresentationTest;
 	friend class FHALMatchBallGroundRollTest;
 	friend class FHALCombatBallConsumptionTest;
+	friend class FHALChargedBallCombatTest;
 	friend struct FHALBallPresentationTestAccess;
 #endif
 	UFUNCTION()
@@ -246,6 +255,11 @@ private:
 	uint64 LastBecameFreeGameFrame = MAX_uint64;
 	// Net driver clock, shared with UActorChannel::LastUpdateTime. Each observer gets its own release update.
 	double LastControlEndNetSeconds = -1.0;
+	UFUNCTION() void OnRep_ElectricCharge();
+	void ConsumeElectricCharge();
+	void ProbeElectricWalls(const FVector& End);
+	FVector LastElectricProbePosition=FVector::ZeroVector;
+	UPROPERTY(ReplicatedUsing=OnRep_ElectricCharge) FHALBallElectricCharge ElectricCharge;
 	FBallDamageConfig RuntimeDamageConfig;
 	FHALAuthoredImpactConfig RuntimeImpactConfig;
 	FHALCombatAction LaunchAction;

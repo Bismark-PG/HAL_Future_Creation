@@ -80,9 +80,26 @@ enum class EHALHitRejectReason : uint8
 
 enum class EHALImpactOutcome : uint8 { NotRequested, NoPhysicsBody, InvalidMeasurement, NoDirection, RulesUnavailable, Applied, Suppressed, TargetNotReady };
 
+/** Replicated lightweight effect payload. Ordinary balls remain ASC-free. */
+USTRUCT(BlueprintType)
+struct HAL_FUTURE_CREATION_API FHALBallElectricCharge
+{
+	GENERATED_BODY()
+	UPROPERTY(BlueprintReadOnly, Category="Ball|Electric") bool bActive = false;
+	UPROPERTY(BlueprintReadOnly, Category="Ball|Electric") float BonusDamage = 0;
+	UPROPERTY(BlueprintReadOnly, Category="Ball|Electric") float StunSeconds = 0;
+	bool IsValid() const
+	{
+		return FMath::IsFinite(BonusDamage) && BonusDamage>=0 && BonusDamage<=1000
+			&& FMath::IsFinite(StunSeconds) && StunSeconds>=0 && StunSeconds<=10
+			&& (!bActive || StunSeconds>=.01f);
+	}
+};
+
 /** Server-generated request. Physics data is optional and never required by the damage branch. */
 struct FHALCombatHitRequest
 {
+	FHALBallElectricCharge ElectricCharge;
 	FGuid AttackId;
 	uint32 PulseSequence = 1;
 	FVehicleHitContext Hit;

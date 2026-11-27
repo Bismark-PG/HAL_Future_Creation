@@ -11,9 +11,13 @@
 #include "../HALGameplayTags.h"
 #include "../TestVehiclePawn.h"
 #include "Components/PrimitiveComponent.h"
+#include "DrawDebugHelpers.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "Engine/LocalPlayer.h"
+#include "GameFramework/HUD.h"
+#include "UObject/UnrealType.h"
 #include <limits>
 
 namespace
@@ -223,4 +227,68 @@ bool FHALHealingAreaLifecycleTest::RunTest(const FString& Parameters)
 #endif
 	return true;
 }
+
+#if ENABLE_DRAW_DEBUG && !UE_BUILD_SHIPPING
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALHealingAreaDebugTextTest,"HAL.FutureCreation.HealingAreas.DebugTextUsesActualAreaHealOnly",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALHealingAreaDebugTextTest::RunTest(const FString& Parameters)
+{
+	auto F=MakeShared<FHealingWorld>(); F->SetHP(50);
+	auto* PC=F->World->SpawnActor<APlayerController>(); PC->SetAsLocalPlayerController();
+	PC->Player=NewObject<ULocalPlayer>(GEngine);
+	auto* HUD=F->World->SpawnActor<AHUD>(); HUD->SetOwner(PC); PC->MyHUD=HUD;
+	const auto* TextProperty=FindFProperty<FArrayProperty>(AHUD::StaticClass(),TEXT("DebugTextList"));
+	if(!TestNotNull(TEXT("Engine HUD exposes its real debug text list"),TextProperty)) { return false; }
+	auto* Texts=TextProperty->ContainerPtrToValuePtr<TArray<FDebugTextInfo>>(HUD);
+	const auto Spawn=[&]()
+	{
+		FHALExpandingHealingAreaConfig C; C.ExpansionSeconds=0; C.DurationSeconds=120;
+		const FTransform Pose(FVector::ZeroVector);
+		auto* Area=F->World->SpawnActorDeferred<AHALExpandingHealingArea>(AHALExpandingHealingArea::StaticClass(),Pose,nullptr,nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		Area->ConfigureArea(C); Area->FinishSpawning(Pose); F->Receiver->RegisterArea(Area,C.Healing); return Area;
+	};
+	auto* A=Spawn(); auto* B=Spawn();
+	After(this,F,1.2f,[this,F,Texts,A,B]
+	{
+		TestEqual(TEXT("Healing still occurs with debug disabled"),F->HP(),55.f);
+		TestEqual(TEXT("Debug off creates no HUD text"),Texts->Num(),0);
+		A->bDebugDraw=true; B->bDebugDraw=true;
+	});
+	After(this,F,1.2f,[this,F,Texts]
+	{
+		TestEqual(TEXT("Normal pulse adds five actual HP"),F->HP(),60.f);
+		if(TestEqual(TEXT("Two overlapping debug areas emit only one text"),Texts->Num(),1))
+		{
+			TestTrue(TEXT("Text records the real HP result"),(*Texts)[0].DebugText==TEXT("+5.00 HP (60.00 / 100.00)"));
+			TestTrue(TEXT("Text is relative to the healed Avatar above its center"),(*Texts)[0].SrcActor==F->Avatar && (*Texts)[0].SrcActorOffset.Z>0);
+			TestEqual(TEXT("Text has a finite short lifetime"),(*Texts)[0].Duration,.8f);
+		}
+		F->SetHP(98); TestEqual(TEXT("Base HP edits do not create fake heal pulses"),Texts->Num(),1);
+	});
+	After(this,F,1.2f,[this,F,Texts]
+	{
+		TestEqual(TEXT("Near-cap pulse restores only two"),F->HP(),100.f);
+		if(TestEqual(TEXT("Partial heal creates one new text"),Texts->Num(),2))
+		{ TestTrue(TEXT("Text uses actual two, not configured five"),(*Texts)[1].DebugText==TEXT("+2.00 HP (100.00 / 100.00)")); }
+	});
+	After(this,F,1.2f,[this,F,Texts,A,B]
+	{
+		TestEqual(TEXT("Full HP does not emit zero-healing text"),Texts->Num(),2);
+		F->SetHP(90);
+		auto* SkillHeal=NewObject<UGameplayEffect>(); SkillHeal->DurationPolicy=EGameplayEffectDurationType::Instant;
+		FGameplayModifierInfo Modifier; Modifier.Attribute=UHALHealthAttributeSet::GetCurrentHPAttribute();
+		Modifier.ModifierOp=EGameplayModOp::Additive; Modifier.ModifierMagnitude=FScalableFloat(3.f); SkillHeal->Modifiers.Add(Modifier);
+		F->ASC->ApplyGameplayEffectToSelf(SkillHeal,1,F->ASC->MakeEffectContext());
+		TestEqual(TEXT("Independent skill really heals"),F->HP(),93.f);
+		TestEqual(TEXT("Independent healing cannot masquerade as this area's pulse"),Texts->Num(),2);
+		A->bDebugDraw=false; B->bDebugDraw=false;
+	});
+	After(this,F,1.2f,[this,F,Texts]
+	{
+		TestTrue(TEXT("Healing continues after turning debug off"),F->HP()>93.f);
+		TestEqual(TEXT("Turning debug off suppresses later text"),Texts->Num(),2);
+	});
+	return true;
+}
+#endif
 #endif

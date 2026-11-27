@@ -2,6 +2,8 @@
 #include "Misc/AutomationTest.h"
 #include "../HALElectricWallGimmick.h"
 #include "../HALElectricSphereGimmick.h"
+#include "../BasicBallActor.h"
+#include "Components/SphereComponent.h"
 #include "../HALShockedPresentationComponent.h"
 #include "../HALAbilitySystemComponent.h"
 #include "../HALGameplayTags.h"
@@ -148,5 +150,111 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALBeginElectricSphereNetworkTest,"HAL.Network
 bool FHALBeginElectricSphereNetworkTest::RunTest(const FString& Parameters)
 {
 	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<HALElectricWallNetworkTests::FRun>(this,true,true)); return true;
+}
+
+namespace HALChargedBallNetwork
+{
+class FRun : public IAutomationLatentCommand
+{
+	FAutomationTestBase* Test;
+	double Deadline=FPlatformTime::Seconds()+120,DoneAt=-1;
+	bool Prepared=false,Ready=false,Aligned=false,SawOwnShock=false,SawRemoteShock=false;
+	int32 Phase=0,ChargeMask=0,SpentMask=0;
+	TMap<TWeakObjectPtr<ABasicBallActor>,int32> ObservedShots;
+	TWeakObjectPtr<ABasicBallActor> Shot;
+public:
+	explicit FRun(FAutomationTestBase* T):Test(T) {}
+	bool Update() override
+	{
+		if (DoneAt>=0) { return FPlatformTime::Seconds()-DoneAt>4; }
+		if (FPlatformTime::Seconds()>Deadline)
+		{ Test->AddError(FString::Printf(TEXT("Charged ball timeout: Phase=%d ChargeMask=%d SpentMask=%d OwnShock=%d RemoteShock=%d"),Phase,ChargeMask,SpentMask,SawOwnShock,SawRemoteShock)); return true; }
+		UWorld* W=nullptr;
+		for (const auto& C:GEngine->GetWorldContexts())
+		{ auto* V=C.World(); if (V && V->IsGameWorld() && (V->GetNetMode()==NM_Client || V->GetNetMode()==NM_ListenServer)) { W=V; break; } }
+		if (!W) { return false; }
+		const bool Host=W->GetNetMode()==NM_ListenServer;
+		AHALPlayerController* PC=nullptr;
+		for (auto It=W->GetPlayerControllerIterator();It;++It) { if (auto* P=Cast<AHALPlayerController>(It->Get()); P && P->IsLocalController()) { PC=P; break; } }
+		auto* Own=PC ? Cast<ATestVehiclePawn>(PC->GetPawn()) : nullptr;
+		ATestVehiclePawn* Other=nullptr;
+		for (TActorIterator<ATestVehiclePawn> It(W);It;++It) { if (*It!=Own && It->GetPlayerState()) { Other=*It; break; } }
+		auto* ASC=Own ? Cast<UHALAbilitySystemComponent>(Own->GetAbilitySystemComponent()) : nullptr;
+		auto* Remote=Other ? Cast<UHALAbilitySystemComponent>(Other->GetAbilitySystemComponent()) : nullptr;
+		auto* Match=W->GetGameState<AHALMatchGameState>();
+		if (!ASC || !Remote || !Match || !ASC->IsHealthInitialized() || !Remote->IsHealthInitialized()) { return false; }
+		auto* Move=Own->FindComponentByClass<UArcadeVehicleMovementComponent>();
+		if (!Prepared)
+		{
+			for (auto* V:{Own,Other}) { CastChecked<UPrimitiveComponent>(V->GetRootComponent())->SetEnableGravity(false); }
+			FVehicleInputCmd Input; Input.Throttle=.01f; Move->SetInputCommand(Input); Prepared=true;
+		}
+		if (!Host && !Ready && Move->GetMovementEffectStatus().bReady) { PC->SetName(TEXT("ChargedReady")); Ready=true; }
+		if (Host && Match->GetMatchPhase()!=EHALMatchPhase::Playing) { PC->HALStartMatch(); return false; }
+		const FString OtherName=Other->GetPlayerState()->GetPlayerName();
+		if (Host && !Aligned && OtherName==TEXT("ChargedReady") && Move->GetMovementEffectStatus().bReady)
+		{
+			int32 Index=0;
+			for (auto* V:{Own,Other})
+			{
+				auto* B=CastChecked<UPrimitiveComponent>(V->GetRootComponent());
+				B->SetWorldLocationAndRotation(FVector(0,Index++ ? 1600 : -1600,10150),FRotator::ZeroRotator,false,nullptr,ETeleportType::TeleportPhysics);
+				B->SetPhysicsLinearVelocity(FVector::ZeroVector); B->SetPhysicsAngularVelocityInRadians(FVector::ZeroVector);
+				V->FindComponentByClass<UArcadeVehicleMovementComponent>()->ResetInputCommand();
+				V->GetAbilitySystemComponent()->SetNumericAttributeBase(UHALHealthAttributeSet::GetCurrentHPAttribute(),100); V->ForceNetUpdate();
+			}
+			W->SpawnActor<AHALElectricWallGimmick>(AHALElectricWallGimmick::StaticClass(),FVector(0,0,10000),FRotator::ZeroRotator);
+			FPacketSimulationSettings Net; Net.PktLag=80; W->GetNetDriver()->SetPacketSimulationSettings(Net);
+			Aligned=true; return false;
+		}
+		if (!Host && !Aligned && Own->GetActorLocation().Z>10000 && Other->GetActorLocation().Z>10000)
+		{ Move->ResetInputCommand(); PC->SetName(TEXT("ChargedAligned")); Aligned=true; }
+		for (TActorIterator<ABasicBallActor> It(W);It;++It)
+		{
+			auto* B=*It;
+			int32 Bit=ObservedShots.FindRef(B);
+			if (!Bit && B->GetActorLocation().Z>10000 && B->GetBallState()==EBasicBallState::Launched)
+			{
+				const int32 Id=B->GetBallRepState().LastLauncherPlayerId;
+				Bit=Id==Own->GetPlayerState()->GetPlayerId() ? 1 : Id==Other->GetPlayerState()->GetPlayerId() ? 2 : 0;
+				if (Bit) { ObservedShots.Add(B,Bit); }
+			}
+			if (!Bit) { continue; }
+			if (B->IsElectrified()) { ChargeMask|=Bit; }
+			if ((ChargeMask&Bit) && !B->IsElectrified() && B->GetBallState()!=EBasicBallState::Launched) { SpentMask|=Bit; }
+		}
+		SawOwnShock|=ASC->IsStunned() && ASC->HasMatchingGameplayTag(HALGameplayTags::State_Visual_Shocked);
+		SawRemoteShock|=Remote->IsStunned() && Remote->HasMatchingGameplayTag(HALGameplayTags::State_Visual_Shocked);
+		const float OwnHP=ASC->GetNumericAttribute(UHALHealthAttributeSet::GetCurrentHPAttribute());
+		const float OtherHP=Remote->GetNumericAttribute(UHALHealthAttributeSet::GetCurrentHPAttribute());
+		if (Host && ((Phase==0 && OtherName==TEXT("ChargedAligned")) || (Phase==1 && OtherHP==65 && !Remote->IsStunned() && Shot.IsValid() && !Shot->IsElectrified())))
+		{
+			const int32 Number=Phase+1;
+			auto* Launcher=Phase==0 ? Own : Other;
+			FActorSpawnParameters Params; Params.Name=FName(*FString::Printf(TEXT("HALChargedProbe%d"),Number)); Params.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			auto* BallClass=LoadClass<ABasicBallActor>(nullptr,TEXT("/Game/Blueprints/Balls/BP_BasicBall.BP_BasicBall_C"));
+			if (!BallClass) { Test->AddError(TEXT("Saved ordinary ball class missing")); return true; }
+			auto* B=W->SpawnActor<ABasicBallActor>(BallClass,FVector(2000,0,10150),FRotator::ZeroRotator,Params);
+			if (!B || !B->BeginControl(Launcher) || !B->LaunchFromControl(Launcher,Launcher,FVector(0,Phase==0 ? 900 : -900,0)))
+			{ Test->AddError(TEXT("Charged network shot could not launch")); return true; }
+			B->GetPhysicsRoot()->SetEnableGravity(false);
+			B->SetActorLocation(FVector(0,Phase==0 ? -700 : 700,10150),false,nullptr,ETeleportType::TeleportPhysics);
+			B->ForceNetUpdate(); Shot=B; ++Phase;
+		}
+		if (OwnHP!=65 || OtherHP!=65 || ChargeMask!=3 || SpentMask!=3 || !SawOwnShock || !SawRemoteShock
+			|| ASC->IsStunned() || Remote->IsStunned() || (Host && OtherName!=TEXT("ChargedDone"))) { return false; }
+		Test->TestEqual(TEXT("Charged hit removes 25 plus 10 on own vehicle"),OwnHP,65.f);
+		Test->TestEqual(TEXT("Remote vehicle agrees"),OtherHP,65.f);
+		if (!Host) { PC->SetName(TEXT("ChargedDone")); }
+		UE_LOG(LogTemp,Display,TEXT("ElectricBall Network: Host=%d HP=65/65 ChargeMask=%d SpentMask=%d OwnShock=%d RemoteShock=%d Done=1"),Host,ChargeMask,SpentMask,SawOwnShock,SawRemoteShock);
+		DoneAt=FPlatformTime::Seconds(); return false;
+	}
+};
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALChargedBallNetworkTest,"HAL.NetworkSmoke.ChargedBall",
+	EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::EngineFilter)
+bool FHALChargedBallNetworkTest::RunTest(const FString& Parameters)
+{
+	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<HALChargedBallNetwork::FRun>(this)); return true;
 }
 #endif

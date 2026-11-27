@@ -4,6 +4,7 @@
 #include "HALIncomingBallWidget.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
@@ -219,6 +220,7 @@ void UHALBallComicFXComponent::BeginPlay()
 	bReady = true;
 	if (Settings.bIncomingWarning) { UHALIncomingBallHUDSubsystem::EnsureForWorld(GetWorld()); }
 	SyncToBallState(Ball->GetBallRepState());
+	SyncElectricCharge();
 }
 
 void UHALBallComicFXComponent::EndPlay(const EEndPlayReason::Type Reason)
@@ -226,6 +228,8 @@ void UHALBallComicFXComponent::EndPlay(const EEndPlayReason::Type Reason)
 	StopTrail(true);
 	StopAim();
 	StopHold(nullptr, true);
+	bElectricChargeHintActive=false;
+	if (ElectricChargeHint) { ElectricChargeHint->DestroyComponent(); ElectricChargeHint=nullptr; }
 	Super::EndPlay(Reason);
 }
 
@@ -395,7 +399,7 @@ void UHALBallComicFXComponent::StopAim()
 
 void UHALBallComicFXComponent::RefreshTick()
 {
-	SetComponentTickEnabled(bAimActive || bTrailWedgeActive || HoldPhase != EHALBallHoldRingPhase::Off);
+	SetComponentTickEnabled(bElectricChargeHintActive || bAimActive || bTrailWedgeActive || HoldPhase != EHALBallHoldRingPhase::Off);
 }
 
 void UHALBallComicFXComponent::StartHold(const FHALBallComicFXConfig& ComicConfig, const FBallRepState& State)
@@ -559,6 +563,7 @@ void UHALBallComicFXComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	Super::TickComponent(DeltaTime, TickType, TickFunction);
 	const FHALBallComicFXConfig* ComicConfig = GetComicConfig();
 	if (!ComicConfig) { SetComponentTickEnabled(false); return; }
+	if (bElectricChargeHintActive) { UpdateElectricChargeHint(*ComicConfig); }
 	if (bTrailWedgeActive) { UpdateTrailWedge(*ComicConfig); }
 	if (bAimActive)
 	{
@@ -571,4 +576,50 @@ void UHALBallComicFXComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		UpdateHold(*ComicConfig);
 	}
 	RefreshTick();
+}
+
+void UHALBallComicFXComponent::SyncElectricCharge()
+{
+	const auto* Config=GetComicConfig();
+	bElectricChargeHintActive=Config && Config->bElectricChargeHint && Ball.IsValid() && Ball->IsElectrified();
+	if (bElectricChargeHintActive)
+	{
+		if (!ElectricChargeHint)
+		{
+			ElectricChargeHint=NewObject<UTextRenderComponent>(Ball.Get(),TEXT("ElectricChargeHint"));
+			Ball->AddInstanceComponent(ElectricChargeHint);
+			ElectricChargeHint->SetupAttachment(Ball->GetRootComponent());
+			ElectricChargeHint->SetAbsolute(true,true,true);
+			ElectricChargeHint->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			ElectricChargeHint->SetGenerateOverlapEvents(false);
+			ElectricChargeHint->SetCastShadow(false);
+			ElectricChargeHint->SetHorizontalAlignment(EHTA_Center);
+			ElectricChargeHint->SetVerticalAlignment(EVRTA_TextCenter);
+			ElectricChargeHint->RegisterComponent();
+		}
+		ElectricChargeHint->SetText(FText::FromString(FString::Printf(TEXT("CHARGED +%g"),Ball->GetElectricCharge().BonusDamage)));
+		ElectricChargeHint->SetTextRenderColor(Config->ElectricChargeHintColor);
+		UpdateElectricChargeHint(*Config);
+	}
+	else if (ElectricChargeHint) { ElectricChargeHint->SetVisibility(false); }
+	RefreshTick();
+}
+void UHALBallComicFXComponent::UpdateElectricChargeHint(const FHALBallComicFXConfig& Config)
+{
+	if (!ElectricChargeHint) { return; }
+	FVector Centre; float Radius=0;
+	const bool bPlaced=Ball.IsValid() && Ball->IsElectrified() && Config.bElectricChargeHint && ResolveDrawnBall(Centre,Radius);
+	ElectricChargeHint->SetVisibility(bPlaced);
+	if (!bPlaced) { bElectricChargeHintActive=false; return; }
+	FVector ViewLocation; FRotator ViewRotation(-90,0,0);
+	if (GetWorld())
+	{
+		for (auto It=GetWorld()->GetPlayerControllerIterator();It;++It)
+		{ if (const auto* PC=It->Get(); PC && PC->IsLocalController()) { PC->GetPlayerViewPoint(ViewLocation,ViewRotation); break; } }
+	}
+	const FRotationMatrix View(ViewRotation);
+	const FVector Up=View.GetUnitAxis(EAxis::Z);
+	ElectricChargeHint->SetWorldLocationAndRotation(Centre+Up*(Radius*Config.ElectricChargeHintLiftRadiusFraction),
+		FRotationMatrix::MakeFromXZ(-View.GetUnitAxis(EAxis::X),Up).Rotator());
+	ElectricChargeHint->SetWorldSize(FMath::Max(12.f,Radius*Config.ElectricChargeHintSizeRadiusFraction));
 }

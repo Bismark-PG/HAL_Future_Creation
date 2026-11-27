@@ -13,9 +13,21 @@
 #include "Engine/NetDriver.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerState.h"
+#include "GameFramework/HUD.h"
+#include "UObject/UnrealType.h"
 
 namespace
 {
+	bool HasHealingDebugText(const APlayerController* PC, const AActor* Target)
+	{
+		const auto* HUD = PC ? PC->GetHUD() : nullptr;
+		const auto* Property = FindFProperty<FArrayProperty>(AHUD::StaticClass(), TEXT("DebugTextList"));
+		if (!HUD || !Property) { return false; }
+		const auto* Texts = Property->ContainerPtrToValuePtr<TArray<FDebugTextInfo>>(HUD);
+		for (const auto& Text : *Texts)
+		{ if (Text.SrcActor == Target && Text.DebugText.StartsWith(TEXT("+5.00 HP"))) { return true; } }
+		return false;
+	}
 	class FHealingNetworkProbe : public IAutomationLatentCommand
 	{
 		FAutomationTestBase* Test;
@@ -53,6 +65,7 @@ namespace
 				return false;
 			}
 			if(Match->GetMatchPhase()!=EHALMatchPhase::Playing) { return false; }
+			if (!PC->GetHUD()) { PC->SpawnDefaultHUD(); }
 			const float HP=ASC->GetNumericAttribute(UHALHealthAttributeSet::GetCurrentHPAttribute());
 			const float OtherHP=OtherASC->GetNumericAttribute(UHALHealthAttributeSet::GetCurrentHPAttribute());
 			const bool Active=ASC->HasMatchingGameplayTag(HALGameplayTags::State_Healing_Area);
@@ -72,6 +85,8 @@ namespace
 						FHALExpandingHealingAreaConfig C; C.ExpansionSeconds=.25f; C.DurationSeconds=8; C.MaximumRadius=10000; C.HalfHeight=1000;
 						const FTransform Pose((V->GetActorLocation()+Other->GetActorLocation())*.5);
 						auto* Area=World->SpawnActorDeferred<AHALExpandingHealingArea>(AHALExpandingHealingArea::StaticClass(),Pose,nullptr,nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+						if (auto* Debug = FindFProperty<FBoolProperty>(AHALExpandingHealingArea::StaticClass(),TEXT("bDebugDraw")))
+						{ Debug->SetPropertyValue_InContainer(Area,true); }
 						Area->ConfigureArea(C); Area->FinishSpawning(Pose); return Area;
 					};
 					A=Spawn(); B=Spawn();
@@ -80,6 +95,7 @@ namespace
 				}
 				else if(Stage==2 && HP>=55 && OtherHP>=55 && Ack(TEXT("HAL_Healing_Pulse")))
 				{
+					Test->TestTrue(TEXT("Host HUD receives actual healing debug text"),HasHealingDebugText(PC,V));
 					Test->TestEqual(TEXT("Host nonstacked first heal"),HP,55.f);
 					Test->TestEqual(TEXT("Client authority nonstacked first heal"),OtherHP,55.f);
 					A->Destroy();
@@ -100,8 +116,9 @@ namespace
 			else
 			{
 				if(Stage==-1 && HP==50 && OtherHP==50 && !Active) { PC->SetName(TEXT("HAL_Healing_Damaged")); Stage=1; }
-				else if(Stage==1 && Active && OtherActive && HP>=55 && OtherHP>=55)
+				else if(Stage==1 && Active && OtherActive && HP>=55 && OtherHP>=55 && HasHealingDebugText(PC,V))
 				{
+					Test->TestTrue(TEXT("Client receives authority multicast into its real HUD debug list"),HasHealingDebugText(PC,V));
 					Test->TestEqual(TEXT("Owning client receives one five-HP pulse"),HP,55.f);
 					int32 Areas=0; for(TActorIterator<AHALExpandingHealingArea> It(World);It;++It)
 					{

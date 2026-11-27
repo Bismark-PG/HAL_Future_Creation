@@ -1,4 +1,51 @@
 <!-- Current rules updated 2026-10-30. Historical verification below remains historical. -->
+
+## 2026-11-27 帶電球可見提示
+
+普通球帶電後，現在自動在球旁顯示藍色 **`CHARGED +10`**（數值取實際帶電載荷，不寫死10）。文字跟隨本機顯示中的球，朝向本機鏡頭，沿畫面上方偏移；尺寸依可見模型半徑計算，不以較小的物理半徑固定大小。文字沒有碰撞，不改傷害／球權／軌跡。Free／Controlled時仍帶電就仍顯示，有效命中消耗立即隱藏，球退場則回收。
+
+不需要修改球BP或指定新美術資產。沿用BallComicFX既有表現Tick（只在提示或其他表現活躍時開啟），帶電RepNotify及主機權威變更都會更新提示；初次BeginPlay也讀已有帶電狀態，避免先收到複製後初始化的漏顯示。Dedicated Server／NullRHI不建立文字。
+
+Project Settings → Game → **Ball Comic FX → Comic → Electric Charge**：
+
+- Electric Charge Hint：預設true，可關閉提示；總開關Comic → Enabled關閉也不顯示。
+- Electric Charge Hint Color：預設RGB(40,190,255)。
+- Electric Charge Hint Size Radius Fraction：預設0.4，字高為可見半徑0.4倍（最低12cm），範圍0.1～2。
+- Electric Charge Hint Lift Radius Fraction：預設1.4，沿畫面上方偏移1.4個可見半徑，範圍0～5。
+
+以重新進入遊戲後的設定為準。本輪沒有保存Project Settings／BP／地圖。
+
+**驗證：** 統一入口Editor編譯成功（BuildAndLaunch_20261127_154911_284_451776），獨立Game Target相同基線成功（Saved/ElectricBall/20261127/HintGame_R1.log）。既有ComicDoodle三項＋帶電規則一項 **4/4、0警告／失敗／未執行**（Hint/Native_R1）。此輪未重跑全量、雙端或D3D畫面；NullRHI只驗證回歸，不證明文字已上屏。前輪治療區全量失敗保留未改。下一步團隊重開Editor射球過電牆，確認文字位置／大小、持有和再發射跟隨，以及命中後消失；未提交／Push。
+
+
+## 2026-11-27 普通球穿電牆帶電（最新規則）
+
+僅普通球（含其輕量BP派生）在 **Launched** 時穿過兩柱之間 ElectricField 可獲得一層帶電。柱子本體、電球場、Free／Controlled 球均不新增帶電；特殊球維持原效果與碰牆規則。重複穿牆不疊加、不改已有載荷。
+
+帶電保留到下一次有效命中車輛，沒有時間倒數。碰普通牆、命中自己／無效目標不消耗；中途變Free、被拾取或再次發射仍保留，只有危險球命中時才作用。命中已死亡車不消耗；被傷害免疫擋下的有效命中仍消耗，傷害免疫不等於眩暈免疫。回合清場或球銷毀自然清理。
+
+電牆BP → Class Defaults → Electric Wall → Config → Ball Charge：
+
+| 參數 | 預設 | 作用 |
+|---|---:|---|
+| Charge Launched Balls | true | 只控制充電，不影響車輛電牆回彈 |
+| Ball Charge Bonus Damage | 10 HP | 加到球的原始傷害，再一起經目標承傷倍率／免疫 |
+| Ball Charge Stun Seconds | 1秒 | 命中附加既有Stun與shocked車身效果 |
+
+例如原球25傷害，帶電後35；承傷倍率0.5則17.5。致死命中不對退場Avatar補眩暈。練習／規則禁止傷害時不追加觸電，仍按原有效命中消耗流程。
+
+球不新增ASC。伺服器保存並複製輕量 `FHALBallElectricCharge`，命中經 `FCombatResolver` 的既有去重／GAS結算，由原生 `HALApplyElectrifiedBallDamageEffect` 處理HP、附 `Effect.Ball.Electrified` 結算標記，再接現有Stun與shocked GE。攻擊歸屬維持本次發射者，不改為電牆。球提供 `Is Electrified`／`Get Electric Charge` 與純表現 `On Electric Charge Changed` 接口，未修改球BP或新增正式球體帶電Niagara素材；被擊中車輛使用現有觸電表現。
+
+穿牆以真實球碰撞半徑做Overlap／連續Sweep，沿用球Launched的既有定時器，沒有新增Tick／Timer；每次剛體命中也先補查上一取樣至接觸點，避免球穿薄牆後立刻撞車時，傷害早於定時掃描而漏帶電。多面牆同一路段遇到時先取樣被接受的第一面，一次一層。
+
+原有本文「球穿過不附加效果」是此前時點；此次普通危險球帶電規則以本節為準。未改保存資產、未覆蓋起始治療區程式／文檔與BP／地圖改動。**本輪驗證：** UE5.8.2-56702186，統一入口最終Editor編譯成功，獨立Game Target（相同NoHotReload／NoLiveCoding）成功。完整原生306項：**305通過（303乾淨＋2項既有警告）、1失敗**；新增 `Combat.ElectricWallBallCharge` 通過，涵蓋Free／Controlled拒絕、電球場／柱子／關閉充電排除、高速完整穿越、不疊加、自己／環境命中保留、中途持有再發射、近牆碰撞前補查、35傷害、承傷倍率與免疫、觸電及重複命中去重。唯一失敗是開工前已未提交的 `HealingAreas.ExpandingVehicleLifecycleAndDebugCommand`，獨立重跑仍1失敗；本次不修改治療區，不宣稱全量通過。
+
+本機Listen Server雙端R3，Host／Client各 **1/1、0測試警告／失敗／未執行**。兩顆球分別由雙方發射並穿牆命中另一方；兩端確認HP65／65、兩球都曾帶電及消耗（Mask3／3），雙方Stun／shocked均觀察到且自然結束。Host出站80ms注入，不當作實測RTT；NullRHI不代替畫面／真人／四機／Cook。未新建正式球上帶電美術。
+
+原始證據 `Saved/ElectricBall/20261127`，可同步摘要見[驗證JSON](Electric_Ball_Verification_20261127.json)。R1夾具原生球未遷移而失敗；R2用伺服器Actor名稱找客戶端球而逾時（已實際加傷／觸電）；改用複製PlayerId與本地弱引用後R3通過，未放寬觀察兩球帶電及消耗的斷言。初次UHT不接受HP單位註記也如實保留。未提交／Push。
+
+團隊首測：雙方同版構建，在電牆BP調Ball Charge參數；普通球發射穿兩柱中段再命中對手，確認+10與觸電；測慢速Free球、持有球、柱子、電球場及特殊球不新增帶電，帶電後撞普通牆保留、下一次有效命中消耗。球上正式帶電外觀可由 `On Electric Charge Changed` 接線，目標車觸電沿用已有表現。
+
 # 成對電柱與電牆機關
 
 日期：2026-10-27（Asia/Tokyo）。本輪起點為乾淨 `main / 0b28303d1bb02a51fd101901bbb52831baa27353`，本機 UE 5.8.2-56702186。先前共用 Stun 與 debug 指令已提交，本輪保留既有實作並新增機關。

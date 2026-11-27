@@ -15,6 +15,8 @@
 #include "VehicleKnockbackSettings.h"
 
 #include "CombatResolver.h"
+#include "HALElectricWallGimmick.h"
+#include "EngineUtils.h"
 #include "ArcadeVehicleMovementComponent.h"
 #include "BallControlComponent.h"
 #include "HALGameplayTags.h"
@@ -110,6 +112,7 @@ void ABasicBallActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME(ABasicBallActor, bPrimaryCameraTarget);
 
 	DOREPLIFETIME(ABasicBallActor, RepState);
+	DOREPLIFETIME(ABasicBallActor, ElectricCharge);
 }
 
 float ABasicBallActor::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, AActor* Viewer,
@@ -304,6 +307,7 @@ bool ABasicBallActor::DeliverLaunch(const FHALAttackSourceSnapshot& Attack, AAct
 	// A water intercept changes attack ownership without inserting an observable Free state.
 	if (!LaunchAction.Replace(*this, Attack)) { return false; }
 	FBallRepState Next;
+	LastElectricProbePosition=PhysicsRoot->GetComponentLocation();
 	Next.State = EBasicBallState::Launched;
 	Next.AttackSnapshot = LaunchAction.GetSnapshot();
 	Next.LastLauncherPawn = NewLauncher;
@@ -602,6 +606,7 @@ void ABasicBallActor::CheckLaunchedLowSpeed()
 		StopLowSpeedMonitor();
 		return;
 	}
+	ProbeElectricWalls(PhysicsRoot->GetComponentLocation());
 
 	const float Interval = FMath::Max(0.01f, LowSpeedCheckInterval);
 	const float SpeedSquared = PhysicsRoot->GetPhysicsLinearVelocity().SizeSquared();
@@ -659,7 +664,41 @@ void ABasicBallActor::OnPhysicsRootHit(
 	}
 
 	TGuardValue<bool> Resolving(bResolvingDamageHit, true);
+	const FVector Normal=Hit.ImpactNormal.GetSafeNormal();
+	const FVector ContactCenter=Normal.IsNearlyZero() ? PhysicsRoot->GetComponentLocation()
+		: Hit.ImpactPoint+Normal*PhysicsRoot->GetScaledSphereRadius();
+	ProbeElectricWalls(ContactCenter);
 	ResolveLaunchedContact(OtherActor, OtherComponent, NormalImpulse, Hit);
+}
+
+void ABasicBallActor::ProbeElectricWalls(const FVector& End)
+{
+	if (!HasAuthority() || !AllowsElectricWallCharge() || GetBallState()!=EBasicBallState::Launched) { return; }
+	if (!ElectricCharge.bActive)
+	{
+		for (TActorIterator<AHALElectricWallGimmick> It(GetWorld()); It; ++It)
+		{ if (It->TryChargeBallAlongSegment(*this,LastElectricProbePosition,End)) { break; } }
+	}
+	LastElectricProbePosition=End;
+}
+bool ABasicBallActor::TryElectrifyFromWall(const AHALElectricWallGimmick& Wall)
+{
+	float Bonus,Seconds;
+	if (!HasAuthority() || !IsConfigurationValid() || !AllowsElectricWallCharge() || !CanUseBall()
+		|| GetBallState()!=EBasicBallState::Launched || ElectricCharge.bActive || Wall.GetWorld()!=GetWorld()
+		|| !Wall.GetBallChargeParameters(Bonus,Seconds)) { return false; }
+	ElectricCharge.bActive=true; ElectricCharge.BonusDamage=Bonus; ElectricCharge.StunSeconds=Seconds;
+	ForceNetUpdate(); OnRep_ElectricCharge(); return true;
+}
+void ABasicBallActor::ConsumeElectricCharge()
+{
+	if (!HasAuthority() || !ElectricCharge.bActive) { return; }
+	ElectricCharge={}; ForceNetUpdate(); OnRep_ElectricCharge();
+}
+void ABasicBallActor::OnRep_ElectricCharge()
+{
+	if (ComicFX) { ComicFX->SyncElectricCharge(); }
+	OnElectricChargeChanged(ElectricCharge.bActive);
 }
 
 void ABasicBallActor::ResolveLaunchedContact(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
@@ -697,9 +736,11 @@ void ABasicBallActor::ResolveLaunchedContact(AActor* OtherActor, UPrimitiveCompo
 		Request.Impact.PushPreset = LaunchAction.GetSnapshot().Impact.PushPreset;
 	}
 	Request.KnockbackStrengthMultiplier = KnockbackStrengthMultiplier;
+	Request.ElectricCharge = ElectricCharge;
 	const FHALCombatHitResult Resolution = FCombatResolver::ResolveCombatHit(LaunchAction, Request);
 	if (Resolution.bHitAccepted)
 	{
+		ConsumeElectricCharge(); // Resolve accepted, including immune targets; rejected contacts preserve charge.
 		LastResolvedHitEventSequence = CandidateEventSequence;
 		bool bShouldLogHit = bLogDamageHits;
 #if !UE_BUILD_SHIPPING

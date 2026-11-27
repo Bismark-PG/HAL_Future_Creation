@@ -9,6 +9,7 @@ class UBoxComponent;
 class UStaticMeshComponent;
 class UPrimitiveComponent;
 class ATestVehiclePawn;
+class ABasicBallActor;
 class UHALImpactSourceComponent;
 
 USTRUCT(BlueprintType)
@@ -28,6 +29,10 @@ struct HAL_FUTURE_CREATION_API FHALElectricWallConfig
 	/** Linearly decelerating return, independent of incoming speed. */
 	UPROPERTY(EditAnywhere, Category="Bounce Back", meta=(ClampMin="0.05",ClampMax="2",Units="s")) float BounceBackSeconds = .3f;
 	UPROPERTY(EditAnywhere, Category="Contact", meta=(ClampMin="0.01",Units="s")) float StunSeconds = 1;
+	UPROPERTY(EditAnywhere, Category="Ball Charge") bool bChargeLaunchedBalls = true;
+	/** Flat bonus HP before target damage resistance. */
+	UPROPERTY(EditAnywhere, Category="Ball Charge", meta=(ClampMin="0",ClampMax="1000")) float BallChargeBonusDamage = 10;
+	UPROPERTY(EditAnywhere, Category="Ball Charge", meta=(ClampMin="0.01",ClampMax="10",Units="s")) float BallChargeStunSeconds = 1;
 	bool Validate(FString& Error) const;
 	/** Return to the configured distance behind the swept entry, not behind a late scan position. */
 	float BounceDistanceFromEntry(const FVector& Current,const FVector& Entry,const FVector& Direction) const;
@@ -49,6 +54,9 @@ public:
 	bool Configure(const FHALElectricWallConfig& InConfig);
 	uint32 GetAcceptedContactCount() const { return AcceptedContactCount; }
 	uint32 GetPhysicsSourceId() const { return PhysicsSourceId; }
+	/** False for spherical fields, inactive walls, clients, or disabled/invalid charge settings. */
+	bool GetBallChargeParameters(float& BonusDamage,float& StunSeconds) const;
+	bool TryChargeBallAlongSegment(ABasicBallActor& Ball,const FVector& Start,const FVector& End) const;
 	/** Live gameplay surface only, including armed spherical variants. Detection volumes do not qualify. */
 	UPrimitiveComponent* GetEnergizedSurface() const { return bReady && IsContactActive() ? GetContactSurface() : nullptr; }
 protected:
@@ -72,6 +80,7 @@ protected:
 	virtual FVector GetPushDirection(UPrimitiveComponent* Surface,const FVector& Current,const FVector& Previous,const FVector& Velocity) const;
 private:
 	friend struct FHALElectricWallTestAccess;
+	friend class FHALChargedBallCombatTest;
 	UFUNCTION() void OnRep_Config();
 	void ScanContacts();
 	bool ApplyContact(ATestVehiclePawn* Target,UPrimitiveComponent* Surface,const FVector& PreviousLocation);

@@ -4,6 +4,20 @@
 
 **狀態：C++ 與測試已撰寫，尚未編譯或執行通過。** 本次統一構建入口與同基線診斷均被目前執行環境的引擎目錄存取限制擋住；不能引用既有打滑區或柱子測試結果作為新功能證據。詳見本文驗證段及 [本次記錄](Expanding_Healing_Area_Verification_20261124.json)。
 
+## 2026-11-27 每次回血的 Debug Text
+
+依用戶要求，開啟場上治療區的 **Debug Draw** 後，該範圍內車輛每次被區域 HoT 實際治療，會在車輛中心上方 180 cm 顯示綠色文字，例如 `+5.00 HP (60.00 / 100.00)`，持續 0.8 秒、帶陰影。98→100 顯示 `+2.00 HP`，滿血沒有增加不顯示。這沿用同一個 Debug Draw 開關，與 Show Editor Gizmo 無關，不需要新 BP 接線；本輪沒有修改或保存既有 BP／地圖。
+
+來源由 `UHALHealingAreaReceiver::HealthChanged` 的 GAS Attribute callback 辨識：須為這個接收元件建立的 `UHALHealingAreaEffect`，且 CurrentHP 的實際正向變更；基本血量設定、換車／重置、其他技能回血不冒充區域回血。若目前登記的任何一個治療區開了 Debug Draw，按伺服器 Actor ID 選一個區域發送，重疊區域不重複發文字。退出最後來源或停止實際治療後不再發送；已顯示文字會自然結束。
+
+區域使用 **Unreliable NetMulticast** 傳遞一次性除錯結果，各端以 Unreal `DrawDebugString` 加入當地 HUD 的 DebugTextList。客戶端不依 HP 複製差值猜測回血，也不執行 HP 修改。Shipping 不發送或繪製這些提示；沒有新增 Tick、HP 儲存、正式 UI 或 Gameplay Ability。除錯 RPC 在封包遺失時可略過，不能當作可靠戰鬥紀錄；需有效本機 PlayerController／HUD 才會顯示文字。
+
+新增原生測試 `DebugTextUsesActualAreaHealOnly`，用真正 World／GAS 週期和引擎 HUD DebugTextList 驗證：Debug 關閉仍回血但不顯字；雙區重疊只一份；實際 +5；接近滿血實際 +2；滿血不發；手動 HP 設定和獨立 GE 治療不發；關閉後停止提示。現有 `HAL.NetworkSmoke.HealingAreas` 增加雙區 Debug Draw 和客戶端 HUD 文字檢查。測試入口更新為至少 **18 項原生（治療 6＋MovementAreas 7＋ArenaGenerator 5）**及主客各 1 項；這些是待驗證的數量，並非本輪通過結果。
+
+本輪接續 `main/69429df`，核對實際引擎仍是 **5.8.2-56702186**，與狀態文件部分團隊的 5.8.3 記錄有差異。`BuildAndLaunch.cmd -NoLaunch -NoPopup` 在 Engine Build.bat 的 Source 前置檢查停止，exit 999，**未進入 C++／UHT／連結，原生、雙端與實際畫面均未執行**。日誌 `Saved/BuildTool/BuildAndLaunch_20261127_150419_466_a29cdf`。完成 `git diff --check` 和測試腳本 PowerShell AST 語法解析；兩份原有未提交資產 SHA256 前後保持。詳細見[本次驗證記錄](Expanding_Healing_Area_Debug_Text_Verification_20261127.json)。沒有提交／Push。
+
+團隊接續：保存並關閉 Editor／Live Coding，於正常終端執行 `BuildAndLaunch.cmd -NoLaunch -NoPopup`，成功後執行 `Tools/TestHealingAreas.ps1 -EngineRoot 'D:\Unreal Shit\UE_5.8'`。重開 Editor，用現有 BP 勾 Debug Draw，先受傷再駛入，核對每次 +5、98→100 只 +2、滿血不發字、離區停止、兩區不重複；主機和客戶端各看一次。這一版沒有為正式遊戲製作補血飄字 UI。
+
 ## 2026-11-24 編輯器範圍 Gizmo
 
 依用戶追加要求，新增 `UHALHealingAreaGizmoComponent` 編輯器專用錨點和 Editor 模組的 `FComponentVisualizer`。選取治療區 Actor 時，顯示**最大半徑的綠色中心圓、青色上下邊界／圓柱側線，以及垂直高度軸**。綠色中心圓位於 Actor 實際中心高度，青色上下邊界分別位於 `Z ± Half Height`，沒有投影到地板，用於定位實際圓柱範圍。每次視窗繪製直接讀 Settings，改半徑／半高可更新；始終按世界 XY／Z 繪製，不隨 Actor 或父層級的 Scale／Rotation 縮放或傾斜。
@@ -75,7 +89,7 @@
 
 ## 自動化與本輪驗證限制
 
-新增五項 `HAL.FutureCreation.HealingAreas` 原生測試：
+目前有六項 `HAL.FutureCreation.HealingAreas` 原生測試（第六項於 2026-11-27 加入）：
 
 | 測試 | 驗證內容 |
 |---|---|
@@ -84,6 +98,7 @@
 | StrongestRecipeSelectiveCleanupAndAvatar | 配方選擇與平手、獨立同類 GE 保留、解除／重綁、換 Avatar、舊車延遲清理、Owner 銷毀 |
 | DeathPreventsRevival | 首次週期前 HP 歸零，同步清理且後續週期不復活 |
 | ExpandingVehicleLifecycleAndDebugCommand | 已保存車輛 BP 唯讀載入、原生接收元件、生成者、擴張覆蓋、離區／高度／到期、調試生成與空類不回退 |
+| DebugTextUsesActualAreaHealOnly | 真正 GAS 週期與 HUD DebugTextList，檢查 Debug 開關、實際治療量、部分治療、滿血、重疊和獨立回血來源 |
 
 另加 `HAL.NetworkSmoke.HealingAreas`：兩個獨立進程、80 ms 主機出站模擬延遲、兩個重疊區域、一份回血、移除一區繼續回血、最後一區自然到期、HP／雙端 Tag／區域配置與半徑複製、客戶端不寫來源。此專項不代表晚加入／四人／真實 RTT／畫面驗收。
 
@@ -93,7 +108,7 @@
 .\Tools\TestHealingAreas.ps1 -EngineRoot 'D:\Unreal Shit\UE_5.8'
 ```
 
-可加 `-SkipNetwork` 只跑原生；預設報告寫入全新 `Saved/HealingArea/Tests_時間`，不覆蓋舊證據。Native 預期至少 17 項（治療 5＋現有 MovementAreas 7＋ArenaGenerator 5），同時檢查治療測試確實存在，避免舊 DLL 漏掉新測試仍顯示成功。雙端各 1 項。腳本只結束它自己建立的測試行程，不停止團隊既有 Editor。
+可加 `-SkipNetwork` 只跑原生；預設報告寫入全新 `Saved/HealingArea/Tests_時間`，不覆蓋舊證據。Native 預期至少 18 項（治療 6＋現有 MovementAreas 7＋ArenaGenerator 5），同時檢查治療測試確實存在，避免舊 DLL 漏掉新測試仍顯示成功。雙端各 1 項。腳本只結束它自己建立的測試行程，不停止團隊既有 Editor。
 
 **本輪實際執行：** `git diff --check` 通過，測試腳本 PowerShell AST 語法解析通過；源碼對照本機 5.8.2 API 檢查了 Period、週期首次執行開關、GE Handle 和 Attribute delegate 接點。這些都不能替代 C++ 編譯與玩法實測。
 

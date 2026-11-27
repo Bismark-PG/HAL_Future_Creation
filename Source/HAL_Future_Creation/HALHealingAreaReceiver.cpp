@@ -2,6 +2,8 @@
 #include "HALAbilitySystemComponent.h"
 #include "HALGameplayTags.h"
 #include "HALHealthAttributeSet.h"
+#include "HALExpandingHealingArea.h"
+#include "GameplayEffectExtension.h"
 #include "GameFramework/Actor.h"
 #include "HAL/IConsoleManager.h"
 
@@ -91,6 +93,27 @@ void UHALHealingAreaReceiver::HealthChanged(const FOnAttributeChangeData& Data)
 {
 	// Synchronous death cleanup prevents a queued periodic pulse from reviving the eliminated Avatar.
 	if (Data.NewValue <= 0.f) { ClearForOwnerExit(); }
+#if !UE_BUILD_SHIPPING
+	// Attribute delegates carry the actual clamped HP delta and the GE that caused it.
+	// Another skill's heal, base-value reset or MaxHP change must not look like an area pulse.
+	if (!CanHeal() || Data.Attribute != UHALHealthAttributeSet::GetCurrentHPAttribute()
+		|| Data.NewValue <= Data.OldValue || !Data.GEModData
+		|| Data.GEModData->EffectSpec.GetContext().GetSourceObject() != this
+		|| !Data.GEModData->EffectSpec.Def || !Data.GEModData->EffectSpec.Def->IsA<UHALHealingAreaEffect>()) { return; }
+	AHALExpandingHealingArea* DebugArea = nullptr;
+	for (const auto& Pair : Sources)
+	{
+		auto* Area = Cast<AHALExpandingHealingArea>(Pair.Key.Get());
+		if (IsValid(Area) && !Area->IsActorBeingDestroyed() && Area->IsDebugDrawEnabled()
+			&& Area->GetCurrentRadius() > 0 && (!DebugArea || Area->GetUniqueID() < DebugArea->GetUniqueID())) { DebugArea = Area; }
+	}
+	// One broadcaster even when several debug-enabled areas overlap.
+	if (DebugArea)
+	{
+		DebugArea->NotifyDebugHealing(GetOwner(), Data.NewValue - Data.OldValue, Data.NewValue,
+			ASC->GetNumericAttribute(UHALHealthAttributeSet::GetMaxHPAttribute()));
+	}
+#endif
 }
 void UHALHealingAreaReceiver::SourceEnded(AActor* Actor, EEndPlayReason::Type Reason) { UnregisterArea(Actor); }
 void UHALHealingAreaReceiver::ClearForOwnerExit()

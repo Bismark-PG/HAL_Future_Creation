@@ -1,0 +1,111 @@
+{
+  "date": "2026-11-27",
+  "base": "main/69429df",
+  "engine": "5.8.2-56702186",
+  "scope": "Ordinary Launched ball only; middle electric wall only; one charge until next accepted vehicle hit; special balls unchanged.",
+  "editorBuild": {
+    "status": "passed",
+    "entry": "BuildAndLaunch.cmd -NoLaunch -NoPopup",
+    "log": "Saved/BuildTool/BuildAndLaunch_20261127_153939_802_d4d085/UnrealBuildTool.log"
+  },
+  "gameBuild": {
+    "status": "passed",
+    "reason": "Validate replicated payload and GAS in non-Editor Game Target",
+    "command": "Build.bat HAL_Future_Creation Win64 Development -Project=\"D:\\Unreal Shit\\HAL_Future_Creation\\HAL_Future_Creation.uproject\" -WaitMutex -NoHotReload -NoLiveCoding -Log=\"D:\\Unreal Shit\\HAL_Future_Creation\\Saved\\ElectricBall\\20261127\\Game_R2.log\""
+  },
+  "native": {
+    "succeeded": 303,
+    "succeededWithWarnings": 2,
+    "failed": 1,
+    "notRun": 0,
+    "inProcess": 0
+  },
+  "nativeNewCase": "HAL.FutureCreation.Combat.ElectricWallBallCharge: Success",
+  "nativeFailure": {
+    "case": "HAL.FutureCreation.HealingAreas.ExpandingVehicleLifecycleAndDebugCommand",
+    "ownership": "Present in starting uncommitted healing work; not edited by this task",
+    "isolated": {
+      "succeeded": 0,
+      "succeededWithWarnings": 0,
+      "failed": 1,
+      "notRun": 0,
+      "inProcess": 0
+    },
+    "note": "Failure reproduced when run alone; not reported as full regression success."
+  },
+  "network": {
+    "Host": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "inProcess": 0
+    },
+    "Client": {
+      "succeeded": 1,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "inProcess": 0
+    }
+  },
+  "networkEvidence": "Both roles: HP=65/65 ChargeMask=3 SpentMask=3 OwnShock=1 RemoteShock=1. Host outbound 80ms injected, local Listen Server, NullRHI.",
+  "earlierAttempts": [
+    "Build preflight stopped for open Editor/LiveCoding; user saved and authorized process termination.",
+    "UHT rejected unsupported HP Units metadata; removed; later builds passed.",
+    "Network_R1 used unconfigured native ball and failed TieredV1 validation. Corrected fixture to saved BP_BasicBall; host failed report retained, client stopped after host exit.",
+    "Network_R2 verified HP and shock but timed out: client actor names differ from server names. Host ChargeMask=3/SpentMask=3; client 0/0. Corrected fixture identification to replicated launcher PlayerId plus local weak actor references; strict masks kept."
+  ],
+  "limitations": [
+    "No new rendered Niagara/ball charged appearance asset; replicated presentation event and read-only query supplied.",
+    "Actual target electric appearance uses existing Stun/shocked system; NullRHI verifies state, not pixels.",
+    "No new Cook, Shipping, four-machine or full network-impairment matrix.",
+    "Charge uses swept sample segments and hit-time supplement; no physics-substep ball path recording.",
+    "Starting healing source/docs/BP and map edits preserved; no asset authoring performed."
+  ],
+  "sourceSHA256": {
+    "Source/HAL_Future_Creation/BasicBallActor.cpp": "950175cc44aefe087a8d06e68fa1d387055853742264dad5be26430b789b26dc",
+    "Source/HAL_Future_Creation/BasicBallActor.h": "a5bacd25b457190b2dfcea34cf27b0fed5809bdf4b14c6add8783e3009019dfd",
+    "Source/HAL_Future_Creation/CombatResolver.cpp": "13a96a7eadb9c78aa15eb88939869caad243883fa5d67e04a623a44fd2bf8b02",
+    "Source/HAL_Future_Creation/HALApplyDamageEffect.cpp": "f7396f68d232a0ab46b3f6ea0d3adbb1fb913b96726fb29d5c2a3f865debd578",
+    "Source/HAL_Future_Creation/HALApplyDamageEffect.h": "02a74f57701e9bfea52c00d32ad28594c0be0ab3d10aecb3e9683b91471705c7",
+    "Source/HAL_Future_Creation/HALCombatTypes.h": "8472362cde352091db800b5b852091a7186033722d0985024028ab08f152e88d",
+    "Source/HAL_Future_Creation/HALElectricWallGimmick.cpp": "a522df28be9e7db30b4f655c6f0ad3ce57309a1f8cd52df6ca124c01913363f4",
+    "Source/HAL_Future_Creation/HALElectricWallGimmick.h": "bd6b992de85429b64f184081339d8691909b0d91185ac569ee29c38daf0a0890",
+    "Source/HAL_Future_Creation/HALGameplayTags.cpp": "8fc8850d93e6a1adad78dc9ba8536e914fb42f41f76d8de4705ab571c2fa46ee",
+    "Source/HAL_Future_Creation/HALGameplayTags.h": "df6f58b10ded9ba0befb08eb54d4fb05e0f22d99c53370e7ea142857d5a4ba08",
+    "Source/HAL_Future_Creation/HALSpecialBall.h": "c1dacd011d241d49f0c9d05cb74bf5ddf67b78c347885f020059657ae4049025",
+    "Source/HAL_Future_Creation/Tests/HALCombatTests.cpp": "71f0d2596fba797c17431440c83dfe39405851cf00178ff30b77bf646399789b",
+    "Source/HAL_Future_Creation/Tests/HALElectricWallNetworkTests.cpp": "97619bd9259ef0305c80ec27c375e01133c96d2c3506097082c2c6d78d685ab7"
+  },
+  "followupHint": {
+    "text": "CHARGED +<actual bonus damage>",
+    "defaultColorRGB": [
+      40,
+      190,
+      255
+    ],
+    "editorBuild": "Saved/BuildTool/BuildAndLaunch_20261127_154911_284_451776/UnrealBuildTool.log",
+    "gameBuild": "Saved/ElectricBall/20261127/HintGame_R1.log",
+    "targetedTests": {
+      "succeeded": 4,
+      "succeededWithWarnings": 0,
+      "failed": 0,
+      "notRun": 0,
+      "report": "Saved/ElectricBall/20261127/Hint/Native_R1/index.json"
+    },
+    "notRun": [
+      "Rendered picture",
+      "New network run",
+      "Full regression",
+      "Cook"
+    ],
+    "sourceSHA256": {
+      "Source/HAL_Future_Creation/BasicBallActor.cpp": "2d4c2e94852e09af6d4c76cfc9f74351955f17297ea73369d1895e8ff7c75b7d",
+      "Source/HAL_Future_Creation/HALBallComicFXComponent.cpp": "53e825d78addf8a9e32a84038dd67d019f7131ba4a796bbf1d2f31b128cc699e",
+      "Source/HAL_Future_Creation/HALBallComicFXComponent.h": "2e4e8945b4d4e823d99e79e5280d7887a14d2ae2aa2ec11cc2977fef89bc28f1",
+      "Source/HAL_Future_Creation/HALBallComicFXSettings.cpp": "7aa7cdbea215028436e514396551c878766175dbd5c4b5df1fbfed0e71908156",
+      "Source/HAL_Future_Creation/HALBallComicFXSettings.h": "4a701243639fa71c347f9837e4efa14f0329252cbf505f32f1ddad645086391c"
+    }
+  }
+}

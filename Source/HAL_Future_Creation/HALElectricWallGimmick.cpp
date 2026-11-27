@@ -1,4 +1,6 @@
 #include "HALElectricWallGimmick.h"
+#include "BasicBallActor.h"
+#include "Components/SphereComponent.h"
 #include "HALGameFlowPermissions.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALGameplayTags.h"
@@ -30,7 +32,9 @@ bool FHALElectricWallConfig::Validate(FString& Error) const
 		|| PillarSpacing <= 2*PillarRadius || !Positive(WallHalfThickness) || !FMath::IsFinite(ContactMargin) || ContactMargin < 0
 		|| !Positive(ScanInterval) || ScanInterval < .01f || !Positive(StunSeconds)
 		|| !Positive(BounceBackDistance) || BounceBackDistance > 1000
-		|| !Positive(BounceBackSeconds) || BounceBackSeconds < .05f || BounceBackSeconds > 2)
+		|| !Positive(BounceBackSeconds) || BounceBackSeconds < .05f || BounceBackSeconds > 2
+		|| (bChargeLaunchedBalls && (!FMath::IsFinite(BallChargeBonusDamage) || BallChargeBonusDamage<0 || BallChargeBonusDamage>1000
+			|| !Positive(BallChargeStunSeconds) || BallChargeStunSeconds<.01f || BallChargeStunSeconds>10)))
 	{ Error = TEXT("Require separated pillars, Height >= diameter, positive finite dimensions/times, scan >= .01s, bounce distance (0,1000]cm and duration [.05,2]s."); return false; }
 	return true;
 }
@@ -264,4 +268,28 @@ void AHALElectricWallGimmick::ScanContacts()
 		Record.PreviousLocation = Current; Record.SampledAt = GetWorld()->GetTimeSeconds();
 	}
 	for (auto It=Contacts.CreateIterator(); It; ++It) { if (!It.Key().IsValid()) { It.RemoveCurrent(); } }
+}
+
+bool AHALElectricWallGimmick::GetBallChargeParameters(float& BonusDamage,float& StunSeconds) const
+{
+	if (!HasAuthority() || !bReady || !IsContactActive() || GetContactSurface()!=ElectricField
+		|| !Config.bChargeLaunchedBalls || !FMath::IsFinite(Config.BallChargeBonusDamage)
+		|| Config.BallChargeBonusDamage<0 || Config.BallChargeBonusDamage>1000
+		|| !FMath::IsFinite(Config.BallChargeStunSeconds) || Config.BallChargeStunSeconds<.01f || Config.BallChargeStunSeconds>10
+		|| !HALGameFlow::Permissions(GetWorld()).bWorldInteractions) { return false; }
+	BonusDamage=Config.BallChargeBonusDamage; StunSeconds=Config.BallChargeStunSeconds; return true;
+}
+bool AHALElectricWallGimmick::TryChargeBallAlongSegment(ABasicBallActor& Ball,const FVector& Start,const FVector& End) const
+{
+	float Bonus,Seconds;
+	if (!GetBallChargeParameters(Bonus,Seconds) || Ball.GetWorld()!=GetWorld()) { return false; }
+	auto* Body=Ball.GetPhysicsRoot(); if (!Body) { return false; }
+	const auto Shape=FCollisionShape::MakeSphere(Body->GetScaledSphereRadius());
+	FHitResult Hit;
+	const bool bTouch=ElectricField->OverlapComponent(End,FQuat::Identity,Shape)
+		|| (!Start.Equals(End,.01) && ElectricField->SweepComponent(Hit,Start,End,FQuat::Identity,Shape,false));
+	if (!bTouch || !Ball.TryElectrifyFromWall(*this)) { return false; }
+	if (CVarHALElectricWallLog.GetValueOnGameThread())
+	{ UE_LOG(LogTemp,Log,TEXT("Electric ball charged: Wall=%s Ball=%s Bonus=%.2f Stun=%.3f"),*GetName(),*Ball.GetName(),Bonus,Seconds); }
+	return true;
 }

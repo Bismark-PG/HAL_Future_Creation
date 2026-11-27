@@ -43,7 +43,7 @@ function Read-Probe([string]$Role, [Diagnostics.Process]$Process, [int]$Minimum)
     if ($Role -eq 'Native') {
         # Missing new tests must fail even when an old DLL still contains the pre-existing area suites.
         $healing = @($report.tests | Where-Object { $_.fullTestPath -like 'HAL.FutureCreation.HealingAreas.*' })
-        $clean = $clean -and $healing.Count -ge 5
+        $clean = $clean -and $healing.Count -ge 6
     }
     [pscustomobject]@{ Role=$Role; ExitCode=$Process.ExitCode; Passed=$report.succeeded; Warnings=$report.succeededWithWarnings; Failed=$report.failed; Clean=$clean }
 }
@@ -52,7 +52,7 @@ try {
     $native = Start-Probe 'Native' '' 'HAL.FutureCreation.HealingAreas+HAL.FutureCreation.MovementAreas+HAL.FutureCreation.ArenaGenerator' $false
     $owned += $native
     Wait-Probe $native 240
-    $result = Read-Probe 'Native' $native 17
+    $result = Read-Probe 'Native' $native 18
     $summary += $result
     if (-not $result.Clean) { throw 'Native healing/area regression failed; network probes were not started.' }
     if (-not $SkipNetwork) {

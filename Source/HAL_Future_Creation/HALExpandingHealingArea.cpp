@@ -88,6 +88,27 @@ void AHALExpandingHealingArea::Tick(float DeltaSeconds)
 		Age() < Settings.ExpansionSeconds ? FColor::Cyan : FColor::Green);
 #endif
 }
+void AHALExpandingHealingArea::NotifyDebugHealing(AActor* Vehicle, float ActualHealing, float CurrentHP, float MaxHP)
+{
+#if ENABLE_DRAW_DEBUG && !UE_BUILD_SHIPPING
+	if (!HasAuthority() || !bDebugDraw || IsActorBeingDestroyed() || GetCurrentRadius() <= 0
+		|| !IsValid(Vehicle) || Vehicle->IsActorBeingDestroyed() || Vehicle->GetWorld() != GetWorld()
+		|| !FMath::IsFinite(ActualHealing) || ActualHealing <= 0 || !FMath::IsFinite(CurrentHP)
+		|| !FMath::IsFinite(MaxHP) || MaxHP <= 0 || CurrentHP <= 0 || CurrentHP > MaxHP) { return; }
+	MulticastDebugHealing(Vehicle, ActualHealing, CurrentHP, MaxHP);
+#endif
+}
+void AHALExpandingHealingArea::MulticastDebugHealing_Implementation(AActor* Vehicle, float ActualHealing, float CurrentHP, float MaxHP)
+{
+#if ENABLE_DRAW_DEBUG && !UE_BUILD_SHIPPING
+	if (IsNetMode(NM_DedicatedServer) || !IsValid(Vehicle) || Vehicle->IsActorBeingDestroyed()
+		|| Vehicle->GetWorld() != GetWorld() || !FMath::IsFinite(ActualHealing) || ActualHealing <= 0
+		|| !FMath::IsFinite(CurrentHP) || !FMath::IsFinite(MaxHP)) { return; }
+	const FString Text = FString::Printf(TEXT("+%.2f HP (%.2f / %.2f)"), ActualHealing, CurrentHP, MaxHP);
+	// This is per-pulse debug text, not a predicted client-side change to HP.
+	DrawDebugString(GetWorld(), FVector(0, 0, 180), Text, Vehicle, FColor::Green, .8f, true, 1.2f);
+#endif
+}
 void AHALExpandingHealingArea::EndPlay(const EEndPlayReason::Type Reason)
 {
 	GetWorldTimerManager().ClearTimer(UpdateTimer);

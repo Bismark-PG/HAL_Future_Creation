@@ -12,6 +12,7 @@ class UNiagaraComponent;
 class UNiagaraSystem;
 class UStaticMesh;
 class UStaticMeshComponent;
+class UTextRenderComponent;
 struct FHALBallComicFXConfig;
 
 /** What this component last drew for; compared against the next replicated snapshot. */
@@ -85,6 +86,8 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* TickFunction) override;
 	void SyncToBallState(const FBallRepState& State);
+	/** Called from charge RepNotify and authority commit, independently of ball ownership/state. */
+	void SyncElectricCharge();
 	bool IsTrailActive() const { return bTrailActive; }
 	bool IsAimActive() const { return bAimActive; }
 	EHALBallHoldRingPhase GetHoldRingPhase() const { return HoldPhase; }
@@ -104,6 +107,7 @@ private:
 	void HideHold();
 	/** Ticks only while an arrow, a ring or the triangle trail is on screen. */
 	void RefreshTick();
+	void UpdateElectricChargeHint(const FHALBallComicFXConfig& Config);
 	/** Centre and radius of the ball as drawn this frame (the client shows a held ball from a relative sample). */
 	bool ResolveDrawnBall(FVector& OutCentre, float& OutRadius) const;
 	TWeakObjectPtr<ABasicBallActor> Ball;
@@ -133,6 +137,8 @@ private:
 	float HoldSeconds = 0;
 	/** Half size the ball sprite was last built with; the billboard is only rebuilt when it changes. */
 	float AimSeconds = 0;
+	UPROPERTY(Transient) TObjectPtr<UTextRenderComponent> ElectricChargeHint;
+	bool bElectricChargeHintActive = false;
 	bool bReady = false;
 	bool bTrailActive = false;
 	bool bTrailWedgeActive = false;
