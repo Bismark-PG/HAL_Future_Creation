@@ -79,16 +79,20 @@ public:
 	void SetPlaying(bool bPlaying);
 	virtual void EndPlay(EEndPlayReason::Type Reason) override;
 private:
+	friend struct FHALFeverNetworkTestAccess;
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
 	friend class FHALSpecialBallSupplyTest;
 #endif
-	void ScheduleCycle(float Delay);
+	void ScheduleCycle(float Interval, float MissedWarning = 0.f, float RemainingFraction = 1.f);
+	void ApplyFever(const class UHALMatchFeverDefinition* Fever);
 	void BeginCycle();
 	void Announce();
 	void Deliver();
 	void FinishCycle();
 	bool CanSupply() const;
 	float WarningDuration = 0.f;
+	float IntervalMultiplier = 1.f;
+	float PendingInterval = 0.f, PendingWarningCarry = 0.f, FullIdleSeconds = 0.f;
 	float SpawnRadius = 0.f;
 	double RetryUntil = 0.;
 	int32 NextPad = 0;

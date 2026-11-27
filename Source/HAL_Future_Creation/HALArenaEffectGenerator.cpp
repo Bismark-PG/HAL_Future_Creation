@@ -5,6 +5,7 @@
 #include "HALExpandingSlipperyArea.h"
 #include "HALGameFlowPermissions.h"
 #include "HALMatchGameState.h"
+#include "HALMatchFeverDefinition.h"
 #include "HALRoomComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/DynamicMeshComponent.h"
@@ -185,6 +186,11 @@ void AHALArenaEffectGenerator::BeginPlay()
 			EnterStage(EHALArenaGeneratorStage::Disabled); return;
 		}
 		Random.Initialize(Settings.RandomSeed != 0 ? Settings.RandomSeed : FMath::Rand());
+		if (const auto* Match = GetWorld()->GetGameState<AHALMatchGameState>())
+		{
+			Match->GetRoom()->OnFeverChanged.AddUObject(this, &ThisClass::ApplyFever);
+			ApplyFever(Match->GetRoom()->GetActiveFever());
+		}
 	}
 	UpdatePillarCollision();
 	InitializeMeshMotion();
@@ -214,11 +220,34 @@ void AHALArenaEffectGenerator::EnterStage(EHALArenaGeneratorStage Stage, float D
 	State.Stage = Stage; State.StartedAt = ServerNow(); State.Duration = Duration;
 	ForceNetUpdate(); RefreshPresentation();
 }
+
+void AHALArenaEffectGenerator::ApplyFever(const UHALMatchFeverDefinition* Fever)
+{
+	const float Previous = WaitMultiplier;
+	WaitMultiplier = Fever ? Fever->GimmickWaitMultiplier : 1.f;
+	if (Previous == WaitMultiplier || State.Duration <= 0.f) { return; }
+	const double Now = ServerNow();
+	const double Age = FMath::Clamp(Now - State.StartedAt, 0., double(State.Duration));
+	if (State.Stage == EHALArenaGeneratorStage::Rolling)
+	{
+		// The reel has already travelled for Age seconds. Preserve that distance and shorten its remaining roll.
+		State.Duration = float(Age + (State.Duration - Age) * WaitMultiplier / Previous);
+	}
+	else if (State.Stage == EHALArenaGeneratorStage::Finished)
+	{
+		const double Fraction = Age / State.Duration;
+		State.Duration = Settings.FinishSeconds * WaitMultiplier;
+		State.StartedAt = Now - Fraction * State.Duration;
+	}
+	else { return; }
+	ForceNetUpdate();
+	RefreshPresentation();
+}
 void AHALArenaEffectGenerator::BeginCycle()
 {
 	State.Cycle = State.Cycle == MAX_int32 ? 1 : State.Cycle+1;
 	State.Effect = EHALArenaEffect::None; State.WarningRadius = 0; State.ActiveEffect = nullptr; PendingClass = nullptr;
-	EnterStage(EHALArenaGeneratorStage::Rolling,Settings.RollSeconds);
+	EnterStage(EHALArenaGeneratorStage::Rolling,Settings.RollSeconds * WaitMultiplier);
 }
 void AHALArenaEffectGenerator::UpdateGenerator()
 {
@@ -279,7 +308,7 @@ void AHALArenaEffectGenerator::EffectEnded(AActor* Actor, EEndPlayReason::Type R
 {
 	if (!HasAuthority() || bEnding || State.ActiveEffect != Actor) { return; }
 	State.ActiveEffect = nullptr;
-	if (Reason == EEndPlayReason::Destroyed) { EnterStage(EHALArenaGeneratorStage::Finished,Settings.FinishSeconds); }
+	if (Reason == EEndPlayReason::Destroyed) { EnterStage(EHALArenaGeneratorStage::Finished,Settings.FinishSeconds * WaitMultiplier); }
 	else { EnterStage(EHALArenaGeneratorStage::Waiting); }
 }
 void AHALArenaEffectGenerator::RemoveEffect()
@@ -561,6 +590,7 @@ void AHALArenaEffectGenerator::OnRep_Settings() { RefreshGeometry(); RefreshPres
 void AHALArenaEffectGenerator::OnRep_State() { RefreshPresentation(); }
 void AHALArenaEffectGenerator::EndPlay(const EEndPlayReason::Type Reason)
 {
+	if (const auto* Match = GetWorld()->GetGameState<AHALMatchGameState>()) { Match->GetRoom()->OnFeverChanged.RemoveAll(this); }
 	bEnding=true; GetWorldTimerManager().ClearTimer(UpdateTimer); RemoveEffect();
 	ClearMeshMotion(); GetWorldTimerManager().ClearTimer(ForecastTimer); ForecastPanel->SetVisibility(false);
 	ClearPillarCollision();

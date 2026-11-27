@@ -2,6 +2,8 @@
 #include "CoreMinimal.h"
 #include "HALRoundMatchTypes.generated.h"
 
+class UHALMatchFeverDefinition;
+
 UENUM(BlueprintType)
 enum class EHALRoundLife : uint8 { None, Alive, Eliminated, Forfeited };
 UENUM(BlueprintType)
@@ -50,6 +52,9 @@ struct HAL_FUTURE_CREATION_API FHALRoundMatchData
 	UPROPERTY(BlueprintReadOnly, Category="Match") int32 LastEliminationBatch=0;
 	UPROPERTY(BlueprintReadOnly, Category="Match") int64 RoundId=0;
 	UPROPERTY(BlueprintReadOnly, Category="Match") double EndServerTime=0;
+	UPROPERTY(BlueprintReadOnly, Category="Match|Fever") TObjectPtr<UHALMatchFeverDefinition> FeverDefinition;
+	/** Negative until Fever first starts in this round. Shared server game clock. */
+	UPROPERTY(BlueprintReadOnly, Category="Match|Fever") double FeverStartedAt=-1.;
 	UPROPERTY(BlueprintReadOnly, Category="Match") double ReturnServerTime=0;
 	UPROPERTY(BlueprintReadOnly, Category="Match") EHALMatchEndReason Reason=EHALMatchEndReason::None;
 	UPROPERTY(BlueprintReadOnly, Category="Match") FHALMatchRules Rules;
@@ -57,6 +62,9 @@ struct HAL_FUTURE_CREATION_API FHALRoundMatchData
 	/** Frozen display order; Players keeps the original identity/seat order. */
 	UPROPERTY(BlueprintReadOnly, Category="Match") TArray<FHALRoundParticipant> RankedPlayers;
 	const FHALRoundParticipant* Find(FGuid Key) const { return Players.FindByPredicate([Key](const auto& P){ return P.PlayerKey==Key; }); }
+	bool IsFeverActive() const { return bActive && !bComplete && FeverDefinition && FeverStartedAt >= 0.; }
+	bool IsFeverBannerVisible(double ServerNow) const;
+	bool TryStartFever(double ServerNow, bool bForceTrigger = false);
 };
 
 namespace HALRoundMatch

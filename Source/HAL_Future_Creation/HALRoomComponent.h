@@ -10,6 +10,7 @@ class APawn;
 struct FHALRoundTravel;
 struct FHALTravelPlayer;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FHALRoomChanged);
+DECLARE_MULTICAST_DELEGATE_OneParam(FHALFeverChanged, const UHALMatchFeverDefinition*);
 
 /** Dormant on legacy NetTest. Only server GameMode may initialize/register/advance it. No Tick or spawning. */
 UCLASS()
@@ -47,6 +48,8 @@ public:
 	/** Authority-only snapshot publication for this exact active round. */
 	bool SetMatchData(const FHALRoundMatchData& Match);
 	UPROPERTY(BlueprintAssignable, Category="Room") FHALRoomChanged OnRoomChanged;
+	const UHALMatchFeverDefinition* GetActiveFever() const;
+	FHALFeverChanged OnFeverChanged;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 private:
 	AHALPlayerState* Member(const AHALPlayerController* Controller) const;
@@ -55,6 +58,7 @@ private:
 	UFUNCTION() void OnRep_Data();
 	UPROPERTY(ReplicatedUsing=OnRep_Data) FHALRoomData Data;
 	UPROPERTY(Transient) TObjectPtr<UHALRoomConfig> ServerConfig;
+	int64 ActiveFeverRound = INDEX_NONE;
 	/** Server-only seats of carried players not imported yet. Never a reconnect reservation. */
 	TMap<FGuid,int32> PendingTravelSeats;
 };

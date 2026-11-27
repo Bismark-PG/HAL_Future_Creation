@@ -1,7 +1,9 @@
 #include "HALMatchHUDWidget.h"
 #include "Blueprint/WidgetTree.h"
+#include "Components/CanvasPanelSlot.h"
 #include "Engine/World.h"
 #include "HALMatchGameState.h"
+#include "HALMatchFeverDefinition.h"
 #include "HALRoomComponent.h"
 #include "HALAbilitySystemComponent.h"
 #include "HALBatarang.h"
@@ -12,6 +14,7 @@
 #include "Widgets/SOverlay.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SConstraintCanvas.h"
 #include "Widgets/Notifications/SProgressBar.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
@@ -23,6 +26,32 @@ TSharedRef<SWidget> UHALMatchHUDWidget::RebuildWidget()
 	auto Overlay = SNew(SOverlay);
 	ClockPanel = SNew(SBox)[Clock];
 	Overlay->AddSlot()[ClockPanel.ToSharedRef()];
+	const auto Amber = FLinearColor(1.f,.59f,.095f);
+	FeverBadge = SNew(SBorder).Visibility(EVisibility::Collapsed)
+		.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")).BorderBackgroundColor(FLinearColor(.09f,.028f,.012f,.92f))
+		.Padding(FMargin(9,2))
+		[SNew(STextBlock).Text(NSLOCTEXT("HALMatch", "Fever", "FEVER")).Font(FCoreStyle::GetDefaultFontStyle("BoldItalic", 21)).ColorAndOpacity(Amber)];
+	TWeakObjectPtr<UWidget> TimerWidget = WidgetTree ? WidgetTree->FindWidget(TEXT("TimeBorder")) : nullptr;
+	const auto* TimerSlot = TimerWidget.IsValid() ? Cast<UCanvasPanelSlot>(TimerWidget->Slot) : nullptr;
+	const FVector2D ClockPosition = TimerSlot ? TimerSlot->GetPosition() : FVector2D(0,24);
+	const auto ClockSize = [this, TimerWidget]() -> FVector2D
+	{
+		if (const auto* Timer = TimerWidget.Get()) { return Timer->GetDesiredSize(); }
+		return (CountdownText ? CountdownText->GetDesiredSize() : FVector2D(100,40)) + FVector2D(48,16);
+	};
+	FeverBanner = SNew(SBorder).Visibility(EVisibility::Collapsed)
+		.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")).BorderBackgroundColor(Amber).Padding(FMargin(26,3))
+		[SNew(STextBlock).Text(NSLOCTEXT("HALMatch", "Fever", "FEVER")).Font(FCoreStyle::GetDefaultFontStyle("BoldItalic", 38))
+			.ColorAndOpacity(FLinearColor(.045f,.013f,.025f))];
+	Overlay->AddSlot()[SNew(SConstraintCanvas).Visibility(EVisibility::SelfHitTestInvisible)
+		+ SConstraintCanvas::Slot().Anchors(FAnchors(.5f,0.f)).AutoSize(true).Alignment(FVector2D(0,.5))
+		.Offset_Lambda([ClockPosition, ClockSize] {
+			const FVector2D Center = ClockPosition + ClockSize() * .5;
+			return FMargin(Center.X + 8, Center.Y, 0, 0);
+		})[FeverBadge.ToSharedRef()]
+		+ SConstraintCanvas::Slot().Anchors(FAnchors(.5f,0.f)).AutoSize(true).Alignment(FVector2D(.5,0))
+		.Offset_Lambda([ClockPosition, ClockSize] { return FMargin(ClockPosition.X, ClockPosition.Y + ClockSize().Y + 10, 0, 0); })
+		[FeverBanner.ToSharedRef()]];
 	EnergyPanel = SNew(SBox).WidthOverride(292)
 	[
 		SNew(SBorder).Padding(FMargin(12,7)).BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
@@ -60,6 +89,7 @@ void UHALMatchHUDWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
 	CountdownText.Reset();
+	FeverBadge.Reset(); FeverBanner.Reset();
 	ClockPanel.Reset(); EnergyPanel.Reset(); EnergyText.Reset(); EnergyBar.Reset();
 }
 FHALUltimateEnergyView UHALMatchHUDWidget::GetLocalUltimateEnergy() const
@@ -117,6 +147,12 @@ void UHALMatchHUDWidget::RefreshCountdown()
 	const bool bRoomManaged = UsesRoomView();
 	const auto& RoomView = GetCachedRoomView();
 	const bool ScreenActive = !bRoomManaged || IsRoomScreenActive();
+	const auto* MatchState = !bRoomManaged && GetWorld() ? GetWorld()->GetGameState<AHALMatchGameState>() : nullptr;
+	const auto& MatchData = MatchState ? MatchState->GetRoom()->GetData().Match : RoomView.Match;
+	const bool FeverVisible = ScreenActive && !Text.IsEmpty() && MatchData.IsFeverActive();
+	const bool Announcing = FeverVisible && MatchData.IsFeverBannerVisible(MatchState ? MatchState->GetServerWorldTimeSeconds() : RoomView.ServerWorldTimeSeconds);
+	if (FeverBanner) { FeverBanner->SetVisibility(Announcing ? EVisibility::HitTestInvisible : EVisibility::Collapsed); }
+	if (FeverBadge) { FeverBadge->SetVisibility(FeverVisible && !Announcing ? EVisibility::HitTestInvisible : EVisibility::Collapsed); }
 	const bool Driving = ScreenActive && (bRoomManaged ? RoomView.bShowUltimateEnergy
 		: Energy.Cost > 0 && HALGameFlow::Permissions(GetWorld(), GetOwningPlayerPawn()).bAbilities);
 	const bool ShowEnergy = Driving && bShowNativeUltimateMeter;

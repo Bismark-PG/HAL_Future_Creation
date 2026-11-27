@@ -133,11 +133,14 @@ protected:
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend struct FHALArenaGeneratorTestAccess;
+	friend struct FHALFeverNetworkTestAccess;
 #endif
 	UFUNCTION() void OnRep_Settings();
 	UFUNCTION() void OnRep_State();
 	UFUNCTION() void EffectEnded(AActor* Actor, EEndPlayReason::Type Reason);
 	void UpdateGenerator();
+	void ApplyFever(const class UHALMatchFeverDefinition* Fever);
+	float WaitMultiplier = 1.f;
 	void EnterStage(EHALArenaGeneratorStage Stage, float Duration = 0);
 	void BeginCycle();
 	void SpawnEffect();

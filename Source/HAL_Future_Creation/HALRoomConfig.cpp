@@ -1,4 +1,5 @@
 #include "HALRoomConfig.h"
+#include "HALMatchFeverDefinition.h"
 #include "HALVehicleCatalog.h"
 #include "Misc/DataValidation.h"
 
@@ -6,6 +7,7 @@ bool UHALRoomConfig::Validate(FString& Error) const
 {
 	if (!Rules.IsValid() || !Catalog) { Error = TEXT("Room requires an explicit Exhibition/Development profile and a vehicle catalog."); return false; }
 	if (!MatchRules.Validate(Error)) { return false; }
+	if (MatchFever && !MatchFever->Validate(Error)) { return false; }
 	if (!FMath::IsFinite(StartingUltimateEnergy) || StartingUltimateEnergy < 0 || StartingUltimateEnergy > 100)
 	{ Error = TEXT("Starting ultimate energy must be between 0 and 100."); return false; }
 	if (bEnableRoundTravel && (MatchMap.IsNull() || !FMath::IsFinite(CountdownSeconds) || CountdownSeconds<.5f || CountdownSeconds>10

@@ -4,6 +4,8 @@
 #include "HALGameFlowPermissions.h"
 #include "HALMatchBallLifecycle.h"
 #include "HALMatchGameState.h"
+#include "HALMatchFeverDefinition.h"
+#include "HALRoomComponent.h"
 #include "HALMeteorBall.h"
 #include "HALTimedBombBall.h"
 #include "Algo/RandomShuffle.h"
@@ -134,6 +136,10 @@ bool AHALSpecialBallPad::FindSpawnCenter(float Radius, float Clearance, FVector&
 void UHALSpecialBallSupply::SetPlaying(bool bPlaying)
 {
 	if (!GetOwner()->HasAuthority()) { return; }
+	auto* Room = CastChecked<AHALMatchGameState>(GetOwner())->GetRoom();
+	Room->OnFeverChanged.RemoveAll(this);
+	PendingInterval = 0.f;
+	IntervalMultiplier = 1.f;
 	GetWorld()->GetTimerManager().ClearTimer(Timer);
 	if (AnnouncedPad.IsValid()) { AnnouncedPad->SetWarning(EHALPadBall::None); }
 	AnnouncedPad.Reset();
@@ -152,12 +158,18 @@ void UHALSpecialBallSupply::SetPlaying(bool bPlaying)
 	});
 	for (auto* Pad : Sorted) { Pads.Add(Pad); }
 	Settings = GetDefault<UHALMatchBallSettings>()->SpecialBallSupply.LoadSynchronous();
-	if (Settings) { ScheduleCycle(Settings->FirstDropSeconds); }
+	if (Settings)
+	{
+		Room->OnFeverChanged.AddUObject(this, &ThisClass::ApplyFever);
+		ApplyFever(Room->GetActiveFever());
+		ScheduleCycle(Settings->FirstDropSeconds);
+	}
 	else { UE_LOG(LogHALSpecialBallSupply, Warning, TEXT("Placed special-ball pads have no configured supply DA.")); }
 }
 
 void UHALSpecialBallSupply::EndPlay(EEndPlayReason::Type Reason)
 {
+	if (const auto* Match = Cast<AHALMatchGameState>(GetOwner())) { Match->GetRoom()->OnFeverChanged.RemoveAll(this); }
 	GetWorld()->GetTimerManager().ClearTimer(Timer);
 	Super::EndPlay(Reason);
 }
@@ -169,15 +181,30 @@ bool UHALSpecialBallSupply::CanSupply() const
 		&& !GetWorld()->bIsTearingDown && !GetWorld()->IsInSeamlessTravel() && HALGameFlow::Permissions(GetWorld()).bWorldInteractions;
 }
 
-void UHALSpecialBallSupply::ScheduleCycle(float Delay)
+void UHALSpecialBallSupply::ScheduleCycle(float Interval, float MissedWarning, float RemainingFraction)
 {
-	Delay = FMath::Max(.1f, Delay);
-	WarningDuration = FMath::Clamp(Settings->WarningSeconds, .1f, Delay);
-	GetWorld()->GetTimerManager().SetTimer(Timer, this, &ThisClass::BeginCycle, FMath::Max(.001f, Delay - WarningDuration));
+	PendingInterval = FMath::Max(.1f, Interval);
+	PendingWarningCarry = MissedWarning;
+	WarningDuration = FMath::Clamp(Settings->WarningSeconds, .1f, PendingInterval);
+	FullIdleSeconds = FMath::Max(.001f, PendingInterval * IntervalMultiplier - WarningDuration) + MissedWarning;
+	GetWorld()->GetTimerManager().SetTimer(Timer, this, &ThisClass::BeginCycle, FMath::Max(.001f, FullIdleSeconds * RemainingFraction));
+}
+
+void UHALSpecialBallSupply::ApplyFever(const UHALMatchFeverDefinition* Fever)
+{
+	const float Multiplier = Fever ? Fever->SpecialBallIntervalMultiplier : 1.f;
+	if (IntervalMultiplier == Multiplier) { return; }
+	IntervalMultiplier = Multiplier;
+	if (PendingInterval > 0.f)
+	{
+		const float Remaining = GetWorld()->GetTimerManager().GetTimerRemaining(Timer);
+		ScheduleCycle(PendingInterval, PendingWarningCarry, FMath::Clamp(Remaining / FullIdleSeconds, 0.f, 1.f));
+	}
 }
 
 void UHALSpecialBallSupply::BeginCycle()
 {
+	PendingInterval = 0.f;
 	if (!CanSupply()) { if (Settings) { ScheduleCycle(Settings->DropInterval); } return; }
 	if (Bag.IsEmpty())
 	{
@@ -223,7 +250,7 @@ void UHALSpecialBallSupply::Announce()
 	NextPad = (NextPad + 1) % Pads.Num();
 	UE_LOG(LogHALSpecialBallSupply, Verbose, TEXT("Skipping blocked turn; the bag keeps its next ball."));
 	// No warning could start. Include this cycle's unplayed warning in the interval between due dates.
-	ScheduleCycle(Settings->DropInterval + WarningDuration);
+	ScheduleCycle(Settings->DropInterval, WarningDuration);
 }
 
 void UHALSpecialBallSupply::Deliver()

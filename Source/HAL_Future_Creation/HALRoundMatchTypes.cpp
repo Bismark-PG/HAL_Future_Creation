@@ -1,4 +1,38 @@
 #include "HALRoundMatchTypes.h"
+#include "HALMatchFeverDefinition.h"
+
+bool UHALMatchFeverDefinition::Validate(FString& Error) const
+{
+	if (!FMath::IsWithinInclusive(RemainingSeconds, 0.f, 3600.f)
+		|| !FMath::IsWithinInclusive(GimmickWaitMultiplier, .05f, 4.f)
+		|| !FMath::IsWithinInclusive(SpecialBallIntervalMultiplier, .05f, 4.f)
+		|| !FMath::IsWithinInclusive(NaturalEnergyRateMultiplier, .05f, 8.f)
+		|| !FMath::IsWithinInclusive(BannerSeconds, .1f, 5.f))
+	{
+		Error = TEXT("Fever timing or pacing multiplier is outside its supported range.");
+		return false;
+	}
+	return true;
+}
+
+bool FHALRoundMatchData::TryStartFever(double ServerNow, bool bForceTrigger)
+{
+	if (!bActive || bComplete || !FeverDefinition || FeverStartedAt >= 0. || ServerNow >= EndServerTime) { return false; }
+	if (!bForceTrigger && EndServerTime - ServerNow > FeverDefinition->RemainingSeconds)
+	{
+		if (Players.Num() < 3) { return false; }
+		int32 Alive = 0;
+		for (const auto& Player : Players) { Alive += Player.Life == EHALRoundLife::Alive; }
+		if (Alive != 2) { return false; }
+	}
+	FeverStartedAt = ServerNow;
+	return true;
+}
+
+bool FHALRoundMatchData::IsFeverBannerVisible(double ServerNow) const
+{
+	return IsFeverActive() && ServerNow < FeverStartedAt + FeverDefinition->BannerSeconds;
+}
 bool FHALMatchRules::Validate(FString& Error) const
 {
 	if (!FMath::IsFinite(DurationSeconds) || DurationSeconds<1 || DurationSeconds>3600

@@ -2,6 +2,7 @@
 #include "HALMatchGameState.h"
 #include "HALRoomComponent.h"
 #include "HALRoomConfig.h"
+#include "HALMatchFeverDefinition.h"
 #include "HALPlayerState.h"
 #include "HALPlayerController.h"
 #include "HALAbilitySystemComponent.h"
@@ -9,6 +10,41 @@
 #include "TestVehiclePawn.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
+#include "HAL/IConsoleManager.h"
+
+#if !UE_BUILD_SHIPPING
+void AHALPracticeRoomGameMode::SetFeverDebugOverride(TOptional<bool> Enabled)
+{
+	if (!ActiveMatch.bActive || ActiveMatch.bComplete || !ActiveMatch.FeverDefinition) { return; }
+	FeverDebugOverride = Enabled;
+	PollMatchRules();
+}
+
+namespace
+{
+	FAutoConsoleCommandWithWorldAndArgs MatchFeverDebug(TEXT("hal.Fever"), TEXT("hal.Fever [status|on|off|auto]. Local authority controls this round only."),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			const auto* State = World ? World->GetGameState<AHALMatchGameState>() : nullptr;
+			if (!State) { return; }
+			const FString Command = Args.IsEmpty() ? TEXT("status") : Args[0].ToLower();
+			if (Command != TEXT("status"))
+			{
+				auto* Mode = World->GetAuthGameMode<AHALPracticeRoomGameMode>();
+				if (!Mode) { UE_LOG(LogTemp, Display, TEXT("hal.Fever controls require a local match authority.")); return; }
+				if (Command == TEXT("on")) { Mode->SetFeverDebugOverride(true); }
+				else if (Command == TEXT("off")) { Mode->SetFeverDebugOverride(false); }
+				else if (Command == TEXT("auto")) { Mode->SetFeverDebugOverride({}); }
+				else { UE_LOG(LogTemp, Display, TEXT("hal.Fever [status|on|off|auto]")); return; }
+			}
+			const auto& Data = State->GetRoom()->GetData().Match;
+			const auto* Active = State->GetRoom()->GetActiveFever();
+			UE_LOG(LogTemp, Display, TEXT("Fever Round=%lld Active=%d Remaining=%.1fs StartedAt=%.3f GimmickWait=%.3f BallInterval=%.3f NaturalEnergy=%.3f"),
+				Data.RoundId, Active != nullptr, FMath::Max(0., Data.EndServerTime - State->GetServerWorldTimeSeconds()), Data.FeverStartedAt,
+				Active ? Active->GimmickWaitMultiplier : 1.f, Active ? Active->SpecialBallIntervalMultiplier : 1.f, Active ? Active->NaturalEnergyRateMultiplier : 1.f);
+		}));
+}
+#endif
 
 void AHALPracticeRoomGameMode::BeginMatchRules()
 {
@@ -16,6 +52,7 @@ void AHALPracticeRoomGameMode::BeginMatchRules()
 	if (!HasAuthority() || !bRoundWorld || !RoomConfig || !R || R->GetData().Phase!=EHALRoomPhase::Playing || ActiveMatch.bActive) { return; }
 	StopMatchRules(); ActiveMatch.bActive=true; ActiveMatch.RoundId=R->GetData().RoundId;
 	ActiveMatch.Rules=RoomConfig->MatchRules; ActiveMatch.EndServerTime=S->GetServerWorldTimeSeconds()+ActiveMatch.Rules.DurationSeconds;
+	ActiveMatch.FeverDefinition=RoomConfig->MatchFever;
 	MatchFlow=R->GetData().FlowId;
 	for (const auto& Entry:R->GetData().LockedRoster)
 	{
@@ -92,6 +129,11 @@ void AHALPracticeRoomGameMode::PollMatchRules()
 	}
 	const auto Reason=HALRoundMatch::Decide(ActiveMatch,Now>=ActiveMatch.EndServerTime);
 	if (Reason!=EHALMatchEndReason::None) { ActiveMatch.ReturnServerTime=Now+ActiveMatch.Rules.ResultsSeconds; }
+	else if (FeverDebugOverride.IsSet() && !FeverDebugOverride.GetValue()) { ActiveMatch.FeverStartedAt = -1.; }
+	else if (ActiveMatch.TryStartFever(Now, FeverDebugOverride.Get(false)))
+	{
+		UE_LOG(LogTemp, Display, TEXT("Match Fever started Round=%lld ServerTime=%.3f Remaining=%.2f"), ActiveMatch.RoundId, Now, ActiveMatch.EndServerTime-Now);
+	}
 	// A single publication covers the entire damage batch, including simultaneous last-player deaths.
 	if (!FHALRoundMatchData::StaticStruct()->CompareScriptStruct(&ActiveMatch,&R->GetData().Match,0)) { R->SetMatchData(ActiveMatch); }
 	if (Reason!=EHALMatchEndReason::None)
@@ -129,7 +171,7 @@ void AHALPracticeRoomGameMode::StopMatchRules()
 		{ A->GetGameplayAttributeValueChangeDelegate(UHALHealthAttributeSet::GetCurrentHPAttribute()).Remove(W.HP);
 			A->GetGameplayAttributeValueChangeDelegate(UHALHealthAttributeSet::GetMaxHPAttribute()).Remove(W.MaxHP); }
 	}
-	MatchWatches.Reset(); ActiveMatch={}; MatchFlow.Invalidate();
+	MatchWatches.Reset(); ActiveMatch={}; MatchFlow.Invalidate(); FeverDebugOverride.Reset();
 }
 void AHALPracticeRoomGameMode::EndPlay(const EEndPlayReason::Type Reason)
 { StopMatchRules(); Super::EndPlay(Reason); }

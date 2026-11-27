@@ -1,5 +1,8 @@
 #include "HALRoomComponent.h"
 #include "HALRoomConfig.h"
+#include "HALMatchFeverDefinition.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 #include "HALPlayerIdentitySettings.h"
 #include "HALMatchGameState.h"
 #include "HALVehicleCatalog.h"
@@ -15,7 +18,28 @@
 UHALRoomComponent::UHALRoomComponent() { PrimaryComponentTick.bCanEverTick = false; SetIsReplicatedByDefault(true); }
 void UHALRoomComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 { Super::GetLifetimeReplicatedProps(OutLifetimeProps); DOREPLIFETIME(UHALRoomComponent,Data); }
-void UHALRoomComponent::OnRep_Data() { OnRoomChanged.Broadcast(); }
+const UHALMatchFeverDefinition* UHALRoomComponent::GetActiveFever() const
+{
+	return Data.Phase == EHALRoomPhase::Playing && Data.Match.IsFeverActive() ? Data.Match.FeverDefinition.Get() : nullptr;
+}
+
+void UHALRoomComponent::OnRep_Data()
+{
+	const auto* Fever = GetActiveFever();
+	const int64 Round = Fever ? Data.Match.RoundId : INDEX_NONE;
+	if (Round != ActiveFeverRound)
+	{
+		ActiveFeverRound = Round;
+		OnFeverChanged.Broadcast(Fever);
+		const auto* State = Cast<AHALMatchGameState>(GetOwner());
+		if (Fever && State && Fever->CrowdCheer && GetNetMode() != NM_DedicatedServer
+			&& Data.Match.IsFeverBannerVisible(State->GetServerWorldTimeSeconds()))
+		{
+			UGameplayStatics::PlaySound2D(this, Fever->CrowdCheer);
+		}
+	}
+	OnRoomChanged.Broadcast();
+}
 void UHALRoomComponent::Publish() { ++Data.Revision; OnRep_Data(); GetOwner()->ForceNetUpdate(); }
 bool UHALRoomComponent::CanAdmitPlayer() const
 { return Data.Phase == EHALRoomPhase::Open && Data.Members.Num()+PendingTravelSeats.Num() < Data.Rules.MaximumPlayers(); }

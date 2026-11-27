@@ -27,11 +27,13 @@ protected:
 	virtual void OnRoomViewApplied(const FHALRoomView& View) override;
 	virtual void OnScreenActiveChanged(bool bActive) override;
 private:
+	friend struct FHALFeverNetworkTestAccess;
 	TSharedRef<SWidget> MakeNativeClock();
 	void RefreshCountdown();
 	FTimerHandle RefreshTimer;
 	TSharedPtr<class STextBlock> CountdownText;
 	TSharedPtr<SWidget> ClockPanel, EnergyPanel;
+	TSharedPtr<SWidget> FeverBanner, FeverBadge;
 	TSharedPtr<class STextBlock> EnergyText;
 	TSharedPtr<class SProgressBar> EnergyBar;
 };

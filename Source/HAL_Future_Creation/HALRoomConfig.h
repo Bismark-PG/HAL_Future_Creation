@@ -5,6 +5,7 @@
 #include "HALRoomConfig.generated.h"
 
 class UHALVehicleCatalog;
+class UHALMatchFeverDefinition;
 
 UCLASS(BlueprintType)
 class HAL_FUTURE_CREATION_API UHALRoomConfig : public UDataAsset
@@ -14,6 +15,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Room") FHALRoomRules Rules;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Room") TObjectPtr<UHALVehicleCatalog> Catalog;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Match Rules", meta=(ShowOnlyInnerProperties)) FHALMatchRules MatchRules;
+	/** Optional shared Fever settings for matches using this room profile. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Match Rules") TObjectPtr<UHALMatchFeverDefinition> MatchFever;
 	/** Starting points for each formal round. Practice always starts full. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Match Rules", meta=(ClampMin="0", ClampMax="100"))
 	float StartingUltimateEnergy = 0.f;

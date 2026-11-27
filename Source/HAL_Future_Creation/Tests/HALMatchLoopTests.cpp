@@ -5,6 +5,8 @@
 #include "../HALPracticeRoomGameMode.h"
 #include "../HALMatchGameState.h"
 #include "../HALMatchHUDWidget.h"
+#include "../HALMatchFeverDefinition.h"
+#include "../SpringPunchGimmick.h"
 #include "../HALPracticeRoomWidget.h"
 #include "../HALPlayerController.h"
 #include "../HALPlayerState.h"
@@ -19,6 +21,8 @@ struct FHALMatchLoopTestAccess
 	static void Begin(AHALPracticeRoomGameMode* M,UWorld* W,UHALRoomConfig* C)
 	{ M->GameState=W->GetGameState(); M->RoomConfig=C; M->bRoundWorld=true; M->BeginMatchRules(); }
 	static void Evaluate(AHALPracticeRoomGameMode* M) { M->PollMatchRules(); }
+	static void SetRemaining(AHALPracticeRoomGameMode* M, double Seconds)
+	{ M->ActiveMatch.EndServerTime = M->GetGameState<AHALMatchGameState>()->GetServerWorldTimeSeconds() + Seconds; }
 	static void Expire(AHALPracticeRoomGameMode* M)
 	{ M->ActiveMatch.EndServerTime=M->GetGameState<AHALMatchGameState>()->GetServerWorldTimeSeconds(); M->GetGameState<AHALMatchGameState>()->GetRoom()->SetMatchData(M->ActiveMatch); }
 	static void Forfeit(AHALPracticeRoomGameMode* M,AHALPlayerState* P) { M->ForfeitMatchPlayer(P); }
@@ -32,7 +36,7 @@ namespace
 	{
 		UWorld* W; UHALRoomComponent* R; AHALPracticeRoomGameMode* Mode; UHALRoomConfig* Config;
 		TArray<AHALPlayerController*> PCs;
-		FMatchWorld(int32 Count=4, float StartingEnergy=0.f)
+		FMatchWorld(int32 Count=4, float StartingEnergy=0.f, UHALMatchFeverDefinition* Fever=nullptr)
 		{
 			const auto V=UWorld::InitializationValues().AllowAudioPlayback(false).RequiresHitProxies(false).CreatePhysicsScene(true)
 				.CreateNavigation(false).CreateAISystem(false).CreateFXSystem(false).ShouldSimulatePhysics(false).EnableTraceCollision(true).SetTransactional(false);
@@ -41,6 +45,7 @@ namespace
 			auto* S=W->SpawnActor<AHALMatchGameState>(); W->SetGameState(S); R=S->GetRoom();
 			Config=FHALRoomTestAccess::Config(R,EHALRoomProfile::Development);
 			Config->StartingUltimateEnergy=StartingEnergy;
+			Config->MatchFever=Fever;
 			R->Initialize(Config); R->EnablePracticeRoom();
 			FHALRoundTravel T; T.Config=Config; T.FlowId=R->GetData().FlowId; T.RoundId=1;
 			for (int32 I=0;I<Count;++I)
@@ -68,6 +73,81 @@ namespace
 		void HP(int32 I,float Value) { Player(I)->GetHALAbilitySystemComponent()->SetNumericAttributeBase(UHALHealthAttributeSet::GetCurrentHPAttribute(),Value); }
 		~FMatchWorld() { FHALMatchLoopTestAccess::Stop(Mode); W->DestroyWorld(false); GEngine->DestroyWorldContext(W); }
 	};
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALMatchFeverRuleTest,"HAL.FutureCreation.MatchFever.RulesEnergyAndReset",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALMatchFeverRuleTest::RunTest(const FString&)
+{
+	auto* Fever = NewObject<UHALMatchFeverDefinition>();
+	Fever->NaturalEnergyRateMultiplier = 2.f;
+	int32 Starts = 0;
+	FMatchWorld Duel(2, 20.f, Fever);
+	auto* ASC = Duel.Player(0)->GetHALAbilitySystemComponent();
+	const float BaseSeconds = ASC->GetUltimateEnergyView().FullRechargeSeconds;
+	Duel.R->OnFeverChanged.AddLambda([&Starts](const auto* Value){ Starts += Value != nullptr; });
+	FHALMatchLoopTestAccess::SetRemaining(Duel.Mode, 90.01);
+	FHALMatchLoopTestAccess::Evaluate(Duel.Mode);
+	TestNull(TEXT("A two-driver start and >90s stays normal"), Duel.R->GetActiveFever());
+	FHALMatchLoopTestAccess::SetRemaining(Duel.Mode, 90.);
+	FHALMatchLoopTestAccess::Evaluate(Duel.Mode);
+	const auto& Match = Duel.R->GetData().Match;
+	TestTrue(TEXT("Exact cutoff starts one banner window"), Match.IsFeverBannerVisible(Match.FeverStartedAt)
+		&& !Match.IsFeverBannerVisible(Match.FeverStartedAt + Fever->BannerSeconds));
+	TestEqual(TEXT("Owner HUD gets the effective recharge time"), ASC->GetUltimateEnergyView().FullRechargeSeconds, BaseSeconds / 2.f);
+	Duel.W->TimeSeconds += 1.;
+	const float Before = ASC->GetUltimateEnergyView().Energy;
+	TestEqual(TEXT("Pickup amount remains independent of natural charge"), ASC->GrantUltimateEnergy(3.f), 3.f);
+	TestEqual(TEXT("One second at Fever rate plus one ordinary pickup"), ASC->GetUltimateEnergyView().Energy, Before + 200.f / BaseSeconds + 3.f, .01f);
+	FHALMatchLoopTestAccess::Evaluate(Duel.Mode);
+	TestEqual(TEXT("Fever begins once despite later evaluations"), Starts, 1);
+	Duel.HP(1,0); FHALMatchLoopTestAccess::Evaluate(Duel.Mode);
+	TestNull(TEXT("Results retire the active phase"), Duel.R->GetActiveFever());
+	FMatchWorld Four(4, 0.f, Fever);
+	Four.HP(1,0); FHALMatchLoopTestAccess::Evaluate(Four.Mode);
+	TestNull(TEXT("Three remaining keep the normal pace"), Four.R->GetActiveFever());
+	Four.HP(2,0); FHALMatchLoopTestAccess::Evaluate(Four.Mode);
+	TestTrue(TEXT("Two finalists enter Fever ahead of the clock"), Four.R->GetData().Match.IsFeverActive());
+	FMatchWorld Batch(3, 0.f, Fever);
+	Batch.HP(1,0); Batch.HP(2,0); FHALMatchLoopTestAccess::SetRemaining(Batch.Mode, 1.);
+	FHALMatchLoopTestAccess::Evaluate(Batch.Mode);
+	TestTrue(TEXT("Terminal batch wins over both triggers"), Batch.R->GetData().Match.bComplete && Batch.R->GetData().Match.FeverStartedAt < 0.);
+#if !UE_BUILD_SHIPPING
+	FMatchWorld PracticeDuel(2, 0.f, Fever);
+	PracticeDuel.Mode->SetFeverDebugOverride(true);
+	TestNotNull(TEXT("Host can audition before either trigger"), PracticeDuel.R->GetActiveFever());
+	PracticeDuel.Mode->SetFeverDebugOverride(false);
+	FHALMatchLoopTestAccess::SetRemaining(PracticeDuel.Mode, 50.);
+	FHALMatchLoopTestAccess::Evaluate(PracticeDuel.Mode);
+	TestNull(TEXT("Manual normal pace persists for comparison"), PracticeDuel.R->GetActiveFever());
+	PracticeDuel.Mode->SetFeverDebugOverride({});
+	TestNotNull(TEXT("Restoring automatic rules responds to the actual clock"), PracticeDuel.R->GetActiveFever());
+#endif
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALSpringFeverTest, "HAL.FutureCreation.MatchFever.SpringCooldownAndMotion", EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALSpringFeverTest::RunTest(const FString&)
+{
+	auto* Fever = NewObject<UHALMatchFeverDefinition>();
+	Fever->GimmickWaitMultiplier = .5f;
+	FMatchWorld Match(2, 0.f, Fever);
+	auto* Punch = Match.W->SpawnActor<ASpringPunchGimmick>();
+	Punch->InitialDelay = 2; Punch->CooldownDuration = 4; Punch->DispatchBeginPlay();
+	const double FirstStrike = Punch->Cycle.Motion.StartsAt;
+	Punch->EnterState(ESpringPunchState::Windup);
+	Punch->EnterState(ESpringPunchState::Extending);
+	FHALMatchLoopTestAccess::SetRemaining(Match.Mode, 80);
+	FHALMatchLoopTestAccess::Evaluate(Match.Mode);
+	TestEqual(TEXT("Entering Fever preserves announced strike"), Punch->Cycle.Motion.StartsAt, FirstStrike);
+	TestEqual(TEXT("Actual strike duration unchanged"), Punch->Phase.Duration, Punch->ExtendDuration);
+	Punch->EnterState(ESpringPunchState::Retracting);
+	Punch->EnterState(ESpringPunchState::Cooldown);
+	TestEqual(TEXT("Next cooldown halved"), Punch->Phase.Duration, 2.f);
+	Match.W->TimeSeconds = Punch->Phase.StartedAt + .5;
+	Punch->ApplyFever(nullptr);
+	TestEqual(TEXT("Three quarters of a four-second cooldown remain"), Match.W->GetTimerManager().GetTimerRemaining(Punch->StateTimerHandle), 3.f, .001f);
+	const double NextStrike = Match.W->TimeSeconds + 3 + Punch->WindupDuration;
+	Punch->EnterState(ESpringPunchState::Windup);
+	TestEqual(TEXT("Observer schedule agrees with next authority strike"), Punch->Phase.Motion.StartsAt, NextStrike, .001);
+	return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALRoundEnergyTest,"HAL.FutureCreation.UltimateEnergy.ConfiguredRoundStartAndResults",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FHALRoundEnergyTest::RunTest(const FString&)

@@ -4,6 +4,7 @@
 #include "HALGameplayTags.h"
 #include "HALHealthAttributeSet.h"
 #include "HALMatchGameState.h"
+#include "HALMatchFeverDefinition.h"
 #include "HALRoomComponent.h"
 #include "HALRoomConfig.h"
 #include "HALSideShiftComponent.h"
@@ -110,6 +111,15 @@ void UHALAbilitySystemComponent::UpdateUltimateBalance()
 				{ GetOwner()->ForceNetUpdate(); }
 			}
 		}
+	}
+	// Settle the interval above at its previous rate. Room change notification marks the exact rate boundary.
+	const auto* Fever = Room ? Room->GetActiveFever() : nullptr;
+	const float FullRechargeSeconds = Pawn->GetVehicleAbilityConfig().FullRechargeSeconds / (Fever ? Fever->NaturalEnergyRateMultiplier : 1.f);
+	if (UltimateFullRechargeSeconds != FullRechargeSeconds)
+	{
+		UltimateFullRechargeSeconds = FullRechargeSeconds;
+		UltimateSampleServerTime = Now;
+		GetOwner()->ForceNetUpdate();
 	}
 	bUltimateClockRunning = MayRecharge;
 }

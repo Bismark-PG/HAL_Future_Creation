@@ -2,6 +2,7 @@
 #include "Misc/AutomationTest.h"
 #include "../HALMatchBallLifecycle.h"
 #include "../HALSpecialBallPad.h"
+#include "../HALMatchFeverDefinition.h"
 #include "../HALMatchGameState.h"
 #include "../BasicBallActor.h"
 #include "../HALSpecialBallCue.h"
@@ -101,6 +102,13 @@ bool FHALSpecialBallSupplyTest::RunTest(const FString&)
 	TestFalse(TEXT("No supply timer in Waiting"), World->GetTimerManager().TimerExists(Supply->Timer));
 	State->SetMatchPhase(EHALMatchPhase::Playing);
 	TestEqual(TEXT("One shared first warning delay"), World->GetTimerManager().GetTimerRemaining(Supply->Timer), Stock->FirstDropSeconds-Stock->WarningSeconds, .01f);
+	auto* Fever = NewObject<UHALMatchFeverDefinition>();
+	Fever->SpecialBallIntervalMultiplier = .5f;
+	Supply->ScheduleCycle(20.f, 0.f, .5f);
+	Supply->ApplyFever(Fever);
+	TestEqual(TEXT("Changing pace halfway through an unannounced wait preserves its fraction"),
+		World->GetTimerManager().GetTimerRemaining(Supply->Timer), (10.f - Stock->WarningSeconds) * .5f, .01f);
+	Supply->ApplyFever(nullptr);
 	// Exercise two complete bags even if a designer narrows the production pool.
 	Supply->Settings = DuplicateObject<UHALSpecialBallSupplyDefinition>(Stock, Supply);
 	Supply->Settings->BallPool = {EHALPadBall::Explosive, EHALPadBall::BlackHole, EHALPadBall::Meteor, EHALPadBall::TimedBomb};
@@ -120,6 +128,11 @@ bool FHALSpecialBallSupplyTest::RunTest(const FString&)
 		InBag.Add(Kind); Previous = Kind;
 		if (Drop == 0)
 		{
+			const float AnnouncedTime = World->GetTimerManager().GetTimerRemaining(Supply->Timer);
+			Supply->ApplyFever(Fever);
+			TestEqual(TEXT("Fever keeps the entire warning after announcement"), World->GetTimerManager().GetTimerRemaining(Supply->Timer), AnnouncedTime);
+			TestTrue(TEXT("Announced ball and location are stable"), Supply->AnnouncedPad.Get()==Pad && Pad->GetWarning().Ball==Kind);
+			Supply->ApplyFever(nullptr);
 			auto* CarSizedBlock = Obstruct(Pad);
 			Supply->Deliver();
 			TestTrue(TEXT("Arriving after warning blocks the announced site; no hidden handoff"),

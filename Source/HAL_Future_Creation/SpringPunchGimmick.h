@@ -184,6 +184,8 @@ public:
 
 private:
 	friend class FHALSpringPunchLiveTest;
+	friend class FHALSpringFeverTest;
+	friend struct FHALFeverNetworkTestAccess;
 	friend class FHALSpringPunchCombatTest;
 	UPROPERTY(ReplicatedUsing = OnRep_Phase)
 	FSpringPunchPhase Phase;
@@ -191,6 +193,9 @@ private:
 	FSpringPunchCycle Cycle;
 	UFUNCTION() void OnRep_Cycle();
 	void ConfigureCycle(double FirstExtensionTime);
+	void ApplyFever(const class UHALMatchFeverDefinition* Fever);
+	float EffectiveCooldown() const;
+	float WaitMultiplier = 1.f;
 	UFUNCTION() void OnRep_Phase();
 	double GetPhaseTime() const;
 	float EvaluateExtensionProgress(float Alpha) const;

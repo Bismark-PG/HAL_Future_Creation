@@ -1,4 +1,7 @@
 #include "SpringPunchGimmick.h"
+#include "HALMatchFeverDefinition.h"
+#include "HALMatchGameState.h"
+#include "HALRoomComponent.h"
 #include "BasicBallActor.h"
 #include "Components/SphereComponent.h"
 
@@ -77,7 +80,7 @@ void ASpringPunchGimmick::ConfigureCycle(double FirstExtensionTime)
 	Cycle.Motion.ExtensionCurve = ExtensionCurve;
 	Cycle.Motion.RetractionCurve = RetractionCurve;
 	Cycle.WindupSeconds = FMath::Max(.01f, WindupDuration);
-	Cycle.CooldownSeconds = FMath::Max(.01f, CooldownDuration);
+	Cycle.CooldownSeconds = EffectiveCooldown();
 	Cycle.Distance = FMath::Max(0.f, PunchDistance);
 	Cycle.Origin = RetractedRelativeLocation;
 	Cycle.FirstPunchNumber = Phase.PunchNumber + 1;
@@ -88,6 +91,37 @@ void ASpringPunchGimmick::OnRep_Cycle()
 	if (GetNetMode() != NM_Client) { return; }
 	SetActorTickEnabled(Cycle.bValid);
 	UpdatePunchVisual();
+}
+
+float ASpringPunchGimmick::EffectiveCooldown() const
+{
+	return FMath::Max(.01f, CooldownDuration * WaitMultiplier);
+}
+
+void ASpringPunchGimmick::ApplyFever(const UHALMatchFeverDefinition* Fever)
+{
+	WaitMultiplier = Fever ? Fever->GimmickWaitMultiplier : 1.f;
+	const float NewCooldown = EffectiveCooldown();
+	if (!Cycle.bValid || FMath::IsNearlyEqual(Cycle.CooldownSeconds, NewCooldown)) { return; }
+	const double Now = GetPhaseTime();
+	if (CurrentState == ESpringPunchState::Cooldown)
+	{
+		const double Remaining = FMath::Clamp((Phase.StartedAt + Phase.Duration - Now) / Phase.Duration, 0., 1.);
+		StateStartTime = Now - (1. - Remaining) * NewCooldown;
+		Phase.StartedAt = StateStartTime;
+		Phase.Duration = NewCooldown;
+		Cycle.Motion.StartsAt = StateStartTime - Cycle.Motion.ExtendSeconds - Cycle.Motion.RetractSeconds;
+		Cycle.FirstPunchNumber = Phase.PunchNumber;
+		GetWorldTimerManager().SetTimer(StateTimerHandle, this, &ThisClass::AdvanceState, FMath::Max(.001f, float(Remaining * NewCooldown)));
+	}
+	else if (Phase.Motion.bValid)
+	{
+		// Keep the current punch anchored at its announced time while changing the next interval.
+		Cycle.Motion.StartsAt = Phase.Motion.StartsAt;
+		Cycle.FirstPunchNumber = Phase.PunchNumber + (CurrentState == ESpringPunchState::Windup ? 1 : 0);
+	}
+	Cycle.CooldownSeconds = NewCooldown;
+	ForceNetUpdate();
 }
 
 namespace
@@ -197,6 +231,11 @@ void ASpringPunchGimmick::BeginPlay()
 	// サーバー側で最初の待機状態を開始する。
 	if (GetNetMode() != NM_Client && HasAuthority())
 	{
+		if (const auto* State = GetWorld()->GetGameState<AHALMatchGameState>())
+		{
+			State->GetRoom()->OnFeverChanged.AddUObject(this, &ThisClass::ApplyFever);
+			ApplyFever(State->GetRoom()->GetActiveFever());
+		}
 		EnterState(ESpringPunchState::Idle);
 	}
 	else { OnRep_Phase(); }
@@ -210,6 +249,7 @@ void ASpringPunchGimmick::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(StateTimerHandle);
+		if (const auto* State = World->GetGameState<AHALMatchGameState>()) { State->GetRoom()->OnFeverChanged.RemoveAll(this); }
 	}
 
 	SetActorTickEnabled(false);
@@ -258,7 +298,7 @@ void ASpringPunchGimmick::EnterState(ESpringPunchState NewState)
 		const bool SameConfig = Cycle.bValid && Cycle.Motion.ExtendSeconds == FMath::Max(.01f, ExtendDuration)
 			&& Cycle.Motion.RetractSeconds == FMath::Max(.01f, RetractDuration)
 			&& Cycle.WindupSeconds == FMath::Max(.01f, WindupDuration)
-			&& Cycle.CooldownSeconds == FMath::Max(.01f, CooldownDuration)
+			&& Cycle.CooldownSeconds == EffectiveCooldown()
 			&& Cycle.Motion.ExtensionCurve == ExtensionCurve && Cycle.Motion.RetractionCurve == RetractionCurve
 			&& Cycle.Distance == FMath::Max(0.f, PunchDistance) && Cycle.Origin == RetractedRelativeLocation;
 		if (!SameConfig) { ConfigureCycle(StateStartTime + FMath::Max(.01f, WindupDuration)); }
@@ -311,7 +351,7 @@ void ASpringPunchGimmick::EnterState(ESpringPunchState NewState)
 		break;
 
 	case ESpringPunchState::Cooldown:
-		Duration = Cycle.bValid ? Cycle.CooldownSeconds : FMath::Max(0.01f, CooldownDuration);
+		Duration = Cycle.bValid ? Cycle.CooldownSeconds : EffectiveCooldown();
 		break;
 
 	default:

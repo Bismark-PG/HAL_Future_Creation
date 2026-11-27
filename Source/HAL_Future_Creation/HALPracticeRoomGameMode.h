@@ -28,9 +28,13 @@ public:
 	bool CanRequestRoundReturn() const;
 	/** Trusted server rules may end an active round through this path, regardless of test UI policy. */
 	EHALRoomResult ReturnActiveRoundToRoom();
+#if !UE_BUILD_SHIPPING
+	void SetFeverDebugOverride(TOptional<bool> Enabled);
+#endif
 private:
 	friend struct FHALPracticeRoomTestAccess;
 	friend struct FHALMatchLoopTestAccess;
+	friend struct FHALFeverNetworkTestAccess;
 	friend struct FHALRejoinTestAccess;
 	void RemovePracticeAvatar(AHALPlayerController* Player);
 	void SetSelectionView(AHALPlayerController* Player);
@@ -64,4 +68,5 @@ private:
 	FGuid MatchFlow;
 	FTimerHandle MatchPollTimer,MatchEvaluateTimer;
 	bool bEvaluatingMatch=false;
+	TOptional<bool> FeverDebugOverride;
 };

@@ -5,6 +5,7 @@
 #include "../HALExpandingSlipperyArea.h"
 #include "../HALElectricSphereGimmick.h"
 #include "../HALMatchGameState.h"
+#include "../HALMatchFeverDefinition.h"
 #include "Components/BoxComponent.h"
 #include "Components/DynamicMeshComponent.h"
 #include "Components/MaterialBillboardComponent.h"
@@ -31,6 +32,7 @@ struct FHALArenaGeneratorTestAccess
 	static void MotionStage(AHALArenaEffectGenerator* G,EHALArenaGeneratorStage Stage,double Age,float Duration=1)
 	{ G->State.Stage=Stage; G->State.StartedAt=G->ServerNow()-Age; G->State.Duration=Duration; G->RefreshPresentation(); }
 	static void Motion(AHALArenaEffectGenerator* G) { G->UpdateMeshMotion(); }
+	static void Fever(AHALArenaEffectGenerator* G, const UHALMatchFeverDefinition* F) { G->ApplyFever(F); }
 	static void ClearMotion(AHALArenaEffectGenerator* G) { G->ClearMeshMotion(); }
 	static UPrimitiveComponent* Body(const AHALArenaEffectGenerator* G) { return G->PillarBody; }
 	static void CollisionStage(AHALArenaEffectGenerator* G,EHALArenaGeneratorStage Stage)
@@ -70,6 +72,34 @@ namespace
 	{
 		int32 Count=0; for(TActorIterator<AActor> It(World);It;++It) { if(It->GetOwner()==Owner && !It->IsActorBeingDestroyed()) { ++Count; } } return Count;
 	}
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALGeneratorFeverTest, "HAL.FutureCreation.MatchFever.GeneratorStages",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALGeneratorFeverTest::RunTest(const FString&)
+{
+	FGeneratorWorld Fixture;
+	FHALArenaGeneratorConfig Settings;
+	Settings.RollSeconds = 10; Settings.FinishSeconds = 4; Settings.bSolidPillar = true;
+	auto* Generator = Fixture.Spawn(Settings);
+	if (!TestNotNull(TEXT("Generator"), Generator)) { return false; }
+	auto* Fever = NewObject<UHALMatchFeverDefinition>();
+	Fever->GimmickWaitMultiplier = .5f;
+	using Access = FHALArenaGeneratorTestAccess;
+	using Stage = EHALArenaGeneratorStage;
+	Access::MotionStage(Generator, Stage::Rolling, 4, 10);
+	const double RollStart = Generator->GetGeneratorState().StartedAt;
+	Access::Fever(Generator, Fever);
+	TestEqual(TEXT("Reel position anchored at the same time"), Generator->GetGeneratorState().StartedAt, RollStart);
+	TestEqual(TEXT("Only the remaining roll is halved"), Generator->GetStageRemainingSeconds(), 3.f, .001f);
+	Access::MotionStage(Generator, Stage::Hint, .25, 1);
+	Access::Fever(Generator, nullptr);
+	TestEqual(TEXT("A warning already shown retains its remaining time"), Generator->GetStageRemainingSeconds(), .75f, .001f);
+	Access::MotionStage(Generator, Stage::Finished, 2, 4);
+	Access::Fever(Generator, Fever);
+	TestEqual(TEXT("Return preserves fractional progress"), Generator->GetStageRemainingSeconds(), 1.f, .001f);
+	Access::Due(Generator);
+	TestTrue(TEXT("Next cycle uses the new roll duration and solid pillar"), Generator->GetGeneratorState().Duration == 5.f && Access::Body(Generator)->IsCollisionEnabled());
+	return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALArenaGeneratorConfigTest,"HAL.FutureCreation.ArenaGenerator.ConfigurationAndSelection",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -296,6 +326,15 @@ bool FHALArenaGeneratorMeshMotionTest::RunTest(const FString& Parameters)
 	FHALArenaGeneratorTestAccess::MotionStage(G,EHALArenaGeneratorStage::Finished,.5,1);
 	TestTrue(TEXT("Finished smoothly raises the meshes"),Root->GetComponentLocation().Equals(Pose.GetLocation()-FVector(0,0,300),.001));
 	TestFalse(TEXT("Collision stays off throughout rising"),BlocksPath());
+	auto* Fever = NewObject<UHALMatchFeverDefinition>();
+	Fever->GimmickWaitMultiplier = .5f;
+	const auto BeforeFever = Root->GetComponentTransform();
+	FHALArenaGeneratorTestAccess::Fever(G,Fever);
+	TestTrue(TEXT("Mid-return Fever preserves the two-mesh pose and the physical path stays open"),
+		Root->GetComponentTransform().Equals(BeforeFever,.001) && !BlocksPath());
+	FHALArenaGeneratorTestAccess::Due(G);
+	TestTrue(TEXT("Fever return finishes with the pillar raised and the path blocked"),Root->GetComponentTransform().Equals(Pose,.001) && BlocksPath());
+	FHALArenaGeneratorTestAccess::Fever(G,nullptr);
 	FHALArenaGeneratorTestAccess::MotionStage(G,EHALArenaGeneratorStage::Finished,1,1);
 	TestTrue(TEXT("Collision returns only after the meshes are fully raised"),BlocksPath());
 	TestTrue(TEXT("Only the box returns to blocking after rising"),FHALArenaGeneratorTestAccess::Body(G)->GetCollisionEnabled()==ECollisionEnabled::QueryAndPhysics
