@@ -16,15 +16,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogHALMeteorBall, Log, All);
 
 namespace
 {
-bool IsMeteorOpponent(const ATestVehiclePawn* Vehicle)
-{
-	if (!IsValid(Vehicle) || !Vehicle->CanReceiveSkillEffects()) { return false; }
-	const auto* Player = Vehicle->GetPlayerState<AHALPlayerState>();
-	if (!Player) { return true; } // Practice vehicles and skill dummies have no round seat.
-	const auto Life = Player->GetRoomData().RoundLife;
-	return Life != EHALRoundLife::Eliminated && Life != EHALRoundLife::Forfeited;
-}
-
 bool MeteorGroundAt(const AActor& Reference, const FVector& Position, FVector& Ground)
 {
 	UWorld* World = Reference.GetWorld();
@@ -64,7 +55,7 @@ ATestVehiclePawn* ChooseMeteorOpponent(const AActor& Launcher, const FHALAttackS
 	int32 Count = 0;
 	for (TActorIterator<ATestVehiclePawn> It(Launcher.GetWorld()); It; ++It)
 	{
-		if (*It == &Launcher || !IsMeteorOpponent(*It)) { continue; }
+		if (*It == &Launcher || !HALSpecialBall::IsLiveOpponent(*It)) { continue; }
 		const auto* Player = It->GetPlayerState();
 		if (Player && Attack.InstigatorPlayerId != INDEX_NONE && Player->GetPlayerId() == Attack.InstigatorPlayerId) { continue; }
 		FVector CandidateGround;
@@ -222,14 +213,14 @@ void AHALMeteorStrike::ReleaseTarget()
 
 void AHALMeteorStrike::SampleTarget()
 {
-	if (IsMeteorOpponent(State.Target)) { MeteorGround(*State.Target, LastGround); }
+	if (HALSpecialBall::IsLiveOpponent(State.Target)) { MeteorGround(*State.Target, LastGround); }
 	else { ReleaseTarget(); }
 }
 
 void AHALMeteorStrike::LockGround()
 {
 	if (State.Phase != EHALMeteorPhase::Tracking) { return; }
-	if (IsMeteorOpponent(State.Target)) { MeteorGround(*State.Target, LastGround); }
+	if (HALSpecialBall::IsLiveOpponent(State.Target)) { MeteorGround(*State.Target, LastGround); }
 	ReleaseTarget();
 	State.Phase = EHALMeteorPhase::Falling;
 	UE_LOG(LogHALMeteorBall, Log, TEXT("Locked %s ground=%s"), *GetName(), *LastGround.ToCompactString());

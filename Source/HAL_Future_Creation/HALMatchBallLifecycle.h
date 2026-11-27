@@ -13,6 +13,7 @@ class UHALExplosiveBallDefinition;
 class UHALBlackHoleBallDefinition;
 class UHALMeteorBallDefinition;
 class UHALTimedBombBallDefinition;
+class UHALHomingBallDefinition;
 class UHALSpecialBallDefinition;
 class UHALSpecialBallSupplyDefinition;
 
@@ -53,6 +54,7 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALBlackHoleBallDefinition> BlackHoleBallType;
 	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALMeteorBallDefinition> MeteorBallType;
 	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALTimedBombBallDefinition> TimedBombBallType;
+	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALHomingBallDefinition> HomingBallType;
 	/** Shared by all special-ball pads placed in a match. */
 	UPROPERTY(Config, EditAnywhere, Category="Special Balls") TSoftObjectPtr<UHALSpecialBallSupplyDefinition> SpecialBallSupply;
 };

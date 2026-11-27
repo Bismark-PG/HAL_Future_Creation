@@ -1,6 +1,8 @@
 #include "HALSpecialBall.h"
 #include "HALSpecialBallCue.h"
 #include "HALBombActor.h"
+#include "HALPlayerState.h"
+#include "TestVehiclePawn.h"
 #include "HALElectricWallGimmick.h"
 #include "HALMatchGameState.h"
 #include "HALArenaEffectGenerator.h"
@@ -34,6 +36,15 @@ namespace
 			Normal = Face.ImpactNormal.GetSafeNormal(UE_SMALL_NUMBER, Normal);
 		}
 	}
+}
+
+bool HALSpecialBall::IsLiveOpponent(const ATestVehiclePawn* Vehicle)
+{
+	if (!IsValid(Vehicle) || !Vehicle->CanReceiveSkillEffects()) { return false; }
+	const auto* Player = Vehicle->GetPlayerState<AHALPlayerState>();
+	if (!Player) { return true; } // Practice cars and skill dummies have no round seat.
+	const auto Life = Player->GetRoomData().RoundLife;
+	return Life != EHALRoundLife::Eliminated && Life != EHALRoundLife::Forfeited;
 }
 
 bool UHALSpecialBallDefinition::Validate(FString& Error) const
@@ -376,6 +387,7 @@ void AHALContactSpecialBall::CheckFlight()
 	FHitResult Hit;
 	if (FindFieldHit(LastFlightCenter, Center, Hit)) { ConsumeContact(Hit.GetActor(), Hit.ImpactPoint, Hit.ImpactNormal); return; }
 	LastFlightCenter = Center;
+	UpdateFlightMovement();
 }
 
 void AHALContactSpecialBall::ResolveLaunchedContact(AActor* Other, UPrimitiveComponent* Body, FVector Impulse, const FHitResult& Hit)
@@ -427,12 +439,17 @@ bool AHALExplosiveBall::ApplyContact(AActor* Other, const FVector& Origin, const
 {
 	const auto* Type = Cast<UHALExplosiveBallDefinition>(Definition);
 	if (!Type) { return false; }
-	FHALBlastArea Area{Origin, Type->ExplosionRadius};
+	ApplyContactBlast(Type->ExplosionRadius, Origin, Normal, Travel);
+	return true;
+}
+
+void AHALContactSpecialBall::ApplyContactBlast(float Radius, const FVector& Origin, const FVector& Normal, const FVector& Travel)
+{
+	FHALBlastArea Area{Origin, Radius};
 	Area.FallbackDirection = Travel.IsNearlyZero() ? -Normal.GetSafeNormal2D(UE_SMALL_NUMBER, FVector::BackwardVector) : Travel;
 	Area.CoverStart = Origin + Normal.GetSafeNormal() * 1.5f;
 	Area.Apply(*this, GetLaunchAction());
 	PlayCue(EHALBallCue::Impact, Origin, Area.Radius, Normal.GetSafeNormal());
-	return true;
 }
 
 void AHALContactSpecialBall::EndPlay(EEndPlayReason::Type Reason)

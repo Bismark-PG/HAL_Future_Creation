@@ -322,7 +322,7 @@ void UHALBallComicFXComponent::SyncToBallState(const FBallRepState& State)
 	Seen.Holder = State.Holder.Get();
 	Seen.LauncherPlayerId = State.LastLauncherPlayerId;
 	if (Transition.bStopTrail) { StopTrail(ComicConfig->bCutTrailImmediately || Transition.bStartTrail); }
-	if (Transition.bStartTrail) { StartTrail(*ComicConfig, State); }
+	if (Transition.bStartTrail && Ball->UsesStandardFlight()) { StartTrail(*ComicConfig, State); }
 	if (Transition.bStopAim)
 	{
 		StopAim();

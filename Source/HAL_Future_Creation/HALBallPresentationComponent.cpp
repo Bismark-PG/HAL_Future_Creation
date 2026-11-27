@@ -172,6 +172,11 @@ void UHALBallPresentationComponent::RestoreVisual()
 		Visual->SetAbsolute(bAuthoredAbsoluteLocation,bAuthoredAbsoluteRotation,Visual->IsUsingAbsoluteScale());
 		Visual->SetRelativeTransform(AuthoredVisual);
 	}
+	else if (bHadVisualFacing && Visual.IsValid())
+	{
+		Visual->SetRelativeRotation(AuthoredVisual.GetRotation());
+	}
+	bHadVisualFacing = false;
 	bVisualOverride=false; DisplayHolder.Reset(); DisplaySequence=0; SetMode(EHALBallVisualMode::Physics);
 }
 
@@ -247,12 +252,33 @@ void UHALBallPresentationComponent::UpdateClient(float DeltaTime)
 	Visual->SetWorldLocationAndRotation(MeshPose.GetLocation(),MeshPose.GetRotation());
 }
 
+void UHALBallPresentationComponent::ApplyVisualFacing()
+{
+	if (!Visual.IsValid() || GetNetMode() == NM_DedicatedServer) { return; }
+	const FVector Direction = Ball->GetVisualFacingDirection();
+	if (!Direction.IsNearlyZero())
+	{
+		const FQuat Facing = Direction.ToOrientationQuat();
+		// Start a subsequent drop handoff at the orientation the client actually saw.
+		if (bVisualOverride) { DisplayPose.SetRotation(Facing); }
+		Visual->SetWorldRotation(Facing * AuthoredVisual.GetRotation());
+		bHadVisualFacing = true;
+	}
+	else if (bHadVisualFacing)
+	{
+		// The client handoff already supplied the mesh rotation if it still owns the world pose.
+		if (!bVisualOverride) { Visual->SetRelativeRotation(AuthoredVisual.GetRotation()); }
+		bHadVisualFacing = false;
+	}
+}
+
 void UHALBallPresentationComponent::TickComponent(float DeltaTime,ELevelTick TickType,FActorComponentTickFunction* TickFunction)
 {
 	Super::TickComponent(DeltaTime,TickType,TickFunction);
 	if (!Ball.IsValid()) { return; }
 	if (GetOwner()->HasAuthority()) { NotifyStateChanged(); PollCapture(); }
 	else { UpdateClient(DeltaTime); }
+	ApplyVisualFacing();
 	LogAge+=DeltaTime;
 	if (CVarBallPresentationLog.GetValueOnGameThread()>0 && LogAge>=1 && Ball->GetBallState()==EBasicBallState::Controlled)
 	{

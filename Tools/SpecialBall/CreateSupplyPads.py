@@ -50,6 +50,7 @@ def pad_material():
     old = load(FOLDER + '/' + name)
     if old:
         add_clasp_warning(old)
+        add_homing_warning(old)
         return old
     mat = TOOLS.create_asset(name, FOLDER, u.Material, u.MaterialFactoryNew())
 
@@ -121,7 +122,28 @@ return idle*(1.-gain) + gain*tint*(Lens*(.78+.58*ring+focus) + outer*(light+focu
         wire(source, '', shader, key)
     output(shader, u.MaterialProperty.MP_EMISSIVE_COLOR)
     add_clasp_warning(mat)
+    add_homing_warning(mat)
     return mat
+
+
+def add_homing_warning(mat):
+    shader = EDIT.get_material_property_input_node(mat, u.MaterialProperty.MP_EMISSIVE_COLOR)
+    code = shader.get_editor_property('code')
+    if 'Kind > 4.5' in code:
+        return
+    marker = 'float focus ='
+    if marker not in code:
+        raise RuntimeError('Cannot locate pad warning output on ' + mat.get_path_name())
+    chevrons = """if (Kind > 4.5) {
+    float vane = abs(frac(a*6./6.283185+.5)-.5);
+    float arrow = 1.-smoothstep(.035,.11,abs(frac(r*1.75+2.*t)-.42-vane*.68));
+    light = arrow*(1.-smoothstep(.15,.36,vane)) + .45*head;
+    tint = lerp(float3(.025,.82,.78),float3(1.,.26,.04),head);
+}
+"""
+    shader.set_editor_property('code', code.replace(marker, chevrons+marker, 1))
+    EDIT.recompile_material(mat)
+    save(mat)
 
 
 def finish(parent, label, rgb, metal, roughness, lens):

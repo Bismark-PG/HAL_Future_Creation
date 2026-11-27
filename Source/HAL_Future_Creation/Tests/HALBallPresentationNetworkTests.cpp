@@ -2,6 +2,7 @@
 #include "Misc/AutomationTest.h"
 #include "HALVehiclePresentationTestSupport.h"
 #include "../HALBallPresentationComponent.h"
+#include "../HALHomingBall.h"
 #include "../HALPlayerController.h"
 #include "../HALMatchGameState.h"
 #include "../HALDebugSettings.h"
@@ -15,6 +16,8 @@
 #include "GameFramework/PlayerState.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "Misc/Paths.h"
+#include "UnrealClient.h"
 
 struct FHALBallRelativeNetworkAccess
 {
@@ -31,10 +34,13 @@ namespace
 		FAutomationTestBase* Test;
 		double Deadline=FPlatformTime::Seconds()+90,Complete=-1;
 		bool bPrepared=false,bSetup=false,bDriving=false,bShot=false,bObservedOwn=false,bObservedRemote=false;
-		float DriveStart=0; FVector InitialOwn=FVector::ZeroVector;
+		float DriveStart=0, SpawnTime=0; FVector InitialOwn=FVector::ZeroVector;
 		TWeakObjectPtr<ABasicBallActor> OwnBall,RemoteBall;
-		bool bRequestedDrift=FParse::Param(FCommandLine::Get(),TEXT("HALBallDrift"));
+		const bool bHomingFacing=FParse::Param(FCommandLine::Get(),TEXT("HALHomingFacing"));
+		bool bRequestedDrift=bHomingFacing || FParse::Param(FCommandLine::Get(),TEXT("HALBallDrift"));
 		bool bHandbrakeApplied=false, bLostHeldDisplay=false;
+		double MaxFacingError=0., MaxCarTurn=0., MaxSlipAngle=0.;
+		bool bHeldPhoto=false;
 	public:
 		explicit FBallRelativeLiveTest(FAutomationTestBase* T):Test(T){}
 		virtual bool Update() override
@@ -71,7 +77,7 @@ namespace
 			if (Host && !bSetup)
 			{
 				FPacketSimulationSettings Lag; Lag.PktLag=80; World->GetNetDriver()->SetPacketSimulationSettings(Lag);
-				auto* BallClass=GetDefault<UHALDebugSettings>()->DefaultBallClass.LoadSynchronous();
+				auto* BallClass=bHomingFacing ? AHALHomingBall::StaticClass() : GetDefault<UHALDebugSettings>()->DefaultBallClass.LoadSynchronous();
 				if (!BallClass) { Test->AddError(TEXT("Missing configured ball class")); return true; }
 				int Index=0;
 				for (auto* P:{Own,Other})
@@ -82,21 +88,36 @@ namespace
 					Body->SetPhysicsLinearVelocity(FVector::ZeroVector); Body->SetPhysicsAngularVelocityInRadians(FVector::ZeroVector); P->ForceNetUpdate();
 					FTransform Target; P->FindComponentByClass<UBallControlComponent>()->GetControlTargetWorldTransform(Target);
 					FActorSpawnParameters Spawn; Spawn.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-					auto* B=World->SpawnActor<ABasicBallActor>(BallClass,Target.GetLocation()+FVector(120,30,0),FRotator::ZeroRotator,Spawn);
-					if (!FHALBallRelativeNetworkAccess::Acquire(P->FindComponentByClass<UBallControlComponent>(),B)) { Test->AddError(TEXT("Native constrained capture failed")); return true; }
+					const FRotator SpawnRotation(0.,bHomingFacing ? 90. : 0.,0.);
+					const FVector Pickup=bHomingFacing ? P->GetActorLocation()+FVector(310,0,60) : Target.GetLocation()+FVector(120,30,0);
+					auto* B=World->SpawnActor<ABasicBallActor>(BallClass,Pickup,SpawnRotation,Spawn);
+					if (!B) { Test->AddError(TEXT("Failed to spawn the test ball")); return true; }
+					if (!bHomingFacing && !FHALBallRelativeNetworkAccess::Acquire(P->FindComponentByClass<UBallControlComponent>(),B)) { Test->AddError(TEXT("Native constrained capture failed")); return true; }
 					if (P==Own) { OwnBall=B; } else { RemoteBall=B; }
 				}
-				bSetup=true;
+				SpawnTime=World->GetTimeSeconds(); bSetup=true;
 			}
 			if (!Host)
 			{
 				for (TActorIterator<ABasicBallActor> It(World);It;++It)
 				{
-					if (It->GetBallState()!=EBasicBallState::Controlled) { continue; }
+					if (It->GetBallState()!=EBasicBallState::Controlled || (bHomingFacing && !It->IsA<AHALHomingBall>())) { continue; }
 					if (It->GetControlledBy()==Own) { OwnBall=*It; } else if (It->GetControlledBy()==Other) { RemoteBall=*It; }
 				}
 			}
 			if (!OwnBall.IsValid() || !RemoteBall.IsValid()) { return false; }
+			if (Host && bHomingFacing && (OwnBall->GetControlledBy()!=Own || RemoteBall->GetControlledBy()!=Other))
+			{
+				if (World->GetTimeSeconds()-SpawnTime<8.f) { return false; }
+				for (const auto* P : {Own,Other})
+				{
+					const auto* B=P==Own ? OwnBall.Get() : RemoteBall.Get();
+					Test->AddError(FString::Printf(TEXT("Automatic missile pickup: car=%s ball=%s current=%s eligible=%d distance=%.0f"),
+						*GetNameSafe(P), *GetNameSafe(B), *GetNameSafe(P->FindComponentByClass<UBallControlComponent>()->GetHeldBall()),
+						B->CanBeControlledBy(P), FVector::Dist(P->GetActorLocation(),B->GetActorLocation())));
+				}
+				return true;
+			}
 			auto* Local=OwnBall->FindComponentByClass<UHALBallPresentationComponent>();
 			auto* Remote=RemoteBall->FindComponentByClass<UHALBallPresentationComponent>();
 			if (!Local || !Remote) { Test->AddError(TEXT("Replicated ball presentation components missing")); return true; }
@@ -117,6 +138,29 @@ namespace
 			{
 				FHALPresentationTestAccess::SetInput(Own,Host ? -.7f:.7f,1,true);
 				bHandbrakeApplied=true;
+			}
+			if (bHomingFacing && !bShot)
+			{
+				for (const ABasicBallActor* Pod : {OwnBall.Get(),RemoteBall.Get()})
+				{
+					const AActor* Holder=Pod->GetControlledBy();
+					if (!Holder) { Test->AddError(TEXT("Missile lost its holder during the steering sample")); return true; }
+					const double Yaw=Holder->GetActorRotation().Yaw;
+					const double Nose=Pod->GetVisualMesh()->GetForwardVector().Rotation().Yaw;
+					MaxFacingError=FMath::Max(MaxFacingError,FMath::Abs(FMath::FindDeltaAngleDegrees(Yaw,Nose)));
+				}
+				MaxCarTurn=FMath::Max(MaxCarTurn,FMath::Abs(Own->GetActorRotation().Yaw));
+				const FVector Velocity=Own->GetVelocity();
+				if (bHandbrakeApplied && Velocity.Size2D()>100.)
+				{
+					const double Slip=FMath::Abs(FMath::FindDeltaAngleDegrees(Own->GetActorRotation().Yaw,Velocity.Rotation().Yaw));
+					MaxSlipAngle=FMath::Max(MaxSlipAngle,Slip);
+					if (!Host && !bHeldPhoto && Slip>15. && FParse::Param(FCommandLine::Get(),TEXT("HALHomingShots")))
+					{
+						FScreenshotRequest::RequestScreenshot(FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir()/TEXT("HomingBall/ClientHeldTurn.png")),true,false);
+						bHeldPhoto=true;
+					}
+				}
 			}
 			if (!Host && !bShot)
 			{
@@ -142,7 +186,16 @@ namespace
 					UE_LOG(LogTemp,Display,TEXT("HAL held-ball drive: LocalSamples=%u RemoteSamples=%u LostHeldDisplay=%d Handbrake=%d"),
 						Local->GetReceivedSampleCount(),Remote->GetReceivedSampleCount(),bLostHeldDisplay,bHandbrakeApplied);
 				}
-				FHALPresentationTestAccess::SetInput(Own,0); FHALPresentationTestAccess::StartLaunch(Own); bShot=true;
+				FHALPresentationTestAccess::SetInput(Own,0);
+				if (bHomingFacing)
+				{
+					Test->TestTrue(TEXT("Both held missile noses track their respective cars"),MaxFacingError<2.);
+					Test->TestTrue(TEXT("Driver changed heading and slid across its forward axis"),MaxCarTurn>15. && MaxSlipAngle>8.);
+					Test->AddInfo(FString::Printf(TEXT("Homing held: host=%d max facing error %.2f deg, car turn %.1f, handbrake slip %.1f"),Host,MaxFacingError,MaxCarTurn,MaxSlipAngle));
+					Complete=FPlatformTime::Seconds();
+					return false;
+				}
+				FHALPresentationTestAccess::StartLaunch(Own); bShot=true;
 			}
 			if (bShot && Elapsed>4 && OwnBall->GetBallState()!=EBasicBallState::Controlled && RemoteBall->GetBallState()!=EBasicBallState::Controlled
 				&& (Host || (Local->GetVisualMode()==EHALBallVisualMode::Physics && Remote->GetVisualMode()==EHALBallVisualMode::Physics)))

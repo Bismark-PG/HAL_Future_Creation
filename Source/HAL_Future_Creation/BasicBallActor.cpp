@@ -323,7 +323,7 @@ bool ABasicBallActor::DeliverLaunch(const FHALAttackSourceSnapshot& Attack, AAct
 	PhysicsRoot->WakeAllRigidBodies();
 	PhysicsRoot->SetPhysicsLinearVelocity(InitialVelocity);
 	AccumulatedLowSpeedTime = 0.0f;
-	StartLowSpeedMonitor();
+	if (UsesStandardFlight()) { StartLowSpeedMonitor(); }
 	return true;
 }
 
@@ -491,6 +491,7 @@ void ABasicBallActor::ApplyReplicatedPresentation()
 	else
 	{
 		StopControlledPresentation();
+		if (!UsesStandardFlight()) { PhysicsRoot->SetEnableGravity(bAuthoredGravityEnabled && RepState.State != EBasicBallState::Launched); }
 	}
 }
 
@@ -525,6 +526,10 @@ void ABasicBallActor::CommitRepState(const FBallRepState& NewState, const AActor
 		Committed.ServerPhysicsFrame = Movement->GetLastPhysicsFrame();
 	}
 	RepState = Committed;
+	if (!UsesStandardFlight() && (PreviousState == EBasicBallState::Launched || NewState.State == EBasicBallState::Launched))
+	{
+		PhysicsRoot->SetEnableGravity(bAuthoredGravityEnabled && NewState.State != EBasicBallState::Launched);
+	}
 	OnAuthorityBallStateChanged(PreviousState);
 	if (BallPresentation) { BallPresentation->NotifyStateChanged(); }
 	// The client path below returns early on authority, so the listen-server host would

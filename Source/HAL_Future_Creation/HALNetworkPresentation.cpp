@@ -170,6 +170,7 @@ void UHALNetworkGameInstance::BeginMatchResources(const FString& DestinationURL)
 	AddMatchResourcePath(Balls->ReturnRingMaterial.ToSoftObjectPath()); AddMatchResourcePath(Balls->ExplosiveBallType.ToSoftObjectPath());
 	AddMatchResourcePath(Balls->BlackHoleBallType.ToSoftObjectPath()); AddMatchResourcePath(Balls->MeteorBallType.ToSoftObjectPath());
 	AddMatchResourcePath(Balls->TimedBombBallType.ToSoftObjectPath()); AddMatchResourcePath(Balls->SpecialBallSupply.ToSoftObjectPath());
+	AddMatchResourcePath(Balls->HomingBallType.ToSoftObjectPath());
 	const auto& Comic=GetDefault<UHALBallComicFXSettings>()->Comic;
 	if (Comic.bEnabled)
 	{

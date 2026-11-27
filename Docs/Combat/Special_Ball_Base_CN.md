@@ -24,7 +24,7 @@
 
 ## 正式赛场的特殊球生成盘
 
-`MVPB_Match` 的中圈两侧各有一个六孔盘。在 World Outliner 展开 **Gimmick → Special Ball Pads** 找到 `SpecialBallPad_NE` 和 `SpecialBallPad_SW`。青色待机灯在投放前变色，爆炸球为橙金色向心脉冲，黑洞球为紫色旋纹，陨石球为红橙色断续流光，定时炸弹球为红色双弧和琥珀刻度。球从六孔中心出现并播放自己的生成特效。
+`MVPB_Match` 的中圈两侧各有一个六孔盘。在 World Outliner 展开 **Gimmick → Special Ball Pads** 找到 `SpecialBallPad_NE` 和 `SpecialBallPad_SW`。爆炸球投放前亮起橙金色脉冲，黑洞球是紫色旋纹，陨石球是红橙色流光，定时炸弹球是红色双弧和琥珀刻度，跟踪导弹球是青绿与橙色的箭纹。球从盘心出现，播放各自的生成特效。
 
 全场共用 **Content → Data → Balls → DA_Arena_SpecialBallSupply**。修改后重新开一局即可试玩。
 
@@ -34,7 +34,7 @@
 | Drop Interval | 25 秒 | 全场两次成功投放之间的间隔。两盘轮流优先，同一轮只投一颗 |
 | Warning Seconds | 1.5 秒 | 提前亮灯并向盘心汇聚。首轮默认在开赛后 13.5 秒亮灯 |
 | Blocked Grace | 2 秒 | 盘心被占时最多等待多久，每 0.25 秒复查一次 |
-| Ball Pool | Explosive、Black Hole、Meteor、Timed Bomb | 每组四种各出一次，顺序随机。只保留一种即可定向测试 |
+| Ball Pool | Explosive、Black Hole、Meteor、Timed Bomb、Homing | 每组五种各出一次，顺序随机。只保留一种即可定向测试 |
 | Spawn Clearance | 8 cm | 球底相对实际行车面的初始间隙。球心高度另加该球型的实际碰撞半径 |
 | Pad Diameter / Pad Thickness | 500 / 3 cm（当前正式 DA） | 六孔盘的可见大小和厚度 |
 
@@ -57,6 +57,41 @@
 生成盘的六孔模型和三个材质实例位于 `/Game/Assets/ArenaMechanics/SpecialBallPad`。单独拖入网格只会摆放模型，要参加轮转应拖入上述 Actor 类。
 
 **2026-11-24 实测。** UE 5.8.3 的 Development Editor 与 Game 均已编译。连续投放六颗，其中一颗被持有，验证了多球共存、两轮洗牌、盘心阻挡重试、跳过和重新开赛。正式图的两个盘都通过盘心和两侧的地面射线检查，主机车辆横穿空盘期间测得车身高度变化小于 0.01 cm。主机出站模拟 60 ms 延迟，主机与独立客户端均看到东北盘在约第 15 秒生成陨石球、西南盘在约第 40 秒生成爆炸球。以下三帧来自同一客户端机位，依次为待机、盘心预告和球体生成。[游戏内三帧实拍](Art/SpecialBallPad/SupplyPad_InGame.jpg)
+
+<a id="homing-ball"></a>
+
+## 跟踪导弹球
+
+持球时，橙色弹头与车头的瞄准箭头同向。停车、倒车或横向漂移时，看弹头就能判断起射方向。发射后，导弹沿车头起飞，锁定距发射者最近的存活对手，弹头随航向转动。对手可以在车后方。初速低时能转紧弯，提速后转弯逐渐变宽。高速掠过目标、目标落在弹后且距离拉开时，本次发射永久失锁。发射时没有对手、或被锁车辆中途淘汰，导弹也会沿当前方向飞完余程。Car08 烟幕中仍可锁定和追踪。甩开后的导弹仍能意外击中其他车辆。
+
+车辆、实体墙、阻挡机关和通电电幕能引爆来球。服务器按接触点对范围内对手逐车结算一次伤害与冲击，实体遮挡可挡爆风。普通行车地面允许贴地飞行。自由、持有沿用特殊球基础寿命，正式发射另起飞行时钟，飞行到期在原地散为冷色碎光。
+
+| 调节项目 | `DA_Ball_Homing` 首测设置 |
+| --- | --- |
+| 起步与极速 | `Initial Speed / Cruise Speed` 为 1600 / 4000 cm/s，`Acceleration Seconds` 为 1.8 秒 |
+| 转弯与甩脱 | `Initial Turn Rate / Cruise Turn Rate` 为 180 / 35°/s。完成提速幅度的 72% 后，7 米内的近距离错车可触发甩脱 |
+| 两套寿命 | `Free Life Seconds / Warning Seconds` 为 20 / 3 秒，`Flight Seconds` 为 4 秒 |
+| 爆炸 | `Explosion Radius` 为 250 cm。`Gameplay → Damage / Impact` 首测为 25 HP、Heavy |
+| 飞行与特效 | `Exhaust Length` 控制高速尾焰长度。三种颜色、发光强度及生成、消散和命中特效时长均在本 DA |
+| 锁定预警 | `Warning Screen Fraction` 为视口高度的 4.7%，`Warning Approach Seconds` 为 1.6 秒。预警指向屏外导弹，接近时加快闪动，入镜或失锁时收起。`Warning Bottom Inset` 给底部中央的能量条预留 10% 高度 |
+
+开发版在控制台输入 `HALSpawnHomingBall`，靠近球后用通常的发射键即可试射。两人可在中场拉开距离，让被锁一方看到屏边提示，再横向漂移试甩脱。单人无对手时可以检验直线发射和撞墙引爆。
+
+**2026-11-27 实测。** UE 5.8.3 CL58210709，球、生成器、烟幕与 HUD 共 29 项自动化通过。专项测试覆盖无对手前射、后来入场不补锁、高速错车后保持原航向、目标淘汰、烟幕中继续锁定、飞行到期无伤害及旁车只结算一次。
+
+正式 `MVPB_Match` 本机一主一客，主机出站模拟 80 ms 延迟。发射车自动拾取导弹，用普通持球发射流程打出。服务器记录极速 4000 cm/s，两端均记录半径 250 cm 的爆炸、目标 HP 从 100 降至 75，以及 Heavy 冲击。来球从屏幕下方飞入时，客户端的提示出现在能量条上方，入镜后收起。另一颗从东北盘投放，自由存在 20 秒后播放消散。测试只临时指定了首轮投放球种，磁盘重载确认正式供球池共有五种。四人真人对抗中的甩脱手感待试玩。[生成盘实拍](Art/HomingBall/Match_Arrival.png) · [被锁车辆视角](Art/HomingBall/Match_Offscreen.png)
+
+Editor 使用项目统一入口 `BuildAndLaunch.cmd -NoLaunch -NoPopup`。独立游戏目标另用以下命令验证 Win64 Development。六份球型、网格和材质资源的 Windows 定向 Cook 为零错误、零警告。本机报告位于 `Saved/HomingBall` 的 `RulesAccepted`、`NetAccepted` 和 `CookAccepted.log`。
+
+```powershell
+& 'D:/Program Files/Epic Games/UE_5.8/Engine/Build/BatchFiles/Build.bat' HAL_Future_Creation Win64 Development '-Project=D:/HAL_Future_Creation/HAL_Future_Creation.uproject' -WaitMutex -NoHotReload -NoLiveCoding '-Log=D:/HAL_Future_Creation/Saved/HomingBall/GameFinal.log'
+```
+
+<a id="homing-held-facing"></a>
+
+**持球朝向复测（2026-11-27）。** 之前持球时弹壳沿用球形刚体的旋转。现在持球模型在位置平滑后对齐车头，沿用正常起射的水平方向。`HAL.FutureCreation.SpecialBall.Homing.HeldFacing` 验证停车转向、掉球、换手及出手，持球点和碰撞体在转动模型时保持稳定。相关自动化通过 30/30。
+
+`MVPB_NetTest` 一主一客各自自动拾取一颗初始朝向偏转 90° 的导弹，主机出站模拟 80 ms 延迟。两车向相反方向转弯并拉手刹，主机车头转过 178°，客户端车头转过 118°。两端逐帧检查自己和对手的弹头，最大水平偏差均小于 0.01°。`MVPB_Match` 双端另测了正式拾取、发射与命中。报告在 `Saved/HomingBall/HeldFacing_RulesFinal`、`HeldFacing_AutoPickup` 和 `HeldFacing_Match`。复现弯道用例时，两端启动参数均加 `-HALHomingFacing`，运行 `HAL.NetworkSmoke.BallRelativePresentation`。[客户端漂移实拍](Art/HomingBall/HeldTurn.png)
 
 <a id="timed-bomb-concepts"></a>
 

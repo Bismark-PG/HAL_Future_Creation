@@ -1,5 +1,11 @@
 # HAL Future Creation：项目状态与接续入口
 
+**2026-11-27　本地跟踪导弹已与远端 `cb36465` 的普通球带电、彗星尾迹和持球标记合并验证。** UE 5.8.3 Editor 构建通过。在本机主机和客户端，普通球发射时都启用彗星尾迹，穿过电幕后带电。跟踪导弹持球时出现瞄准标记，出手后切换为专属尾焰。60 项相关原生回归通过 59 项，远端已记录的治疗区生命周期用例仍失败。在 `ac2963e` 另做的两轮治疗区联机测试中，主机在首次回血检查时均读到 60 HP，预期为 55 HP，原因待定位。最终回归见 `Saved/MergeReview/4eec0bd-cb36465-20261127`，合并前 38 个本地文件的备份及治疗区实测见 `Saved/MergeReview/a58bb32-ac2963e-20261127`。[远端既有失败记录](Combat/Electric_Ball_Verification_20261127.json)
+
+**2026-11-27　持球时的导弹头已对齐车头。** 弹头跟随当前持有车辆的水平朝向，出手后随实际航向转动。UE 5.8.3 的 Editor 和 Win64 Development Game 均编译通过。30 项相关自动化通过，覆盖停车转向、掉球、换手和发射。本机一主一客各持一弹，在主机出站模拟 80 ms 延迟下转向并拉手刹，两端测得弹头与对应车头的最大水平夹角均小于 0.01°。正式场景也复测了拾取、发射和命中。[客户端漂移实拍](Combat/Art/HomingBall/HeldTurn.png) · [验证记录](Combat/Special_Ball_Base_CN.md#homing-held-facing)
+
+**2026-11-27　跟踪导弹球已加入正式赛场的五球轮转。** 导弹发射时锁定最近的存活对手，先灵活转弯，再提速至 40 m/s。高速错车甩开后永久失锁，Car08 烟幕中保留追踪。正式图一主一客在主机出站模拟 80 ms 延迟下完成实射，双方记录目标从 100 降至 75 HP 并受到 Heavy 冲击。客户端验证了屏外预警、进镜收起、命中演出，以及生成盘投放后 20 秒自然消散。UE 5.8.3 的 Editor、Win64 Game 编译通过，相关编辑器自动化 29/29，六份正式资产 Windows 定向 Cook 零错误、零警告。四人漂移对抗的甩脱窗口待团队试玩。[球型 DA、首测参数与实测记录](Combat/Special_Ball_Base_CN.md#homing-ball)
+
 **2026-11-27　键鼠／Xbox 输入提示 C++ 已完成，MatchHUD 已嵌入占位 WBP。** 拉取前 UE 5.8.3 Editor 编译、InputHints 3/3 和 UIIntegration 13/13 通过；拉取后尚未复编。下一步验收实际输入切换与独立窗口图标清晰度，DPI 原因尚未确认。[接入与验证](Presentation/Match_Countdown_HUD_CN.md#input-hints-20261127)
 
 **2026-11-27　构建工具默认汇总 C4305 警告。** 支持 `-ShowAllWarnings`，完整 UBT 日志保留；脚本夹具 25/25 通过，未另做 Unreal 编译。[用法与验证](Configuration/Build_Editor_Tool_CN.md#2026-11-27收起重复的浮点警告)

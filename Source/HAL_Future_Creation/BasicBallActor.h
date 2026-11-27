@@ -110,6 +110,8 @@ public:
 	/** Radius of a fresh actor of this authored class, including the configured physics scale. */
 	float GetConfiguredSphereRadius() const;
 	UStaticMeshComponent* GetVisualMesh() const { return VisualMesh; }
+	/** Optional world heading for a directional mesh. Zero keeps the normal rolling-ball presentation. */
+	virtual FVector GetVisualFacingDirection() const { return FVector::ZeroVector; }
 	bool IsPrimaryMatchBall() const { return bPrimaryCameraTarget; }
 	void SetPrimaryMatchBall(bool bPrimary);
 	bool IsPrimaryCameraTarget() const { return IsPrimaryMatchBall(); }
@@ -117,6 +119,8 @@ public:
 
 	bool CanBeControlledBy(const AActor* CandidateVehicle) const;
 	virtual bool AllowsNormalLaunch() const { return true; }
+	/** Ballistic shots use gravity, the low-speed return to Free, and the common ink trail. */
+	virtual bool UsesStandardFlight() const { return true; }
 	virtual bool AllowsAutomaticPickup() const { return true; }
 	bool BeginControl(AActor* NewHolder);
 	bool LaunchFromControl(AActor* ExpectedHolder, AActor* NewLauncher, const FVector& InitialVelocity);

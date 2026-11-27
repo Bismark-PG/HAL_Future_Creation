@@ -6,6 +6,7 @@
 #include "../HALBlackHoleBall.h"
 #include "../HALMeteorBall.h"
 #include "../HALTimedBombBall.h"
+#include "../HALHomingBall.h"
 #include "../HALPlayerController.h"
 #include "../TestVehiclePawn.h"
 #include "Camera/CameraActor.h"
@@ -144,7 +145,7 @@ namespace
 		for (TActorIterator<AHALSpecialBall> It(W); It; ++It)
 		{
 			if (Deliveries.Contains(It->GetFName())) { continue; }
-			const EHALPadBall Actual = It->IsA<AHALTimedBombBall>() ? EHALPadBall::TimedBomb :
+			const EHALPadBall Actual = It->IsA<AHALHomingBall>() ? EHALPadBall::Homing : It->IsA<AHALTimedBombBall>() ? EHALPadBall::TimedBomb :
 				It->IsA<AHALBlackHoleBall>() ? EHALPadBall::BlackHole : It->IsA<AHALMeteorBall>() ? EHALPadBall::Meteor : EHALPadBall::Explosive;
 			if (!Test.TestTrue(TEXT("Free replicated ball matches the warned type and pad"),
 				Site.IsValid() && Actual == Announced && It->GetBallState()==EBasicBallState::Free && !It->IsPrimaryMatchBall()

@@ -111,7 +111,7 @@ bool FHALSpecialBallSupplyTest::RunTest(const FString&)
 	Supply->ApplyFever(nullptr);
 	// Exercise two complete bags even if a designer narrows the production pool.
 	Supply->Settings = DuplicateObject<UHALSpecialBallSupplyDefinition>(Stock, Supply);
-	Supply->Settings->BallPool = {EHALPadBall::Explosive, EHALPadBall::BlackHole, EHALPadBall::Meteor, EHALPadBall::TimedBomb};
+	Supply->Settings->BallPool = {EHALPadBall::Explosive, EHALPadBall::BlackHole, EHALPadBall::Meteor, EHALPadBall::TimedBomb, EHALPadBall::Homing};
 	const int32 BagSize = Supply->Settings->BallPool.Num();
 	bool bCarried = false;
 	TSet<EHALPadBall> InBag;

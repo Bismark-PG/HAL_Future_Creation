@@ -3,6 +3,7 @@
 #include "HALBlackHoleBall.h"
 #include "HALMeteorBall.h"
 #include "HALTimedBombBall.h"
+#include "HALHomingBall.h"
 #include "HALMatchBallLifecycle.h"
 #include "Components/DynamicMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -164,7 +165,7 @@ void AHALSpecialBallCue::Spawn(UWorld& World, EHALBallCue Kind, UHALSpecialBallD
 	const double Started = BallCueTime(World);
 	const bool bExplosion = Kind == EHALBallCue::Impact || Kind == EHALBallCue::MountedImpact;
 	const bool bTimedBomb = Type->IsA<UHALTimedBombBallDefinition>();
-	const bool bBroadcast = (bTimedBomb && Kind == EHALBallCue::Arrival)
+	const bool bBroadcast = Type->IsA<UHALHomingBallDefinition>() || (bTimedBomb && Kind == EHALBallCue::Arrival)
 		|| (bExplosion && (bTimedBomb || Type->IsA<UHALExplosiveBallDefinition>()));
 	if (bBroadcast && World.GetNetMode() != NM_Standalone && World.GetGameState())
 	{
@@ -383,7 +384,7 @@ void AHALSpecialBallCue::PrepareWave()
 	};
 	AddRing(0, false);
 	const auto* Solar = Cast<UHALExplosiveBallDefinition>(State.Type.Get());
-	if (!Solar || !Solar->EruptionMaterial)
+	if ((!Solar || !Solar->EruptionMaterial) && !State.Type->IsA<UHALHomingBallDefinition>())
 	{
 		AddRing(.42f * Radius, false);
 		AddRing(.76f * Radius, false);
@@ -442,6 +443,7 @@ void AHALSpecialBallCue::Draw(float T)
 		Result.A = FMath::Clamp(Opacity * Envelope, 0.f, 1.f);
 		return Result;
 	};
+	const bool bMissile = Type.IsA<UHALHomingBallDefinition>();
 	if (State.Kind == EHALBallCue::Impact)
 	{
 		const float Front = 1.f - FMath::Pow(1.f - T, 2.6f);
@@ -468,6 +470,12 @@ void AHALSpecialBallCue::Draw(float T)
 						Point(I, FMath::Min(Outer, Ring.Open[I])), Color);
 				}
 			};
+			if (bMissile)
+			{
+				if (T < .20f) { Band(1.f, .018f, Tint(Type.CurrentColor, 1.3f, 1.f-T/.20f)); }
+				Band(FMath::Max(.035f, Front), .045f, Tint(Type.CoronaColor, 1.5f, 1.f-T));
+				continue;
+			}
 			if (EruptionMID)
 			{
 				// The first flash marks the real boundary. A single low ripple then follows the arches.
@@ -478,6 +486,53 @@ void AHALSpecialBallCue::Draw(float T)
 			if (T < .28f) { Band(1.f, .018f, Tint(Type.CoronaColor, 2.f, (1.f - T / .28f) * (L == 0 ? .9f : .46f))); }
 			Band(FMath::Max(.03f, Front), Ring.bGround ? .055f : .032f, Tint(Type.CoronaColor, 1.7f, .85f));
 			Band(FMath::Max(.02f, Front * .91f), .045f, Tint(Type.CurrentColor, 1.15f, .76f));
+		}
+		if (bMissile && !Rings.IsEmpty())
+		{
+			const auto& Ring = Rings[0];
+			const float Cool = FMath::SmoothStep(.20f,.85f,T);
+			const FLinearColor Hot = FMath::Lerp(FLinearColor(1.f,.83f,.48f), Type.CoronaColor, Cool);
+			// Tapered bursts stay on the exposed side of the same surfaces that stop the blast.
+			for (int32 I = 0; I < 9; ++I)
+			{
+				const int32 J = (I*7+2) % Ring.Points.Num();
+				const FVector Axis = Ring.Points[J].GetSafeNormal2D();
+				const float Reach = FMath::Min(Ring.Open[J], (.56f+.10f*(I%4))*Front);
+				if (Reach < .035f) { continue; }
+				const FVector Peak = Radius*(Axis*Reach + FVector::UpVector*(.12f+.06f*(I%3))*Front);
+				const FVector Waist = Peak*.51f;
+				const FVector Across(-Axis.Y,Axis.X,0);
+				const FVector Width = Across * Radius * FMath::Min(.13f,Reach*.35f)*(1.f-Cool);
+				Corona.Quad(Peak*.12f,Waist-Width,Peak,Waist+Width,Tint(Type.CurrentColor,1.1f,1.f-Cool));
+				Corona.Quad(Peak*.22f,Waist-Width*.47f,Peak*.9f,Waist+Width*.47f,Tint(Hot,1.4f,1.f-Cool));
+				const FVector Ember = Peak + FVector::UpVector*Radius*.24f*T;
+				Corona.Quad(Ember-Axis*Radius*.065f, Ember-Across*Radius*.025f, Ember+Axis*Radius*.035f,
+					Ember+Across*Radius*.025f,Tint(Hot,1.1f,1.f-T));
+			}
+			// A faceted cloud grows from the flash, rolls upwards and contracts to extinction.
+			const FVector Lift = FVector(State.SurfaceNormal).GetSafeNormal() * Radius*.14f;
+			for (int32 Lobe = 0; Lobe < 5; ++Lobe)
+			{
+				const int32 J = (13*Lobe+4) % Ring.Points.Num();
+				const FVector Center = Lift + Ring.Points[J]*FMath::Min(Ring.Open[J]*.5f,.20f*Front)
+					+ FVector::UpVector*Radius*(.05f+.32f*T);
+				const float Puff = Radius*(.15f+.05f*(Lobe%3))*FMath::SmoothStep(0.f,.23f,T)*(1.f-FMath::SmoothStep(.5f,1.f,T));
+				auto Point = [&](int32 K, int32 Row)
+				{
+					const double Angle = UE_TWO_PI*K/8.+Lobe;
+					const double Lat = (Row/4.-.5)*UE_PI;
+					return Center + FVector(FMath::Cos(Angle)*FMath::Cos(Lat),FMath::Sin(Angle)*FMath::Cos(Lat),FMath::Sin(Lat))*Puff;
+				};
+				for (int32 Row=0; Row<4; ++Row)
+				{
+					const auto Ink = FMath::Lerp(Row < 2 ? Type.CurrentColor : Hot,
+						Row < 2 ? Type.CoreColor : FLinearColor(.19f,.28f,.34f), Cool);
+					for (int32 K=0; K<8; ++K)
+					{
+						Corona.Quad(Point(K,Row),Point(K+1,Row),Point(K+1,Row+1),Point(K,Row+1),Tint(Ink,1.f,1.f-T*T));
+					}
+				}
+			}
 		}
 		if (const auto* Solar = Cast<UHALExplosiveBallDefinition>(&Type); Solar && T < .88f)
 		{
@@ -522,6 +577,34 @@ void AHALSpecialBallCue::Draw(float T)
 					Corona.Quad(Position(2,Spark-.035f), Position(1,Spark), Position(2,Spark+.018f), Position(3,Spark),
 						Tint(Type.CoronaColor, 1.8f, Fade));
 				}
+			}
+		}
+	}
+	else if (bMissile)
+	{
+		const bool bArrival = State.Kind == EHALBallCue::Arrival;
+		const float Ease = FMath::SmoothStep(0.f,1.f,T);
+		const float R = Radius * (bArrival ? FMath::Lerp(Type.CoronaSize,.68f,Ease) : .62f+.65f*Ease);
+		const float Fade = bArrival ? FMath::Min(T*12.f,1.f)*(1.f-.55f*Ease) : 1.f-Ease;
+		for (int32 I=0; I<6; ++I)
+		{
+			const float Angle = I*UE_TWO_PI/6.f + (bArrival ? .63f*Ease : .20f*Ease);
+			const FVector Out(FMath::Cos(Angle),FMath::Sin(Angle),0), Across(-Out.Y,Out.X,0);
+			const FVector Center = Out*R + FVector::UpVector*Radius*(bArrival ? (1.f-Ease)*.45f : (.2f+.2f*(I%2))*Ease);
+			const FVector Along = Out*Radius*(bArrival ? .44f : .28f*Fade), Side = Across*Radius*(bArrival ? .24f : .13f*Fade);
+			const FLinearColor Ink = I%2 ? Type.CurrentColor : Type.CoronaColor;
+			if (bArrival)
+			{
+				// Six paired vanes draw inwards like the pad ports engaging the new ball.
+				for (float S : {-1.f,1.f})
+				{
+					Corona.Quad(Center-Along, Center+Side*S, Center+Along*.52f+Side*S, Center-Along*.40f,Tint(Ink,1.4f,Fade));
+				}
+			}
+			else
+			{
+				// Engine cutout: cool flecks coast out, rise and fade with no radial blast.
+				Corona.Quad(Center-Along,Center-Side,Center+Along,Center+Side,Tint(FMath::Lerp(Ink,Type.CoreColor,Ease),1.f,Fade));
 			}
 		}
 	}

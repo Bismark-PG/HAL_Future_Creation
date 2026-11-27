@@ -8,6 +8,12 @@
 #include "HALSpecialBall.generated.h"
 
 class UMaterialInstanceDynamic;
+class ATestVehiclePawn;
+
+namespace HALSpecialBall
+{
+	bool IsLiveOpponent(const ATestVehiclePawn* Vehicle);
+}
 
 /** Ordinary Chaos, control and presentation settings are inherited and live in this same asset. */
 UCLASS(BlueprintType)
@@ -139,6 +145,8 @@ protected:
 	virtual void EndPlay(EEndPlayReason::Type Reason) override;
 	/** Return false if this is not an eligible hit and the shot should keep flying. */
 	virtual bool ApplyContact(AActor* Other, const FVector& Origin, const FVector& Normal, const FVector& Travel) PURE_VIRTUAL(AHALContactSpecialBall::ApplyContact, return false;);
+	virtual void UpdateFlightMovement() {}
+	void ApplyContactBlast(float Radius, const FVector& Origin, const FVector& Normal, const FVector& Travel);
 private:
 	friend class FHALExplosiveBallTest;
 	friend class FHALBlackHoleBallTest;

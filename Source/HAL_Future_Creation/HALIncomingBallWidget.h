@@ -20,6 +20,9 @@ struct FHALIncomingBallArrow
 	float ConfirmedSeconds = 0;
 	float ShownSeconds = 0;
 	bool bShown = false;
+	bool bMissileLock = false;
+	float MissileSize = 0.f;
+	float PulsePhase = 0.f;
 };
 
 namespace HALIncomingBall

@@ -40,6 +40,7 @@ private:
 	void StopCapture();
 	void PollCapture();
 	void UpdateClient(float DeltaTime);
+	void ApplyVisualFacing();
 	void BlendRelativeSample(const FTransform& HolderPose, bool bContinuingPossession, float DeltaTime);
 	void RestoreVisual();
 	void SetMode(EHALBallVisualMode Next);
@@ -61,4 +62,5 @@ private:
 	FTransform EntryStartRelative=FTransform::Identity;
 	float EntryAge=0;
 	bool bVisualOverride=false, bAuthoredAbsoluteLocation=false, bAuthoredAbsoluteRotation=false;
+	bool bHadVisualFacing = false;
 };

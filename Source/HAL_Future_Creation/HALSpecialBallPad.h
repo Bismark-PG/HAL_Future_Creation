@@ -10,7 +10,7 @@ class UStaticMesh;
 class UStaticMeshComponent;
 
 UENUM(BlueprintType)
-enum class EHALPadBall : uint8 { None UMETA(Hidden), Explosive, BlackHole, Meteor, TimedBomb };
+enum class EHALPadBall : uint8 { None UMETA(Hidden), Explosive, BlackHole, Meteor, TimedBomb, Homing };
 
 /** One supply clock and one shuffled pool for all pads in a match. */
 UCLASS(BlueprintType)
@@ -26,7 +26,7 @@ public:
 	/** Wait this long for an occupied site before skipping the turn. */
 	UPROPERTY(EditAnywhere, Category="Supply", meta=(ClampMin="0", ClampMax="10", Units="s")) float BlockedGrace = 2.f;
 	/** Each distinct enabled ball appears once per bag of successful drops. */
-	UPROPERTY(EditAnywhere, Category="Supply") TArray<EHALPadBall> BallPool = {EHALPadBall::Explosive, EHALPadBall::BlackHole, EHALPadBall::Meteor, EHALPadBall::TimedBomb};
+	UPROPERTY(EditAnywhere, Category="Supply") TArray<EHALPadBall> BallPool = {EHALPadBall::Explosive, EHALPadBall::BlackHole, EHALPadBall::Meteor, EHALPadBall::TimedBomb, EHALPadBall::Homing};
 	/** Distance between the bottom of the spawned sphere and the traced drive surface. */
 	UPROPERTY(EditAnywhere, Category="Placement", meta=(ClampMin="3", ClampMax="50", Units="cm")) float SpawnClearance = 8.f;
 	UPROPERTY(EditAnywhere, Category="Appearance") TObjectPtr<UStaticMesh> PadMesh;

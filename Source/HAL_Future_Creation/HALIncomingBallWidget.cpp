@@ -1,5 +1,7 @@
 #include "HALIncomingBallWidget.h"
 #include "BasicBallActor.h"
+#include "HALHomingBall.h"
+#include "TestVehiclePawn.h"
 #include "HALBallComicFXSettings.h"
 #include "HALMagnetBeamPresentationComponent.h"
 #include "VehicleHealthComponent.h"
@@ -80,24 +82,62 @@ void UHALIncomingBallWidget::NativeTick(const FGeometry& MyGeometry, float InDel
 		const USphereComponent* Root = Ball->GetPhysicsRoot();
 		const bool bOwnShot = State.LastLauncherPawn.Get() == Pawn || (OwnPlayerId != INDEX_NONE && State.LastLauncherPlayerId == OwnPlayerId);
 		if (State.State != EBasicBallState::Launched || !Root || (bOwnShot && !bDebug)) { continue; }
+		const auto* Missile = Cast<AHALHomingBall>(Ball);
 		float Seconds = 0;
-		if (!HALIncomingBall::IsIncoming(Settings, Ball->GetActorLocation(), Root->GetComponentVelocity(), Pawn->GetActorLocation(), Seconds))
+		if (Missile)
+		{
+			if (Missile->GetLockedVehicle() != Pawn || !Missile->GetHomingType()) { continue; }
+			Seconds = FVector::Dist2D(Ball->GetActorLocation(), Pawn->GetActorLocation()) /
+				FMath::Max(double(Missile->GetHomingType()->InitialSpeed), Root->GetComponentVelocity().Size2D());
+		}
+		else if (!HALIncomingBall::IsIncoming(Settings, Ball->GetActorLocation(), Root->GetComponentVelocity(), Pawn->GetActorLocation(), Seconds))
 		{
 			if (!bDebug) { continue; }
 			Seconds = 0;
 		}
-		FVector2D Screen;
+		FVector2D Screen = FVector2D::ZeroVector;
 		const bool bProjected = PC->ProjectWorldLocationToScreen(Ball->GetActorLocation(), Screen, false);
 		const FVector2D Fraction(Screen.X / ViewX, Screen.Y / ViewY);
-		// On screen the ink trail already does the job; the arrow is only for what the camera cannot show.
-		if (!bDebug && bProjected && Fraction.X >= 0 && Fraction.X <= 1 && Fraction.Y >= 0 && Fraction.Y <= 1) { continue; }
+		if ((Missile || !bDebug) && bProjected && Fraction.X >= 0 && Fraction.X <= 1 && Fraction.Y >= 0 && Fraction.Y <= 1) { continue; }
 		FVector2D OwnScreen;
-		if (!bProjected || !PC->ProjectWorldLocationToScreen(Pawn->GetActorLocation(), OwnScreen, false)) { continue; }
+		if (!PC->ProjectWorldLocationToScreen(Pawn->GetActorLocation(), OwnScreen, false)) { continue; }
+		FVector2D EdgeDirection = Fraction - FVector2D(.5, .5);
+		FVector2D Bearing = (Screen - OwnScreen).GetSafeNormal();
+		if (!bProjected)
+		{
+			if (!Missile) { continue; }
+			FVector Eye;
+			FRotator Rotation;
+			PC->GetPlayerViewPoint(Eye, Rotation);
+			const FVector InView = Rotation.UnrotateVector(Ball->GetActorLocation() - Eye);
+			Bearing = FVector2D(InView.Y, -InView.Z).GetSafeNormal();
+			if (Bearing.IsNearlyZero()) { Bearing = FVector2D(0., 1.); }
+			EdgeDirection = FVector2D(Bearing.X / ViewX, Bearing.Y / ViewY);
+		}
 		FHALIncomingBallArrow* Arrow = Arrows.FindByPredicate([Ball](const FHALIncomingBallArrow& Item) { return Item.Ball.Get() == Ball; });
 		if (!Arrow) { Arrow = &Arrows.AddDefaulted_GetRef(); Arrow->Ball = Ball; }
-		Arrow->Direction = (Screen - OwnScreen).GetSafeNormal();
-		Arrow->Position = HALIncomingBall::EdgePoint(Fraction - FVector2D(.5, .5), Settings.IncomingEdgeInsetFraction);
+		Arrow->Direction = Bearing;
+		Arrow->Position = HALIncomingBall::EdgePoint(EdgeDirection, Settings.IncomingEdgeInsetFraction);
 		Arrow->SecondsToArrival = Seconds;
+		if (Missile)
+		{
+			const auto& Type = *Missile->GetHomingType();
+			Arrow->bMissileLock = true;
+			Arrow->bShown = true;
+			Arrow->Color = Type.CoronaColor;
+			Arrow->MissileSize = Type.WarningScreenFraction;
+			// Follow the same bearing around the bottom-centre energy meter; taper back to the normal frame at its sides.
+			const double CentreWeight = 1. - FMath::SmoothStep(.11, .22, FMath::Abs(Arrow->Position.X - .5));
+			const double Bottom = 1. - CentreWeight * (Type.WarningBottomInset + Type.WarningScreenFraction * .65);
+			if (Arrow->Position.Y > Bottom)
+			{
+				const FVector2D Centre(.5, .5);
+				Arrow->Position = Centre + (Arrow->Position - Centre) * ((Bottom - .5) / (Arrow->Position.Y - .5));
+			}
+			const float Urgency = 1.f - FMath::Clamp(Seconds / Type.WarningApproachSeconds, 0.f, 1.f);
+			Arrow->PulsePhase = FMath::Frac(Arrow->PulsePhase + InDeltaTime * (1.4f + 3.f * Urgency));
+			continue;
+		}
 		const auto* Beam = Ball->FindComponentByClass<UHALMagnetBeamPresentationComponent>();
 		Arrow->Color = Beam ? Beam->ResolveIdentityColor(State.LastLauncherPawn, State.LastLauncherPlayerId) : FLinearColor::White;
 	}
@@ -109,11 +149,14 @@ void UHALIncomingBallWidget::NativeTick(const FGeometry& MyGeometry, float InDel
 		if (Arrow.bShown) { Arrow.ShownSeconds += InDeltaTime; }
 		// Hysteresis: confirm before showing, then stay for a minimum time, so a grazing ball never flickers.
 		if (!Arrow.bShown && bHolds && Arrow.ConfirmedSeconds >= Settings.IncomingConfirmSeconds) { Arrow.bShown = true; Arrow.ShownSeconds = 0; }
-		if (!bHolds && (!Arrow.bShown || Arrow.ShownSeconds >= Settings.IncomingMinimumShowSeconds || !Arrow.Ball.IsValid())) { Arrows.RemoveAt(Index); }
+		if (!bHolds && (Arrow.bMissileLock || !Arrow.bShown || Arrow.ShownSeconds >= Settings.IncomingMinimumShowSeconds || !Arrow.Ball.IsValid())) { Arrows.RemoveAt(Index); }
 	}
 	// Soonest first; only the most urgent few are drawn.
 	Arrows.Sort([](const FHALIncomingBallArrow& A, const FHALIncomingBallArrow& B)
-	{ return (A.SecondsToArrival < 0 ? MAX_flt : A.SecondsToArrival) < (B.SecondsToArrival < 0 ? MAX_flt : B.SecondsToArrival); });
+	{
+		if (A.bMissileLock != B.bMissileLock) { return A.bMissileLock; }
+		return (A.SecondsToArrival < 0 ? MAX_flt : A.SecondsToArrival) < (B.SecondsToArrival < 0 ? MAX_flt : B.SecondsToArrival);
+	});
 }
 
 int32 UHALIncomingBallWidget::NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect,
@@ -142,7 +185,35 @@ int32 UHALIncomingBallWidget::NativePaint(const FPaintArgs& Args, const FGeometr
 	for (const FHALIncomingBallArrow& Arrow : Arrows)
 	{
 		if (!Arrow.bShown) { continue; }
-		if (++Drawn > Settings.IncomingMaximumArrows) { break; }
+		if (!Arrow.bMissileLock && ++Drawn > Settings.IncomingMaximumArrows) { break; }
+		if (Arrow.bMissileLock)
+		{
+			const float Pulse = .5f + .5f * FMath::Cos(UE_TWO_PI * Arrow.PulsePhase);
+			const float Icon = Size.Y * Arrow.MissileSize * (.92f + .13f * Pulse);
+			const FVector2f Centre(Arrow.Position.X * Size.X, Arrow.Position.Y * Size.Y);
+			const FVector2f Forward(Arrow.Direction), Across(-Forward.Y, Forward.X);
+			TArray<FSlateVertex> Verts;
+			TArray<SlateIndex> Indices;
+			auto Triangle = [&](FVector2f A, FVector2f B, FVector2f C, FLinearColor Tint)
+			{
+				for (FVector2f P : {A, B, C})
+				{
+					Indices.Add(Verts.Num());
+					Verts.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(AllottedGeometry.GetAccumulatedRenderTransform(),
+						Centre + Icon * (Forward * P.X + Across * P.Y), FVector2f(.5f), Tint.ToFColor(true)));
+				}
+			};
+			// Dark badge, twin fins, porcelain nose, and a pulsing two-tone nozzle.
+			for (float S : {-1.f, 1.f})
+			{
+				Triangle({.64f,0.f},{-.10f,.50f*S},{-.64f,0.f},FLinearColor(.023f,.032f,.060f));
+				Triangle({.49f,0.f},{-.11f,.17f*S},{-.34f,0.f},FLinearColor(.96f,.96f,.85f));
+				Triangle({-.02f,.11f*S},{-.35f,.31f*S},{-.25f,.07f*S},Arrow.Color);
+			}
+			Triangle({-.25f,.08f},{-.25f,-.08f},{-.40f-.16f*Pulse,0.f},Arrow.Color*(.7f+.5f*Pulse));
+			FSlateDrawElement::MakeCustomVerts(OutDrawElements, Base+3, Resource, Verts, Indices, nullptr, 0, 0);
+			continue;
+		}
 		const float Pop = Settings.IncomingPopSeconds > 0 ? FMath::Clamp(Arrow.ShownSeconds / Settings.IncomingPopSeconds, 0.f, 1.f) : 1.f;
 		const float Scale = Length * (Pop < 1 ? FMath::Lerp(PopStartScale, PopPeakScale, Pop) : 1.f);
 		const float Wobble = FMath::DegreesToRadians(float(Pose - 1) * Settings.IncomingWobbleDegrees);

@@ -6,6 +6,10 @@
 #include "../HALBlackHoleBall.h"
 #include "../HALMeteorBall.h"
 #include "../HALTimedBombBall.h"
+#include "../HALHomingBall.h"
+#include "../HALBallPresentationComponent.h"
+#include "../HALSmokeScreen.h"
+#include "../HALSmokeScreenAbility.h"
 #include "../BallControlComponent.h"
 #include "../HALSkillTestDummy.h"
 #include "../HALHealthAttributeSet.h"
@@ -405,6 +409,132 @@ AHALSkillTestDummy* AddMeteorTestOpponent(UWorld& World, const FVector& At)
 	Dummy->PreInitializeComponents(); Dummy->InitializeComponents(); Dummy->PostInitializeComponents(); Dummy->DispatchBeginPlay();
 	return Dummy;
 }
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALHomingHeldFacingTest, "HAL.FutureCreation.SpecialBall.Homing.HeldFacing",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALHomingHeldFacingTest::RunTest(const FString&)
+{
+	FBombWorld Fixture;
+	auto* First = Fixture.Target();
+	auto* Next = Fixture.Target(FVector(0,800,100));
+	auto* Ball = Fixture.World->SpawnActor<AHALHomingBall>(FVector(450,0,120), FRotator(0,80,0));
+	Ball->PreInitializeComponents();
+	Ball->DispatchBeginPlay();
+	auto* Mesh = Ball->GetVisualMesh();
+	auto* Presentation = Ball->FindComponentByClass<UHALBallPresentationComponent>();
+	auto Update = [&] { Presentation->TickComponent(.02f,LEVELTICK_All,nullptr); };
+	const FQuat RestRotation = Mesh->GetRelativeRotation().Quaternion();
+	if (!TestTrue(TEXT("First driver picks up the pod"),Ball->BeginControl(First))) { return false; }
+	const FTransform Collider = Ball->GetPhysicsRoot()->GetComponentTransform();
+	const FVector Mount = Mesh->GetComponentLocation();
+	for (double Yaw : {115.,-172.,-35.})
+	{
+		First->SetActorRotation(FRotator(0,Yaw,0),ETeleportType::TeleportPhysics);
+		Update();
+		TestTrue(TEXT("The pod nose turns with the stationary driver"),Mesh->GetForwardVector().Equals(First->GetActorForwardVector(),.001));
+	}
+	TestTrue(TEXT("Orienting the nose preserves the mount and collider"),Mesh->GetComponentLocation().Equals(Mount,.01)
+		&& Ball->GetPhysicsRoot()->GetComponentTransform().Equals(Collider,.001));
+	if (!TestTrue(TEXT("Pod drops normally"),Ball->ReleaseFromControl(First,.3f))) { return false; }
+	Update();
+	TestTrue(TEXT("Dropped pod returns to the authored rotation"),Mesh->GetRelativeRotation().Quaternion().Equals(RestRotation,.001));
+	Next->SetActorRotation(FRotator(0,64,0),ETeleportType::TeleportPhysics);
+	if (!TestTrue(TEXT("Another driver picks up the pod"),Ball->BeginControl(Next))) { return false; }
+	Update();
+	const FVector LaunchDirection = Next->GetActorForwardVector();
+	TestTrue(TEXT("A new holder immediately supplies its own heading"),Mesh->GetForwardVector().Equals(LaunchDirection,.001));
+	if (!TestTrue(TEXT("Pod fires normally"),Ball->LaunchFromControl(Next,Next,LaunchDirection*2000.))) { return false; }
+	Next->SetActorRotation(FRotator(0,-70,0),ETeleportType::TeleportPhysics);
+	Update();
+	TestTrue(TEXT("After launch the nose follows the shot independently of the former driver"),Mesh->GetForwardVector().Equals(LaunchDirection,.001));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALHomingBallTest, "HAL.FutureCreation.SpecialBall.Homing.FlightAndLock",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FHALHomingBallTest::RunTest(const FString&)
+{
+	FBombWorld F;
+	const auto* Type = GetDefault<UHALMatchBallSettings>()->HomingBallType.LoadSynchronous();
+	FString Error;
+	if (!TestTrue(TEXT("Saved missile, hull, exhaust and impact config load"), Type && Type->Validate(Error))) { AddError(Error); return false; }
+	auto* Shooter = F.Target(FVector(0,0,120));
+	const FVector Start(250,0,120);
+	auto Spawn = [&]()
+	{
+		auto* Ball = F.World->SpawnActor<AHALHomingBall>(Start, FRotator::ZeroRotator);
+		Ball->PreInitializeComponents(); Ball->DispatchBeginPlay();
+		return Ball;
+	};
+	auto Fire = [&](AHALHomingBall* Ball)
+	{
+		return Ball->BeginControl(Shooter) && Ball->LaunchFromControl(Shooter,Shooter,FVector(3000,490,100));
+	};
+	auto Advance = [&](AHALHomingBall* Ball, float Dt)
+	{
+		F.World->TimeSeconds += Dt;
+		Ball->UpdateFlightMovement();
+	};
+	auto* Lonely = Spawn();
+	F.World->TimeSeconds += Type->FreeLifeSeconds*.60f;
+	const float Remaining = Lonely->RemainingFreeSeconds();
+	if (!TestTrue(TEXT("Without an opponent the shot always releases"), Fire(Lonely))) { return false; }
+	TestTrue(TEXT("Initial motion follows car nose and has its own speed"), Lonely->GetPhysicsRoot()->GetPhysicsLinearVelocity().Equals(FVector::ForwardVector*Type->InitialSpeed,1.));
+	auto* Near = AddMeteorTestOpponent(*F.World,FVector(-530,0,120));
+	auto* Far = AddMeteorTestOpponent(*F.World,FVector(1100,0,120));
+	if (!Near || !Far) { AddError(TEXT("Missing production skill dummy")); return false; }
+	Advance(Lonely,Type->AccelerationSeconds*.5f);
+	TestNull(TEXT("A target appearing in flight is never acquired"), Lonely->GetLockedVehicle());
+	TestEqual(TEXT("Mid-flight motor speed"), Lonely->GetPhysicsRoot()->GetPhysicsLinearVelocity().Size(), double(FMath::Lerp(Type->InitialSpeed,Type->CruiseSpeed,.5f)),1.);
+	TestEqual(TEXT("Old free clock stays paused"), Lonely->RemainingFreeSeconds(),Remaining,.01f);
+	const float HP = Near->FindComponentByClass<UVehicleHealthComponent>()->GetCurrentHP();
+	Advance(Lonely,Type->FlightSeconds);
+	TestTrue(TEXT("Flight ends harmlessly on time"), Lonely->IsActorBeingDestroyed() && Near->FindComponentByClass<UVehicleHealthComponent>()->GetCurrentHP()==HP);
+
+	auto* Pursuit = Spawn();
+	if (!TestTrue(TEXT("Formal shot locks closest car even behind shooter"), Fire(Pursuit) && Pursuit->GetLockedVehicle()==Near)) { return false; }
+	Advance(Pursuit,.1f);
+	TestTrue(TEXT("Low speed turns towards rear target without snapping"), FMath::Abs(Pursuit->Heading.Rotation().Yaw)>8. && FMath::Abs(Pursuit->Heading.Rotation().Yaw)<20.);
+	Near->SetActorLocation(Start+Pursuit->Heading*500.,false,nullptr,ETeleportType::TeleportPhysics);
+	Advance(Pursuit,Type->AccelerationSeconds);
+	const FVector BeforePass = Pursuit->Heading;
+	const FVector Across(-BeforePass.Y,BeforePass.X,0);
+	Near->SetActorLocation(Start+Across*330.+BeforePass*75.,false,nullptr,ETeleportType::TeleportPhysics);
+	Advance(Pursuit,.025f);
+	TestTrue(TEXT("Cruise turn is limited and aim remains locked ahead"), Pursuit->GetLockedVehicle()==Near
+		&& FMath::Abs(FMath::FindDeltaAngleDegrees(BeforePass.Rotation().Yaw,Pursuit->Heading.Rotation().Yaw))<=Type->CruiseTurnRate*.0251f);
+	Near->SetActorLocation(Start+Across*390.-BeforePass*170.,false,nullptr,ETeleportType::TeleportPhysics);
+	Advance(Pursuit,.025f);
+	const FVector Straight = Pursuit->Heading;
+	Advance(Pursuit,.20f);
+	TestTrue(TEXT("Opening high-speed pass locks out further steering and reacquisition"), !Pursuit->GetLockedVehicle() && Pursuit->Heading.Equals(Straight,.0001));
+	auto* Body = CastChecked<UPrimitiveComponent>(Far->GetRootComponent());
+	const float Before = Far->FindComponentByClass<UVehicleHealthComponent>()->GetCurrentHP();
+	const FHitResult Hit(Far,Body,Far->GetActorLocation(),-FVector::ForwardVector);
+	Pursuit->ResolveLaunchedContact(Far,Body,FVector::ZeroVector,Hit);
+	Pursuit->ResolveLaunchedContact(Far,Body,FVector::ZeroVector,Hit);
+	TestEqual(TEXT("Unlocked shot can hit a bystander once"),Far->FindComponentByClass<UVehicleHealthComponent>()->GetCurrentHP(),Before-Type->Gameplay.Damage.VehicleHitDamage);
+	TestTrue(TEXT("Impact receiver got the DA's actual impulse tier"),Far->FindComponentByClass<UHALImpactReceiverComponent>()->GetLastImpact().SourceTier==Type->Gameplay.Impact.Tier);
+	int32 ImpactCount=0, ExpiryCount=0;
+	for (TActorIterator<AHALSpecialBallCue> It(F.World); It; ++It)
+	{
+		const auto& Cue = It->GetCueState();
+		if (Cue.Kind==EHALBallCue::Impact) { ++ImpactCount; TestEqual(TEXT("Hit visual uses damage radius"),Cue.Radius,Type->ExplosionRadius); }
+		if (Cue.Kind==EHALBallCue::Expiration) { ++ExpiryCount; }
+	}
+	TestTrue(TEXT("Expiry and hit play distinct terminal effects exactly once"),ImpactCount==1 && ExpiryCount==1);
+	auto* Third = Spawn();
+	TestTrue(TEXT("A new formal launch can select a new target"),Fire(Third) && Third->GetLockedVehicle()==Near);
+	auto* Smoke = F.World->SpawnActor<AHALSmokeScreen>();
+	Smoke->SetOwner(Far);
+	TestTrue(TEXT("Car08 smoke started over the target"),Smoke->Start(*GetDefault<UHALSmokeScreenConfig>(),HALSmoke::TargetPosition(*Near)-FVector(0,0,60)));
+	Advance(Third,.65f);
+	TestTrue(TEXT("Car08 concealment is active and the original lock persists"),HALSmoke::IsConcealed(Near) && Third->GetLockedVehicle()==Near);
+	Near->GetAbilitySystemComponent()->SetNumericAttributeBase(UHALHealthAttributeSet::GetCurrentHPAttribute(),0.f);
+	Advance(Third,.025f);
+	TestNull(TEXT("Eliminated target clears lock without choosing the other car"),Third->GetLockedVehicle());
+	return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALTimedBombRulesTest, "HAL.FutureCreation.SpecialBall.TimedBomb.ContactClockAndVictims",
