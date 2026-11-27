@@ -9,8 +9,8 @@
 |---|---|---|---|
 | S0 | 車對車漫畫火花 | 既有 Impact Burst 事件的 `Sparks` | `NS_VehicleImpactSparks`＋`M_FX_ComicSpark` |
 | P1 | 危險球彗星尾跡（2026-11-27 起預設，見 §3.00；三角形見 §3.0、脈衝環見 §3） | 球 `Launched` | `UHALBallComicFXComponent`＋`NS_BallInkTrail` |
-| P3 | 持球瞄準塗鴉箭頭 | 球 `Controlled`＋`Holder` | `UHALBallComicFXComponent`＋`MI_FX_BallAimArrow` |
-| H1 | 持球環（球上軌道環＋車頂雙環星芒，取代磁力束弧線；見 §4.1） | 球 `Controlled`＋`Holder` | `UHALBallComicFXComponent`＋`MI_FX_BallHoldRing_Ball／_Roof` |
+| P3 | 持球瞄準箭頭（2026-11-27 起為彗星火焰語彙，見 §4.2） | 球 `Controlled`＋`Holder` | `UHALBallComicFXComponent`＋`MI_FX_BallAimArrow` |
+| H1 | 持球環（球上軌道環＋車上指示器，取代磁力束弧線；見 §4.1，2026-11-27 起為彗星火焰語彙，見 §4.2） | 球 `Controlled`＋`Holder` | `UHALBallComicFXComponent`＋`MI_FX_BallHoldRing_Ball／_Roof` |
 | P4 | 眩暈漫畫星星 | 車輛 ASC 的 `State.Stun` 標籤 | `UHALVehicleDoodleStatusComponent`＋`MI_FX_DoodleStatus_Stun` |
 | B2 | 低 HP 汗滴 | `UVehicleHealthComponent::OnHealthChanged` | 同上＋`MI_FX_DoodleStatus_LowHealth` |
 | N1 | 畫面外來球預警 | 本地：`Launched` 球的位置／速度＋本地攝影機投影 | `UHALIncomingBallWidget`（本地 Slate 疊層） |
@@ -327,6 +327,19 @@ PIE 截圖 `Saved/ComicDoodle/PIE/R9`（例：`L2_19_slow_v300.png`、`L4_16_t25
 - 雙端／多人、其他車型與其他身份色、翻滾中的車、四人同屏的遮擋與效能、Cook。
 - 墨線在實機上偏細偏軟（約 2 px，經 TAA 後呈深褐而非純黑），與既有瞄準箭頭相同；是否加粗待用戶看過決定。
 - 球殼逐格脈動：測試圖的球材質槽 0 為空，看不到，未驗證。
+
+## 4.2 持球標示改為彗星火焰語彙（2026-11-27，現行；§4 與 §4.1 的位置、尺寸、進出場與觸發不變）
+
+> **改版原因**：發射後的拖影改為彗星火焰（§3.00）後，團隊要求持球的特效「跟球發射的特效看起來有因果關係」，改變原本的塗鴉風格、往球特效靠攏。團隊在三個方向（蓄能火焰殼／火焰軌道環／兩者都要）中選定**火焰軌道環**，範圍為球上的環、車上的指示器、地面瞄準箭頭三者。
+
+三者共用彗星的色帶：由最熱處往外是白熱（`FX_CoreGain` 1.15）、淡色帶（`FX_MidLift` 0.35）、持球者身份色（`FX_FillGain` 1.05）。§4／§4.1 所述的**黑墨線、單側重墨、逐格抖動都已移除**，動態改為連續時間。只換材質；`UHALBallComicFXComponent` 的擺放、彈出與縮小收尾、`DefaultGame.ini` 的尺寸、C++ 寫入的參數（`FX_Color`、`FX_BallRadius`）都沒有改。
+
+- **球上的軌道環**（`MI_FX_BallHoldRing_Ball`，`FX_Kind=0`）：兩道傾斜橢圓環的構圖與「遠半邊被球遮住」不變。每道環是一顆繞球旋轉的小彗星：亮頭鼓成一顆珠（`FX_HeadSwell` 0.9），尾巴沿軌道變細（末端剩 `FX_TailThin` 0.5 的粗細）、變冷、變淡（`FX_TailAlpha` 0.75），兩顆反向旋轉（`FX_OrbitSpeed` 1.1 圈／秒）。因果的讀法是「發射後那團火焰，持球時被拴在球上繞圈」。
+- **地面瞄準箭頭**（`MI_FX_BallAimArrow`）：箭頭輪廓不變。火舌由箭尾往箭尖流動（`FX_ScrollSpeed` 3），只撕裂箭尾一端的邊緣（`FX_FlameAmount` 0.22），箭頭本身保持銳利、方向不動；白熱核心有一道往箭尖推的脈動（`FX_PulseSpeed` 6）。
+- **車上指示器**（`MI_FX_BallHoldRing_Roof`，`FX_Kind=1`）：三角形箭頭輪廓不變，火焰由尖端往後燒，尖端平靜；兩姿態跳動改為平滑浮動（`FX_MarkerBobSpeed` 7）。
+- **辨識度的取捨**：第一版環線偏細（`FX_OrbitLine` 0.055）、箭頭與指示器白色佔比過高，持球者是誰不夠明顯；已把環加粗到 0.075、白熱與淡色帶的起點內縮（箭頭 `FX_MidDepth`／`FX_CoreDepth` 0.11／0.22，指示器 0.09／0.17，環 `FX_MidHeat`／`FX_CoreHeat` 0.66／0.86）。亮度沿用彗星收斂後的數值，不比發射的特效搶眼。
+- **資產**：`CreateComicDoodleAssets.py` 的 `ARROW`（v2）與 `HOLD`（v3）區段；墨線相關參數（`FX_InkWidth`、`FX_ShadowOffset`、`FX_ShadowAngle`、`FX_InkColor`、`FX_Boil*`、`FX_Fps`、`FX_ColorLift`）已移除。舊的塗鴉版 HLSL 可由 `4eec0bd` 之前的版本取回。
+- **已驗證**：兩個母材質 0 編譯訊息（229／317 PS 指令）；Editor 內 `ComicDoodle` 3/3（不載入材質資產）；單機 PIE 靜態截圖（`Saved/Screenshots/WindowsEditor/hold_flame_*.png`，不入版控）三者都出現且為持球者色。**未驗證**：動態（旋轉、流動、脈動）與持球到發射瞬間的銜接只能由人眼判斷，未看；正式深色場地、雙端／多人、其他車型與身份色、Cook 未看；本項之後沒有重跑全量自動化。
 
 ## 5. P4 眩暈星星／B2 低 HP 汗滴
 

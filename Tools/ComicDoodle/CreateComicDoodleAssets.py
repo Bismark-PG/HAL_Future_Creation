@@ -1,4 +1,4 @@
-"""Author the comic doodle materials (held aim arrow, launched-ball pulse ring trail, vehicle status marks) through official Unreal Editor APIs.
+"""Author the ball and vehicle readability materials (held aim arrow and hold rings, launched-ball trails, vehicle status marks) through official Unreal Editor APIs.
 
 Creates or rebuilds, in this order (every asset below is fully owned by this script):
   1. /Game/Assets/FX/Materials/M_FX_BallAimArrow    parent
@@ -50,7 +50,7 @@ BLACK = unreal.LinearColor(0.0, 0.0, 0.0, 1.0)
 
 # Parameter name, HLSL pin, default, slider minimum, slider maximum, parameter group.
 ARROW = {
-    'marker': 'HAL Ball Aim Arrow v1 (boiling doodle arrow)',
+    'marker': 'HAL Ball Aim Arrow v2 (comet flame arrow)',
     'material': '/Game/Assets/FX/Materials/M_FX_BallAimArrow',
     'instance': '/Game/Assets/FX/Materials/MI_FX_BallAimArrow',
     'hlsl': 'Tools/ComicDoodle/BallAimArrow.hlsl',
@@ -64,17 +64,22 @@ ARROW = {
         ('FX_HeadBase', 'HeadBase', -0.05, -0.8, 0.6, '02 Shape'),         # where the head starts, -1 tail .. +1 tip
         ('FX_HeadWidth', 'HeadWidth', 0.8, 0.1, 1.0, '02 Shape'),          # half width of the head base
         ('FX_ShaftWidth', 'ShaftWidth', 0.34, 0.02, 1.0, '02 Shape'),      # half width of the shaft
-        ('FX_InkWidth', 'InkWidth', 0.12, 0.0, 0.4, '03 Ink'),
-        ('FX_ShadowOffset', 'ShadowOffset', 0.05, 0.0, 0.3, '03 Ink'),
-        ('FX_BoilFps', 'BoilFps', 8.0, 0.0, 24.0, '04 Boil'),              # outline redraws per second
-        ('FX_BoilAmount', 'BoilAmount', 0.02, 0.0, 0.1, '04 Boil'),        # wobble size; the direction never moves
-        ('FX_ColorLift', 'ColorLift', 0.0, 0.0, 1.0, '05 Color'),
-        ('FX_FillGain', 'FillGain', 1.05, 0.0, 8.0, '05 Color'),
-        ('FX_Opacity', 'Opacity', 0.92, 0.0, 1.0, '05 Color'),
+        ('FX_FlameDensity', 'FlameDensity', 5.0, 0.5, 16.0, '03 Flame'),   # flame tongues across the arrow
+        ('FX_FlameAmount', 'FlameAmount', 0.22, 0.0, 0.6, '03 Flame'),     # how torn the tail end's edge is
+        ('FX_ScrollSpeed', 'ScrollSpeed', 3.0, 0.0, 20.0, '03 Flame'),     # tongues flowing toward the tip
+        ('FX_PulseSpeed', 'PulseSpeed', 6.0, 0.0, 20.0, '03 Flame'),       # heat pulse running to the tip
+        ('FX_PulseDepth', 'PulseDepth', 0.08, 0.0, 0.3, '03 Flame'),       # how much the white heart shrinks between pulses
+        ('FX_MidDepth', 'MidDepth', 0.11, 0.0, 0.5, '04 Bands'),           # distance in from the edge where the pale band starts
+        ('FX_CoreDepth', 'CoreDepth', 0.22, 0.0, 0.5, '04 Bands'),         # ... and where the white heart starts
+        ('FX_MidLift', 'MidLift', 0.35, 0.0, 1.0, '04 Bands'),             # pale band toward white
+        ('FX_AuraWidth', 'AuraWidth', 0.08, 0.01, 0.4, '05 Aura'),
+        ('FX_AuraStrength', 'AuraStrength', 0.2, 0.0, 1.0, '05 Aura'),
+        ('FX_FillGain', 'FillGain', 1.05, 0.0, 8.0, '06 Color'),
+        ('FX_CoreGain', 'CoreGain', 1.15, 0.0, 8.0, '06 Color'),
+        ('FX_Opacity', 'Opacity', 0.88, 0.0, 1.0, '06 Color'),
     ),
     'vectors': (
         ('FX_Color', 'Color', unreal.LinearColor(0.98, 0.62, 0.12, 1.0), '00 Driven By Runtime'),
-        ('FX_InkColor', 'InkColor', BLACK, '05 Color'),
     ),
     'driven': ('FX_Color',),
 }
@@ -275,7 +280,7 @@ STATUS = {
 # Held-ball ownership marks: orbit rings on the ball and the marker floating over the holder. They replace the
 # magnet beam arc while UHALBallComicFXSettings.bHoldReplacesBeam is set.
 HOLD = {
-    'marker': 'HAL Ball Hold Ring v2 (ball orbit rings / holder marker)',
+    'marker': 'HAL Ball Hold Ring v3 (orbiting comets / flame holder marker)',
     'material': '/Game/Assets/FX/Materials/M_FX_BallHoldRing',
     'instance': '/Game/Assets/FX/Materials/MI_FX_BallHoldRing_Ball',
     'variants': (('/Game/Assets/FX/Materials/MI_FX_BallHoldRing_Roof', {'FX_Kind': 1.0}),),
@@ -288,27 +293,36 @@ HOLD = {
         ('FX_Kind', 'Kind', 0.0, 0.0, 1.0, '01 Kind'),                    # 0 ball orbit rings, 1 holder marker
         ('FX_FlipV', 'FlipV', 0.0, 0.0, 1.0, '01 Kind'),                  # 1 when the far side of the ball is at V = 1
         ('FX_BallRadius', 'BallRadius', 0.5, 0.0, 1.0, '00 Driven By Runtime'),  # drawn ball radius, sprite half extents
-        ('FX_Fps', 'Fps', 8.0, 1.0, 24.0, '02 Motion'),                   # drawings per second
-        ('FX_BoilAmount', 'BoilAmount', 0.012, 0.0, 0.1, '02 Motion'),    # line wobble
-        ('FX_OrbitWidth', 'OrbitWidth', 0.88, 0.1, 0.95, '03 Ball Rings'),  # ring half length, sprite half extents
-        ('FX_OrbitHeight', 'OrbitHeight', 0.27, 0.02, 0.9, '03 Ball Rings'),  # ring half height: the squash that reads as an orbit
-        ('FX_OrbitLine', 'OrbitLine', 0.07, 0.005, 0.2, '03 Ball Rings'),  # half thickness including ink
-        ('FX_OrbitTilt', 'OrbitTilt', 18.0, 0.0, 60.0, '03 Ball Rings'),  # degrees; the second ring leans the other way
-        ('FX_OrbitWobble', 'OrbitWobble', 3.0, 0.0, 15.0, '03 Ball Rings'),  # degrees of rocking between drawings
-        ('FX_MarkerArrowTop', 'MarkerArrowTop', -0.31, -0.9, 0.8, '04 Holder Marker'),  # V of the arrow head's base; centred by default
-        ('FX_MarkerArrowLength', 'MarkerArrowLength', 0.62, 0.05, 1.5, '04 Holder Marker'),  # base to tip
-        ('FX_MarkerArrowWidth', 'MarkerArrowWidth', 0.4, 0.05, 0.9, '04 Holder Marker'),  # half width of the base
-        ('FX_MarkerBob', 'MarkerBob', 0.07, 0.0, 0.3, '04 Holder Marker'),  # shift along the arrow on every other drawing
-        ('FX_InkWidth', 'InkWidth', 0.036, 0.0, 0.2, '05 Ink'),
-        ('FX_ShadowOffset', 'ShadowOffset', 0.02, 0.0, 0.2, '05 Ink'),
-        ('FX_ShadowAngle', 'ShadowAngle', 45.0, -180.0, 180.0, '05 Ink'),  # side of the heavy ink, degrees in UV space
-        ('FX_ColorLift', 'ColorLift', 0.0, 0.0, 1.0, '06 Color'),
+        ('FX_OrbitWidth', 'OrbitWidth', 0.88, 0.1, 0.95, '02 Ball Rings'),  # ring half length, sprite half extents
+        ('FX_OrbitHeight', 'OrbitHeight', 0.27, 0.02, 0.9, '02 Ball Rings'),  # ring half height: the squash that reads as an orbit
+        ('FX_OrbitLine', 'OrbitLine', 0.075, 0.005, 0.2, '02 Ball Rings'),  # half thickness at the comet's head
+        ('FX_OrbitTilt', 'OrbitTilt', 18.0, 0.0, 60.0, '02 Ball Rings'),  # degrees; the second ring leans the other way
+        ('FX_OrbitWobble', 'OrbitWobble', 3.0, 0.0, 15.0, '02 Ball Rings'),  # degrees of slow rocking
+        ('FX_OrbitSpeed', 'OrbitSpeed', 1.1, 0.0, 6.0, '02 Ball Rings'),  # turns per second of each comet
+        ('FX_HeadSwell', 'HeadSwell', 0.9, 0.0, 3.0, '02 Ball Rings'),    # extra thickness of the bead at the head
+        ('FX_TailThin', 'TailThin', 0.5, 0.0, 1.0, '02 Ball Rings'),      # thickness left at the end of the tail
+        ('FX_TailAlpha', 'TailAlpha', 0.75, 0.0, 1.0, '02 Ball Rings'),   # opacity left at the end of the tail
+        ('FX_CoreHeat', 'CoreHeat', 0.86, 0.0, 1.0, '02 Ball Rings'),      # how much of the head is white-hot (lower = more)
+        ('FX_MidHeat', 'MidHeat', 0.66, 0.0, 1.0, '02 Ball Rings'),       # where the pale band gives way to the colour
+        ('FX_MarkerArrowTop', 'MarkerArrowTop', -0.31, -0.9, 0.8, '03 Holder Marker'),  # V of the arrow head's base; centred by default
+        ('FX_MarkerArrowLength', 'MarkerArrowLength', 0.62, 0.05, 1.5, '03 Holder Marker'),  # base to tip
+        ('FX_MarkerArrowWidth', 'MarkerArrowWidth', 0.4, 0.05, 0.9, '03 Holder Marker'),  # half width of the base
+        ('FX_MarkerBob', 'MarkerBob', 0.07, 0.0, 0.3, '03 Holder Marker'),  # travel of the bob along the arrow
+        ('FX_MarkerBobSpeed', 'MarkerBobSpeed', 7.0, 0.0, 30.0, '03 Holder Marker'),
+        ('FX_MarkerMidDepth', 'MarkerMidDepth', 0.09, 0.0, 0.4, '03 Holder Marker'),   # distance in from the edge of the pale band
+        ('FX_MarkerCoreDepth', 'MarkerCoreDepth', 0.17, 0.0, 0.4, '03 Holder Marker'),  # ... and of the white heart
+        ('FX_FlameDensity', 'FlameDensity', 6.0, 0.5, 16.0, '04 Flame'),  # marker: flame tongues across the arrow
+        ('FX_FlameAmount', 'FlameAmount', 0.16, 0.0, 0.6, '04 Flame'),    # marker: torn base edge; rings: tail flicker
+        ('FX_ScrollSpeed', 'ScrollSpeed', 4.0, 0.0, 20.0, '04 Flame'),    # marker: tongues streaming back from the tip
+        ('FX_AuraWidth', 'AuraWidth', 0.06, 0.01, 0.4, '05 Aura'),
+        ('FX_AuraStrength', 'AuraStrength', 0.22, 0.0, 1.0, '05 Aura'),
+        ('FX_MidLift', 'MidLift', 0.35, 0.0, 1.0, '06 Color'),
         ('FX_FillGain', 'FillGain', 1.05, 0.0, 8.0, '06 Color'),
-        ('FX_Opacity', 'Opacity', 1.0, 0.0, 1.0, '06 Color'),
+        ('FX_CoreGain', 'CoreGain', 1.15, 0.0, 8.0, '06 Color'),
+        ('FX_Opacity', 'Opacity', 0.9, 0.0, 1.0, '06 Color'),
     ),
     'vectors': (
         ('FX_Color', 'Color', unreal.LinearColor(0.98, 0.62, 0.12, 1.0), '00 Driven By Runtime'),
-        ('FX_InkColor', 'InkColor', BLACK, '06 Color'),
     ),
     'driven': ('FX_Color', 'FX_BallRadius'),
 }

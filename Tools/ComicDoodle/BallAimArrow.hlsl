@@ -1,7 +1,8 @@
 // Held-ball aim arrow, drawn on a flat ground quad from its UV. No texture.
-// Look: a short fat hand-drawn arrow in the holder's colour with a black contour and a heavier ink side.
-// The outline "boils": it is redrawn a few times per second with a slightly different wobble, like a
-// looping pencil animation. Only the line wobbles - the arrow's direction is the quad's own +X and never moves.
+// Look: a short fat arrow made of the same flame as the launched ball's comet (BallTrailComet.hlsl): holder colour at
+// the edge, a pale band, a white-hot heart, flame tongues streaming from the tail toward the tip. It is the shot that
+// has not been fired yet: the comet will leave along it.
+// Only the flame moves - the arrow's direction is the quad's own +X and never moves; the head stays crisp so it points.
 // Inputs are Custom node pins supplied by Tools/ComicDoodle/CreateComicDoodleAssets.py.
 //   UV      quad coordinates, 0..1; U runs along the arrow when FlipAxes is 0, V when it is 1
 //   Time    seconds
@@ -9,37 +10,43 @@
 
 float2 uv = FlipAxes > 0.5 ? UV.yx : UV;
 // x: -1 tail .. +1 tip. y: across.
-float2 p0 = float2(uv.x * 2.0 - 1.0, uv.y * 2.0 - 1.0);
-if (Reverse > 0.5) { p0.x = -p0.x; }
-float pose = floor(Time * max(BoilFps, 0.0));
-float amp = max(BoilAmount, 0.0);
-// Three poses cycle; each one bends the outline along a different pair of waves.
-float phase = fmod(pose, 3.0) * 2.1;
-float2 wobble = float2(sin(p0.y * 7.0 + phase * 3.7) + sin(p0.x * 5.0 + phase), sin(p0.x * 9.0 + phase * 2.3) + sin(p0.y * 4.0 + phase * 1.7)) * 0.5 * amp;
-float aa = max(fwidth(p0.x) + fwidth(p0.y), 1e-4) * 0.75;
+float2 p = float2(uv.x * 2.0 - 1.0, uv.y * 2.0 - 1.0);
+if (Reverse > 0.5) { p.x = -p.x; }
+float aa = max(fwidth(p.x) + fwidth(p.y), 1e-4) * 0.75;
 float headBase = clamp(HeadBase, -0.8, 0.6);
 float shaftHalf = max(ShaftWidth, 0.02);
 float headHalf = max(HeadWidth, shaftHalf);
 
-float silhouette = -1.0;
-float body = -1.0;
-for (int pass = 0; pass < 2; ++pass)
-{
-	float2 p = p0 + wobble - float2(ShadowOffset, ShadowOffset) * pass;
-	// Head: a triangle from headBase to the tip at x = 0.86.
-	float headLength = 0.86 - headBase;
-	float head = min(headHalf * (0.86 - p.x) / headLength - abs(p.y), p.x - headBase);
-	// Shaft: a slab from the tail to just inside the head, narrowing slightly toward the tail.
-	float taper = lerp(0.8, 1.0, saturate((p.x + 0.86) / (headBase + 0.86)));
-	float shaft = min(shaftHalf * taper - abs(p.y), min(p.x + 0.86, headBase + 0.05 - p.x));
-	float field = max(head, shaft);
-	if (pass == 0) { body = field; }
-	silhouette = max(silhouette, field);
-}
+// Head: a triangle from headBase to the tip at x = 0.86.
+float headLength = 0.86 - headBase;
+float head = min(headHalf * (0.86 - p.x) / headLength - abs(p.y), p.x - headBase);
+// Shaft: a slab from the tail to just inside the head, narrowing slightly toward the tail.
+float taper = lerp(0.8, 1.0, saturate((p.x + 0.86) / (headBase + 0.86)));
+float shaft = min(shaftHalf * taper - abs(p.y), min(p.x + 0.86, headBase + 0.05 - p.x));
+float field = max(head, shaft);
 
-float cover = smoothstep(-aa, aa, silhouette);
-float fill = smoothstep(-aa, aa, body - max(InkWidth, 0.0));
-// Identity colour lifted toward white so dark colours stay readable on a dark floor.
-float3 paint = lerp(Color, float3(1.0, 1.0, 1.0), saturate(ColorLift)) * max(FillGain, 0.0);
-float3 rgb = lerp(InkColor, paint, fill);
-return float4(rgb, saturate(cover * saturate(Opacity)));
+// Flame tongues flowing toward the tip; strongest at the tail, gone at the head.
+float2 n = float2(p.y * FlameDensity, p.x * FlameDensity * 0.6 - Time * ScrollSpeed);
+float2 i0 = floor(n);
+float2 f0 = frac(n);
+f0 = f0 * f0 * (3.0 - 2.0 * f0);
+float a = frac(sin(dot(i0, float2(127.1, 311.7))) * 43758.5453);
+float b = frac(sin(dot(i0 + float2(1, 0), float2(127.1, 311.7))) * 43758.5453);
+float c = frac(sin(dot(i0 + float2(0, 1), float2(127.1, 311.7))) * 43758.5453);
+float e = frac(sin(dot(i0 + float2(1, 1), float2(127.1, 311.7))) * 43758.5453);
+float noise = lerp(lerp(a, b, f0.x), lerp(c, e, f0.x), f0.y);
+float tail = saturate((headBase - p.x) / (headBase + 0.86));          // 0 from the head on .. 1 at the tail end
+field += (noise - 0.5) * max(FlameAmount, 0.0) * tail;
+// A slow pulse of heat running from tail to tip: the shot gathering.
+float pulse = sin(p.x * 3.0 - Time * PulseSpeed) * 0.5 + 0.5;
+
+float body = smoothstep(-aa, aa, field);
+float midMask = smoothstep(MidDepth - aa, MidDepth + aa, field);
+float coreMask = smoothstep(CoreDepth - aa, CoreDepth + aa, field - (1.0 - pulse) * max(PulseDepth, 0.0));
+float3 paint = Color * max(FillGain, 0.0);
+float3 mid = lerp(Color, float3(1.0, 1.0, 1.0), saturate(MidLift)) * max(FillGain, 0.0);
+float3 hot = float3(1.0, 1.0, 1.0) * max(CoreGain, 0.0);
+float3 rgb = lerp(lerp(paint, mid, midMask), hot, coreMask);
+float aura = saturate(1.0 + field / max(AuraWidth, 0.01));
+aura = aura * aura * saturate(AuraStrength) * (1.0 - body);
+return float4(rgb, saturate((body + aura) * saturate(Opacity)));
