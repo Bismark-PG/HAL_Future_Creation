@@ -570,3 +570,23 @@ MinimumMouseMovement=2.0
 - `Content/UI` **100/100 份资产 SHA-256 保持**（包含用户新建占位 WBP、键盘图标与现有 Xbox 素材），清单为同目录 UIHashesBefore.json／UIHashesAfter.json；git diff --check 通过。
 - 本轮自动化是 C++ 状态与控件生命周期夹具，未把用户 WBP 改父类或挂到真实页面；真实 Slate 输入路由、UIOnly／GameOnly 下的键鼠／手柄实际操作、PIE／真人联机、Game Target、Cook 和打包未验收。团队下一步按上段接入，在两种输入模式下确认首次按键仍执行原操作、摇杆静止不闪换、返房／重建后状态正确、主客端各自独立。
 - 最终改动为四个生产 `.h/.cpp`、一个测试 `.cpp` 与本说明／Project_Status。未提交或推送；构建、两组测试及只读检查进程均已结束。
+
+<a id="playerstatus-top-strip-20261127"></a>
+## 2026-11-27：顶部玩家状态条底图
+
+两张底图均为1280×256透明PNG，沿用相同横条形状与渐变风格：
+
+- 普通玩家：`SourceArt/UI/HUD/T_PlayerStatus_Row_BG.png`，主色`#451F8FFF`，渐变至`#8660C7FF`。
+- 本机玩家：`SourceArt/UI/HUD/T_PlayerStatus_Row_Local_BG.png`，主色`#FF0088FF`，渐变至`#FF66B8FF`。
+
+纹理设置沿用UI、Uncompressed (RGBA8)、NoMipmaps、sRGB开启；Image Tint保持白色。不保留imagegen提示词文件。
+
+<a id="playerstatus-local-strip-20261127"></a>
+## 本机首行与底图切换（待接线）
+
+各端本机玩家放在`PlayerRow01`，四行均为320×64，不再放大。只需调整两个蓝图，无需修改C++：
+
+- `WBP_GF_MatchHUD → RefreshPlayers`：按`LocalNumber`将本机参与者置首，再用显示下标分配四行；编号仍显示玩家真实Number。
+- `WBP_GF_PlayerStatusRow → SetPlayerData`：新增`InIsLocalPlayer`，据此选择粉色或紫色纹理，调用`Image_0.SetBrushFromTexture`，`Match Size=false`。
+
+只读检查时，已保存版本仍按Number=1～4分配行，本机置首与切图尚未实施。本次仅交付素材与说明，图片尺寸、色值及透明轮廓已核对；未修改蓝图、未做编译或PIE／双端复测。下一步完成接线后确认各端首行、等大显示与血条刷新。
