@@ -19,6 +19,7 @@
 
 namespace
 {
+	constexpr double TornadoMaxUnconfirmedSeconds = .35;
 	TAutoConsoleVariable<int32> LogTornado(TEXT("hal.TornadoLog"), 0, TEXT("Car05 authority phases, wall stops, vehicle hits and ball disarms."));
 	bool IsTornadoValueInRange(float V, float Min, float Max) { return FMath::IsFinite(V) && V >= Min && V <= Max; }
 	FCollisionObjectQueryParams WorldObjects()
@@ -70,6 +71,17 @@ float FHALTornadoRules::PhaseProgress(double Age) const
 	case EHALTornadoPhase::Dissipating: return float((Age - GatherSeconds - ActiveSeconds) / DissipateSeconds);
 	default: return 1;
 	}
+}
+FVector FHALTornadoState::PresentationGroundAt(double ServerSeconds) const
+{
+	if (bStopped) { return Ground; }
+	const double ActiveStart = StartServerTime + Rules.GatherSeconds;
+	const double Duration = Rules.ActiveSeconds;
+	const double SampleTravel = FMath::Clamp(SampleServerTime - ActiveStart, 0., Duration);
+	// A delayed packet can already be ahead of the client's clock. Evaluate both on the same leg.
+	// Bound unconfirmed motion during an outage; gathering time never consumes this allowance.
+	const double Travel = FMath::Clamp(ServerSeconds - ActiveStart, 0., FMath::Min(Duration, SampleTravel + TornadoMaxUnconfirmedSeconds));
+	return Ground + Direction * (Rules.Speed * (Travel - SampleTravel));
 }
 bool FHALTornadoFX::IsValid() const
 {
@@ -231,9 +243,19 @@ void AHALTornado::Simulate(float DeltaSeconds)
 	if (!OwnerReady()) { Destroy(); return; }
 	const double Age = ServerTime()-State.StartServerTime; const auto& R = State.Rules;
 	if (R.Phase(Age) == EHALTornadoPhase::Finished) { Destroy(); return; }
-	if (R.Phase(Age) == EHALTornadoPhase::Dissipating) { FinishGameplay(); LastAge = Age; return; }
+	if (R.Phase(Age) == EHALTornadoPhase::Dissipating)
+	{
+		if (!bGameplayEnded && !State.bStopped)
+		{
+			// Ground is the last point actually swept, even when a frame crosses the phase boundary.
+			State.SampleServerTime = State.StartServerTime + Age;
+			ForceNetUpdate();
+		}
+		FinishGameplay(); LastAge = Age; return;
+	}
 	if (R.Phase(Age) != EHALTornadoPhase::Active) { LastAge = Age; return; }
 	const FVector From = State.Ground;
+	const bool bWasStopped = State.bStopped;
 	double Remaining = FMath::Max(0., Age-FMath::Max(LastAge,double(R.GatherSeconds)));
 	while (!State.bStopped && Remaining > SMALL_NUMBER)
 	{
@@ -247,9 +269,15 @@ void AHALTornado::Simulate(float DeltaSeconds)
 		float Limit = 1;
 		for (const auto& Hit : Hits) if (Solid(Hit) && Hit.ImpactNormal.Z < R.MinimumGroundNormalZ) { Limit = FMath::Min(Limit,Hit.Time); }
 		State.Ground = FMath::Lerp(State.Ground,Ground,Limit < 1 ? FMath::Max(0.f,Limit-.001f) : 1.f);
-		if (Limit < 1) { State.bStopped = true; ForceNetUpdate(); }
+		if (Limit < 1) { State.bStopped = true; }
 	}
-	State.SampleServerTime = ServerTime(); SetActorLocation(State.Ground); LastAge = Age;
+	if (!bWasStopped)
+	{
+		State.SampleServerTime = State.StartServerTime + Age;
+		SetActorLocation(State.Ground);
+		if (State.bStopped) { ForceNetUpdate(); } // Wall, missing support or excessive ground step.
+	}
+	LastAge = Age;
 	Contacts(From,State.Ground,FMath::Min(DeltaSeconds,float(R.GatherSeconds+R.ActiveSeconds-Age)));
 }
 void AHALTornado::Tick(float DeltaSeconds)
@@ -258,10 +286,19 @@ void AHALTornado::Tick(float DeltaSeconds)
 	if (HasAuthority()) { Simulate(DeltaSeconds); }
 	else
 	{
-		FVector Target = State.Ground;
-		if (!State.bStopped && State.Rules.Phase(ServerTime()-State.StartServerTime) == EHALTornadoPhase::Active)
-		{ Target += State.Direction*State.Rules.Speed*FMath::Clamp(ServerTime()-State.SampleServerTime,0.,.06); }
-		SetActorLocation(FMath::VInterpTo(GetActorLocation(),Target,DeltaSeconds,18));
+		const double Previous = ClientTravelTime;
+		const double FrameEnd = Previous + DeltaSeconds;
+		// The shared server-clock estimate can shift on a network update. Absorb clock error
+		// at up to 10% of real time so a late observer never runs backwards toward the spawn.
+		const double MaxClockCorrection = .1 * DeltaSeconds;
+		const double ClockError = FMath::Max(ServerTime(), State.SampleServerTime) - FrameEnd;
+		ClientTravelTime = FrameEnd + FMath::Clamp(ClockError, -MaxClockCorrection, MaxClockCorrection);
+		const FVector Target = State.PresentationGroundAt(ClientTravelTime);
+		// Move at skill speed every display frame. Smooth only the residual (terrain, clock and stop corrections).
+		const FVector FrameTravel = Target - State.PresentationGroundAt(Previous);
+		const FVector Advanced = GetActorLocation() + FrameTravel;
+		const double CorrectionAlpha = 1. - FMath::Exp(-18. * DeltaSeconds);
+		SetActorLocation(FMath::Lerp(Advanced, Target, CorrectionAlpha));
 	}
 	if (!IsActorBeingDestroyed()) { UpdatePresentation(DeltaSeconds); }
 #if !UE_BUILD_SHIPPING
@@ -271,7 +308,11 @@ void AHALTornado::Tick(float DeltaSeconds)
 void AHALTornado::OnRep_State()
 {
 	SetActorTickEnabled(State.Activation.IsValid());
-	if (!bPresented) { SetActorLocation(State.Ground); bPresented = true; }
+	if (ClientTravelTime < 0. && State.Activation.IsValid())
+	{
+		ClientTravelTime = FMath::Clamp(ServerTime(), State.SampleServerTime, State.SampleServerTime + TornadoMaxUnconfirmedSeconds);
+		SetActorLocation(State.PresentationGroundAt(ClientTravelTime));
+	}
 }
 void AHALTornado::EndPlay(EEndPlayReason::Type Reason)
 { FinishGameplay(); Super::EndPlay(Reason); }

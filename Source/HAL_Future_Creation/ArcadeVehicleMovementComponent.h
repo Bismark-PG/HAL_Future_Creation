@@ -115,6 +115,7 @@ private:
 	friend struct FHALHookSolverTestAccess;
 	friend struct FHALSkillTestDummyTestAccess;
 	friend struct FHALRecoveryTestAccess;
+	friend struct FHALVehicleTestAccess;
 	friend struct FHALPresentationTestAccess;
 	friend struct FHALCameraTestAccess;
 #endif

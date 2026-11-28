@@ -53,8 +53,8 @@ private:
 	TWeakObjectPtr<ABasicBallActor> PendingBall;
 	TSet<TWeakObjectPtr<ABasicBallActor>> BallContacts;
 	double LastAge = 0;
+	double ClientTravelTime = -1;
 	bool bGameplayEnded = false;
-	bool bPresented = false;
 	uint32 VehicleHitCount = 0, BallHitCount = 0;
 	float LastAcceptedUpwardSpeed = 0;
 };

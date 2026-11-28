@@ -75,7 +75,7 @@ bool FHALRecoverySideSupportTest::RunTest(const FString& Parameters)
 	Rules.MinimumRecoveryTilt = 70;
 	TestEqual(TEXT("Existing 70 degree tuning is honored with explicit feedback"),Rules.EligibilityBlockReason(true,Lean,FVector::UpVector,0,0),FName(TEXT("Tilt")));
 	TestEqual(TEXT("Air remains rejected"),Rules.EligibilityBlockReason(false,FVector::RightVector,FVector::UpVector,0,0),FName(TEXT("NoGround")));
-	TestEqual(TEXT("Fast translation remains rejected"),Rules.EligibilityBlockReason(true,FVector::RightVector,FVector::UpVector,151,0),FName(TEXT("LinearSpeed")));
+	TestEqual(TEXT("Fast translation remains rejected"),Rules.EligibilityBlockReason(true,FVector::RightVector,FVector::UpVector,301,0),FName(TEXT("LinearSpeed")));
 	TestEqual(TEXT("Fast tumbling remains rejected"),Rules.EligibilityBlockReason(true,FVector::RightVector,FVector::UpVector,0,2),FName(TEXT("AngularSpeed")));
 	const auto Options=UWorld::InitializationValues().AllowAudioPlayback(false).RequiresHitProxies(false).CreatePhysicsScene(true)
 		.CreateNavigation(false).CreateAISystem(false).CreateFXSystem(false).ShouldSimulatePhysics(false).EnableTraceCollision(true).SetTransactional(false);
@@ -122,23 +122,36 @@ bool FHALRecoveryPolicyTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Inactive driving cannot reenter in hysteresis band"),Config.CanDrive(false,UpAt(60),FVector::UpVector));
 	TestFalse(TEXT("Steep wall is not support"),Config.GroundIsValid(true,FVector::ForwardVector));
 	TestFalse(TEXT("No air recovery"),Config.IsEligible(false,-FVector::UpVector,FVector::UpVector,0,0));
-	TestFalse(TEXT("High speed ineligible"),Config.IsEligible(true,-FVector::UpVector,FVector::UpVector,151,0));
-	TestFalse(TEXT("High angular speed ineligible"),Config.IsEligible(true,-FVector::UpVector,FVector::UpVector,0,1.1f));
-	TestTrue(TEXT("Low-speed side qualifies"),Config.IsEligible(true,FVector::RightVector,FVector::UpVector,150,1));
+	TestFalse(TEXT("High speed ineligible"),Config.IsEligible(true,-FVector::UpVector,FVector::UpVector,301,0));
+	TestFalse(TEXT("High angular speed ineligible"),Config.IsEligible(true,-FVector::UpVector,FVector::UpVector,0,1.8f));
+	TestTrue(TEXT("A leaning car sliding at 2.9 m/s and rolling at 95 deg/s qualifies"),Config.IsEligible(true,UpAt(56),FVector::UpVector,290,FMath::DegreesToRadians(95.f)));
+	TestFalse(TEXT("A driveable slope is measured relative to its support"),Config.IsEligible(true,UpAt(60),UpAt(30),100,0));
 	FVehicleRecoveryClock Clock;
-	for (int32 I=0; I<49; ++I) { TestFalse(TEXT("Cannot start before 1+1.5 seconds"),Clock.Advance(Config,true,true,.05f)); }
-	TestTrue(TEXT("Starts only after flip dwell plus full hold"),Clock.Advance(Config,true,true,.05f));
-	Clock = {}; Clock.Advance(Config,true,true,1.25f);
-	TestTrue(TEXT("A time slice only awards post-dwell hold"),FMath::IsNearlyEqual(Clock.Hold,.25f));
-	Clock.Advance(Config,true,false,.05f); TestEqual(TEXT("Release resets progress"),Clock.Hold,0.f);
-	Clock.Advance(Config,true,true,.5f); Clock.Advance(Config,false,true,.05f);
-	TestTrue(TEXT("Condition loss resets dwell and hold"),Clock.Hold == 0 && Clock.Flipped == 0 && Clock.Cooldown == 0);
+	for (int32 I=0; I<6; ++I) { TestFalse(TEXT("Six delivered edges can arrive before stable support"),Clock.Advance(Config,true,false,true,0)); }
+	for (int32 I=0; I<4; ++I) { TestFalse(TEXT("Full ring waits for 0.25 seconds of actual support"),Clock.Advance(Config,true,false,false,.05f)); }
+	TestTrue(TEXT("Dwell overlaps the taps"),Clock.Advance(Config,true,false,false,.05f));
+	Clock.ResetAttempt();
+	Clock.Advance(Config,true,false,true,0);
+	for (int32 I=0; I<10; ++I) { TestFalse(TEXT("Holding never awards a second tap"),Clock.Advance(Config,true,false,false,.05f)); }
+	TestTrue(TEXT("First half-second preserves the segment"),FMath::IsNearlyEqual(Clock.Presses,1.f,KINDA_SMALL_NUMBER));
+	Clock.Advance(Config,true,false,false,.25f);
+	TestTrue(TEXT("Slow continuous decay after idle delay"),FMath::IsNearlyEqual(Clock.Presses,.5f,KINDA_SMALL_NUMBER));
+	Clock.Advance(Config,false,true,true,.10f);
+	TestTrue(TEXT("A small bump preserves credit without granting taps"),Clock.bAttemptActive && FMath::IsNearlyEqual(Clock.Presses,.5f,KINDA_SMALL_NUMBER));
+	Clock.Advance(Config,true,false,true,.05f);
+	TestTrue(TEXT("A fresh tap adds exactly one segment"),FMath::IsNearlyEqual(Clock.Presses,1.5f,KINDA_SMALL_NUMBER));
+	Clock.Advance(Config,false,true,false,.16f);
+	TestFalse(TEXT("Longer airtime clears the attempt"),Clock.bAttemptActive);
+	for (int32 I=0; I<5; ++I) { TestFalse(TEXT("Five quick taps cannot start"),Clock.Advance(Config,true,false,true,.1f)); }
+	TestTrue(TEXT("Sixth tap starts once supported"),Clock.Advance(Config,true,false,true,.05f));
+	Clock.Advance(Config,false,false,true,0);
+	TestTrue(TEXT("Loss of permission clears all points immediately"),!Clock.bAttemptActive && Clock.Presses == 0);
 	Clock.Finish(Config); TestEqual(TEXT("Execution end starts configured cooldown"),Clock.Cooldown,3.f);
-	TestFalse(TEXT("Hold during cooldown cannot start"),Clock.Advance(Config,true,true,2.9f));
-	TestEqual(TEXT("No banked hold in cooldown"),Clock.Hold,0.f);
-	Clock.Advance(Config,true,true,.2f); TestTrue(TEXT("Only post-cooldown time counts"),FMath::IsNearlyEqual(Clock.Hold,.1f,.001f));
+	TestFalse(TEXT("Press during cooldown cannot start"),Clock.Advance(Config,true,false,true,2.9f));
+	TestEqual(TEXT("No banked presses in cooldown"),Clock.Presses,0.f);
+	Clock.Advance(Config,true,false,true,.2f); TestEqual(TEXT("New edge after cooldown is counted"),Clock.Presses,1.f);
 	Config.DriveExitTilt = Config.DriveEnterTilt; TestFalse(TEXT("Invalid hysteresis rejected"),Config.Validate(Error));
-	Config = {}; Config.HoldSeconds = std::numeric_limits<float>::quiet_NaN(); TestFalse(TEXT("NaN config rejected"),Config.Validate(Error));
+	Config = {}; Config.PressDecayDelay = std::numeric_limits<float>::quiet_NaN(); TestFalse(TEXT("NaN config rejected"),Config.Validate(Error));
 	return true;
 }
 
@@ -149,7 +162,7 @@ bool FHALRecoveryHistoryTest::RunTest(const FString& Parameters)
 	FVehicleRecoveryConfig Config;
 	FVehicleRecoveryPhysicsState State; State.Sequence=12; State.bActive=true;
 	const FVector Acc = HALVehicleRecovery::AngularAcceleration(Config,State,-FVector::UpVector,FVector(0,0,2),1.f/60);
-	TestTrue(TEXT("Exactly inverted has deterministic finite torque"),!Acc.ContainsNaN() && Acc.Size()>1 && Acc.Size()<=30.001);
+	TestTrue(TEXT("Exactly inverted has deterministic finite torque"),!Acc.ContainsNaN() && Acc.Size()>1 && Acc.Size()<=Config.MaximumAngularAcceleration+.001);
 	TestEqual(TEXT("Yaw remains outside recovery torque"),Acc.Z,0.0);
 	State.bActive=false; TestTrue(TEXT("Inactive phase applies no torque"),HALVehicleRecovery::AngularAcceleration(Config,State,FVector::RightVector,FVector::ZeroVector,.02f).IsZero());
 	FVehiclePhysicsHistoryState Source; Source.ServerFrame=123; Source.State.Recovery=State;
@@ -194,6 +207,11 @@ bool FHALRecoveryGameplayTest::RunTest(const FString& Parameters)
 	auto* ASC=Player->GetHALAbilitySystemComponent(); auto* Recovery=Pawn->FindComponentByClass<UVehicleRecoveryComponent>();
 	auto* Balls=Pawn->FindComponentByClass<UBallControlComponent>();
 	auto* Ball=World->SpawnActor<ABasicBallActor>(); Ball->DispatchBeginPlay();
+	ASC->SetNumericAttributeBase(UHALHealthAttributeSet::GetCurrentHPAttribute(),0.f);
+	Recovery->PressRecovery();
+	TestEqual(TEXT("A possessed zero-HP car outside the vehicle test mode cannot self-right"),Recovery->GetStatus().BlockReason,FName(TEXT("ZeroHP")));
+	TestEqual(TEXT("No tap credit on defeat"),Recovery->GetDisplayProgress(),0.f);
+	ASC->SetNumericAttributeBase(UHALHealthAttributeSet::GetCurrentHPAttribute(),100.f);
 	TestTrue(TEXT("Original skill can activate before execution"),Pawn->RequestPrimarySkill());
 	TestTrue(TEXT("Ball acquires before execution"),FHALRecoveryTestAccess::Acquire(Balls,Ball));
 	const FVector BeforeRelease=Ball->GetPhysicsRoot()->GetPhysicsLinearVelocity();
@@ -255,8 +273,8 @@ namespace HALRecoverySolverTest
 		UArcadeVehicleMovementComponent* Movement=nullptr;
 		UPrimitiveComponent* Body=nullptr;
 		int32 Step=0;
-		bool bRecover=false, bDrive=false;
-		void Reset() { Step=0; Movement=nullptr; Body=nullptr; bRecover=bDrive=false; }
+		bool bRecover=false, bDrive=false, bStop=false;
+		void Reset() { Step=0; Movement=nullptr; Body=nullptr; bRecover=bDrive=bStop=false; }
 	};
 	struct FOutput : Chaos::FSimCallbackOutput
 	{
@@ -279,6 +297,11 @@ namespace HALRecoverySolverTest
 				FVehicleRecoveryAction Start; Start.Value.Sequence=1; Start.Value.bActive=true;
 				In->Movement->ApplyAction_Internal(TInstancedStruct<FNetworkPhysicsActionPayload>::Make<FVehicleRecoveryAction>(Start));
 			}
+			if (In->bStop)
+			{
+				FVehicleRecoveryAction Stop; Stop.Value.Sequence=2;
+				In->Movement->ApplyAction_Internal(TInstancedStruct<FNetworkPhysicsActionPayload>::Make<FVehicleRecoveryAction>(Stop));
+			}
 			FHALRecoveryTestAccess::Step(In->Movement,In->Step,GetDeltaTime_Internal(),In->bDrive);
 		}
 		virtual void OnPostSolve_Internal() override
@@ -300,12 +323,20 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALRecoverySolverTest,"HAL.FutureCreation.Reco
 bool FHALRecoverySolverTest::RunTest(const FString& Parameters)
 {
 	using namespace HALRecoverySolverTest;
-	auto* Def=LoadObject<UVehicleDefinition>(nullptr,TEXT("/Game/Data/MVP_B/DA_Vehicle_Car_01.DA_Vehicle_Car_01"));
-	if (!TestNotNull(TEXT("Saved collision definition"),Def) || !TestNotNull(TEXT("Saved convex"),Def->CollisionMesh.Get())) { return false; }
+	auto* Car=LoadObject<UVehicleDefinition>(nullptr,TEXT("/Game/Data/MVP_B/DA_Vehicle_Car_01.DA_Vehicle_Car_01"));
+	auto* Truck=LoadObject<UVehicleDefinition>(nullptr,TEXT("/Game/Data/MVP_B/DA_Vehicle_Car_04.DA_Vehicle_Car_04"));
+	if (!TestNotNull(TEXT("Car01 definition"),Car) || !TestNotNull(TEXT("Car04 definition"),Truck)
+		|| !TestNotNull(TEXT("Car convex"),Car->CollisionMesh.Get()) || !TestNotNull(TEXT("Truck convex"),Truck->CollisionMesh.Get())) { return false; }
+	const auto* Shared = GetDefault<UVehicleStabilitySettings>()->SharedRules.LoadSynchronous();
+	if (!TestNotNull(TEXT("Authored recovery tuning"),Shared)) { return false; }
 	TArray<FString> Trace{TEXT("case,step,x,y,z,up_dot,vx,vy,vz,drive,active,elapsed,worker")};
 	float DefaultSideSeconds=0, DefaultRoofSeconds=0;
-	for (int32 Case=0; Case<8; ++Case)
+	const float Tilts[]={0,90,-90,90,180,90,-90,180,90,180};
+	for (int32 Case=0; Case<UE_ARRAY_COUNT(Tilts); ++Case)
 	{
+		// The truck cases hold throttle throughout and send the normal stop action at first settled support.
+		const bool bTruck=Case>=8;
+		const auto* Def=bTruck ? Truck : Car;
 		const auto Options=UWorld::InitializationValues().AllowAudioPlayback(false).RequiresHitProxies(false).CreatePhysicsScene(true)
 			.CreateNavigation(false).CreateAISystem(false).CreateFXSystem(false).ShouldSimulatePhysics(true).EnableTraceCollision(true).SetTransactional(false);
 		auto* World=UWorld::CreateWorld(EWorldType::Game,false,NAME_None,nullptr,true,ERHIFeatureLevel::Num,&Options);
@@ -318,43 +349,48 @@ bool FHALRecoverySolverTest::RunTest(const FString& Parameters)
 			Body->SetWorldTransform(Pose); Body->SetWorldScale3D(Scale); Body->SetSimulatePhysics(Dynamic); Body->RegisterComponent(); return Body;
 		};
 		MakeBody(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube")),FTransform(FVector(0,0,-50)),FVector(80,80,1),false);
-		const float Tilt=Case==0 ? 0 : Case==1 || Case==3 || Case==5 ? 90 : Case==2 || Case==6 ? -90 : 180;
-		const FQuat Rotation(FVector::ForwardVector,FMath::DegreesToRadians(Tilt));
+		const FQuat Rotation(FVector::ForwardVector,FMath::DegreesToRadians(Tilts[Case]));
 		double MinimumZ=0;
 		for (const auto& Convex : Def->CollisionMesh->GetBodySetup()->AggGeom.ConvexElems)
 		{ for (const FVector& V : Convex.VertexData) { MinimumZ=FMath::Min(MinimumZ,Rotation.RotateVector(Convex.GetTransform().TransformPosition(V)*Def->Physics.Scale).Z); } }
 		auto* Body=MakeBody(Def->CollisionMesh,FTransform(Rotation,FVector(0,0,.5-MinimumZ)),Def->Physics.Scale,true);
 		Body->SetLinearDamping(Def->Physics.Body.LinearDamping); Body->SetAngularDamping(Def->Physics.Body.AngularDamping);
-		Body->SetMassOverrideInKg(NAME_None,800);
+		Body->SetMassOverrideInKg(NAME_None,Def->Physics.Body.GetMassOverride());
 		auto* Mat=DuplicateObject<UPhysicalMaterial>(Body->BodyInstance.GetSimplePhysicalMaterial(),Body);
 		Mat->Restitution=0; Mat->bOverrideRestitutionCombineMode=true; Mat->RestitutionCombineMode=EFrictionCombineMode::Min; Body->SetPhysMaterialOverride(Mat);
 		auto* Movement=NewObject<UArcadeVehicleMovementComponent>(Body->GetOwner()); Body->GetOwner()->AddInstanceComponent(Movement);
 		Movement->SetUpdatedPrimitive(Body); Movement->RegisterComponent(); FHALRecoveryTestAccess::Prepare(Movement,Body);
-		if (Case>=5)
+		FVehicleRecoveryConfig Response=Shared->Recovery;
+		if (Case<5)
 		{
-			FVehicleRecoveryConfig Fast; Fast.AngularPositionGain=60; Fast.AngularDampingGain=12;
-			Fast.MaximumAngularAcceleration=80; Fast.MaximumRecoveryAngularSpeed=6;
-			FHALRecoveryTestAccess::SetRules(Movement,Fast);
+			// Previous production tuning for a same-run comparison with the saved DA.
+			Response.AngularPositionGain=60; Response.AngularDampingGain=12;
+			Response.MaximumAngularAcceleration=80; Response.MaximumRecoveryAngularSpeed=6;
+			Response.LiftBrakingAcceleration=0;
 		}
+		FHALRecoveryTestAccess::SetRules(Movement,Response);
 		auto* Solver=World->GetPhysicsScene()->GetSolver(); Solver->SetThreadingMode_External(Chaos::EThreadingModeTemp::TaskGraph);
 		Solver->AdvanceAndDispatch_External(1.f/60); Solver->WaitOnPendingTasks_External();
 		auto* Probe=Solver->CreateAndRegisterSimCallbackObject_External<FProbe>();
-		FOutput Last; float BestUp=-1, FirstSettledSeconds=0; int32 Outputs=0; bool InvalidDrive=false;
+		FOutput Last; float BestUp=-1, FirstSettledSeconds=0, FirstDriveSeconds=0; int32 Outputs=0; bool InvalidDrive=false, bSentStop=false;
 		for (int32 Step=1; Step<=180; ++Step)
 		{
 			auto* In=Probe->GetProducerInputData_External(); In->Movement=Movement; In->Body=Body; In->Step=Step;
-			In->bRecover=Case>=3; In->bDrive=Case<3;
+			In->bRecover=Case>=3; In->bDrive=Case<3 || bTruck;
+			In->bStop=bTruck && !bSentStop && FirstSettledSeconds>0; bSentStop |= In->bStop;
 			Solver->AdvanceAndDispatch_External(1.f/60); Solver->WaitOnPendingTasks_External();
 			while (auto Out=Probe->PopFutureOutputData_External())
 			{
 				Last=*Out; ++Outputs;
 				const auto& O=Out->Observation;
 				const float Up=Out->Rotation.GetUpVector().Z;
-				if (O.Up.Z < .3 && O.bDrivingAllowed) { InvalidDrive=true; }
+				if ((O.Up.Z < .3 || O.Recovery.bActive) && O.bDrivingAllowed) { InvalidDrive=true; }
+				if (bTruck && bSentStop && O.bDrivingAllowed && FirstDriveSeconds==0) { FirstDriveSeconds=Step/60.f; }
 				if (Step<=120) { BestUp=FMath::Max(BestUp,Up); }
-				if (Case>=3 && FirstSettledSeconds==0 && Up>=FMath::Cos(FMath::DegreesToRadians(15.f)) && O.AngularSpeed<=FMath::DegreesToRadians(60.f))
+				if (Case>=3 && FirstSettledSeconds==0 && Response.GroundIsValid(O.bNearGround,O.GroundNormal)
+					&& FVector::DotProduct(O.Up,O.GroundNormal)>=FMath::Cos(FMath::DegreesToRadians(Response.SuccessTilt)) && O.AngularSpeed<=FMath::DegreesToRadians(Response.SuccessAngularSpeed))
 				{ FirstSettledSeconds=Step/60.f; }
-				if (Step==31 && Case>=3) { TestTrue(TEXT("Duplicate start cannot reset execution timer"),O.Recovery.ElapsedSeconds>.5f); }
+				if (Step==31 && Case>=3 && !bSentStop) { TestTrue(TEXT("Duplicate start cannot reset execution timer"),O.Recovery.ElapsedSeconds>.5f); }
 				Trace.Add(FString::Printf(TEXT("%d,%d,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%d,%d,%.6f,%d"),Case,Step,
 					Out->Position.X,Out->Position.Y,Out->Position.Z,Up,Out->Velocity.X,Out->Velocity.Y,Out->Velocity.Z,
 					O.bDrivingAllowed,O.Recovery.bActive,O.Recovery.ElapsedSeconds,Out->bWorker));
@@ -371,8 +407,13 @@ bool FHALRecoverySolverTest::RunTest(const FString& Parameters)
 		}
 		if (Case==3) { DefaultSideSeconds=FirstSettledSeconds; }
 		if (Case==4) { DefaultRoofSeconds=FirstSettledSeconds; }
-		if (Case>=5) { TestTrue(TEXT("Suggested DA response settles faster than original gains"),FirstSettledSeconds < (Case==7 ? DefaultRoofSeconds : DefaultSideSeconds)); }
-		AddInfo(FString::Printf(TEXT("Recovery Solver Case=%d BestUpIn2s=%.6f FinalUp=%.6f FinalSpeed=%.3f Elapsed=%.3f SettledSeconds=%.3f"),Case,BestUp,Last.Rotation.GetUpVector().Z,Last.Velocity.Size(),Last.Observation.Recovery.ElapsedSeconds,FirstSettledSeconds));
+		if (Case>=5 && Case<8) { TestTrue(TEXT("Saved QTE response settles faster than previous production gains"),FirstSettledSeconds < (Case==7 ? DefaultRoofSeconds : DefaultSideSeconds)); }
+		if (bTruck)
+		{
+			TestTrue(TEXT("Held throttle can drive after landing without a second stability wait"),FirstDriveSeconds>=FirstSettledSeconds
+				&& FirstDriveSeconds<=FirstSettledSeconds+Response.DriveStableSeconds+2.f/60.f && Last.Velocity.Size2D()>100);
+		}
+		AddInfo(FString::Printf(TEXT("Recovery Solver Case=%d Vehicle=%s BestUpIn2s=%.6f FinalUp=%.6f FinalSpeed=%.3f Elapsed=%.3f SettledSeconds=%.3f DriveSeconds=%.3f"),Case,*Def->GetName(),BestUp,Last.Rotation.GetUpVector().Z,Last.Velocity.Size(),Last.Observation.Recovery.ElapsedSeconds,FirstSettledSeconds,FirstDriveSeconds));
 		Solver->UnregisterAndFreeSimCallbackObject_External(Probe); Solver->AdvanceAndDispatch_External(1.f/60); Solver->WaitOnPendingTasks_External();
 		World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
 	}

@@ -56,6 +56,34 @@ bool FHALTornadoClockTest::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALTornadoTravelClockTest,"HAL.FutureCreation.Tornado.ClientGroundBetweenSnapshots",
+	EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALTornadoTravelClockTest::RunTest(const FString&)
+{
+	FHALTornadoState State;
+	State.Rules.GatherSeconds = .5f; State.Rules.ActiveSeconds = 2; State.Rules.Speed = 800;
+	State.StartServerTime = State.SampleServerTime = 10;
+	const FVector Start(500, -1200, 35);
+	State.Ground = Start;
+	State.Direction = FVector::RightVector;
+	const auto At = [&](double Seconds) { return Start + State.Direction * (State.Rules.Speed * Seconds); };
+	TestTrue(TEXT("Gathering is stationary"), State.PresentationGroundAt(10.48).Equals(Start,.001));
+	TestTrue(TEXT("First active frame only travels its active fraction"), State.PresentationGroundAt(10.51).Equals(At(.01),.001));
+	State.SampleServerTime = 11; State.Ground = At(.5);
+	const FVector BeforePacket = State.PresentationGroundAt(11.18);
+	TestTrue(TEXT("Travel continues across a 180 ms gap"), BeforePacket.Equals(At(.68),.001));
+	State.SampleServerTime = 11.20; State.Ground = At(.70);
+	TestTrue(TEXT("A newer sample ahead of the display clock causes no jump"), State.PresentationGroundAt(11.18).Equals(BeforePacket,.001));
+	TestTrue(TEXT("A long outage bounds unconfirmed travel"), State.PresentationGroundAt(12.4).Equals(State.PresentationGroundAt(12.0),.001));
+	State.SampleServerTime = 12.4; State.Ground = At(1.9);
+	TestTrue(TEXT("Natural retirement adds no extra travel"), State.PresentationGroundAt(13).Equals(At(2),.001));
+	State.Ground = At(1.98) + FVector(0,0,17); State.SampleServerTime = 12.52;
+	TestTrue(TEXT("The final swept height and endpoint win"), State.PresentationGroundAt(13).Equals(State.Ground,.001));
+	State.bStopped = true; State.SampleServerTime = 11; State.Ground = At(.45);
+	TestTrue(TEXT("A first observation after a wall stop stays at the wall"), State.PresentationGroundAt(11.3).Equals(State.Ground,.001));
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALTornadoAuthorityTest,"HAL.FutureCreation.Tornado.AuthorityGASImpactBallsWallAndCleanup",
 	EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FHALTornadoAuthorityTest::RunTest(const FString&)

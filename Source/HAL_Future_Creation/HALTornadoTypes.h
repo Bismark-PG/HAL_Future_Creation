@@ -85,4 +85,7 @@ struct HAL_FUTURE_CREATION_API FHALTornadoState
 	UPROPERTY() double StartServerTime = -1;
 	UPROPERTY() double SampleServerTime = -1;
 	UPROPERTY() bool bStopped = false;
+
+	/** Cosmetic ground position on the straight active leg, relative to this authority sample. */
+	FVector PresentationGroundAt(double ServerSeconds) const;
 };

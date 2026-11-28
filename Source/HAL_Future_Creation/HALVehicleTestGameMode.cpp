@@ -20,6 +20,13 @@ DEFINE_LOG_CATEGORY_STATIC(LogHALVehicleTest, Log, All);
 bool AHALVehicleTestGameMode::IsTestWorld(const UWorld* World)
 { return World && World->GetAuthGameMode<AHALVehicleTestGameMode>()!=nullptr; }
 
+bool AHALVehicleTestGameMode::AllowsRecoveryAtZeroHP(const APawn* Pawn)
+{
+	const UWorld* World = Pawn ? Pawn->GetWorld() : nullptr;
+	const auto* Mode = World ? World->GetAuthGameMode<AHALVehicleTestGameMode>() : nullptr;
+	return Mode && Mode->TestController.IsValid() && Mode->TestController->GetPawn() == Pawn;
+}
+
 AHALVehicleTestGameMode::AHALVehicleTestGameMode()
 {
 	GameStateClass=AHALMatchGameState::StaticClass();

@@ -17,6 +17,8 @@ public:
 	AHALVehicleTestGameMode();
 	/** Test-only integration boundary, independent of map names and room state. */
 	static bool IsTestWorld(const UWorld* World);
+	/** The actively driven test car stays playable for rollover tests after lethal damage. */
+	static bool AllowsRecoveryAtZeroHP(const APawn* Pawn);
 	virtual void InitGameState() override;
 	virtual void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
 	virtual void PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& Id, FString& Error) override;

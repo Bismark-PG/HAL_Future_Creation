@@ -1,6 +1,65 @@
-# 姿态操控限制与长按自救：实现和配置（v0.1）
+# 车辆姿态判定与翻车自救
 
-**2026-10-29侧翻自救补充以第9节为当前入口。** 保留原已保存参数；允许将Minimum Recovery Tilt设为Drive Exit Tilt以关闭角度空档，补充仅供自救使用的近地支撑采样及Block拒绝原因。较快响应由团队按第9节修改共享DA；不缩短长按，不直接修改保存资产。构建与验证以本次新增记录为准，下面10月21日结果为历史。
+<a id="recovery-tap-qte"></a>
+
+## 2026-11-27　六次连按回正
+
+翻车后，车旁会出现围绕当前复位键的六段进度环。按下就点亮一格，松手后才能再按出下一格。键盘默认显示 **R**，Xbox 手柄显示 **View 的双窗口图形**。提示读取当前设备和实际输入映射，只显示给自己的车辆。最后一格填满、服务器开始翻身时，整环短暂亮金。
+
+所有车辆共用 `/Game/Data/MVP_B/DA_Vehicle_Stability_Test_v1` 的 **Recovery**。最直接的手感调节项如下。
+
+| 项目 | 首轮设置 | 作用 |
+|---|---|---|
+| Required Presses | 6 下 | 完成一次自救所需的连续点按 |
+| Minimum Recovery Tilt | 55° | 以车身相对支撑面的倾角判断，斜坡正常行驶也按坡面计算 |
+| Maximum Linear Speed / Maximum Angular Speed | 300 cm/s / 100°/s | 允许仍在低速侧滑的车开始积累 |
+| Flipped Seconds | 0.25 秒 | 从首次有效近地支撑起累计，期间已经可以按键 |
+| Support Grace Seconds | 0.15 秒 | 短暂颠起时保留已有进度，重新接地后继续 |
+| Press Decay Delay / Seconds Per Lost Press | 0.5 秒 / 0.5 秒 | 停按半秒后，以每半秒一格的速度平滑回退 |
+| Success Tilt / Success Angular Speed | 15° / 60°/s | 车身接近直立、角速度足够低且有有效支撑，才交还驾驶 |
+| Angular Position Gain / Angular Damping Gain | 80 / 8 | 分别控制翻转加速和接近直立时的减速 |
+| Maximum Angular Acceleration / Maximum Recovery Angular Speed | 100 rad/s² / 8 rad/s | 限制自救施加的角加速度与角速度 |
+| Lift Braking Acceleration | 1000 cm/s² | 抑制车身绕棱角翻起时向上的弹跳，只在执行自救且正在抬升时生效 |
+
+客户端在按下时先点亮进度，再与服务器确认的按键序号对齐。服务器逐次检查地面、姿态、速度、眩晕和比赛权限，负责开始和结束动作。翻身沿用 Chaos 角加速度与实际碰撞，沿支撑面的滑动速度得以保留。落稳时仍踩着油门即可接着开。持球车在翻身启动的一刻脱球，执行中受到有效外部 Medium / Heavy 冲击仍可被打断。执行时限为 2 秒，动作结束后冷却 3 秒。
+
+主机控制台输入 `hal.VehicleRecoveryLog 1` 可查看车身倾角、速度、拒绝原因和回正结果，输入 `hal.VehicleRecoveryLog 0` 关闭。Editor 中运行 `Automation RunTests HAL.FutureCreation.Recovery` 可复测。双端用例为 `HAL.NetworkSmoke.VehicleRecovery`，主客端都带 `-HALRecoveryTapFixture` 使用正式共享配置，增加 `-HALRecoveryCapture` 可走实际按键映射并拍摄半环。
+
+### 本轮实测
+
+UE 5.8.3 的 60 Hz Chaos 测试从开始施加翻身力矩计时，直到再次获得有效近地支撑，并同时满足 15° 倾角和 60°/s 角速度条件。车型使用各自配置的碰撞体。第一轮单独提高翻转力度时，Car01 转正后继续悬空，侧翻落稳花了 0.750 秒，倒扣花了 1.150 秒。正式参数同时抑制上弹。
+
+| 车型与配置 | 侧翻落稳 | 完全倒扣落稳 |
+|---|---:|---:|
+| Car01 原翻身力度，同场复测 | 0.683 秒 | 1.067 秒 |
+| Car01 正式六击配置 | 左右均 0.483 秒 | 0.700 秒 |
+| Car04 卡车，持续给油 | 0.517 秒 | 0.633 秒 |
+
+Car04 从动作启动到重新接受驾驶输入分别为 0.600 秒和 0.650 秒。17 项自救、输入提示、物理历史、场地支撑与眩晕专项全部通过。涵盖长按只记一次、快速连按、短暂离地、停按回退、墙面和坡面判定，以及翻身时的脱球和有效外力打断。
+
+本机 Listen Server 设置主机出站延迟 80 ms。无渲染双端复测中，主机在 259.9 cm/s 的侧滑中收到第一下，主客端都观察到两辆车各开始和结束一次。D3D12 双端复测中，客户端先按两下键盘，再用手柄 View 完成后四下，半环时已显示手柄图形。两轮主客角色报告均通过。输入事件由自动化送入，实体手柄节奏待团队试玩。详细报告在本机 `Saved/QTERecovery/FinalRules`、`FinalNet` 与 `FinalUI`，两张游戏截图在 `Saved/Screenshots/WindowsEditor/RecoveryTap_*.png`。
+
+UE 5.8.3 CL58210709 的 Editor 和 Win64 Development Game 均编译通过。Editor 使用 `BuildAndLaunch.cmd -NoLaunch -NoPopup`，日志在 `Saved/BuildTool/BuildAndLaunch_20261127_204224_496_b28640`。独立 Game 构建用于核对游戏目标的输入、Slate 和物理依赖，命令如下。
+
+```powershell
+& 'D:/Program Files/Epic Games/UE_5.8/Engine/Build/BatchFiles/Build.bat' HAL_Future_Creation Win64 Development '-Project=D:/HAL_Future_Creation/HAL_Future_Creation.uproject' -WaitMutex -NoHotReload -NoLiveCoding -MaxParallelActions=6 '-Log=D:/HAL_Future_Creation/Saved/QTERecovery/FinalGameBuild.log'
+```
+
+<a id="recovery-repeat-punch"></a>
+
+### 单车试车场连续中拳后的回正
+
+`Fred_TestScene` 的 Car07 有 100 HP。玩家这次的运行日志记录了四次有效的弹簧拳命中，每拳扣 25 HP。单车测试模式在 0 HP 时继续保留玩家对原车的控制，旧的回正权限却要求 HP 大于零，导致车辆落稳、冷却结束后也不再显示按键环。
+
+现在，单车测试 GameMode 当前交给本地玩家驾驶的那辆车在 0 HP 也可以连按回正，面板继续显示实际血量。普通比赛的零血车辆仍按淘汰规则处理。三秒冷却从上一次翻身结束时计起，冷却中再次中拳，落地满足姿态和速度条件后，等剩余冷却走完就能重新连按。主机调试日志用 `ZeroHP` 标明普通车辆因血量归零而被拒绝。
+
+在同一张 Fred 测试图复测时，使用场内原有弹簧拳和 Car07，每拳后将同一辆车放到拳路外、在地板上倒扣，以稳定复现第二次翻车。命中和伤害由机关实际结算，按键通过 Enhanced Input 的 R 映射送入，翻身由 Chaos 执行。Car07 在 75、50、25、0 HP 各用六下回正。第二拳打在上次回正结束约 0.09 秒后，第四拳打在冷却剩余 1.30 秒时。最后一轮落稳后普通驾驶重新可用，面板读数为 0/100。实测明细位于 `Saved/QTERecovery/PunchRepeat/FredFinal.json`。
+
+UE 5.8.3 Editor 和 Win64 Development Game 均编译通过。26 项专项自动化全部通过，覆盖试车玩家零血时的按键计数、试车换车时的权限交接和普通车辆零血时的回正拦截，报告位于 `Saved/QTERecovery/PunchRepeat/FinalRules`。在主机出站模拟 80 ms 延迟下，独立主机和客户端各完成一次常规六击回正，报告位于 `Saved/QTERecovery/PunchRepeatNet`。
+
+## 历史基线（2026-10）
+
+**2026-10-29 的侧翻自救补充见第 9 节。** 当时增加了近地支撑采样与拒绝原因，允许将 Minimum Recovery Tilt 设为 Drive Exit Tilt。以下保留当时的长按方案、旧配置与验证记录。
 
 日期：2026-10-21；施工基点 `main/f634292b4893fafdf9bba52e5b8e1a928f2469e5`；本机UE5.8.3-58210709。用户反馈上一轮修正后“弹动有效减少”，并授权开始本步。原[已确认规则](MVPB_Vehicle_Stability_And_SelfRighting_Plan_CN_v0.1.md#51-首版测试规则2026-10-21用户已确认)继续有效；VP-1结束，10-F-4完整集成／四机仍后置。
 

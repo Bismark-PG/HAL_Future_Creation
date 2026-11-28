@@ -935,10 +935,12 @@ void ATestVehiclePawn::OnPrimarySkillCompleted(const FInputActionValue& Value)
 
 void ATestVehiclePawn::SetSelfRightHeld(bool bHeld)
 {
-	if (HookThrow->BlocksActions()) { return; }
 	if (!IsLocallyControlled() || !Controller || !bConfigurationValid) { return; }
+	if (CurrentInputCommand.bSelfRight == bHeld) { return; }
+	if (bHeld && HookThrow->BlocksActions()) { return; }
 	CurrentInputCommand.bSelfRight = bHeld; PushInputCommand();
 	if (!HasAuthority() && !bNetworkPhysicsHistoryActive) { SendInputSnapshot(); }
+	if (CurrentInputCommand.bSelfRight) { VehicleRecovery->PressRecovery(); }
 }
 void ATestVehiclePawn::OnSelfRightStarted(const FInputActionValue& Value) { SetSelfRightHeld(true); }
 void ATestVehiclePawn::OnSelfRightCompleted(const FInputActionValue& Value) { SetSelfRightHeld(false); }

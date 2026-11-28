@@ -16,22 +16,32 @@ struct HAL_FUTURE_CREATION_API FVehicleRecoveryConfig
 	UPROPERTY(EditDefaultsOnly, Category = "Pose", meta = (ClampMin = "0", ClampMax = "1", Units = "s")) float DriveStableSeconds = .1f;
 	/** Additional distance below the projected physical proxy bounds. */
 	UPROPERTY(EditDefaultsOnly, Category = "Pose", meta = (ClampMin = "0", ClampMax = "100", Units = "cm")) float SupportDistance = 30;
-	/** Set equal to DriveExitTilt to avoid a no-drive/no-recovery angle gap. Saved tuning is preserved. */
-	UPROPERTY(EditDefaultsOnly, Category = "Eligibility", meta = (ClampMin = "1", ClampMax = "180", Units = "deg")) float MinimumRecoveryTilt = 70;
-	UPROPERTY(EditDefaultsOnly, Category = "Eligibility", meta = (ClampMin = "0", ClampMax = "10", Units = "s")) float FlippedSeconds = 1;
-	UPROPERTY(EditDefaultsOnly, Category = "Eligibility", meta = (ClampMin = "1", ClampMax = "1000", Units = "cm/s")) float MaximumLinearSpeed = 150;
-	UPROPERTY(EditDefaultsOnly, Category = "Eligibility", meta = (ClampMin = "1", ClampMax = "360", Units = "deg/s")) float MaximumAngularSpeed = 60;
-	UPROPERTY(EditDefaultsOnly, Category = "Eligibility", meta = (ClampMin = ".1", ClampMax = "10", Units = "s")) float HoldSeconds = 1.5f;
+	/** Tilt relative to the support surface. Independent of the ordinary driving hysteresis. */
+	UPROPERTY(EditDefaultsOnly, Category = "Eligibility", meta = (ClampMin = "1", ClampMax = "180", Units = "deg")) float MinimumRecoveryTilt = 55;
+	/** Supported time before execution. Button presses already count during this window. */
+	UPROPERTY(EditDefaultsOnly, Category = "Eligibility", meta = (ClampMin = "0", ClampMax = "10", Units = "s")) float FlippedSeconds = .25f;
+	UPROPERTY(EditDefaultsOnly, Category = "Eligibility", meta = (ClampMin = "1", ClampMax = "1000", Units = "cm/s")) float MaximumLinearSpeed = 300;
+	UPROPERTY(EditDefaultsOnly, Category = "Eligibility", meta = (ClampMin = "1", ClampMax = "360", Units = "deg/s")) float MaximumAngularSpeed = 100;
+	/** A short loss of floor contact preserves existing credit, but cannot earn presses or start a flip. */
+	UPROPERTY(EditDefaultsOnly, Category = "Eligibility", meta = (ClampMin = "0", ClampMax = ".5", Units = "s")) float SupportGraceSeconds = .15f;
+	UPROPERTY(EditDefaultsOnly, Category = "Recovery Input", meta = (ClampMin = "1", ClampMax = "16")) int32 RequiredPresses = 6;
+	/** Idle time after a press before the ring starts draining. */
+	UPROPERTY(EditDefaultsOnly, Category = "Recovery Input", meta = (ClampMin = "0", ClampMax = "5", Units = "s")) float PressDecayDelay = .5f;
+	/** Time to drain one full segment once the idle delay has elapsed. */
+	UPROPERTY(EditDefaultsOnly, Category = "Recovery Input", meta = (ClampMin = ".1", ClampMax = "5", Units = "s")) float SecondsPerLostPress = .5f;
 	UPROPERTY(EditDefaultsOnly, Category = "Execution", meta = (ClampMin = ".1", ClampMax = "5", Units = "s")) float MaximumExecutionSeconds = 2;
 	UPROPERTY(EditDefaultsOnly, Category = "Execution", meta = (ClampMin = "0", ClampMax = "30", Units = "s")) float CooldownSeconds = 3;
 	UPROPERTY(EditDefaultsOnly, Category = "Execution") EHALImpactTier MinimumInterruptTier = EHALImpactTier::Medium;
 	UPROPERTY(EditDefaultsOnly, Category = "Execution", meta = (ClampMin = "1", ClampMax = "40", Units = "deg")) float SuccessTilt = 15;
+	UPROPERTY(EditDefaultsOnly, Category = "Execution", meta = (ClampMin = "1", ClampMax = "360", Units = "deg/s")) float SuccessAngularSpeed = 60;
 	/** PD gains; torque is mass-independent angular acceleration, never a rotation teleport. */
-	UPROPERTY(EditDefaultsOnly, Category = "Response", meta = (ClampMin = "1", ClampMax = "100")) float AngularPositionGain = 25;
-	UPROPERTY(EditDefaultsOnly, Category = "Response", meta = (ClampMin = "0", ClampMax = "30")) float AngularDampingGain = 7;
+	UPROPERTY(EditDefaultsOnly, Category = "Response", meta = (ClampMin = "1", ClampMax = "100")) float AngularPositionGain = 80;
+	UPROPERTY(EditDefaultsOnly, Category = "Response", meta = (ClampMin = "0", ClampMax = "30")) float AngularDampingGain = 8;
 	/** Maximum torque acceleration, radians/second squared. */
-	UPROPERTY(EditDefaultsOnly, Category = "Response", meta = (ClampMin = "1", ClampMax = "100")) float MaximumAngularAcceleration = 30;
-	UPROPERTY(EditDefaultsOnly, Category = "Response", meta = (ClampMin = ".1", ClampMax = "10", Units = "rad/s")) float MaximumRecoveryAngularSpeed = 4;
+	UPROPERTY(EditDefaultsOnly, Category = "Response", meta = (ClampMin = "1", ClampMax = "100")) float MaximumAngularAcceleration = 100;
+	UPROPERTY(EditDefaultsOnly, Category = "Response", meta = (ClampMin = ".1", ClampMax = "10", Units = "rad/s")) float MaximumRecoveryAngularSpeed = 8;
+	/** During a flip, brake only the lift off the supporting face. Zero allows the full contact-induced hop. */
+	UPROPERTY(EditDefaultsOnly, Category = "Response", meta = (ClampMin = "0", ClampMax = "8000", Units = "cm/s^2")) float LiftBrakingAcceleration = 1000;
 	bool Validate(FString& Error) const;
 	FString SignatureKey() const;
 	bool GroundIsValid(bool bNear, const FVector& Normal) const;
@@ -76,7 +86,9 @@ struct HAL_FUTURE_CREATION_API FVehicleRecoveryStatus
 	UPROPERTY(BlueprintReadOnly) EVehicleRecoveryPhase Phase = EVehicleRecoveryPhase::Idle;
 	UPROPERTY(BlueprintReadOnly) bool bDrivingAllowed = false;
 	UPROPERTY(BlueprintReadOnly) bool bNearGround = false;
+	/** Normalized tap progress; retains the existing Blueprint pin. */
 	UPROPERTY(BlueprintReadOnly) float HoldProgress = 0;
+	UPROPERTY() uint32 AcknowledgedPress = 0;
 	UPROPERTY(BlueprintReadOnly) float CooldownRemaining = 0;
 	UPROPERTY(BlueprintReadOnly) int64 Sequence = 0;
 	UPROPERTY(BlueprintReadOnly) FName LastOutcome;
@@ -87,9 +99,13 @@ struct HAL_FUTURE_CREATION_API FVehicleRecoveryStatus
 /** Pure authority permission clock; never read/replayed by the physics thread. */
 struct HAL_FUTURE_CREATION_API FVehicleRecoveryClock
 {
-	float Flipped = 0, Hold = 0, Cooldown = 0;
-	bool Advance(const FVehicleRecoveryConfig& Config, bool bEligible, bool bHeld, float DeltaTime);
-	void Finish(const FVehicleRecoveryConfig& Config) { Flipped = Hold = 0; Cooldown = Config.CooldownSeconds; }
+	float Flipped = 0, Presses = 0, Cooldown = 0;
+	bool bAttemptActive = false;
+	bool Advance(const FVehicleRecoveryConfig& Config, bool bEligible, bool bBriefSupportLoss, bool bPressed, float DeltaTime);
+	void ResetAttempt();
+	void Finish(const FVehicleRecoveryConfig& Config) { ResetAttempt(); Cooldown = Config.CooldownSeconds; }
+private:
+	float IdleSeconds = 0, UnsupportedSeconds = 0;
 };
 
 namespace HALVehicleRecovery

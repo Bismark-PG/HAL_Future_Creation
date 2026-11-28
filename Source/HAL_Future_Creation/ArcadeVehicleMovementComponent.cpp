@@ -353,12 +353,13 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 	if (RecoveryRules.bEnabled)
 	{
 		const bool bPoseValid = RecoveryRules.GroundIsValid(bGrounded,GroundNormal)
-			&& RecoveryRules.CanDrive(bPoseDriveAllowed,GroundProbeRotation.GetUpVector(),GroundNormal) && !RecoveryPhysics.bActive;
+			&& RecoveryRules.CanDrive(bPoseDriveAllowed,GroundProbeRotation.GetUpVector(),GroundNormal);
 		if (!bPoseValid) { bPoseDriveAllowed = false; PoseStableSeconds = 0; }
 		else
 		{
 			PoseStableSeconds = FMath::Min(RecoveryRules.DriveStableSeconds, PoseStableSeconds+DeltaTime);
-			bPoseDriveAllowed = PoseStableSeconds+KINDA_SMALL_NUMBER >= RecoveryRules.DriveStableSeconds;
+			// Accumulate genuine grounded stability during the landing so held throttle can resume on release.
+			bPoseDriveAllowed = !RecoveryPhysics.bActive && PoseStableSeconds+KINDA_SMALL_NUMBER >= RecoveryRules.DriveStableSeconds;
 		}
 		if (RecoveryPhysics.bActive && !CurrentMovement.bControlsBlocked && !bBouncing)
 		{
@@ -370,6 +371,14 @@ void UArcadeVehicleMovementComponent::SimulateVehicleStep(const FVehicleNetInput
 				const FVector Acceleration = HALVehicleRecovery::AngularAcceleration(RecoveryRules,RecoveryPhysics,
 					GroundProbeRotation.GetUpVector(),PhysicsHandle->W(),DeltaTime) * (Step/DeltaTime);
 				FPhysicsInterface::AddTorque_AssumesLocked(Body->GetPhysicsActor(),Acceleration,false,true,true);
+				// Rolling a convex chassis over its corner can throw it upwards even after it is upright.
+				// Brake that lift at the centre of mass, preserving tangential motion and the natural descent.
+				const double RiseSpeed = FVector::DotProduct(PhysicsHandle->V(), RecoveryPhysics.TargetUp);
+				if (RiseSpeed > 0)
+				{
+					const double BrakeSpeed = FMath::Min(RiseSpeed, double(RecoveryRules.LiftBrakingAcceleration * Step));
+					FPhysicsInterface::AddForce_AssumesLocked(Body->GetPhysicsActor(), -RecoveryPhysics.TargetUp * (BrakeSpeed / DeltaTime), false, true, true);
+				}
 				RecoveryPhysics.ElapsedSeconds += Step;
 			}
 			if (RecoveryPhysics.ElapsedSeconds+KINDA_SMALL_NUMBER >= RecoveryRules.MaximumExecutionSeconds) { RecoveryPhysics.bActive = false; }

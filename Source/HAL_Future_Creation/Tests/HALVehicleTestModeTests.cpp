@@ -10,6 +10,7 @@
 #include "../HALImpactImmunityEffects.h"
 #include "../HALGameplayTags.h"
 #include "../HALGameFlowPermissions.h"
+#include "../VehicleRecoveryComponent.h"
 #include "../HALPlayerStart.h"
 #include "../TestVehiclePawn.h"
 #include "../PassiveTestVehicle.h"
@@ -27,6 +28,14 @@ struct FHALVehicleTestAccess
 {
 	static void Configure(AHALVehicleTestGameMode* Mode,UClass* Initial,UClass* Other)
 	{ Mode->DefaultPawnClass=Initial; Mode->TestVehicleClasses={Initial,Other}; }
+	static void PublishRestingRoof(ATestVehiclePawn* Pawn)
+	{
+		auto* Movement=Pawn->FindComponentByClass<UArcadeVehicleMovementComponent>();
+		FScopeLock Lock(&Movement->PendingPhysicsDataLock);
+		Movement->bShouldRunPhysics.Store(true);
+		auto& Pose=Movement->PublishedStability;
+		Pose={}; Pose.PhysicsFrame=1; Pose.bValid=Pose.bNearGround=true; Pose.Up=-FVector::UpVector;
+	}
 	static void BeginCameraNavigation(AHALVehicleTestPlayerController* PC) { PC->BeginCameraNavigation(); }
 	static FVector Pivot(const AHALVehicleTestPlayerController* PC) { return PC->ObservationPivot; }
 	static void Orbit(AHALVehicleTestPlayerController* PC,float X,float Y)
@@ -111,8 +120,28 @@ bool FHALVehicleTestInitial::RunTest(const FString&)
 	TestTrue(TEXT("Ordinary controller retains mouse camera input"),AHALVehicleTestPlayerController::AllowsVehicleCameraMouseInput(Normal));
 	auto* NormalPawn=F.World->SpawnActor<APawn>(); Normal->Possess(NormalPawn);
 	TestFalse(TEXT("Ordinary controller keeps room readiness even inside a test world"),AHALVehicleTestPlayerController::BypassesRoomReadiness(NormalPawn));
+	TestFalse(TEXT("An unrelated possessed pawn in the test world keeps the HP gate"),AHALVehicleTestGameMode::AllowsRecoveryAtZeroHP(NormalPawn));
 	Normal->Destroy(); NormalPawn->Destroy();
 	TestFalse(TEXT("Ordinary teardown leaves no test room-UI subscription"),State->GetRoom()->OnRoomChanged.IsBound());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHALVehicleTestDepletedRecovery,"HAL.FutureCreation.VehicleTest.ZeroHPDriverCanRetryRecovery",
+	EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FHALVehicleTestDepletedRecovery::RunTest(const FString&)
+{
+	FVehicleTestWorld F;
+	auto* Pawn=F.Vehicle();
+	if (!TestNotNull(TEXT("Local test driver"),Pawn)) { return false; }
+	Pawn->DispatchBeginPlay();
+	F.ASC()->SetNumericAttributeBase(UHALHealthAttributeSet::GetCurrentHPAttribute(),0.f);
+	FHALVehicleTestAccess::PublishRestingRoof(Pawn);
+	auto* Recovery=Pawn->FindComponentByClass<UVehicleRecoveryComponent>();
+	Pawn->SetSelfRightHeld(true);
+	Pawn->SetSelfRightHeld(false);
+	TestEqual(TEXT("At zero HP a fresh tap starts the test driver's QTE"),Recovery->GetStatus().Phase,EVehicleRecoveryPhase::Holding);
+	TestEqual(TEXT("Exactly one segment was earned"),Recovery->GetDisplayProgress(),1.f/Recovery->GetRequiredPresses());
+	TestEqual(TEXT("Self-righting preserves the damage measurement"),F.ASC()->GetNumericAttribute(UHALHealthAttributeSet::GetCurrentHPAttribute()),0.f);
 	return true;
 }
 
@@ -128,6 +157,8 @@ bool FHALVehicleTestSwap::RunTest(const FString&)
 	TestTrue(TEXT("Different configured model applies through real lifecycle"),F.Mode->ChangeTestVehicle(F.PC,F.Other));
 	TestTrue(TEXT("PlayerState/ASC/controller retained"),F.State()==Player && F.ASC()==ASC && F.PC->GetPawn()==F.Vehicle());
 	TestTrue(TEXT("Old Pawn retired and destroyed"),Original->IsActorBeingDestroyed() && !Original->IsConfigurationValid());
+	TestFalse(TEXT("Swapping cars revokes the old car's zero-HP recovery permission"),AHALVehicleTestGameMode::AllowsRecoveryAtZeroHP(Original));
+	TestTrue(TEXT("Replacement test car can self-right at zero HP"),AHALVehicleTestGameMode::AllowsRecoveryAtZeroHP(F.Vehicle()));
 	TestTrue(TEXT("ASC avatar and grants now belong to new car"),ASC->GetAvatarActor()==F.Vehicle() && Player->AreVehicleAbilitiesReady(F.Vehicle()));
 	TestEqual(TEXT("Only one vehicle after replacement"),F.VehicleCount(),1);
 	TestTrue(TEXT("Observation camera persists and focuses the replacement"),F.PC->IsObservationCameraActive()

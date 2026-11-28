@@ -110,8 +110,9 @@ public:
 	bool RequestPrimarySkill();
 	/** The follow-up addresses this cast's server-owned dart, never a client-selected victim. */
 	AHALBatarang* GetActiveBatarang() const { return ActiveBatarang; }
-	/** Same held input path as Enhanced Input; native tests may submit intent, never a pose/result. */
+	/** Both physical edges share the Enhanced Input path. Only a fresh down edge submits a recovery tap. */
 	void SetSelfRightHeld(bool bHeld);
+	const UInputAction* GetSelfRightAction() const { return SelfRightAction; }
 
 protected:
 	friend class AHALBatarang;

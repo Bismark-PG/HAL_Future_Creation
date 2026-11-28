@@ -5,22 +5,26 @@ bool FVehicleRecoveryConfig::Validate(FString& Error) const
 	const auto In = [](float V, float A, float B) { return FMath::IsFinite(V) && V >= A && V <= B; };
 	if (!In(MaximumGroundSlope,0,80) || !In(DriveEnterTilt,1,85) || !In(DriveExitTilt,1,89)
 		|| DriveEnterTilt >= DriveExitTilt || !In(DriveStableSeconds,0,1) || !In(SupportDistance,0,100)
-		|| !In(MinimumRecoveryTilt,1,180) || MinimumRecoveryTilt < DriveExitTilt || !In(FlippedSeconds,0,10)
-		|| !In(MaximumLinearSpeed,1,1000) || !In(MaximumAngularSpeed,1,360) || !In(HoldSeconds,.1f,10)
+		|| !In(MinimumRecoveryTilt,1,180) || MinimumRecoveryTilt <= SuccessTilt || !In(FlippedSeconds,0,10)
+		|| !In(MaximumLinearSpeed,1,1000) || !In(MaximumAngularSpeed,1,360) || !In(SuccessAngularSpeed,1,360)
+		|| RequiredPresses < 1 || RequiredPresses > 16 || !In(PressDecayDelay,0,5)
+		|| !In(SecondsPerLostPress,.1f,5) || !In(SupportGraceSeconds,0,.5f)
 		|| !In(MaximumExecutionSeconds,.1f,5) || !In(CooldownSeconds,0,30)
 		|| (MinimumInterruptTier != EHALImpactTier::Medium && MinimumInterruptTier != EHALImpactTier::Heavy)
 		|| !In(SuccessTilt,1,40) || SuccessTilt >= DriveEnterTilt || !In(AngularPositionGain,1,100)
-		|| !In(AngularDampingGain,0,30) || !In(MaximumAngularAcceleration,1,100) || !In(MaximumRecoveryAngularSpeed,.1f,10))
-	{ Error = TEXT("Invalid Recovery: finite ranges, SuccessTilt < DriveEnterTilt < DriveExitTilt <= MinimumRecoveryTilt, and Medium/Heavy interrupt required"); return false; }
+		|| !In(AngularDampingGain,0,30) || !In(MaximumAngularAcceleration,1,100) || !In(MaximumRecoveryAngularSpeed,.1f,10)
+		|| !In(LiftBrakingAcceleration,0,8000))
+	{ Error = TEXT("Invalid recovery thresholds, tap settings, response or interrupt tier"); return false; }
 	return true;
 }
 
 FString FVehicleRecoveryConfig::SignatureKey() const
 {
-	FString Key = FString::Printf(TEXT(":RecoveryV2:%d:%d"), bEnabled, int32(MinimumInterruptTier));
+	FString Key = FString::Printf(TEXT(":RecoveryTapsV3:%d:%d:%d"), bEnabled, int32(MinimumInterruptTier), RequiredPresses);
 	for (float V : {MaximumGroundSlope, DriveEnterTilt, DriveExitTilt, DriveStableSeconds, SupportDistance,
-		MinimumRecoveryTilt, FlippedSeconds, MaximumLinearSpeed, MaximumAngularSpeed, HoldSeconds, MaximumExecutionSeconds,
-		CooldownSeconds, SuccessTilt, AngularPositionGain, AngularDampingGain, MaximumAngularAcceleration, MaximumRecoveryAngularSpeed})
+		MinimumRecoveryTilt, FlippedSeconds, MaximumLinearSpeed, MaximumAngularSpeed, SuccessAngularSpeed,
+		SupportGraceSeconds, PressDecayDelay, SecondsPerLostPress, MaximumExecutionSeconds,
+		CooldownSeconds, SuccessTilt, AngularPositionGain, AngularDampingGain, MaximumAngularAcceleration, MaximumRecoveryAngularSpeed, LiftBrakingAcceleration})
 	{ Key += FString::Printf(TEXT(":%.9g"), V); }
 	return Key;
 }
@@ -72,19 +76,41 @@ void FVehicleRecoveryPhysicsState::Serialize(FArchive& Ar)
 	if (!IsValid()) { Ar.SetError(); }
 }
 
-bool FVehicleRecoveryClock::Advance(const FVehicleRecoveryConfig& Config, bool bEligible, bool bHeld, float DeltaTime)
+void FVehicleRecoveryClock::ResetAttempt()
 {
-	if (!FMath::IsFinite(DeltaTime) || DeltaTime <= 0) { return false; }
-	const float PreviousFlipped = Flipped, PreviousCooldown = Cooldown;
+	bAttemptActive = false;
+	Flipped = Presses = IdleSeconds = UnsupportedSeconds = 0;
+}
+
+bool FVehicleRecoveryClock::Advance(const FVehicleRecoveryConfig& Config, bool bEligible, bool bBriefSupportLoss,
+	bool bPressed, float DeltaTime)
+{
+	if (!FMath::IsFinite(DeltaTime) || DeltaTime < 0) { return false; }
 	Cooldown = FMath::Max(0.f, Cooldown-DeltaTime);
-	Flipped = bEligible ? FMath::Min(Config.FlippedSeconds, Flipped+DeltaTime) : 0;
-	if (!bEligible || !bHeld || Cooldown > 0 || Flipped+KINDA_SMALL_NUMBER < Config.FlippedSeconds)
-	{ Hold = 0; return false; }
-	// Eligibility time and hold time never consume the same slice of game time.
-	const float ValidHoldDelta = FMath::Min(FMath::Clamp(PreviousFlipped+DeltaTime-Config.FlippedSeconds, 0.f, DeltaTime),
-		FMath::Clamp(DeltaTime-PreviousCooldown,0.f,DeltaTime));
-	Hold = FMath::Min(Config.HoldSeconds, Hold+ValidHoldDelta);
-	return Hold+KINDA_SMALL_NUMBER >= Config.HoldSeconds;
+	if (Cooldown > 0) { return false; }
+	if (!bEligible)
+	{
+		UnsupportedSeconds += DeltaTime;
+		if (!bBriefSupportLoss || UnsupportedSeconds > Config.SupportGraceSeconds + KINDA_SMALL_NUMBER) { ResetAttempt(); }
+		return false;
+	}
+	if (bAttemptActive && UnsupportedSeconds == 0)
+	{
+		// A single observation after a GT hitch cannot establish sustained support.
+		if (DeltaTime <= .1f + KINDA_SMALL_NUMBER) { Flipped = FMath::Min(Config.FlippedSeconds, Flipped + DeltaTime); }
+		const float OldIdle = IdleSeconds;
+		IdleSeconds += DeltaTime;
+		const float DecayTime = FMath::Clamp(IdleSeconds - Config.PressDecayDelay, 0.f, IdleSeconds - OldIdle);
+		Presses = FMath::Max(0.f, Presses - DecayTime / Config.SecondsPerLostPress);
+	}
+	bAttemptActive = true;
+	UnsupportedSeconds = 0;
+	if (bPressed)
+	{
+		Presses = FMath::Min(float(Config.RequiredPresses), Presses + 1);
+		IdleSeconds = 0;
+	}
+	return Flipped + KINDA_SMALL_NUMBER >= Config.FlippedSeconds && Presses + KINDA_SMALL_NUMBER >= Config.RequiredPresses;
 }
 
 FVector HALVehicleRecovery::AngularAcceleration(const FVehicleRecoveryConfig& Config, const FVehicleRecoveryPhysicsState& State,
